@@ -27,6 +27,7 @@ import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
+import {CronsLandingPanel} from 'sentry/views/insights/crons/components/cronsLandingPanel';
 
 interface DetectorHeadingInfo {
   description: string;
@@ -160,32 +161,36 @@ export default function DetectorsList() {
           docsUrl={docsUrl}
         >
           <TableHeader />
-          <div>
-            <VisuallyCompleteWithData
-              hasData={(detectors?.length ?? 0) > 0}
-              id="MonitorsList-Table"
-              isLoading={isLoading}
-            >
-              <DetectorListTable
-                detectors={detectors ?? []}
-                isPending={isLoading}
-                isError={isError}
-                isSuccess={isSuccess}
-                sort={sort}
-                queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
-                allResultsVisible={allResultsVisible()}
+          {detectors?.length || detectorFilter !== 'monitor_check_in_failure' ? (
+            <div>
+              <VisuallyCompleteWithData
+                hasData={(detectors?.length ?? 0) > 0}
+                id="MonitorsList-Table"
+                isLoading={isLoading}
+              >
+                <DetectorListTable
+                  detectors={detectors ?? []}
+                  isPending={isLoading}
+                  isError={isError}
+                  isSuccess={isSuccess}
+                  sort={sort}
+                  queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
+                  allResultsVisible={allResultsVisible()}
+                />
+              </VisuallyCompleteWithData>
+              <Pagination
+                pageLinks={pageLinks}
+                onCursor={newCursor => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {...location.query, cursor: newCursor},
+                  });
+                }}
               />
-            </VisuallyCompleteWithData>
-            <Pagination
-              pageLinks={pageLinks}
-              onCursor={newCursor => {
-                navigate({
-                  pathname: location.pathname,
-                  query: {...location.query, cursor: newCursor},
-                });
-              }}
-            />
-          </div>
+            </div>
+          ) : (
+            <CronsLandingPanel />
+          )}
         </ListLayout>
       </PageFiltersContainer>
     </SentryDocumentTitle>
