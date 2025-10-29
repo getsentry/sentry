@@ -56,7 +56,7 @@ export function PreprodBuildsTable({
       <SimpleTable.Row key={build.id}>
         <FullRowLink to={linkUrl}>
           <InteractionStateLayer />
-          <SimpleTable.RowCell justify="flex-start">
+          <SimpleTable.RowCell justify="start">
             {build.app_info?.name || build.app_info?.app_id ? (
               <Flex direction="column" gap="xs">
                 <Flex align="center" gap="sm">
@@ -90,7 +90,7 @@ export function PreprodBuildsTable({
             ) : null}
           </SimpleTable.RowCell>
 
-          <SimpleTable.RowCell justify="flex-start">
+          <SimpleTable.RowCell justify="start">
             <Flex direction="column" gap="xs">
               <Flex align="center" gap="xs">
                 {build.app_info?.version !== null && (
