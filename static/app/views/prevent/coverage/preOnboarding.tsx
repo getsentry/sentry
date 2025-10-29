@@ -43,7 +43,7 @@ export default function TestsPreOnboardingPage() {
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <LayoutGap>
             <Panel>
               <IntroSection>

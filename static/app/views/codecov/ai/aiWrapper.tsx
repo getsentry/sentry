@@ -245,7 +245,7 @@ export default function AIPageWrapper() {
       </Layout.Header>
       <Layout.Body>
         <PreventQueryParamsProvider>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <Outlet />
           </Layout.Main>
           <SettingsPanel isOpen={isSettingsPanelOpen} onClose={handleCloseSettings} />
