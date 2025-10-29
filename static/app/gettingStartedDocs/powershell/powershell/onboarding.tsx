@@ -1,21 +1,13 @@
 import {ExternalLink} from 'sentry/components/core/link';
-import altCrashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/altCrashReportCallout';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportApiIntroduction,
-  getCrashReportInstallDescription,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-type Params = DocsParams;
-
-const getConfigureSnippet = (params: Params) => `
+const getConfigureSnippet = (params: DocsParams) => `
 # You need to import the module once in a script.
 Import-Module Sentry
 
@@ -58,7 +50,7 @@ $span.Finish()
 
 $transaction.Finish() # Mark the transaction as finished and send it to Sentry`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     t(
       'Sentry for PowerShell module supports PowerShell 7.2+ on Windows, macOS, and Linux as well as Windows PowerShell 5.1+.'
@@ -169,38 +161,3 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-export const powershellFeedbackOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportApiIntroduction(),
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportInstallDescription(),
-        },
-        {
-          type: 'code',
-          language: 'powershell',
-          code: `$eventId = "An event that will receive user feedback." | Out-Sentry
-[Sentry.SentrySdk]::CaptureUserFeedback($eventId, "user@example.com", "It broke.", "The User")`,
-        },
-        {
-          type: 'custom',
-          content: altCrashReportCallout(),
-        },
-      ],
-    },
-  ],
-  configure: () => [],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  feedbackOnboardingCrashApi: powershellFeedbackOnboarding,
-};
-
-export default docs;
