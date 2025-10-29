@@ -224,7 +224,7 @@ describe('SearchQueryBuilder', () => {
         ).not.toBeInTheDocument();
       });
 
-      it('does not display footer when using a wildcard operator', async () => {
+      it('renders swap to is for * when using a wildcard operator', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />,
           {organization: {features: ['search-query-builder-wildcard-operators']}}
@@ -250,10 +250,9 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
-
         expect(
-          screen.queryByText('Wildcard (*) matching allowed')
-        ).not.toBeInTheDocument();
+          screen.getByText('Switch to "is" operator to use wildcard (*) matching')
+        ).toBeInTheDocument();
       });
     });
   });
@@ -4249,6 +4248,25 @@ describe('SearchQueryBuilder', () => {
       expect(
         screen.getByRole('row', {name: 'span.description:"random value"'})
       ).toBeInTheDocument();
+    });
+
+    it('escapes * for is op but not contains op', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'test*');
+
+      const options = within(screen.getByRole('listbox')).getAllByRole('option');
+      expect(options).toHaveLength(2);
+
+      expect(options[0]).toHaveTextContent('span.description contains test\\*');
+      expect(options[1]).toHaveTextContent('span.description is test*');
     });
 
     describe('with wildcard operators enabled', () => {

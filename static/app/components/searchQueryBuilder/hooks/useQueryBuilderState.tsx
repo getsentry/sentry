@@ -727,7 +727,13 @@ export function replaceFreeTextTokens(
     }
 
     const value = escapeTagValue(token.text.trim());
-    replacedQuery.push(`${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`);
+    replacedQuery.push(
+      // We don't want to break user flows, so if they include an asterisk in their free
+      // text value, leave it as an `is` filter.
+      value.includes('*')
+        ? `${primarySearchKey}:${value}`
+        : `${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`
+    );
   }
 
   const finalQuery = replacedQuery.join(' ').trim();
