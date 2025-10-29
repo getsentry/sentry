@@ -1,10 +1,15 @@
+import logging
+
 from django.db import router, transaction
 
+from sentry import features
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleDetectionType
-from sentry.seer.anomaly_detection.store_data import (
-    SeerMethod,
-    handle_send_historical_data_to_seer_legacy,
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.incidents.subscription_processor import MetricIssueDetectorConfig
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.seer.anomaly_detection.store_data import SeerMethod
+from sentry.seer.anomaly_detection.store_data_workflow_engine import (
+    handle_send_historical_data_to_seer,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
@@ -15,6 +20,10 @@ from sentry.snuba.models import (
 )
 from sentry.snuba.tasks import update_subscription_in_snuba
 from sentry.utils.db import atomic_transaction
+from sentry.workflow_engine.models.data_source import DataSource
+from sentry.workflow_engine.models.detector import DataCondition
+
+logger = logging.getLogger(__name__)
 
 
 def snapshot_snuba_query(snuba_query: SnubaQuery):
@@ -32,13 +41,22 @@ def snapshot_snuba_query(snuba_query: SnubaQuery):
     return snuba_query
 
 
-def translate_alert_rule_and_update_subscription_in_snuba(alert_rule: AlertRule):
-    snuba_query: SnubaQuery = alert_rule.snuba_query
+def translate_alert_rule_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
+    data_source: DataSource = DataSource.objects.get(
+        source_id=snuba_query.id, type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+    )
+    if not features.has(
+        "organizations:migrate-transaction-alerts-to-spans", data_source.organization
+    ):
+        logger.info("Feature flag not enabled")
+        return
+
+    detectors = data_source.detectors.all()
     snapshot_snuba_query(snuba_query)
 
     snapshot = snuba_query.query_snapshot
     if not snapshot:
-        return alert_rule
+        return
 
     old_query_type = SnubaQuery.Type(snuba_query.type)
     old_dataset = Dataset(snuba_query.dataset)
@@ -55,7 +73,7 @@ def translate_alert_rule_and_update_subscription_in_snuba(alert_rule: AlertRule)
     )
 
     if dropped_fields["selected_columns"]:
-        return alert_rule
+        return
 
     translated_aggregate = eap_query_parts["selected_columns"][0]
     translated_query = eap_query_parts["query"]
@@ -97,25 +115,41 @@ def translate_alert_rule_and_update_subscription_in_snuba(alert_rule: AlertRule)
                 using=router.db_for_write(QuerySubscription),
             )
 
-    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
-        project = alert_rule.projects.get()
-        handle_send_historical_data_to_seer_legacy(
-            alert_rule,
-            snuba_query,
-            project,
-            SeerMethod.UPDATE,
-            event_types=[SnubaQueryEventType.EventType.TRACE_ITEM_SPAN],
-        )
+    for detector in detectors:
+        detector_cfg: MetricIssueDetectorConfig = detector.config
+        if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
+            data_condition = DataCondition.objects.get(
+                condition_group=detector.workflow_condition_group
+            )
+            handle_send_historical_data_to_seer(
+                detector,
+                data_source,
+                data_condition,
+                snuba_query,
+                detector.project,
+                SeerMethod.UPDATE,
+                event_types=[SnubaQueryEventType.EventType.TRACE_ITEM_SPAN],
+            )
 
-    return alert_rule
+    return
 
 
-def rollback_alert_rule_query_and_update_subscription_in_snuba(alert_rule: AlertRule):
-    snuba_query: SnubaQuery = alert_rule.snuba_query
+def rollback_alert_rule_query_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
+    data_source: DataSource = DataSource.objects.get(
+        source_id=snuba_query.id, type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+    )
+    if not features.has(
+        "organizations:migrate-transaction-alerts-to-spans", data_source.organization
+    ):
+        logger.info("Feature flag not enabled")
+        return
+
     snapshot = snuba_query.query_snapshot
 
     if not snapshot:
-        return alert_rule
+        return
+
+    detectors = data_source.detectors.all()
 
     old_query_type = SnubaQuery.Type(snuba_query.type)
     old_dataset = Dataset(snuba_query.dataset)
@@ -156,14 +190,20 @@ def rollback_alert_rule_query_and_update_subscription_in_snuba(alert_rule: Alert
                 using=router.db_for_write(QuerySubscription),
             )
 
-    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-        project = alert_rule.projects.get()
-        handle_send_historical_data_to_seer_legacy(
-            alert_rule,
-            snuba_query,
-            project,
-            SeerMethod.UPDATE,
-            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
-        )
+    for detector in detectors:
+        detector_cfg: MetricIssueDetectorConfig = detector.config
+        if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
+            data_condition = DataCondition.objects.get(
+                condition_group=detector.workflow_condition_group
+            )
+            handle_send_historical_data_to_seer(
+                detector,
+                data_source,
+                data_condition,
+                snuba_query,
+                detector.project,
+                SeerMethod.UPDATE,
+                event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            )
 
-    return alert_rule
+    return
