@@ -163,7 +163,7 @@ class SubscriptionProcessor:
             self.subscription.project.organization,
         ):
             logger.info(
-                "workflow_engine.results",
+                "incidents.workflow_engine.results",
                 extra={
                     "results": results,
                     "num_results": len(results),
