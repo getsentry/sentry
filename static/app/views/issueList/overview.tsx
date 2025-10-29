@@ -176,6 +176,12 @@ function IssueListOverview({
   );
 
   useEffect(() => {
+    // Either cleanup or reuse the poller to prevent a resource leak.
+    if (pollerRef.current) {
+      pollerRef.current.setEndpoint(parseLinkHeader(pageLinks)?.previous?.href!);
+      return;
+    }
+
     pollerRef.current = new CursorPoller({
       linkPreviousHref: parseLinkHeader(pageLinks)?.previous?.href!,
       success: onRealtimePoll,

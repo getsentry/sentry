@@ -20,6 +20,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
 )
 from sentry_protos.snuba.v1.request_common_pb2 import (
     PageToken,
+    RequestMeta,
     ResponseMeta,
     TraceItemFilterWithType,
     TraceItemType,
@@ -47,7 +48,7 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.sampling import handle_downsample_meta
+from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
 from sentry.search.eap.types import (
     CONFIDENCES,
     AdditionalQueries,
@@ -217,8 +218,10 @@ class RPCBase:
         cross_trace_queries = cls.get_cross_trace_queries(query)
 
         trace_column, _ = resolver.resolve_column("trace")
-        if isinstance(trace_column, ResolvedAttribute) and has_top_level_trace_condition(
-            where, trace_column
+        if (
+            isinstance(trace_column, ResolvedAttribute)
+            and can_force_highest_accuracy(meta)
+            and has_top_level_trace_condition(where, trace_column)
         ):
             # We noticed that the query has a top level condition for trace id, in this situation,
             # we want to force the query to to highest accuracy mode to ensure we get an accurate
@@ -364,10 +367,7 @@ class RPCBase:
         """Process the results"""
         final_data: SnubaData = []
         final_confidence: ConfidenceData = []
-        final_meta: EventsMeta = EventsMeta(
-            fields={},
-            full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
-        )
+        final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
         # Mapping from public alias to resolved column so we know type etc.
         columns_by_name = {col.public_alias: col for col in table_request.columns}
 
@@ -557,8 +557,10 @@ class RPCBase:
         query, _, query_contexts = search_resolver.resolve_query(query_string)
 
         trace_column, _ = search_resolver.resolve_column("trace")
-        if isinstance(trace_column, ResolvedAttribute) and has_top_level_trace_condition(
-            query, trace_column
+        if (
+            isinstance(trace_column, ResolvedAttribute)
+            and can_force_highest_accuracy(meta)
+            and has_top_level_trace_condition(query, trace_column)
         ):
             # We noticed that the query has a top level condition for trace id, in this situation,
             # we want to force the query to to highest accuracy mode to ensure we get an accurate
@@ -767,10 +769,7 @@ class RPCBase:
         """Process the results"""
         map_result_key_to_timeseries = defaultdict(list)
 
-        final_meta: EventsMeta = EventsMeta(
-            fields={},
-            full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
-        )
+        final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
 
         if params.debug:
             set_debug_meta(final_meta, rpc_response.meta, rpc_request)
@@ -859,6 +858,15 @@ class RPCBase:
         additional_attributes: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         raise NotImplementedError()
+
+
+def can_force_highest_accuracy(meta: RequestMeta) -> bool:
+    # when using MODE_HIGHEST_ACCURACY_FLEXTIME, we cannot force highest accuracy
+    # because it can affect how the page tokens are computed by snuba
+    return (
+        meta.downsampled_storage_config.mode
+        != DownsampledStorageConfig.MODE_HIGHEST_ACCURACY_FLEXTIME
+    )
 
 
 def has_top_level_trace_condition(

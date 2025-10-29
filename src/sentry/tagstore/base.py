@@ -328,6 +328,7 @@ class TagStorage(Service):
         keys: list[str] | None = None,
         value_limit=TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
+        include_empty_values=False,
         **kwargs,
     ):
 

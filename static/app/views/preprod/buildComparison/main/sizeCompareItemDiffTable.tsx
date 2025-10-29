@@ -1,7 +1,11 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Flex} from 'sentry/components/core/layout/flex';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import TextOverflow from 'sentry/components/textOverflow';
 import {IconAdd, IconFix, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
@@ -144,7 +148,37 @@ export function SizeCompareItemDiffTable({diffItems}: SizeCompareItemDiffTablePr
                 {changeTypeLabel}
               </ChangeTag>
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell>{diffItem.path}</SimpleTable.RowCell>
+            <SimpleTable.RowCell justify="flex-start" style={{minWidth: 0}}>
+              <Tooltip
+                title={
+                  diffItem.path ? (
+                    <Flex
+                      align="start"
+                      gap="xs"
+                      style={{maxWidth: '100%', textAlign: 'left'}}
+                    >
+                      <FilePathTooltipText>{diffItem.path}</FilePathTooltipText>
+                      <CopyToClipboardButton
+                        borderless
+                        size="zero"
+                        text={diffItem.path}
+                        style={{flexShrink: 0}}
+                      />
+                    </Flex>
+                  ) : null
+                }
+                disabled={!diffItem.path}
+                isHoverable
+                maxWidth={420}
+              >
+                <TextOverflow
+                  ellipsisDirection="right"
+                  style={{display: 'block', width: '100%'}}
+                >
+                  {diffItem.path ?? ''}
+                </TextOverflow>
+              </Tooltip>
+            </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               {capitalize(diffItem.item_type ?? '')}
             </SimpleTable.RowCell>
@@ -167,9 +201,7 @@ export function SizeCompareItemDiffTable({diffItems}: SizeCompareItemDiffTablePr
 const SimpleTableWithColumns = styled(SimpleTable)`
   overflow-x: auto;
   overflow-y: auto;
-  grid-template-columns:
-    minmax(120px, 0.5fr) minmax(200px, 3fr) minmax(100px, 0.5fr) minmax(100px, 0.5fr)
-    minmax(100px, 0.5fr);
+  grid-template-columns: 150px minmax(200px, 3fr) 120px 120px 120px;
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   border-left: 0px;
   border-right: 0px;
@@ -214,6 +246,14 @@ const ChangeTag = styled('span')<{changeType: DiffType}>`
         throw new Error(`Invalid change type: ${p.changeType}`);
     }
   }};
+`;
+
+const FilePathTooltipText = styled('span')`
+  flex: 1;
+  overflow-wrap: break-word;
+  word-break: break-all;
+  white-space: normal;
+  user-select: text;
 `;
 
 const ChangeAmountCell = styled(SimpleTable.RowCell)<{changeType: DiffType}>`

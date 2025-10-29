@@ -92,6 +92,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     platformKey: currentPlatformKey,
     project,
     isLogsSelected: false,
+    isMetricsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: false,
     isProfilingSelected: false,

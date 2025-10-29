@@ -30,8 +30,15 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   // Custom hooks
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
-  const {sessionData, sendMessage, deleteFromIndex, startNewSession, isPolling} =
-    useSeerExplorer();
+  const {
+    sessionData,
+    sendMessage,
+    deleteFromIndex,
+    startNewSession,
+    isPolling,
+    interruptRun,
+    interruptRequested,
+  } = useSeerExplorer();
 
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
@@ -106,7 +113,10 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   }, [blocks]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Escape' && isPolling && !interruptRequested) {
+      e.preventDefault();
+      interruptRun();
+    } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (inputValue.trim() && !isPolling) {
         sendMessage(inputValue.trim());
@@ -194,7 +204,9 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
               blockIndex={index}
               isLast={index === blocks.length - 1}
               isFocused={focusedBlockIndex === index}
+              isPolling={isPolling}
               onClick={() => handleBlockClick(index)}
+              onMouseEnter={() => setFocusedBlockIndex(index)}
               onDelete={() => deleteFromIndex(index)}
               onNavigate={() => setIsMinimized(true)}
               onRegisterEnterHandler={handler => {
@@ -209,6 +221,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         inputValue={inputValue}
         focusedBlockIndex={focusedBlockIndex}
         showSlashCommands={showSlashCommands}
+        isPolling={isPolling}
+        interruptRequested={interruptRequested}
         onInputChange={handleInputChange}
         onKeyDown={handleKeyDown}
         onInputClick={handleInputClick}

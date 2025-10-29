@@ -13,7 +13,6 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
 
@@ -134,7 +133,6 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
         self.integration.add_organization(self.organization, self.user)
 
     @responses.activate
-    @with_feature("organizations:jira-paginated-projects")
     def test_serialize_organizationintegration_with_create_issue_config_for_jira(self) -> None:
         """Test the flow of choosing ticket creation on alert rule fire action
         then serializes the issue config correctly for Jira"""

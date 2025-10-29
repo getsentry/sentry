@@ -74,10 +74,6 @@ class CachedAttachment:
         return self._data
 
     def delete(self):
-        if self.stored_id:
-            # TODO: delete the stored file
-            raise NotImplementedError()
-
         for key in self.chunk_keys:
             self._cache.inner.delete(key)
 
@@ -101,6 +97,7 @@ class CachedAttachment:
     def meta(self) -> dict:
         return prune_empty_keys(
             {
+                "key": self.key,
                 "id": self.id,
                 "name": self.name,
                 "rate_limited": self.rate_limited,
@@ -117,17 +114,19 @@ class BaseAttachmentCache:
     def __init__(self, inner):
         self.inner = inner
 
-    def set(self, key: str, attachments: list[CachedAttachment], timeout=None):
+    def set(
+        self, key: str, attachments: list[CachedAttachment], timeout=None, set_metadata=True
+    ) -> list[dict]:
         for id, attachment in enumerate(attachments):
-            if attachment.chunks is not None or attachment.stored_id is not None:
-                continue
-
             # TODO(markus): We need to get away from sequential IDs, they
             # are risking collision when using Relay.
             if attachment.id is None:
                 attachment.id = id
             if attachment.key is None:
                 attachment.key = key
+
+            if attachment.chunks is not None or attachment.stored_id is not None:
+                continue
 
             metrics_tags = {"type": attachment.type}
             self.set_unchunked_data(
@@ -143,7 +142,10 @@ class BaseAttachmentCache:
             attachment._cache = self
             meta.append(attachment.meta())
 
-        self.inner.set(ATTACHMENT_META_KEY.format(key=key), meta, timeout, raw=False)
+        if set_metadata:
+            self.inner.set(ATTACHMENT_META_KEY.format(key=key), meta, timeout, raw=False)
+
+        return meta
 
     def set_chunk(self, key: str, id: int, chunk_index: int, chunk_data: bytes, timeout=None):
         key = ATTACHMENT_DATA_CHUNK_KEY.format(key=key, id=id, chunk_index=chunk_index)
@@ -183,7 +185,7 @@ class BaseAttachmentCache:
 
         return bytes(data)
 
-    @sentry_sdk.tracing.trace
+    @sentry_sdk.trace
     def delete(self, key: str):
         for attachment in self.get(key):
             attachment.delete()

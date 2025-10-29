@@ -5,6 +5,7 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import Any
 
+import sentry_sdk
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
@@ -293,6 +294,8 @@ def process_status_change_message(
             )
             return None
         txn.set_tag("group_id", group.id)
+
+    sentry_sdk.set_tag("group_type", group.issue_type.slug)
 
     with metrics.timer(
         "occurrence_consumer._process_message.status_change.update_group_status",

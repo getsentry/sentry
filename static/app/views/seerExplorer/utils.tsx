@@ -57,7 +57,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   get_issue_details: (args, isLoading) => {
     const issueId = args.issue_id || '';
     const selectedEvent = args.selected_event;
-    if (selectedEvent && selectedEvent !== 'recommended') {
+    if (selectedEvent) {
       return isLoading
         ? `Inspecting issue ${issueId} (${selectedEvent} event)...`
         : `Inspected issue ${issueId} (${selectedEvent} event)`;
@@ -118,6 +118,8 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     const repoName = args.repo_name || 'repository';
     const sha = args.sha;
     const filePath = args.file_path;
+    const startDate = args.start_date;
+    const endDate = args.end_date;
 
     if (sha) {
       const shortSha = sha.slice(0, 7);
@@ -126,17 +128,29 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
         : `Dug up commit ${shortSha} from ${repoName}`;
     }
 
+    // Build date range string if dates are provided
+    let dateRangeStr = '';
+    if (startDate || endDate) {
+      if (startDate && endDate) {
+        dateRangeStr = ` from ${startDate} to ${endDate}`;
+      } else if (startDate) {
+        dateRangeStr = ` since ${startDate}`;
+      } else if (endDate) {
+        dateRangeStr = ` until ${endDate}`;
+      }
+    }
+
     if (filePath) {
       const truncatedPath =
         filePath.length > 40 ? filePath.slice(0, 40) + '...' : filePath;
       return isLoading
-        ? `Excavating commits affecting '${truncatedPath}' in ${repoName}...`
-        : `Excavated commits affecting '${truncatedPath}' in ${repoName}`;
+        ? `Excavating commits affecting '${truncatedPath}'${dateRangeStr} in ${repoName}...`
+        : `Excavated commits affecting '${truncatedPath}'${dateRangeStr} in ${repoName}`;
     }
 
     return isLoading
-      ? `Excavating commit history in ${repoName}...`
-      : `Excavated commit history in ${repoName}`;
+      ? `Excavating commit history${dateRangeStr} in ${repoName}...`
+      : `Excavated commit history${dateRangeStr} in ${repoName}`;
   },
 };
 
@@ -181,17 +195,27 @@ export function getToolsStringFromBlock(block: Block): string[] {
  */
 export function buildToolLinkUrl(
   toolLink: ToolLink,
-  orgSlug: string
+  orgSlug: string,
+  projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
   switch (toolLink.kind) {
     case 'trace_explorer_query': {
-      const {query, stats_period, y_axes, group_by, sort, mode} = toolLink.params;
+      const {query, stats_period, y_axes, group_by, sort, mode, project_slug} =
+        toolLink.params;
 
       // Transform backend params to frontend format
       const queryParams: Record<string, any> = {
         query: query || '',
         project: null,
       };
+
+      // If project_slug is provided, look up the project ID
+      if (project_slug && projects) {
+        const project = projects.find(p => p.slug === project_slug);
+        if (project) {
+          queryParams.project = project.id;
+        }
+      }
 
       const aggregateFields: any[] = [];
       if (stats_period) {
