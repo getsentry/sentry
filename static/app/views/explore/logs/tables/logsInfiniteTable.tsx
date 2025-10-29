@@ -118,6 +118,9 @@ export function LogsInfiniteTable({
     isFetchingPreviousPage,
     lastPageLength,
     isRefetching,
+    bytesScanned,
+    canResumeAutoFetch,
+    resumeAutoFetch,
   } = useLogsPageDataQueryResult();
 
   // Use filtered items if provided, otherwise use original data
@@ -386,9 +389,19 @@ export function LogsInfiniteTable({
             </TableRow>
           )}
           {/* Only render these in table for non-replay contexts */}
-          {!hasReplay && isPending && <LoadingRenderer />}
+          {!hasReplay && isPending && <LoadingRenderer bytesScanned={bytesScanned} />}
           {!hasReplay && isError && <ErrorRenderer />}
-          {!hasReplay && isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
+          {!hasReplay &&
+            isEmpty &&
+            (emptyRenderer ? (
+              emptyRenderer()
+            ) : (
+              <EmptyRenderer
+                bytesScanned={bytesScanned}
+                canResumeAutoFetch={canResumeAutoFetch}
+                resumeAutoFetch={resumeAutoFetch}
+              />
+            ))}
           {!autoRefresh && !isPending && isFetchingPreviousPage && (
             <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
           )}
@@ -542,11 +555,16 @@ function LogsTableHeader({
   );
 }
 
-function EmptyRenderer() {
-  const {bytesScanned, canResumeAutoFetch, resumeAutoFetch} =
-    useLogsPageDataQueryResult();
-
-  if (canResumeAutoFetch) {
+function EmptyRenderer({
+  bytesScanned,
+  canResumeAutoFetch,
+  resumeAutoFetch,
+}: {
+  bytesScanned?: number;
+  canResumeAutoFetch?: boolean;
+  resumeAutoFetch?: () => void;
+}) {
+  if (bytesScanned && canResumeAutoFetch && resumeAutoFetch) {
     return (
       <TableStatus>
         <EmptyStateWarning withIcon>
@@ -603,9 +621,7 @@ function ErrorRenderer() {
   );
 }
 
-export function LoadingRenderer() {
-  const {bytesScanned} = useLogsPageDataQueryResult();
-
+export function LoadingRenderer({bytesScanned}: {bytesScanned?: number}) {
   return (
     <TableStatus>
       <LoadingStateContainer>
