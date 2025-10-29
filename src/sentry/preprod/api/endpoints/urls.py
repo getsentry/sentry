@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.urls import re_path
 
-from sentry.preprod.api.endpoints.project_preprod_artifact_icon import (
+from sentry.preprod.api.endpoints.project_preprod_artifact_image import (
     ProjectPreprodArtifactImageEndpoint,
 )
 from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare import (
@@ -87,7 +87,7 @@ preprod_urlpatterns = [
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/images/(?P<image_id>[^/]+)/$",
         ProjectPreprodArtifactImageEndpoint.as_view(),
-        name="sentry-api-0-project-preprod-app-icon",
+        name="sentry-api-0-project-preprod-artifact-image",
     ),
     # Size analysis
     re_path(
