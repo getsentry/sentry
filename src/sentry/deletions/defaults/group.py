@@ -348,7 +348,7 @@ def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Gro
     issue_platform_groups = []
     for group in instance_list:
         # XXX: If a group type has been removed, we shouldn't error here.
-        # Ideally, we should refactor `issue_type` to return None if the type is
+        # Ideally, we should refactor `issue_category` to return None if the type is
         # unregistered.
         try:
             if not options.get("deletions.fetch-subset-of-fields"):
