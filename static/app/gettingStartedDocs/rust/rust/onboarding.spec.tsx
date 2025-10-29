@@ -2,7 +2,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs from './rust';
+import docs from '.';
 
 describe('rust onboarding docs', () => {
   it('renders onboarding docs correctly', async () => {
