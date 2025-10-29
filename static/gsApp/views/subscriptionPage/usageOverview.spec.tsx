@@ -90,6 +90,8 @@ describe('UsageOverview', () => {
   });
 
   it('renders table based on subscription state', () => {
+    subscription.onDemandPeriodStart = '2025-05-02';
+    subscription.onDemandPeriodEnd = '2025-06-01';
     subscription.onDemandMaxSpend = 100_00;
     subscription.productTrials = [
       {
@@ -137,6 +139,8 @@ describe('UsageOverview', () => {
         usageData={usageData}
       />
     );
+
+    expect(screen.getByText('May 2 - Jun 1, 2025')).toBeInTheDocument();
 
     // Continuous profile hours product trial available
     expect(

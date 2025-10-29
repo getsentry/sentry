@@ -311,7 +311,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             )
             assert (
                 createSubscriptionRequest.time_series_request.expressions[0].aggregation.key.name
-                == "sentry.duration_ms"
+                == "sentry.project_id"
             )
             # Validate that the spm function uses the correct time window
             sub = QuerySubscription.objects.get(id=sub.id)

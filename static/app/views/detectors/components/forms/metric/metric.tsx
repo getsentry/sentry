@@ -49,6 +49,7 @@ import {
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
 import {ResolveSection} from 'sentry/views/detectors/components/forms/metric/resolveSection';
+import {useAutoMetricDetectorName} from 'sentry/views/detectors/components/forms/metric/useAutoMetricDetectorName';
 import {useInitialMetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/useInitialMetricDetectorFormData';
 import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric/useIntervalChoices';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
@@ -60,6 +61,8 @@ import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/met
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 function MetricDetectorForm() {
+  useAutoMetricDetectorName();
+
   return (
     <FormStack>
       <TransactionsDatasetWarningListener />

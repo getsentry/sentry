@@ -1,10 +1,13 @@
 import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 
 interface WorkflowEngineListLayoutProps {
   actions: React.ReactNode;
   /** The main content for this page */
   children: React.ReactNode;
+  description: string;
+  docsUrl: string;
   title: string;
 }
 
@@ -16,12 +19,17 @@ function WorkflowEngineListLayout({
   children,
   actions,
   title,
+  description,
+  docsUrl,
 }: WorkflowEngineListLayoutProps) {
   return (
     <Layout.Page>
       <Layout.Header unified>
         <Layout.HeaderContent>
-          <Layout.Title>{title}</Layout.Title>
+          <Layout.Title>
+            {title}
+            <PageHeadingQuestionTooltip docsUrl={docsUrl} title={description} />
+          </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>{actions}</Layout.HeaderActions>
       </Layout.Header>
