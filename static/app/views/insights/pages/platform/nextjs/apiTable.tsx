@@ -58,7 +58,6 @@ export function ApiTable() {
       'count()',
       'sum(span.duration)',
     ],
-    cursorParamName: 'tableCursor',
     referrer: Referrer.API_TABLE,
   });
 
@@ -68,7 +67,6 @@ export function ApiTable() {
         sortKey={column.key}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
         forceCellGrow={column.key === 'transaction'}
-        cursorParamName="tableCursor"
       >
         {column.name}
       </HeadSortCell>
@@ -132,7 +130,6 @@ export function ApiTable() {
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="tableCursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />
