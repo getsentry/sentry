@@ -90,13 +90,7 @@ export function AppSizeInsightsSidebarRow({
         <Text variant="primary" size="md" bold>
           {insight.name}
         </Text>
-        <Flex
-          align="center"
-          gap="sm"
-          style={{
-            flexShrink: 0,
-          }}
-        >
+        <Flex align="center" gap="sm" shrink={0}>
           <Text size="sm" tabular>
             {t('Potential savings %s', formatBytesBase10(insight.totalSavings))}
           </Text>
@@ -204,11 +198,10 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
       justify="between"
       gap="lg"
       padding="xs sm"
+      radius="sm"
+      overflow="hidden"
       style={{
-        borderRadius: '4px',
         minWidth: 0,
-        maxWidth: '100%',
-        overflow: 'hidden',
       }}
     >
       <Text size="sm" ellipsis style={{flex: 1}}>
@@ -240,11 +233,10 @@ function DuplicateGroupFileRow({
         justify="between"
         gap="lg"
         padding="xs sm"
+        radius="sm"
+        overflow="hidden"
         style={{
-          borderRadius: '4px',
           minWidth: 0,
-          maxWidth: '100%',
-          overflow: 'hidden',
         }}
       >
         <Text size="sm" ellipsis style={{flex: 1}} bold>
@@ -269,7 +261,8 @@ function DuplicateGroupFileRow({
               size="xs"
               variant="muted"
               tabular
-              style={{minWidth: '80px', textAlign: 'right'}}
+              align="right"
+              style={{minWidth: '80px'}}
             >
               {formatBytesBase10(duplicateFile.total_savings)}
             </Text>
@@ -335,20 +328,19 @@ function OptimizableImageFileRow({
         justify="between"
         gap="lg"
         padding="xs sm"
+        radius="sm"
+        overflow="hidden"
         style={{
-          borderRadius: '4px',
           minWidth: 0,
-          maxWidth: '100%',
-          overflow: 'hidden',
         }}
       >
-        <Flex align="center" gap="xs" style={{minWidth: 0, overflow: 'hidden'}}>
+        <Flex align="center" gap="xs" overflow="hidden" style={{minWidth: 0}}>
           <Text size="sm" ellipsis style={{flex: 1}}>
             {file.path}
           </Text>
           {hasMetadata && (
             <Tooltip title={tooltipContent} isHoverable skipWrapper>
-              <Flex align="center" style={{flexShrink: 0}}>
+              <Flex align="center" shrink={0}>
                 <IconFlag size="xs" color="subText" />
               </Flex>
             </Tooltip>
@@ -373,7 +365,8 @@ function OptimizableImageFileRow({
               size="xs"
               variant="primary"
               tabular
-              style={{minWidth: '80px', textAlign: 'right'}}
+              align="right"
+              style={{minWidth: '80px'}}
             >
               -{formatBytesBase10(originalFile.minify_savings)}
             </Text>
@@ -381,7 +374,8 @@ function OptimizableImageFileRow({
               size="xs"
               variant="muted"
               tabular
-              style={{minWidth: '64px', textAlign: 'right'}}
+              align="right"
+              style={{minWidth: '64px'}}
             >
               ({formatUpside(file.data.minifyPercentage / 100)})
             </Text>
@@ -396,7 +390,8 @@ function OptimizableImageFileRow({
               size="xs"
               variant="primary"
               tabular
-              style={{minWidth: '80px', textAlign: 'right'}}
+              align="right"
+              style={{minWidth: '80px'}}
             >
               -{formatBytesBase10(originalFile.conversion_savings)}
             </Text>
@@ -404,7 +399,8 @@ function OptimizableImageFileRow({
               size="xs"
               variant="muted"
               tabular
-              style={{minWidth: '64px', textAlign: 'right'}}
+              align="right"
+              style={{minWidth: '64px'}}
             >
               ({formatUpside(file.data.conversionPercentage / 100)})
             </Text>
