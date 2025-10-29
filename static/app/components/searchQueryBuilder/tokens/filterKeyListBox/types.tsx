@@ -58,6 +58,11 @@ export interface AskSeerConsentItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
+export interface BooleanFilterItem extends SelectOptionWithKey<string> {
+  type: 'boolean-filter';
+  value: 'AND' | 'OR';
+}
+
 export type SearchKeyItem =
   | KeySectionItem
   | KeyItem
@@ -65,7 +70,8 @@ export type SearchKeyItem =
   | FilterValueItem
   | RawSearchFilterIsValueItem
   | AskSeerItem
-  | AskSeerConsentItem;
+  | AskSeerConsentItem
+  | BooleanFilterItem;
 
 export type FilterKeyItem =
   | KeyItem
@@ -76,7 +82,8 @@ export type FilterKeyItem =
   | FilterValueItem
   | RawSearchFilterIsValueItem
   | AskSeerItem
-  | AskSeerConsentItem;
+  | AskSeerConsentItem
+  | BooleanFilterItem;
 
 export type Section = {
   label: ReactNode;

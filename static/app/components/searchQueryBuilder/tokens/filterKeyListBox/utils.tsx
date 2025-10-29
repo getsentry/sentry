@@ -8,6 +8,7 @@ import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filter
 import type {
   AskSeerConsentItem,
   AskSeerItem,
+  BooleanFilterItem,
   FilterValueItem,
   KeyItem,
   KeySectionItem,
@@ -36,12 +37,14 @@ import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
 export const ALL_CATEGORY_VALUE = '__all';
 export const RECENT_SEARCH_CATEGORY_VALUE = '__recent_searches';
+export const BOOLEAN_CATEGORY_VALUE = '__boolean_filters';
 
 export const ALL_CATEGORY = {value: ALL_CATEGORY_VALUE, label: t('All')};
 export const RECENT_SEARCH_CATEGORY = {
   value: RECENT_SEARCH_CATEGORY_VALUE,
   label: t('Recent'),
 };
+export const BOOLEAN_CATEGORY = {value: BOOLEAN_CATEGORY_VALUE, label: t('Conditionals')};
 
 const RECENT_FILTER_KEY_PREFIX = '__recent_filter_key__';
 const RECENT_QUERY_KEY_PREFIX = '__recent_search__';
@@ -243,6 +246,22 @@ export function createAskSeerConsentItem(): AskSeerConsentItem {
     type: 'ask-seer-consent' as const,
     label: t('Enable Gen AI'),
     hideCheck: true,
+  };
+}
+
+export function createBooleanFilterItem({
+  value,
+}: {
+  value: 'AND' | 'OR';
+}): BooleanFilterItem {
+  return {
+    key: getEscapedKey(value),
+    type: 'boolean-filter' as const,
+    value,
+    label: value,
+    textValue: value,
+    hideCheck: true,
+    showDetailsInOverlay: true,
   };
 }
 
