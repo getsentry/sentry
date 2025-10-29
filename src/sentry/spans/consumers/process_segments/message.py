@@ -232,7 +232,7 @@ def _detect_performance_problems(
             culprit=event_data["transaction"],
             evidence_data=problem.evidence_data or {},
             evidence_display=problem.evidence_display,
-            detection_time=to_datetime(segment_span["end_timestamp"]),  # type: ignore[arg-type]  # checked in process-spans
+            detection_time=to_datetime(segment_span["end_timestamp"]),
             level="info",
         )
 
