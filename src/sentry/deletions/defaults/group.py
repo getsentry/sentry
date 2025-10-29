@@ -88,7 +88,9 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
 
     def set_group_and_project_ids(self, groups: Sequence[Group | tuple[Any, ...]]) -> None:
         # Deletion tasks always belong to the same organization.
-        if isinstance(groups[0], Group):
+        if not groups:
+            self.organization_id = None
+        elif isinstance(groups[0], Group):
             self.organization_id = groups[0].project.organization_id
         else:
             self.organization_id = groups[0][_F_IDX["project__organization_id"]]
