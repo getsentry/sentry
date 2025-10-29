@@ -1252,6 +1252,7 @@ LOGGING: LoggingConfig = {
         },
         "boto3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
         "botocore": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+        "rediscluster": {"level": "WARNING", "handlers": ["console"], "propagate": False},
     },
 }
 
