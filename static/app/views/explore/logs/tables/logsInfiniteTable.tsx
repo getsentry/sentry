@@ -30,7 +30,7 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LOGS_INSTRUCTIONS_URL,
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
@@ -105,10 +105,8 @@ export function LogsInfiniteTable({
   const fields = useQueryParamsFields();
   const search = useQueryParamsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();
-  const {infiniteLogsQueryResult} = useLogsPageData();
   const lastFetchTime = useRef<number | null>(null);
   const {
-    bytesScanned,
     isPending,
     isEmpty,
     meta,
@@ -120,7 +118,7 @@ export function LogsInfiniteTable({
     isFetchingPreviousPage,
     lastPageLength,
     isRefetching,
-  } = infiniteLogsQueryResult;
+  } = useLogsPageDataQueryResult();
 
   // Use filtered items if provided, otherwise use original data
   const data = localOnlyItemFilters?.filteredItems ?? originalData;
@@ -388,7 +386,7 @@ export function LogsInfiniteTable({
             </TableRow>
           )}
           {/* Only render these in table for non-replay contexts */}
-          {!hasReplay && isPending && <LoadingRenderer bytesScanned={bytesScanned} />}
+          {!hasReplay && isPending && <LoadingRenderer />}
           {!hasReplay && isError && <ErrorRenderer />}
           {!hasReplay && isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
           {!autoRefresh && !isPending && isFetchingPreviousPage && (
@@ -476,9 +474,7 @@ function LogsTableHeader({
   const sortBys = useQueryParamsSortBys();
   const setSortBys = useSetQueryParamsSortBys();
 
-  const {infiniteLogsQueryResult} = useLogsPageData();
-
-  const {data, meta, isError, isPending} = infiniteLogsQueryResult;
+  const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
   return (
     <TableHead>
       <LogTableRow>
@@ -547,6 +543,28 @@ function LogsTableHeader({
 }
 
 function EmptyRenderer() {
+  const {canResumeAutoFetch, resumeAutoFetch} = useLogsPageDataQueryResult();
+
+  if (canResumeAutoFetch) {
+    return (
+      <TableStatus>
+        <EmptyStateWarning withIcon>
+          <EmptyStateText size="xl">{t('This is hard...')}</EmptyStateText>
+          <EmptyStateText size="md">
+            {t("Don't give up yet. There is more data to scan. ")}
+            <Button
+              priority="link"
+              onClick={resumeAutoFetch}
+              aria-label="continue scanning"
+            >
+              {t('Continue Scanning')}
+            </Button>
+          </EmptyStateText>
+        </EmptyStateWarning>
+      </TableStatus>
+    );
+  }
+
   return (
     <TableStatus>
       <EmptyStateWarning withIcon>
@@ -576,7 +594,9 @@ function ErrorRenderer() {
   );
 }
 
-export function LoadingRenderer({bytesScanned}: {bytesScanned?: number | null}) {
+export function LoadingRenderer() {
+  const {bytesScanned} = useLogsPageDataQueryResult();
+
   return (
     <TableStatus>
       <LoadingStateContainer>
