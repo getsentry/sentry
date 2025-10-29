@@ -90,7 +90,7 @@ export function AppSizeInsightsSidebarRow({
         <Text variant="primary" size="md" bold>
           {insight.name}
         </Text>
-        <Flex align="center" gap="sm" shrink={0}>
+        <Flex align="center" gap="sm" style={{flexShrink: 0}}>
           <Text size="sm" tabular>
             {t('Potential savings %s', formatBytesBase10(insight.totalSavings))}
           </Text>
@@ -340,7 +340,7 @@ function OptimizableImageFileRow({
           </Text>
           {hasMetadata && (
             <Tooltip title={tooltipContent} isHoverable skipWrapper>
-              <Flex align="center" shrink={0}>
+              <Flex align="center" style={{flexShrink: 0}}>
                 <IconFlag size="xs" color="subText" />
               </Flex>
             </Tooltip>
