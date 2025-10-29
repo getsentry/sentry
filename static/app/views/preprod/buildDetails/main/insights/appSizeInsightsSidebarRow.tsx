@@ -55,11 +55,12 @@ export function AppSizeInsightsSidebarRow({
   const shouldShowTooltip = INSIGHTS_WITH_MORE_INFO_MODAL.includes(insight.key);
   const [currentPage, setCurrentPage] = useState(0);
 
-  const totalPages = Math.ceil(insight.files.length / ITEMS_PER_PAGE);
+  const sortedFiles = [...insight.files].sort((a, b) => b.savings - a.savings);
+  const totalPages = Math.ceil(sortedFiles.length / ITEMS_PER_PAGE);
   const startIndex = currentPage * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentFiles = insight.files.slice(startIndex, endIndex);
-  const showPagination = insight.files.length > ITEMS_PER_PAGE;
+  const currentFiles = sortedFiles.slice(startIndex, endIndex);
+  const showPagination = sortedFiles.length > ITEMS_PER_PAGE;
 
   const handleOpenModal = () => {
     if (insight.key === 'alternate_icons_optimization') {
@@ -114,7 +115,7 @@ export function AppSizeInsightsSidebarRow({
         )}
       </Stack>
 
-      {insight.files.length > 0 && (
+      {sortedFiles.length > 0 && (
         <Container paddingTop="md">
           <Button
             size="sm"
@@ -131,7 +132,7 @@ export function AppSizeInsightsSidebarRow({
             }
           >
             <Text variant="primary" size="md" bold>
-              {tn('%s file', '%s files', insight.files.length)}
+              {tn('%s file', '%s files', sortedFiles.length)}
             </Text>
           </Button>
 
@@ -149,7 +150,7 @@ export function AppSizeInsightsSidebarRow({
                 })}
               >
                 {currentFiles.map((file, fileIndex) => (
-                  <FileRow key={`${file.path}-${fileIndex}`} file={file} />
+                  <FileRow key={`${file.path}-${startIndex + fileIndex}`} file={file} />
                 ))}
               </Container>
 
