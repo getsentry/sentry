@@ -32,6 +32,10 @@ describe('OrganizationLayout', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/assistant/',
       body: [],
     });
