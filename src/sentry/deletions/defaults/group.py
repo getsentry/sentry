@@ -346,16 +346,25 @@ def delete_group_hashes(
 def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Group], list[Group]]:
     error_groups = []
     issue_platform_groups = []
+
+    # Return early if the list is empty
+    if not instance_list:
+        return error_groups, issue_platform_groups
+
+    # Determine the actual type of items by checking the first item
+    is_group = not isinstance(instance_list[0], Group)
+
     for group in instance_list:
         # XXX: If a group type has been removed, we shouldn't error here.
         # Ideally, we should refactor `issue_category` to return None if the type is
         # unregistered.
         try:
-            if not options.get("deletions.fetch-subset-of-fields"):
+            if is_group:
                 issue_type = group.issue_category
             else:
                 # issue_category is an alias for type
                 issue_type = group[_F_IDX["type"]]
+
             if issue_type == GroupCategory.ERROR:
                 error_groups.append(group)
                 continue
