@@ -17,8 +17,7 @@ interface InputSectionProps {
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onMaxSize: () => void;
   onMedSize: () => void;
-  onSlashCommandsClose: () => void;
-  showSlashCommands: boolean;
+  onSlashCommandsVisibilityChange: (isVisible: boolean) => void;
   ref?: React.RefObject<HTMLTextAreaElement | null>;
 }
 
@@ -32,7 +31,7 @@ function InputSection({
   onKeyDown,
   onInputClick,
   onCommandSelect,
-  onSlashCommandsClose,
+  onSlashCommandsVisibilityChange,
   onMaxSize,
   onMedSize,
   ref,
@@ -56,7 +55,7 @@ function InputSection({
         <SlashCommands
           inputValue={inputValue}
           onCommandSelect={onCommandSelect}
-          onClose={onSlashCommandsClose}
+          onVisibilityChange={onSlashCommandsVisibilityChange}
           onMaxSize={onMaxSize}
           onMedSize={onMedSize}
           onClear={onClear}

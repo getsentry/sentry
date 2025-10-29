@@ -13,19 +13,19 @@ export interface SlashCommand {
 interface SlashCommandsProps {
   inputValue: string;
   onClear: () => void;
-  onClose: () => void;
   onCommandSelect: (command: SlashCommand) => void;
   onMaxSize: () => void;
   onMedSize: () => void;
+  onVisibilityChange?: (isVisible: boolean) => void;
 }
 
 function SlashCommands({
   inputValue,
   onCommandSelect,
-  onClose,
   onMaxSize,
   onMedSize,
   onClear,
+  onVisibilityChange,
 }: SlashCommandsProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const openFeedbackForm = useFeedbackForm();
@@ -86,6 +86,11 @@ function SlashCommands({
     setSelectedIndex(0);
   }, [filteredCommands]);
 
+  // Notify parent when visibility changes
+  useEffect(() => {
+    onVisibilityChange?.(showSuggestions);
+  }, [showSuggestions, onVisibilityChange]);
+
   // Handle keyboard navigation with higher priority
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -109,16 +114,11 @@ function SlashCommands({
             onCommandSelect(filteredCommands[selectedIndex]);
           }
           break;
-        case 'Escape':
-          e.preventDefault();
-          e.stopPropagation();
-          onClose();
-          break;
         default:
           break;
       }
     },
-    [showSuggestions, selectedIndex, filteredCommands, onCommandSelect, onClose]
+    [showSuggestions, selectedIndex, filteredCommands, onCommandSelect]
   );
 
   useEffect(() => {
@@ -162,7 +162,7 @@ const SuggestionsPanel = styled('div')`
   border-bottom: none;
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  max-height: 200px;
+  max-height: 500px;
   overflow-y: auto;
   z-index: 10;
 `;
