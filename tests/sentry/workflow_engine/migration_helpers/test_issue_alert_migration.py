@@ -142,17 +142,31 @@ class IssueAlertMigratorTest(TestCase):
         assert workflow.date_added == issue_alert.date_added
         assert workflow.enabled == is_enabled
 
-        detector = Detector.objects.get(id=issue_alert_detector.detector.id)
-        assert detector.name == "Error Monitor"
-        assert detector.project_id == self.project.id
-        assert detector.enabled is True
-        assert detector.owner_user_id is None
-        assert detector.owner_team is None
-        assert detector.type == ErrorGroupType.slug
-        assert detector.config == {}
+        error_detector = Detector.objects.get(id=issue_alert_detector.detector.id)
+        assert error_detector.name == "Error Monitor"
+        assert error_detector.project_id == self.project.id
+        assert error_detector.enabled is True
+        assert error_detector.owner_user_id is None
+        assert error_detector.owner_team is None
+        assert error_detector.type == ErrorGroupType.slug
+        assert error_detector.config == {}
 
-        detector_workflow = DetectorWorkflow.objects.get(detector=detector)
-        assert detector_workflow.workflow == workflow
+        error_detector_workflow = DetectorWorkflow.objects.get(detector=error_detector)
+        assert error_detector_workflow.workflow == workflow
+
+        issue_stream_detector = Detector.objects.get(
+            project_id=error_detector.project_id, type=IssueStreamGroupType.slug
+        )
+        assert issue_stream_detector.name == "Issue Stream"
+        assert issue_stream_detector.enabled is True
+        assert issue_stream_detector.owner_user_id is None
+        assert issue_stream_detector.owner_team is None
+        assert issue_stream_detector.config == {}
+
+        issue_stream_detector_workflow = DetectorWorkflow.objects.get(
+            detector=issue_stream_detector
+        )
+        assert issue_stream_detector_workflow.workflow == workflow
 
         assert workflow.when_condition_group
         assert workflow.when_condition_group.logic_type == logic_type
@@ -323,12 +337,22 @@ class IssueAlertMigratorTest(TestCase):
 
     def test_run__detector_exists(self) -> None:
         project_detector = self.create_detector(project=self.project)
+        issue_stream_detector = self.create_detector(
+            project=self.project, type=IssueStreamGroupType.slug
+        )
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
         # does not create a new error detector
 
-        detector = Detector.objects.get(project_id=self.project.id)
-        assert detector == project_detector
+        detector = Detector.objects.filter(
+            project_id=self.project.id, type=ErrorGroupType.slug
+        ).first()
+        assert detector.id == project_detector.id
+
+        issue_stream_detector = Detector.objects.filter(
+            project_id=self.project.id, type=IssueStreamGroupType.slug
+        ).first()
+        assert issue_stream_detector.id == issue_stream_detector.id
 
     def test_run__detector_lookup_exists(self) -> None:
         AlertRuleDetector.objects.create(
