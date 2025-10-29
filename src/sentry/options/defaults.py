@@ -2930,6 +2930,11 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.process-segments.schema-validation",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "indexed-spans.agg-span-waterfall.enable",
@@ -2955,26 +2960,6 @@ register(
     default=[],
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Options for setting LLM providers and usecases
-register("llm.provider.options", default={}, flags=FLAG_NOSTORE)
-# Example provider:
-#     "openai": {
-#         "options": {
-#             "api_key": "",
-#         },
-#         "models": ["gpt-4-turbo", "gpt-3.5-turbo"],
-#     }
-
-register("llm.usecases.options", default={}, flags=FLAG_NOSTORE, type=Dict)
-# Example usecase:
-#     "suggestedfix": {
-#         "provider": "openai",
-#         "options": {
-#             "model": "gpt-3.5-turbo",
-#         },
-#     }
-# }
 
 register(
     "feedback.filter_garbage_messages",
@@ -3236,13 +3221,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "uptime.date_cutoff_epoch_seconds",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Controls whether uptime monitoring creates issues via the issue platform.
 register(
     "uptime.create-issues",
@@ -3425,6 +3403,13 @@ register(
 )
 
 
+# Enable HTTP/2 transport in Sentry SDK
+register(
+    "sdk_http2_experiment.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "sdk-deprecation.profile-chunk.python",
     default="2.24.1",
@@ -3494,12 +3479,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Whether the new objectstore implementation is being used for attachments
-register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Whether the new objectstore implementation is being used for attachments in a double-write
-# configuration where it writes to the new objectstore alongside the existing filestore.
-# This is mutually exclusive with the above setting.
+# Fraction of attachments that are double-written to the new objectstore alongside the existing attachments store.
+# This is mutually exclusive with the below setting.
 register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Fraction of attachments that are being stored exclusively in the new objectstore.
+register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Fraction of events that use the processing store (the transient event payload) for attachment metadata (independant from payloads).
+register("objectstore.processing_store.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# This forces symbolication to use the "stored attachment" codepath,
+# regardless of whether the attachment has already been stored.
+register("objectstore.force-stored-symbolication", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 
 # option used to enable/disable tracking
 # rate of potential functions metrics to
@@ -3605,5 +3595,13 @@ register(
         "sentry_app_slug": [],
         "installation_uuid": [],
     },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables or disables Github webhook routing based on the type of webhook
+register(
+    "github.webhook-type-routing.enabled",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

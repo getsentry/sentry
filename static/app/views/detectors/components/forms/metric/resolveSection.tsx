@@ -76,6 +76,11 @@ export function ResolveSection() {
   const aggregate = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
+
+  if (detectionType === 'dynamic') {
+    return null;
+  }
+
   const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
 
   const descriptionContent = getResolutionDescription(
@@ -129,16 +134,15 @@ export function ResolveSection() {
     <Container>
       <Section title={t('Resolve')}>
         <div>
-          {detectionType !== 'dynamic' && (
-            <FormRow>
-              <StyledRadioField
-                name={METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy}
-                aria-label={t('Resolution method')}
-                choices={resolutionStrategyChoices}
-                defaultValue="automatic"
-              />
-            </FormRow>
-          )}
+          <FormRow>
+            <StyledRadioField
+              name={METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy}
+              aria-label={t('Resolution method')}
+              choices={resolutionStrategyChoices}
+              defaultValue="automatic"
+              preserveOnUnmount
+            />
+          </FormRow>
           {resolutionStrategy === 'custom' && (
             <DescriptionContainer onClick={e => e.preventDefault()}>
               <Text>

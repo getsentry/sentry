@@ -1,6 +1,6 @@
 import type {ComponentProps, CSSProperties, HTMLAttributes, RefObject} from 'react';
-import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
@@ -105,6 +105,8 @@ function RowCell({
 const StyledPanel = styled(Panel)`
   display: grid;
   margin: 0;
+  width: 100%;
+  overflow: hidden;
 `;
 
 const StyledPanelHeader = styled('div')`

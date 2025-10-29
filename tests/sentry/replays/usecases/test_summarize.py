@@ -323,7 +323,11 @@ def test_as_log_message_navigation_span() -> None:
             },
         },
     }
-    assert as_log_message(event) == "User navigated to: https://url-example.com at 1756400579304.0"
+    assert (
+        as_log_message(event, is_mobile_replay=False)
+        == "User navigated to: https://url-example.com at 1756400579304.0"
+    )
+    assert as_log_message(event, is_mobile_replay=True) is None
     assert get_timestamp_unit(which(event)) == "s"
 
 
@@ -610,7 +614,11 @@ def test_as_log_message_navigation() -> None:
             },
         },
     }
-    assert as_log_message(event) is None
+    assert as_log_message(event, is_mobile_replay=False) is None
+    assert (
+        as_log_message(event, is_mobile_replay=True)
+        == "User navigated to: https://url-example.com at 1756400579304.0"
+    )
     assert get_timestamp_unit(which(event)) == "ms"
 
 
@@ -1419,3 +1427,80 @@ class RpcGetReplaySummaryLogsTestCase(
         assert "Great website" in logs[0]
         assert "User submitted feedback" in logs[1]
         assert "Broken website" in logs[1]
+
+    def test_rpc_mobile_replay_navigation(self) -> None:
+        """Test that mobile replays are correctly detected and navigation events return log messages."""
+        now = datetime.now(UTC)
+
+        # Store a mobile replay with android platform
+        self.store_replay(dt=now, platform="android")
+
+        # Create segment data with a navigation event
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp() * 1000),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "timestamp": float(now.timestamp()),
+                        "type": "default",
+                        "category": "navigation",
+                        "data": {
+                            "from": "/home",
+                            "to": "/profile",
+                        },
+                    },
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        response = rpc_get_replay_summary_logs(
+            self.project.id,
+            self.replay_id,
+            1,
+        )
+
+        logs = response["logs"]
+        assert len(logs) == 1
+        assert "User navigated to: /profile" in logs[0]
+        assert str(float(now.timestamp() * 1000)) in logs[0]
+
+    def test_rpc_web_replay_navigation(self) -> None:
+        """Test that web replays do not return navigation log messages."""
+        now = datetime.now(UTC)
+
+        # Store a web replay with javascript platform (default)
+        self.store_replay(dt=now, platform="javascript")
+
+        # Create segment data with a navigation event
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp() * 1000),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "timestamp": float(now.timestamp()),
+                        "type": "default",
+                        "category": "navigation",
+                        "data": {
+                            "from": "https://example.com/home",
+                            "to": "https://example.com/profile",
+                        },
+                    },
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        response = rpc_get_replay_summary_logs(
+            self.project.id,
+            self.replay_id,
+            1,
+        )
+
+        logs = response["logs"]
+        # Web replays should not include navigation events, so logs should be empty
+        assert len(logs) == 0
