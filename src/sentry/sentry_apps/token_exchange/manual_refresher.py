@@ -50,17 +50,10 @@ class ManualTokenRefresher:
                 token = None
                 with transaction.atomic(router.db_for_write(ApiToken)):
                     self._validate()
-                    if self.installation.api_token is None:
-                        raise SentryAppIntegratorError(
-                            message="Installation does not have a token",
-                            status_code=401,
-                            webhook_context={"installation_uuid": self.install.uuid},
-                        )
+                    self._delete_existing_token()
 
-                    self.installation.api_token.delete()
-
-                    self._record_analytics()
                     token = self._create_new_token()
+                    self._record_analytics()
                     return token
             except (OutboxDatabaseError, OutboxFlushError) as e:
                 if token is not None:
@@ -79,6 +72,14 @@ class ManualTokenRefresher:
             except SentryAppIntegratorError as e:
                 lifecycle.record_halt(halt_reason=e)
                 raise
+
+    def _delete_existing_token(self) -> None:
+        if self.installation.api_token is None:
+            raise SentryAppIntegratorError(
+                message="Installation does not have a token",
+                status_code=401,
+                webhook_context={"installation_uuid": self.install.uuid},
+            )
 
     def _record_analytics(self) -> None:
         analytics.record(
