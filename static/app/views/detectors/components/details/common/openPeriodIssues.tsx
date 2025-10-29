@@ -105,7 +105,7 @@ function OpenPeriodsSubTable({groupId, onZoom}: OpenPeriodsSubTableProps) {
             <SimpleTable.RowCell>
               <Duration seconds={seconds} abbreviation />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell justify="flex-end">
+            <SimpleTable.RowCell justify="end">
               <Button size="xs" onClick={() => onZoom(openPeriodStart, openPeriodEnd)}>
                 {t('Zoom')}
               </Button>
@@ -134,7 +134,7 @@ function OpenPeriodsSubTableSkeleton() {
           <SimpleTable.RowCell>
             <Placeholder height="20px" width="50%" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell justify="flex-end">
+          <SimpleTable.RowCell justify="end">
             <Placeholder height="24px" width="48px" />
           </SimpleTable.RowCell>
         </SimpleTable.Row>
