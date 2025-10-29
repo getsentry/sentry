@@ -237,7 +237,9 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
-        if all(isinstance(group, Group) for group in error_groups):
+        if all(isinstance(group, Group) for group in error_groups) and all(
+            isinstance(group, Group) for group in issue_platform_groups
+        ):
             error_group_ids = [group.id for group in error_groups]
             issue_platform_group_ids = [group.id for group in issue_platform_groups]
         else:

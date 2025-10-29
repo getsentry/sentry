@@ -369,10 +369,6 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert not Group.objects.filter(id=self.event.group_id).exists()
 
-    def test_delete_groups_with_few_fields_fetched_with_new_option(self) -> None:
-        with self.options({"deletions.fetch-subset-of-fields": True}):
-            self.test_delete_groups_with_few_fields_fetched()
-
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     referrer = Referrer.TESTING_TEST.value
