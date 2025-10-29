@@ -1,33 +1,22 @@
-import type {PreventAIOrg} from 'sentry/types/prevent';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export interface PreventAIOrgReposResponse {
-  orgRepos: PreventAIOrg[];
-}
-
-interface PreventAIOrgsReposResult {
-  data: PreventAIOrgReposResponse | undefined;
-  isError: boolean;
-  isPending: boolean;
-  refetch: () => void;
-}
-
-export function usePreventAIOrgRepos(): PreventAIOrgsReposResult {
+export function usePreventAIOrgs(): UseApiQueryResult<
+  OrganizationIntegration[],
+  RequestError
+> {
   const organization = useOrganization();
 
-  const {data, isPending, isError, refetch} = useApiQuery<PreventAIOrgReposResponse>(
-    [`/organizations/${organization.slug}/prevent/github/repos/`],
+  return useApiQuery<OrganizationIntegration[]>(
+    [
+      `/organizations/${organization.slug}/integrations/`,
+      {query: {includeConfig: 0, provider_key: 'github'}},
+    ],
     {
       staleTime: 0,
       retry: false,
     }
   );
-
-  return {
-    data,
-    isPending,
-    isError,
-    refetch,
-  };
 }
