@@ -952,7 +952,7 @@ def cleanup_unused_files() -> None:
     from sentry.models.files.fileblob import FileBlob
     from sentry.models.files.fileblobindex import FileBlobIndex
 
-    if os.environ["SENTRY_CLEANUP_SILENT"]:
+    if os.environ.get("SENTRY_CLEANUP_SILENT", None):
         from sentry.utils.query import RangeQuerySetWrapper
     else:
         from sentry.utils.query import RangeQuerySetWrapperWithProgressBar as RangeQuerySetWrapper
