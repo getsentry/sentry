@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -14,8 +13,6 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -24,6 +21,7 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
 import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {ErrorCell, NumberPlaceholder} from 'sentry/views/insights/agents/utils/cells';
 import {
   getAgentRunsFilter,
@@ -76,22 +74,18 @@ const rightAlignColumns = new Set([
 ]);
 
 export function TracesTable() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });
 
   const combinedQuery = useCombinedQuery(getAITracesFilter());
+  const {cursor, setCursor} = useTableCursor();
 
   const tracesRequest = useTraces({
     query: combinedQuery,
     sort: `-timestamp`,
     keepPreviousData: true,
-    cursor:
-      typeof location.query.tableCursor === 'string'
-        ? location.query.tableCursor
-        : undefined,
+    cursor,
     limit: 10,
   });
 
@@ -163,19 +157,6 @@ export function TracesTable() {
     );
   }, [spansRequest.data, traceErrorRequest.data]);
 
-  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
-    navigate(
-      {
-        pathname,
-        query: {
-          ...previousQuery,
-          tableCursor: cursor,
-        },
-      },
-      {replace: true, preventScrollReset: true}
-    );
-  };
-
   const tableData = useMemo(() => {
     if (!tracesRequest.data) {
       return [];
@@ -235,7 +216,7 @@ export function TracesTable() {
         />
         {tracesRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Pagination pageLinks={pageLinks} onCursor={setCursor} />
     </Fragment>
   );
 }
