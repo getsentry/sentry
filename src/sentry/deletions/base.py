@@ -281,6 +281,7 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
                 status = getattr(instance, "status", None)
                 if status not in (ObjectStatus.DELETION_IN_PROGRESS, None):
                     instance.update(status=ObjectStatus.DELETION_IN_PROGRESS)
+            return
 
         if not instance_list:
             return
