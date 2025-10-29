@@ -9,7 +9,10 @@ from sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias imp
 )
 from sentry.dynamic_sampling.rules.biases.boost_replay_id_bias import BoostReplayIdBias
 from sentry.dynamic_sampling.rules.biases.custom_rule_bias import CustomRuleBias
-from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import IgnoreHealthChecksBias
+from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import (
+    IgnoreHealthChecksTraceBias,
+    IgnoreHealthChecksTransactionBias,
+)
 from sentry.dynamic_sampling.rules.biases.minimum_sample_rate_bias import MinimumSampleRateBias
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
 from sentry.dynamic_sampling.rules.combinators.base import BiasesCombinator
@@ -22,7 +25,20 @@ def get_relay_biases_combinator(organization: Organization) -> BiasesCombinator:
     default_combinator = OrderedBiasesCombinator()
 
     default_combinator.add(RuleType.CUSTOM_RULE, CustomRuleBias())
-    default_combinator.add(RuleType.IGNORE_HEALTH_CHECKS_RULE, IgnoreHealthChecksBias())
+    default_combinator.add_if(
+        RuleType.IGNORE_HEALTH_CHECKS_RULE,
+        IgnoreHealthChecksTraceBias(),
+        lambda: features.has(
+            "organizations:ds-health-checks-trace-based", organization, actor=None
+        ),
+    )
+    default_combinator.add_if(
+        RuleType.IGNORE_HEALTH_CHECKS_RULE,
+        IgnoreHealthChecksTransactionBias(),
+        lambda: not features.has(
+            "organizations:ds-health-checks-trace-based", organization, actor=None
+        ),
+    )
 
     default_combinator.add(RuleType.BOOST_REPLAY_ID_RULE, BoostReplayIdBias())
     default_combinator.add(RuleType.BOOST_ENVIRONMENTS_RULE, BoostEnvironmentsBias())
