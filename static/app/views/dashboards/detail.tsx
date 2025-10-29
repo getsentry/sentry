@@ -965,6 +965,7 @@ class DashboardDetail extends Component<Props, State> {
                   filters={{}} // Default Dashboards don't have filters set
                   location={location}
                   hasUnsavedChanges={false}
+                  hasTemporaryFilters={false}
                   isEditingDashboard={false}
                   isPreview={false}
                   onDashboardFilterChange={this.handleChangeFilter}

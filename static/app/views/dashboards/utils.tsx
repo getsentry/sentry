@@ -568,9 +568,15 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
           })
           .filter(filter => filter !== null);
       } else if (key === DashboardFilterKeys.TEMPORARY_FILTERS) {
-        dashboardFilters[key] = queryFilters.map(filter => {
-          return JSON.parse(filter);
-        });
+        dashboardFilters[key] = queryFilters
+          .map(filter => {
+            try {
+              return JSON.parse(filter);
+            } catch (error) {
+              return null;
+            }
+          })
+          .filter(filter => filter !== null);
       } else {
         dashboardFilters[key] = queryFilters;
       }
