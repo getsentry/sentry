@@ -119,6 +119,9 @@ def configoptions(
     """
 
     from sentry import options
+    from sentry.options import load_defaults
+
+    load_defaults()
 
     ctx.obj["dry_run"] = dry_run
     ctx.obj["timestamp"] = timestamp
