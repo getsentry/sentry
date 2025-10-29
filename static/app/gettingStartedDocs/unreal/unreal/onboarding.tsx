@@ -1,17 +1,12 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
-import {
-  getCrashReportApiIntroduction,
-  getCrashReportInstallDescription,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -57,7 +52,7 @@ const getCrashReporterConfigSnippet = (params: Params) => `
 CrashReportClientVersion=1.0
 DataRouterUrl="${params.dsn.unreal}"`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -350,53 +345,3 @@ export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
     },
   ],
 };
-
-const feedbackOnboardingCrashApi: OnboardingConfig = {
-  introduction: () => getCrashReportApiIntroduction(),
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportInstallDescription(),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'C++',
-              language: 'cpp',
-              code: `USentrySubsystem* SentrySubsystem = GEngine->GetEngineSubsystem<USentrySubsystem>();
-
-USentryId* EventId = SentrySubsystem->CaptureMessage(TEXT("Message with feedback"));
-
-USentryUserFeedback* UserFeedback = NewObject<USentryUserFeedback>();
-User->Initialize(EventId);
-User->SetEmail("test@sentry.io");
-User->SetName("Name");
-User->SetComment("Some comment");
-
-SentrySubsystem->CaptureUserFeedback(UserFeedback);
-
-// OR
-
-SentrySubsystem->CaptureUserFeedbackWithParams(EventId, "test@sentry.io", "Some comment", "Name");`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  configure: () => [],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  feedbackOnboardingCrashApi,
-  crashReportOnboarding: feedbackOnboardingCrashApi,
-};
-
-export default docs;
