@@ -9,9 +9,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
 export type SuspectAttributesResult = {
   cohort1Total: number;
@@ -42,7 +42,7 @@ function useSuspectAttributes({
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const dataset = useExploreDataset();
+  const dataset = useSpansDataset();
   const {selection: pageFilters} = usePageFilters();
   const aggregateExtrapolation = location.query.extrapolate ?? '1';
 

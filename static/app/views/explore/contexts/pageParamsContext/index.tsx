@@ -245,20 +245,6 @@ export function useExplorePageParams(): ReadablePageParams {
   return contextValue.pageParams;
 }
 
-export function useExploreDataset(): DiscoverDatasets {
-  return DiscoverDatasets.SPANS;
-}
-
-export function useExploreTitle(): string | undefined {
-  const pageParams = useExplorePageParams();
-  return pageParams.title;
-}
-
-export function useExploreId(): string | undefined {
-  const pageParams = useExplorePageParams();
-  return pageParams.id;
-}
-
 export function newExploreTarget(
   location: Location,
   pageParams: WritablePageParams

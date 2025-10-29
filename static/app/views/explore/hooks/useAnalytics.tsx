@@ -11,10 +11,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {
-  useExploreDataset,
-  useExploreTitle,
-} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -28,9 +24,11 @@ import {
   useQueryParamsFields,
   useQueryParamsQuery,
   useQueryParamsSearch,
+  useQueryParamsTitle,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {
   combineConfidenceForSeries,
   computeVisualizeSampleTotals,
@@ -365,8 +363,8 @@ export function useAnalytics({
   | 'timeseriesResult'
   | 'interval'
 >) {
-  const dataset = useExploreDataset();
-  const title = useExploreTitle();
+  const dataset = useSpansDataset();
+  const title = useQueryParamsTitle();
   const query = useQueryParamsQuery();
   const fields = useQueryParamsFields();
   const visualizes = useQueryParamsVisualizes();
