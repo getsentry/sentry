@@ -2,17 +2,15 @@ import logging
 import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
-from typing import Any, TypedDict
+from typing import TypedDict
 
 import sentry_sdk
 from django.db.models import Q
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
-from sentry import features, nodestore, options
-from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
+from sentry import nodestore, options
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group, GroupStatus
@@ -20,13 +18,6 @@ from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
     CreateGroupingRecordData,
     call_seer_to_delete_project_grouping_records,
-)
-from sentry.seer.similarity.types import (
-    GroupingVersion,
-    IncompleteSeerDataError,
-    SeerSimilarIssueData,
-    SimilarHashMissingGroupError,
-    SimilarHashNotFoundError,
 )
 from sentry.seer.similarity.utils import (
     ReferrerOptions,
@@ -38,7 +29,6 @@ from sentry.seer.similarity.utils import (
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
 from sentry.tasks.embeddings_grouping.constants import (
     BACKFILL_BULK_DELETE_METADATA_CHUNK_SIZE,
     BACKFILL_NAME,
@@ -462,75 +452,6 @@ def get_events_from_nodestore(
     return (
         GroupStacktraceData(data=group_data, stacktrace_list=stacktrace_strings),
         group_hashes_dict,
-    )
-
-
-@sentry_sdk.tracing.trace
-def update_groups(
-    project,
-    seer_response,
-    group_id_batch_filtered,
-    group_hashes_dict,
-    worker_number,
-    project_index_in_cohort,
-):
-    groups_with_neighbor = seer_response["groups_with_neighbor"]
-    groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch_filtered)
-    for group in groups:
-        seer_similarity: dict[str, Any] = {
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "request_hash": group_hashes_dict[group.id],
-        }
-        if str(group.id) in groups_with_neighbor:
-            # TODO: remove this try catch once the helper is made
-            try:
-                seer_similarity["results"] = [
-                    asdict(
-                        SeerSimilarIssueData.from_raw(
-                            project.id, groups_with_neighbor[str(group.id)]
-                        )
-                    )
-                ]
-            # we should not update the similarity data for this group cause we'd want to try again once we delete it
-            except (
-                IncompleteSeerDataError,
-                SimilarHashNotFoundError,
-                SimilarHashMissingGroupError,
-            ) as err:
-                parent_hash = groups_with_neighbor[str(group.id)]["parent_hash"]
-
-                if isinstance(err, SimilarHashNotFoundError):
-                    # Tell Seer to delete the hash from its database, so it doesn't keep suggesting a group
-                    # which doesn't exist
-                    delete_seer_grouping_records_by_hash.delay(project.id, [parent_hash])
-
-                logger.exception(
-                    "backfill_seer_grouping_records.invalid_parent_group",
-                    extra={
-                        "project_id": project.id,
-                        "group_id": group.id,
-                        "parent_hash": parent_hash,
-                        "worker_number": worker_number,
-                        "project_index_in_cohort": project_index_in_cohort,
-                    },
-                )
-                seer_similarity = {}
-
-        if seer_similarity:
-            if group.data.get("metadata"):
-                group.data["metadata"]["seer_similarity"] = seer_similarity
-            else:
-                group.data["metadata"] = {"seer_similarity": seer_similarity}
-
-    num_updated = Group.objects.bulk_update(groups, ["data"])
-    logger.info(
-        "backfill_seer_grouping_records.bulk_update",
-        extra={
-            "project_id": project.id,
-            "num_updated": num_updated,
-            "worker_number": worker_number,
-            "project_index_in_cohort": project_index_in_cohort,
-        },
     )
 
 

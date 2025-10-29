@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import NotRequired, TypedDict
+from typing import TypedDict
 
 from django.conf import settings
 from urllib3.exceptions import ReadTimeoutError
@@ -13,7 +13,6 @@ from sentry.conf.server import (
     SEER_PROJECT_GROUPING_RECORDS_DELETE_URL,
 )
 from sentry.net.http import connection_from_url
-from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -27,21 +26,6 @@ class CreateGroupingRecordData(TypedDict):
     hash: str
     project_id: int
     exception_type: str | None
-
-
-class CreateGroupingRecordsRequest(TypedDict):
-    group_id_list: list[int]
-    data: list[CreateGroupingRecordData]
-    stacktrace_list: list[str]
-    use_reranking: bool | None
-    model: NotRequired[GroupingVersion]  # Model version, defaults to V1 for backward compatibility
-    training_mode: NotRequired[bool]
-
-
-class BulkCreateGroupingRecordsResponse(TypedDict):
-    success: bool
-    groups_with_neighbor: NotRequired[dict[str, RawSeerSimilarIssueData]]
-    reason: NotRequired[str | None]
 
 
 seer_grouping_connection_pool = connection_from_url(settings.SEER_GROUPING_URL)
