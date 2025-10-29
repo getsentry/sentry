@@ -434,7 +434,6 @@ describe('SearchQueryBuilder', () => {
       expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Category 1'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Category 2'})).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Conditionals'})).toBeInTheDocument();
 
       const menu = screen.getByRole('listbox');
       const groups = within(menu).getAllByRole('group');
@@ -714,6 +713,33 @@ describe('SearchQueryBuilder', () => {
             data: {query: 'assigned:me', type: SavedSearchType.ISSUE},
           })
         );
+      });
+    });
+
+    describe('conditionals category', () => {
+      it('does not render conditionals category when on first input', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
+          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
+        });
+
+        await userEvent.click(getLastInput());
+        expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
+
+        expect(
+          screen.queryByRole('button', {name: 'Conditionals'})
+        ).not.toBeInTheDocument();
+      });
+
+      it('renders conditionals category when not on first input', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="span.op:test" />, {
+          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
+        });
+
+        await userEvent.click(getLastInput());
+        // Should show conditionals button
+        expect(
+          await screen.findByRole('button', {name: 'Conditionals'})
+        ).toBeInTheDocument();
       });
     });
   });
@@ -3739,11 +3765,18 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('should not add the conditionals section to filter key menu', async () => {
-      render(<SearchQueryBuilder {...defaultProps} disallowLogicalOperators />, {
-        organization: {features: ['search-query-builder-conditionals-combobox-menus']},
-      });
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="span.op:test"
+          disallowLogicalOperators
+        />,
+        {
+          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
+        }
+      );
 
-      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.click(getLastInput());
       expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
 
       await waitFor(() =>
