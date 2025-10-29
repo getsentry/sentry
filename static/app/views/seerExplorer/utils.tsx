@@ -57,7 +57,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   get_issue_details: (args, isLoading) => {
     const issueId = args.issue_id || '';
     const selectedEvent = args.selected_event;
-    if (selectedEvent && selectedEvent !== 'recommended') {
+    if (selectedEvent) {
       return isLoading
         ? `Inspecting issue ${issueId} (${selectedEvent} event)...`
         : `Inspected issue ${issueId} (${selectedEvent} event)`;
