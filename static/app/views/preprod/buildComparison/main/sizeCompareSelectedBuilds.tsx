@@ -46,11 +46,13 @@ function BuildButton({buildDetails, icon, label, onRemove}: BuildButtonProps) {
             </Flex>
           )}
         </Flex>
-        <BuildBranch>
-          <Text size="sm" variant="muted">
-            {branchName}
-          </Text>
-        </BuildBranch>
+        {branchName && (
+          <BuildBranch>
+            <Text size="sm" variant="muted">
+              {branchName}
+            </Text>
+          </BuildBranch>
+        )}
         {onRemove && (
           <Button
             onClick={e => {
