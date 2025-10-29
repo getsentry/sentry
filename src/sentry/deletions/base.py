@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 from django.db import router
 from django.db.models import Q
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.db.models.base import Model
-from sentry.options import options
 from sentry.silo.safety import unguarded_write
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
