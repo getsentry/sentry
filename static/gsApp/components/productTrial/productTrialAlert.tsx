@@ -6,7 +6,6 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -26,7 +25,7 @@ import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-function doesCategoryUseOnDemand(category: DataCategory): boolean {
+function shouldUseOnDemandCta(category: DataCategory): boolean {
   return category === DataCategory.LOG_BYTE;
 }
 
@@ -62,7 +61,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
 
   const isPaid = subscription.planDetails?.price > 0;
   const hasBillingRole = organization.access?.includes('org:billing');
-  const categoryUsesOnDemand = doesCategoryUseOnDemand(trial.category);
+  const categoryUsesOnDemand = shouldUseOnDemandCta(trial.category);
 
   let alertText: string | null = null;
   let alertHeader: string | null = null;
@@ -121,7 +120,9 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
         subscription.planDetails.budgetTerm
       );
 
-      const eventTypes: EventType[] = [DATA_CATEGORY_INFO.log_byte.singular as EventType];
+      const eventTypes: EventType[] = [
+        getCategoryInfoFromPlural(trial.category)!.singular as EventType,
+      ];
       alertButton = (
         <AddEventsCTA
           organization={organization}
