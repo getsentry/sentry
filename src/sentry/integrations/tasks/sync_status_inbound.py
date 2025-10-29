@@ -279,7 +279,7 @@ def sync_status_inbound(
                 # Link the activity to the resolution so regressions can find it.
                 if created:
                     latest_resolution_activity = (
-                        Activity.objects.filter(group=group, type=activity_type)
+                        Activity.objects.filter(group=group, type=activity_type.value)
                         .order_by("-datetime")
                         .first()
                     )
