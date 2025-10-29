@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from django.db import router
-from django.db.models import Q, QuerySet
+from django.db.models import Q
 
 from sentry.constants import ObjectStatus
 from sentry.db.models.base import Model
@@ -137,7 +137,7 @@ class BaseDeletionTask(Generic[ModelT]):
             rel for rel in child_relations if rel.params.get("model") not in self.skip_models
         )
 
-    def delete_bulk(self, instance_list: Sequence[ModelT]) -> bool:
+    def delete_bulk(self, instance_list: Sequence[ModelT | tuple[Any, ...]]) -> bool:
         """
         Delete a batch of objects bound to this task.
 
@@ -175,7 +175,7 @@ class BaseDeletionTask(Generic[ModelT]):
     def delete_children(self, relations: list[BaseRelation]) -> bool:
         return _delete_children(self.manager, relations, self.transaction_id, self.actor_id)
 
-    def mark_deletion_in_progress(self, instance_list: Sequence[ModelT]) -> None:
+    def mark_deletion_in_progress(self, instance_list: Sequence[ModelT | tuple[Any, ...]]) -> None:
         pass
 
 
@@ -214,15 +214,6 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
         Returns a Q object or None.
         """
         return None
-
-    def get_queryset_fetch(
-        self, queryset: QuerySet[ModelT], query_limit: int
-    ) -> list[ModelT | tuple[Any, ...]]:
-        """
-        Override this to modify the queryset before it is fetched.
-        Returns a list of instances.
-        """
-        return list(queryset[:query_limit])
 
     def chunk(self, apply_filter: bool = False) -> bool:
         """

@@ -6,8 +6,6 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from django.db.models import QuerySet
-
 from sentry import models, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
@@ -185,15 +183,42 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
     # balance the number of snuba replacements with memory limits.
     DEFAULT_CHUNK_SIZE = GROUP_CHUNK_SIZE
 
-    def get_queryset_fetch(
-        self, queryset: QuerySet[Group], query_limit: int
-    ) -> list[tuple[Any, ...]] | list[Group]:
-        if options.get("deletions.fetch-subset-of-fields"):
-            # This reduces the number of fields fetched from the database
-            return list(queryset.values_list(*FIELDS_TO_FETCH)[:query_limit])
-        return list(queryset[:query_limit])
+    def chunk(self, apply_filter: bool = False) -> bool:
+        """
+        Deletes a chunk of this instance's data. Return ``True`` if there is
+        more work, or ``False`` if all matching entities have been removed.
+        """
+        query_limit = self.query_limit
+        remaining = self.chunk_size
+        query = self.query
+        order_by = self.order_by
 
-    def delete_bulk(self, instance_list: Sequence[Group]) -> bool:
+        while remaining >= 0:
+            queryset = getattr(self.model, self.manager_name).filter(**query)
+
+            if apply_filter:
+                query_filter = self.get_query_filter()
+                if query_filter is not None:
+                    queryset = queryset.filter(query_filter)
+
+            if self.order_by:
+                queryset = queryset.order_by(order_by)
+
+            if options.get("deletions.fetch-subset-of-fields"):
+                # This reduces the number of fields fetched from the database
+                return list(queryset.values_list(*FIELDS_TO_FETCH)[:query_limit])
+            return list(queryset[:query_limit])
+            # If there are no more rows we are all done.
+            if not queryset:
+                return False
+
+            self.delete_bulk(queryset)
+            remaining = remaining - len(queryset)
+
+        # We have more work to do as we didn't run out of rows to delete.
+        return True
+
+    def delete_bulk(self, instance_list: Sequence[Group | tuple[Any, ...]]) -> bool:
         """
         Group deletion operates as a quasi-bulk operation so that we don't flood
         snuba replacements with deletions per group.
@@ -253,10 +278,11 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
     def delete_instance(self, instance: Group | tuple[Any, ...]) -> None:
         from sentry import similarity
 
+        if options.get("deletions.fetch-subset-of-fields"):
+            # We need to fetch the full Group object to be deleted.
+            instance = Group.objects.get(id=instance[0])
+
         if not self.skip_models or similarity not in self.skip_models:
-            if options.get("deletions.fetch-subset-of-fields"):
-                # We need to pass a Group object to the similarity delete method.
-                instance = Group.objects.get(id=instance[0])
             similarity.delete(None, instance)
 
         return super().delete_instance(instance)
