@@ -293,45 +293,62 @@ export default function getGroupActivityItem(
             {activity.data.provider}
           </Link>
         ) : null;
-        const viaIntegration = hasIntegration
-          ? tct(' via [integration]', {integration: integrationLink})
-          : '';
 
         if ('current_release_version' in activity.data) {
           const currentVersion = activity.data.current_release_version;
           return {
             title: t('Resolved'),
-            message: tct(
-              'by [author] in releases greater than [version] [semver][viaIntegration]',
-              {
-                author,
-                version: <ActivityRelease project={project} version={currentVersion} />,
-                semver: isSemverRelease(currentVersion)
-                  ? t('(semver)')
-                  : t('(non-semver)'),
-                viaIntegration,
-              }
-            ),
+            message: hasIntegration
+              ? tct(
+                  'by [author] in releases greater than [version] [semver] via [integration]',
+                  {
+                    author,
+                    version: (
+                      <ActivityRelease project={project} version={currentVersion} />
+                    ),
+                    semver: isSemverRelease(currentVersion)
+                      ? t('(semver)')
+                      : t('(non-semver)'),
+                    integration: integrationLink,
+                  }
+                )
+              : tct('by [author] in releases greater than [version] [semver]', {
+                  author,
+                  version: <ActivityRelease project={project} version={currentVersion} />,
+                  semver: isSemverRelease(currentVersion)
+                    ? t('(semver)')
+                    : t('(non-semver)'),
+                }),
           };
         }
         const version = activity.data.version;
         if (version) {
           return {
             title: t('Resolved'),
-            message: tct('by [author] in [version] [semver][viaIntegration]', {
-              author,
-              version: <ActivityRelease project={project} version={version} />,
-              semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
-              viaIntegration,
-            }),
+            message: hasIntegration
+              ? tct('by [author] in [version] [semver] via [integration]', {
+                  author,
+                  version: <ActivityRelease project={project} version={version} />,
+                  semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
+                  integration: integrationLink,
+                })
+              : tct('by [author] in [version] [semver]', {
+                  author,
+                  version: <ActivityRelease project={project} version={version} />,
+                  semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
+                }),
           };
         }
         return {
           title: t('Resolved'),
-          message: tct('by [author] in the upcoming release[viaIntegration]', {
-            author,
-            viaIntegration,
-          }),
+          message: hasIntegration
+            ? tct('by [author] in the upcoming release via [integration]', {
+                author,
+                integration: integrationLink,
+              })
+            : tct('by [author] in the upcoming release', {
+                author,
+              }),
         };
       }
       case GroupActivityType.SET_RESOLVED_IN_COMMIT: {
