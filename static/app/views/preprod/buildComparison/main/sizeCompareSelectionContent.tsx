@@ -94,7 +94,7 @@ export function SizeCompareSelectionContent({
 
   const parsedLinks = pageLinks ? parseLinkHeader(pageLinks) : {};
   const hasPagination =
-    parsedLinks.previous?.results !== false || parsedLinks.next?.results !== false;
+    parsedLinks.previous?.results === true || parsedLinks.next?.results === true;
 
   const {mutate: triggerComparison, isPending: isComparing} = useMutation<
     void,
@@ -179,6 +179,7 @@ export function SizeCompareSelectionContent({
               />
             );
           })}
+
           {hasPagination && <Pagination pageLinks={pageLinks} />}
         </Stack>
       )}
