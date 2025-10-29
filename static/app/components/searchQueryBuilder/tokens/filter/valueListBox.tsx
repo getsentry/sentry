@@ -57,7 +57,7 @@ function WildcardFooter({
   token: TokenResult<Token.FILTER>;
 }) {
   if (isWildcardOperator(token.operator)) {
-    return null;
+    return <Label>{t('Switch to "is" operator to use wildcard (*) matching')}</Label>;
   }
 
   if (canUseWildcard) {

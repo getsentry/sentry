@@ -6,9 +6,9 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getRubyProfilingOnboarding} from 'sentry/gettingStartedDocs/ruby/ruby';
+import {logs} from 'sentry/gettingStartedDocs/ruby/ruby/logs';
+import {profiling} from 'sentry/gettingStartedDocs/ruby/ruby/profiling';
 import {t, tct} from 'sentry/locale';
-import {getRubyLogsOnboarding} from 'sentry/utils/gettingStartedDocs/ruby';
 
 type Params = DocsParams;
 
@@ -166,8 +166,8 @@ const onboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   crashReportOnboarding: CrashReportWebApiOnboarding,
-  profilingOnboarding: getRubyProfilingOnboarding(),
-  logsOnboarding: getRubyLogsOnboarding({
+  profilingOnboarding: profiling(),
+  logsOnboarding: logs({
     docsPlatform: 'rack',
   }),
 };
