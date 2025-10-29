@@ -14,7 +14,7 @@ const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
-  profilingOnboarding: profiling(),
+  profilingOnboarding: profiling({frameworkPackage: 'sentry-rails'}),
   logsOnboarding: logs({
     docsPlatform: 'rails',
   }),
