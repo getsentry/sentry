@@ -35,6 +35,7 @@ def execute_trace_query_chart(
     stats_period: str,
     y_axes: list[str],
     group_by: list[str] | None = None,
+    project_ids: list[int] | None = None,
 ) -> dict[str, Any] | None:
     """
     Execute a trace query to get chart/timeseries data by calling the events-stats endpoint.
@@ -45,11 +46,12 @@ def execute_trace_query_chart(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    # Get all project IDs for the organization
-    project_ids = list(organization.project_set.values_list("id", flat=True))
-    if not project_ids:
-        logger.warning("No projects found for organization", extra={"org_id": org_id})
-        return None
+    # Use provided project_ids or get all project IDs for the organization
+    if project_ids is None:
+        project_ids = list(organization.project_set.values_list("id", flat=True))
+        if not project_ids:
+            logger.warning("No projects found for organization", extra={"org_id": org_id})
+            return None
 
     params: dict[str, Any] = {
         "query": query,
@@ -107,6 +109,7 @@ def execute_trace_query_table(
     y_axes: list[str] | None = None,
     per_page: int = 50,
     mode: Literal["spans", "aggregates"] = "spans",
+    project_ids: list[int] | None = None,
 ) -> dict[str, Any] | None:
     """
     Execute a trace query to get table data by calling the events endpoint.
@@ -117,11 +120,12 @@ def execute_trace_query_table(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    # Get all project IDs for the organization
-    project_ids = list(organization.project_set.values_list("id", flat=True))
-    if not project_ids:
-        logger.warning("No projects found for organization", extra={"org_id": org_id})
-        return None
+    # Use provided project_ids or get all project IDs for the organization
+    if project_ids is None:
+        project_ids = list(organization.project_set.values_list("id", flat=True))
+        if not project_ids:
+            logger.warning("No projects found for organization", extra={"org_id": org_id})
+            return None
 
     # Determine fields based on mode
     if mode == "aggregates":
@@ -141,7 +145,6 @@ def execute_trace_query_table(
             "transaction",
             "timestamp",
             "project",
-            "project.name",
             "trace",
         ]
 
