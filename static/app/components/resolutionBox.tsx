@@ -15,7 +15,6 @@ import {GroupActivityType} from 'sentry/types/group';
 import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
 type Props = {
   organization: Organization;
@@ -50,7 +49,7 @@ export function renderResolutionReason({
     activity => activity.type === GroupActivityType.SET_RESOLVED_IN_RELEASE
   );
 
-  // Resolved in next release has current_release_version
+  // Resolved in next release has current_release_version (semver only)
   if (relevantActivity && 'current_release_version' in relevantActivity.data) {
     const version = (
       <VersionHoverCard
@@ -64,20 +63,14 @@ export function renderResolutionReason({
         />
       </VersionHoverCard>
     );
-    const isSemver = isSemverRelease(relevantActivity.data.current_release_version);
     return statusDetails.actor
-      ? tct(
-          '[actor] marked this issue as resolved in versions [semver_comparison] than [version].',
-          {
-            actor,
-            semver_comparison: isSemver ? t('greater') : t('later'),
-            version,
-          }
-        )
+      ? tct('[actor] marked this issue as resolved in versions greater than [version].', {
+          actor,
+          version,
+        })
       : tct(
-          'This issue has been marked as resolved in versions [semver_comparison] than [version].',
+          'This issue has been marked as resolved in versions greater than [version].',
           {
-            semver_comparison: isSemver ? t('greater') : t('later'),
             version,
           }
         );
