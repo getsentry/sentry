@@ -244,18 +244,8 @@ def process_profile_task(
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
-    if (
-        features.has("projects:continuous-profiling-vroomrs-processing", project)
-        and "profiler_id" in profile
-    ) or (
-        features.has("projects:transaction-profiling-vroomrs-processing", project)
-        and ("event_id" in profile or "profile_id" in profile)
-    ):
-        if not _process_vroomrs_profile(profile, project):
-            return
-    else:
-        if not _push_profile_to_vroom(profile, project):
-            return
+    if not _process_vroomrs_profile(profile, project):
+        return
 
     if sampled:
         with metrics.timer("process_profile.track_outcome.accepted"):
