@@ -49,9 +49,22 @@ class RepositorySerializer(CamelSnakeSerializer):
     provider_raw = serializers.CharField(required=False, allow_null=True)
 
 
+class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
+    handoff_point = serializers.CharField(required=True)
+    target = serializers.CharField(required=True)
+
+
 class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
     repositories = RepositorySerializer(many=True, required=True)
     automated_run_stopping_point = serializers.CharField(required=False, allow_null=True)
+    automation_handoff = SeerAutomationHandoffConfigurationSerializer(
+        required=False, allow_null=True
+    )
+
+
+class SeerAutomationHandoffConfiguration(BaseModel):
+    handoff_point: str
+    target: str
 
 
 class SeerProjectPreference(BaseModel):
@@ -59,6 +72,7 @@ class SeerProjectPreference(BaseModel):
     project_id: int
     repositories: list[SeerRepoDefinition]
     automated_run_stopping_point: str | None = None
+    automation_handoff: SeerAutomationHandoffConfiguration | None = None
 
 
 class PreferenceResponse(BaseModel):
