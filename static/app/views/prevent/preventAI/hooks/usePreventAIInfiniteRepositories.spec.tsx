@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -8,51 +9,30 @@ import type {Repository} from 'sentry/types/integrations';
 import {useInfiniteRepositories} from './usePreventAIInfiniteRepositories';
 
 const mockRepositories: Repository[] = [
-  {
+  RepositoryFixture({
     id: '1',
     name: 'test-org/repo-one',
-    url: 'https://github.com/test-org/repo-one',
-    provider: {
-      id: 'integrations:github',
-      name: 'GitHub',
-    },
-    status: RepositoryStatus.ACTIVE,
-    externalSlug: 'test-org/repo-one',
     integrationId: 'integration-123',
     externalId: 'ext-1',
-    dateCreated: '2024-01-01T00:00:00Z',
-  },
-  {
+    status: RepositoryStatus.ACTIVE,
+  }),
+  RepositoryFixture({
     id: '2',
     name: 'test-org/repo-two',
-    url: 'https://github.com/test-org/repo-two',
-    provider: {
-      id: 'integrations:github',
-      name: 'GitHub',
-    },
-    status: RepositoryStatus.ACTIVE,
-    externalSlug: 'test-org/repo-two',
     integrationId: 'integration-123',
     externalId: 'ext-2',
-    dateCreated: '2024-01-01T00:00:00Z',
-  },
+    status: RepositoryStatus.ACTIVE,
+  }),
 ];
 
 const mockRepositoriesPage2: Repository[] = [
-  {
+  RepositoryFixture({
     id: '3',
     name: 'test-org/repo-three',
-    url: 'https://github.com/test-org/repo-three',
-    provider: {
-      id: 'integrations:github',
-      name: 'GitHub',
-    },
-    status: RepositoryStatus.ACTIVE,
-    externalSlug: 'test-org/repo-three',
     integrationId: 'integration-123',
     externalId: 'ext-3',
-    dateCreated: '2024-01-01T00:00:00Z',
-  },
+    status: RepositoryStatus.ACTIVE,
+  }),
 ];
 
 describe('useInfiniteRepositories', () => {
@@ -376,5 +356,58 @@ describe('useInfiniteRepositories', () => {
     await waitFor(() => {
       expect(result.current.data?.pages[0]?.[0]).toHaveLength(1);
     });
+  });
+
+  it('filters out repositories with null externalId', async () => {
+    const organization = OrganizationFixture({slug: 'test-org'});
+    const reposResponse: Repository[] = [
+      RepositoryFixture({
+        id: '1',
+        name: 'test-org/repo-one',
+        integrationId: 'integration-123',
+        externalId: 'ext-1',
+        status: RepositoryStatus.ACTIVE,
+      }),
+      {
+        ...RepositoryFixture({
+          id: '999',
+          name: 'test-org/repo-hidden',
+          integrationId: 'integration-123',
+          // @ts-expect-error test value intentionally violates type
+          externalId: null,
+          status: RepositoryStatus.ACTIVE,
+        }),
+      },
+    ];
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      body: reposResponse,
+      match: [
+        MockApiClient.matchQuery({
+          integration_id: 'integration-123',
+          status: 'active',
+        }),
+      ],
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useInfiniteRepositories({
+          integrationId: 'integration-123',
+        }),
+      {
+        organization,
+      }
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    const data = result.current.data?.pages?.[0]?.[0] ?? [];
+    expect(data).toHaveLength(1);
+    expect(data?.[0]?.id).toBe('1');
+    expect(data.find(r => r.externalId === null)).toBeUndefined();
   });
 });

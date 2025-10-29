@@ -113,14 +113,14 @@ function ManageReposToolbar({
 
   const repositoryOptions = useMemo(() => {
     let repoOptions = filteredReposData.map(repo => ({
-      value: repo.id,
+      value: repo.externalId,
       label: getRepoNameWithoutOrg(repo.name),
     }));
 
     if (selectedRepo) {
       repoOptions = [
         {
-          value: selectedRepo.id,
+          value: selectedRepo.externalId,
           label: getRepoNameWithoutOrg(selectedRepo.name),
         },
         ...repoOptions,
@@ -160,16 +160,18 @@ function ManageReposToolbar({
         />
 
         <CompactSelect
-          value={selectedRepo?.id ?? ALL_REPOS_VALUE}
+          value={selectedRepo?.externalId ?? ALL_REPOS_VALUE}
           options={repositoryOptions}
           loading={isLoading}
           disabled={!selectedOrg || isLoading}
           onChange={option => {
-            const repoId = option?.value;
-            if (repoId === ALL_REPOS_VALUE) {
+            const repoExternalId = option?.value;
+            if (repoExternalId === ALL_REPOS_VALUE) {
               onRepoChange(null);
             } else {
-              const foundRepo = allReposData.find(repo => repo.id === repoId);
+              const foundRepo = allReposData.find(
+                repo => repo.externalId === repoExternalId
+              );
               onRepoChange(foundRepo ?? null);
             }
           }}
@@ -188,7 +190,7 @@ function ManageReposToolbar({
             children: (
               <TriggerLabel>
                 {repositoryOptions.find(
-                  opt => opt.value === (selectedRepo?.id ?? ALL_REPOS_VALUE)
+                  opt => opt.value === (selectedRepo?.externalId ?? ALL_REPOS_VALUE)
                 )?.label || t('Select repository')}
               </TriggerLabel>
             ),

@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {PreventAIConfigFixture} from 'sentry-fixture/prevent';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -13,52 +14,16 @@ describe('usePreventAIOrgRepos', () => {
   });
 
   const mockResponse: OrganizationIntegration[] = [
-    {
+    OrganizationIntegrationsFixture({
       id: '1',
       name: 'repo1',
       externalId: 'ext-1',
-      provider: {
-        key: 'github',
-        name: 'GitHub',
-        slug: 'github',
-        aspects: {},
-        canAdd: true,
-        canDisable: false,
-        features: [],
-      },
-      organizationId: '1',
-      status: 'active',
-      domainName: null,
-      accountType: null,
-      configData: null,
-      configOrganization: [],
-      gracePeriodEnd: null,
-      icon: null,
-      organizationIntegrationStatus: 'active',
-    },
-    {
+    }),
+    OrganizationIntegrationsFixture({
       id: '2',
       name: 'repo2',
       externalId: 'ext-2',
-      provider: {
-        key: 'github',
-        name: 'GitHub',
-        slug: 'github',
-        aspects: {},
-        canAdd: true,
-        canDisable: false,
-        features: [],
-      },
-      organizationId: '1',
-      status: 'active',
-      domainName: null,
-      accountType: null,
-      configData: null,
-      configOrganization: [],
-      gracePeriodEnd: null,
-      icon: null,
-      organizationIntegrationStatus: 'active',
-    },
+    }),
   ];
 
   beforeEach(() => {
@@ -107,29 +72,11 @@ describe('usePreventAIOrgRepos', () => {
     await waitFor(() => expect(result.current.data).toEqual(mockResponse));
 
     const newResponse: OrganizationIntegration[] = [
-      {
+      OrganizationIntegrationsFixture({
         id: '3',
         name: 'repo3',
         externalId: 'ext-3',
-        provider: {
-          key: 'github',
-          name: 'GitHub',
-          slug: 'github',
-          aspects: {},
-          canAdd: true,
-          canDisable: false,
-          features: [],
-        },
-        organizationId: '1',
-        status: 'active',
-        domainName: null,
-        accountType: null,
-        configData: null,
-        configOrganization: [],
-        gracePeriodEnd: null,
-        icon: null,
-        organizationIntegrationStatus: 'active',
-      },
+      }),
     ];
     MockApiClient.addMockResponse({
       url: `/organizations/${mockOrg.slug}/integrations/`,

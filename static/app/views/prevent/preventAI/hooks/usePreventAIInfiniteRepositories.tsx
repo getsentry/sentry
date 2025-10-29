@@ -16,6 +16,20 @@ type UseInfiniteRepositoriesOptions = {
   searchTerm?: string;
 };
 
+function removeReposWithNullExternalId(
+  result: ApiResult<Repository[]>
+): ApiResult<Repository[]> {
+  // result is [data, status, responseMeta]; data is Repository[]
+  if (Array.isArray(result) && Array.isArray(result[0])) {
+    return [
+      result[0].filter(repo => repo && repo.externalId !== null),
+      result[1],
+      result[2],
+    ];
+  }
+  return result;
+}
+
 export function useInfiniteRepositories({
   integrationId,
   searchTerm,
@@ -45,7 +59,7 @@ export function useInfiniteRepositories({
       signal,
       meta,
     }): Promise<ApiResult<Repository[]>> => {
-      return fetchDataQuery({
+      const result = await fetchDataQuery({
         queryKey: [
           url,
           {
@@ -59,6 +73,7 @@ export function useInfiniteRepositories({
         signal,
         meta,
       });
+      return removeReposWithNullExternalId(result as ApiResult<Repository[]>);
     },
     getNextPageParam: _lastPage => {
       const [, , responseMeta] = _lastPage;
