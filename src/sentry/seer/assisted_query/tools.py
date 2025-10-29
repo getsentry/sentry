@@ -4,29 +4,31 @@ from typing import Any
 from sentry.api import client
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 
 logger = logging.getLogger(__name__)
 
 
-def get_issue_attributes(*, org_id: int, project_ids: list[int]) -> dict[str, Any] | None:
+def get_issue_filter_keys(
+    *, org_id: int, project_ids: list[int], stats_period: str = "7d"
+) -> dict[str, Any] | None:
     """
-    Get available issue attributes (tags and flags).
+    Get available issue filter keys (tags and feature flags).
 
     Calls the Sentry tags API endpoint with different datasets to get:
-    - Event tags (dataset=events)
-    - Issue tags (dataset=search_issues)
+    - Tags (dataset=events and dataset=search_issues merged)
     - Feature flags (dataset=events with useFlagsBackend=1)
 
     Args:
         org_id: Organization ID
         project_ids: List of project IDs to query
+        stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Defaults to "7d".
 
     Returns:
-        Dictionary containing three arrays:
-        - event_tags: Tags from events dataset
-        - issue_tags: Tags from search_issues dataset
-        - flags: Feature flags from events dataset
+        Dictionary containing two arrays:
+        - tags: Merged tags from events and search_issues datasets
+        - feature_flags: Feature flags from events dataset
         Returns None if organization doesn't exist.
     """
     try:
@@ -40,13 +42,13 @@ def get_issue_attributes(*, org_id: int, project_ids: list[int]) -> dict[str, An
     )
 
     base_params: dict[str, Any] = {
-        "statsPeriod": "24h",
+        "statsPeriod": stats_period,
         "project": project_ids,
         "referrer": Referrer.SEER_RPC,
     }
 
     # Get event tags
-    event_params = {**base_params, "dataset": "events", "useCache": "1"}
+    event_params = {**base_params, "dataset": Dataset.Events.value, "useCache": "1"}
     event_resp = client.get(
         auth=api_key,
         user=None,
@@ -56,7 +58,7 @@ def get_issue_attributes(*, org_id: int, project_ids: list[int]) -> dict[str, An
     event_tags = event_resp.data if event_resp.status_code == 200 else []
 
     # Get issue tags (search_issues dataset)
-    issue_params = {**base_params, "dataset": "search_issues", "useCache": "1"}
+    issue_params = {**base_params, "dataset": Dataset.IssuePlatform.value, "useCache": "1"}
     issue_resp = client.get(
         auth=api_key,
         user=None,
@@ -65,32 +67,49 @@ def get_issue_attributes(*, org_id: int, project_ids: list[int]) -> dict[str, An
     )
     issue_tags = issue_resp.data if issue_resp.status_code == 200 else []
 
+    # Merge event_tags and issue_tags
+    # Use a dict to deduplicate by key
+    tags_dict = {}
+    for tag in event_tags:
+        tags_dict[tag.get("key")] = tag
+    for tag in issue_tags:
+        # If key already exists, we keep the first one (from events)
+        # Otherwise add the issue tag
+        if tag.get("key") not in tags_dict:
+            tags_dict[tag.get("key")] = tag
+    tags = list(tags_dict.values())
+
     # Get feature flags
-    flags_params = {**base_params, "dataset": "events", "useFlagsBackend": "1", "useCache": "1"}
+    flags_params = {
+        **base_params,
+        "dataset": Dataset.Events.value,
+        "useFlagsBackend": "1",
+        "useCache": "1",
+    }
     flags_resp = client.get(
         auth=api_key,
         user=None,
         path=f"/organizations/{organization.slug}/tags/",
         params=flags_params,
     )
-    flags = flags_resp.data if flags_resp.status_code == 200 else []
+    feature_flags = flags_resp.data if flags_resp.status_code == 200 else []
 
     return {
-        "event_tags": event_tags,
-        "issue_tags": issue_tags,
-        "flags": flags,
+        "tags": tags,
+        "feature_flags": feature_flags,
     }
 
 
-def get_attribute_values(
+def get_filter_key_values(
     *,
     org_id: int,
     project_ids: list[int],
     attribute_key: str,
     substring: str | None = None,
+    stats_period: str = "7d",
 ) -> list[dict[str, Any]] | None:
     """
-    Get values for a specific attribute key.
+    Get values for a specific filter key.
 
     Checks all three sources and merges results:
     - Events dataset (regular tags)
@@ -102,6 +121,7 @@ def get_attribute_values(
         project_ids: List of project IDs to query
         attribute_key: The attribute/tag key to get values for (e.g., "organization.slug", "feature.organizations:...")
         substring: Optional substring to filter values. Only values containing this substring will be returned.
+        stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Defaults to "7d".
 
     Returns:
         List of dicts containing:
@@ -124,7 +144,7 @@ def get_attribute_values(
     )
 
     base_params: dict[str, Any] = {
-        "statsPeriod": "24h",
+        "statsPeriod": stats_period,
         "project": project_ids,
         "sort": "-count",
         "referrer": Referrer.SEER_RPC,
@@ -137,7 +157,7 @@ def get_attribute_values(
     all_results: list[dict[str, Any]] = []
 
     # 1. Try events dataset (regular tags)
-    events_params = {**base_params, "dataset": "events"}
+    events_params = {**base_params, "dataset": Dataset.Events.value}
     events_resp = client.get(
         auth=api_key,
         user=None,
@@ -148,7 +168,7 @@ def get_attribute_values(
         all_results.extend(events_resp.data)
 
     # 2. Try search_issues dataset
-    issues_params = {**base_params, "dataset": "search_issues"}
+    issues_params = {**base_params, "dataset": Dataset.IssuePlatform.value}
     issues_resp = client.get(
         auth=api_key,
         user=None,
@@ -159,7 +179,7 @@ def get_attribute_values(
         all_results.extend(issues_resp.data)
 
     # 3. Try events dataset with flags backend (feature flags)
-    flags_params = {**base_params, "dataset": "events", "useFlagsBackend": "1"}
+    flags_params = {**base_params, "dataset": Dataset.Events.value, "useFlagsBackend": "1"}
     flags_resp = client.get(
         auth=api_key,
         user=None,
@@ -198,7 +218,7 @@ def execute_issues_query(
     org_id: int,
     project_ids: list[int],
     query: str,
-    stats_period: str,
+    stats_period: str = "7d",
     sort: str | None = None,
     limit: int = 25,
 ) -> list[dict[str, Any]] | None:
@@ -209,7 +229,7 @@ def execute_issues_query(
         org_id: Organization ID
         project_ids: List of project IDs to query
         query: Search query string (e.g., "is:unresolved")
-        stats_period: Time period for the query (e.g., "24h", "14d")
+        stats_period: Time period for the query (e.g., "24h", "7d", "14d"). Defaults to "7d".
         sort: Optional sort field (e.g., "date", "new", "freq", "priority")
         limit: Number of results to return (default 25)
 
