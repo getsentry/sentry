@@ -107,7 +107,11 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
     def tenant_ids(self) -> Mapping[str, Any]:
         result = {"referrer": self.referrer}
         if self.groups:
-            result["organization_id"] = self.groups[0].project.organization_id
+            if not options.get("deletions.only-fetch-ids"):
+                result["organization_id"] = self.groups[0].project.organization_id
+            else:
+                project_id = self.groups[0][_F_IDX["project_id"]]
+                result["organization_id"] = Project.objects.get(id=project_id).organization_id
         return result
 
     def chunk(self, apply_filter: bool = False) -> bool:
