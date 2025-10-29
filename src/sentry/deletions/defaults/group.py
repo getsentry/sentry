@@ -92,14 +92,13 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
 
     def set_group_and_project_ids(self) -> None:
         group_ids = []
-        self.project_groups: defaultdict[int, list[Group]] = defaultdict(list)
+        self.project_groups: defaultdict[int, list[Group | tuple[Any, ...]]] = defaultdict(list)
         for group in self.groups:
-            if not options.get("deletions.only-fetch-ids"):
+            if isinstance(group, Group):
                 self.project_groups[group.project_id].append(group)
                 group_ids.append(group.id)
             else:
-                project_id_index = _F_IDX["project_id"]
-                self.project_groups[group[project_id_index]].append(group)
+                self.project_groups[group[_F_IDX["project_id"]]].append(group)
                 group_ids.append(group[_F_IDX["id"]])
         self.group_ids = group_ids
         self.project_ids = list(self.project_groups.keys())
@@ -126,8 +125,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
         if not options.get("deletions.only-fetch-ids"):
             organization_id = self.groups[0].project.organization_id
         else:
-            project_id_index = _F_IDX["project_id"]
-            project_id = self.groups[0][project_id_index]
+            project_id = self.groups[0][_F_IDX["project_id"]]
             organization_id = Project.objects.get(id=project_id).organization_id
 
         # Schedule nodestore deletion task for each project
@@ -215,9 +213,8 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             project_id = instance_list[0].project_id
         else:
             id_index = _F_IDX["id"]
-            project_id_index = _F_IDX["project_id"]
             group_ids = [group[id_index] for group in instance_list]
-            project_id = instance_list[0][project_id_index]
+            project_id = instance_list[0][_F_IDX["project_id"]]
 
         # Remove child relations for all groups first.
         child_relations: list[BaseRelation] = []
