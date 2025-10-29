@@ -242,18 +242,17 @@ def get_organization_slug(*, org_id: int) -> dict:
 
 
 def get_organization_project_ids(*, org_id: int) -> dict:
-    """Get all project IDs for an organization"""
+    """Get all projects (IDs and slugs) for an organization"""
     from sentry.models.project import Project
 
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
-        return {"project_ids": []}
+        return {"projects": []}
 
-    project_ids = list(
-        Project.objects.filter(organization=organization).values_list("id", flat=True)
-    )
-    return {"project_ids": project_ids}
+    projects = list(Project.objects.filter(organization=organization).values("id", "slug"))
+
+    return {"projects": projects}
 
 
 def _can_use_prevent_ai_features(org: Organization) -> bool:

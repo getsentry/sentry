@@ -705,3 +705,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/prevent/                                @getsentry/prevent
 /static/app/views/nav/secondary/sections/prevent/         @getsentry/prevent
 # End of Prevent
+
+# Conduit
+/src/sentry/conduit/                                  @getsentry/sre-infrastructure-engineering
+/tests/sentry/conduit/                                @getsentry/sre-infrastructure-engineering
+# End of Conduit
