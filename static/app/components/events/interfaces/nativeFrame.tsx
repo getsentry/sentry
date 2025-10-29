@@ -150,8 +150,8 @@ function NativeFrame({
   const [isHovering, setHovering] = useState(false);
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
-  const hasStacktraceLink = frame.inApp && !!frame.filename && (isHovering || expanded);
-  const showSentryAppStacktraceLinkInFrame = hasStacktraceLink && components.length > 0;
+  const showStacktraceLink = frame.inApp && !!frame.filename && (isHovering || expanded);
+  const showSentryAppStacktraceLinkInFrame = showStacktraceLink && components.length > 0;
 
   const handleMouseEnter = () => setHovering(true);
 
@@ -409,7 +409,7 @@ function NativeFrame({
             </ShowHideButton>
           ) : null}
           <GenericCellWrapper>
-            <div style={{visibility: hasStacktraceLink ? 'visible' : 'hidden'}}>
+            {showStacktraceLink && (
               <ErrorBoundary>
                 <StacktraceLink
                   frame={frame}
@@ -418,12 +418,8 @@ function NativeFrame({
                   disableSetup={isHoverPreviewed}
                 />
               </ErrorBoundary>
-            </div>
-            <div
-              style={{
-                visibility: showSentryAppStacktraceLinkInFrame ? 'visible' : 'hidden',
-              }}
-            >
+            )}
+            {showSentryAppStacktraceLinkInFrame && (
               <ErrorBoundary mini>
                 <OpenInContextLine
                   lineNo={frame.lineNo}
@@ -431,7 +427,7 @@ function NativeFrame({
                   components={components}
                 />
               </ErrorBoundary>
-            </div>
+            )}
             <TypeCell>
               {frame.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
             </TypeCell>
