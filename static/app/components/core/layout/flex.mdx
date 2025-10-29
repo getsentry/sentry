@@ -13,6 +13,12 @@ import documentation from '!!type-loader!@sentry/scraps/layout/flex';
 
 export {documentation};
 
+export function LogDocumentation(props) {
+  console.log(props.documentation);
+}
+
+<LogDocumentation documentation={documentation} />
+
 The `Flex` component is a layout component that extends the `Container` component with CSS flexbox properties. It combines the powerful spacing, sizing, and styling capabilities of `Container` with flexible positioning and alignment controls.
 
 ## Basic Usage

@@ -27,12 +27,21 @@ function extractModuleExports(
         const declarations = exportSymbol.getDeclarations() || [];
 
         for (const decl of declarations) {
-          if (typescript.isExportSpecifier(decl)) {
-            acc[decl.name.getText()] = {
-              name: decl.name.getText(),
-              typeOnly: decl.isTypeOnly,
-            };
+          const name = exportSymbol.name;
+          let typeOnly = false;
+
+          // Determine if it's a type-only export
+          if (typescript.isInterfaceDeclaration(decl)) {
+            typeOnly = true;
+          } else if (typescript.isTypeAliasDeclaration(decl)) {
+            typeOnly = true;
+          } else if (typescript.isExportSpecifier(decl)) {
+            typeOnly = decl.isTypeOnly;
           }
+          // For VariableDeclaration, FunctionDeclaration, ClassDeclaration, etc.
+          // typeOnly remains false (these are value exports)
+
+          acc[name] = {name, typeOnly};
         }
         return acc;
       },

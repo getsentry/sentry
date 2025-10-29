@@ -10,8 +10,22 @@ export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['expo
   const lines = [];
 
   if (Object.entries(props.exports.exports).length > 0) {
-    const namedList = Object.entries(props.exports.exports)
-      .map(([_key, value]) => `${value.typeOnly ? `type ${value.name}` : value.name}`)
+    const entries = Object.entries(props.exports.exports);
+
+    // Optimized merge: types immediately after value exports of the same name, otherwise alphabetized
+    const exportsMap = new Map<string, {type?: string; value?: string}>();
+    entries.forEach(([key, value]) => {
+      if (value.typeOnly) {
+        exportsMap.set(key, {...exportsMap.get(key), type: `type ${key}`});
+      } else {
+        exportsMap.set(key, {...exportsMap.get(key), value: key});
+      }
+    });
+    const namedList = Array.from(exportsMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .flatMap(([_key, {value, type}]) =>
+        value ? [value, type].filter(Boolean) : [type].filter(Boolean)
+      )
       .join(', ');
     lines.push(`import {${namedList}} from '${props.exports.module}';`);
   }

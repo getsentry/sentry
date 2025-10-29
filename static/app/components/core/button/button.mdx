@@ -33,14 +33,22 @@ import {
 } from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import ButtonDocumentation from '!!type-loader!@sentry/scraps/button/index';
+import ButtonDocumentation from '!!type-loader!@sentry/scraps/button';
 
 export const documentation = {
-  // We are going to omit some exports like StyledButton and ButtonLabel, because we
-  // don't want to encourage their usage.
-  ...ButtonDocumentation,
+  exports: {
+    module: ButtonDocumentation.exports.module,
+    exports: {
+      // Button has some exports that we don't want to document, strip them out until they are removed
+      ...Object.fromEntries(
+        Object.entries(ButtonDocumentation.exports.exports).filter(
+          ([key]) => key !== 'StyledButton' && key !== 'ButtonBar'
+        )
+      ),
+    },
+  },
   props: {
-    Button: ButtonDocumentation.props.Button,
+    ...ButtonDocumentation.props,
   },
 };
 
