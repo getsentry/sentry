@@ -32,6 +32,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useNavContext} from 'sentry/views/nav/context';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
+import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
 function useNavigationActions(): CommandPaletteAction[] {
   const organization = useOrganization();
@@ -192,6 +193,18 @@ function useNavigationActions(): CommandPaletteAction[] {
     }),
   ];
 
+  const settingsChildren: CommandPaletteActionChild[] =
+    getUserOrgNavigationConfiguration().flatMap(item =>
+      item.items.map(settingsChildItem =>
+        makeCommandPaletteLink({
+          display: {
+            label: settingsChildItem.title,
+          },
+          to: settingsChildItem.path,
+        })
+      )
+    );
+
   return [
     makeCommandPaletteGroup({
       groupingKey: 'navigate',
@@ -235,13 +248,13 @@ function useNavigationActions(): CommandPaletteAction[] {
       actions: preventChildren,
       hidden: !organization.features.includes('prevent-ai'),
     }),
-    makeCommandPaletteLink({
+    makeCommandPaletteGroup({
       groupingKey: 'navigate',
       display: {
         label: t('Settings'),
         icon: <IconSettings />,
       },
-      to: `/settings/${slug}/`,
+      actions: settingsChildren,
     }),
   ];
 }
