@@ -42,6 +42,9 @@ import {
 } from 'sentry/views/explore/metrics/styles';
 import type {PickableDays} from 'sentry/views/explore/utils';
 
+const METRICS_GH_DISCUSSION_LINK =
+  'https://github.com/getsentry/sentry/discussions/102275';
+
 type OnboardingProps = {
   organization: Organization;
   project: Project;
@@ -93,7 +96,7 @@ function OnboardingPanel({
               <Preview>
                 <BodyTitle>{t('Preview a Sentry Metric')}</BodyTitle>
                 <Arcade
-                  src="https://demo.arcade.software/dLjHGrPJITrt7JKpmX5V?embed"
+                  src="https://demo.arcade.software/wNDJOXTJw64xiuVi7Hp6?embed"
                   loading="lazy"
                   allowFullScreen
                 />
@@ -176,7 +179,7 @@ function Onboarding({organization, project}: OnboardingProps) {
         <div>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/platforms/"
+            href={METRICS_GH_DISCUSSION_LINK}
             external
             onClick={() => {
               trackAnalytics('metrics.onboarding_platform_docs_viewed', {
