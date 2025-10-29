@@ -1,7 +1,8 @@
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-import docs, {SiblingOption} from './capacitor';
+import {SiblingOption} from './utils';
+import docs from '.';
 
 describe('capacitor onboarding docs', () => {
   it('renders docs correctly', () => {
@@ -17,7 +18,7 @@ describe('capacitor onboarding docs', () => {
     it(`renders capacitor docs correctly with sibling ${enumMember}`, () => {
       renderWithOnboardingLayout(docs, {
         selectedOptions: {
-          siblingOption: enumMember,
+          siblingOption: enumMember as SiblingOption,
         },
       });
 
