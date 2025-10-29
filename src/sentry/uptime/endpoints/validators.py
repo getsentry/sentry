@@ -460,16 +460,13 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
 
 
 class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
-    data_source = UptimeMonitorDataSourceValidator(required=False)
     data_sources = serializers.ListField(child=UptimeMonitorDataSourceValidator(), required=False)
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
         super().update(instance, validated_data)
 
         data_source = None
-        if "data_source" in validated_data:
-            data_source = validated_data.pop("data_source")
-        elif "data_sources" in validated_data:
+        if "data_sources" in validated_data:
             data_source = validated_data.pop("data_sources")[0]
 
         if data_source is not None:

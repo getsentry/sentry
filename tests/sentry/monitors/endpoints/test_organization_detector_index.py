@@ -100,13 +100,15 @@ class OrganizationDetectorIndexPostTest(APITestCase):
             "projectId": self.project.id,
             "type": MonitorIncidentType.slug,
             "name": "Test Monitor Detector",
-            "dataSource": {
-                "name": "Test Monitor",
-                "config": {
-                    "schedule": "0 * * * *",
-                    "scheduleType": "crontab",
-                },
-            },
+            "dataSources": [
+                {
+                    "name": "Test Monitor",
+                    "config": {
+                        "schedule": "0 * * * *",
+                        "scheduleType": "crontab",
+                    },
+                }
+            ],
         }
         data.update(overrides)
         return data
@@ -155,38 +157,42 @@ class OrganizationDetectorIndexPostTest(APITestCase):
 
     def test_create_monitor_incident_detector_validation_error(self):
         data = self._get_detector_post_data(
-            dataSource={
-                "config": {
-                    "schedule": "invalid cron",
-                    "scheduleType": "crontab",
-                },
-            }
+            dataSources=[
+                {
+                    "config": {
+                        "schedule": "invalid cron",
+                        "scheduleType": "crontab",
+                    },
+                }
+            ]
         )
         response = self.get_error_response(
             self.organization.slug,
             **data,
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-        assert "dataSource" in response.data
-        assert "Either name or slug must be provided" in str(response.data["dataSource"])
+        assert "dataSources" in response.data
+        assert "Either name or slug must be provided" in str(response.data["dataSources"])
 
     def test_create_monitor_with_optional_fields(self):
         data = self._get_detector_post_data(
-            dataSource={
-                "name": "Full Config Monitor",
-                "slug": "full-config-monitor",
-                "status": "disabled",
-                "isMuted": True,
-                "config": {
-                    "schedule": "*/30 * * * *",
-                    "scheduleType": "crontab",
-                    "checkinMargin": 15,
-                    "maxRuntime": 120,
-                    "timezone": "America/New_York",
-                    "failureIssueThreshold": 3,
-                    "recoveryThreshold": 2,
-                },
-            },
+            dataSources=[
+                {
+                    "name": "Full Config Monitor",
+                    "slug": "full-config-monitor",
+                    "status": "disabled",
+                    "isMuted": True,
+                    "config": {
+                        "schedule": "*/30 * * * *",
+                        "scheduleType": "crontab",
+                        "checkinMargin": 15,
+                        "maxRuntime": 120,
+                        "timezone": "America/New_York",
+                        "failureIssueThreshold": 3,
+                        "recoveryThreshold": 2,
+                    },
+                }
+            ],
         )
         with self.tasks():
             self.get_success_response(
@@ -250,15 +256,17 @@ class OrganizationDetectorIndexPutTest(BaseDetectorTestCase):
     def test_update_monitor_config_through_detector(self):
         data = {
             "name": "Updated Detector With Monitor Config",
-            "dataSource": {
-                "name": "Updated Monitor Name",
-                "config": {
-                    "schedule": "*/30 * * * *",
-                    "scheduleType": "crontab",
-                    "checkinMargin": 10,
-                    "maxRuntime": 60,
-                },
-            },
+            "dataSources": [
+                {
+                    "name": "Updated Monitor Name",
+                    "config": {
+                        "schedule": "*/30 * * * *",
+                        "scheduleType": "crontab",
+                        "checkinMargin": 10,
+                        "maxRuntime": 60,
+                    },
+                }
+            ],
         }
         with self.tasks():
             self.get_success_response(

@@ -139,15 +139,17 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         self.valid_data = {
             "name": "Test Detector",
             "type": MetricIssue.slug,
-            "dataSource": {
-                "queryType": SnubaQuery.Type.ERROR.value,
-                "dataset": Dataset.Events.value,
-                "query": "test query",
-                "aggregate": "count()",
-                "timeWindow": 3600,
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
-            },
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                }
+            ],
             "conditionGroup": {
                 "id": self.data_condition_group.id,
                 "organizationId": self.organization.id,
@@ -481,15 +483,17 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
     def test_transaction_dataset_deprecation_transactions(self) -> None:
         data = {
             **self.valid_data,
-            "dataSource": {
-                "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                "dataset": Dataset.Transactions.value,
-                "query": "test query",
-                "aggregate": "count()",
-                "timeWindow": 3600,
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-            },
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.Transactions.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                }
+            ],
         }
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert validator.is_valid(), validator.errors
@@ -504,15 +508,17 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
     def test_transaction_dataset_deprecation_generic_metrics(self) -> None:
         data = {
             **self.valid_data,
-            "dataSource": {
-                "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                "dataset": Dataset.PerformanceMetrics.value,
-                "query": "test query",
-                "aggregate": "count()",
-                "timeWindow": 3600,
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-            },
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.PerformanceMetrics.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                }
+            ],
         }
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert validator.is_valid(), validator.errors
@@ -538,7 +544,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 },
             ],
         }
-        data.pop("dataSource", None)
+
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert validator.is_valid(), validator.errors
         with self.assertRaisesMessage(
@@ -582,21 +588,22 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 },
             ],
         }
-        data.pop("dataSource", None)
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert validator.is_valid(), validator.errors
         detector = validator.save()
 
         update_data = {
-            "dataSource": {
-                "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                "dataset": Dataset.PerformanceMetrics.value,
-                "query": "updated query",
-                "aggregate": "count()",
-                "timeWindow": 3600,
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-            },
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.PerformanceMetrics.value,
+                    "query": "updated query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                }
+            ],
         }
         update_validator = MetricIssueDetectorValidator(
             instance=detector, data=update_data, context=self.context, partial=True
@@ -610,19 +617,3 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             with_feature("organizations:discover-saved-queries-deprecation"),
         ):
             update_validator.save()
-
-
-class TestMetricAlertDetectorDataSourcesValidator(TestMetricAlertsDetectorValidator):
-    def setUp(self) -> None:
-        """
-        These are a temporary suite of tests that run the same ones as `TestMetricAlertsDetectorValidator`
-        but changes the dataSource attribute to dataSources.
-        """
-        super().setUp()
-
-        data_source = self.valid_data["dataSource"]
-
-        # This is a temporary line of code; works fine when inlining the [] which
-        # is the longer term solution.
-        self.valid_data["dataSources"] = [data_source]  # type: ignore[list-item]
-        del self.valid_data["dataSource"]
