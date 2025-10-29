@@ -1,8 +1,9 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -37,6 +38,8 @@ const INSIGHTS_WITH_MORE_INFO_MODAL = [
   'alternate_icons_optimization',
 ];
 
+const ITEMS_PER_PAGE = 20;
+
 export function AppSizeInsightsSidebarRow({
   insight,
   isExpanded,
@@ -50,6 +53,13 @@ export function AppSizeInsightsSidebarRow({
 }) {
   const theme = useTheme();
   const shouldShowTooltip = INSIGHTS_WITH_MORE_INFO_MODAL.includes(insight.key);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const totalPages = Math.ceil(insight.files.length / ITEMS_PER_PAGE);
+  const startIndex = currentPage * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentFiles = insight.files.slice(startIndex, endIndex);
+  const showPagination = insight.files.length > ITEMS_PER_PAGE;
 
   const handleOpenModal = () => {
     if (insight.key === 'alternate_icons_optimization') {
@@ -58,6 +68,16 @@ export function AppSizeInsightsSidebarRow({
       openOptimizeImagesModal(platform);
     }
   };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  useEffect(() => {
+    if (!isExpanded) {
+      setCurrentPage(0);
+    }
+  }, [isExpanded]);
 
   return (
     <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
@@ -116,21 +136,47 @@ export function AppSizeInsightsSidebarRow({
           </Button>
 
           {isExpanded && (
-            <Container
-              display="flex"
-              css={() => ({
-                flexDirection: 'column',
-                width: '100%',
-                overflow: 'hidden',
-                '& > :nth-child(odd)': {
-                  backgroundColor: theme.backgroundSecondary,
-                },
-              })}
-            >
-              {insight.files.map((file, fileIndex) => (
-                <FileRow key={`${file.path}-${fileIndex}`} file={file} />
-              ))}
-            </Container>
+            <Fragment>
+              <Container
+                display="flex"
+                css={() => ({
+                  flexDirection: 'column',
+                  width: '100%',
+                  overflow: 'hidden',
+                  '& > :nth-child(odd)': {
+                    backgroundColor: theme.backgroundSecondary,
+                  },
+                })}
+              >
+                {currentFiles.map((file, fileIndex) => (
+                  <FileRow key={`${file.path}-${fileIndex}`} file={file} />
+                ))}
+              </Container>
+
+              {showPagination && (
+                <Flex align="center" justify="end" gap="md" paddingTop="md">
+                  <Text size="sm" variant="muted">
+                    {t('Page %s of %s', currentPage + 1, totalPages)}
+                  </Text>
+                  <ButtonBar merged gap="0">
+                    <Button
+                      icon={<IconChevron direction="left" />}
+                      aria-label={t('Previous')}
+                      size="xs"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 0}
+                    />
+                    <Button
+                      icon={<IconChevron direction="right" />}
+                      aria-label={t('Next')}
+                      size="xs"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages - 1}
+                    />
+                  </ButtonBar>
+                </Flex>
+              )}
+            </Fragment>
           )}
         </Container>
       )}
