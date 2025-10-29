@@ -60,14 +60,20 @@ export function CommandPaletteList({
     }
   }, [treeState.collection, treeState.selectionManager, firstFocusableKey]);
 
+  const delegate = useMemo(
+    () =>
+      new ListKeyboardDelegate({
+        collection: treeState.collection,
+        disabledKeys: treeState.selectionManager.disabledKeys,
+        ref: inputRef,
+      }),
+    [treeState.collection, treeState.selectionManager.disabledKeys, inputRef]
+  );
+
   // This helps handle keyboard events on the input
   const {collectionProps} = useSelectableCollection({
     selectionManager: treeState.selectionManager,
-    keyboardDelegate: new ListKeyboardDelegate({
-      collection: treeState.collection,
-      disabledKeys: treeState.selectionManager.disabledKeys,
-      ref: inputRef,
-    }),
+    keyboardDelegate: delegate,
     shouldFocusWrap: true,
     ref: inputRef,
   });

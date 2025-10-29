@@ -25,8 +25,8 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {useRemoveUrlCursorsOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveUrlCursorsOnSearch';
-import {unsetQueryCursors} from 'sentry/views/insights/agents/utils/unsetQueryCursors';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
+import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -119,8 +119,7 @@ function McpOverviewPage() {
     },
   });
   const activeView = view ?? ViewType.TOOL;
-
-  useRemoveUrlCursorsOnSearch();
+  const {unsetCursor} = useTableCursor();
 
   useEffect(() => {
     trackAnalytics('mcp-monitoring.page-view', {
@@ -142,7 +141,7 @@ function McpOverviewPage() {
           query: {
             ...location.query,
             view: newTable,
-            ...unsetQueryCursors(location.query),
+            [TableUrlParams.CURSOR]: undefined,
           },
         },
         {replace: true}
@@ -165,6 +164,7 @@ function McpOverviewPage() {
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
         setSearchQuery(newQuery);
+        unsetCursor();
       },
       searchSource: 'mcp-monitoring',
       numberTags,
@@ -185,6 +185,7 @@ function McpOverviewPage() {
       setSearchQuery,
       stringSecondaryAliases,
       stringTags,
+      unsetCursor,
     ]
   );
 

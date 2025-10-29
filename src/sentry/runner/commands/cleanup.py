@@ -119,10 +119,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             return
 
         try:
-            with sentry_sdk.start_transaction(
-                op="cleanup", name="multiprocess_worker"
-            ) as transaction:
-                transaction.set_tag("model", model_name)
+            with sentry_sdk.start_transaction(op="cleanup", name="multiprocess_worker"):
                 model = import_string(model_name)
                 task = deletions.get(
                     model=model,
@@ -132,16 +129,21 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 )
 
                 while True:
+                    debug_output(f"Processing chunk of {len(chunk)} {model_name} objects")
+                    metrics.incr(
+                        "cleanup.chunk_processed", tags={"model": model_name}, amount=len(chunk)
+                    )
                     if not task.chunk(apply_filter=True):
                         break
         except Exception:
             metrics.incr(
                 "cleanup.error",
                 instance=model_name,
-                tags={"type": "multiprocess_worker"},
+                tags={"model": model_name, "type": "multiprocess_worker"},
                 sample_rate=1.0,
             )
-            capture_exception()
+            capture_exception(tags={"model": model_name})
+            debug_output(f"--> Error processing chunk of {len(chunk)} {model_name} objects.")
         finally:
             task_queue.task_done()
 
@@ -286,11 +288,16 @@ def _cleanup(
             remove_file_blobs(is_filtered, silent, models_attempted)
         except CleanupExecutionAborted:
             click.echo("Cleanup was aborted via cleanup.abort_execution option.")
-            metrics.incr("cleanup.aborted", instance=router, sample_rate=1.0)
+            metrics.incr(
+                "cleanup.aborted", instance=router, tags={"db_router": router}, sample_rate=1.0
+            )
+            capture_exception(tags={"db_router": router})
             # Don't re-raise - this is expected behavior, not an error
         except Exception:
-            capture_exception()
-            metrics.incr("cleanup.error", tags={"type": "FATAL"}, sample_rate=1.0)
+            capture_exception(tags={"db_router": router})
+            metrics.incr(
+                "cleanup.error", tags={"db_router": router, "type": "FATAL"}, sample_rate=1.0
+            )
             raise
 
         finally:
@@ -298,7 +305,13 @@ def _cleanup(
             _stop_pool(pool, task_queue)
 
             duration = int(time.time() - start_time)
-            metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
+            metrics.timing(
+                "cleanup.duration",
+                duration,
+                instance=router,
+                tags={"db_router": router},
+                sample_rate=1.0,
+            )
             click.echo("Clean up took %s second(s)." % duration)
 
             # Check for models that were specified but never attempted
@@ -640,11 +653,11 @@ def run_bulk_query_deletes(
                     order_by=order_by,
                 ).execute(chunk_size=chunk_size)
             except Exception:
-                capture_exception()
+                capture_exception(tags={"model": model_tp.__name__})
                 metrics.incr(
                     "cleanup.error",
                     instance=model_tp.__name__,
-                    tags={"type": "bulk_delete_query"},
+                    tags={"model": model_tp.__name__, "type": "bulk_delete_query"},
                     sample_rate=1.0,
                 )
 
@@ -688,11 +701,11 @@ def run_bulk_deletes_in_deletes(
                     task_queue.put((imp, chunk))
 
             except Exception:
-                capture_exception()
+                capture_exception(tags={"model": model_tp.__name__})
                 metrics.incr(
                     "cleanup.error",
                     instance=model_tp.__name__,
-                    tags={"type": "bulk_delete_in_deletes"},
+                    tags={"model": model_tp.__name__, "type": "bulk_delete_in_deletes"},
                     sample_rate=1.0,
                 )
 
@@ -725,10 +738,10 @@ def run_bulk_deletes_by_project(
 
         # Count total projects for progress tracking
         total_projects = project_deletion_query.count()
-        logger.info("Processing %d project(s)", total_projects)
+        debug_output(f"Processing {total_projects} project(s)")
 
         processed_count = 0
-        last_reported_percentage = -1
+        last_reported_percentage = 0
 
         for project_id_for_deletion in RangeQuerySetWrapper(
             project_deletion_query.values_list("id", flat=True),
@@ -754,11 +767,13 @@ def run_bulk_deletes_by_project(
                     for chunk in q.iterator(chunk_size=100):
                         task_queue.put((imp, chunk))
                 except Exception:
-                    capture_exception()
+                    capture_exception(
+                        tags={"model": model_tp.__name__, "project_id": project_id_for_deletion}
+                    )
                     metrics.incr(
                         "cleanup.error",
                         instance=model_tp.__name__,
-                        tags={"type": "bulk_delete_by_project"},
+                        tags={"model": model_tp.__name__, "type": "bulk_delete_by_project"},
                         sample_rate=1.0,
                     )
 
@@ -768,12 +783,8 @@ def run_bulk_deletes_by_project(
 
             # Report progress every 5% to avoid excessive output
             if current_percentage >= last_reported_percentage + 5:
-                logger.info(
-                    "Progress: %s%% (%s/%s projects processed) (last_project_id: %s)",
-                    current_percentage,
-                    processed_count,
-                    total_projects,
-                    project_id_for_deletion,
+                debug_output(
+                    f"Progress: {current_percentage}% ({processed_count}/{total_projects} projects processed) (last_project_id: {project_id_for_deletion})"
                 )
                 last_reported_percentage = current_percentage
 
@@ -824,11 +835,16 @@ def run_bulk_deletes_by_organization(
                     for chunk in q.iterator(chunk_size=100):
                         task_queue.put((imp, chunk))
                 except Exception:
-                    capture_exception()
+                    capture_exception(
+                        tags={
+                            "model": model_tp.__name__,
+                            "organization_id": organization_id_for_deletion,
+                        }
+                    )
                     metrics.incr(
                         "cleanup.error",
                         instance=model_tp.__name__,
-                        tags={"type": "bulk_delete_by_organization"},
+                        tags={"model": model_tp.__name__, "type": "bulk_delete_by_organization"},
                         sample_rate=1.0,
                     )
 
