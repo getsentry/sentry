@@ -32,6 +32,11 @@ class OrganizationSeerExplorerRunsPermission(OrganizationPermission):
 class ExplorerRunsRequestSerializer(serializers.Serializer):
     limit = serializers.IntegerField(required=False, allow_null=False)
 
+    def validate_limit(self, value: int) -> int:
+        if value < 1:
+            raise serializers.ValidationError("Limit must be greater than 0")
+        return value
+
 
 @region_silo_endpoint
 class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
