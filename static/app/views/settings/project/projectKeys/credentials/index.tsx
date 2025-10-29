@@ -212,7 +212,7 @@ function ProjectKeyCredentials({
       },
       {
         key: 'vercel',
-        label: t('Vercel Log Drain'),
+        label: t('Vercel Drains'),
         visible: showVercelLogDrainEndpoint || showOtlpTraces,
       },
     ];
