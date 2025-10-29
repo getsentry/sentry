@@ -12,6 +12,11 @@ import {Button} from 'sentry/components/core/button';
 import {Flex, Stack} from 'sentry/components/core/layout';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
+import {
+  makeCommandPaletteCallback,
+  makeCommandPaletteGroup,
+  makeCommandPaletteLink,
+} from 'sentry/components/commandPalette/makeCommandPaletteAction';
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/useCommandPaletteActions';
 
 import * as Storybook from 'sentry/stories';
@@ -23,38 +28,30 @@ export function RegisterActions({actions}) {
 
 export function CommandPaletteDemo() {
   const demoActions = [
-    {
-      key: 'go-to-flex-story',
+    makeCommandPaletteLink({
       display: {label: 'Go to Flex story'},
       to: '/stories/layout/flex/',
       groupingKey: 'navigate',
-      type: 'navigate',
-    },
-    {
-      key: 'action-1',
+    }),
+    makeCommandPaletteCallback({
       display: {label: 'Execute an action'},
       groupingKey: 'help',
       onAction: () => {
         addSuccessMessage('Action executed');
       },
-      type: 'callback',
-    },
-    {
-      key: 'parent-action',
+    }),
+    makeCommandPaletteGroup({
       groupingKey: 'add',
       display: {label: 'Parent action'},
       actions: [
-        {
-          key: 'child-action',
+        makeCommandPaletteCallback({
           display: {label: 'Child action'},
           onAction: () => {
             addSuccessMessage('Child action executed');
           },
-          type: 'callback',
-        },
+        }),
       ],
-      type: 'group',
-    },
+    }),
   ];
 
 return (
@@ -86,34 +83,31 @@ import {useCommandPaletteActions} from 'sentry/components/commandPalette/useComm
 
 function YourComponent() {
   useCommandPaletteActions([
-    {
-      key: 'go-to-input-story',
+    makeCommandPaletteLink({
       display: {label: 'Go to Input story'},
       to: '/stories/core/input/',
       groupingKey: 'navigate',
-    },
-    {
-      key: 'action-1',
+    }),
+    makeCommandPaletteCallback({
       display: {label: 'Execute an action'},
       groupingKey: 'help',
       onAction: () => {
         addSuccessMessage('Action executed');
       },
-    },
-    {
-      key: 'parent-action',
+    }),
+    makeCommandPaletteGroup({
       groupingKey: 'add',
       display: {label: 'Parent action'},
       actions: [
-        {
+        makeCommandPaletteCallback({
           key: 'child-action',
           display: {label: 'Child action'},
           onAction: () => {
             addSuccessMessage('Child action executed');
           },
-        },
+        }),
       ],
-    },
+    }),
   ]);
 }
 ```
