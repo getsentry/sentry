@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import debounce from 'lodash/debounce';
 import uniqBy from 'lodash/uniqBy';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -7,67 +6,67 @@ import {TriggerLabel} from 'sentry/components/core/compactSelect/control';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {IconBuilding, IconRepository} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useInfiniteRepositories} from 'sentry/views/prevent/preventAI/hooks/usePreventAIInfiniteRepositories';
-import {usePreventAIOrgRepos} from 'sentry/views/prevent/preventAI/hooks/usePreventAIOrgs';
 import {getRepoNameWithoutOrg} from 'sentry/views/prevent/preventAI/utils';
 
 export const ALL_REPOS_VALUE = '__$ALL_REPOS__';
 
 function ManageReposToolbar({
+  integratedOrgs,
   onOrgChange,
   onRepoChange,
   selectedOrg,
   selectedRepo,
+  selectedRepoData,
 }: {
+  integratedOrgs: OrganizationIntegration[];
   onOrgChange: (orgId: string) => void;
   onRepoChange: (repoId: string) => void;
   selectedOrg: string;
   selectedRepo: string;
+  selectedRepoData: {id: string; name: string} | null;
 }) {
   const [searchValue, setSearchValue] = useState<string | undefined>();
-  const debouncedSearch = useMemo(
-    () => debounce((value: string) => setSearchValue(value), 300),
-    []
+  const debouncedSearch = useDebouncedValue(searchValue, 300);
+
+  const organizationOptions = useMemo(
+    () =>
+      integratedOrgs?.map(org => ({
+        value: org.id,
+        label: org.name,
+      })) ?? [],
+    [integratedOrgs]
   );
 
-  useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
-
-  const {data: integrations, isPending: isLoadingOrgs} = usePreventAIOrgRepos();
-
-  const organizationOptions =
-    integrations?.map(org => ({
-      label: org.name,
-      value: org.id,
-    })) ?? [];
-
-  const queryResult = useInfiniteRepositories({
-    integrationId: selectedOrg,
-    searchTerm: searchValue,
-  });
-
-  const {hasNextPage, isFetchingNextPage, isLoading, fetchNextPage} = queryResult;
+  const {data, hasNextPage, isFetchingNextPage, isLoading, fetchNextPage} =
+    useInfiniteRepositories({
+      integrationId: selectedOrg,
+      searchTerm: debouncedSearch,
+    });
 
   const allReposData = useMemo(
-    () => uniqBy(queryResult.data?.pages.flatMap(result => result[0]) ?? [], 'id'),
-    [queryResult.data?.pages]
+    () => uniqBy(data?.pages.flatMap(result => result[0]) ?? [], 'id'),
+    [data?.pages]
   );
 
   // Filter out repos where search only matches org name, not repo name
   const reposData = useMemo(() => {
-    if (!searchValue) {
+    if (!debouncedSearch) {
       return allReposData;
     }
     return allReposData.filter(repo => {
       const repoName = getRepoNameWithoutOrg(repo.name);
-      return repoName.toLowerCase().includes(searchValue.toLowerCase());
+      return repoName.toLowerCase().includes(debouncedSearch.toLowerCase());
     });
-  }, [allReposData, searchValue]);
+  }, [allReposData, debouncedSearch]);
 
   // Auto-fetch more pages if filtering reduced visible results below threshold
   useEffect(() => {
     const MIN_VISIBLE_RESULTS = 50;
     if (
-      searchValue &&
+      debouncedSearch &&
       reposData.length < MIN_VISIBLE_RESULTS &&
       hasNextPage &&
       !isFetchingNextPage &&
@@ -76,7 +75,7 @@ function ManageReposToolbar({
       fetchNextPage();
     }
   }, [
-    searchValue,
+    debouncedSearch,
     reposData.length,
     hasNextPage,
     isFetchingNextPage,
@@ -85,21 +84,34 @@ function ManageReposToolbar({
   ]);
 
   const repositoryOptions = useMemo(() => {
-    const repos = isLoading ? [] : reposData;
-    const repoOptions = repos.map(repo => ({
+    let repoOptions = reposData.map(repo => ({
       value: repo.id,
       label: getRepoNameWithoutOrg(repo.name),
     }));
 
-    return [{value: ALL_REPOS_VALUE, label: t('All Repos')}, ...repoOptions];
-  }, [reposData, isLoading]);
+    // Ensure selected repo is always in options even if not in current filtered list
+    if (selectedRepoData && selectedRepo !== ALL_REPOS_VALUE) {
+      repoOptions = [
+        {
+          value: selectedRepoData.id,
+          label: getRepoNameWithoutOrg(selectedRepoData.name),
+        },
+        ...repoOptions,
+      ];
+    }
+
+    // Deduplicate by value to prevent React key conflicts
+    const uniqueRepoOptions = uniqBy(repoOptions, 'value');
+
+    return [{value: ALL_REPOS_VALUE, label: t('All Repos')}, ...uniqueRepoOptions];
+  }, [reposData, selectedRepo, selectedRepoData]);
 
   function getEmptyMessage() {
     if (isLoading) {
       return t('Loading repositories...');
     }
     if (reposData.length === 0) {
-      return searchValue
+      return debouncedSearch
         ? t('No repositories found. Please enter a different search term.')
         : t('No repositories found');
     }
@@ -197,7 +209,6 @@ function ManageReposToolbar({
         <CompactSelect
           value={selectedOrg}
           options={organizationOptions}
-          loading={isLoadingOrgs}
           onChange={option => onOrgChange(option?.value ?? '')}
           triggerProps={{
             icon: <IconBuilding />,
@@ -218,7 +229,7 @@ function ManageReposToolbar({
           onChange={option => onRepoChange(option?.value ?? '')}
           searchable
           disableSearchFilter
-          onSearch={debouncedSearch}
+          onSearch={setSearchValue}
           searchPlaceholder={t('search by repository name')}
           onOpenChange={isOpen => {
             setSearchValue(undefined);
@@ -234,22 +245,6 @@ function ManageReposToolbar({
               </TriggerLabel>
             ),
           }}
-          menuFooter={
-            hasNextPage || isFetchingNextPage ? (
-              <div
-                style={{
-                  height: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '12px',
-                  color: '#999',
-                }}
-              >
-                {isFetchingNextPage ? t('Loading...') : '\u00A0'}
-              </div>
-            ) : null
-          }
         />
       </PageFilterBar>
     </Fragment>

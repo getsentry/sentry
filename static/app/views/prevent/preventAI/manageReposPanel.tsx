@@ -11,11 +11,10 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
 import type {
   PreventAIFeatureConfigsByName,
-  PreventAIOrg,
   PreventAIOrgConfig,
-  PreventAIRepo,
   Sensitivity,
 } from 'sentry/types/prevent';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,10 +24,10 @@ export type ManageReposPanelProps = {
   collapsed: boolean;
   isEditingOrgDefaults: boolean;
   onClose: () => void;
-  org: PreventAIOrg;
+  org: OrganizationIntegration;
   allRepos?: Array<{id: string; name: string}>;
   onFocusRepoSelector?: () => void;
-  repo?: PreventAIRepo | null;
+  repo?: Repository | null;
 };
 
 interface SensitivityOption {
@@ -139,9 +138,7 @@ function ManageReposPanel({
                     'These settings apply to the selected [repoLink] repository. To switch, use the repository selector in the page header.',
                     {
                       repoLink: (
-                        <ExternalLink
-                          href={`https://github.com/${org.name}/${repo?.name}`}
-                        >
+                        <ExternalLink href={`https://github.com/${repo?.name}`}>
                           {repo?.name}
                         </ExternalLink>
                       ),

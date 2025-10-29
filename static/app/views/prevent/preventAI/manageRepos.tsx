@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
@@ -19,55 +19,71 @@ import ManageReposPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
 import ManageReposToolbar, {
   ALL_REPOS_VALUE,
 } from 'sentry/views/prevent/preventAI/manageReposToolbar';
-import {getRepoNameWithoutOrg} from 'sentry/views/prevent/preventAI/utils';
 
 import {FeatureOverview} from './onboarding';
 
 function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegration[]}) {
   const theme = useTheme();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const [selectedOrgId, setSelectedOrgId] = useState(integratedOrgs[0]?.id || '');
-  const [selectedRepoId, setSelectedRepoId] = useState(ALL_REPOS_VALUE);
+
+  const [selectedOrgId, setSelectedOrgId] = useState<string>(
+    () => integratedOrgs[0]?.id ?? ''
+  );
+  const [selectedRepoId, setSelectedRepoId] = useState<string>(() => ALL_REPOS_VALUE);
+  const [selectedRepoData, setSelectedRepoData] = useState<Repository | null>(null);
 
   const queryResult = useInfiniteRepositories({
     integrationId: selectedOrgId,
     searchTerm: undefined,
   });
-
   const reposData = useMemo(
     () => uniqBy(queryResult.data?.pages.flatMap(result => result[0]) ?? [], 'id'),
     [queryResult.data?.pages]
   );
 
-  const selectedOrgData = integratedOrgs.find(org => org.id === selectedOrgId);
-  const selectedRepoData = reposData.find(repo => repo.id === selectedRepoId);
+  // If the selected org is not present in the list of orgs, use the first org
+  const selectedOrg = useMemo(() => {
+    const found = integratedOrgs.find(org => org.id === selectedOrgId);
+    return found ?? integratedOrgs[0];
+  }, [integratedOrgs, selectedOrgId]);
 
-  function handleOrgChange(integrationId: string) {
-    setSelectedOrgId(integrationId);
+  // Update selectedRepoData when reposData changes and we have a selectedRepoId
+  useEffect(() => {
+    if (selectedRepoId === ALL_REPOS_VALUE) {
+      setSelectedRepoData(null);
+      return;
+    }
+    const found = reposData.find(repo => repo.id === selectedRepoId);
+    if (found) {
+      setSelectedRepoData(found);
+    }
+  }, [reposData, selectedRepoId]);
+
+  // When the org changes, reset to "All Repos"
+  const setSelectedOrgIdWithCascadeRepoId = useCallback((orgId: string) => {
+    setSelectedOrgId(orgId);
     setSelectedRepoId(ALL_REPOS_VALUE);
-  }
+    setSelectedRepoData(null);
+  }, []);
 
-  function formatRepoForPanel(repo: Repository) {
-    return {
-      id: repo.id,
-      name: getRepoNameWithoutOrg(repo.name),
-      fullName: repo.name,
-    };
-  }
+  const isOrgSelected = !!selectedOrg;
+  const isRepoSelected = selectedRepoId === ALL_REPOS_VALUE || !!selectedRepoData;
 
   return (
     <Flex direction="column" maxWidth="1000px" gap="xl">
       <Flex align="center" justify="between">
         <ManageReposToolbar
+          integratedOrgs={integratedOrgs}
           selectedOrg={selectedOrgId}
           selectedRepo={selectedRepoId}
-          onOrgChange={handleOrgChange}
+          selectedRepoData={selectedRepoData}
+          onOrgChange={setSelectedOrgIdWithCascadeRepoId}
           onRepoChange={setSelectedRepoId}
         />
         <Flex style={{transform: 'translateY(-70px)'}}>
           <Tooltip
             title="Select an organization and repository to configure settings"
-            disabled={!!selectedOrgId && !!selectedRepoId}
+            disabled={isOrgSelected && isRepoSelected}
             position="left"
           >
             <Button
@@ -75,8 +91,8 @@ function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegrat
               icon={<IconSettings size="md" />}
               aria-label="Settings"
               onClick={() => setIsPanelOpen(true)}
-              disabled={!selectedOrgId || !selectedRepoId}
-              tabIndex={!selectedOrgId || !selectedRepoId ? -1 : 0}
+              disabled={!isOrgSelected || !isRepoSelected}
+              tabIndex={!isOrgSelected || !isRepoSelected ? -1 : 0}
               data-test-id="manage-repos-settings-button"
             />
           </Tooltip>
@@ -130,23 +146,14 @@ function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegrat
         />
       </Flex>
 
-      {isPanelOpen && selectedOrgData && (
+      {selectedOrg && (selectedRepoId === ALL_REPOS_VALUE || selectedRepoData) && (
         <ManageReposPanel
-          key={`${selectedOrgId}-${selectedRepoId}`}
+          key={`${selectedOrgId || 'no-org'}-${selectedRepoId || 'no-repo'}`}
           collapsed={!isPanelOpen}
           onClose={() => setIsPanelOpen(false)}
-          org={{
-            githubOrganizationId: selectedOrgData.externalId || selectedOrgId,
-            name: selectedOrgData.name,
-            provider: 'github' as const,
-            repos: reposData.map(formatRepoForPanel),
-          }}
-          repo={
-            selectedRepoId === ALL_REPOS_VALUE || !selectedRepoData
-              ? null
-              : formatRepoForPanel(selectedRepoData)
-          }
-          allRepos={reposData.map(formatRepoForPanel)}
+          org={selectedOrg}
+          repo={selectedRepoData}
+          allRepos={reposData}
           isEditingOrgDefaults={selectedRepoId === ALL_REPOS_VALUE}
         />
       )}

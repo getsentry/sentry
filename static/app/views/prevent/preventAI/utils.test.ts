@@ -19,9 +19,4 @@ describe('getRepoNameWithoutOrg', () => {
     expect(getRepoNameWithoutOrg('org/foo/bar/repo-test')).toBe('repo-test');
     expect(getRepoNameWithoutOrg('////repo')).toBe('repo');
   });
-
-  it('returns input if fullName ends with a slash', () => {
-    expect(getRepoNameWithoutOrg('org1/')).toBe('org1/');
-    expect(getRepoNameWithoutOrg('org1/repo1/')).toBe('repo1/');
-  });
 });

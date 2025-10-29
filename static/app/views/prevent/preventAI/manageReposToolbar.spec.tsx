@@ -1,57 +1,142 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {PreventAIOrg, PreventAIProvider} from 'sentry/types/prevent';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {RepositoryStatus} from 'sentry/types/integrations';
+import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
 import ManageReposToolbar from 'sentry/views/prevent/preventAI/manageReposToolbar';
 
 describe('ManageReposToolbar', () => {
-  const github: PreventAIProvider = 'github';
-  const installedOrgs: PreventAIOrg[] = [
+  const mockIntegratedOrgs: OrganizationIntegration[] = [
     {
-      githubOrganizationId: '1',
+      id: '1',
       name: 'org-1',
-      provider: github,
-      repos: [
-        {
-          id: '1',
-          name: 'repo-1',
-          fullName: 'org-1/repo-1',
-        },
-        {
-          id: '2',
-          name: 'repo-2',
-          fullName: 'org-1/repo-2',
-        },
-      ],
+      externalId: 'ext-1',
+      provider: {
+        key: 'github',
+        name: 'GitHub',
+        slug: 'github',
+        aspects: {},
+        canAdd: true,
+        canDisable: false,
+        features: [],
+      },
+      organizationId: '1',
+      status: 'active',
+      domainName: null,
+      accountType: null,
+      configData: null,
+      configOrganization: [],
+      gracePeriodEnd: null,
+      icon: null,
+      organizationIntegrationStatus: 'active',
     },
     {
-      githubOrganizationId: '2',
+      id: '2',
       name: 'org-2',
-      provider: github,
-      repos: [
-        {
-          id: '3',
-          name: 'repo-3',
-          fullName: 'org-2/repo-3',
-        },
-      ],
+      externalId: 'ext-2',
+      provider: {
+        key: 'github',
+        name: 'GitHub',
+        slug: 'github',
+        aspects: {},
+        canAdd: true,
+        canDisable: false,
+        features: [],
+      },
+      organizationId: '1',
+      status: 'active',
+      domainName: null,
+      accountType: null,
+      configData: null,
+      configOrganization: [],
+      gracePeriodEnd: null,
+      icon: null,
+      organizationIntegrationStatus: 'active',
+    },
+  ];
+
+  const mockRepositories: Repository[] = [
+    {
+      id: '1',
+      name: 'org-1/repo-1',
+      url: 'https://github.com/org-1/repo-1',
+      provider: {
+        id: 'integrations:github',
+        name: 'GitHub',
+      },
+      status: RepositoryStatus.ACTIVE,
+      externalSlug: 'org-1/repo-1',
+      integrationId: '1',
+      externalId: 'ext-1',
+      dateCreated: '2024-01-01T00:00:00Z',
+    },
+    {
+      id: '2',
+      name: 'org-1/repo-2',
+      url: 'https://github.com/org-1/repo-2',
+      provider: {
+        id: 'integrations:github',
+        name: 'GitHub',
+      },
+      status: RepositoryStatus.ACTIVE,
+      externalSlug: 'org-1/repo-2',
+      integrationId: '1',
+      externalId: 'ext-2',
+      dateCreated: '2024-01-01T00:00:00Z',
+    },
+  ];
+
+  const mockOrg2Repositories: Repository[] = [
+    {
+      id: '3',
+      name: 'org-2/repo-3',
+      url: 'https://github.com/org-2/repo-3',
+      provider: {
+        id: 'integrations:github',
+        name: 'GitHub',
+      },
+      status: RepositoryStatus.ACTIVE,
+      externalSlug: 'org-2/repo-3',
+      integrationId: '2',
+      externalId: 'ext-3',
+      dateCreated: '2024-01-01T00:00:00Z',
     },
   ];
 
   const defaultProps = {
-    installedOrgs,
+    integratedOrgs: mockIntegratedOrgs,
     selectedOrg: '1',
     selectedRepo: '1',
+    selectedRepoData: {
+      id: mockRepositories[0]!.id,
+      name: mockRepositories[0]!.name,
+    },
     onOrgChange: jest.fn(),
     onRepoChange: jest.fn(),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    MockApiClient.clearMockResponses();
   });
 
   it('renders organization and repository selectors', async () => {
-    render(<ManageReposToolbar {...defaultProps} />);
-    // Find the org and repo selects by their visible labels
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/',
+      body: mockRepositories,
+      match: [
+        MockApiClient.matchQuery({
+          integration_id: '1',
+          status: 'active',
+        }),
+      ],
+    });
+
+    render(<ManageReposToolbar {...defaultProps} />, {
+      organization: OrganizationFixture({slug: 'org-slug'}),
+    });
+
     const orgSelect = await screen.findByRole('button', {name: /org-1/i});
     const repoSelect = await screen.findByRole('button', {name: /repo-1/i});
     expect(orgSelect).toBeInTheDocument();
@@ -59,8 +144,21 @@ describe('ManageReposToolbar', () => {
   });
 
   it('shows the correct selected org and repo', async () => {
-    render(<ManageReposToolbar {...defaultProps} />);
-    // The triggers should show the selected org and repo names
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/',
+      body: mockRepositories,
+      match: [
+        MockApiClient.matchQuery({
+          integration_id: '1',
+          status: 'active',
+        }),
+      ],
+    });
+
+    render(<ManageReposToolbar {...defaultProps} />, {
+      organization: OrganizationFixture({slug: 'org-slug'}),
+    });
+
     const orgTrigger = await screen.findByRole('button', {name: /org-1/i});
     const repoTrigger = await screen.findByRole('button', {name: /repo-1/i});
     expect(orgTrigger).toHaveTextContent('org-1');
@@ -68,12 +166,24 @@ describe('ManageReposToolbar', () => {
   });
 
   it('calls onOrgChange when organization is changed', async () => {
-    render(<ManageReposToolbar {...defaultProps} />);
-    // Open the org select dropdown
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/',
+      body: mockRepositories,
+      match: [
+        MockApiClient.matchQuery({
+          integration_id: '1',
+          status: 'active',
+        }),
+      ],
+    });
+
+    render(<ManageReposToolbar {...defaultProps} />, {
+      organization: OrganizationFixture({slug: 'org-slug'}),
+    });
+
     const orgTrigger = await screen.findByRole('button', {name: /org-1/i});
     await userEvent.click(orgTrigger);
 
-    // Select the new org option
     const orgOption = await screen.findByText('org-2');
     await userEvent.click(orgOption);
 
@@ -81,21 +191,61 @@ describe('ManageReposToolbar', () => {
   });
 
   it('calls onRepoChange when repository is changed', async () => {
-    render(<ManageReposToolbar {...defaultProps} selectedRepo="1" />);
-    // Open the repo select dropdown
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/',
+      body: mockRepositories,
+      match: [
+        MockApiClient.matchQuery({
+          integration_id: '1',
+          status: 'active',
+        }),
+      ],
+    });
+
+    render(<ManageReposToolbar {...defaultProps} />, {
+      organization: OrganizationFixture({slug: 'org-slug'}),
+    });
+
     const repoTrigger = await screen.findByRole('button', {name: /repo-1/i});
     await userEvent.click(repoTrigger);
 
-    // Select the new repo option
-    const repoOption = await screen.findByText('repo-2');
+    await waitFor(() => {
+      expect(screen.getByText('repo-2')).toBeInTheDocument();
+    });
+
+    const repoOption = screen.getByText('repo-2');
     await userEvent.click(repoOption);
 
     expect(defaultProps.onRepoChange).toHaveBeenCalledWith('2');
   });
 
   it('shows only repos for the selected org', async () => {
-    render(<ManageReposToolbar {...defaultProps} selectedOrg="2" selectedRepo="3" />);
-    // Open the repo select dropdown
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/',
+      body: mockOrg2Repositories,
+      match: [
+        MockApiClient.matchQuery({
+          integration_id: '2',
+          status: 'active',
+        }),
+      ],
+    });
+
+    render(
+      <ManageReposToolbar
+        {...defaultProps}
+        selectedOrg="2"
+        selectedRepo="3"
+        selectedRepoData={{
+          id: mockOrg2Repositories[0]!.id,
+          name: mockOrg2Repositories[0]!.name,
+        }}
+      />,
+      {
+        organization: OrganizationFixture({slug: 'org-slug'}),
+      }
+    );
+
     const repoTrigger = await screen.findByRole('button', {name: /repo-3/i});
     await userEvent.click(repoTrigger);
 
@@ -108,7 +258,21 @@ describe('ManageReposToolbar', () => {
   });
 
   it('shows "All Repos" option at the top of repository dropdown', async () => {
-    render(<ManageReposToolbar {...defaultProps} />);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/',
+      body: mockRepositories,
+      match: [
+        MockApiClient.matchQuery({
+          integration_id: '1',
+          status: 'active',
+        }),
+      ],
+    });
+
+    render(<ManageReposToolbar {...defaultProps} />, {
+      organization: OrganizationFixture({slug: 'org-slug'}),
+    });
+
     const repoTrigger = await screen.findByRole('button', {name: /repo-1/i});
     await userEvent.click(repoTrigger);
 
@@ -116,7 +280,21 @@ describe('ManageReposToolbar', () => {
   });
 
   it('calls onRepoChange with "__$ALL_REPOS__" when "All Repos" is selected', async () => {
-    render(<ManageReposToolbar {...defaultProps} />);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/',
+      body: mockRepositories,
+      match: [
+        MockApiClient.matchQuery({
+          integration_id: '1',
+          status: 'active',
+        }),
+      ],
+    });
+
+    render(<ManageReposToolbar {...defaultProps} />, {
+      organization: OrganizationFixture({slug: 'org-slug'}),
+    });
+
     const repoTrigger = await screen.findByRole('button', {name: /repo-1/i});
     await userEvent.click(repoTrigger);
 

@@ -5,10 +5,10 @@ import {t} from 'sentry/locale';
 import PreventAIManageRepos from 'sentry/views/prevent/preventAI/manageRepos';
 import PreventAIOnboarding from 'sentry/views/prevent/preventAI/onboarding';
 
-import {usePreventAIOrgRepos} from './hooks/usePreventAIOrgs';
+import {usePreventAIOrgs} from './hooks/usePreventAIOrgRepos';
 
 function PreventAIContent() {
-  const {data, isPending, isError} = usePreventAIOrgRepos();
+  const {data, isPending, isError} = usePreventAIOrgs();
   const integratedOrgs = data ?? [];
 
   if (isPending) {

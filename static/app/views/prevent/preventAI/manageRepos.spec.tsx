@@ -9,7 +9,7 @@ import ManageReposPage from './manageRepos';
 
 describe('PreventAIManageRepos', () => {
   const github: PreventAIProvider = 'github';
-  const installedOrgs = [
+  const integratedOrgs: OrganizationIntegration[] = [
     {
       githubOrganizationId: 'org-1',
       name: 'Org One',
@@ -49,13 +49,13 @@ describe('PreventAIManageRepos', () => {
   });
 
   it('renders the Manage Repositories title and toolbar', async () => {
-    render(<ManageReposPage installedOrgs={installedOrgs} />, {organization});
+    render(<ManageReposPage integratedOrgs={integratedOrgs} />, {organization});
     expect(await screen.findByTestId('manage-repos-title')).toBeInTheDocument();
     expect(await screen.findByTestId('manage-repos-settings-button')).toBeInTheDocument();
   });
 
   it('opens the settings panel when the settings button is clicked', async () => {
-    render(<ManageReposPage installedOrgs={installedOrgs} />, {organization});
+    render(<ManageReposPage integratedOrgs={integratedOrgs} />, {organization});
     expect(screen.queryByTestId('manage-repos-panel')).not.toBeInTheDocument();
     const settingsButton = await screen.findByTestId('manage-repos-settings-button');
     await userEvent.click(settingsButton);
@@ -63,14 +63,14 @@ describe('PreventAIManageRepos', () => {
   });
 
   it('renders the illustration image', async () => {
-    render(<ManageReposPage installedOrgs={installedOrgs} />, {organization});
+    render(<ManageReposPage integratedOrgs={integratedOrgs} />, {organization});
     const img = await screen.findByTestId('manage-repos-illustration-image');
     expect(img).toBeInTheDocument();
     expect(img.tagName).toBe('IMG');
   });
 
   it('starts with "All Repos" selected by default', async () => {
-    render(<ManageReposPage installedOrgs={installedOrgs} />, {organization});
+    render(<ManageReposPage integratedOrgs={integratedOrgs} />, {organization});
     const repoButton = await screen.findByRole('button', {
       name: /All Repos/i,
     });
