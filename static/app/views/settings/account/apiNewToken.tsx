@@ -107,6 +107,7 @@ export default function ApiNewToken() {
                   setPermissions(p);
                   setPreview(getPreview());
                 }}
+                hiddenPermissions={['Distribution']}
               />
             </PanelBody>
             <TextareaField

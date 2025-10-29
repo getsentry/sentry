@@ -84,6 +84,11 @@ type Props = {
   appPublished: boolean;
   onChange: (permissions: Permissions) => void;
   permissions: Permissions;
+  /**
+   * Optional list of resources to hide from the permission selection.
+   * Useful for limiting permissions available to personal tokens vs integration tokens.
+   */
+  hiddenPermissions?: PermissionResource[];
 };
 
 type State = {
@@ -132,10 +137,13 @@ export default class PermissionSelection extends Component<Props, State> {
 
   render() {
     const {permissions} = this.state;
+    const {hiddenPermissions = []} = this.props;
 
     return (
       <Fragment>
-        {SENTRY_APP_PERMISSIONS.map(config => {
+        {SENTRY_APP_PERMISSIONS.filter(
+          config => !hiddenPermissions.includes(config.resource)
+        ).map(config => {
           const options = Object.entries(config.choices).map(([value, {label}]) => ({
             value,
             label,

@@ -43,6 +43,7 @@ export const API_ACCESS_SCOPES = [
   'org:read',
   'org:write',
   'project:admin',
+  'project:distribution',
   'project:read',
   'project:releases',
   'project:write',
@@ -68,6 +69,7 @@ export const ALLOWED_SCOPES = [
   'org:superuser', // not an assignable API access scope
   'org:write',
   'project:admin',
+  'project:distribution',
   'project:read',
   'project:releases',
   'project:write',
@@ -163,6 +165,14 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
     choices: {
       'no-access': {label: 'No Access', scopes: []},
       admin: {label: 'Admin', scopes: ['project:releases']},
+    },
+  },
+  {
+    resource: 'Distribution',
+    help: 'Distribution metadata for releases',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      read: {label: 'Read', scopes: ['project:distribution']},
     },
   },
   {
