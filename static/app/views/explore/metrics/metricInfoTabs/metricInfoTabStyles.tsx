@@ -69,6 +69,8 @@ export const StyledSimpleTableBody = styled('div')`
 export const StyledSimpleTableHeader = styled(SimpleTable.Header)`
   height: 33px;
   z-index: unset;
+  position: sticky;
+  top: 0;
 `;
 
 export const StickyTableRow = styled(SimpleTable.Row)<{
