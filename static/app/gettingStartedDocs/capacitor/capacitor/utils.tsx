@@ -1,28 +1,11 @@
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
-import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import {widgetCalloutBlock} from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
-import {tracePropagationBlock} from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   ContentBlock,
-  Docs,
   DocsParams,
-  OnboardingConfig,
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {
-  getCrashReportJavaScriptInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-  getFeedbackConfigOptions,
-  getFeedbackConfigureDescription,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  getReplayConfigOptions,
-  getReplayConfigureDescription,
-  getReplayVerifyStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {getFeedbackConfigOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getReplayConfigOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 export enum SiblingOption {
@@ -33,9 +16,7 @@ export enum SiblingOption {
   VUE2 = 'vue2',
 }
 
-type PlatformOptionKey = 'siblingOption';
-
-const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
+export const platformOptions: PlatformOptions = {
   siblingOption: {
     label: t('Sibling Package'),
     items: [
@@ -63,8 +44,11 @@ const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
   },
 };
 
-type PlatformOptions = typeof platformOptions;
-type Params = DocsParams<PlatformOptions>;
+// Note: platformOptions is defined in index.tsx where it's used
+export type PlatformOptions = {
+  siblingOption: PlatformOption<SiblingOption>;
+};
+export type Params = DocsParams<PlatformOptions>;
 
 const isAngular = (siblingOption: string): boolean =>
   siblingOption === SiblingOption.ANGULARV10 ||
@@ -94,101 +78,6 @@ const performanceAngularErrorHandler = `,
   deps: [SentryAngular.TraceService],
   multi: true,
 },`;
-
-const onboarding: OnboardingConfig<PlatformOptions> = {
-  install: (params: Params) => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            `Install the Sentry Capacitor SDK as a dependency using [code:npm] or [code:yarn], alongside the Sentry [siblingName:] SDK:`,
-            {
-              code: <code />,
-              siblingName: getSiblingName(params.platformOptions.siblingOption),
-            }
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'npm',
-              value: 'npm',
-              language: 'bash',
-              code: `npm install --save @sentry/capacitor ${getNpmPackage(
-                params.platformOptions.siblingOption
-              )}@^7`,
-            },
-            {
-              label: 'yarn',
-              value: 'yarn',
-              language: 'bash',
-              code: `yarn add @sentry/capacitor ${getNpmPackage(
-                params.platformOptions.siblingOption
-              )}@^7 --exact`,
-            },
-          ],
-        },
-        {
-          type: 'text',
-          text: tct(
-            `The version of the Sentry [siblingName:] SDK must match with the version referred by Sentry Capacitor. To check which version of the Sentry [siblingName:] SDK is installed, use the following command: [code:npm info @sentry/capacitor peerDependencies]`,
-            {
-              code: <code />,
-              siblingName: getSiblingName(params.platformOptions.siblingOption),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      content: getSetupConfiguration({params, showExtraStep: true}),
-    },
-    getUploadSourceMapsStep({
-      guideLink:
-        'https://docs.sentry.io/platforms/javascript/guides/capacitor/sourcemaps/',
-      ...params,
-    }),
-  ],
-  verify: _ => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: `myUndefinedFunction();`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  nextSteps: () => [
-    {
-      id: 'capacitor-android-setup',
-      name: t('Capacitor 2 Setup'),
-      description: t(
-        'If you are using Capacitor 2 or older, follow this step to add required changes in order to initialize the Capacitor SDK on Android.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/?#capacitor-2---android-specifics',
-    },
-  ],
-};
 
 function getSiblingImportsSetupConfiguration(siblingOption: string): string {
   switch (siblingOption) {
@@ -289,7 +178,7 @@ const getStaticParts = (params: Params): string[] => {
   return staticParts;
 };
 
-function getSetupConfiguration({
+export function getSetupConfiguration({
   params,
   showExtraStep,
   showDescription,
@@ -371,7 +260,7 @@ export class AppModule {}`,
   return configuration;
 }
 
-function getNpmPackage(siblingOption: string): string {
+export function getNpmPackage(siblingOption: string): string {
   const packages: Record<SiblingOption, string> = {
     [SiblingOption.ANGULARV10]: '@sentry/angular',
     [SiblingOption.ANGULARV12]: '@sentry/angular-ivy',
@@ -383,7 +272,7 @@ function getNpmPackage(siblingOption: string): string {
   return packages[siblingOption];
 }
 
-function getSiblingName(siblingOption: string): string {
+export function getSiblingName(siblingOption: string): string {
   switch (siblingOption) {
     case SiblingOption.ANGULARV10:
     case SiblingOption.ANGULARV12:
@@ -398,7 +287,7 @@ function getSiblingName(siblingOption: string): string {
   }
 }
 
-function getSiblingImportName(siblingOption: string): string {
+export function getSiblingImportName(siblingOption: string): string {
   switch (siblingOption) {
     case SiblingOption.ANGULARV10:
     case SiblingOption.ANGULARV12:
@@ -412,94 +301,3 @@ function getSiblingImportName(siblingOption: string): string {
       return '';
   }
 }
-
-const replayOnboarding: OnboardingConfig<PlatformOptions> = {
-  install: params => onboarding.install(params),
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getReplayConfigureDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/session-replay/',
-          }),
-        },
-        ...getSetupConfiguration({
-          params,
-          showExtraStep: false,
-          showDescription: false,
-        }),
-        tracePropagationBlock,
-      ],
-    },
-  ],
-  verify: getReplayVerifyStep(),
-  nextSteps: () => [],
-};
-
-const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
-  install: (params: Params) => onboarding.install(params),
-  configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getFeedbackConfigureDescription({
-            linkConfig:
-              'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/',
-            linkButton:
-              'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/#bring-your-own-button',
-          }),
-        },
-        ...getSetupConfiguration({
-          params,
-          showExtraStep: false,
-          showDescription: false,
-        }),
-        {
-          type: 'text',
-          text: crashReportCallout({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-        widgetCalloutBlock({
-          link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/user-feedback/#user-feedback-widget',
-        }),
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs<PlatformOptions> = {
-  onboarding,
-  platformOptions,
-  feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboarding,
-  crashReportOnboarding,
-};
-
-export default docs;
