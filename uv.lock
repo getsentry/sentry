@@ -2109,7 +2109,7 @@ requires-dist = [
     { name = "google-cloud-storage-transfer", specifier = ">=1.17.0" },
     { name = "google-crc32c", specifier = ">=1.6.0" },
     { name = "googleapis-common-protos", specifier = ">=1.63.2" },
-    { name = "granian", specifier = "~=2.5" },
+    { name = "granian", specifier = ">=2.5" },
     { name = "grpc-google-iam-v1", specifier = ">=0.13.1" },
     { name = "grpcio", specifier = ">=1.67.0" },
     { name = "hiredis", specifier = ">=2.3.2" },
