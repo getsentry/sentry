@@ -49,6 +49,7 @@ from sentry.models.organization import Organization
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
+from sentry.snuba.models import ExtrapolationMode
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
 from sentry.workflow_engine.models import Detector
@@ -121,6 +122,16 @@ def update_alert_rule(
         partial=True,
     )
     if validator.is_valid():
+        if data.get("extrapolation_mode"):
+            if (
+                data.get("extrapolation_mode") == ExtrapolationMode.SERVER_WEIGHTED.name.lower()
+                and alert_rule.snuba_query.extrapolation_mode
+                != ExtrapolationMode.SERVER_WEIGHTED.name.lower()
+            ):
+                raise serializers.ValidationError(
+                    "server_weighted extrapolation mode is not a valid mode for this alert type."
+                )
+
         try:
             trigger_sentry_app_action_creators_for_incidents(validator.validated_data)
         except SentryAppBaseError as e:

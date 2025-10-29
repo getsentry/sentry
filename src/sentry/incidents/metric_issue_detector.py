@@ -11,7 +11,12 @@ from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flag
 from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import (
+    ExtrapolationMode,
+    QuerySubscription,
+    SnubaQuery,
+    SnubaQueryEventType,
+)
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.snuba.subscriptions import update_snuba_query
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -163,6 +168,12 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                     "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
                 )
 
+    def _validate_extrapolation_mode(self, extrapolation_mode: str) -> None:
+        if extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.name.lower():
+            raise serializers.ValidationError(
+                "server_weighted extrapolation mode is not supported for new alerts."
+            )
+
     def get_quota(self) -> DetectorQuota:
         organization = self.context.get("organization")
         request = self.context.get("request")
@@ -275,6 +286,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         if "data_sources" in validated_data:
             for validated_data_source in validated_data["data_sources"]:
                 self._validate_transaction_dataset_deprecation(validated_data_source.get("dataset"))
+
+        if "extrapolation_mode" in validated_data:
+            self._validate_extrapolation_mode(validated_data.get("extrapolation_mode"))
 
         detector = super().create(validated_data)
 
