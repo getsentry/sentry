@@ -205,16 +205,15 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 
             if options.get("deletions.fetch-subset-of-fields"):
                 # This reduces the number of fields fetched from the database
-                return list(queryset.values(*FIELDS_TO_FETCH)[:query_limit])
-            return list(queryset[:query_limit])
-            # If there are no more rows we are all done.
+                queryset = list(queryset.values(*FIELDS_TO_FETCH)[:query_limit])
+            else:
+                queryset = list(queryset[:query_limit])
+
             if not queryset:
                 return False
 
             self.delete_bulk(queryset)
             remaining = remaining - len(queryset)
-
-        # We have more work to do as we didn't run out of rows to delete.
         return True
 
     def delete_bulk(self, instance_list: Sequence[Group | tuple[Any, ...]]) -> bool:
