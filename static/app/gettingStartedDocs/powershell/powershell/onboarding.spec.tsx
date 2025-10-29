@@ -2,13 +2,13 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs from './rust';
+import docs from '.';
 
-describe('rust onboarding docs', () => {
-  it('renders onboarding docs correctly', async () => {
+describe('powershell onboarding docs', () => {
+  it('renders docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
-        'sentry.rust': {
+        'sentry.dotnet.powershell': {
           version: '1.99.9',
         },
       },
@@ -18,10 +18,16 @@ describe('rust onboarding docs', () => {
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Tracing'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Samples'})).toBeInTheDocument();
 
     // Renders SDK version from registry
     expect(
-      await screen.findByText(textWithMarkupMatcher(/sentry = "1\.99\.9"/))
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /Install-Module -Name Sentry -Repository PSGallery -RequiredVersion 1\.99\.9/
+        )
+      )
     ).toBeInTheDocument();
   });
 });
