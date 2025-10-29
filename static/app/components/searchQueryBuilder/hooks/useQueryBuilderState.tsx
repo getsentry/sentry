@@ -781,10 +781,13 @@ function updateFreeTextAndReplaceText(
       : newState.focusOverride;
   }
 
+  // Only update the committed query if we aren't in the middle of creating a filter
+  const committedQuery = action.shouldCommitQuery ? query : state.committedQuery;
+
   return {
     ...newState,
     query,
-    committedQuery: query,
+    committedQuery,
     focusOverride,
   };
 }
