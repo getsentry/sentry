@@ -17,6 +17,7 @@ type FileTypeData =
       originalFile: OptimizableImageFile;
     }
   | {fileType: 'strip_binary'; originalFile: StripBinaryFileInfo}
+  | {fileType: 'duplicate_files'; originalGroup: FileSavingsResultGroup}
   | {fileType: 'regular'; originalFile: FileSavingsResult};
 
 export interface ProcessedInsightFile {
@@ -247,18 +248,15 @@ export function processInsights(
         description: config.description,
         totalSavings: insight.total_savings,
         percentage: (insight.total_savings / totalSize) * 100,
-        files: groups.flatMap((group: FileSavingsResultGroup) => {
-          const files = Array.isArray(group?.files) ? group.files : [];
-          return files.map((file: FileSavingsResult) => ({
-            path: file.file_path,
-            savings: file.total_savings,
-            percentage: (file.total_savings / totalSize) * 100,
-            data: {
-              fileType: 'regular' as const,
-              originalFile: file,
-            },
-          }));
-        }),
+        files: groups.map((group: FileSavingsResultGroup) => ({
+          path: group.name,
+          savings: group.total_savings,
+          percentage: (group.total_savings / totalSize) * 100,
+          data: {
+            fileType: 'duplicate_files' as const,
+            originalGroup: group,
+          },
+        })),
       });
     }
   }
@@ -300,18 +298,15 @@ export function processInsights(
         description: config.description,
         totalSavings: insight.total_savings,
         percentage: (insight.total_savings / totalSize) * 100,
-        files: groups.flatMap((group: FileSavingsResultGroup) => {
-          const files = Array.isArray(group?.files) ? group.files : [];
-          return files.map((file: FileSavingsResult) => ({
-            path: file.file_path,
-            savings: file.total_savings,
-            percentage: (file.total_savings / totalSize) * 100,
-            data: {
-              fileType: 'regular' as const,
-              originalFile: file,
-            },
-          }));
-        }),
+        files: groups.map((group: FileSavingsResultGroup) => ({
+          path: group.name,
+          savings: group.total_savings,
+          percentage: (group.total_savings / totalSize) * 100,
+          data: {
+            fileType: 'duplicate_files' as const,
+            originalGroup: group,
+          },
+        })),
       });
     }
   }

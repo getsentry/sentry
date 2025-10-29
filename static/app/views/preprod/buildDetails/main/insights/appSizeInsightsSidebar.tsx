@@ -111,15 +111,20 @@ export function AppSizeInsightsSidebar({
 
             <Flex flex={1} overflowY="auto" padding="xl">
               <Flex direction="column" gap="xl" width="100%">
-                {processedInsights.map(insight => (
-                  <AppSizeInsightsSidebarRow
-                    key={insight.key}
-                    insight={insight}
-                    isExpanded={expandedInsights.has(insight.key)}
-                    onToggleExpanded={() => toggleExpanded(insight.key)}
-                    platform={platform}
-                  />
-                ))}
+                {processedInsights.map(insight => {
+                  const isGroupedInsight =
+                    insight.key === 'duplicate_files' || insight.key === 'loose_images';
+                  return (
+                    <AppSizeInsightsSidebarRow
+                      key={insight.key}
+                      insight={insight}
+                      isExpanded={expandedInsights.has(insight.key)}
+                      onToggleExpanded={() => toggleExpanded(insight.key)}
+                      platform={platform}
+                      itemsPerPage={isGroupedInsight ? 10 : undefined}
+                    />
+                  );
+                })}
               </Flex>
             </Flex>
           </Flex>
