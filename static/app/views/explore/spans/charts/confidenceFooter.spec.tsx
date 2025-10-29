@@ -89,7 +89,7 @@ describe('ConfidenceFooter', () => {
     it('unextrapolated loading', () => {
       render(<ConfidenceFooter extrapolate={false} />, {wrapper: Wrapper});
 
-      expect(screen.getByTestId('wrapper')).toHaveTextContent('Span Count: \u2026');
+      expect(screen.getByTestId('wrapper')).toHaveTextContent('Span count: \u2026');
     });
 
     it('unextrapolated loaded', () => {
@@ -97,7 +97,17 @@ describe('ConfidenceFooter', () => {
         wrapper: Wrapper,
       });
 
-      expect(screen.getByTestId('wrapper')).toHaveTextContent('Span Count: 100');
+      expect(screen.getByTestId('wrapper')).toHaveTextContent('Span count: 100');
+    });
+
+    it('unextrapolated loaded with grouping', () => {
+      render(<ConfidenceFooter extrapolate={false} sampleCount={100} topEvents={5} />, {
+        wrapper: Wrapper,
+      });
+
+      expect(screen.getByTestId('wrapper')).toHaveTextContent(
+        'Top 5 groups span count: 100'
+      );
     });
   });
 });
