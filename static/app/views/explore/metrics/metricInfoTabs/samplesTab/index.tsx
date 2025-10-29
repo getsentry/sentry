@@ -358,10 +358,10 @@ function SampleTableRow({
 }
 
 const SimpleTableWithHiddenColumns = styled(StyledSimpleTable)<{numColumns: number}>`
-  grid-template-columns: repeat(${p => p.numColumns}, min-content) auto;
+  grid-template-columns: repeat(${p => p.numColumns}, min-content) 1fr;
 
   @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 3}px) {
-    grid-template-columns: repeat(${p => p.numColumns - 1}, min-content) auto;
+    grid-template-columns: repeat(${p => p.numColumns - 1}, min-content) 1fr;
 
     [data-column-name='errors'] {
       display: none;
@@ -369,7 +369,7 @@ const SimpleTableWithHiddenColumns = styled(StyledSimpleTable)<{numColumns: numb
   }
 
   @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 2}px) {
-    grid-template-columns: repeat(${p => p.numColumns - 2}, min-content) auto;
+    grid-template-columns: repeat(${p => p.numColumns - 2}, min-content) 1fr;
 
     [data-column-name='spans'] {
       display: none;
@@ -377,7 +377,7 @@ const SimpleTableWithHiddenColumns = styled(StyledSimpleTable)<{numColumns: numb
   }
 
   @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 1}px) {
-    grid-template-columns: repeat(${p => p.numColumns - 3}, min-content) auto;
+    grid-template-columns: repeat(${p => p.numColumns - 3}, min-content) 1fr;
 
     [data-column-name='logs'] {
       display: none;
