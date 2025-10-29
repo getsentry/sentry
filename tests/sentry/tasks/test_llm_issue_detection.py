@@ -1,11 +1,11 @@
 import uuid
 from unittest.mock import Mock, patch
 
-import pytest
+from pydantic import ValidationError as PydanticValidationError
 from urllib3 import BaseHTTPResponse
 
 from sentry.tasks.llm_issue_detection import (
-    LLMIssueDetectionError,
+    IssueDetectionResponse,
     detect_llm_issues_for_project,
     run_llm_issue_detection,
 )
@@ -58,66 +58,25 @@ class LLMIssueDetectionTest(APITransactionTestCase, SnubaTestCase, SpanTestCase)
         assert mock_delay.called
         assert mock_delay.call_args[0][0] == project.id
 
-    def test_detect_llm_issues_http_error(self, mock_seer_api):
-        """Test HTTP error handling with proper exception fields."""
-        self._create_test_transaction_data()
-        mock_response = Mock(spec=BaseHTTPResponse)
-        mock_response.status = 500
-        mock_response.data = b'{"error": "Internal server error"}'
-        mock_seer_api.return_value = mock_response
-
-        with pytest.raises(LLMIssueDetectionError) as exc_info:
-            detect_llm_issues_for_project(self.project.id)
-
-        exception = exc_info.value
-        assert exception.message == "Seer HTTP error"
-        assert exception.status == 500
-        assert exception.project_id == self.project.id
-        assert exception.trace_id is not None
-        assert exception.response_data == '{"error": "Internal server error"}'
-        assert exception.error_message is None
-
-    def test_detect_llm_issues_parsing_error(self, mock_seer_api):
-        """Test response parsing error handling with error_message field."""
+    @patch("sentry.tasks.llm_issue_detection.IssueDetectionResponse.parse_obj")
+    def test_detect_llm_issues_pydantic_validation_error_handling(
+        self, mock_parse_obj, mock_seer_api
+    ):
+        """Test that Pydantic ValidationError is caught and doesn't crash the task."""
         self._create_test_transaction_data()
         mock_response = Mock(spec=BaseHTTPResponse)
         mock_response.status = 200
-        mock_response.data = b"invalid json"
-        mock_response.json.side_effect = ValueError("Expecting value: line 1 column 1 (char 0)")
+        mock_response.data = b'{"issues": []}'
+        mock_response.json.return_value = {"issues": "something invalid"}
         mock_seer_api.return_value = mock_response
 
-        with pytest.raises(LLMIssueDetectionError) as exc_info:
-            detect_llm_issues_for_project(self.project.id)
+        mock_parse_obj.side_effect = PydanticValidationError([], IssueDetectionResponse)
 
-        exception = exc_info.value
-        assert exception.message == "Seer response parsing error"
-        assert exception.status == 200
-        assert exception.project_id == self.project.id
-        assert exception.trace_id is not None
-        assert exception.response_data == "invalid json"
-        assert exception.error_message is not None
-        assert "Expecting value" in exception.error_message
+        result = detect_llm_issues_for_project(self.project.id)
 
-    def test_detect_llm_issues_invalid_schema(self, mock_seer_api):
-        """Test Pydantic validation error handling."""
-        self._create_test_transaction_data()
-        mock_response = Mock(spec=BaseHTTPResponse)
-        mock_response.status = 200
-        mock_response.data = b'{"wrong_field": "value"}'
-        mock_response.json.return_value = {"wrong_field": "value"}
-        mock_seer_api.return_value = mock_response
-
-        with pytest.raises(LLMIssueDetectionError) as exc_info:
-            detect_llm_issues_for_project(self.project.id)
-
-        exception = exc_info.value
-        assert exception.message == "Seer response parsing error"
-        assert exception.status == 200
-        assert exception.project_id == self.project.id
-        assert exception.trace_id is not None
-        assert exception.response_data == '{"wrong_field": "value"}'
-        assert exception.error_message is not None
-        assert "field required" in exception.error_message
+        assert mock_seer_api.called
+        assert mock_parse_obj.called
+        assert result is None
 
     @patch("sentry.tasks.llm_issue_detection.logger")
     def test_detect_llm_issues_success_with_logging(self, mock_logger, mock_seer_api):
@@ -163,12 +122,79 @@ class LLMIssueDetectionTest(APITransactionTestCase, SnubaTestCase, SpanTestCase)
 
     def test_detect_llm_issues_no_traces(self, mock_seer_api):
         """Test handling when transactions exist but no traces are found."""
-        # Create some transaction data but mock get_trace_for_transaction to return None
         self._create_test_transaction_data()
 
         with patch("sentry.tasks.llm_issue_detection.get_trace_for_transaction", return_value=None):
-            # This should complete without errors and not call Seer API
             detect_llm_issues_for_project(self.project.id)
 
-        # Verify Seer API was never called since no traces were found
         mock_seer_api.assert_not_called()
+
+    @patch("sentry.tasks.llm_issue_detection.logger")
+    def test_detect_llm_issues_multiple_transactions_partial_errors(
+        self, mock_logger, mock_seer_api
+    ):
+        """Test that errors in some transactions don't block processing of others."""
+        transaction1_name = "transaction_1"
+        trace_id_1 = uuid.uuid4().hex
+        spans1 = [
+            self.create_span(
+                {
+                    "description": "span-1",
+                    "sentry_tags": {"transaction": transaction1_name},
+                    "trace_id": trace_id_1,
+                    "parent_span_id": None,
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        ]
+
+        transaction2_name = "transaction_2"
+        trace_id_2 = uuid.uuid4().hex
+        spans2 = [
+            self.create_span(
+                {
+                    "description": "span-2",
+                    "sentry_tags": {"transaction": transaction2_name},
+                    "trace_id": trace_id_2,
+                    "parent_span_id": None,
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        ]
+
+        self.store_spans(spans1 + spans2, is_eap=True)
+
+        error_response = Mock(spec=BaseHTTPResponse)
+        error_response.status = 500
+        error_response.data = b'{"error": "Internal server error"}'
+
+        success_response = Mock(spec=BaseHTTPResponse)
+        success_response.status = 200
+        success_response.data = b'{"issues": [{"title": "Test Issue", "explanation": "Test explanation", "impact": "High", "evidence": "Test evidence"}]}'
+        success_response.json.return_value = {
+            "issues": [
+                {
+                    "title": "Test Issue",
+                    "explanation": "Test explanation",
+                    "impact": "High",
+                    "evidence": "Test evidence",
+                }
+            ]
+        }
+
+        mock_seer_api.side_effect = [error_response, success_response]
+
+        detect_llm_issues_for_project(self.project.id)
+
+        assert mock_seer_api.call_count == 2
+        success_log_calls = [
+            call
+            for call in mock_logger.info.call_args_list
+            if "Seer issue detection success" in call[0]
+        ]
+        assert len(success_log_calls) == 1
+        log_extra = success_log_calls[0][1]["extra"]
+        assert log_extra["num_issues"] == 1
+        assert log_extra["titles"] == ["Test Issue"]
