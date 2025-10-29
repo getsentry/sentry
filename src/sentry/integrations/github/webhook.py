@@ -24,6 +24,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
@@ -676,10 +677,10 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
     }
 
     _handlers: dict[str, type[GitHubWebhook]] = {
-        "push": PushEventWebhook,
-        "pull_request": PullRequestEventWebhook,
-        "installation": InstallationEventWebhook,
-        "issues": IssuesEventWebhook,
+        GithubWebhookType.PUSH: PushEventWebhook,
+        GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
+        GithubWebhookType.INSTALLATION: InstallationEventWebhook,
+        GithubWebhookType.ISSUE: IssuesEventWebhook,
     }
 
     def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:

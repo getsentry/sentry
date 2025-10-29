@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Literal
 
 from sentry import eventstore
@@ -23,6 +23,7 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
+from sentry.utils.dates import parse_stats_period
 
 logger = logging.getLogger(__name__)
 
@@ -322,6 +323,69 @@ def get_repository_definition(*, organization_id: int, repo_full_name: str) -> d
     }
 
 
+# Tuples of (total period, interval) (both in sentry stats period format).
+EVENT_TIMESERIES_RESOLUTIONS = (
+    ("6h", "15m"),  # 24 buckets
+    ("24h", "1h"),  # 24 buckets
+    ("3d", "3h"),  # 24 buckets
+    ("7d", "6h"),  # 28 buckets
+    ("14d", "12h"),  # 28 buckets
+    ("30d", "24h"),  # 30 buckets
+    ("90d", "3d"),  # 30 buckets
+)
+
+
+def _get_issue_event_timeseries(
+    *,
+    organization: Organization,
+    project_id: int,
+    issue_short_id: str,
+    first_seen_delta: timedelta,
+) -> tuple[dict[str, Any], str, str] | None:
+    """
+    Get event counts over time for an issue by calling the events-stats endpoint.
+    """
+
+    stats_period, interval = None, None
+    for p, i in EVENT_TIMESERIES_RESOLUTIONS:
+        delta = parse_stats_period(p)
+        if delta and first_seen_delta <= delta:
+            stats_period, interval = p, i
+            break
+    stats_period = stats_period or "90d"
+    interval = interval or "3d"
+
+    params: dict[str, Any] = {
+        "dataset": "issuePlatform",
+        "query": f"issue:{issue_short_id}",
+        "yAxis": "count()",
+        "partial": "1",
+        "statsPeriod": stats_period,
+        "interval": interval,
+        "project": project_id,
+        "referrer": Referrer.SEER_RPC,
+    }
+
+    resp = client.get(
+        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+        user=None,
+        path=f"/organizations/{organization.slug}/events-stats/",
+        params=params,
+    )
+    if resp.status_code != 200 or not (resp.data or {}).get("data"):
+        logger.warning(
+            "Failed to get event counts for issue",
+            extra={
+                "organization_slug": organization.slug,
+                "project_id": project_id,
+                "issue_id": issue_short_id,
+            },
+        )
+        return None
+
+    return {"count()": {"data": resp.data["data"]}}, stats_period, interval
+
+
 def get_issue_details(
     *,
     issue_id: str,
@@ -354,12 +418,12 @@ def get_issue_details(
         )
         return None
 
+    org_project_ids = Project.objects.filter(
+        organization=organization, status=ObjectStatus.ACTIVE
+    ).values_list("id", flat=True)
+
     try:
         if issue_id.isdigit():
-            org_project_ids = Project.objects.filter(
-                organization=organization, status=ObjectStatus.ACTIVE
-            ).values_list("id", flat=True)
-
             group = Group.objects.get(project_id__in=org_project_ids, id=int(issue_id))
         else:
             group = Group.objects.by_qualified_short_id(organization_id, issue_id)
@@ -415,8 +479,24 @@ def get_issue_details(
         )
         tags_overview = None
 
+    ts_result = _get_issue_event_timeseries(
+        organization=organization,
+        project_id=group.project_id,
+        issue_short_id=group.qualified_short_id,
+        first_seen_delta=datetime.now(UTC) - group.first_seen,
+    )
+    if ts_result:
+        timeseries, stats_period, interval = ts_result
+    else:
+        timeseries = None
+        stats_period = None
+        interval = None
+
     return {
         "issue": serialized_group,
+        "event_timeseries": timeseries,
+        "timeseries_stats_period": stats_period,
+        "timeseries_interval": interval,
         "tags_overview": tags_overview,
         "event": serialized_event,
         "event_id": event.event_id,

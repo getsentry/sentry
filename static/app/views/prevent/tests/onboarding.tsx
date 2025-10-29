@@ -74,7 +74,7 @@ export default function TestsOnboardingPage() {
   );
 
   const regionData = getRegionDataFromOrganization(organization);
-  const isUSStorage = regionData?.name === 'us';
+  const isUSStorage = regionData?.name?.toLowerCase() === 'us';
   const cameFromTestsRoute = location.state?.from === '/prevent/tests';
 
   // We want to navigate to show TA if this repo should have data to show, if we need to show

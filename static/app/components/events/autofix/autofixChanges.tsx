@@ -9,11 +9,13 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
+import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {
   AutofixStatus,
   type AutofixChangesStep,
@@ -329,7 +331,7 @@ export function AutofixChanges({
             {step.termination_reason && (
               <TerminationReasonText>{step.termination_reason}</TerminationReasonText>
             )}
-            <ButtonContainer>
+            <Flex justify="end" align="center" gap="md">
               {!prsMade && (
                 <ButtonBar>
                   {branchesMade ? (
@@ -366,6 +368,9 @@ export function AutofixChanges({
                   />
                 </ButtonBar>
               )}
+              {step.status === AutofixStatus.COMPLETED && (
+                <AutofixStepFeedback stepType="changes" groupId={groupId} runId={runId} />
+              )}
               {prsMade &&
                 (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
                   <LinkButton
@@ -396,7 +401,7 @@ export function AutofixChanges({
                     )}
                   </ScrollCarousel>
                 ))}
-            </ButtonContainer>
+            </Flex>
           </BottomButtonContainer>
         </ChangesContainer>
       </AnimationWrapper>
@@ -508,11 +513,6 @@ const TerminationReasonText = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   flex: 1;
   min-width: 0;
-`;
-
-const ButtonContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
 `;
 
 function CreatePRsButton({
