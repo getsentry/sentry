@@ -82,7 +82,6 @@ SAMPLED_TASKS = {
     * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
     * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
 }
 
 SAMPLED_ROUTES = {
