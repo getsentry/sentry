@@ -1,6 +1,6 @@
 import type {ComponentProps, CSSProperties, HTMLAttributes, RefObject} from 'react';
-import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';

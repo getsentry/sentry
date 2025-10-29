@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useRef, useState, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
@@ -41,8 +42,12 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
-const MAX_WIDTH = '40px';
+const MAX_TELEMETRY_WIDTH = 40;
 const VALUE_COLUMN_MIN_WIDTH = '50px';
+
+// The width of all of the columns in the samples table, accounting for
+// the expand button (36px), timestamp (121px), trace ID (66px), and value columns (72px)
+export const SAMPLES_PANEL_MIN_WIDTH = 305;
 
 const METRIC_SAMPLE_COLUMNS = ['timestamp', 'trace'];
 const METRIC_SAMPLE_STAT_COLUMNS = ['logs', 'spans', 'errors'];
@@ -94,11 +99,7 @@ export function SamplesTab({metricName}: SamplesTabProps) {
   };
 
   return (
-    <StyledSimpleTable
-      style={{
-        gridTemplateColumns: `repeat(${Object.keys(fieldLabels).length}, min-content) 1fr`,
-      }}
-    >
+    <SimpleTableWithHiddenColumns numColumns={Object.keys(fieldLabels).length}>
       {(result.isPending || isTelemetryLoading) && <TransparentLoadingMask />}
 
       <StyledSimpleTableHeader>
@@ -120,6 +121,7 @@ export function SamplesTab({metricName}: SamplesTabProps) {
             key={`stat-${i}`}
             divider={false}
             style={{width: '32px', padding: '0px'}}
+            data-column-name={field}
           >
             <Tooltip title={fieldLabels[field]} skipWrapper>
               {ICON_HEADERS[field as keyof typeof ICON_HEADERS]}
@@ -162,7 +164,7 @@ export function SamplesTab({metricName}: SamplesTabProps) {
           </SimpleTable.Empty>
         )}
       </StyledSimpleTableBody>
-    </StyledSimpleTable>
+    </SimpleTableWithHiddenColumns>
   );
 }
 
@@ -217,7 +219,7 @@ function SampleTableRow({
     return (
       <WrappingText
         style={{
-          maxWidth: MAX_WIDTH,
+          maxWidth: MAX_TELEMETRY_WIDTH,
           color: theme.gray400,
           alignItems: 'center',
           justifyContent: 'flex-end',
@@ -232,7 +234,7 @@ function SampleTableRow({
     return (
       <WrappingText
         style={{
-          maxWidth: MAX_WIDTH,
+          maxWidth: MAX_TELEMETRY_WIDTH,
           color: theme.purple400,
           alignItems: 'center',
           justifyContent: 'flex-end',
@@ -247,7 +249,7 @@ function SampleTableRow({
     return (
       <WrappingText
         style={{
-          maxWidth: MAX_WIDTH,
+          maxWidth: MAX_TELEMETRY_WIDTH,
           color: theme.red300,
           alignItems: 'center',
         }}
@@ -333,6 +335,7 @@ function SampleTableRow({
         {METRIC_SAMPLE_STAT_COLUMNS.map((field, i) => (
           <NumericSimpleTableRowCell
             key={`stat-${i}`}
+            data-column-name={field}
             hasPadding
             style={{justifyContent: 'flex-end'}}
           >
@@ -353,3 +356,31 @@ function SampleTableRow({
     </Fragment>
   );
 }
+
+const SimpleTableWithHiddenColumns = styled(StyledSimpleTable)<{numColumns: number}>`
+  grid-template-columns: repeat(${p => p.numColumns}, min-content) auto;
+
+  @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 3}px) {
+    grid-template-columns: repeat(${p => p.numColumns - 1}, min-content) auto;
+
+    [data-column-name='errors'] {
+      display: none;
+    }
+  }
+
+  @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 2}px) {
+    grid-template-columns: repeat(${p => p.numColumns - 2}, min-content) auto;
+
+    [data-column-name='spans'] {
+      display: none;
+    }
+  }
+
+  @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 1}px) {
+    grid-template-columns: repeat(${p => p.numColumns - 3}, min-content) auto;
+
+    [data-column-name='logs'] {
+      display: none;
+    }
+  }
+`;
