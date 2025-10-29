@@ -161,7 +161,6 @@ def rollback_alert_rule_query_and_update_subscription_in_snuba(snuba_query: Snub
             router.db_for_write(SnubaQueryEventType),
         )
     ):
-        query_subscriptions = list(snuba_query.subscriptions.all())
         snuba_query.update(
             type=snapshot["type"],
             dataset=snapshot["dataset"],
