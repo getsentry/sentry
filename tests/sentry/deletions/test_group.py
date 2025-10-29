@@ -332,7 +332,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             assert not GroupHashMetadata.objects.filter(id=metadata_b_id).exists()
 
     def test_delete_groups_with_few_fields_fetched(self) -> None:
-        with self.tasks(), self.options({"deletions.only-fetch-ids": True}):
+        with self.tasks(), self.options({"deletions.fetch-subset-of-fields": True}):
             delete_groups_for_project(
                 object_ids=[self.event.group_id],
                 transaction_id=uuid4().hex,

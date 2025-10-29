@@ -107,7 +107,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
     def tenant_ids(self) -> Mapping[str, Any]:
         result = {"referrer": self.referrer}
         if self.groups:
-            if not options.get("deletions.only-fetch-ids"):
+            if not options.get("deletions.fetch-subset-of-fields"):
                 result["organization_id"] = self.groups[0].project.organization_id
             else:
                 project_id = self.groups[0][_F_IDX["project_id"]]
@@ -126,7 +126,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
             return
 
         # Get organization_id from the first group
-        if not options.get("deletions.only-fetch-ids"):
+        if not options.get("deletions.fetch-subset-of-fields"):
             organization_id = self.groups[0].project.organization_id
         else:
             project_id = self.groups[0][_F_IDX["project_id"]]
@@ -134,7 +134,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
 
         # Schedule nodestore deletion task for each project
         for project_id, groups in self.project_groups.items():
-            if not options.get("deletions.only-fetch-ids"):
+            if not options.get("deletions.fetch-subset-of-fields"):
                 sorted_groups = sorted(groups, key=lambda g: (g.times_seen, g.id))
                 sorted_group_ids = [group.id for group in sorted_groups]
                 sorted_times_seen = [group.times_seen for group in sorted_groups]
@@ -185,11 +185,11 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
     # balance the number of snuba replacements with memory limits.
     DEFAULT_CHUNK_SIZE = GROUP_CHUNK_SIZE
 
-    # This reduces the number of fields fetched from the database
     def get_queryset_fetch(
         self, queryset: QuerySet[Group], query_limit: int
     ) -> list[tuple[Any, ...]] | list[Group]:
-        if options.get("deletions.only-fetch-ids"):
+        if options.get("deletions.fetch-subset-of-fields"):
+            # This reduces the number of fields fetched from the database
             return list(queryset.values_list(*FIELDS_TO_FETCH)[:query_limit])
         return list(queryset[:query_limit])
 
@@ -212,7 +212,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         if not instance_list:
             return
 
-        if not options.get("deletions.only-fetch-ids"):
+        if not options.get("deletions.fetch-subset-of-fields"):
             group_ids = [group.id for group in instance_list]
             project_id = instance_list[0].project_id
         else:
@@ -226,7 +226,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
-        if not options.get("deletions.only-fetch-ids"):
+        if not options.get("deletions.fetch-subset-of-fields"):
             error_group_ids = [group.id for group in error_groups]
             issue_platform_group_ids = [group.id for group in issue_platform_groups]
         else:
@@ -254,7 +254,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         from sentry import similarity
 
         if not self.skip_models or similarity not in self.skip_models:
-            if options.get("deletions.only-fetch-ids"):
+            if options.get("deletions.fetch-subset-of-fields"):
                 # We need to pass a Group object to the similarity delete method.
                 instance = Group.objects.get(id=instance[0])
             similarity.delete(None, instance)
@@ -262,7 +262,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         return super().delete_instance(instance)
 
     def mark_deletion_in_progress(self, instance_list: Sequence[Group]) -> None:
-        if not options.get("deletions.only-fetch-ids"):
+        if not options.get("deletions.fetch-subset-of-fields"):
             group_ids = [group.id for group in instance_list]
         else:
             id_index = _F_IDX["id"]
@@ -351,7 +351,7 @@ def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Gro
         # Ideally, we should refactor `issue_type` to return None if the type is
         # unregistered.
         try:
-            if not options.get("deletions.only-fetch-ids"):
+            if not options.get("deletions.fetch-subset-of-fields"):
                 issue_type = group.issue_category
             else:
                 # issue_category is an alias for type
