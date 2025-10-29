@@ -28,8 +28,8 @@ function decodeSortOrder(value: QueryValue): 'asc' | 'desc' {
 export function useTableSortParams() {
   const {field: sortField, order: sortOrder} = useLocationQuery({
     fields: {
-      field: decodeSortField,
-      order: decodeSortOrder,
+      [TableUrlParams.SORT_FIELD]: decodeSortField,
+      [TableUrlParams.SORT_ORDER]: decodeSortOrder,
     },
   });
   return {sortField, sortOrder};
