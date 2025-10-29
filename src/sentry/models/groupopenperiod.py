@@ -98,8 +98,28 @@ class GroupOpenPeriod(DefaultFieldsModel):
             logger.warning("Open period is already closed", extra={"group_id": self.group.id})
             return
 
+        # We can't resolve issues before they started; if we've been asked to do so, the
+        # timestamp is likely from a different source than the date_started timestamp, and
+        # we should aim to fix that, so we warn.
+        # We ensure there's a valid close time so we can close the period as requested.
+        close_time = resolution_time
+        if resolution_time < self.date_started:
+            # There may be more externally accurate close times, but since we're closing it
+            # now, timezone.now() is arguably always a reasonable choice.
+            close_time = timezone.now()
+            logger.warning(
+                "Resolution time is before open period start time, using current time as close time",
+                extra={
+                    "group_id": self.group.id,
+                    "group_type": self.group.type,
+                    "resolution_time": resolution_time.isoformat(),
+                    "date_started": self.date_started.isoformat(),
+                    "close_time": close_time.isoformat(),
+                },
+            )
+
         self.update(
-            date_ended=resolution_time,
+            date_ended=close_time,
             resolution_activity=resolution_activity,
             user_id=resolution_activity.user_id,
         )
