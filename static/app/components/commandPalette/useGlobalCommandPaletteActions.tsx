@@ -29,16 +29,21 @@ import {
 import {t} from 'sentry/locale';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useNavContext} from 'sentry/views/nav/context';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
+// This hook generates actions for all pages in the primary and secondary navigation.
+// TODO: Consider refactoring the navigation so that this can read from the same source
+// of truth and avoid divergence.
 function useNavigationActions(): CommandPaletteAction[] {
   const organization = useOrganization();
   const slug = organization.slug;
   const prefix = `/organizations/${slug}`;
   const {starredViews} = useStarredIssueViews();
+  const {data: starredDashboards = []} = useGetStarredDashboards();
 
   const issuesChildren: CommandPaletteActionChild[] = [
     makeCommandPaletteLink({
@@ -133,6 +138,15 @@ function useNavigationActions(): CommandPaletteAction[] {
       },
       to: `${prefix}/dashboards/`,
     }),
+    ...starredDashboards.map(dashboard =>
+      makeCommandPaletteLink({
+        display: {
+          label: dashboard.title,
+          icon: <IconStar />,
+        },
+        to: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+      })
+    ),
   ];
 
   const insightsChildren: CommandPaletteActionChild[] = [

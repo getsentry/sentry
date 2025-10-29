@@ -20,6 +20,10 @@ describe('ExploreSecondaryNav', () => {
       url: '/organizations/org-slug/group-search-views/starred/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/explore/saved/',
