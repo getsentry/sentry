@@ -30,6 +30,7 @@ from sentry.models.apitoken import ApiToken, is_api_token_auth
 from sentry.models.orgauthtoken import OrgAuthToken, is_org_auth_token_auth
 from sentry.models.projectkey import ProjectKeyStatus
 from sentry.models.relay import Relay
+from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.base import SiloMode
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
@@ -140,7 +141,7 @@ class TestJWTClientSecretAuthentication(TestCase):
 
     def test_authenticate(self) -> None:
         token = self._create_jwt(self.api_app.client_id)
-        request = _drf_request({"dummy": "data"})
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT})
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
 
@@ -149,7 +150,7 @@ class TestJWTClientSecretAuthentication(TestCase):
 
     def test_missing_installation(self) -> None:
         token = self._create_jwt(self.api_app.client_id)
-        request = _drf_request({"dummy": "data"})
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT})
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         request.path = f"/api/0/sentry-app-installations/{uuid.uuid4()}/authorizations/"
 
@@ -158,7 +159,7 @@ class TestJWTClientSecretAuthentication(TestCase):
 
     def test_invalid_client_id(self) -> None:
         token = self._create_jwt("wrong-client-id")
-        request = _drf_request({"dummy": "data"})
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT})
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
 
@@ -168,7 +169,7 @@ class TestJWTClientSecretAuthentication(TestCase):
     def test_expired_token(self) -> None:
         expired_time = datetime.now() - timedelta(hours=1)
         token = self._create_jwt(self.api_app.client_id, exp=expired_time)
-        request = _drf_request({"dummy": "data"})
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT})
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
 
@@ -178,7 +179,7 @@ class TestJWTClientSecretAuthentication(TestCase):
             self.auth.authenticate(request)
 
     def test_missing_authorization_header(self) -> None:
-        request = _drf_request({"dummy": "data"})
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT})
         request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
 
         with pytest.raises(AuthenticationFailed, match="Header is in invalid form"):
@@ -186,7 +187,7 @@ class TestJWTClientSecretAuthentication(TestCase):
 
     def test_invalid_bearer_format(self) -> None:
         token = self._create_jwt(self.api_app.client_id)
-        request = _drf_request({"dummy": "data"})
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT})
         request.META["HTTP_AUTHORIZATION"] = f"Token {token}"  # Wrong scheme
         request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
 
@@ -194,7 +195,7 @@ class TestJWTClientSecretAuthentication(TestCase):
             self.auth.authenticate(request)
 
     def test_malformed_jwt(self) -> None:
-        request = _drf_request({"dummy": "data"})
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT})
         request.META["HTTP_AUTHORIZATION"] = "Bearer invalid.jwt.token"
         request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
 
@@ -209,6 +210,25 @@ class TestJWTClientSecretAuthentication(TestCase):
 
         with pytest.raises(AuthenticationFailed, match="Invalid request"):
             self.auth.authenticate(request)
+
+    def test_jwt_cannot_be_used_twice(self) -> None:
+        # Test that the same JWT token cannot be used twice
+        token = self._create_jwt(self.api_app.client_id)
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT})
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+        request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+
+        # First request should succeed
+        user, _ = self.auth.authenticate(request)
+        assert user.id == self.sentry_app.proxy_user.id
+
+        # Second request with the same token should fail due to cache
+        request2 = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT})
+        request2.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+        request2.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+
+        with pytest.raises(AuthenticationFailed, match="JWT has already been used"):
+            self.auth.authenticate(request2)
 
 
 class TestDSNAuthentication(TestCase):

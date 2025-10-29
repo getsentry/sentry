@@ -9,6 +9,7 @@ from typing import Any, ClassVar
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.core.cache import cache
 from django.http import HttpHeaders
 from django.urls import resolve
 from django.utils.crypto import constant_time_compare
@@ -366,6 +367,9 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
     Currently used for authenticating requests to manually refresh an installation's API token.
     """
 
+    def _create_cache_key(self, installation_uuid: str, jti: str) -> str:
+        return f"jwt_client_secret:{installation_uuid}:{jti}"
+
     def authenticate(self, request: Request):
         if not request.data:
             raise AuthenticationFailed("Invalid request")
@@ -389,6 +393,12 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
         )
         if not valid_client_id:
             raise AuthenticationFailed("JWT is not valid for this application")
+
+        jti = payload.get("jti")
+        cache_key = self._create_cache_key(installation_uuid, jti)
+        if cache.get(cache_key):
+            raise AuthenticationFailed("JWT has already been used")
+        cache.set(cache_key, True, timeout=60)  # 1 minute
 
         return self.transform_auth(installation.sentry_app.proxy_user_id, None)
 
