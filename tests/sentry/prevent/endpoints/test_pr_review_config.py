@@ -1,11 +1,13 @@
 from copy import deepcopy
+from typing import Any
 from unittest import mock
 
 from sentry.constants import ObjectStatus
 from sentry.prevent.models import PreventAIConfiguration
 from sentry.prevent.types.config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import SiloMode, assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 VALID_ORG_CONFIG = {
     "schema_version": "v1",
@@ -131,9 +133,11 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
         self.client.put(self.url, data=VALID_ORG_CONFIG, format="json")
         assert mock_create_audit_entry.called
         call_args = mock_create_audit_entry.call_args
+        assert call_args is not None
         assert call_args.kwargs["organization"] == self.org
-        assert call_args.kwargs["data"]["git_organization"] == self.git_org
-        assert call_args.kwargs["data"]["provider"] == "github"
+        data: Any = call_args.kwargs["data"]
+        assert data["git_organization"] == self.git_org
+        assert data["provider"] == "github"
 
     def test_put_with_missing_required_fields_returns_400(self):
         """Test PUT endpoint returns 400 when required fields are missing."""
@@ -152,7 +156,7 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
 
     def test_put_with_invalid_sensitivity_value_returns_400(self):
         """Test PUT endpoint returns 400 when sensitivity has an invalid value."""
-        invalid_config = deepcopy(VALID_ORG_CONFIG)
+        invalid_config: Any = deepcopy(VALID_ORG_CONFIG)
         invalid_config["org_defaults"]["bug_prediction"]["sensitivity"] = "invalid"
 
         resp = self.client.put(self.url, data=invalid_config, format="json")
@@ -161,7 +165,7 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
 
     def test_config_with_repo_overrides(self):
         """Test that configuration with repo overrides is properly saved and retrieved."""
-        config_with_overrides = deepcopy(VALID_ORG_CONFIG)
+        config_with_overrides: Any = deepcopy(VALID_ORG_CONFIG)
         config_with_overrides["repo_overrides"] = {
             "my-repo": {
                 "bug_prediction": {
