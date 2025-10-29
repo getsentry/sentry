@@ -35,8 +35,8 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
     setSearchParams(newParams);
   }, [searchParams, setSearchParams]);
 
-  // Only show top 3 insights, show the rest in the sidebar
-  const topInsights = processedInsights.slice(0, 3);
+  // Only show top 5 insights, show the rest in the sidebar
+  const topInsights = processedInsights.slice(0, 5);
 
   return (
     <Container background="primary" radius="md" padding="lg" border="muted">
@@ -51,7 +51,7 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
           {t('Top insights')}
         </Heading>
         <Button size="sm" icon={<IconSettings />} onClick={openSidebar}>
-          {t('View all insights')}
+          {t('View insight details')}
         </Button>
       </Flex>
       <Flex

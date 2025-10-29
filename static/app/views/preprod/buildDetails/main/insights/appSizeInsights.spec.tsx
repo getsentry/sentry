@@ -20,7 +20,7 @@ describe('AppSizeInsights', () => {
     render(<AppSizeInsights {...getDefaultProps()} />);
 
     expect(screen.getByText('Top insights')).toBeInTheDocument();
-    expect(screen.getByText('View all insights')).toBeInTheDocument();
+    expect(screen.getByText('View insight details')).toBeInTheDocument();
   });
 
   it('displays only top 3 insights in the main view', () => {
@@ -71,7 +71,7 @@ describe('AppSizeInsights', () => {
     expect(screen.queryByText('Insights')).not.toBeInTheDocument();
 
     // Click "View all insights" button
-    const viewAllButton = screen.getByText('View all insights');
+    const viewAllButton = screen.getByText('View insight details');
     await userEvent.click(viewAllButton);
 
     // Sidebar should now be visible
@@ -83,7 +83,7 @@ describe('AppSizeInsights', () => {
     render(<AppSizeInsights {...getDefaultProps()} />);
 
     // Open sidebar
-    const viewAllButton = screen.getByText('View all insights');
+    const viewAllButton = screen.getByText('View insight details');
     await userEvent.click(viewAllButton);
     expect(screen.getByText('Insights')).toBeInTheDocument();
 
