@@ -1,6 +1,6 @@
 import type {ComponentProps, CSSProperties, HTMLAttributes, RefObject} from 'react';
-import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
@@ -122,9 +122,6 @@ const StyledPanelHeader = styled('div')`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
-  position: sticky;
-  top: 0;
-  z-index: 2;
 `;
 
 const StyledRowCell = styled(Flex)`

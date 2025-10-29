@@ -3221,13 +3221,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "uptime.date_cutoff_epoch_seconds",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Controls whether uptime monitoring creates issues via the issue platform.
 register(
     "uptime.create-issues",
@@ -3602,5 +3595,13 @@ register(
         "sentry_app_slug": [],
         "installation_uuid": [],
     },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables or disables Github webhook routing based on the type of webhook
+register(
+    "github.webhook-type-routing.enabled",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

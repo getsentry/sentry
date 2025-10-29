@@ -1,17 +1,19 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 from unittest.mock import patch
 
 import pytest
 from pydantic import BaseModel
 
+from sentry.api import client
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
 from sentry.seer.explorer.tools import (
+    EVENT_TIMESERIES_RESOLUTIONS,
     execute_trace_query_chart,
     execute_trace_query_table,
     get_issue_details,
@@ -21,6 +23,7 @@ from sentry.seer.explorer.tools import (
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.dates import parse_stats_period
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -631,6 +634,20 @@ class _SentryEventData(BaseModel):
 
 class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
 
+    def _validate_event_timeseries(self, timeseries: dict):
+        assert isinstance(timeseries, dict)
+        assert "count()" in timeseries
+        assert "data" in timeseries["count()"]
+        assert isinstance(timeseries["count()"]["data"], list)
+        for item in timeseries["count()"]["data"]:
+            assert len(item) == 2
+            assert isinstance(item[0], int)
+            assert isinstance(item[1], list)
+            assert len(item[1]) == 1
+            assert isinstance(item[1][0], dict)
+            assert "count" in item[1][0]
+            assert isinstance(item[1][0]["count"], int)
+
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
     def _test_get_issue_details_success(
@@ -716,6 +733,9 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
                 assert result["event_trace_id"] == event0_trace_id
             else:
                 assert result["event_trace_id"] is None
+
+            # Validate timeseries dict structure.
+            self._validate_event_timeseries(result["event_timeseries"])
 
     def test_get_issue_details_success_int_id(self):
         self._test_get_issue_details_success(use_short_id=False)
@@ -860,6 +880,64 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert md.assignedTo.id == str(self.team.id)
         assert md.assignedTo.name == self.team.slug
         assert md.assignedTo.email is None
+
+    @patch("sentry.seer.explorer.tools.client")
+    @patch("sentry.models.group.get_recommended_event")
+    @patch("sentry.seer.explorer.tools.get_all_tags_overview")
+    def test_get_issue_details_timeseries_resolution(
+        self,
+        mock_get_tags,
+        mock_get_recommended_event,
+        mock_api_client,
+    ):
+        """Test groups with different first_seen dates"""
+        mock_get_tags.return_value = {"tags_overview": [{"key": "test_tag", "top_values": []}]}
+        # Passthrough to real client - allows testing call args
+        mock_api_client.get.side_effect = client.get
+
+        for stats_period, interval in EVENT_TIMESERIES_RESOLUTIONS:
+            delta = parse_stats_period(stats_period)
+            assert delta is not None
+            if delta > timedelta(days=30):
+                # Skip the 90d test as the retention for testutils is 30d.
+                continue
+
+            # Set a first_seen date slightly newer than the stats period we're testing.
+            first_seen = datetime.now(UTC) - delta + timedelta(minutes=6, seconds=7)
+            data = load_data("python", timestamp=first_seen)
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            event = self.store_event(data=data, project_id=self.project.id)
+            mock_get_recommended_event.return_value = event
+
+            # Second newer event
+            data = load_data("python", timestamp=first_seen + timedelta(minutes=6, seconds=7))
+            data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+            self.store_event(data=data, project_id=self.project.id)
+
+            group = event.group
+            assert isinstance(group, Group)
+            assert group.first_seen == first_seen
+
+            result = get_issue_details(
+                issue_id=str(group.id),
+                organization_id=self.organization.id,
+                selected_event="recommended",
+            )
+
+            # Assert expected stats params were passed to the API.
+            _, kwargs = mock_api_client.get.call_args
+            assert kwargs["path"] == f"/organizations/{self.organization.slug}/events-stats/"
+            assert kwargs["params"]["statsPeriod"] == stats_period
+            assert kwargs["params"]["interval"] == interval
+
+            # Validate final results.
+            assert result is not None
+            self._validate_event_timeseries(result["event_timeseries"])
+            assert result["timeseries_stats_period"] == stats_period
+            assert result["timeseries_interval"] == interval
+
+            # Ensure next iteration makes a fresh group.
+            group.delete()
 
 
 @pytest.mark.django_db(databases=["default", "control"])
