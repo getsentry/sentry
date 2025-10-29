@@ -226,3 +226,36 @@ class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
             result = processor.process_update(old_update_message)
 
         assert result is False
+
+    def test_no_detector_returns_false_without_exception(self) -> None:
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="",
+                aggregate="count()",
+                time_window=timedelta(minutes=1),
+                resolution=timedelta(minutes=1),
+                environment=self.environment,
+                event_types=[
+                    SnubaQueryEventType.EventType.ERROR,
+                    SnubaQueryEventType.EventType.DEFAULT,
+                ],
+            )
+            subscription_without_detector = create_snuba_subscription(
+                project=self.project,
+                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                snuba_query=snuba_query,
+            )
+
+        processor = SubscriptionProcessor(subscription_without_detector)
+        assert processor.detector is None
+
+        message = self.build_subscription_update(subscription_without_detector, value=100)
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            result = processor.process_update(message)
+
+        assert result is False
