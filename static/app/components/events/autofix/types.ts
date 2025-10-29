@@ -311,9 +311,15 @@ export interface SeerRepoDefinition {
   provider_raw?: string;
 }
 
+export interface SeerAutomationHandoffConfiguration {
+  handoff_point: 'root_cause';
+  target: 'cursor_background_agent';
+}
+
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
   automated_run_stopping_point?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr';
+  automation_handoff?: SeerAutomationHandoffConfiguration;
 }
 
 export const AUTOFIX_TTL_IN_DAYS = 30;
