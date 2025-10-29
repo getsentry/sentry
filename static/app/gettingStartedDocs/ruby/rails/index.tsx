@@ -3,8 +3,7 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {getRubyProfilingOnboarding} from 'sentry/gettingStartedDocs/ruby/ruby';
-import {getRubyLogsOnboarding} from 'sentry/utils/gettingStartedDocs/ruby';
+import {profiling} from 'sentry/gettingStartedDocs/ruby/ruby/profiling';
 
 import {crashReport} from './crashReport';
 import {onboarding} from './onboarding';
@@ -14,8 +13,8 @@ const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
-  profilingOnboarding: getRubyProfilingOnboarding(),
-  logsOnboarding: getRubyLogsOnboarding({
+  profilingOnboarding: profiling(),
+  logsOnboarding: logs({
     docsPlatform: 'rails',
   }),
 };

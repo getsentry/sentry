@@ -24,6 +24,7 @@ describe('useChartBoxSelect', () => {
   const mockChartInstance = {
     getModel: jest.fn(),
     dispatchAction: jest.fn(),
+    setOption: jest.fn(),
     convertToPixel: jest.fn().mockReturnValue([100, 200]),
     getDom: jest.fn().mockReturnValue({
       getBoundingClientRect: jest.fn().mockReturnValue({
@@ -57,7 +58,7 @@ describe('useChartBoxSelect', () => {
           }),
         {organization}
       );
-      expect(result.current.boxCoordRange).toBeNull();
+      expect(result.current.xRange).toBeNull();
     });
   });
 
@@ -124,14 +125,8 @@ describe('useChartBoxSelect', () => {
       const mockEvent = {
         areas: [
           {
-            coordRange: [
-              [10, 90], // x range
-              [5, 45], // y range
-            ],
-            range: [
-              [10, 90], // x range
-              [5, 45], // y range
-            ],
+            coordRange: [10, 90], // flat x range array
+            range: [10, 90],
           },
         ],
         brushId: 'test-brush-id',
@@ -143,10 +138,7 @@ describe('useChartBoxSelect', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.boxCoordRange).toEqual({
-          x: [10, 90], // within x bounds
-          y: [5, 45], // within y bounds
-        });
+        expect(result.current.xRange).toEqual([10, 90]);
       });
     });
 
@@ -195,14 +187,8 @@ describe('useChartBoxSelect', () => {
       const mockEvent = {
         areas: [
           {
-            coordRange: [
-              [-10, 150], // x range exceeding bounds
-              [-5, 60], // y range exceeding bounds
-            ],
-            range: [
-              [-10, 150], // x range exceeding bounds
-              [-5, 60], // y range exceeding bounds
-            ],
+            coordRange: [-10, 150], // flat x range array exceeding bounds
+            range: [-10, 150],
           },
         ],
         brushId: 'test-brush-id',
@@ -214,10 +200,7 @@ describe('useChartBoxSelect', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.boxCoordRange).toEqual({
-          x: [0, 100], // constrained to x bounds
-          y: [0, 50], // constrained to y bounds
-        });
+        expect(result.current.xRange).toEqual([0, 100]); // constrained to x bounds
       });
     });
 
@@ -235,14 +218,8 @@ describe('useChartBoxSelect', () => {
       const mockEvent = {
         areas: [
           {
-            coordRange: [
-              [10, 90],
-              [5, 45],
-            ],
-            range: [
-              [10, 90],
-              [5, 45],
-            ],
+            coordRange: [10, 90], // flat x range array
+            range: [10, 90],
           },
         ],
         brushId: 'test-brush-id',
@@ -253,7 +230,7 @@ describe('useChartBoxSelect', () => {
         result.current.onBrushEnd(mockEvent, mockChartInstance as any);
       });
 
-      expect(result.current.boxCoordRange).toBeNull();
+      expect(result.current.xRange).toBeNull();
     });
   });
 
@@ -303,14 +280,8 @@ describe('useChartBoxSelect', () => {
       const mockEvent = {
         areas: [
           {
-            coordRange: [
-              [10, 90],
-              [5, 45],
-            ],
-            range: [
-              [10, 90],
-              [5, 45],
-            ],
+            coordRange: [10, 90], // flat x range array
+            range: [10, 90],
           },
         ],
         brushId: 'test-brush-id',
@@ -326,10 +297,7 @@ describe('useChartBoxSelect', () => {
         areas: [
           {
             ...mockEvent.areas[0],
-            coordRange: [
-              [10, 90],
-              [5, 45],
-            ],
+            coordRange: [10, 90], // flat x range array
           },
         ],
       });
