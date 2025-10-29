@@ -11,11 +11,10 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
 import type {
   PreventAIFeatureConfigsByName,
-  PreventAIOrg,
   PreventAIOrgConfig,
-  PreventAIRepo,
   Sensitivity,
 } from 'sentry/types/prevent';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -25,10 +24,10 @@ export type ManageReposPanelProps = {
   collapsed: boolean;
   isEditingOrgDefaults: boolean;
   onClose: () => void;
-  org: PreventAIOrg;
+  org: OrganizationIntegration;
   allRepos?: Array<{id: string; name: string}>;
   onFocusRepoSelector?: () => void;
-  repo?: PreventAIRepo | null;
+  repo?: Repository | null;
 };
 
 interface SensitivityOption {
@@ -86,7 +85,7 @@ function ManageReposPanel({
   }
 
   const orgConfig =
-    organization.preventAiConfigGithub.github_organizations[org.githubOrganizationId] ??
+    organization.preventAiConfigGithub.github_organizations[org.name] ??
     organization.preventAiConfigGithub.default_org_config;
 
   const {doesUseOrgDefaults, repoConfig} = isEditingOrgDefaults
@@ -139,9 +138,7 @@ function ManageReposPanel({
                     'These settings apply to the selected [repoLink] repository. To switch, use the repository selector in the page header.',
                     {
                       repoLink: (
-                        <ExternalLink
-                          href={`https://github.com/${org.name}/${repo?.name}`}
-                        >
+                        <ExternalLink href={`https://github.com/${repo?.name}`}>
                           {repo?.name}
                         </ExternalLink>
                       ),
@@ -191,7 +188,7 @@ function ManageReposPanel({
                   onChange={async () => {
                     await enableFeature({
                       feature: 'use_org_defaults',
-                      orgId: org.githubOrganizationId,
+                      orgId: org.name,
                       repoId: repo?.id,
                       enabled: !doesUseOrgDefaults,
                     });
@@ -232,7 +229,7 @@ function ManageReposPanel({
                       await enableFeature({
                         feature: 'vanilla',
                         enabled: newValue,
-                        orgId: org.githubOrganizationId,
+                        orgId: org.name,
                         repoId: repo?.id,
                       });
                     }}
@@ -264,7 +261,7 @@ function ManageReposPanel({
                             await enableFeature({
                               feature: 'vanilla',
                               enabled: true,
-                              orgId: org.githubOrganizationId,
+                              orgId: org.name,
                               repoId: repo?.id,
                               sensitivity: option.value,
                             })
@@ -309,7 +306,7 @@ function ManageReposPanel({
                       await enableFeature({
                         feature: 'test_generation',
                         enabled: newValue,
-                        orgId: org.githubOrganizationId,
+                        orgId: org.name,
                         repoId: repo?.id,
                       });
                     }}
@@ -347,7 +344,7 @@ function ManageReposPanel({
                       await enableFeature({
                         feature: 'bug_prediction',
                         enabled: newValue,
-                        orgId: org.githubOrganizationId,
+                        orgId: org.name,
                         repoId: repo?.id,
                       });
                     }}
@@ -379,7 +376,7 @@ function ManageReposPanel({
                             await enableFeature({
                               feature: 'bug_prediction',
                               enabled: true,
-                              orgId: org.githubOrganizationId,
+                              orgId: org.name,
                               repoId: repo?.id,
                               sensitivity: option.value,
                             })
@@ -417,7 +414,7 @@ function ManageReposPanel({
                               feature: 'bug_prediction',
                               trigger: {on_ready_for_review: newValue},
                               enabled: true,
-                              orgId: org.githubOrganizationId,
+                              orgId: org.name,
                               repoId: repo?.id,
                             });
                           }}
@@ -449,7 +446,7 @@ function ManageReposPanel({
                               feature: 'bug_prediction',
                               trigger: {on_command_phrase: newValue},
                               enabled: true,
-                              orgId: org.githubOrganizationId,
+                              orgId: org.name,
                               repoId: repo?.id,
                             });
                           }}
