@@ -355,7 +355,7 @@ def get_payload_from_client_secret_jwt(
     try:
         payload = jwt.decode(encoded_jwt, client_secret, algorithms=["HS256"])
     except Exception as e:
-        raise AuthenticationFailed(f"Could not validate JWT, got error: {e}") from e
+        raise AuthenticationFailed("Could not validate JWT") from e
 
     return payload
 

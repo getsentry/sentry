@@ -173,9 +173,7 @@ class TestJWTClientSecretAuthentication(TestCase):
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
 
-        with pytest.raises(
-            AuthenticationFailed, match="Could not validate JWT, got error: Signature has expired"
-        ):
+        with pytest.raises(AuthenticationFailed, match="Could not validate JWT"):
             self.auth.authenticate(request)
 
     def test_missing_authorization_header(self) -> None:
