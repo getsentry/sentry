@@ -15,14 +15,16 @@ from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.notifications.platform.slack.provider import SlackRenderable
+from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
+    NotificationCategory,
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
 from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
+from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 
@@ -529,11 +531,13 @@ class SlackIntegrationSendNotificationTest(TestCase):
     def test_send_notification_success(
         self, mock_chat_post: MagicMock, mock_record: MagicMock
     ) -> None:
-        payload: SlackRenderable = {
-            "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "Test"}}],
-            "text": "Test",
-        }
-
+        data = MockNotification(message="test")
+        template = MockNotificationTemplate()
+        rendered_template = template.render(data)
+        renderer = SlackNotificationProvider.get_renderer(
+            data=data, category=NotificationCategory.DEBUG
+        )
+        payload = renderer.render(data=data, rendered_template=rendered_template)
         self.installation.send_notification(target=self.target, payload=payload)
 
         mock_chat_post.assert_called_once_with(
