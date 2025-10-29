@@ -12,11 +12,11 @@ import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/util
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getFieldDefinition} from 'sentry/utils/fields';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import type {GenericFilterSelectorProps} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import NumericFilterSelectorTrigger from 'sentry/views/dashboards/globalFilter/numericFilterSelectorTrigger';
 import {
+  getFieldDefinitionForDataset,
   isValidNumericFilterValue,
   newNumericFilterQuery,
   parseFilterValue,
@@ -44,13 +44,16 @@ function NumericFilterSelector({
         ? getOperatorInfo({
             filterToken: globalFilterToken,
             hasWildcardOperators: false,
-            fieldDefinition: getFieldDefinition(globalFilterToken?.key?.text ?? ''),
+            fieldDefinition: getFieldDefinitionForDataset(
+              globalFilter.tag,
+              globalFilter.dataset
+            ),
           })
         : {
             operator: TermOperator.EQUAL,
             options: [],
           },
-    [globalFilterToken]
+    [globalFilterToken, globalFilter.tag, globalFilter.dataset]
   );
 
   const [stagedFilterOperator, setStagedFilterOperator] =
