@@ -11,6 +11,7 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -79,6 +80,8 @@ function ConversationsTableInner() {
   const {cursor, setCursor} = useTableCursor();
   const pageFilters = usePageFilters();
 
+  const {start, end, period, utc} = pageFilters.selection.datetime;
+
   const {
     data = [],
     isLoading,
@@ -92,10 +95,10 @@ function ConversationsTableInner() {
           cursor,
           project: pageFilters.selection.projects,
           environment: pageFilters.selection.environments,
-          period: pageFilters.selection.datetime.period,
-          start: pageFilters.selection.datetime.start,
-          end: pageFilters.selection.datetime.end,
-          utc: pageFilters.selection.datetime.utc,
+          period,
+          start: start instanceof Date ? getUtcDateString(start) : start,
+          end: end instanceof Date ? getUtcDateString(end) : end,
+          utc,
         },
       },
     ],
