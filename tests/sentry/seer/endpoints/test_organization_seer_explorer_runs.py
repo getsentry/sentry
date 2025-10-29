@@ -49,14 +49,15 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
             "organization_id": self.organization.id,
             "user_id": self.user.id,
             "limit": None,
+            "offset": None,
         }
 
-    def test_get_with_limit(self) -> None:
+    def test_get_with_offset_and_limit(self) -> None:
         self.make_seer_request.return_value.status = 200
         self.make_seer_request.return_value.json.return_value = {
             "hello": "world",
         }
-        response = self.client.get(self.url + "?limit=11")
+        response = self.client.get(self.url + "?offset=1&limit=11")
         assert response.status_code == 200
         assert response.json() == {"hello": "world"}
 
@@ -68,12 +69,20 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
             "organization_id": self.organization.id,
             "user_id": self.user.id,
             "limit": 11,
+            "offset": 1,
         }
 
     def test_get_with_invalid_limit(self) -> None:
-        response = self.client.get(self.url + "?limit=invalid")
-        assert response.status_code == 400
-        assert "limit" in response.json()
+        for value in ["invalid", "-1", "0"]:
+            response = self.client.get(self.url + f"?limit={value}")
+            assert response.status_code == 400
+            assert "limit" in response.json()
+
+    def test_get_with_invalid_offset(self) -> None:
+        for value in ["invalid", "-1"]:
+            response = self.client.get(self.url + f"?offset={value}")
+            assert response.status_code == 400
+            assert "offset" in response.json()
 
     def test_get_with_seer_error(self) -> None:
         self.make_seer_request.return_value.status = 500

@@ -30,7 +30,13 @@ class OrganizationSeerExplorerRunsPermission(OrganizationPermission):
 
 
 class ExplorerRunsRequestSerializer(serializers.Serializer):
+    offset = serializers.IntegerField(required=False, allow_null=False)
     limit = serializers.IntegerField(required=False, allow_null=False)
+
+    def validate_offset(self, value: int) -> int:
+        if value < 0:
+            raise serializers.ValidationError("Offset must be non-negative")
+        return value
 
     def validate_limit(self, value: int) -> int:
         if value < 1:
@@ -70,6 +76,7 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
+        offset: int | None = serializer.validated_data.get("offset")
         limit: int | None = serializer.validated_data.get("limit")
 
         path = "/v1/automation/explorer/runs"
@@ -77,6 +84,7 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
             {
                 "organization_id": organization.id,
                 "user_id": request.user.id,
+                "offset": offset,
                 "limit": limit,
             },
             option=orjson.OPT_NON_STR_KEYS,
