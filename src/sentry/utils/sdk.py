@@ -305,13 +305,12 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
-    if options.get("sdk_http2_experiment.enabled"):
-        sdk_options.setdefault("_experiments", {}).update(
-            transport_http2=True,
-            before_send_log=before_send_log,
-            enable_logs=True,
-            enable_metrics=True,
-        )
+    sdk_options.setdefault("_experiments", {}).update(
+        transport_http2=options.get("sdk_http2_experiment.enabled"),
+        before_send_log=before_send_log,
+        enable_logs=True,
+        enable_metrics=True,
+    )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
     dsns = Dsns(
