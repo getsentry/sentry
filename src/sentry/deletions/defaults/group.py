@@ -8,7 +8,7 @@ from typing import Any
 
 from sentry import models, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
-from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
+from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError, get_group_type_by_type_id
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
@@ -373,12 +373,14 @@ def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Gro
         # unregistered.
         try:
             if is_group:
-                issue_type = group.issue_category
+                issue_category = group.issue_category
             else:
-                # issue_category is an alias for type
-                issue_type = group[_F_IDX["type"]]
+                # When fetching subset of fields, we get the raw type ID
+                # We need to convert it to a category for comparison
+                type_id = group[_F_IDX["type"]]
+                issue_category = get_group_type_by_type_id(type_id).category
 
-            if issue_type == GroupCategory.ERROR:
+            if issue_category == GroupCategory.ERROR:
                 error_groups.append(group)
                 continue
         except InvalidGroupTypeError:
