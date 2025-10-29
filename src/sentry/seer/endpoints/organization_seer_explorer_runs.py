@@ -44,7 +44,7 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Get a list of explorer runs for the requesting user.
+        Get a list of explorer runs triggered by the requesting user.
         """
         if not features.has("organizations:seer-explorer", organization, actor=request.user):
             return Response({"detail": "Feature flag not enabled"}, status=403)
