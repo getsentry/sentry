@@ -371,10 +371,10 @@ def separate_by_group_category(
             if isinstance(group, Group):
                 issue_category = group.issue_category
             else:
-                # When fetching subset of fields, we get the raw type ID
-                # We need to convert it to a category for comparison
-                type_id = group[_F_IDX["type"]]
-                issue_category = get_group_type_by_type_id(type_id).category
+                # See issue_type() and issue_category() in group.py
+                issue_category = GroupCategory(
+                    get_group_type_by_type_id(group[_F_IDX["type"]]).category
+                )
 
             if issue_category == GroupCategory.ERROR:
                 error_groups.append(group)
