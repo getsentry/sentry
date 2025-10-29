@@ -77,6 +77,7 @@ from sentry.codecov.endpoints.test_results_aggregates.test_results_aggregates im
     TestResultsAggregatesEndpoint,
 )
 from sentry.codecov.endpoints.test_suites.test_suites import TestSuitesEndpoint
+from sentry.conduit.endpoints.organization_conduit_demo import OrganizationConduitDemoEndpoint
 from sentry.core.endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from sentry.core.endpoints.organization_avatar import OrganizationAvatarEndpoint
 from sentry.core.endpoints.organization_details import OrganizationDetailsEndpoint
@@ -2571,6 +2572,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/plugins/(?P<plugin_slug>[^/]+)/deprecation-info/$",
         OrganizationPluginDeprecationInfoEndpoint.as_view(),
         name="sentry-api-0-organization-plugin-deprecation-info",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/conduit-demo/$",
+        OrganizationConduitDemoEndpoint.as_view(),
+        name="sentry-api-0-organization-conduit-demo",
     ),
 ]
 
