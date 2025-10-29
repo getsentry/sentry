@@ -8,7 +8,7 @@ import {getFeedbackConfigOptions} from 'sentry/components/onboarding/gettingStar
 import {getReplayConfigOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
-enum SiblingOption {
+export enum SiblingOption {
   ANGULARV10 = 'angularV10',
   ANGULARV12 = 'angularV12',
   REACT = 'react',
