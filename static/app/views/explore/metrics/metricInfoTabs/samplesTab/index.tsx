@@ -1,11 +1,11 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef, useState, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
-
-import {Flex} from '@sentry/scraps/layout';
+import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -23,6 +23,8 @@ import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetri
 import {useTraceTelemetry} from 'sentry/views/explore/metrics/hooks/useTraceTelemetry';
 import {
   ExpandedRowContainer,
+  NumericSimpleTableHeaderCell,
+  NumericSimpleTableRowCell,
   StickyTableRow,
   StyledSimpleTable,
   StyledSimpleTableBody,
@@ -40,10 +42,20 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
-const MAX_WIDTH = '40px';
+const MAX_TELEMETRY_WIDTH = 40;
+const VALUE_COLUMN_MIN_WIDTH = '50px';
 
-const METRIC_SAMPLE_COLUMNS = ['timestamp', 'value', 'trace'];
+// The width of all of the columns in the samples table, accounting for
+// the expand button (36px), timestamp (121px), trace ID (66px), and value columns (72px)
+export const SAMPLES_PANEL_MIN_WIDTH = 305;
+
+const METRIC_SAMPLE_COLUMNS = ['timestamp', 'trace'];
 const METRIC_SAMPLE_STAT_COLUMNS = ['logs', 'spans', 'errors'];
+const ICON_HEADERS = {
+  logs: <IconTerminal color="gray400" />,
+  spans: <IconSpan color="purple400" />,
+  errors: <IconFire color="red300" />,
+};
 
 interface SamplesTabProps {
   metricName: string;
@@ -77,19 +89,17 @@ export function SamplesTab({metricName}: SamplesTabProps) {
 
   const meta = result.meta ?? {};
 
-  const fieldLabels: Record<string, string> = {
+  const fieldLabels: Record<string, ReactNode> = {
     trace: t('Trace'),
     value: t('Value'),
     timestamp: t('Timestamp'),
+    logs: t('Logs'),
+    spans: t('Spans'),
+    errors: t('Errors'),
   };
 
   return (
-    <StyledSimpleTable
-      style={{
-        gridTemplateColumns:
-          'min-content min-content min-content min-content min-content min-content min-content minmax(15px, 1fr)',
-      }}
-    >
+    <SimpleTableWithHiddenColumns numColumns={Object.keys(fieldLabels).length}>
       {(result.isPending || isTelemetryLoading) && <TransparentLoadingMask />}
 
       <StyledSimpleTableHeader>
@@ -106,13 +116,24 @@ export function SamplesTab({metricName}: SamplesTabProps) {
             </StyledSimpleTableHeaderCell>
           );
         })}
-        {METRIC_SAMPLE_STAT_COLUMNS.map((_, i) => (
-          <StyledSimpleTableHeaderCell
+        {METRIC_SAMPLE_STAT_COLUMNS.map((field, i) => (
+          <NumericSimpleTableHeaderCell
             key={`stat-${i}`}
             divider={false}
-            style={{width: '5px'}}
-          />
+            style={{width: '32px', padding: '0px'}}
+            data-column-name={field}
+          >
+            <Tooltip title={fieldLabels[field]} skipWrapper>
+              {ICON_HEADERS[field as keyof typeof ICON_HEADERS]}
+            </Tooltip>
+          </NumericSimpleTableHeaderCell>
         ))}
+
+        <NumericSimpleTableHeaderCell sort={sorts.find(s => s.field === 'value')?.kind}>
+          <Tooltip showOnlyOnOverflow title={fieldLabels.value ?? 'value'}>
+            {fieldLabels.value ?? 'value'}
+          </Tooltip>
+        </NumericSimpleTableHeaderCell>
       </StyledSimpleTableHeader>
 
       <StyledSimpleTableBody>
@@ -143,7 +164,7 @@ export function SamplesTab({metricName}: SamplesTabProps) {
           </SimpleTable.Empty>
         )}
       </StyledSimpleTableBody>
-    </StyledSimpleTable>
+    </SimpleTableWithHiddenColumns>
   );
 }
 
@@ -196,39 +217,44 @@ function SampleTableRow({
 
   const renderLogsCell = () => {
     return (
-      <WrappingText style={{maxWidth: MAX_WIDTH}}>
-        <Tooltip title={t('Logs')}>
-          <Flex gap="xs" style={{color: theme.gray400, alignItems: 'center'}}>
-            <IconTerminal color="gray400" />
-            {telemetry?.logsCount ?? 0}
-          </Flex>
-        </Tooltip>
+      <WrappingText
+        style={{
+          maxWidth: MAX_TELEMETRY_WIDTH,
+          color: theme.gray400,
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+        }}
+      >
+        <Count value={telemetry?.logsCount ?? 0} />
       </WrappingText>
     );
   };
 
   const renderSpansCell = () => {
     return (
-      <WrappingText style={{maxWidth: MAX_WIDTH}}>
-        <Tooltip title={t('Spans')}>
-          <Flex gap="2xs" style={{color: theme.purple400, alignItems: 'center'}}>
-            <IconSpan />
-            {telemetry?.spansCount ?? 0}
-          </Flex>
-        </Tooltip>
+      <WrappingText
+        style={{
+          maxWidth: MAX_TELEMETRY_WIDTH,
+          color: theme.purple400,
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+        }}
+      >
+        <Count value={telemetry?.spansCount ?? 0} />
       </WrappingText>
     );
   };
 
   const renderErrorsCell = () => {
     return (
-      <WrappingText style={{maxWidth: MAX_WIDTH}}>
-        <Tooltip title={t('Errors')}>
-          <Flex gap="xs" style={{color: theme.red300, alignItems: 'center'}}>
-            <IconFire />
-            {telemetry?.errorsCount ?? 0}
-          </Flex>
-        </Tooltip>
+      <WrappingText
+        style={{
+          maxWidth: MAX_TELEMETRY_WIDTH,
+          color: theme.red300,
+          alignItems: 'center',
+        }}
+      >
+        <Count value={telemetry?.errorsCount ?? 0} />
       </WrappingText>
     );
   };
@@ -307,10 +333,20 @@ function SampleTableRow({
           </StyledSimpleTableRowCell>
         ))}
         {METRIC_SAMPLE_STAT_COLUMNS.map((field, i) => (
-          <StyledSimpleTableRowCell key={`stat-${i}`}>
+          <NumericSimpleTableRowCell
+            key={`stat-${i}`}
+            data-column-name={field}
+            hasPadding
+            style={{justifyContent: 'flex-end'}}
+          >
             {renderFieldCell(field)}
-          </StyledSimpleTableRowCell>
+          </NumericSimpleTableRowCell>
         ))}
+        <NumericSimpleTableRowCell hasPadding style={{minWidth: VALUE_COLUMN_MIN_WIDTH}}>
+          <Tooltip showOnlyOnOverflow title={row.value}>
+            {renderFieldCell('value')}
+          </Tooltip>
+        </NumericSimpleTableRowCell>
       </StickyTableRow>
       {isExpanded && (
         <ExpandedRowContainer>
@@ -320,3 +356,31 @@ function SampleTableRow({
     </Fragment>
   );
 }
+
+const SimpleTableWithHiddenColumns = styled(StyledSimpleTable)<{numColumns: number}>`
+  grid-template-columns: repeat(${p => p.numColumns}, min-content) 1fr;
+
+  @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 3}px) {
+    grid-template-columns: repeat(${p => p.numColumns - 1}, min-content) 1fr;
+
+    [data-column-name='errors'] {
+      display: none;
+    }
+  }
+
+  @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 2}px) {
+    grid-template-columns: repeat(${p => p.numColumns - 2}, min-content) 1fr;
+
+    [data-column-name='spans'] {
+      display: none;
+    }
+  }
+
+  @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 1}px) {
+    grid-template-columns: repeat(${p => p.numColumns - 3}, min-content) 1fr;
+
+    [data-column-name='logs'] {
+      display: none;
+    }
+  }
+`;
