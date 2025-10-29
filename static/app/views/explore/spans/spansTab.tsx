@@ -44,6 +44,7 @@ import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
+import {ChartSelectionProvider} from 'sentry/views/explore/components/suspectTags/chartSelectionContext';
 import {useSetExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -507,28 +508,31 @@ function SpanTabContentSection({
         position="top"
         margin={-8}
       >
-        <ExploreCharts
-          confidences={confidences}
-          query={query}
-          extrapolate={extrapolate}
-          timeseriesResult={timeseriesResult}
-          visualizes={visualizes}
-          setVisualizes={setVisualizes}
-          samplingMode={timeseriesSamplingMode}
-        />
-        <ExploreTables
-          aggregatesTableResult={aggregatesTableResult}
-          spansTableResult={spansTableResult}
-          tracesTableResult={tracesTableResult}
-          confidences={confidences}
-          tab={tab}
-          setTab={(newTab: Mode | Tab) => {
-            if (newTab === Mode.AGGREGATE) {
-              setControlSectionExpanded(true);
-            }
-            setTab(newTab);
-          }}
-        />
+        <ChartSelectionProvider>
+          <ExploreCharts
+            confidences={confidences}
+            query={query}
+            extrapolate={extrapolate}
+            timeseriesResult={timeseriesResult}
+            visualizes={visualizes}
+            setVisualizes={setVisualizes}
+            samplingMode={timeseriesSamplingMode}
+            setTab={setTab}
+          />
+          <ExploreTables
+            aggregatesTableResult={aggregatesTableResult}
+            spansTableResult={spansTableResult}
+            tracesTableResult={tracesTableResult}
+            confidences={confidences}
+            tab={tab}
+            setTab={(newTab: Mode | Tab) => {
+              if (newTab === Mode.AGGREGATE) {
+                setControlSectionExpanded(true);
+              }
+              setTab(newTab);
+            }}
+          />
+        </ChartSelectionProvider>
       </TourElement>
     </ContentSection>
   );

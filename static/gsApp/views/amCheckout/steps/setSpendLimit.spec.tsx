@@ -75,10 +75,12 @@ describe('SetSpendLimit', () => {
     expect(
       screen.queryByRole('radio', {name: 'Per-category spending limit mode'})
     ).not.toBeInTheDocument();
-    const paygInput = screen.getByRole('textbox', {name: 'Custom shared spending limit'});
+    const paygInput = screen.getByRole('textbox', {
+      name: 'Custom shared spending limit (in dollars)',
+    });
     expect(paygInput).toHaveValue('300'); // default business budget
     expect(
-      screen.queryByRole('textbox', {name: 'Custom errors spending limit'})
+      screen.queryByRole('textbox', {name: 'Custom errors spending limit (in dollars)'})
     ).not.toBeInTheDocument();
   });
 
@@ -111,10 +113,10 @@ describe('SetSpendLimit', () => {
       screen.getByRole('radio', {name: 'Shared spending limit mode'})
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('textbox', {name: 'Custom shared spending limit'})
+      screen.getByRole('textbox', {name: 'Custom shared spending limit (in dollars)'})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('textbox', {name: 'Custom errors spending limit'})
+      screen.queryByRole('textbox', {name: 'Custom errors spending limit (in dollars)'})
     ).not.toBeInTheDocument();
 
     const perCategoryRadio = screen.getByRole('radio', {
@@ -124,10 +126,10 @@ describe('SetSpendLimit', () => {
     await userEvent.click(perCategoryRadio);
 
     expect(
-      screen.queryByRole('textbox', {name: 'Custom shared spending limit'})
+      screen.queryByRole('textbox', {name: 'Custom shared spending limit (in dollars)'})
     ).not.toBeInTheDocument();
     const errorsPaygInput = screen.getByRole('textbox', {
-      name: 'Custom errors spending limit',
+      name: 'Custom errors spending limit (in dollars)',
     });
     expect(errorsPaygInput).toBeInTheDocument();
   });

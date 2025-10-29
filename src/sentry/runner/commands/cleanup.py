@@ -8,20 +8,27 @@ from collections.abc import Callable, Sequence
 from datetime import timedelta
 from multiprocessing import JoinableQueue as Queue
 from multiprocessing import Process
-from typing import Any, Final, Literal, TypeAlias
+from typing import TYPE_CHECKING, Any, Final, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import click
 import sentry_sdk
 from django.conf import settings
 from django.db import router as db_router
-from django.db.models import Model, QuerySet
+from django.db.models import QuerySet
 from django.utils import timezone
+from sentry_sdk import capture_exception
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from sentry.db.models.base import BaseModel
+
+    # TypeVar for concrete subclasses of BaseModel
+    ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
 class CleanupExecutionAborted(Exception):
@@ -112,10 +119,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             return
 
         try:
-            with sentry_sdk.start_transaction(
-                op="cleanup", name="multiprocess_worker"
-            ) as transaction:
-                transaction.set_tag("model", model_name)
+            with sentry_sdk.start_transaction(op="cleanup", name="multiprocess_worker"):
                 model = import_string(model_name)
                 task = deletions.get(
                     model=model,
@@ -125,16 +129,21 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 )
 
                 while True:
+                    debug_output(f"Processing chunk of {len(chunk)} {model_name} objects")
+                    metrics.incr(
+                        "cleanup.chunk_processed", tags={"model": model_name}, amount=len(chunk)
+                    )
                     if not task.chunk(apply_filter=True):
                         break
         except Exception:
             metrics.incr(
                 "cleanup.error",
                 instance=model_name,
-                tags={"type": "multiprocess_worker"},
+                tags={"model": model_name, "type": "multiprocess_worker"},
                 sample_rate=1.0,
             )
-            logger.exception("Error in multiprocess_worker.")
+            capture_exception(tags={"model": model_name})
+            debug_output(f"--> Error processing chunk of {len(chunk)} {model_name} objects.")
         finally:
             task_queue.task_done()
 
@@ -224,7 +233,7 @@ def _cleanup(
             # Track which models were filtered out for legitimate reasons (silo/router)
             models_legitimately_filtered: set[str] = set()
 
-            def is_filtered(model: type[Model]) -> bool:
+            def is_filtered(model: type[BaseModel]) -> bool:
                 model_name = model.__name__.lower()
                 silo_limit = getattr(model._meta, "silo_limit", None)
                 if isinstance(silo_limit, SiloLimit) and not silo_limit.is_available():
@@ -279,11 +288,16 @@ def _cleanup(
             remove_file_blobs(is_filtered, silent, models_attempted)
         except CleanupExecutionAborted:
             click.echo("Cleanup was aborted via cleanup.abort_execution option.")
-            metrics.incr("cleanup.aborted", instance=router, sample_rate=1.0)
+            metrics.incr(
+                "cleanup.aborted", instance=router, tags={"db_router": router}, sample_rate=1.0
+            )
+            capture_exception(tags={"db_router": router})
             # Don't re-raise - this is expected behavior, not an error
         except Exception:
-            logger.exception("FATAL: We did not handle an error and aborted the execution.")
-            metrics.incr("cleanup.error", tags={"type": "FATAL"}, sample_rate=1.0)
+            capture_exception(tags={"db_router": router})
+            metrics.incr(
+                "cleanup.error", tags={"db_router": router, "type": "FATAL"}, sample_rate=1.0
+            )
             raise
 
         finally:
@@ -291,7 +305,13 @@ def _cleanup(
             _stop_pool(pool, task_queue)
 
             duration = int(time.time() - start_time)
-            metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
+            metrics.timing(
+                "cleanup.duration",
+                duration,
+                instance=router,
+                tags={"db_router": router},
+                sample_rate=1.0,
+            )
             click.echo("Clean up took %s second(s)." % duration)
 
             # Check for models that were specified but never attempted
@@ -301,19 +321,18 @@ def _cleanup(
                 )
 
 
-def continue_on_error(log_message: str, metric_type: str) -> Callable[..., Any]:
+def continue_on_error(metric_type: str) -> Callable[..., Any]:
     """
-    Decorator that catches exceptions, logs them, tracks metrics, and continues execution.
+    Decorator that catches exceptions, tracks metrics, and continues execution.
 
     Does NOT catch CleanupExecutionAborted - that exception is allowed to propagate
     so the cleanup can be properly aborted.
 
     Args:
-        log_message: The message to log when an exception occurs
         metric_type: The type tag for the cleanup.error metric
 
     Example:
-        @continue_on_error("Error removing expired passwords", "specialized_cleanup_lost_passwords")
+        @continue_on_error("specialized_cleanup_lost_passwords")
         def remove_expired_values_for_lost_passwords(is_filtered, models_attempted):
             ...
     """
@@ -329,7 +348,7 @@ def continue_on_error(log_message: str, metric_type: str) -> Callable[..., Any]:
             except Exception:
                 from sentry.utils import metrics
 
-                logger.exception("%s (Continuing...)", log_message)
+                capture_exception()
                 metrics.incr("cleanup.error", tags={"type": metric_type}, sample_rate=1.0)
 
         return wrapper
@@ -349,7 +368,10 @@ def _validate_and_setup_environment(concurrency: int, silent: bool) -> None:
 
 
 def _run_specialized_cleanups(
-    is_filtered: Callable[[type[Model]], bool], days: int, silent: bool, models_attempted: set[str]
+    is_filtered: Callable[[type[BaseModel]], bool],
+    days: int,
+    silent: bool,
+    models_attempted: set[str],
 ) -> None:
     """Run specialized cleanup operations for specific models."""
     from sentry import options
@@ -367,7 +389,7 @@ def _handle_project_organization_cleanup(
     project: str | None,
     organization: str | None,
     days: int,
-    deletes: list[tuple[type[Model], str, str]],
+    deletes: list[tuple[type[BaseModel], str, str]],
 ) -> tuple[int | None, int | None]:
     """Handle project/organization specific cleanup logic."""
     project_id = None
@@ -425,11 +447,9 @@ def _stop_pool(pool: Sequence[Process], task_queue: _WorkQueue) -> None:
         p.join()
 
 
-@continue_on_error(
-    "Error removing expired values for lost passwords", "specialized_cleanup_lost_passwords"
-)
+@continue_on_error("specialized_cleanup_lost_passwords")
 def remove_expired_values_for_lost_passwords(
-    is_filtered: Callable[[type[Model]], bool], models_attempted: set[str]
+    is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
 ) -> None:
     from sentry.users.models.lostpasswordhash import LostPasswordHash
 
@@ -443,11 +463,9 @@ def remove_expired_values_for_lost_passwords(
         ).delete()
 
 
-@continue_on_error(
-    "Error removing expired values for org members", "specialized_cleanup_org_members"
-)
+@continue_on_error("specialized_cleanup_org_members")
 def remove_expired_values_for_org_members(
-    is_filtered: Callable[[type[Model]], bool], days: int, models_attempted: set[str]
+    is_filtered: Callable[[type[BaseModel]], bool], days: int, models_attempted: set[str]
 ) -> None:
     from sentry.models.organizationmember import OrganizationMember
 
@@ -460,9 +478,9 @@ def remove_expired_values_for_org_members(
         OrganizationMember.objects.delete_expired(expired_threshold)
 
 
-@continue_on_error("Error deleting API models", "specialized_cleanup_api_models")
+@continue_on_error("specialized_cleanup_api_models")
 def delete_api_models(
-    is_filtered: Callable[[type[Model]], bool], models_attempted: set[str]
+    is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
 ) -> None:
     from sentry.models.apigrant import ApiGrant
     from sentry.models.apitoken import ApiToken
@@ -488,9 +506,9 @@ def delete_api_models(
             queryset.delete()
 
 
-@continue_on_error("Error cleaning up exported data", "specialized_cleanup_exported_data")
+@continue_on_error("specialized_cleanup_exported_data")
 def exported_data(
-    is_filtered: Callable[[type[Model]], bool], silent: bool, models_attempted: set[str]
+    is_filtered: Callable[[type[BaseModel]], bool], silent: bool, models_attempted: set[str]
 ) -> None:
     from sentry.data_export.models import ExportedData
 
@@ -506,7 +524,7 @@ def exported_data(
             item.delete_file()
 
 
-def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]:
+def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.commit import Commit
     from sentry.models.eventattachment import EventAttachment
@@ -529,20 +547,20 @@ def models_which_use_deletions_code_path() -> list[tuple[type[Model], str, str]]
         (PullRequest, "date_added", "date_added"),
         (RuleFireHistory, "date_added", "date_added"),
         (Release, "date_added", "date_added"),
-        (File, "timestamp", "timestamp"),
+        (File, "timestamp", "id"),
         (Commit, "date_added", "id"),
     ]
 
 
 def remove_cross_project_models(
-    deletes: list[tuple[type[Model], str, str]],
-) -> list[tuple[type[Model], str, str]]:
+    deletes: list[tuple[type[BaseModel], str, str]],
+) -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.files.file import File
 
     # These models span across projects, so let's skip them
     deletes.remove((ArtifactBundle, "date_added", "date_added"))
-    deletes.remove((File, "timestamp", "timestamp"))
+    deletes.remove((File, "timestamp", "id"))
     return deletes
 
 
@@ -564,7 +582,7 @@ def get_organization_id_or_fail(organization: str) -> int:
     return organization_id
 
 
-@continue_on_error("Error removing old nodestore values", "nodestore_cleanup")
+@continue_on_error("nodestore_cleanup")
 def remove_old_nodestore_values(days: int) -> None:
     from sentry import nodestore, options
 
@@ -580,7 +598,7 @@ def remove_old_nodestore_values(days: int) -> None:
         click.echo("NodeStore backend does not support cleanup operation", err=True)
 
 
-def generate_bulk_query_deletes() -> list[tuple[type[Model], str, str | None]]:
+def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None]]:
     from django.apps import apps
 
     from sentry.models.groupemailthread import GroupEmailThread
@@ -603,7 +621,7 @@ def generate_bulk_query_deletes() -> list[tuple[type[Model], str, str | None]]:
 
 
 def run_bulk_query_deletes(
-    is_filtered: Callable[[type[Model]], bool],
+    is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
     project: str | None,
     project_id: int | None,
@@ -635,25 +653,19 @@ def run_bulk_query_deletes(
                     order_by=order_by,
                 ).execute(chunk_size=chunk_size)
             except Exception:
-                logger.exception(
-                    "Error removing %(model)s for project=%(project_id)s (Continuing...)",
-                    extra={
-                        "model": model_tp.__name__,
-                        "project_id": project_id,
-                    },
-                )
+                capture_exception(tags={"model": model_tp.__name__})
                 metrics.incr(
                     "cleanup.error",
                     instance=model_tp.__name__,
-                    tags={"type": "bulk_delete_query"},
+                    tags={"model": model_tp.__name__, "type": "bulk_delete_query"},
                     sample_rate=1.0,
                 )
 
 
 def run_bulk_deletes_in_deletes(
     task_queue: _WorkQueue,
-    deletes: list[tuple[type[Model], str, str]],
-    is_filtered: Callable[[type[Model]], bool],
+    deletes: list[tuple[type[BaseModel], str, str]],
+    is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
     project: str | None,
     project_id: int | None,
@@ -689,14 +701,11 @@ def run_bulk_deletes_in_deletes(
                     task_queue.put((imp, chunk))
 
             except Exception:
-                logger.exception(
-                    "Error removing %(model)s for project=%(project_id)s (Continuing...)",
-                    extra={"model": model_tp.__name__, "project_id": project_id or "*"},
-                )
+                capture_exception(tags={"model": model_tp.__name__})
                 metrics.incr(
                     "cleanup.error",
                     instance=model_tp.__name__,
-                    tags={"type": "bulk_delete_in_deletes"},
+                    tags={"model": model_tp.__name__, "type": "bulk_delete_in_deletes"},
                     sample_rate=1.0,
                 )
 
@@ -708,7 +717,7 @@ def run_bulk_deletes_by_project(
     task_queue: _WorkQueue,
     project_id: int | None,
     start_from_project_id: int | None,
-    is_filtered: Callable[[type[Model]], bool],
+    is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
     models_attempted: set[str],
 ) -> None:
@@ -726,6 +735,14 @@ def run_bulk_deletes_by_project(
 
     if project_deletion_query is not None and len(to_delete_by_project):
         debug_output("Running bulk deletes in DELETES_BY_PROJECT")
+
+        # Count total projects for progress tracking
+        total_projects = project_deletion_query.count()
+        debug_output(f"Processing {total_projects} project(s)")
+
+        processed_count = 0
+        last_reported_percentage = 0
+
         for project_id_for_deletion in RangeQuerySetWrapper(
             project_deletion_query.values_list("id", flat=True),
             result_value_getter=lambda item: item,
@@ -750,19 +767,26 @@ def run_bulk_deletes_by_project(
                     for chunk in q.iterator(chunk_size=100):
                         task_queue.put((imp, chunk))
                 except Exception:
-                    logger.exception(
-                        "Error removing %(model)s for project=%(project_id)s (Continuing...)",
-                        extra={
-                            "model": model_tp.__name__,
-                            "project_id": project_id_for_deletion,
-                        },
+                    capture_exception(
+                        tags={"model": model_tp.__name__, "project_id": project_id_for_deletion}
                     )
                     metrics.incr(
                         "cleanup.error",
                         instance=model_tp.__name__,
-                        tags={"type": "bulk_delete_by_project"},
+                        tags={"model": model_tp.__name__, "type": "bulk_delete_by_project"},
                         sample_rate=1.0,
                     )
+
+            # Update progress tracking after processing all models for this project
+            processed_count += 1
+            current_percentage = int((processed_count / total_projects) * 100)
+
+            # Report progress every 5% to avoid excessive output
+            if current_percentage >= last_reported_percentage + 5:
+                debug_output(
+                    f"Progress: {current_percentage}% ({processed_count}/{total_projects} projects processed) (last_project_id: {project_id_for_deletion})"
+                )
+                last_reported_percentage = current_percentage
 
     # Ensure all tasks are completed before exiting
     task_queue.join()
@@ -771,7 +795,7 @@ def run_bulk_deletes_by_project(
 def run_bulk_deletes_by_organization(
     task_queue: _WorkQueue,
     organization_id: int | None,
-    is_filtered: Callable[[type[Model]], bool],
+    is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
     models_attempted: set[str],
 ) -> None:
@@ -811,17 +835,16 @@ def run_bulk_deletes_by_organization(
                     for chunk in q.iterator(chunk_size=100):
                         task_queue.put((imp, chunk))
                 except Exception:
-                    logger.exception(
-                        "Error removing %(model)s for organization=%(organization_id)s (Continuing...)",
-                        extra={
+                    capture_exception(
+                        tags={
                             "model": model_tp.__name__,
                             "organization_id": organization_id_for_deletion,
-                        },
+                        }
                     )
                     metrics.incr(
                         "cleanup.error",
                         instance=model_tp.__name__,
-                        tags={"type": "bulk_delete_by_organization"},
+                        tags={"model": model_tp.__name__, "type": "bulk_delete_by_organization"},
                         sample_rate=1.0,
                     )
 
@@ -830,7 +853,7 @@ def run_bulk_deletes_by_organization(
 
 
 def prepare_deletes_by_project(
-    is_filtered: Callable[[type[Model]], bool],
+    is_filtered: Callable[[type[BaseModel]], bool],
     project_id: int | None = None,
     start_from_project_id: int | None = None,
 ) -> tuple[QuerySet[Any] | None, list[tuple[Any, str, str]]]:
@@ -841,7 +864,7 @@ def prepare_deletes_by_project(
 
     # Deletions that we run per project. In some cases we can't use an index on just the date
     # column, so as an alternative we use `(project_id, <date_col>)` instead
-    DELETES_BY_PROJECT = [
+    DELETES_BY_PROJECT: list[tuple[type[BaseModel], str, str]] = [
         # Having an index on `last_seen` sometimes caused the planner to make a bad plan that
         # used this index instead of a more appropriate one. This was causing a lot of postgres
         # load, so we had to remove it.
@@ -871,7 +894,7 @@ def prepare_deletes_by_project(
 
 
 def prepare_deletes_by_organization(
-    organization_id: int | None, is_filtered: Callable[[type[Model]], bool]
+    organization_id: int | None, is_filtered: Callable[[type[BaseModel]], bool]
 ) -> tuple[QuerySet[Any] | None, list[tuple[Any, str, str]]]:
     from sentry.constants import ObjectStatus
     from sentry.models.organization import Organization
@@ -879,7 +902,7 @@ def prepare_deletes_by_organization(
 
     # Deletions that we run per organization. In some cases we can't use an index on just the date
     # column, so as an alternative we use `(organization_id, <date_col>)` instead
-    DELETES_BY_ORGANIZATION = [
+    DELETES_BY_ORGANIZATION: list[tuple[type[BaseModel], str, str]] = [
         (ReleaseFile, "date_accessed", "date_accessed"),
     ]
     organization_deletion_query = None
@@ -899,9 +922,9 @@ def prepare_deletes_by_organization(
     return organization_deletion_query, to_delete_by_organization
 
 
-@continue_on_error("Error cleaning up unused FileBlob references", "fileblob_cleanup")
+@continue_on_error("fileblob_cleanup")
 def remove_file_blobs(
-    is_filtered: Callable[[type[Model]], bool], silent: bool, models_attempted: set[str]
+    is_filtered: Callable[[type[BaseModel]], bool], silent: bool, models_attempted: set[str]
 ) -> None:
     from sentry import options
     from sentry.models.file import FileBlob

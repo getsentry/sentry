@@ -156,10 +156,10 @@ export function createRawSearchFilterIsValueItem(
   key: string,
   value: string
 ): RawSearchFilterIsValueItem {
-  const filter = `${key}:${escapeFilterValue(value)}`;
+  const filter = `${key}:${value}`;
 
   return {
-    key: getEscapedKey(`${key}:${value}`),
+    key: getEscapedKey(filter),
     label: <FormattedQuery query={filter} />,
     value: filter,
     textValue: filter,

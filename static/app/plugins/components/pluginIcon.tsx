@@ -4,6 +4,7 @@ import aws from 'sentry-logos/logo-aws.svg';
 import vsts from 'sentry-logos/logo-azure.svg';
 import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg';
 import bitbucket from 'sentry-logos/logo-bitbucket.svg';
+import cursor from 'sentry-logos/logo-cursor.svg';
 import placeholder from 'sentry-logos/logo-default.svg';
 import discord from 'sentry-logos/logo-discord.svg';
 import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
@@ -40,6 +41,7 @@ const PLUGIN_ICONS = {
   webhooks: sentry,
   'amazon-sqs': aws,
   aws_lambda: aws,
+  cursor,
   asana,
   bitbucket,
   bitbucket_pipelines: bitbucket,

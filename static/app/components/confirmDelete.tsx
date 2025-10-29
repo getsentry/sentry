@@ -46,6 +46,7 @@ function ConfirmDelete({message, confirmInput, ...props}: Props) {
               id={id}
               name="confirm-text"
               placeholder={confirmInput}
+              autoFocus
               onChange={e => disableConfirmButton(e.target.value !== confirmInput)}
               onKeyDown={({target, key}) =>
                 target instanceof HTMLInputElement &&
