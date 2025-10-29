@@ -94,6 +94,10 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
 
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
 
+  const cursorIntegration = codingAgentIntegrations?.integrations.find(
+    integration => integration.provider === 'cursor'
+  );
+
   const handleSubmitSuccess = useCallback(
     (resp: Project) => {
       const projectId = project.slug;
@@ -119,15 +123,25 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
 
   const handleAutomationHandoffChange = useCallback(
     (value: boolean) => {
+      if (value && !cursorIntegration) {
+        throw new Error('Cursor integration not found');
+      }
+
       updateProjectSeerPreferences({
         repositories: preference?.repositories || [],
         automated_run_stopping_point: preference?.automated_run_stopping_point,
-        automation_handoff: value
-          ? {handoff_point: 'root_cause', target: 'cursor_background_agent'}
-          : undefined,
+        automation_handoff:
+          value && cursorIntegration
+            ? {
+                handoff_point: 'root_cause',
+                target: 'cursor_background_agent',
+                integration_id: parseInt(cursorIntegration.id, 10),
+              }
+            : undefined,
       });
     },
     [
+      cursorIntegration,
       updateProjectSeerPreferences,
       preference?.repositories,
       preference?.automated_run_stopping_point,
@@ -173,11 +187,9 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
       model?.getValue('automation_handoff') !== true,
   } satisfies FieldObject;
 
-  const hasCursorIntegration =
-    organization.features.includes('integrations-cursor') &&
-    codingAgentIntegrations?.integrations?.some(
-      integration => integration.provider === 'cursor'
-    );
+  const hasCursorIntegration = Boolean(
+    organization.features.includes('integrations-cursor') && cursorIntegration
+  );
 
   const automationHandoffField = {
     name: 'automation_handoff',

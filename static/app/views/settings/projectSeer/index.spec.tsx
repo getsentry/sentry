@@ -444,4 +444,120 @@ describe('ProjectSeer', () => {
       );
     });
   });
+
+  it('can enable automation handoff to Cursor when Cursor integration is available', async () => {
+    const orgWithCursorFeature = OrganizationFixture({
+      features: ['autofix-seer-preferences', 'integrations-cursor'],
+    });
+
+    const initialProject: Project = {
+      ...project,
+      autofixAutomationTuning: 'medium',
+      seerScannerAutomation: true,
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgWithCursorFeature.slug}/seer/setup-check/`,
+      method: 'GET',
+      body: {
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        billing: {
+          hasAutofixQuota: true,
+          hasScannerQuota: true,
+        },
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgWithCursorFeature.slug}/repos/`,
+      query: {status: 'active'},
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/`,
+      method: 'GET',
+      body: initialProject,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
+      method: 'GET',
+      body: {
+        code_mapping_repos: [],
+        repositories: [],
+        automated_run_stopping_point: 'root_cause',
+      },
+    });
+
+    // Mock the coding agent integrations endpoint with a Cursor integration
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgWithCursorFeature.slug}/integrations/coding-agents/`,
+      method: 'GET',
+      body: {
+        integrations: [
+          {
+            id: '123',
+            name: 'Cursor',
+            provider: 'cursor',
+          },
+        ],
+      },
+    });
+
+    const projectPutRequest = MockApiClient.addMockResponse({
+      url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {},
+    });
+
+    const seerPreferencesPostRequest = MockApiClient.addMockResponse({
+      url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
+      method: 'POST',
+    });
+
+    render(<ProjectSeer project={initialProject} />, {
+      organization: orgWithCursorFeature,
+    });
+
+    // Find the toggle for Hand off to Cursor Background Agent
+    const toggle = await screen.findByRole('checkbox', {
+      name: /Hand off to Cursor Background Agent/i,
+    });
+    expect(toggle).toBeInTheDocument();
+    expect(toggle).not.toBeChecked();
+
+    // Toggle it on
+    await userEvent.click(toggle);
+
+    // Form should call PUT for the project
+    await waitFor(() => {
+      expect(projectPutRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({data: {automation_handoff: true}})
+      );
+    });
+
+    // Wait for the seer preferences POST to be called with automation_handoff
+    await waitFor(() => {
+      expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            automated_run_stopping_point: 'root_cause',
+            repositories: expect.any(Array),
+            automation_handoff: {
+              handoff_point: 'root_cause',
+              target: 'cursor_background_agent',
+              integration_id: 123,
+            },
+          }),
+        })
+      );
+    });
+  });
 });

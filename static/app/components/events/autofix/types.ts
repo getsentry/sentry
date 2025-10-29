@@ -313,6 +313,7 @@ export interface SeerRepoDefinition {
 
 interface SeerAutomationHandoffConfiguration {
   handoff_point: 'root_cause';
+  integration_id: number;
   target: 'cursor_background_agent';
 }
 
