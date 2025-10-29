@@ -1,4 +1,6 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -6,7 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
@@ -19,7 +21,6 @@ import {
   StyledTopResultsIndicator,
   TransparentLoadingMask,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
-import {useMetricLabel} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {createMetricNameFilter, getMetricsUnit} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -36,8 +37,8 @@ interface AggregatesTabProps {
 }
 
 export function AggregatesTab({metricName}: AggregatesTabProps) {
+  const theme = useTheme();
   const topEvents = useTopEvents();
-  const metricLabel = useMetricLabel();
 
   const {result, eventView, fields} = useMetricAggregatesTable({
     enabled: Boolean(metricName),
@@ -69,19 +70,28 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
 
   const tableStyle = useMemo(() => {
     return {
-      gridTemplateColumns: `repeat(${fields.length}, min-content) 1fr`,
+      gridTemplateColumns:
+        groupBys.length > 1
+          ? `repeat(${groupBys.length - 1}, auto) auto 1fr`
+          : groupBys.length === 1
+            ? 'auto 1fr'
+            : '1fr',
     };
-  }, [fields]);
+  }, [groupBys.length]);
 
   const firstColumnOffset = useMemo(() => {
     return groupBys.length > 0 ? '15px' : '8px';
   }, [groupBys]);
 
+  const isLastColumn = (index: number) => {
+    return index === fields.length - 1;
+  };
+
   return (
-    <StyledSimpleTable style={tableStyle}>
+    <StickyCompatibleSimpleTable style={tableStyle}>
       {result.isPending && <TransparentLoadingMask />}
 
-      <StyledSimpleTableHeader>
+      <StyledSimpleTableHeader style={{zIndex: 2}}>
         {fields.map((field, i) => {
           let label = field;
           const tag = stringTags?.[field] ?? numberTags?.[field] ?? null;
@@ -91,8 +101,7 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
 
           const func = parseFunction(field);
           if (func) {
-            label =
-              func.arguments[0] === 'value' ? metricLabel : prettifyParsedFunction(func);
+            label = `${func.name}(…)`;
           }
 
           const direction = sorts.find(s => s.field === field)?.kind;
@@ -105,7 +114,21 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
           return (
             <StyledSimpleTableHeaderCell
               key={i}
-              style={{paddingLeft: i === 0 ? firstColumnOffset : '0px'}}
+              divider={!isLastColumn(i)}
+              style={{
+                justifyContent: func ? 'flex-end' : 'flex-start',
+                padding: '0 4px',
+
+                // Sticky styles for last column
+                ...(isLastColumn(i) && {
+                  position: 'sticky',
+                  right: 0,
+                  background: theme.bodyBackground,
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+                  height: '100%',
+                }),
+                zIndex: 2,
+              }}
               sort={direction}
               handleSortClick={updateSort}
             >
@@ -117,7 +140,7 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
         })}
       </StyledSimpleTableHeader>
 
-      <StyledSimpleTableBody>
+      <StyledSimpleTableBody style={{overflow: 'unset'}}>
         {result.isError ? (
           <SimpleTable.Empty>
             <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
@@ -132,7 +155,19 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
                 <StyledSimpleTableRowCell
                   key={j}
                   hasPadding
-                  style={{paddingLeft: j === 0 ? firstColumnOffset : '0px'}}
+                  style={{
+                    paddingLeft: j === 0 ? firstColumnOffset : '0px',
+                    ...(isLastColumn(j) && {
+                      position: 'sticky',
+                      right: 0,
+                      zIndex: 1,
+                      justifySelf: 'end',
+                      width: '100%',
+                      background: theme.background,
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                      height: '100%',
+                    }),
+                  }}
                 >
                   <FieldRenderer
                     column={columns[j]}
@@ -156,6 +191,10 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
           </SimpleTable.Empty>
         )}
       </StyledSimpleTableBody>
-    </StyledSimpleTable>
+    </StickyCompatibleSimpleTable>
   );
 }
+
+const StickyCompatibleSimpleTable = styled(StyledSimpleTable)`
+  overflow: auto;
+`;
