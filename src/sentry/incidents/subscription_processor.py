@@ -66,7 +66,7 @@ from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.utils.memory import track_memory_usage
-from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.models import DataPacket, DataSource, DataSourceDetector, Detector
 from sentry.workflow_engine.processors.data_packet import process_data_packet
 from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorGroupKey
 
@@ -151,6 +151,8 @@ class SubscriptionProcessor:
                     return
             except Detector.DoesNotExist:
                 logger.info("Detector not found", extra={"subscription_id": self.subscription.id})
+                # Attempt to recover from missing DataSourceDetector link
+                self.detector = self._recover_detector_link(project)
 
         if self._has_workflow_engine_processing_only and self.detector is None:
             # Nothing more we can do.
@@ -178,6 +180,83 @@ class SubscriptionProcessor:
         ) = get_alert_rule_stats(self._alert_rule, self.subscription, self.triggers)
         self.orig_trigger_alert_counts = deepcopy(self.trigger_alert_counts)
         self.orig_trigger_resolve_counts = deepcopy(self.trigger_resolve_counts)
+
+    def _recover_detector_link(self, project: Project) -> Detector | None:
+        """
+        Attempts to recover from a missing DataSourceDetector link by finding the 
+        DataSource and Detector separately and recreating the link if both exist.
+        
+        This handles the case where a DataSource exists for the subscription, and a 
+        Detector exists for the project, but the DataSourceDetector linking record 
+        was never created or was deleted.
+        """
+        try:
+            # Try to find the DataSource for this subscription
+            data_source = DataSource.objects.get(
+                source_id=str(self.subscription.id),
+                type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+            )
+        except DataSource.DoesNotExist:
+            logger.info(
+                "DataSource not found for subscription during recovery",
+                extra={"subscription_id": self.subscription.id},
+            )
+            return None
+
+        # Try to find a Detector for this project that should be linked
+        try:
+            # Look for Detectors that match this project and organization
+            from sentry.workflow_engine.models import AlertRuleDetector
+
+            alert_rule = AlertRule.objects.get_for_subscription(self.subscription)
+            alert_rule_detector = AlertRuleDetector.objects.select_related("detector").get(
+                alert_rule=alert_rule
+            )
+            detector = alert_rule_detector.detector
+        except (AlertRule.DoesNotExist, AlertRuleDetector.DoesNotExist):
+            logger.info(
+                "No matching Detector found via AlertRule during recovery",
+                extra={
+                    "subscription_id": self.subscription.id,
+                    "project_id": project.id,
+                },
+            )
+            return None
+
+        # Check if the DataSourceDetector link already exists
+        if DataSourceDetector.objects.filter(
+            data_source=data_source, detector=detector
+        ).exists():
+            logger.warning(
+                "DataSourceDetector link already exists but was not found in initial query",
+                extra={
+                    "subscription_id": self.subscription.id,
+                    "data_source_id": data_source.id,
+                    "detector_id": detector.id,
+                },
+            )
+            return detector
+
+        # Create the missing DataSourceDetector link
+        with transaction.atomic(router.db_for_write(DataSourceDetector)):
+            DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
+        logger.warning(
+            "Recovered missing DataSourceDetector link",
+            extra={
+                "subscription_id": self.subscription.id,
+                "data_source_id": data_source.id,
+                "detector_id": detector.id,
+                "project_id": project.id,
+            },
+        )
+        metrics.incr("incidents.subscription_processor.detector_link_recovered")
+
+        # Update last_update if in single processing mode
+        if self._has_workflow_engine_processing_only:
+            self.last_update = get_detector_last_update(detector, project.id)
+
+        return detector
 
     @property
     def alert_rule(self) -> AlertRule:
