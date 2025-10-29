@@ -151,6 +151,11 @@ def partition_by_measure(
         logger.error("dynamic_sampling.partition_by_measure.features_none", extra={"orgs": orgs})
         return {SamplingMeasure.TRANSACTIONS: [org.id for org in orgs]}
 
+    logger.info(
+        "dynamic_sampling.partition_by_measure.batched_feature_check",
+        extra={"feature_results": feature_results},
+    )
+
     for org in orgs:
         if feature_results.get(f"organization:{org.id}"):
             spans.append(org.id)
