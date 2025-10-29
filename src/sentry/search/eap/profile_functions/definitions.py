@@ -7,7 +7,7 @@ from sentry.search.eap.profile_functions.attributes import (
     PROFILE_FUNCTIONS_VIRTUAL_CONTEXTS,
 )
 
-TRACE_METRICS_DEFINITIONS = ColumnDefinitions(
+PROFILE_FUNCTIONS_DEFINITIONS = ColumnDefinitions(
     aggregates=PROFILE_FUNCTIONS_AGGREGATE_DEFINITIONS,
     conditional_aggregates={},
     formulas={},
