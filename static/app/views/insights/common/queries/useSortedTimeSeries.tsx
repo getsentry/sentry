@@ -58,7 +58,6 @@ interface Options<Fields> {
   fields?: string[];
   interval?: string;
   orderby?: string | string[];
-  overriddenRoute?: string;
   referrer?: string;
   samplingMode?: SamplingMode;
   search?: MutableSearch;
@@ -82,7 +81,6 @@ export const useSortedTimeSeries = <
     topEvents,
     fields,
     orderby,
-    overriddenRoute,
     enabled,
     samplingMode,
     disableAggregateExtrapolation,
@@ -149,7 +147,7 @@ export const useSortedTimeSeries = <
     MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
     DiscoverQueryProps
   >({
-    route: overriddenRoute ?? 'events-stats',
+    route: 'events-stats',
     eventView,
     location,
     orgSlug: organization.slug,
