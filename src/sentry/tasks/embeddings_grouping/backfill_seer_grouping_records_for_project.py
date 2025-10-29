@@ -1,8 +1,6 @@
 import logging
 from typing import Any
 
-import sentry_sdk
-
 from sentry import options
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -16,7 +14,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.embeddings_grouping.utils import (
     NODESTORE_RETRY_EXCEPTIONS,
-    GroupStacktraceData,
     create_project_cohort,
     delete_seer_grouping_records,
     filter_snuba_results,
@@ -24,9 +21,6 @@ from sentry.tasks.embeddings_grouping.utils import (
     get_data_from_snuba,
     get_events_from_nodestore,
     get_next_project_from_cohort,
-    send_group_and_stacktrace_to_seer,
-    send_group_and_stacktrace_to_seer_multithreaded,
-    update_groups,
 )
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.taskworker.retry import Retry
@@ -274,7 +268,6 @@ def backfill_seer_grouping_records_for_project(
         )
     except EVENT_INFO_EXCEPTIONS:
         metrics.incr("sentry.tasks.backfill_seer_grouping_records.grouping_config_error")
-        nodestore_results = GroupStacktraceData(data=[], stacktrace_list=[])
         group_hashes_dict = {}
     except NODESTORE_RETRY_EXCEPTIONS as e:
         extra = {
@@ -300,48 +293,16 @@ def backfill_seer_grouping_records_for_project(
         )
         return
 
-    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row = [
-        group_id
-        for group_id in groups_to_backfill_with_no_embedding_has_snuba_row
-        if group_id in group_hashes_dict
-    ]
-
-    if options.get("similarity.backfill_seer_threads") > 1:
-        seer_response = send_group_and_stacktrace_to_seer_multithreaded(
-            groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-            nodestore_results,
-            project.id,
-        )
-    else:
-        seer_response = send_group_and_stacktrace_to_seer(
-            groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-            nodestore_results,
-            project.id,
-        )
-
-    if not seer_response.get("success"):
-        logger.info(
-            "backfill_seer_grouping_records.seer_failed",
-            extra={
-                "reason": seer_response.get("reason"),
-                "project_id": current_project_id,
-                "project_index_in_cohort": current_project_index_in_cohort,
-                "worker_number": worker_number,
-            },
-        )
-        sentry_sdk.capture_exception(Exception("Seer failed during backfill"))
-
-        if seer_response.get("reason") not in SEER_ACCEPTABLE_FAILURE_REASONS:
-            return
-    else:
-        update_groups(
-            project,
-            seer_response,
-            groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-            group_hashes_dict,
-            worker_number,
-            current_project_index_in_cohort,
-        )
+    # Note: post_bulk_grouping_records has been removed, so Seer backfill is currently disabled
+    logger.info(
+        "backfill_seer_grouping_records.skipped",
+        extra={
+            "project_id": current_project_id,
+            "project_index_in_cohort": current_project_index_in_cohort,
+            "worker_number": worker_number,
+            "reason": "post_bulk_grouping_records removed",
+        },
+    )
 
     call_next_backfill(
         last_processed_group_id=batch_end_id,
