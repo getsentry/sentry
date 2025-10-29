@@ -12,7 +12,6 @@ from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
-from sentry.models.project import Project
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.services.eventstore.models import Event
@@ -116,15 +115,8 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
 
     def delete_events_from_nodestore_and_eventstore(self) -> None:
         """Schedule asynchronous deletion of events from the nodestore and eventstore for all groups."""
-        if not self.group_ids:
+        if not self.project_groups:
             return
-
-        # Get organization_id from the first group
-        if not options.get("deletions.fetch-subset-of-fields"):
-            organization_id = self.groups[0].project.organization_id
-        else:
-            project_id = self.groups[0][_F_IDX["project_id"]]
-            organization_id = Project.objects.get(id=project_id).organization_id
 
         # Schedule nodestore deletion task for each project
         for project_id, groups in self.project_groups.items():
@@ -145,7 +137,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
             # in order to enable proper batching and calling deletions with less than ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
             delete_events_for_groups_from_nodestore_and_eventstore.apply_async(
                 kwargs={
-                    "organization_id": organization_id,
+                    "organization_id": self.organization_id,
                     "project_id": project_id,
                     "group_ids": sorted_group_ids,
                     "times_seen": sorted_times_seen,
