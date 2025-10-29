@@ -159,7 +159,11 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
 
         with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
             self.forwarder.forward_if_applicable(
-                event, headers={"HTTP_X_GITHUB_EVENT": "pull_request"}
+                event,
+                headers={
+                    "HTTP_X_GITHUB_EVENT": "pull_request",
+                    "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID": "987654",
+                },
             )
 
             mock_enqueue.assert_called_once()
@@ -169,6 +173,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             assert len(call_args.organizations) == 1
             assert call_args.organizations[0].name == "Test Org"
             assert call_args.webhook_body == event
+            assert call_args.github_app_id == 987654
 
     @override_options({"overwatch.enabled-regions": ["us"]})
     def test_forward_if_applicable_multiple_organizations(self):
@@ -286,7 +291,13 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         )
         event = {"action": "create", "repository": "test-repo", "commits": []}
 
-        self.forwarder.forward_if_applicable(event, headers={"HTTP_X_GITHUB_EVENT": "pull_request"})
+        self.forwarder.forward_if_applicable(
+            event,
+            headers={
+                "HTTP_X_GITHUB_EVENT": "pull_request",
+                "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID": "987654",
+            },
+        )
 
         assert len(responses.calls) == 2
         assert responses.calls[0].request.url == "https://us.example.com/api/webhooks/sentry"
@@ -307,9 +318,13 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
                 }
             ],
             "webhook_body": event,
-            "webhook_headers": {"HTTP_X_GITHUB_EVENT": "pull_request"},
+            "webhook_headers": {
+                "HTTP_X_GITHUB_EVENT": "pull_request",
+                "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID": "987654",
+            },
             "integration_provider": "github",
             "region": "us",
+            "github_app_id": 987654,
             "request_type": DEFAULT_REQUEST_TYPE,
         }
         json_body = orjson.loads(responses.calls[1].request.body)
@@ -325,9 +340,13 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
                 }
             ],
             "webhook_body": event,
-            "webhook_headers": {"HTTP_X_GITHUB_EVENT": "pull_request"},
+            "webhook_headers": {
+                "HTTP_X_GITHUB_EVENT": "pull_request",
+                "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID": "987654",
+            },
             "integration_provider": "github",
             "region": "de",
+            "github_app_id": 987654,
             "request_type": DEFAULT_REQUEST_TYPE,
         }
 
@@ -361,7 +380,13 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         )
         event = {"action": "pull_request", "repository": "test-repo", "commits": []}
 
-        self.forwarder.forward_if_applicable(event, headers={"HTTP_X_GITHUB_EVENT": "pull_request"})
+        self.forwarder.forward_if_applicable(
+            event,
+            headers={
+                "HTTP_X_GITHUB_EVENT": "pull_request",
+                "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID": "987654",
+            },
+        )
 
         assert len(responses.calls) == 1
         assert responses.calls[0].request.url == "https://us.example.com/api/webhooks/sentry"
@@ -379,8 +404,12 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
                 }
             ],
             "webhook_body": event,
-            "webhook_headers": {"HTTP_X_GITHUB_EVENT": "pull_request"},
+            "webhook_headers": {
+                "HTTP_X_GITHUB_EVENT": "pull_request",
+                "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID": "987654",
+            },
             "integration_provider": "github",
             "region": "us",
+            "github_app_id": 987654,
             "request_type": DEFAULT_REQUEST_TYPE,
         }
