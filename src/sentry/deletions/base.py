@@ -10,6 +10,7 @@ from django.db.models import Q
 
 from sentry.constants import ObjectStatus
 from sentry.db.models.base import Model
+from sentry.options import options
 from sentry.silo.safety import unguarded_write
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -236,8 +237,11 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
             if self.order_by:
                 queryset = queryset.order_by(order_by)
 
-            # Using only("id") to avoid loading the entire object into memory.
-            queryset = list(queryset.only("id")[:query_limit])
+            if options.get("deletions.only-fetch-ids"):
+                # Using only("id") to avoid loading the entire object into memory.
+                queryset = list(queryset.only("id")[:query_limit])
+            else:
+                queryset = list(queryset[:query_limit])
             # If there are no more rows we are all done.
             if not queryset:
                 return False
@@ -272,10 +276,26 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
         return None
 
     def mark_deletion_in_progress(self, instance_list: Sequence[ModelT]) -> None:
-        for instance in instance_list:
-            status = getattr(instance, "status", None)
-            if status not in (ObjectStatus.DELETION_IN_PROGRESS, None):
-                instance.update(status=ObjectStatus.DELETION_IN_PROGRESS)
+        if not options.get("deletions.only-fetch-ids"):
+            for instance in instance_list:
+                status = getattr(instance, "status", None)
+                if status not in (ObjectStatus.DELETION_IN_PROGRESS, None):
+                    instance.update(status=ObjectStatus.DELETION_IN_PROGRESS)
+
+        if not instance_list:
+            return
+
+        # Check if the model has a status field
+        if not hasattr(self.model, "_meta") or not any(
+            f.name == "status" for f in self.model._meta.get_fields()
+        ):
+            return
+
+        # Get IDs and bulk update in a single query
+        instance_ids = [instance.id for instance in instance_list]
+        self.model.objects.filter(id__in=instance_ids).exclude(
+            status__in=[ObjectStatus.DELETION_IN_PROGRESS, None]
+        ).update(status=ObjectStatus.DELETION_IN_PROGRESS)
 
 
 class BulkModelDeletionTask(ModelDeletionTask[ModelT]):

@@ -342,6 +342,12 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "deletions.only-fetch-ids",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 register(
