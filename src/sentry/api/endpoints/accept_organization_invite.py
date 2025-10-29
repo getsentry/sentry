@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 
-from django.http import HttpRequest
+from django.contrib.auth import logout
+from django.http import HttpRequest, HttpResponseRedirect
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.request import Request
@@ -23,6 +24,7 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import RpcUserInviteContext, organization_service
 from sentry.types.region import RegionResolutionError, get_region_by_name
 from sentry.utils import auth
+from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +121,12 @@ class AcceptOrganizationInvite(Endpoint):
         token: str,
         organization_id_or_slug: int | str | None = None,
     ) -> Response:
+
+        # Demo user cant accept invites, this invite is probably meant for another user
+        # so we log out the demo user and redirect them to the logout
+        if is_demo_user(request.user):
+            logout(request)
+            return HttpResponseRedirect(absolute_uri(reverse("sentry-logout")))
 
         invite_context = get_invite_state(
             member_id=int(member_id),
