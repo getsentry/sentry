@@ -75,59 +75,61 @@ function ConfidenceMessage({
   }
 
   const noSampling = defined(isSampled) && !isSampled;
-  const matchingLogsCount = <Count value={sampleCount} />;
+  const matchingLogsCount =
+    sampleCount > 1
+      ? t('%s matches', <Count value={sampleCount} />)
+      : t('%s match', <Count value={sampleCount} />);
   const downsampledLogsCount = rawLogCounts.normal.count ? (
-    <Count value={rawLogCounts.normal.count} />
+    rawLogCounts.normal.count > 1 ? (
+      t('%s samples', <Count value={rawLogCounts.normal.count} />)
+    ) : (
+      t('%s sample', <Count value={rawLogCounts.normal.count} />)
+    )
   ) : (
     <OffsetContainer>
       <Placeholder width={40} />
     </OffsetContainer>
   );
   const allLogsCount = rawLogCounts.highAccuracy.count ? (
-    <Count value={rawLogCounts.highAccuracy.count} />
+    rawLogCounts.highAccuracy.count > 1 ? (
+      t('%s logs', <Count value={rawLogCounts.highAccuracy.count} />)
+    ) : (
+      t('%s log', <Count value={rawLogCounts.highAccuracy.count} />)
+    )
   ) : (
     <OffsetContainer>
       <Placeholder width={40} />
     </OffsetContainer>
   );
-  const suffix = rawLogCounts.highAccuracy.count ? t('logs') : '';
 
   if (dataScanned === 'full') {
     if (!hasUserQuery) {
       if (isTopN) {
         return tct('Log count for top [topEvents] groups: [matchingLogsCount]', {
           topEvents,
-          matchingLogsCount,
+          matchingLogsCount: <Count value={sampleCount} />,
         });
       }
 
       return tct('Log count: [matchingLogsCount]', {
-        matchingLogsCount,
+        matchingLogsCount: <Count value={sampleCount} />,
       });
     }
 
     // For logs, if the full data was scanned, we can assume that no
     // extrapolation happened and we should remove mentions of extrapolation.
     if (isTopN) {
-      return tct(
-        '[matchingLogsCount] matching logs for top [topEvents] groups after scanning [allLogsCount] [suffix]',
-        {
-          topEvents,
-          matchingLogsCount,
-          allLogsCount,
-          suffix,
-        }
-      );
-    }
-
-    return tct(
-      '[matchingLogsCount] matching logs after scanning [allLogsCount] [suffix]',
-      {
+      return tct('[matchingLogsCount] for top [topEvents] groups in [allLogsCount]', {
+        topEvents,
         matchingLogsCount,
         allLogsCount,
-        suffix,
-      }
-    );
+      });
+    }
+
+    return tct('[matchingLogsCount] in [allLogsCount]', {
+      matchingLogsCount,
+      allLogsCount,
+    });
   }
 
   const downsampledTooltip = <DownsampledTooltip noSampling={noSampling} />;
@@ -140,27 +142,25 @@ function ConfidenceMessage({
 
   if (isTopN) {
     return tct(
-      '[warning] Extrapolated from [matchingLogsCount] matching logs for top [topEvents] groups after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
+      '[warning] Extrapolated from [matchingLogsCount] for top [topEvents] groups after scanning [tooltip:[downsampledLogsCount] of [allLogsCount]]',
       {
         warning,
         topEvents,
         matchingLogsCount,
         downsampledLogsCount,
         allLogsCount,
-        suffix,
         tooltip: downsampledTooltip,
       }
     );
   }
 
   return tct(
-    '[warning] Extrapolated from [matchingLogsCount] matching logs after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
+    '[warning] Extrapolated from [matchingLogsCount] after scanning [tooltip:[downsampledLogsCount] of [allLogsCount]]',
     {
       warning,
       matchingLogsCount,
       downsampledLogsCount,
       allLogsCount,
-      suffix,
       tooltip: downsampledTooltip,
     }
   );
