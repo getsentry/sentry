@@ -6,6 +6,8 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from django.db.models import QuerySet
+
 from sentry import models, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
@@ -156,6 +158,15 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
     # Delete groups in blocks of GROUP_CHUNK_SIZE. Using GROUP_CHUNK_SIZE aims to
     # balance the number of snuba replacements with memory limits.
     DEFAULT_CHUNK_SIZE = GROUP_CHUNK_SIZE
+    fields_to_fetch = ["id", "project_id", "type", "status", "times_seen"]
+
+    # This reduces the number of fields fetched from the database
+    def get_queryset_fetch(
+        self, queryset: QuerySet[Group], query_limit: int
+    ) -> list[tuple[Any, ...]] | list[Group]:
+        if options.get("deletions.only-fetch-ids"):
+            return list(queryset.values_list(*self.fields_to_fetch)[:query_limit])
+        return list(queryset[:query_limit])
 
     def delete_bulk(self, instance_list: Sequence[Group]) -> bool:
         """
