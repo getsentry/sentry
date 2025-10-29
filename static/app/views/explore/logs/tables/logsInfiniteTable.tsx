@@ -543,22 +543,31 @@ function LogsTableHeader({
 }
 
 function EmptyRenderer() {
-  const {canResumeAutoFetch, resumeAutoFetch} = useLogsPageDataQueryResult();
+  const {bytesScanned, canResumeAutoFetch, resumeAutoFetch} =
+    useLogsPageDataQueryResult();
 
   if (canResumeAutoFetch) {
     return (
       <TableStatus>
         <EmptyStateWarning withIcon>
-          <EmptyStateText size="xl">{t('This is hard...')}</EmptyStateText>
+          <EmptyStateText size="xl">{t('No logs found yet')}</EmptyStateText>
           <EmptyStateText size="md">
-            {t("Don't give up yet. There is more data to scan. ")}
-            <Button
-              priority="link"
-              onClick={resumeAutoFetch}
-              aria-label="continue scanning"
-            >
-              {t('Continue Scanning')}
-            </Button>
+            {tct(
+              'We scanned [bytesScanned] already but did not find any matching logs yet.[break]You can narrow your time range or you can [continueScanning].',
+              {
+                bytesScanned: <FileSize bytes={bytesScanned} base={2} />,
+                break: <br />,
+                continueScanning: (
+                  <Button
+                    priority="link"
+                    onClick={resumeAutoFetch}
+                    aria-label="continue scanning"
+                  >
+                    {t('Continue Scanning')}
+                  </Button>
+                ),
+              }
+            )}
           </EmptyStateText>
         </EmptyStateWarning>
       </TableStatus>
