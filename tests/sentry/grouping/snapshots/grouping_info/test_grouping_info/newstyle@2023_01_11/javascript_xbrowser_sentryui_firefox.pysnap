@@ -1,5 +1,5 @@
 ---
-created: '2025-10-06T21:57:34.886867+00:00'
+created: '2025-10-27T23:46:02.873704+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -17,6 +17,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "NotFoundError"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "GET /issues/<int>/events/latest/ <int>"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -815,24 +833,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "NotFoundError"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "GET /issues/<int>/events/latest/ <int>"
               ]
             }
           ]
@@ -882,6 +882,24 @@ source: tests/sentry/grouping/test_grouping_info.py
             {
               "contributes": true,
               "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "NotFoundError"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "GET /issues/<int>/events/latest/ <int>"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
               "id": "stacktrace",
               "name": "stacktrace",
               "values": [
@@ -1677,24 +1695,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "NotFoundError"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "GET /issues/<int>/events/latest/ <int>"
               ]
             }
           ]

@@ -1,5 +1,5 @@
 ---
-created: '2025-10-07T22:42:55.867121+00:00'
+created: '2025-10-27T23:46:02.419649+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -17,6 +17,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": false,
+              "hint": "ignored because exception is synthetic",
+              "id": "type",
+              "name": null,
+              "values": [
+                "0x40000015 / 0x00000001"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": "stripped event-specific values",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Fatal Error: <hex> / <hex>"
+              ]
+            },
             {
               "contributes": false,
               "hint": "ignored because it contains no in-app frames",
@@ -1090,24 +1108,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "0x40000015 / 0x00000001"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": "stripped event-specific values",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Fatal Error: <hex> / <hex>"
-              ]
             }
           ]
         }
@@ -1153,6 +1153,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": false,
+              "hint": "ignored because exception is synthetic",
+              "id": "type",
+              "name": null,
+              "values": [
+                "0x40000015 / 0x00000001"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Fatal Error: <hex> / <hex>"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -2225,24 +2243,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "0x40000015 / 0x00000001"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Fatal Error: <hex> / <hex>"
               ]
             }
           ]

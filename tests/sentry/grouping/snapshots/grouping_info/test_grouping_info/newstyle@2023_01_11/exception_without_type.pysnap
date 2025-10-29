@@ -1,5 +1,5 @@
 ---
-created: '2025-10-07T22:42:54.765495+00:00'
+created: '2025-10-27T23:46:01.361602+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -20,13 +20,6 @@ source: tests/sentry/grouping/test_grouping_info.py
             {
               "contributes": false,
               "hint": null,
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": []
-            },
-            {
-              "contributes": false,
-              "hint": null,
               "id": "type",
               "name": null,
               "values": []
@@ -39,6 +32,13 @@ source: tests/sentry/grouping/test_grouping_info.py
               "values": [
                 "hello world"
               ]
+            },
+            {
+              "contributes": false,
+              "hint": null,
+              "id": "stacktrace",
+              "name": "stacktrace",
+              "values": []
             }
           ]
         }

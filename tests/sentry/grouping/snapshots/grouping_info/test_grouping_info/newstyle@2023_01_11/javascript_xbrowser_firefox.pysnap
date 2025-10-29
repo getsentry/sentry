@@ -1,5 +1,5 @@
 ---
-created: '2025-10-07T22:42:56.232303+00:00'
+created: '2025-10-27T23:46:02.774496+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -17,6 +17,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "Error"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "value",
+              "name": null,
+              "values": [
+                "bad"
+              ]
+            },
             {
               "contributes": false,
               "hint": "ignored because it contains no in-app frames",
@@ -319,24 +337,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "Error"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": [
-                "bad"
-              ]
             }
           ]
         }
@@ -382,6 +382,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "Error"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "bad"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -683,24 +701,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "Error"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "bad"
               ]
             }
           ]

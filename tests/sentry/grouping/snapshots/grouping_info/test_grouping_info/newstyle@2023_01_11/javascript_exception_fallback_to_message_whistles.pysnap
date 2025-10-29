@@ -1,5 +1,5 @@
 ---
-created: '2025-10-07T22:42:56.084098+00:00'
+created: '2025-10-27T23:46:02.632058+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -18,13 +18,6 @@ source: tests/sentry/grouping/test_grouping_info.py
           "name": "exception",
           "values": [
             {
-              "contributes": false,
-              "hint": null,
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": []
-            },
-            {
               "contributes": true,
               "hint": null,
               "id": "type",
@@ -41,6 +34,13 @@ source: tests/sentry/grouping/test_grouping_info.py
               "values": [
                 "<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date> (submitted from <ip> via <ip> via <ip>) at offset <hex>"
               ]
+            },
+            {
+              "contributes": false,
+              "hint": null,
+              "id": "stacktrace",
+              "name": "stacktrace",
+              "values": []
             }
           ]
         }

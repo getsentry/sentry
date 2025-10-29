@@ -1,5 +1,5 @@
 ---
-created: '2025-10-06T21:57:33.120005+00:00'
+created: '2025-10-27T23:46:01.003242+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -18,19 +18,21 @@ source: tests/sentry/grouping/test_grouping_info.py
           "name": "exception",
           "values": [
             {
-              "contributes": false,
-              "hint": null,
-              "id": "stacktrace",
-              "name": "stacktrace",
-              "values": []
-            },
-            {
               "contributes": true,
               "hint": null,
               "id": "type",
               "name": null,
               "values": [
                 "iOS_Swift.SampleError"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because ns-error info takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Code=<int> Description=The operation couldn’t be completed. (iOS_Swift.SampleError error <int>.)"
               ]
             },
             {
@@ -61,12 +63,10 @@ source: tests/sentry/grouping/test_grouping_info.py
             },
             {
               "contributes": false,
-              "hint": "ignored because ns-error info takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Code=<int> Description=The operation couldn’t be completed. (iOS_Swift.SampleError error <int>.)"
-              ]
+              "hint": null,
+              "id": "stacktrace",
+              "name": "stacktrace",
+              "values": []
             }
           ]
         },

@@ -1,5 +1,5 @@
 ---
-created: '2025-10-06T21:57:32.649693+00:00'
+created: '2025-10-27T23:46:00.557065+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -17,6 +17,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "actix_web::pipeline"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -2561,24 +2579,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "actix_web::pipeline"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
-              ]
             }
           ]
         }
@@ -2624,6 +2624,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "actix_web::pipeline"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -5167,24 +5185,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "actix_web::pipeline"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
               ]
             }
           ]

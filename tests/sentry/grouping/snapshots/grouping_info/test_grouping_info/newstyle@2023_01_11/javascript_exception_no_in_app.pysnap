@@ -1,5 +1,5 @@
 ---
-created: '2025-10-07T22:42:56.116515+00:00'
+created: '2025-10-27T23:46:02.665234+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -17,6 +17,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "ReferenceError"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "value",
+              "name": null,
+              "values": [
+                "varant is not defined"
+              ]
+            },
             {
               "contributes": false,
               "hint": "ignored because it contains no in-app frames",
@@ -420,24 +438,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "ReferenceError"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": [
-                "varant is not defined"
-              ]
             }
           ]
         }
@@ -483,6 +483,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "ReferenceError"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "varant is not defined"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -885,24 +903,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "ReferenceError"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "varant is not defined"
               ]
             }
           ]

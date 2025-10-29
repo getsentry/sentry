@@ -1,5 +1,5 @@
 ---
-created: '2025-10-07T22:42:56.045479+00:00'
+created: '2025-10-27T23:46:02.597425+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -23,6 +23,24 @@ source: tests/sentry/grouping/test_grouping_info.py
               "id": "exception",
               "name": "exception",
               "values": [
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "type",
+                  "name": null,
+                  "values": [
+                    "BindException"
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "value",
+                  "name": null,
+                  "values": [
+                    "Address already in use"
+                  ]
+                },
                 {
                   "contributes": false,
                   "hint": "ignored because it contains no in-app frames",
@@ -835,24 +853,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                       ]
                     }
                   ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "type",
-                  "name": null,
-                  "values": [
-                    "BindException"
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "value",
-                  "name": null,
-                  "values": [
-                    "Address already in use"
-                  ]
                 }
               ]
             },
@@ -862,6 +862,24 @@ source: tests/sentry/grouping/test_grouping_info.py
               "id": "exception",
               "name": "exception",
               "values": [
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "type",
+                  "name": null,
+                  "values": [
+                    "LifecycleException"
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "value",
+                  "name": null,
+                  "values": [
+                    "service.getName(): \"Tomcat\";  Protocol handler start failed"
+                  ]
+                },
                 {
                   "contributes": false,
                   "hint": "ignored because it contains no in-app frames",
@@ -1394,7 +1412,15 @@ source: tests/sentry/grouping/test_grouping_info.py
                       ]
                     }
                   ]
-                },
+                }
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "exception",
+              "name": "exception",
+              "values": [
                 {
                   "contributes": true,
                   "hint": null,
@@ -1406,21 +1432,13 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": true,
-                  "hint": null,
+                  "hint": "stripped event-specific values",
                   "id": "value",
                   "name": null,
                   "values": [
-                    "service.getName(): \"Tomcat\";  Protocol handler start failed"
+                    "Failed to start component [Connector[HTTP/<float><int>]]"
                   ]
-                }
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "exception",
-              "name": "exception",
-              "values": [
+                },
                 {
                   "contributes": false,
                   "hint": "ignored because it contains no in-app frames",
@@ -1918,24 +1936,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                       ]
                     }
                   ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "type",
-                  "name": null,
-                  "values": [
-                    "LifecycleException"
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": "stripped event-specific values",
-                  "id": "value",
-                  "name": null,
-                  "values": [
-                    "Failed to start component [Connector[HTTP/<float><int>]]"
-                  ]
                 }
               ]
             }
@@ -2034,6 +2034,24 @@ source: tests/sentry/grouping/test_grouping_info.py
               "id": "exception",
               "name": "exception",
               "values": [
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "type",
+                  "name": null,
+                  "values": [
+                    "BindException"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": "ignored because stacktrace takes precedence",
+                  "id": "value",
+                  "name": null,
+                  "values": [
+                    "Address already in use"
+                  ]
+                },
                 {
                   "contributes": true,
                   "hint": null,
@@ -2846,24 +2864,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                       ]
                     }
                   ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "type",
-                  "name": null,
-                  "values": [
-                    "BindException"
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored because stacktrace takes precedence",
-                  "id": "value",
-                  "name": null,
-                  "values": [
-                    "Address already in use"
-                  ]
                 }
               ]
             },
@@ -2873,6 +2873,24 @@ source: tests/sentry/grouping/test_grouping_info.py
               "id": "exception",
               "name": "exception",
               "values": [
+                {
+                  "contributes": true,
+                  "hint": null,
+                  "id": "type",
+                  "name": null,
+                  "values": [
+                    "LifecycleException"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": "ignored because stacktrace takes precedence",
+                  "id": "value",
+                  "name": null,
+                  "values": [
+                    "service.getName(): \"Tomcat\";  Protocol handler start failed"
+                  ]
+                },
                 {
                   "contributes": true,
                   "hint": null,
@@ -3405,7 +3423,15 @@ source: tests/sentry/grouping/test_grouping_info.py
                       ]
                     }
                   ]
-                },
+                }
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "exception",
+              "name": "exception",
+              "values": [
                 {
                   "contributes": true,
                   "hint": null,
@@ -3421,17 +3447,9 @@ source: tests/sentry/grouping/test_grouping_info.py
                   "id": "value",
                   "name": null,
                   "values": [
-                    "service.getName(): \"Tomcat\";  Protocol handler start failed"
+                    "Failed to start component [Connector[HTTP/<float><int>]]"
                   ]
-                }
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "exception",
-              "name": "exception",
-              "values": [
+                },
                 {
                   "contributes": true,
                   "hint": null,
@@ -3928,24 +3946,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                         }
                       ]
                     }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "type",
-                  "name": null,
-                  "values": [
-                    "LifecycleException"
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored because stacktrace takes precedence",
-                  "id": "value",
-                  "name": null,
-                  "values": [
-                    "Failed to start component [Connector[HTTP/<float><int>]]"
                   ]
                 }
               ]

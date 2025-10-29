@@ -1,5 +1,5 @@
 ---
-created: '2025-10-06T21:57:35.736917+00:00'
+created: '2025-10-27T23:46:03.730133+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -17,6 +17,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "EXC_BAD_ACCESS"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -1016,24 +1034,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "EXC_BAD_ACCESS"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
-              ]
             }
           ]
         }
@@ -1079,6 +1079,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "EXC_BAD_ACCESS"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -2077,24 +2095,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "EXC_BAD_ACCESS"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
               ]
             }
           ]

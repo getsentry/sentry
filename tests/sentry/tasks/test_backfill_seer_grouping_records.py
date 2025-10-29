@@ -50,6 +50,8 @@ from sentry.utils.snuba import QueryTooManySimultaneous, RateLimitExceeded, bulk
 EXCEPTION: dict[str, Any] = {
     "values": [
         {
+            "type": "ZeroDivisionError",
+            "value": "division by zero",
             "stacktrace": {
                 "frames": [
                     {
@@ -62,8 +64,6 @@ EXCEPTION: dict[str, Any] = {
                     },
                 ]
             },
-            "type": "ZeroDivisionError",
-            "value": "division by zero",
         }
     ],
 }
