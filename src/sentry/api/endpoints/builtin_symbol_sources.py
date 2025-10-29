@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -61,7 +63,7 @@ class BuiltinSymbolSourcesEndpoint(Endpoint):
 
         sources = []
         for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
-            source_platforms: list[str] | None = source.get("platforms")
+            source_platforms: list[str] | None = cast("list[str] | None", source.get("platforms"))
 
             # If source has platform restrictions, check if current platform matches
             if source_platforms is not None:

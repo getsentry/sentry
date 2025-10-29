@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.conf import settings
 
 from sentry.constants import ENABLED_CONSOLE_PLATFORMS_DEFAULT
@@ -49,7 +51,9 @@ def set_default_symbol_sources(
 
         # If source exists in config, check for platform restrictions
         if source_config:
-            required_platforms: list[str] | None = source_config.get("platforms")
+            required_platforms: list[str] | None = cast(
+                "list[str] | None", source_config.get("platforms")
+            )
             if required_platforms:
                 # Source is platform-restricted - check if org has access
                 enabled_console_platforms = organization.get_option(
