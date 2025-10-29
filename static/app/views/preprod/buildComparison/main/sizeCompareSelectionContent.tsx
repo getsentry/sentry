@@ -242,14 +242,14 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
           )}
           {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
-              <IconDownload size="xs" color="gray300" />
-              <Text>{formatBytesBase10(sizeInfo.download_size_bytes)}</Text>
+              <IconCode size="xs" color="gray300" />
+              <Text>{formatBytesBase10(sizeInfo.install_size_bytes)}</Text>
             </Flex>
           )}
           {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
-              <IconCode size="xs" color="gray300" />
-              <Text>{formatBytesBase10(sizeInfo.install_size_bytes)}</Text>
+              <IconDownload size="xs" color="gray300" />
+              <Text>{formatBytesBase10(sizeInfo.download_size_bytes)}</Text>
             </Flex>
           )}
         </Flex>
