@@ -70,7 +70,7 @@ export const logs: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Additionally, you can also configure [link:logging integrations] with crates like [code:tracing] or [code:log4rs].',
+            'Additionally, you can also configure [link:logging integrations] with crates like [code:tracing] or [code:log].',
             {
               code: <code />,
               link: (
