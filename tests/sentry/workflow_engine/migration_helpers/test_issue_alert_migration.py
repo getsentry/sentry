@@ -344,14 +344,12 @@ class IssueAlertMigratorTest(TestCase):
 
         # does not create a new error detector
 
-        detector = Detector.objects.filter(
-            project_id=self.project.id, type=ErrorGroupType.slug
-        ).first()
+        detector = Detector.objects.get(project_id=self.project.id, type=ErrorGroupType.slug)
         assert detector.id == project_detector.id
 
-        issue_stream_detector = Detector.objects.filter(
+        issue_stream_detector = Detector.objects.get(
             project_id=self.project.id, type=IssueStreamGroupType.slug
-        ).first()
+        )
         assert other_project_detector.id == issue_stream_detector.id
 
     def test_run__detector_lookup_exists(self) -> None:
