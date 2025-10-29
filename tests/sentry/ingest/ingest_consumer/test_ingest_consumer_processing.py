@@ -337,86 +337,100 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
 @requires_symbolicator
 @pytest.mark.symbolicator
 @thread_leak_allowlist(reason="django dev server", issue=97036)
-def test_deobfuscate_view_hierarchy(
-    default_project, task_runner, set_sentry_option, live_server
+def test_deobfuscate_view_hierarchy(default_project, task_runner, live_server) -> None:
+    with override_options({"system.url-prefix": live_server.url}):
+        do_process_view_hierarchy(default_project, task_runner)
+
+
+@django_db_all
+@requires_symbolicator
+@pytest.mark.symbolicator
+@thread_leak_allowlist(reason="django dev server", issue=97036)
+def test_deobfuscate_view_hierarchy_processingstore(
+    default_project, task_runner, live_server
 ) -> None:
-    with set_sentry_option("system.url-prefix", live_server.url):
-        payload = get_normalized_event(
+    with override_options(
+        {"system.url-prefix": live_server.url, "objectstore.processing_store.attachments": 1}
+    ):
+        do_process_view_hierarchy(default_project, task_runner)
+
+
+def do_process_view_hierarchy(project, task_runner):
+    payload = get_normalized_event(
+        {
+            "message": "hello world",
+            "debug_meta": {"images": [{"uuid": PROGUARD_UUID, "type": "proguard"}]},
+        },
+        project,
+    )
+    event_id = payload["event_id"]
+    attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
+    start_time = time.time() - 3600
+
+    # Create the proguard file
+    with zipfile.ZipFile(BytesIO(), "w") as f:
+        f.writestr(f"proguard/{PROGUARD_UUID}.txt", PROGUARD_SOURCE)
+        create_files_from_dif_zip(f, project=project)
+
+    expected_response = b'{"rendering_system":"Test System","windows":[{"identifier":"parent","type":"org.slf4j.helpers.Util$ClassContextSecurityManager","children":[{"identifier":"child","type":"org.slf4j.helpers.Util$ClassContextSecurityManager"}]}]}'
+    obfuscated_view_hierarchy = {
+        "rendering_system": "Test System",
+        "windows": [
             {
-                "message": "hello world",
-                "debug_meta": {"images": [{"uuid": PROGUARD_UUID, "type": "proguard"}]},
-            },
-            default_project,
-        )
-        event_id = payload["event_id"]
-        attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
-        project_id = default_project.id
-        start_time = time.time() - 3600
-
-        # Create the proguard file
-        with zipfile.ZipFile(BytesIO(), "w") as f:
-            f.writestr(f"proguard/{PROGUARD_UUID}.txt", PROGUARD_SOURCE)
-            create_files_from_dif_zip(f, project=default_project)
-
-        expected_response = b'{"rendering_system":"Test System","windows":[{"identifier":"parent","type":"org.slf4j.helpers.Util$ClassContextSecurityManager","children":[{"identifier":"child","type":"org.slf4j.helpers.Util$ClassContextSecurityManager"}]}]}'
-        obfuscated_view_hierarchy = {
-            "rendering_system": "Test System",
-            "windows": [
-                {
-                    "identifier": "parent",
-                    "type": "org.a.b.g$a",
-                    "children": [
-                        {
-                            "identifier": "child",
-                            "type": "org.a.b.g$a",
-                        }
-                    ],
-                }
-            ],
-        }
-        attachment_payload = orjson.dumps(obfuscated_view_hierarchy)
-
-        process_attachment_chunk(
-            {
-                "payload": attachment_payload,
-                "event_id": event_id,
-                "project_id": project_id,
-                "id": attachment_id,
-                "chunk_index": 0,
+                "identifier": "parent",
+                "type": "org.a.b.g$a",
+                "children": [
+                    {
+                        "identifier": "child",
+                        "type": "org.a.b.g$a",
+                    }
+                ],
             }
+        ],
+    }
+    attachment_payload = orjson.dumps(obfuscated_view_hierarchy)
+
+    process_attachment_chunk(
+        {
+            "payload": attachment_payload,
+            "event_id": event_id,
+            "project_id": project.id,
+            "id": attachment_id,
+            "chunk_index": 0,
+        }
+    )
+
+    with task_runner():
+        process_event(
+            ConsumerType.Events,
+            {
+                "payload": orjson.dumps(payload).decode(),
+                "start_time": start_time,
+                "event_id": event_id,
+                "project_id": project.id,
+                "remote_addr": "127.0.0.1",
+                "attachments": [
+                    {
+                        "id": attachment_id,
+                        "name": "view_hierarchy.json",
+                        "content_type": "application/json",
+                        "attachment_type": "event.view_hierarchy",
+                        "chunks": 1,
+                        "size": len(attachment_payload),
+                    }
+                ],
+            },
+            project=project,
         )
 
-        with task_runner():
-            process_event(
-                ConsumerType.Events,
-                {
-                    "payload": orjson.dumps(payload).decode(),
-                    "start_time": start_time,
-                    "event_id": event_id,
-                    "project_id": project_id,
-                    "remote_addr": "127.0.0.1",
-                    "attachments": [
-                        {
-                            "id": attachment_id,
-                            "name": "view_hierarchy.json",
-                            "content_type": "application/json",
-                            "attachment_type": "event.view_hierarchy",
-                            "chunks": 1,
-                            "size": len(attachment_payload),
-                        }
-                    ],
-                },
-                project=default_project,
-            )
-
-        persisted_attachments = list(
-            EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
-        )
-        (attachment,) = persisted_attachments
-        assert attachment.content_type == "application/json"
-        assert attachment.name == "view_hierarchy.json"
-        with attachment.getfile() as file:
-            assert file.read() == expected_response
+    persisted_attachments = list(
+        EventAttachment.objects.filter(project_id=project.id, event_id=event_id)
+    )
+    (attachment,) = persisted_attachments
+    assert attachment.content_type == "application/json"
+    assert attachment.name == "view_hierarchy.json"
+    with attachment.getfile() as file:
+        assert file.read() == expected_response
 
 
 @django_db_all

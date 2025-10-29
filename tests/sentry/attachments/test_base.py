@@ -35,9 +35,10 @@ def test_meta_basic() -> None:
     # Regression test to verify that we do not add additional attributes. Note
     # that ``rate_limited`` is missing from this dict.
     assert att.meta() == {
+        "key": "c:foo",
+        "id": 123,
         "chunks": 3,
         "content_type": "text/plain",
-        "id": 123,
         "name": "lol.txt",
         "type": "event.attachment",
     }
@@ -49,9 +50,10 @@ def test_meta_rate_limited() -> None:
     )
 
     assert att.meta() == {
+        "key": "c:foo",
+        "id": 123,
         "chunks": 3,
         "content_type": "text/plain",
-        "id": 123,
         "name": "lol.txt",
         "rate_limited": True,
         "type": "event.attachment",
