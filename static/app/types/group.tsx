@@ -617,12 +617,20 @@ interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBas
   data: {
     // Set for semver releases
     current_release_version: string;
+    inNextRelease?: boolean;
+    integration_id?: number;
+    provider?: string;
+    provider_key?: string;
   };
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
 }
 
 interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
   data: {
+    inNextRelease?: boolean;
+    integration_id?: number;
+    provider?: string;
+    provider_key?: string;
     version?: string;
   };
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
