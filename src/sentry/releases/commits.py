@@ -3,11 +3,11 @@ from datetime import datetime
 
 from django.db import router
 
+from sentry.models.commit import Commit as OldCommit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
-from sentry.utils.db import atomic_transaction
-from sentry.models.commit import Commit as OldCommit
 from sentry.releases.models import Commit
+from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger(__name__)
 

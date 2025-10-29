@@ -7,10 +7,7 @@ from django.utils import timezone
 from sentry.models.commit import Commit as OldCommit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.repository import Repository
-from sentry.releases.commits import (
-    create_commit,
-    get_or_create_commit,
-)
+from sentry.releases.commits import create_commit, get_or_create_commit
 from sentry.releases.models import Commit
 from sentry.testutils.cases import TestCase
 
