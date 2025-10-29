@@ -337,7 +337,7 @@ class IssueAlertMigratorTest(TestCase):
 
     def test_run__detector_exists(self) -> None:
         project_detector = self.create_detector(project=self.project)
-        issue_stream_detector = self.create_detector(
+        other_project_detector = self.create_detector(
             project=self.project, type=IssueStreamGroupType.slug
         )
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
@@ -352,7 +352,7 @@ class IssueAlertMigratorTest(TestCase):
         issue_stream_detector = Detector.objects.filter(
             project_id=self.project.id, type=IssueStreamGroupType.slug
         ).first()
-        assert issue_stream_detector.id == issue_stream_detector.id
+        assert other_project_detector.id == issue_stream_detector.id
 
     def test_run__detector_lookup_exists(self) -> None:
         AlertRuleDetector.objects.create(
