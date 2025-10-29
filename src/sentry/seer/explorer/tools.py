@@ -49,9 +49,9 @@ def execute_trace_query_chart(
     # Use provided project_ids or get all project IDs for the organization
     if project_ids is None:
         project_ids = list(organization.project_set.values_list("id", flat=True))
-    if not project_ids:
-        logger.warning("No projects found for organization", extra={"org_id": org_id})
-        return None
+        if not project_ids:
+            logger.warning("No projects found for organization", extra={"org_id": org_id})
+            return None
 
     params: dict[str, Any] = {
         "query": query,
@@ -123,9 +123,9 @@ def execute_trace_query_table(
     # Use provided project_ids or get all project IDs for the organization
     if project_ids is None:
         project_ids = list(organization.project_set.values_list("id", flat=True))
-    if not project_ids:
-        logger.warning("No projects found for organization", extra={"org_id": org_id})
-        return None
+        if not project_ids:
+            logger.warning("No projects found for organization", extra={"org_id": org_id})
+            return None
 
     # Determine fields based on mode
     if mode == "aggregates":
