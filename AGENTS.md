@@ -19,10 +19,6 @@ Please also reference the following documents as needed. In this case, `@` stand
     <FilePatterns>static/**/*.ts, static/**/*.tsx, static/**/*.js, static/**/*.jsx, static/**/*.css, static/**/*.less</FilePatterns>
   </Document>
   <Document>
-    <Path>@.codex/memories/python-development.md</Path>
-    <FilePatterns>src/**/*.py, tests/**/*.py, **/test_*.py</FilePatterns>
-  </Document>
-  <Document>
     <Path>@.codex/memories/typescript-tests.md</Path>
     <FilePatterns>**/*.spec.tsx, **/*.spec.ts, **/*.test.tsx, **/*.test.ts</FilePatterns>
   </Document>

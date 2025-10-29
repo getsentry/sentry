@@ -4,7 +4,6 @@ Please also reference the following documents as needed:
 @.claude/memories/backend-overview.md description: "Backend development patterns and best practices" globs: "src/**/*.py,tests/**/*.py,**/test_*.py"
 @.claude/memories/backend-tests.md description: "" globs: "tests/**/*.py,**/test_*.py"
 @.claude/memories/frontend-overview.md description: "" globs: "static/**/*.ts,static/**/*.tsx,static/**/*.js,static/**/*.jsx,static/**/*.css,static/**/*.less"
-@.claude/memories/python-development.md description: "" globs: "src/**/*.py,tests/**/*.py,**/test_*.py"
 @.claude/memories/typescript-tests.md description: "" globs: "**/*.spec.tsx,**/*.spec.ts,**/*.test.tsx,**/*.test.ts"
 # Sentry Development Guide
 
