@@ -7,6 +7,7 @@ import {
 import {
   agentMonitoringOnboarding,
   crashReportOnboardingPython,
+  mcpOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
@@ -150,6 +151,7 @@ const docs: Docs = {
   profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[chalice]'}),
   crashReportOnboarding: crashReportOnboardingPython,
   agentMonitoringOnboarding,
+  mcpOnboarding,
   logsOnboarding,
 };
 
