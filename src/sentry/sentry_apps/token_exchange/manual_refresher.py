@@ -6,7 +6,7 @@ from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.analytics.events.sentry_app_token_exchanged import SentryAppTokenExchangedEvent
-from sentry.hybridcloud.models.outbox import OutboxDatabaseError
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.metrics import (
@@ -50,13 +50,13 @@ class ManualTokenRefresher:
                 token = None
                 with transaction.atomic(router.db_for_write(ApiToken)):
                     self._validate()
-                    if self.install.api_token is not None:
-                        self.install.api_token.delete()
+                    if self.installation.api_token is not None:
+                        self.installation.api_token.delete()
 
                     self._record_analytics()
                     token = self._create_new_token()
                     return token
-            except OutboxDatabaseError as e:
+            except (OutboxDatabaseError, OutboxFlushError) as e:
                 if token is not None:
                     logger.warning(
                         "manual_refresher.outbox-failure",
@@ -83,7 +83,7 @@ class ManualTokenRefresher:
         )
 
     def _validate(self) -> None:
-        Validator(install=self.install, client_id=self.client_id, user=self.user).run()
+        Validator(install=self.installation, client_id=self.client_id, user=self.user).run()
 
     def _create_new_token(self) -> ApiToken:
         token = ApiToken.objects.create(
@@ -97,6 +97,17 @@ class ManualTokenRefresher:
         except SentryAppInstallation.DoesNotExist:
             pass
         return token
+
+    @cached_property
+    def installation(self) -> SentryAppInstallation:
+        try:
+            return SentryAppInstallation.objects.get(id=self.install.id)
+        except SentryAppInstallation.DoesNotExist:
+            raise SentryAppIntegratorError(
+                message="Installation not found",
+                status_code=404,
+                webhook_context={"installation_uuid": self.install.uuid},
+            )
 
     @cached_property
     def application(self) -> ApiApplication:

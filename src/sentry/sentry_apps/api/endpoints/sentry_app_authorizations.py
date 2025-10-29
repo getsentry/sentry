@@ -1,15 +1,13 @@
 import logging
-from datetime import datetime
-from typing import Any
 
 import sentry_sdk
-from django.http import HttpHeaders
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import get_payload_from_client_secret_jwt
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.auth.services.auth.impl import promote_request_api_user
@@ -20,7 +18,6 @@ from sentry.sentry_apps.token_exchange.manual_refresher import ManualTokenRefres
 from sentry.sentry_apps.token_exchange.refresher import Refresher
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
-from sentry.utils import jwt
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +36,6 @@ class SentryAppAuthorizationSerializer(serializers.Serializer):
 
 class SentryAppClientSecretJWTSerializer(serializers.Serializer):
     grant_type = serializers.CharField(required=True, allow_null=False)
-    operation = serializers.CharField(required=True, allow_null=False)
 
 
 @control_silo_endpoint
@@ -85,24 +81,16 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 ).run()
             elif request.data.get("grant_type") == GrantTypes.CLIENT_SECRET_JWT:
                 client_secret_jwt_serializer = SentryAppClientSecretJWTSerializer(data=request.data)
-
                 if not client_secret_jwt_serializer.is_valid():
                     return Response(client_secret_jwt_serializer.errors, status=400)
 
-                try:
-                    payload = validate_client_secret_jwt(
-                        headers=request.headers, installation=installation
-                    )
-                except Exception as e:
-                    sentry_sdk.capture_exception(e)
-                    return Response({"detail": "could not validate JWT"}, status=403)
-
-                if request.data.get("operation") == "manual_token_refresh":
-                    token = ManualTokenRefresher(
-                        install=installation,
-                        client_id=payload["iss"],
-                        user=promote_request_api_user(request),
-                    ).run()
+                # we've already validated the JWT in the authentication class so we can use the payload
+                payload = get_payload_from_client_secret_jwt(request.headers, installation)
+                token = ManualTokenRefresher(
+                    install=installation,
+                    client_id=payload["iss"],
+                    user=promote_request_api_user(request),
+                ).run()
 
             else:
                 raise SentryAppIntegratorError(message="Invalid grant_type", status_code=403)
@@ -124,34 +112,3 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
         body = ApiTokenSerializer().serialize(token, attrs, promote_request_api_user(request))
 
         return Response(body, status=201)
-
-
-def validate_client_secret_jwt(
-    headers: HttpHeaders, installation: SentryAppInstallation
-) -> dict[str, Any]:
-    auth_header = headers.get("Authorization")
-    if auth_header is None:
-        raise serializers.ValidationError("Header is in invalid form")
-
-    tokens = auth_header.split(" ")  # Should be Bearer <token>
-    if tokens[0].lower() != "bearer":
-        raise serializers.ValidationError("Bearer not present in token")
-
-    application = installation.sentry_app.application
-    if application is None:
-        raise serializers.ValidationError("Application not found")
-
-    client_secret = application.client_secret
-    encoded_jwt = tokens[1]
-    try:
-        payload = jwt.decode(encoded_jwt, client_secret, algorithms=["HS256"])
-    except Exception as e:
-        raise serializers.ValidationError("Could not validate JWT") from e
-
-    if payload.get("iss") is not None and payload["iss"] != application.client_id:
-        raise serializers.ValidationError("JWT is not valid for this application")
-
-    if payload.get("exp") is not None and payload["exp"] < datetime.now().timestamp():
-        raise serializers.ValidationError("JWT is expired")
-
-    return payload

@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from django.test import RequestFactory, override_settings
@@ -10,6 +10,7 @@ from sentry_relay.auth import generate_key_pair
 from sentry.api.authentication import (
     ClientIdSecretAuthentication,
     DSNAuthentication,
+    JWTClientSecretAuthentication,
     OrgAuthTokenAuthentication,
     RelayAuthentication,
     RpcSignatureAuthentication,
@@ -36,6 +37,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
 from sentry.types.token import AuthTokenType
+from sentry.utils import jwt
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
@@ -106,6 +108,106 @@ class TestClientIdSecretAuthentication(TestCase):
         )
 
         with pytest.raises(AuthenticationFailed):
+            self.auth.authenticate(request)
+
+
+@control_silo_test
+class TestJWTClientSecretAuthentication(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.auth = JWTClientSecretAuthentication()
+        self.org = self.create_organization(owner=self.user)
+        self.sentry_app = self.create_sentry_app(name="foo", organization=self.org)
+        self.installation = self.create_sentry_app_installation(
+            organization=self.org, slug=self.sentry_app.slug, user=self.user
+        )
+        self.api_app = self.sentry_app.application
+
+    def _create_jwt(self, client_id: str, exp: datetime | None = None) -> str:
+        """Helper to create a JWT token"""
+        if exp is None:
+            exp = datetime.now() + timedelta(hours=1)
+
+        payload = {
+            "iss": client_id,  # Issuer
+            "sub": client_id,  # Subject
+            "iat": int(datetime.now(UTC).timestamp()),  # Issued at
+            "exp": int(exp.timestamp()),  # Expiration
+            "jti": str(uuid.uuid4()),  # JWT ID (unique identifier)
+        }
+        return jwt.encode(payload, self.api_app.client_secret, algorithm="HS256")
+
+    def test_authenticate(self) -> None:
+        token = self._create_jwt(self.api_app.client_id)
+        request = _drf_request({"dummy": "data"})
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+        request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+
+        user, _ = self.auth.authenticate(request)
+        assert user.id == self.sentry_app.proxy_user.id
+
+    def test_missing_installation(self) -> None:
+        token = self._create_jwt(self.api_app.client_id)
+        request = _drf_request({"dummy": "data"})
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+        request.path = f"/api/0/sentry-app-installations/{uuid.uuid4()}/authorizations/"
+
+        with pytest.raises(AuthenticationFailed, match="Installation not found"):
+            self.auth.authenticate(request)
+
+    def test_invalid_client_id(self) -> None:
+        token = self._create_jwt("wrong-client-id")
+        request = _drf_request({"dummy": "data"})
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+        request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+
+        with pytest.raises(AuthenticationFailed, match="JWT is not valid for this application"):
+            self.auth.authenticate(request)
+
+    def test_expired_token(self) -> None:
+        expired_time = datetime.now() - timedelta(hours=1)
+        token = self._create_jwt(self.api_app.client_id, exp=expired_time)
+        request = _drf_request({"dummy": "data"})
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+        request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+
+        with pytest.raises(
+            AuthenticationFailed, match="Could not validate JWT, got error: Signature has expired"
+        ):
+            self.auth.authenticate(request)
+
+    def test_missing_authorization_header(self) -> None:
+        request = _drf_request({"dummy": "data"})
+        request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+
+        with pytest.raises(AuthenticationFailed, match="Header is in invalid form"):
+            self.auth.authenticate(request)
+
+    def test_invalid_bearer_format(self) -> None:
+        token = self._create_jwt(self.api_app.client_id)
+        request = _drf_request({"dummy": "data"})
+        request.META["HTTP_AUTHORIZATION"] = f"Token {token}"  # Wrong scheme
+        request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+
+        with pytest.raises(AuthenticationFailed, match="Bearer not present in token"):
+            self.auth.authenticate(request)
+
+    def test_malformed_jwt(self) -> None:
+        request = _drf_request({"dummy": "data"})
+        request.META["HTTP_AUTHORIZATION"] = "Bearer invalid.jwt.token"
+        request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+
+        with pytest.raises(AuthenticationFailed, match="Could not validate JWT"):
+            self.auth.authenticate(request)
+
+    def test_no_request_data(self) -> None:
+        token = self._create_jwt(self.api_app.client_id)
+        request = _drf_request()  # No data
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+        request.path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+
+        with pytest.raises(AuthenticationFailed, match="Invalid request"):
             self.auth.authenticate(request)
 
 
