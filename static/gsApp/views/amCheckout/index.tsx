@@ -913,60 +913,54 @@ class AMCheckout extends Component<Props, State> {
             ) : (
               <CheckoutOverview {...overviewProps} />
             )}
-            <Flex
-              justify="between"
-              background="primary"
-              padding="xl"
-              border="primary"
-              radius="md"
-              gap="xl"
-              align="start"
-            >
-              {t('Have a question?')}
-              <Text align="right">
-                {tct('[help:Find an answer] or [contact]', {
-                  help: (
-                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
-                  ),
-                  contact: hasZendesk() ? (
-                    <Button size="zero" priority="link" onClick={activateZendesk}>
-                      <Text variant="accent">{t('ask Support')}</Text>
-                    </Button>
-                  ) : (
-                    <ZendeskLink subject="Billing Question" source="checkout">
-                      {t('ask Support')}
-                    </ZendeskLink>
-                  ),
-                })}
-              </Text>
-            </Flex>
-          </OverviewContainer>
-          {/* temporarily hiding this until we have a better way to display it in new checkout */}
-          {!isNewCheckout && (
-            <Text size="md" align="center" variant="muted">
-              {discountInfo?.disclaimerText}
-            </Text>
-          )}
 
-          {subscription.canCancel && (
-            <LinkButton
-              to={`/settings/${organization.slug}/billing/cancel/`}
-              disabled={subscription.cancelAtPeriodEnd}
-            >
-              {subscription.cancelAtPeriodEnd
-                ? t('Pending Cancellation')
-                : t('Cancel Subscription')}
-            </LinkButton>
-          )}
-          {showAnnualTerms && (
-            <Text size="sm" align="center" variant="muted">
-              {tct(
-                `Annual subscriptions require a one-year non-cancellable commitment.
-              By using Sentry you agree to our [terms: Terms of Service].`,
-                {terms: <a href="https://sentry.io/terms/" />}
+            <Stack padding="xl" gap="xl">
+              <Flex justify="between" gap="xl" align="center">
+                {t('Have a question?')}
+                <Text align="right">
+                  {tct('[help:Find an answer] or [contact]', {
+                    help: (
+                      <ExternalLink href="https://sentry.zendesk.com/hc/en-us/categories/17135853065755-Account-Billing" />
+                    ),
+                    contact: hasZendesk() ? (
+                      <Button size="zero" priority="link" onClick={activateZendesk}>
+                        <Text variant="accent">{t('ask Support')}</Text>
+                      </Button>
+                    ) : (
+                      <ZendeskLink subject="Billing Question" source="checkout">
+                        {t('ask Support')}
+                      </ZendeskLink>
+                    ),
+                  })}
+                </Text>
+              </Flex>
+              {/* temporarily hiding this until we have a better way to display it in new checkout */}
+              {!isNewCheckout && (
+                <Text size="md" align="center" variant="muted">
+                  {discountInfo?.disclaimerText}
+                </Text>
               )}
-            </Text>
-          )}
+              {subscription.canCancel && (
+                <LinkButton
+                  to={`/settings/${organization.slug}/billing/cancel/`}
+                  disabled={subscription.cancelAtPeriodEnd}
+                  size="sm"
+                >
+                  {subscription.cancelAtPeriodEnd
+                    ? t('Pending Cancellation')
+                    : t('Cancel Subscription')}
+                </LinkButton>
+              )}
+              {showAnnualTerms && (
+                <Text size="xs" align="center" variant="muted">
+                  {tct(
+                    `Annual subscriptions require a one-year non-cancellable commitment. By using Sentry you agree to our [terms: Terms of Service].`,
+                    {terms: <a href="https://sentry.io/terms/" />}
+                  )}
+                </Text>
+              )}
+            </Stack>
+          </OverviewContainer>
         </SidePanel>
       </Fragment>
     );
@@ -1117,11 +1111,11 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
       flex-direction: column;
       padding: 0 ${p.theme.space['2xl']};
       background-color: ${p.theme.backgroundSecondary};
+
       @media (min-width: ${p.theme.breakpoints.md}) {
         position: sticky;
         right: 0;
         top: 6.25rem;
-        min-height: 100vh;
         max-width: 26rem;
         border-top: none;
         padding-left: ${p.theme.space['3xl']};

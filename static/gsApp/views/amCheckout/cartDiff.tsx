@@ -650,7 +650,7 @@ const ChangedCategory = styled('div')`
 `;
 
 const ChangeSection = styled('div')`
-  margin-bottom: ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const ChangeGrid = styled('div')`
