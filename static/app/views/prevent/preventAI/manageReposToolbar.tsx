@@ -11,7 +11,7 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useInfiniteRepositories} from 'sentry/views/prevent/preventAI/hooks/usePreventAIInfiniteRepositories';
 import {getRepoNameWithoutOrg} from 'sentry/views/prevent/preventAI/utils';
 
-export const ALL_REPOS_VALUE = '__$ALL_REPOS__';
+const ALL_REPOS_VALUE = '__$ALL_REPOS__';
 
 function ManageReposToolbar({
   integratedOrgs,
@@ -19,14 +19,12 @@ function ManageReposToolbar({
   onRepoChange,
   selectedOrg,
   selectedRepo,
-  selectedRepoData,
 }: {
   integratedOrgs: OrganizationIntegration[];
   onOrgChange: (orgId: string) => void;
-  onRepoChange: (repoId: string) => void;
+  onRepoChange: (repo: Repository | null) => void;
   selectedOrg: string;
-  selectedRepo: string;
-  selectedRepoData: Repository | null;
+  selectedRepo: Repository | null;
 }) {
   const [searchValue, setSearchValue] = useState<string | undefined>();
   const debouncedSearch = useDebouncedValue(searchValue, 300);
@@ -119,11 +117,11 @@ function ManageReposToolbar({
       label: getRepoNameWithoutOrg(repo.name),
     }));
 
-    if (selectedRepoData && selectedRepo !== ALL_REPOS_VALUE) {
+    if (selectedRepo) {
       repoOptions = [
         {
-          value: selectedRepoData.id,
-          label: getRepoNameWithoutOrg(selectedRepoData.name),
+          value: selectedRepo.id,
+          label: getRepoNameWithoutOrg(selectedRepo.name),
         },
         ...repoOptions,
       ];
@@ -131,7 +129,7 @@ function ManageReposToolbar({
 
     const dedupedRepoOptions = uniqBy(repoOptions, 'value');
     return [{value: ALL_REPOS_VALUE, label: t('All Repos')}, ...dedupedRepoOptions];
-  }, [filteredReposData, selectedRepo, selectedRepoData]);
+  }, [filteredReposData, selectedRepo]);
 
   const getRepoEmptyMessage = () => {
     if (isLoading) return t('Loading repositories...');
@@ -162,11 +160,19 @@ function ManageReposToolbar({
         />
 
         <CompactSelect
-          value={selectedRepo}
+          value={selectedRepo?.id ?? ALL_REPOS_VALUE}
           options={repositoryOptions}
           loading={isLoading}
           disabled={!selectedOrg || isLoading}
-          onChange={option => onRepoChange(option?.value ?? '')}
+          onChange={option => {
+            const repoId = option?.value;
+            if (repoId === ALL_REPOS_VALUE) {
+              onRepoChange(null);
+            } else {
+              const foundRepo = allReposData.find(repo => repo.id === repoId);
+              onRepoChange(foundRepo ?? null);
+            }
+          }}
           searchable
           disableSearchFilter
           onSearch={setSearchValue}
@@ -181,8 +187,9 @@ function ManageReposToolbar({
             icon: <IconRepository />,
             children: (
               <TriggerLabel>
-                {repositoryOptions.find(opt => opt.value === selectedRepo)?.label ||
-                  t('Select repository')}
+                {repositoryOptions.find(
+                  opt => opt.value === (selectedRepo?.id ?? ALL_REPOS_VALUE)
+                )?.label || t('Select repository')}
               </TriggerLabel>
             ),
           }}

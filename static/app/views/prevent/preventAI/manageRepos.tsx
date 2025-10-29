@@ -13,12 +13,10 @@ import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {OrganizationIntegration} from 'sentry/types/integrations';
+import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
 import {useInfiniteRepositories} from 'sentry/views/prevent/preventAI/hooks/usePreventAIInfiniteRepositories';
 import ManageReposPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
-import ManageReposToolbar, {
-  ALL_REPOS_VALUE,
-} from 'sentry/views/prevent/preventAI/manageReposToolbar';
+import ManageReposToolbar from 'sentry/views/prevent/preventAI/manageReposToolbar';
 
 import {FeatureOverview} from './onboarding';
 
@@ -29,7 +27,7 @@ function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegrat
   const [selectedOrgId, setSelectedOrgId] = useState<string>(
     () => integratedOrgs[0]?.id ?? ''
   );
-  const [selectedRepoId, setSelectedRepoId] = useState<string>(() => ALL_REPOS_VALUE);
+  const [selectedRepo, setSelectedRepo] = useState<Repository | null>(() => null);
 
   const queryResult = useInfiniteRepositories({
     integrationId: selectedOrgId,
@@ -46,23 +44,13 @@ function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegrat
     return found ?? integratedOrgs[0];
   }, [integratedOrgs, selectedOrgId]);
 
-  // If the selected repo is not present in the list of repos, use null (for "All Repos")
-  const selectedRepo = useMemo(() => {
-    if (selectedRepoId === ALL_REPOS_VALUE) {
-      return null;
-    }
-    const found = reposData.find(repo => repo.id === selectedRepoId);
-    return found ?? null;
-  }, [reposData, selectedRepoId]);
-
   // When the org changes, reset to "All Repos"
   const setSelectedOrgIdWithCascadeRepoId = useCallback((orgId: string) => {
     setSelectedOrgId(orgId);
-    setSelectedRepoId(ALL_REPOS_VALUE);
+    setSelectedRepo(null);
   }, []);
 
   const isOrgSelected = !!selectedOrg;
-  const isRepoSelected = selectedRepoId === ALL_REPOS_VALUE || !!selectedRepo;
 
   return (
     <Flex direction="column" maxWidth="1000px" gap="xl">
@@ -70,15 +58,14 @@ function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegrat
         <ManageReposToolbar
           integratedOrgs={integratedOrgs}
           selectedOrg={selectedOrgId}
-          selectedRepo={selectedRepoId}
-          selectedRepoData={selectedRepo}
+          selectedRepo={selectedRepo}
           onOrgChange={setSelectedOrgIdWithCascadeRepoId}
-          onRepoChange={setSelectedRepoId}
+          onRepoChange={setSelectedRepo}
         />
         <Flex style={{transform: 'translateY(-70px)'}}>
           <Tooltip
             title="Select an organization and repository to configure settings"
-            disabled={isOrgSelected && isRepoSelected}
+            disabled={isOrgSelected}
             position="left"
           >
             <Button
@@ -86,8 +73,8 @@ function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegrat
               icon={<IconSettings size="md" />}
               aria-label="Settings"
               onClick={() => setIsPanelOpen(true)}
-              disabled={!isOrgSelected || !isRepoSelected}
-              tabIndex={!isOrgSelected || !isRepoSelected ? -1 : 0}
+              disabled={!isOrgSelected}
+              tabIndex={isOrgSelected ? 0 : -1}
               data-test-id="manage-repos-settings-button"
             />
           </Tooltip>
@@ -141,15 +128,15 @@ function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegrat
         />
       </Flex>
 
-      {selectedOrg && (selectedRepoId === ALL_REPOS_VALUE || selectedRepo) && (
+      {selectedOrg && (
         <ManageReposPanel
-          key={`${selectedOrgId || 'no-org'}-${selectedRepoId || 'no-repo'}`}
+          key={`${selectedOrgId || 'no-org'}-${selectedRepo?.id || 'all-repos'}`}
           collapsed={!isPanelOpen}
           onClose={() => setIsPanelOpen(false)}
           org={selectedOrg}
           repo={selectedRepo}
           allRepos={reposData}
-          isEditingOrgDefaults={selectedRepoId === ALL_REPOS_VALUE}
+          isEditingOrgDefaults={selectedRepo === null}
         />
       )}
     </Flex>

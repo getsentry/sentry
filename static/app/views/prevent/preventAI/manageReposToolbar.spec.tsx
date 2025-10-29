@@ -107,8 +107,7 @@ describe('ManageReposToolbar', () => {
   const defaultProps = {
     integratedOrgs: mockIntegratedOrgs,
     selectedOrg: '1',
-    selectedRepo: '1',
-    selectedRepoData: mockRepositories[0] ?? null,
+    selectedRepo: mockRepositories[0] ?? null,
     onOrgChange: jest.fn(),
     onRepoChange: jest.fn(),
   };
@@ -213,7 +212,7 @@ describe('ManageReposToolbar', () => {
     const repoOption = screen.getByText('repo-2');
     await userEvent.click(repoOption);
 
-    expect(defaultProps.onRepoChange).toHaveBeenCalledWith('2');
+    expect(defaultProps.onRepoChange).toHaveBeenCalledWith(mockRepositories[1]);
   });
 
   it('shows only repos for the selected org', async () => {
@@ -232,8 +231,7 @@ describe('ManageReposToolbar', () => {
       <ManageReposToolbar
         {...defaultProps}
         selectedOrg="2"
-        selectedRepo="3"
-        selectedRepoData={mockOrg2Repositories[0] ?? null}
+        selectedRepo={mockOrg2Repositories[0] ?? null}
       />,
       {
         organization: OrganizationFixture({slug: 'org-slug'}),
@@ -273,7 +271,7 @@ describe('ManageReposToolbar', () => {
     expect(await screen.findByText('All Repos')).toBeInTheDocument();
   });
 
-  it('calls onRepoChange with "__$ALL_REPOS__" when "All Repos" is selected', async () => {
+  it('calls onRepoChange with null when "All Repos" is selected', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/repos/',
       body: mockRepositories,
@@ -295,6 +293,6 @@ describe('ManageReposToolbar', () => {
     const allReposOption = await screen.findByText('All Repos');
     await userEvent.click(allReposOption);
 
-    expect(defaultProps.onRepoChange).toHaveBeenCalledWith('__$ALL_REPOS__');
+    expect(defaultProps.onRepoChange).toHaveBeenCalledWith(null);
   });
 });
