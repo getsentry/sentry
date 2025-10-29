@@ -311,7 +311,7 @@ export interface SeerRepoDefinition {
   provider_raw?: string;
 }
 
-export interface SeerAutomationHandoffConfiguration {
+interface SeerAutomationHandoffConfiguration {
   handoff_point: 'root_cause';
   target: 'cursor_background_agent';
 }
