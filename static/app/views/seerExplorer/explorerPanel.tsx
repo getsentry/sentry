@@ -206,6 +206,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
               isFocused={focusedBlockIndex === index}
               isPolling={isPolling}
               onClick={() => handleBlockClick(index)}
+              onMouseEnter={() => setFocusedBlockIndex(index)}
               onDelete={() => deleteFromIndex(index)}
               onNavigate={() => setIsMinimized(true)}
               onRegisterEnterHandler={handler => {
