@@ -34,7 +34,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.plugins.providers.repository import RepositoryProvider
-from sentry.releases.commits import bulk_create_commit_file_changes, get_or_create_commit
+from sentry.releases.commits import get_or_create_commit
 
 
 class _CommitDataKwargs(TypedDict, total=False):
