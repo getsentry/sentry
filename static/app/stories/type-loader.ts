@@ -128,5 +128,13 @@ function extractRequest(module: LoaderContext<any>['_module']) {
   if (!module || !('rawRequest' in module) || typeof module.rawRequest !== 'string') {
     return '';
   }
-  return module.rawRequest.split('!')?.at(-1) ?? '';
+
+  let modulePath = module.rawRequest.split('!')?.at(-1) ?? '';
+
+  // @TODO: if we ever build on Windows, this will break... we should hopefully never need to build on Windows
+  if (modulePath.endsWith('/index')) {
+    modulePath = modulePath.slice(0, -6);
+  }
+
+  return modulePath;
 }
