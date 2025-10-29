@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from enum import StrEnum
 from typing import Literal
 
 import orjson
@@ -59,6 +60,7 @@ class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
         choices=["cursor_background_agent"],
         required=True,
     )
+    integration_id = serializers.IntegerField(required=True)
 
 
 class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
@@ -69,9 +71,14 @@ class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
     )
 
 
+class AutofixHandoffPoint(StrEnum):
+    ROOT_CAUSE = "root_cause"
+
+
 class SeerAutomationHandoffConfiguration(BaseModel):
-    handoff_point: Literal["root_cause"]
+    handoff_point: AutofixHandoffPoint
     target: Literal["cursor_background_agent"]
+    integration_id: int
 
 
 class SeerProjectPreference(BaseModel):

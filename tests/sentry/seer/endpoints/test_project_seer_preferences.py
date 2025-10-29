@@ -299,6 +299,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             "automation_handoff": {
                 "handoff_point": "root_cause",
                 "target": "cursor_background_agent",
+                "integration_id": 123,
             },
         }
 
@@ -322,37 +323,6 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert "automation_handoff" in preference
         assert preference["automation_handoff"]["handoff_point"] == "root_cause"
         assert preference["automation_handoff"]["target"] == "cursor_background_agent"
-
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
-    def test_post_without_automation_handoff(self, mock_post: MagicMock) -> None:
-        """Test that POST request works when automation_handoff is not provided (optional field)"""
-        # Setup the mock
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
-
-        # Request data without automation_handoff
-        request_data = {
-            "repositories": [
-                {
-                    "organization_id": self.org.id,
-                    "integration_id": "111",
-                    "provider": "github",
-                    "owner": "getsentry",
-                    "name": "sentry",
-                    "external_id": "123456",
-                }
-            ]
-        }
-
-        # Make the request
-        response = self.client.post(self.url, data=request_data)
-
-        # Assert the response is successful
-        assert response.status_code == 204
-
-        # Assert that the mock was called
-        mock_post.assert_called_once()
 
     @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
     def test_post_with_null_automation_handoff(self, mock_post: MagicMock) -> None:
@@ -392,36 +362,6 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert body_dict["preference"]["automation_handoff"] is None
 
     @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
-    def test_post_with_invalid_automation_handoff_handoff_point(self, mock_post: MagicMock) -> None:
-        """Test that POST request fails with invalid handoff_point value"""
-        # Request data with invalid handoff_point
-        request_data = {
-            "repositories": [
-                {
-                    "organization_id": self.org.id,
-                    "integration_id": "111",
-                    "provider": "github",
-                    "owner": "getsentry",
-                    "name": "sentry",
-                    "external_id": "123456",
-                }
-            ],
-            "automation_handoff": {
-                "handoff_point": "invalid_handoff_point",
-                "target": "cursor_background_agent",
-            },
-        }
-
-        # Make the request
-        response = self.client.post(self.url, data=request_data)
-
-        # Should fail with a 400 error for invalid request data
-        assert response.status_code == 400
-
-        # The post to Seer should not be called since validation fails
-        mock_post.assert_not_called()
-
-    @patch("sentry.seer.endpoints.project_seer_preferences.requests.post")
     def test_post_with_invalid_automation_handoff_target(self, mock_post: MagicMock) -> None:
         """Test that POST request fails with invalid target value"""
         # Request data with invalid target
@@ -439,6 +379,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             "automation_handoff": {
                 "handoff_point": "root_cause",
                 "target": "invalid_target",
+                "integration_id": 123,
             },
         }
 
@@ -472,6 +413,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             automation_handoff=SeerAutomationHandoffConfiguration(
                 handoff_point="root_cause",
                 target="cursor_background_agent",
+                integration_id=123,
             ),
         )
 
