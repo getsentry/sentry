@@ -4,7 +4,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs from './unity';
+import docs from '.';
 
 function renderMockRequests() {
   MockApiClient.addMockResponse({
