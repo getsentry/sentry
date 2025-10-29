@@ -2,7 +2,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs from 'sentry/gettingStartedDocs/react-native/react-native';
+import docs from '.';
 
 describe('getting started with react-native', () => {
   it('renders docs correctly', async () => {
