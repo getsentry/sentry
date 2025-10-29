@@ -33,6 +33,7 @@ const knownSpanOrigins = {
     'auto.ai.anthropic',
     'auto.ai.litellm',
     'auto.ai.google_genai',
+    'auto.ai.pydantic_ai',
   ],
   javascript: ['auto.ai.anthropic', 'auto.ai.openai', 'auto.vercelai.otel'],
 } as const;
@@ -139,6 +140,8 @@ const pythonIntegrationLinks: Record<PythonSpanOrigin, string> = {
   'auto.ai.litellm': 'https://docs.sentry.io/platforms/python/integrations/litellm/',
   'auto.ai.google_genai':
     'https://docs.sentry.io/platforms/python/integrations/google-genai/',
+  'auto.ai.pydantic_ai':
+    'https://docs.sentry.io/platforms/python/integrations/pydantic-ai/',
 };
 
 function PythonContent({
