@@ -462,7 +462,7 @@ def _single_stacktrace_variant(
         and frame_components[0].contributes
         and get_behavior_family_for_platform(frames[0].platform or event.platform) == "javascript"
         and not frames[0].function
-        and frames[0].is_url()
+        and has_url_origin(frames[0].abs_path, files_count_as_urls=True)
     ):
         frame_components[0].update(
             contributes=False, hint="ignored single non-URL JavaScript frame"
