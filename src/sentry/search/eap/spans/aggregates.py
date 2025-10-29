@@ -19,6 +19,7 @@ from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
     ConditionalAggregateDefinition,
+    Extrapolation,
     ResolvedArguments,
     ValueArgumentDefinition,
     count_argument_resolver_optimized,
@@ -451,7 +452,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         ],
         aggregate_resolver=resolve_bounded_sample,
         processor=lambda x: x > 0,
-        extrapolation=False,
+        extrapolation=Extrapolation.NONE,
     ),
 }
 
@@ -508,7 +509,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
-        extrapolation=False,
+        extrapolation=Extrapolation.NONE,
     ),
     "count": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -549,7 +550,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
-        extrapolation=False,
+        extrapolation=Extrapolation.NONE,
     ),
     "p50": AggregateDefinition(
         internal_function=Function.FUNCTION_P50,
@@ -585,7 +586,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 default_arg="span.duration",
             )
         ],
-        extrapolation=False,
+        extrapolation=Extrapolation.NONE,
     ),
     "p75": AggregateDefinition(
         internal_function=Function.FUNCTION_P75,

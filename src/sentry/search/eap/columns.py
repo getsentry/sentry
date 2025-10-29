@@ -1,6 +1,7 @@
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from typing import Any, Literal, TypeAlias, TypedDict
 
 from dateutil.tz import tz
@@ -27,6 +28,18 @@ from sentry.search.events.types import SnubaParams
 
 ResolvedArgument: TypeAlias = AttributeKey | str | int | float
 ResolvedArguments: TypeAlias = list[ResolvedArgument]
+
+
+class Extrapolation(Enum):
+    """
+    Defines the extrapolation mode for aggregations.
+
+    - SAMPLE_WEIGHTED: Apply sample-weighted extrapolation (default for most aggregations)
+    - NONE: Do not apply any extrapolation (used for _sample functions)
+    """
+
+    SAMPLE_WEIGHTED = ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+    NONE = ExtrapolationMode.EXTRAPOLATION_MODE_NONE
 
 
 class ResolverSettings(TypedDict):
@@ -199,8 +212,8 @@ class ResolvedAggregate(ResolvedFunction):
 
     # The internal rpc alias for this column
     internal_name: Function.ValueType
-    # Whether to enable extrapolation
-    extrapolation: bool = True
+    # The extrapolation mode to use
+    extrapolation: Extrapolation = Extrapolation.SAMPLE_WEIGHTED
     is_aggregate: bool = field(default=True, init=False)
     # Only for aggregates, we only support functions with 1 argument right now
     argument: AttributeKey | None = None
@@ -212,11 +225,7 @@ class ResolvedAggregate(ResolvedFunction):
             aggregate=self.internal_name,
             key=self.argument,
             label=self.public_alias,
-            extrapolation_mode=(
-                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-                if self.extrapolation
-                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
-            ),
+            extrapolation_mode=self.extrapolation.value,
         )
 
 
@@ -224,8 +233,8 @@ class ResolvedAggregate(ResolvedFunction):
 class ResolvedConditionalAggregate(ResolvedFunction):
     # The internal rpc alias for this column
     internal_name: Function.ValueType
-    # Whether to enable extrapolation
-    extrapolation: bool = True
+    # The extrapolation mode to use
+    extrapolation: Extrapolation = Extrapolation.SAMPLE_WEIGHTED
     # The condition to filter on
     filter: TraceItemFilter
     # The attribute to conditionally aggregate on
@@ -241,11 +250,7 @@ class ResolvedConditionalAggregate(ResolvedFunction):
             key=self.key,
             filter=self.filter,
             label=self.public_alias,
-            extrapolation_mode=(
-                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-                if self.extrapolation
-                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
-            ),
+            extrapolation_mode=self.extrapolation.value,
         )
 
 
@@ -278,8 +283,8 @@ class FunctionDefinition:
     infer_search_type_from_arguments: bool = True
     # The internal rpc type for this function, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
-    # Whether to request extrapolation or not, should be true for all functions except for _sample functions for debugging
-    extrapolation: bool = True
+    # The extrapolation mode to use for this function
+    extrapolation: Extrapolation = Extrapolation.SAMPLE_WEIGHTED
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
     # if a function is private, assume it can't be used unless it's provided in `SearchResolverConfig.functions_acl`
@@ -298,7 +303,7 @@ class FunctionDefinition:
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
-        extrapolation_override: bool = False,
+        extrapolation_override: Extrapolation | None = None,
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
@@ -319,7 +324,7 @@ class AggregateDefinition(FunctionDefinition):
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
-        extrapolation_override: bool = False,
+        extrapolation_override: Extrapolation | None = None,
     ) -> ResolvedAggregate:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
@@ -341,7 +346,9 @@ class AggregateDefinition(FunctionDefinition):
             search_type=search_type,
             internal_type=self.internal_type,
             processor=self.processor,
-            extrapolation=self.extrapolation if not extrapolation_override else False,
+            extrapolation=(
+                extrapolation_override if extrapolation_override is not None else self.extrapolation
+            ),
             argument=resolved_attribute,
         )
 
@@ -367,7 +374,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
-        extrapolation_override: bool = False,
+        extrapolation_override: Extrapolation | None = None,
     ) -> ResolvedConditionalAggregate:
         key, aggregate_filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
@@ -378,7 +385,9 @@ class ConditionalAggregateDefinition(FunctionDefinition):
             filter=aggregate_filter,
             key=key,
             processor=self.processor,
-            extrapolation=self.extrapolation if not extrapolation_override else False,
+            extrapolation=(
+                extrapolation_override if extrapolation_override is not None else self.extrapolation
+            ),
         )
 
 
@@ -401,14 +410,15 @@ class FormulaDefinition(FunctionDefinition):
         resolved_arguments: list[AttributeKey | Any],
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
-        extrapolation_override: bool = False,
+        extrapolation_override: Extrapolation | None = None,
     ) -> ResolvedFormula:
+        # Determine the extrapolation mode to use
+        extrapolation = (
+            extrapolation_override if extrapolation_override is not None else self.extrapolation
+        )
+
         resolver_settings = ResolverSettings(
-            extrapolation_mode=(
-                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-                if self.extrapolation and not extrapolation_override
-                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
-            ),
+            extrapolation_mode=extrapolation.value,
             snuba_params=snuba_params,
             query_result_cache=query_result_cache,
         )
