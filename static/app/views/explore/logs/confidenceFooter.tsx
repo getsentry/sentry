@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
+import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -14,12 +15,14 @@ import type {RawLogCounts} from 'sentry/views/explore/logs/useLogsQuery';
 
 interface ConfidenceFooterProps {
   chartInfo: ChartInfo;
+  hasUserQuery: boolean;
   isLoading: boolean;
   rawLogCounts: RawLogCounts;
 }
 
 export function ConfidenceFooter({
   chartInfo: currentChartInfo,
+  hasUserQuery,
   isLoading,
   rawLogCounts,
 }: ConfidenceFooterProps) {
@@ -28,6 +31,7 @@ export function ConfidenceFooter({
     <Container>
       <ConfidenceMessage
         isLoading={isLoading}
+        hasUserQuery={hasUserQuery}
         rawLogCounts={rawLogCounts}
         confidence={chartInfo.confidence}
         dataScanned={chartInfo.dataScanned}
@@ -40,6 +44,7 @@ export function ConfidenceFooter({
 }
 
 interface ConfidenceMessageProps {
+  hasUserQuery: boolean;
   isLoading: boolean;
   rawLogCounts: RawLogCounts;
   confidence?: Confidence;
@@ -55,77 +60,107 @@ function ConfidenceMessage({
   dataScanned,
   confidence: _confidence,
   topEvents,
+  hasUserQuery,
   isLoading,
   isSampled,
 }: ConfidenceMessageProps) {
   const isTopN = defined(topEvents) && topEvents > 1;
 
   if (!defined(sampleCount) || isLoading) {
-    return <Placeholder width={180} />;
+    return (
+      <OffsetContainer>
+        <Placeholder width={180} />
+      </OffsetContainer>
+    );
   }
 
   const noSampling = defined(isSampled) && !isSampled;
-  const matchingLogsCount = <Count value={sampleCount} />;
+  const matchingLogsCount =
+    sampleCount > 1
+      ? t('%s matches', <Count value={sampleCount} />)
+      : t('%s match', <Count value={sampleCount} />);
   const downsampledLogsCount = rawLogCounts.normal.count ? (
-    <Count value={rawLogCounts.normal.count} />
+    rawLogCounts.normal.count > 1 ? (
+      t('%s samples', <Count value={rawLogCounts.normal.count} />)
+    ) : (
+      t('%s sample', <Count value={rawLogCounts.normal.count} />)
+    )
   ) : (
-    <Placeholder width={40} />
+    <OffsetContainer>
+      <Placeholder width={40} />
+    </OffsetContainer>
   );
   const allLogsCount = rawLogCounts.highAccuracy.count ? (
-    <Count value={rawLogCounts.highAccuracy.count} />
+    rawLogCounts.highAccuracy.count > 1 ? (
+      t('%s logs', <Count value={rawLogCounts.highAccuracy.count} />)
+    ) : (
+      t('%s log', <Count value={rawLogCounts.highAccuracy.count} />)
+    )
   ) : (
-    <Placeholder width={40} />
+    <OffsetContainer>
+      <Placeholder width={40} />
+    </OffsetContainer>
   );
-  const suffix = rawLogCounts.highAccuracy.count ? t('logs') : '';
 
   if (dataScanned === 'full') {
+    if (!hasUserQuery) {
+      if (isTopN) {
+        return tct('Log count for top [topEvents] groups: [matchingLogsCount]', {
+          topEvents,
+          matchingLogsCount: <Count value={sampleCount} />,
+        });
+      }
+
+      return tct('Log count: [matchingLogsCount]', {
+        matchingLogsCount: <Count value={sampleCount} />,
+      });
+    }
+
     // For logs, if the full data was scanned, we can assume that no
     // extrapolation happened and we should remove mentions of extrapolation.
     if (isTopN) {
-      return tct(
-        '[matchingLogsCount] matching logs for top [topEvents] groups after scanning [allLogsCount] [suffix]',
-        {
-          topEvents,
-          matchingLogsCount,
-          allLogsCount,
-          suffix,
-        }
-      );
-    }
-
-    return tct(
-      '[matchingLogsCount] matching logs after scanning [allLogsCount] [suffix]',
-      {
+      return tct('[matchingLogsCount] for top [topEvents] groups in [allLogsCount]', {
+        topEvents,
         matchingLogsCount,
         allLogsCount,
-        suffix,
-      }
-    );
+      });
+    }
+
+    return tct('[matchingLogsCount] in [allLogsCount]', {
+      matchingLogsCount,
+      allLogsCount,
+    });
   }
 
   const downsampledTooltip = <DownsampledTooltip noSampling={noSampling} />;
 
+  const warning = (
+    <OffsetContainer>
+      <IconWarning size="sm" />
+    </OffsetContainer>
+  );
+
   if (isTopN) {
     return tct(
-      'Extrapolated from [matchingLogsCount] matching logs for top [topEvents] groups after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
+      '[warning] Extrapolated from [matchingLogsCount] for top [topEvents] groups after scanning [tooltip:[downsampledLogsCount] of [allLogsCount]]',
       {
+        warning,
         topEvents,
         matchingLogsCount,
         downsampledLogsCount,
         allLogsCount,
-        suffix,
         tooltip: downsampledTooltip,
       }
     );
   }
 
   return tct(
-    'Extrapolated from [matchingLogsCount] matching logs after scanning [tooltip:[downsampledLogsCount] of [allLogsCount] [suffix]]',
+    '[warning] Extrapolated from [matchingLogsCount] after scanning [tooltip:[downsampledLogsCount] of [allLogsCount]]',
     {
+      warning,
       matchingLogsCount,
       downsampledLogsCount,
       allLogsCount,
-      suffix,
       tooltip: downsampledTooltip,
     }
   );
@@ -166,4 +201,9 @@ const Placeholder = styled('div')<{width: number}>`
   height: ${p => p.theme.fontSize.md};
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.theme.backgroundTertiary};
+`;
+
+const OffsetContainer = styled('span')`
+  position: relative;
+  top: 2px;
 `;

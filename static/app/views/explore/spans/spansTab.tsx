@@ -44,10 +44,8 @@ import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {
-  useExploreId,
-  useSetExplorePageParams,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import {ChartSelectionProvider} from 'sentry/views/explore/components/suspectTags/chartSelectionContext';
+import {useSetExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -61,6 +59,7 @@ import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
   useQueryParamsExtrapolate,
   useQueryParamsFields,
+  useQueryParamsId,
   useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsVisualizes,
@@ -157,7 +156,7 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
 }
 
 function useVisitExplore() {
-  const id = useExploreId();
+  const id = useQueryParamsId();
   const visitQuery = useVisitQuery();
   useEffect(() => {
     if (defined(id)) {
@@ -370,7 +369,7 @@ function SpanTabContentSection({
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
   const extrapolate = useQueryParamsExtrapolate();
-  const id = useExploreId();
+  const id = useQueryParamsId();
   const [tab, setTab] = useTab();
   const [caseInsensitive] = useCaseInsensitivity();
 
@@ -509,28 +508,31 @@ function SpanTabContentSection({
         position="top"
         margin={-8}
       >
-        <ExploreCharts
-          confidences={confidences}
-          query={query}
-          extrapolate={extrapolate}
-          timeseriesResult={timeseriesResult}
-          visualizes={visualizes}
-          setVisualizes={setVisualizes}
-          samplingMode={timeseriesSamplingMode}
-        />
-        <ExploreTables
-          aggregatesTableResult={aggregatesTableResult}
-          spansTableResult={spansTableResult}
-          tracesTableResult={tracesTableResult}
-          confidences={confidences}
-          tab={tab}
-          setTab={(newTab: Mode | Tab) => {
-            if (newTab === Mode.AGGREGATE) {
-              setControlSectionExpanded(true);
-            }
-            setTab(newTab);
-          }}
-        />
+        <ChartSelectionProvider>
+          <ExploreCharts
+            confidences={confidences}
+            query={query}
+            extrapolate={extrapolate}
+            timeseriesResult={timeseriesResult}
+            visualizes={visualizes}
+            setVisualizes={setVisualizes}
+            samplingMode={timeseriesSamplingMode}
+            setTab={setTab}
+          />
+          <ExploreTables
+            aggregatesTableResult={aggregatesTableResult}
+            spansTableResult={spansTableResult}
+            tracesTableResult={tracesTableResult}
+            confidences={confidences}
+            tab={tab}
+            setTab={(newTab: Mode | Tab) => {
+              if (newTab === Mode.AGGREGATE) {
+                setControlSectionExpanded(true);
+              }
+              setTab(newTab);
+            }}
+          />
+        </ChartSelectionProvider>
       </TourElement>
     </ContentSection>
   );

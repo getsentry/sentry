@@ -33,7 +33,12 @@ class GetResult(NamedTuple):
 
 
 class ClientBuilder:
-    def __init__(self, usecase: str, options: dict | None = None, propagate_traces: bool = False):
+    def __init__(
+        self,
+        usecase: str,
+        options: dict | None = None,
+        propagate_traces: bool = False,
+    ):
         self._usecase = usecase
         self._options = options
         self._default_compression: Compression = "zstd"
@@ -44,7 +49,6 @@ class ClientBuilder:
 
         options = self._options or options_store.get("objectstore.config")
         pool = urllib3.connectionpool.connection_from_url(options["base_url"])
-
         return Client(pool, self._default_compression, self._usecase, scope, self._propagate_traces)
 
     def default_compression(self, default_compression: Compression) -> Self:
@@ -59,6 +63,8 @@ class ClientBuilder:
 
 
 class Client:
+    _default_compression: Compression
+
     def __init__(
         self,
         pool: HTTPConnectionPool,

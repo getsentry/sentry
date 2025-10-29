@@ -466,8 +466,7 @@ export const isNewPayingCustomer = (
  * instead of a Plan
  */
 
-export const getBusinessPlanOfTier = (plan: string) =>
-  plan.startsWith('am2_') ? 'am2_business' : 'am1_business';
+export const getBusinessPlanOfTier = (plan: string) => plan.slice(0, 4) + 'business';
 
 export const isTeamPlan = (plan: string) => plan.includes('team');
 
