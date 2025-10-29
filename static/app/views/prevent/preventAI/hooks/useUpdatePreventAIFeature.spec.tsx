@@ -77,7 +77,7 @@ describe('useUpdatePreventAIFeature', () => {
     result.current.enableFeature({
       feature: 'vanilla',
       enabled: true,
-      orgId: 'org-1',
+      orgName: 'org-1',
       repoId: 'repo-1',
       trigger: {on_command_phrase: true},
     });
@@ -105,7 +105,7 @@ describe('useUpdatePreventAIFeature', () => {
       result.current.enableFeature({
         feature: 'vanilla',
         enabled: true,
-        orgId: 'org-1',
+        orgName: 'org-1',
         repoId: 'repo-1',
         trigger: {on_command_phrase: true},
       })
@@ -131,7 +131,7 @@ describe('useUpdatePreventAIFeature', () => {
       result.current.enableFeature({
         feature: 'vanilla',
         enabled: true,
-        orgId: 'org-1',
+        orgName: 'org-1',
         repoId: 'repo-1',
       })
     ).rejects.toThrow('Organization has no AI Code Review config');
@@ -143,7 +143,7 @@ describe('useUpdatePreventAIFeature', () => {
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'vanilla',
         enabled: true,
-        orgId: 'org-1',
+        orgName: 'org-1',
       });
       expect(
         updatedConfig.github_organizations?.['org-1']?.org_defaults?.vanilla?.enabled
@@ -159,7 +159,7 @@ describe('useUpdatePreventAIFeature', () => {
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'test_generation',
         enabled: true,
-        orgId: 'org-1',
+        orgName: 'org-1',
         repoId: 'repo-123',
         trigger: {on_command_phrase: true},
       });
@@ -180,7 +180,7 @@ describe('useUpdatePreventAIFeature', () => {
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'bug_prediction',
         enabled: false,
-        orgId: 'org-1',
+        orgName: 'org-1',
         repoId: 'repo-xyz',
         trigger: {on_ready_for_review: true},
       });
@@ -196,7 +196,7 @@ describe('useUpdatePreventAIFeature', () => {
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'bug_prediction',
         enabled: true,
-        orgId: 'org-1',
+        orgName: 'org-1',
         repoId: 'repo-xyz',
         sensitivity: 'low',
       });
@@ -230,7 +230,7 @@ describe('useUpdatePreventAIFeature', () => {
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'use_org_defaults',
         enabled: true,
-        orgId: 'org-1',
+        orgName: 'org-1',
         repoId: 'repo-123',
       });
 
@@ -250,7 +250,7 @@ describe('useUpdatePreventAIFeature', () => {
       const updatedConfig = makePreventAIConfig(config, {
         feature: 'use_org_defaults',
         enabled: false,
-        orgId: 'org-1',
+        orgName: 'org-1',
         repoId: 'repo-456',
       });
 
@@ -273,7 +273,7 @@ describe('useUpdatePreventAIFeature', () => {
         makePreventAIConfig(config, {
           feature: 'use_org_defaults',
           enabled: true,
-          orgId: 'org-1',
+          orgName: 'org-1',
         })
       ).toThrow('Repo name is required when feature is use_org_defaults');
     });

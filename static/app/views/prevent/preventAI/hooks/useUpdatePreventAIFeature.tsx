@@ -12,7 +12,7 @@ interface UpdatePreventAIFeatureParams {
   enabled: boolean;
   // 'use_org_defaults' is a special case that will remove the entire repo override
   feature: 'vanilla' | 'test_generation' | 'bug_prediction' | 'use_org_defaults';
-  orgId: string;
+  orgName: string;
   // if repo is provided, edit repo_overrides for that repo, otherwise edit org_defaults
   repoId?: string;
   sensitivity?: Sensitivity;
@@ -63,9 +63,9 @@ export function makePreventAIConfig(
   const updatedConfig = structuredClone(originalConfig);
 
   const orgConfig =
-    updatedConfig.github_organizations[params.orgId] ??
+    updatedConfig.github_organizations[params.orgName] ??
     structuredClone(updatedConfig.default_org_config);
-  updatedConfig.github_organizations[params.orgId] = orgConfig;
+  updatedConfig.github_organizations[params.orgName] = orgConfig;
 
   if (params.feature === 'use_org_defaults') {
     if (!params.repoId) {
