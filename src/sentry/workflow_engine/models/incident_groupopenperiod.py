@@ -1,6 +1,6 @@
 import logging
 
-from django.db import models
+from django.db import IntegrityError, models
 from django.db.models import Q
 
 from sentry import features
@@ -13,12 +13,10 @@ from sentry.db.models import (
 )
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import IncidentType
-from sentry.locks import locks
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -196,25 +194,23 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             incident: The Incident to link
             open_period: The GroupOpenPeriod to link
         """
-        lock = locks.get(
-            f"workflow-engine-create-incident-groupopenperiod:{incident.id}",
-            duration=2,
-            name="workflow_engine_incident-group-open-period-creation",
-        )
         try:
-            with lock.blocking_acquire(initial_delay=0.1, timeout=3):
-                incident_group_open_period, _ = cls.objects.get_or_create(
-                    group_open_period=open_period,
-                    defaults={
-                        "incident_id": incident.id,
-                        "incident_identifier": incident.identifier,
-                    },
-                )
+            incident_group_open_period, _ = cls.objects.get_or_create(
+                group_open_period=open_period,
+                defaults={
+                    "incident_id": incident.id,
+                    "incident_identifier": incident.identifier,
+                },
+            )
 
             return incident_group_open_period
 
-        except UnableToAcquireLock:
-            return
+        except IntegrityError:
+            incident_group_open_period = cls.objects.get(
+                group_open_period=open_period,
+                incident_id=incident.id,
+            )
+            return incident_group_open_period
 
         except Exception as e:
             logger.exception(
