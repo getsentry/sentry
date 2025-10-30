@@ -86,6 +86,7 @@ function ChangeBalanceModal({
           onSubmit={onSubmit}
           onCancel={closeModal}
           submitLabel={isSubmitting ? 'Submitting...' : 'Submit'}
+          submitDisabled={isSubmitting}
           cancelLabel="Cancel"
           footerClass="modal-footer"
         >

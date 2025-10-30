@@ -154,8 +154,9 @@ describe('BalanceChangeAction', () => {
     const submitButton = screen.getByRole('button', {name: 'Submit'});
     await userEvent.click(submitButton);
 
-    // During submission, button should show "Submitting..." and fields should be disabled
+    // During submission, button should show "Submitting...", be disabled, and fields should be disabled
     expect(submitButton).toHaveTextContent('Submitting...');
+    expect(submitButton).toBeDisabled();
     expect(creditInput).toBeDisabled();
     expect(screen.getByTestId('url-field')).toBeDisabled();
     expect(screen.getByTestId('notes-field')).toBeDisabled();
@@ -190,8 +191,9 @@ describe('BalanceChangeAction', () => {
     // state, so if one is enabled, all should be enabled.
     await waitFor(() => expect(creditInput).toBeEnabled());
 
-    // Verify all fields are re-enabled
+    // Verify all fields and submit button are re-enabled
     expect(urlField).toBeEnabled();
     expect(notesField).toBeEnabled();
+    expect(submitButton).toBeEnabled();
   });
 });
