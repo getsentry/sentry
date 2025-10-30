@@ -1,17 +1,14 @@
 import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import {
   StepType,
-  type Docs,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconLock} from 'sentry/icons/iconLock';
 import {t, tct} from 'sentry/locale';
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -19,10 +16,11 @@ const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Our [sentrySwitchLink:Sentry Switch SDK] extends the core [sentryNativeLink:sentry-native] library with Nintendo Switch-specific implementations and is designed to work across standalone engines and proprietary game engines.',
+            'Our [sentryXboxLink:Sentry Xbox SDK] extends the core [sentryNativeLink:sentry-native] library with Xbox-specific implementations for standalone engines and proprietary game engines.',
             {
-              sentrySwitchLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-switch" />
+              code: <code />,
+              sentryXboxLink: (
+                <ExternalLink href="https://github.com/getsentry/sentry-xbox" />
               ),
               sentryNativeLink: (
                 <ExternalLink href="https://github.com/getsentry/sentry-native" />
@@ -35,9 +33,12 @@ const onboarding: OnboardingConfig = {
           alertType: 'warning',
           icon: <IconLock size="sm" locked />,
           text: tct(
-            '[strong:Access Restricted]. The Switch SDK is distributed through a private repository under NDA.',
+            '[strong:Access Restricted]. The Xbox SDK is distributed through a [privateRepositoryLink:private repository] under NDA.',
             {
               strong: <strong />,
+              privateRepositoryLink: (
+                <ExternalLink href="https://github.com/getsentry/sentry-xbox" />
+              ),
             }
           ),
           showIcon: true,
@@ -50,8 +51,8 @@ const onboarding: OnboardingConfig = {
                   organization: params.organization,
                   projectSlug: params.project.slug,
                   projectId: params.project.id,
-                  sdkName: 'Nintendo Switch',
-                  gamingPlatform: 'nintendo-switch',
+                  sdkName: 'Xbox',
+                  gamingPlatform: 'xbox',
                   origin: params.newOrg ? 'onboarding' : 'project-creation',
                 });
               }}
@@ -76,44 +77,10 @@ const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'After building the SDK, you can integrate it as a static library into your game. The SDK handles crash reporting automatically, with crash context forwarded to Sentry via CRPortal.',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'text',
-          text: t(
-            'The SDK also supports sending additional runtime events, which requires:'
-          ),
-        },
-        {
-          type: 'custom',
-          content: (
-            <List symbol="bullet">
-              <ListItem>
-                {tct(
-                  'Providing a valid [strong:database path] via [code:sentry_options_set_database_path()]',
-                  {code: <code />, strong: <strong />}
-                )}
-              </ListItem>
-              <ListItem>
-                {tct(
-                  'Ensuring [strong:network access] is properly initialized and providing a thread-safe network request callback',
-                  {code: <code />, strong: <strong />}
-                )}
-              </ListItem>
-            </List>
-          ),
-        },
-        {
-          type: 'text',
-          text: tct(
-            'The [privateRepositoryLink:private repository] contains complete setup instructions and configuration examples in the sample folder. Here is a basic example of how to initialize the SDK:',
+            'The [privateRepositoryLink:private repository] contains complete setup instructions. Here is a basic example of how to initialize the SDK:',
             {
               privateRepositoryLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-switch" />
+                <ExternalLink href="https://github.com/getsentry/sentry-xbox" />
               ),
             }
           ),
@@ -127,12 +94,19 @@ const onboarding: OnboardingConfig = {
 int main(void) {
   sentry_options_t *options = sentry_options_new();
   sentry_options_set_dsn(options, "${params.dsn.public}");
-  // Example of Nintendo Switch-specific configuration options
-  // (including database path) are available in
-  // the sample folder of the private repository
+
+  // This is also the default path. For further info:
+  // https://docs.sentry.io/platforms/native/configuration/options/#database-path
+  sentry_options_set_database_path(options, ".sentry-native");
+  sentry_options_set_release(options, "my-xbox-game@1.0.0");
+  sentry_options_set_debug(options, 1);
   sentry_init(options);
-}
-`,
+
+  /* Your game or app code here */
+
+  // Ensure all events are flushed before exit
+  sentry_close();
+}`,
         },
       ],
     },
@@ -160,16 +134,10 @@ sentry_capture_event(sentry_value_new_message_event(
         {
           type: 'text',
           text: t(
-            'After sending this test event, you should see it appear in your Sentry dashboard, confirming that the Nintendo Switch integration is working correctly.'
+            'After sending this test event, you should see it appear in your Sentry dashboard, confirming that the Xbox integration is working correctly.'
           ),
         },
       ],
     },
   ],
 };
-
-const docs: Docs = {
-  onboarding,
-};
-
-export default docs;
