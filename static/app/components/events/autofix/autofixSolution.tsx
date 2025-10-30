@@ -11,6 +11,7 @@ import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
+import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {
   AutofixStatus,
   AutofixStepType,
@@ -118,6 +119,7 @@ type AutofixSolutionProps = {
   runId: string;
   solution: AutofixSolutionTimelineEvent[];
   solutionSelected: boolean;
+  status: AutofixStatus;
   agentCommentThread?: CommentThread;
   changesDisabled?: boolean;
   customSolution?: string;
@@ -341,6 +343,7 @@ function AutofixSolutionDisplay({
   description,
   groupId,
   runId,
+  status,
   previousDefaultStepIndex,
   previousInsightCount,
   customSolution,
@@ -656,6 +659,9 @@ function AutofixSolutionDisplay({
             </Button>
           </Tooltip>
         </ButtonBar>
+        {status === AutofixStatus.COMPLETED && (
+          <AutofixStepFeedback stepType="solution" groupId={groupId} runId={runId} />
+        )}
       </BottomFooter>
     </SolutionContainer>
   );

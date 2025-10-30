@@ -55,7 +55,6 @@ export function McpPromptsTable() {
       AVG_DURATION,
       P95_DURATION,
     ],
-    cursorParamName: 'tableCursor',
     referrer: MCPReferrer.MCP_PROMPT_TABLE,
   });
 
@@ -78,7 +77,6 @@ export function McpPromptsTable() {
           sortKey={column.key}
           align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
           forceCellGrow={column.key === SpanFields.MCP_PROMPT_NAME}
-          cursorParamName="tableCursor"
           onClick={handleSort}
         >
           {column.name}
@@ -131,7 +129,6 @@ export function McpPromptsTable() {
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="tableCursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />

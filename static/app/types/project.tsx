@@ -46,6 +46,7 @@ export type Project = {
   hasProfiles: boolean;
   hasReplays: boolean;
   hasSessions: boolean;
+  hasTraceMetrics: boolean;
   id: string;
   isBookmarked: boolean;
   isInternal: boolean;
@@ -111,6 +112,7 @@ export type ProjectKey = {
     cdn: string;
     crons: string;
     csp: string;
+    integration: string;
     minidump: string;
     otlp_logs: string;
     otlp_traces: string;

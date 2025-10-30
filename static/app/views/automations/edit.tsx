@@ -24,7 +24,6 @@ import {useParams} from 'sentry/utils/useParams';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {
   AutomationBuilderContext,
-  initialAutomationBuilderState,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
@@ -47,7 +46,7 @@ import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
-  return <SentryDocumentTitle title={title ?? t('Edit Automation')} />;
+  return <SentryDocumentTitle title={title ?? t('Edit Alert')} />;
 }
 
 function AutomationBreadcrumbs({automationId}: {automationId: string}) {
@@ -58,7 +57,7 @@ function AutomationBreadcrumbs({automationId}: {automationId: string}) {
     <Breadcrumbs
       crumbs={[
         {
-          label: t('Automation'),
+          label: t('Alerts'),
           to: makeAutomationBasePathname(organization.slug, automationsLinkPrefix),
         },
         {
@@ -120,7 +119,11 @@ function AutomationEditForm({automation}: {automation: Automation}) {
     return {
       triggers: automation.triggers
         ? automation.triggers
-        : initialAutomationBuilderState.triggers,
+        : {
+            id: 'when',
+            logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+            conditions: [],
+          },
       actionFilters: automation.actionFilters,
     };
   }, [automation]);
@@ -198,7 +201,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           </HeaderInner>
         </StyledLayoutHeader>
         <StyledBody maxWidth={maxWidth}>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <AutomationBuilderErrorContext.Provider
               value={{
                 errors: automationBuilderErrors,

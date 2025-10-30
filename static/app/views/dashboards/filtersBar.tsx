@@ -19,11 +19,12 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
+import GenericFilterSelector from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
+import {globalFilterKeysAreEqual} from 'sentry/views/dashboards/globalFilter/utils';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 
-import FilterSelector from './globalFilter/filterSelector';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import ReleasesSelectControl from './releasesSelectControl';
 import type {DashboardFilters, DashboardPermissions, GlobalFilter} from './types';
@@ -125,84 +126,91 @@ export default function FiltersBar({
           }}
         />
       </PageFilterBar>
-      <Fragment>
-        <FilterButtons gap="lg">
-          <ReleasesProvider organization={organization} selection={selection}>
-            <ReleasesSelectControl
-              handleChangeFilter={activeFilters => {
-                onDashboardFilterChange({
-                  ...activeFilters,
-                  [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
-                });
-                trackAnalytics('dashboards2.filter.change', {
-                  organization,
-                  filter_type: 'release',
-                });
-              }}
-              selectedReleases={selectedReleases}
-              isDisabled={isEditingDashboard}
-            />
-          </ReleasesProvider>
 
-          {organization.features.includes('dashboards-global-filters') && (
-            <Fragment>
-              {activeGlobalFilters.map(filter => (
-                <FilterSelector
-                  key={filter.tag.key}
-                  globalFilter={filter}
-                  searchBarData={getSearchBarData(filter.dataset)}
-                  onUpdateFilter={updatedFilter => {
-                    updateGlobalFilters(
-                      activeGlobalFilters.map(f =>
-                        f.tag.key === updatedFilter.tag.key ? updatedFilter : f
-                      )
-                    );
-                  }}
-                  onRemoveFilter={removedFilter => {
-                    updateGlobalFilters(
-                      activeGlobalFilters.filter(f => f.tag.key !== removedFilter.tag.key)
-                    );
-                  }}
-                />
-              ))}
-              <AddFilter
-                getSearchBarData={getSearchBarData}
-                onAddFilter={newFilter => {
-                  updateGlobalFilters([...activeGlobalFilters, newFilter]);
-                }}
-              />
-            </Fragment>
-          )}
-        </FilterButtons>
-        {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
-          <FilterButtons gap="lg">
-            <Button
-              title={
-                !hasEditAccess && t('You do not have permission to edit this dashboard')
-              }
-              priority="primary"
-              onClick={async () => {
-                await onSave?.();
-                invalidateStarredDashboards();
+      <ReleasesProvider organization={organization} selection={selection}>
+        <ReleasesSelectControl
+          handleChangeFilter={activeFilters => {
+            onDashboardFilterChange({
+              ...activeFilters,
+              [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
+            });
+            trackAnalytics('dashboards2.filter.change', {
+              organization,
+              filter_type: 'release',
+            });
+          }}
+          selectedReleases={selectedReleases}
+          isDisabled={isEditingDashboard}
+        />
+      </ReleasesProvider>
+
+      {organization.features.includes('dashboards-global-filters') && (
+        <Fragment>
+          {activeGlobalFilters.map(filter => (
+            <GenericFilterSelector
+              key={filter.tag.key + filter.value}
+              globalFilter={filter}
+              searchBarData={getSearchBarData(filter.dataset)}
+              onUpdateFilter={updatedFilter => {
+                updateGlobalFilters(
+                  activeGlobalFilters.map(f =>
+                    globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
+                  )
+                );
               }}
-              disabled={!hasEditAccess}
-              busy={shouldBusySaveButton}
-            >
-              {t('Save')}
-            </Button>
-            <Button
-              data-test-id="filter-bar-cancel"
-              onClick={() => {
-                onCancel?.();
-                setActiveGlobalFilters(filters.globalFilter ?? []);
-                onDashboardFilterChange(filters);
+              onRemoveFilter={removedFilter => {
+                updateGlobalFilters(
+                  activeGlobalFilters.filter(
+                    f => !globalFilterKeysAreEqual(f, removedFilter)
+                  )
+                );
+                trackAnalytics('dashboards2.global_filter.remove', {
+                  organization,
+                });
               }}
-            >
-              {t('Cancel')}
-            </Button>
-          </FilterButtons>
-        )}
-      </Fragment>
+            />
+          ))}
+          <AddFilter
+            globalFilters={activeGlobalFilters}
+            getSearchBarData={getSearchBarData}
+            onAddFilter={newFilter => {
+              updateGlobalFilters([...activeGlobalFilters, newFilter]);
+              trackAnalytics('dashboards2.global_filter.add', {
+                organization,
+              });
+            }}
+          />
+        </Fragment>
+      )}
+
+      {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
+        <ButtonBar>
+          <Button
+            title={
+              !hasEditAccess && t('You do not have permission to edit this dashboard')
+            }
+            priority="primary"
+            onClick={async () => {
+              await onSave?.();
+              invalidateStarredDashboards();
+            }}
+            disabled={!hasEditAccess}
+            busy={shouldBusySaveButton}
+          >
+            {t('Save')}
+          </Button>
+          <Button
+            data-test-id="filter-bar-cancel"
+            onClick={() => {
+              onCancel?.();
+              setActiveGlobalFilters(filters.globalFilter ?? []);
+              onDashboardFilterChange(filters);
+            }}
+          >
+            {t('Cancel')}
+          </Button>
+        </ButtonBar>
+      )}
       <ToggleOnDemand />
     </Wrapper>
   );
@@ -213,22 +221,10 @@ const Wrapper = styled('div')`
   flex-direction: row;
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
+  flex-wrap: wrap;
 
   & button[aria-haspopup] {
     height: 100%;
     width: 100%;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: grid;
-    grid-auto-flow: row;
-  }
-`;
-
-const FilterButtons = styled(ButtonBar)`
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: flex;
-    align-items: flex-start;
-    gap: ${p => p.theme.space[p.gap!]};
   }
 `;

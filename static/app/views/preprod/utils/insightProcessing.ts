@@ -12,10 +12,12 @@ type FileTypeData =
   | {
       conversionPercentage: number;
       fileType: 'optimizable_image';
+      isDuplicateVariant: boolean;
       minifyPercentage: number;
       originalFile: OptimizableImageFile;
     }
   | {fileType: 'strip_binary'; originalFile: StripBinaryFileInfo}
+  | {fileType: 'duplicate_files'; originalGroup: FileSavingsResultGroup}
   | {fileType: 'regular'; originalFile: FileSavingsResult};
 
 export interface ProcessedInsightFile {
@@ -28,6 +30,7 @@ export interface ProcessedInsightFile {
 export interface ProcessedInsight {
   description: string;
   files: ProcessedInsightFile[];
+  key: string;
   name: string;
   percentage: number;
   totalSavings: number;
@@ -126,6 +129,32 @@ const INSIGHT_CONFIGS: InsightConfig[] = [
   },
 ];
 
+function markDuplicateImageVariants(processedInsights: ProcessedInsight[]): void {
+  const imageInsightTypes = ['image_optimization', 'alternate_icons_optimization'];
+  for (const insight of processedInsights) {
+    if (!imageInsightTypes.includes(insight.key)) {
+      continue;
+    }
+
+    const filePathOccurrences = new Map<string, number>();
+    for (const file of insight.files) {
+      const currentCount = filePathOccurrences.get(file.path) || 0;
+      filePathOccurrences.set(file.path, currentCount + 1);
+    }
+
+    for (const file of insight.files) {
+      if (file.data.fileType !== 'optimizable_image') {
+        continue;
+      }
+
+      const occurrences = filePathOccurrences.get(file.path) || 0;
+      if (occurrences > 1) {
+        file.data.isDuplicateVariant = true;
+      }
+    }
+  }
+}
+
 /**
  * Process all insights into a standardized format for display
  */
@@ -144,6 +173,7 @@ export function processInsights(
         : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
@@ -162,6 +192,7 @@ export function processInsights(
               minifyPercentage: ((file.minify_savings || 0) / totalSize) * 100,
               conversionPercentage: ((file.conversion_savings || 0) / totalSize) * 100,
               originalFile: file,
+              isDuplicateVariant: false,
             },
           };
         }),
@@ -178,6 +209,7 @@ export function processInsights(
         : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
@@ -196,6 +228,7 @@ export function processInsights(
               minifyPercentage: ((file.minify_savings || 0) / totalSize) * 100,
               conversionPercentage: ((file.conversion_savings || 0) / totalSize) * 100,
               originalFile: file,
+              isDuplicateVariant: false,
             },
           };
         }),
@@ -210,22 +243,20 @@ export function processInsights(
       const groups = Array.isArray(insight.groups) ? insight.groups : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
         percentage: (insight.total_savings / totalSize) * 100,
-        files: groups.flatMap((group: FileSavingsResultGroup) => {
-          const files = Array.isArray(group?.files) ? group.files : [];
-          return files.map((file: FileSavingsResult) => ({
-            path: file.file_path,
-            savings: file.total_savings,
-            percentage: (file.total_savings / totalSize) * 100,
-            data: {
-              fileType: 'regular' as const,
-              originalFile: file,
-            },
-          }));
-        }),
+        files: groups.map((group: FileSavingsResultGroup) => ({
+          path: group.name,
+          savings: group.total_savings,
+          percentage: (group.total_savings / totalSize) * 100,
+          data: {
+            fileType: 'duplicate_files' as const,
+            originalGroup: group,
+          },
+        })),
       });
     }
   }
@@ -237,6 +268,7 @@ export function processInsights(
       const files = Array.isArray(insight.files) ? insight.files : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
@@ -261,22 +293,20 @@ export function processInsights(
       const groups = Array.isArray(insight.groups) ? insight.groups : [];
 
       processedInsights.push({
+        key: config.key,
         name: config.name,
         description: config.description,
         totalSavings: insight.total_savings,
         percentage: (insight.total_savings / totalSize) * 100,
-        files: groups.flatMap((group: FileSavingsResultGroup) => {
-          const files = Array.isArray(group?.files) ? group.files : [];
-          return files.map((file: FileSavingsResult) => ({
-            path: file.file_path,
-            savings: file.total_savings,
-            percentage: (file.total_savings / totalSize) * 100,
-            data: {
-              fileType: 'regular' as const,
-              originalFile: file,
-            },
-          }));
-        }),
+        files: groups.map((group: FileSavingsResultGroup) => ({
+          path: group.name,
+          savings: group.total_savings,
+          percentage: (group.total_savings / totalSize) * 100,
+          data: {
+            fileType: 'duplicate_files' as const,
+            originalGroup: group,
+          },
+        })),
       });
     }
   }
@@ -302,6 +332,7 @@ export function processInsights(
       if (config) {
         const files = Array.isArray(insight.files) ? insight.files : [];
         processedInsights.push({
+          key: config.key,
           name: config.name,
           description: config.description,
           totalSavings: insight.total_savings,
@@ -320,6 +351,7 @@ export function processInsights(
     }
   });
 
+  markDuplicateImageVariants(processedInsights);
   processedInsights.sort((a, b) => b.totalSavings - a.totalSavings);
 
   return processedInsights;

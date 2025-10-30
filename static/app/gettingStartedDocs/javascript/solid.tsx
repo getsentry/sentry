@@ -409,7 +409,7 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
 const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
   installSnippetBlock,
   docsPlatform: 'solid',
-  sdkPackage: '@sentry/solid',
+  packageName: '@sentry/solid',
 });
 
 const docs: Docs = {

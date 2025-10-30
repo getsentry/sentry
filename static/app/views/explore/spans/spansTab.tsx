@@ -44,10 +44,7 @@ import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {
-  useExploreId,
-  useSetExplorePageParams,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import {ChartSelectionProvider} from 'sentry/views/explore/components/suspectTags/chartSelectionContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -61,9 +58,11 @@ import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
   useQueryParamsExtrapolate,
   useQueryParamsFields,
+  useQueryParamsId,
   useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsVisualizes,
+  useSetQueryParams,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
@@ -157,7 +156,7 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
 }
 
 function useVisitExplore() {
-  const id = useExploreId();
+  const id = useQueryParamsId();
   const visitQuery = useVisitQuery();
   useEffect(() => {
     if (defined(id)) {
@@ -188,7 +187,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const mode = useQueryParamsMode();
   const fields = useQueryParamsFields();
   const query = useQueryParamsQuery();
-  const setExplorePageParams = useSetExplorePageParams();
+  const setQueryParams = useSetQueryParams();
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
 
   const organization = useOrganization();
@@ -226,7 +225,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
         const existingFields = new Set(fields);
         const newColumns = suggestedColumns.filter(col => !existingFields.has(col));
 
-        setExplorePageParams({
+        setQueryParams({
           query: newQuery,
           fields: newColumns.length ? [...fields, ...newColumns] : undefined,
         });
@@ -267,7 +266,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
       oldSearch,
       query,
       setCaseInsensitive,
-      setExplorePageParams,
+      setQueryParams,
       stringSecondaryAliases,
       stringTags,
     ]
@@ -278,7 +277,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   );
 
   return (
-    <Layout.Main fullWidth>
+    <Layout.Main width="full">
       <SearchQueryBuilderProvider
         enableAISearch={areAiFeaturesAllowed}
         {...eapSpanSearchQueryProviderProps}
@@ -370,7 +369,7 @@ function SpanTabContentSection({
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
   const extrapolate = useQueryParamsExtrapolate();
-  const id = useExploreId();
+  const id = useQueryParamsId();
   const [tab, setTab] = useTab();
   const [caseInsensitive] = useCaseInsensitivity();
 
@@ -509,28 +508,31 @@ function SpanTabContentSection({
         position="top"
         margin={-8}
       >
-        <ExploreCharts
-          confidences={confidences}
-          query={query}
-          extrapolate={extrapolate}
-          timeseriesResult={timeseriesResult}
-          visualizes={visualizes}
-          setVisualizes={setVisualizes}
-          samplingMode={timeseriesSamplingMode}
-        />
-        <ExploreTables
-          aggregatesTableResult={aggregatesTableResult}
-          spansTableResult={spansTableResult}
-          tracesTableResult={tracesTableResult}
-          confidences={confidences}
-          tab={tab}
-          setTab={(newTab: Mode | Tab) => {
-            if (newTab === Mode.AGGREGATE) {
-              setControlSectionExpanded(true);
-            }
-            setTab(newTab);
-          }}
-        />
+        <ChartSelectionProvider>
+          <ExploreCharts
+            confidences={confidences}
+            query={query}
+            extrapolate={extrapolate}
+            timeseriesResult={timeseriesResult}
+            visualizes={visualizes}
+            setVisualizes={setVisualizes}
+            samplingMode={timeseriesSamplingMode}
+            setTab={setTab}
+          />
+          <ExploreTables
+            aggregatesTableResult={aggregatesTableResult}
+            spansTableResult={spansTableResult}
+            tracesTableResult={tracesTableResult}
+            confidences={confidences}
+            tab={tab}
+            setTab={(newTab: Mode | Tab) => {
+              if (newTab === Mode.AGGREGATE) {
+                setControlSectionExpanded(true);
+              }
+              setTab(newTab);
+            }}
+          />
+        </ChartSelectionProvider>
       </TourElement>
     </ContentSection>
   );

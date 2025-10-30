@@ -684,6 +684,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             )
             assert response.status_code == 200, response.content
             expected = {
+                "bytesScanned": mock.ANY,
                 "dataScanned": "full",
                 "dataset": mock.ANY,
                 "datasetReason": "unchanged",
@@ -1902,6 +1903,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
         expected = {
+            "bytesScanned": mock.ANY,
             "dataScanned": "full",
             "dataset": mock.ANY,
             "datasetReason": "unchanged",
@@ -6679,3 +6681,24 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 0
         assert data == []
         assert meta["dataset"] == "spans"
+
+    def test_count_span_duration(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+        request = {
+            "field": ["count(span.duration)"],
+            "project": self.project.id,
+            "dataset": "spans",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == [{"count(span.duration)": 1}]

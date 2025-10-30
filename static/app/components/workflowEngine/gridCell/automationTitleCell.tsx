@@ -7,9 +7,10 @@ import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 interface Props {
   automation: Automation;
+  openInNewTab?: boolean;
 }
 
-export default function AutomationTitleCell({automation}: Props) {
+export default function AutomationTitleCell({automation, openInNewTab}: Props) {
   const organization = useOrganization();
   const {automationsLinkPrefix} = useMonitorViewContext();
 
@@ -23,9 +24,9 @@ export default function AutomationTitleCell({automation}: Props) {
         automation.id,
         automationsLinkPrefix
       )}
-      systemCreated={!automation.createdBy}
       disabled={!automation.enabled}
       warning={warning}
+      openInNewTab={openInNewTab}
     />
   );
 }

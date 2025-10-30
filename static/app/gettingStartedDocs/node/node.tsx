@@ -451,7 +451,7 @@ const docs: Docs = {
   }),
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'node',
-    sdkPackage: '@sentry/node',
+    packageName: '@sentry/node',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
   mcpOnboarding: getNodeMcpOnboarding(),

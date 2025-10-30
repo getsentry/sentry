@@ -119,6 +119,14 @@ class DatasetSourcesTypes(Enum):
      Dataset modified by using the widget snapshot to restore the original transaction query
     """
     RESTORED_SPAN_MIGRATION_VERSION_1 = 7
+    """
+     Dataset modified by the transaction -> span migration version 2
+    """
+    SPAN_MIGRATION_VERSION_2 = 8
+    """
+    Dataset modified by the transaction -> span migration version 3
+    """
+    SPAN_MIGRATION_VERSION_3 = 9
 
     @classmethod
     def as_choices(cls):

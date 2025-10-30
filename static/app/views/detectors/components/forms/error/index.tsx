@@ -101,7 +101,7 @@ export function NewErrorDetectorForm() {
   return (
     <Layout.Page>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <LoadingError message={t('Error detectors cannot be created')} />
         </Layout.Main>
       </Layout.Body>
@@ -122,7 +122,7 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
       owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
       projectId: detector.projectId,
       workflowIds: data.workflowIds,
-      dataSource: {},
+      dataSources: [],
       conditionGroup: {},
     }),
   });

@@ -1,16 +1,13 @@
 import math
 import uuid
-from datetime import UTC, timedelta
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 
 import pytest
-from dateutil import parser
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework.response import Response
-from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckStatus, CheckStatusReason
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
@@ -39,13 +36,11 @@ from sentry.testutils.cases import (
     SnubaTestCase,
     SpanTestCase,
     TraceMetricsTestCase,
-    UptimeCheckSnubaTestCase,
 )
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.discover import user_misery_formula
 from sentry.types.group import GroupSubStatus
-from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -7289,126 +7284,3 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert meta["fields"]["transaction.duration"] == "duration"
         assert meta["units"]["span.duration"] == "millisecond"
         assert meta["units"]["transaction.duration"] == "millisecond"
-
-
-class OrganizationEventsUptimeDatasetEndpointTest(
-    OrganizationEventsEndpointTestBase, UptimeCheckSnubaTestCase
-):
-    def coerce_response(self, response: Response) -> None:
-        for item in response.data["data"]:
-            for field in ("uptime_subscription_id", "uptime_check_id", "trace_id"):
-                if field in item:
-                    item[field] = uuid.UUID(item[field])
-
-            for field in ("timestamp", "scheduled_check_time"):
-                if field in item:
-                    item[field] = parser.parse(item[field]).replace(tzinfo=UTC)
-
-            for field in ("duration_ms", "http_status_code"):
-                if field in item:
-                    item[field] = int(item[field])
-
-    def test_basic(self) -> None:
-        subscription_id = uuid.uuid4().hex
-        check_id = uuid.uuid4()
-        self.store_snuba_uptime_check(
-            subscription_id=subscription_id, check_status="success", check_id=check_id
-        )
-        query = {
-            "field": ["uptime_subscription_id", "uptime_check_id"],
-            "statsPeriod": "2h",
-            "query": "",
-            "dataset": "uptimeChecks",
-            "orderby": ["uptime_subscription_id"],
-        }
-
-        response = self.do_request(query)
-        self.coerce_response(response)
-        assert response.status_code == 200, response.content
-        assert response.data["data"] == [
-            {
-                "uptime_subscription_id": uuid.UUID(subscription_id),
-                "uptime_check_id": check_id,
-            }
-        ]
-
-    def test_all_fields(self) -> None:
-        subscription_id = uuid.uuid4().hex
-        check_id = uuid.uuid4()
-        scheduled_check_time = before_now(minutes=5)
-        actual_check_time = before_now(minutes=2)
-        duration_ms = 100
-        region = "us"
-        check_status: CheckStatus = "failure"
-        check_status_reason: CheckStatusReason = {
-            "type": "timeout",
-            "description": "Request timed out",
-        }
-        http_status = 200
-        trace_id = uuid.uuid4()
-        environment = "test"
-        self.store_snuba_uptime_check(
-            environment=environment,
-            subscription_id=subscription_id,
-            check_status=check_status,
-            check_id=check_id,
-            incident_status=IncidentStatus.NO_INCIDENT,
-            scheduled_check_time=scheduled_check_time,
-            http_status=http_status,
-            actual_check_time=actual_check_time,
-            duration_ms=duration_ms,
-            region=region,
-            check_status_reason=check_status_reason,
-            trace_id=trace_id,
-        )
-
-        query = {
-            "field": [
-                "environment",
-                "uptime_subscription_id",
-                "uptime_check_id",
-                "scheduled_check_time",
-                "timestamp",
-                "duration_ms",
-                "region",
-                "check_status",
-                "check_status_reason",
-                "http_status_code",
-                "trace_id",
-            ],
-            "statsPeriod": "1h",
-            "query": "",
-            "dataset": "uptimeChecks",
-        }
-
-        response = self.do_request(query)
-        self.coerce_response(response)
-        assert response.status_code == 200, response.content
-        assert response.data["data"] == [
-            {
-                "environment": environment,
-                "uptime_subscription_id": uuid.UUID(subscription_id),
-                "uptime_check_id": check_id,
-                "environment": environment,
-                "scheduled_check_time": scheduled_check_time.replace(microsecond=0),
-                "timestamp": actual_check_time,
-                "duration_ms": duration_ms,
-                "region": region,
-                "check_status": check_status,
-                "check_status_reason": check_status_reason["type"],
-                "http_status_code": http_status,
-                "trace_id": trace_id,
-            }
-        ]
-
-    def test_project_slug_converter(self) -> None:
-        self.store_event(self.transaction_data, self.project.id)
-        response = self.do_request(
-            {
-                "field": ["project.name"],
-                "query": "project:ba*",
-            }
-        )
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["project.name"] == self.project.slug

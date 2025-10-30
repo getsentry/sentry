@@ -2109,7 +2109,7 @@ requires-dist = [
     { name = "google-cloud-storage-transfer", specifier = ">=1.17.0" },
     { name = "google-crc32c", specifier = ">=1.6.0" },
     { name = "googleapis-common-protos", specifier = ">=1.63.2" },
-    { name = "granian", specifier = "~=2.5" },
+    { name = "granian", specifier = ">=2.5" },
     { name = "grpc-google-iam-v1", specifier = ">=0.13.1" },
     { name = "grpcio", specifier = ">=1.67.0" },
     { name = "hiredis", specifier = ">=2.3.2" },
@@ -2150,9 +2150,9 @@ requires-dist = [
     { name = "requests-oauthlib", specifier = ">=1.2.0" },
     { name = "rfc3339-validator", specifier = ">=0.1.2" },
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
-    { name = "sentry-arroyo", specifier = ">=2.29.6" },
+    { name = "sentry-arroyo", specifier = ">=2.30.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
-    { name = "sentry-kafka-schemas", specifier = ">=2.1.9" },
+    { name = "sentry-kafka-schemas", specifier = ">=2.1.11" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
     { name = "sentry-protos", specifier = ">=0.4.2" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
@@ -2242,13 +2242,13 @@ dev = [
 
 [[package]]
 name = "sentry-arroyo"
-version = "2.29.6"
+version = "2.30.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.29.6-py3-none-any.whl", hash = "sha256:88bd9f40d72bb39d9fcf654bef698bc6a10f608ba0e209599fc83100e71e5b01" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.30.0-py3-none-any.whl", hash = "sha256:c3107951443432fbc929eb810b06525f8fcdfe1ed95d4b92bfb9a6260b658322" },
 ]
 
 [[package]]
@@ -2324,7 +2324,7 @@ wheels = [
 
 [[package]]
 name = "sentry-kafka-schemas"
-version = "2.1.9"
+version = "2.1.11"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "fastjsonschema", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2335,7 +2335,7 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_kafka_schemas-2.1.9-py2.py3-none-any.whl", hash = "sha256:b5a8e48bb3cbcbecc93dcfe240baae6763f60e81672f460bd96d038219ac4b7c" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_kafka_schemas-2.1.11-py2.py3-none-any.whl", hash = "sha256:38686ac1f612cecc49fe5b34e0fe6e16e9e8fe43a147900feee4e265d307a307" },
 ]
 
 [[package]]

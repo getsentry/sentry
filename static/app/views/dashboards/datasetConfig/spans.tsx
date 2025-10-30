@@ -231,7 +231,12 @@ export const SpansConfig: DatasetConfig<
     if (field === 'trace') {
       return renderTraceAsLinkable(widget);
     }
-    return getFieldRenderer(field, meta, false);
+    // Dashboard links are applicable to tables, which should only have one query hence the `queries[0]`
+    const dashboardLink = widget?.queries[0]?.linkedDashboards?.find(
+      linkedDashboard => linkedDashboard.field === field
+    );
+
+    return getFieldRenderer(field, meta, false, dashboardLink);
   },
 };
 
@@ -266,15 +271,6 @@ function getPrimaryFieldOptions(
   );
 
   return {...baseFieldOptions, ...spanTags};
-}
-
-function _isNotNumericTag(option: FieldValueOption) {
-  // Filter out numeric tags from primary options, they only show up in
-  // the parameter fields for aggregate functions
-  if ('dataType' in option.value.meta) {
-    return option.value.meta.dataType !== 'number';
-  }
-  return true;
 }
 
 function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
@@ -378,10 +374,7 @@ function getGroupByFieldOptions(
   );
   const yAxisFilter = filterYAxisOptions();
 
-  // The only options that should be returned as valid group by options
-  // are string tags
-  const filterGroupByOptions = (option: FieldValueOption) =>
-    _isNotNumericTag(option) && !yAxisFilter(option);
+  const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 
   return pickBy(primaryFieldOptions, filterGroupByOptions);
 }

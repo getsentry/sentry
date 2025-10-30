@@ -53,6 +53,105 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? `Viewing waterfall for trace ${traceId.slice(0, 8)}...`
       : `Viewed waterfall for trace ${traceId.slice(0, 8)}`;
   },
+
+  get_issue_details: (args, isLoading) => {
+    const issueId = args.issue_id || '';
+    const selectedEvent = args.selected_event;
+    if (selectedEvent) {
+      return isLoading
+        ? `Inspecting issue ${issueId} (${selectedEvent} event)...`
+        : `Inspected issue ${issueId} (${selectedEvent} event)`;
+    }
+    return isLoading ? `Inspecting issue ${issueId}...` : `Inspected issue ${issueId}`;
+  },
+
+  code_search: (args, isLoading) => {
+    const repoName = args.repo_name || 'repository';
+    const mode = args.mode || 'search';
+    const path = args.path;
+    const pattern = args.pattern;
+
+    switch (mode) {
+      case 'read_file':
+        if (path) {
+          const truncatedPath = path.length > 50 ? path.slice(0, 50) + '...' : path;
+          return isLoading
+            ? `Reading ${truncatedPath} from ${repoName}...`
+            : `Read ${truncatedPath} from ${repoName}`;
+        }
+        return isLoading
+          ? `Reading file from ${repoName}...`
+          : `Read file from ${repoName}`;
+
+      case 'find_files':
+        if (pattern) {
+          const truncatedPattern =
+            pattern.length > 40 ? pattern.slice(0, 40) + '...' : pattern;
+          return isLoading
+            ? `Finding files matching '${truncatedPattern}' in ${repoName}...`
+            : `Found files matching '${truncatedPattern}' in ${repoName}`;
+        }
+        return isLoading
+          ? `Finding files in ${repoName}...`
+          : `Found files in ${repoName}`;
+
+      case 'search_content':
+        if (pattern) {
+          const truncatedPattern =
+            pattern.length > 40 ? pattern.slice(0, 40) + '...' : pattern;
+          return isLoading
+            ? `Searching for '${truncatedPattern}' in ${repoName}...`
+            : `Searched for '${truncatedPattern}' in ${repoName}`;
+        }
+        return isLoading
+          ? `Searching code in ${repoName}...`
+          : `Searched code in ${repoName}`;
+
+      default:
+        return isLoading
+          ? `Searching code in ${repoName}...`
+          : `Searched code in ${repoName}`;
+    }
+  },
+
+  git_search: (args, isLoading) => {
+    const repoName = args.repo_name || 'repository';
+    const sha = args.sha;
+    const filePath = args.file_path;
+    const startDate = args.start_date;
+    const endDate = args.end_date;
+
+    if (sha) {
+      const shortSha = sha.slice(0, 7);
+      return isLoading
+        ? `Digging up commit ${shortSha} from ${repoName}...`
+        : `Dug up commit ${shortSha} from ${repoName}`;
+    }
+
+    // Build date range string if dates are provided
+    let dateRangeStr = '';
+    if (startDate || endDate) {
+      if (startDate && endDate) {
+        dateRangeStr = ` from ${startDate} to ${endDate}`;
+      } else if (startDate) {
+        dateRangeStr = ` since ${startDate}`;
+      } else if (endDate) {
+        dateRangeStr = ` until ${endDate}`;
+      }
+    }
+
+    if (filePath) {
+      const truncatedPath =
+        filePath.length > 40 ? filePath.slice(0, 40) + '...' : filePath;
+      return isLoading
+        ? `Excavating commits affecting '${truncatedPath}'${dateRangeStr} in ${repoName}...`
+        : `Excavated commits affecting '${truncatedPath}'${dateRangeStr} in ${repoName}`;
+    }
+
+    return isLoading
+      ? `Excavating commit history${dateRangeStr} in ${repoName}...`
+      : `Excavated commit history${dateRangeStr} in ${repoName}`;
+  },
 };
 
 /**
@@ -96,17 +195,27 @@ export function getToolsStringFromBlock(block: Block): string[] {
  */
 export function buildToolLinkUrl(
   toolLink: ToolLink,
-  orgSlug: string
+  orgSlug: string,
+  projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
   switch (toolLink.kind) {
     case 'trace_explorer_query': {
-      const {query, stats_period, y_axes, group_by, sort, mode} = toolLink.params;
+      const {query, stats_period, y_axes, group_by, sort, mode, project_slug} =
+        toolLink.params;
 
       // Transform backend params to frontend format
       const queryParams: Record<string, any> = {
         query: query || '',
         project: null,
       };
+
+      // If project_slug is provided, look up the project ID
+      if (project_slug && projects) {
+        const project = projects.find(p => p.slug === project_slug);
+        if (project) {
+          queryParams.project = project.id;
+        }
+      }
 
       const aggregateFields: any[] = [];
       if (stats_period) {
@@ -161,6 +270,11 @@ export function buildToolLinkUrl(
         pathname,
         query,
       };
+    }
+    case 'get_issue_details': {
+      const {event_id, issue_id} = toolLink.params;
+
+      return {pathname: `/issues/${issue_id}/events/${event_id}/`};
     }
     default:
       return null;

@@ -1,21 +1,4 @@
-// Add any new providers here e.g., 'github' | 'bitbucket' | 'gitlab'
-export type PreventAIProvider = 'github';
-
 export type Sensitivity = 'low' | 'medium' | 'high' | 'critical';
-
-interface PreventAIRepo {
-  fullName: string;
-  id: string;
-  name: string;
-  url: string;
-}
-
-export interface PreventAIOrg {
-  id: string;
-  name: string;
-  provider: PreventAIProvider;
-  repos: PreventAIRepo[];
-}
 
 interface PreventAIFeatureConfig {
   enabled: boolean;

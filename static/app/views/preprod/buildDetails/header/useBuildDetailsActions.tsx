@@ -1,7 +1,6 @@
 import {useNavigate} from 'react-router-dom';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -41,15 +40,6 @@ export function useBuildDetailsActions({
 
   const handleDeleteArtifact = () => {
     deleteArtifact();
-  };
-
-  const handleDeleteAction = () => {
-    openConfirmModal({
-      message: t(
-        'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'
-      ),
-      onConfirm: handleDeleteArtifact,
-    });
   };
 
   const handleDownloadAction = async () => {
@@ -95,6 +85,16 @@ export function useBuildDetailsActions({
           if (errorJson.detail) {
             if (typeof errorJson.detail === 'string') {
               errorMessage = errorJson.detail;
+            } else if (errorJson.detail.code === 'staff-required') {
+              addErrorMessage(
+                t(
+                  'Re-authenticate as staff first and then return to this page and try again. Redirecting...'
+                )
+              );
+              setTimeout(() => {
+                window.location.href = '/_admin/';
+              }, 2000);
+              return;
             } else if (errorJson.detail.message) {
               errorMessage = errorJson.detail.message;
             } else if (errorJson.detail.code) {
@@ -126,7 +126,7 @@ export function useBuildDetailsActions({
     isDeletingArtifact,
 
     // Actions
-    handleDeleteAction,
+    handleDeleteArtifact,
     handleDownloadAction,
   };
 }

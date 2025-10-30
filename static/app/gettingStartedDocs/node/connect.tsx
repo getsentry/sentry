@@ -29,7 +29,7 @@ const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet()}
 
 // All other imports below
-${getSentryImportSnippet('node')}
+${getSentryImportSnippet('@sentry/node')}
 const connect = require("connect");
 
 const app = connect();
@@ -192,7 +192,7 @@ const docs: Docs = {
   profilingOnboarding: getNodeProfilingOnboarding(),
   logsOnboarding: getNodeLogsOnboarding({
     docsPlatform: 'connect',
-    sdkPackage: '@sentry/node',
+    packageName: '@sentry/node',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
   mcpOnboarding: getNodeMcpOnboarding(),

@@ -10,26 +10,20 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {
-  OnboardingCodeSnippet,
-  TabbedCodeSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
-  Configuration,
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  DocsPageLocation,
-  ProductSolution,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
-import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
+import {mcpMonitoringPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -53,7 +47,7 @@ function useOnboardingProject() {
     projects
   );
   const mcpMonitoringProjects = selectedProject.filter(p =>
-    agentMonitoringPlatforms.has(p.platform as PlatformKey)
+    mcpMonitoringPlatforms.has(p.platform as PlatformKey)
   );
 
   if (mcpMonitoringProjects.length > 0) {
@@ -114,31 +108,6 @@ function WaitingIndicator({project}: {project: Project}) {
   );
 }
 
-function ConfigurationRenderer({configuration}: {configuration: Configuration}) {
-  const subConfigurations = configuration.configurations ?? [];
-
-  return (
-    <ConfigurationWrapper>
-      {configuration.description && (
-        <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
-      )}
-      {Array.isArray(configuration.code) && configuration.code.length > 0 ? (
-        <TabbedCodeSnippet tabs={configuration.code} />
-      ) : typeof configuration.code === 'string' ? (
-        <OnboardingCodeSnippet language={configuration.language}>
-          {configuration.code}
-        </OnboardingCodeSnippet>
-      ) : null}
-      {subConfigurations.map((subConfiguration, index) => (
-        <ConfigurationRenderer key={index} configuration={subConfiguration} />
-      ))}
-      {configuration.additionalInfo && (
-        <AdditionalInfo>{configuration.additionalInfo}</AdditionalInfo>
-      )}
-    </ConfigurationWrapper>
-  );
-}
-
 function StepRenderer({
   project,
   step,
@@ -153,11 +122,7 @@ function StepRenderer({
       stepKey={step.type || step.title}
       title={step.title || (step.type && StepTitles[step.type])}
     >
-      {step.content ? (
-        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
-      ) : (
-        <ConfigurationRenderer configuration={step} />
-      )}
+      <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
@@ -245,6 +210,23 @@ export function Onboarding() {
     projSlug: project?.slug,
   });
 
+  // Local integration options for MCP monitoring only
+  const isPythonPlatform = (project?.platform ?? '').startsWith('python');
+  const integrationOptions = {
+    integration: {
+      label: t('Integration'),
+      items: isPythonPlatform
+        ? [
+            {label: 'FastMCP', value: 'mcp_fastmcp'},
+            {label: 'Low-level', value: 'mcp_lowlevel'},
+            {label: 'Manual', value: 'manual'},
+          ]
+        : [{label: 'MCP SDK', value: 'mcp_sdk'}],
+    },
+  };
+
+  const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
+
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
@@ -252,7 +234,7 @@ export function Onboarding() {
     return <div>{t('No project found')}</div>;
   }
 
-  if (!agentMonitoringPlatforms.has(project.platform as PlatformKey)) {
+  if (!mcpMonitoringPlatforms.has(project.platform as PlatformKey)) {
     return (
       <OnboardingPanel project={project}>
         <DescriptionWrapper>
@@ -309,6 +291,7 @@ export function Onboarding() {
     project,
     isLogsSelected: false,
     isFeedbackSelected: false,
+    isMetricsSelected: false,
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,
@@ -316,7 +299,7 @@ export function Onboarding() {
       isLoading: isLoadingRegistry,
       data: registryData,
     },
-    platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
+    platformOptions: selectedPlatformOptions,
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     newOrg: false,
     urlPrefix,
@@ -334,6 +317,9 @@ export function Onboarding() {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
+      <OptionsWrapper>
+        <PlatformOptionDropdown platformOptions={integrationOptions} />
+      </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <GuidedSteps>
         {steps
@@ -469,10 +455,6 @@ const Arcade = styled('iframe')`
 
 const CONTENT_SPACING = space(1);
 
-const ConfigurationWrapper = styled('div')`
-  margin-bottom: ${CONTENT_SPACING};
-`;
-
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
     color: ${p => p.theme.pink400};
@@ -498,6 +480,10 @@ const DescriptionWrapper = styled('div')`
   }
 `;
 
-const AdditionalInfo = styled(DescriptionWrapper)`
-  margin-top: ${CONTENT_SPACING};
+const OptionsWrapper = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.md};
+  align-items: center;
+  flex-wrap: wrap;
+  padding-bottom: ${p => p.theme.space.md};
 `;

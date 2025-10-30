@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
+from sentry.dashboards.endpoints.organization_dashboards import PREBUILT_DASHBOARDS
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -1906,3 +1907,87 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["title"] == "General"
+
+    def test_endpoint_creates_prebuilt_dashboards_when_none_exist(self) -> None:
+        prebuilt_count = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        ).count()
+        assert prebuilt_count == 0
+
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        prebuilt_dashboards = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        )
+        assert prebuilt_dashboards.count() == len(PREBUILT_DASHBOARDS)
+
+        for prebuilt_dashboard in PREBUILT_DASHBOARDS:
+            dashboard = prebuilt_dashboards.get(prebuilt_id=prebuilt_dashboard["prebuilt_id"])
+            assert dashboard.title == prebuilt_dashboard["title"]
+            assert dashboard.organization == self.organization
+            assert dashboard.created_by_id is None
+            assert dashboard.prebuilt_id == prebuilt_dashboard["prebuilt_id"]
+
+            matching_response_data = [
+                d
+                for d in response.data
+                if "prebuiltId" in d and d["prebuiltId"] == prebuilt_dashboard["prebuilt_id"]
+            ]
+            assert len(matching_response_data) == 1
+
+    def test_endpoint_does_not_create_duplicate_prebuilt_dashboards_when_exist(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            response = self.do_request("get", self.url)
+            assert response.status_code == 200
+
+        initial_count = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        ).count()
+        assert initial_count == len(PREBUILT_DASHBOARDS)
+
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        final_count = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        ).count()
+        assert final_count == initial_count
+        assert final_count == len(PREBUILT_DASHBOARDS)
+
+    def test_endpoint_deletes_old_prebuilt_dashboards_not_in_list(self) -> None:
+        old_prebuilt_id = 9999  # 9999 is not a valid prebuilt dashboard id
+        old_dashboard = Dashboard.objects.create(
+            organization=self.organization,
+            title="Old Prebuilt Dashboard",
+            created_by_id=None,
+            prebuilt_id=old_prebuilt_id,
+        )
+        assert Dashboard.objects.filter(id=old_dashboard.id).exists()
+
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        assert not Dashboard.objects.filter(id=old_dashboard.id).exists()
+
+        prebuilt_dashboards = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        )
+        assert prebuilt_dashboards.count() == len(PREBUILT_DASHBOARDS)
+
+    def test_endpoint_does_not_sync_without_feature_flag(self) -> None:
+        prebuilt_count = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        ).count()
+        assert prebuilt_count == 0
+
+        response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        prebuilt_count = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        ).count()
+        assert prebuilt_count == 0

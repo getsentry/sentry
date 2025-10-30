@@ -2,6 +2,7 @@ import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -14,12 +15,15 @@ import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {makeDetectorListQueryKey, useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
+import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
 interface Props {
   connectedIds: Automation['detectorIds'];
@@ -49,6 +53,7 @@ function SelectedMonitors({
         isError={isError}
         toggleConnected={toggleConnected}
         numSkeletons={connectedIds.length}
+        openInNewTab
         {...props}
       />
     </StyledSection>
@@ -100,6 +105,7 @@ function AllMonitors({
           toggleConnected={toggleConnected}
           emptyMessage={t('No monitors found')}
           numSkeletons={10}
+          openInNewTab
         />
         <Flex justify="between">
           <div>{footerContent}</div>
@@ -113,7 +119,7 @@ function AllMonitors({
   );
 }
 
-export function ConnectMonitorsContent({
+function ConnectMonitorsContent({
   initialIds,
   saveConnectedIds,
   footerContent,
@@ -130,7 +136,18 @@ export function ConnectMonitorsContent({
   );
 
   const toggleConnected = ({detector}: {detector: Detector}) => {
-    const oldDetectorsData =
+    const newDetectorIds = (
+      connectedIds.includes(detector.id)
+        ? connectedIds.filter(id => id !== detector.id)
+        : [...connectedIds, detector.id]
+    )
+      // Sort by ID to match the API response order
+      .toSorted((a, b) => Number(a) - Number(b));
+
+    setConnectedIds(newDetectorIds);
+    saveConnectedIds(newDetectorIds);
+
+    const cachedConnectedDetectors =
       getApiQueryData<Detector[]>(
         queryClient,
         makeDetectorListQueryKey({
@@ -138,28 +155,30 @@ export function ConnectMonitorsContent({
           ids: connectedIds,
         })
       ) ?? [];
+    const connectedDetectorsData = newDetectorIds
+      .map(id => {
+        if (id === detector.id) {
+          return detector;
+        }
+        return cachedConnectedDetectors.find(d => d.id === id);
+      })
+      .filter(defined);
 
-    const newDetectors = (
-      oldDetectorsData.some(d => d.id === detector.id)
-        ? oldDetectorsData.filter(d => d.id !== detector.id)
-        : [...oldDetectorsData, detector]
-    )
-      // API will return ID ascending, so this avoids re-ordering
-      .toSorted((a, b) => Number(a.id) - Number(b.id));
-    const newDetectorIds = newDetectors.map(d => d.id);
+    // If for some reason the cached data doesn't match the full list of connected detectors,
+    // don't optimistically update the cache. React query will show a loading state in this case.
+    if (connectedDetectorsData.length !== newDetectorIds.length) {
+      return;
+    }
 
-    // Update the query cache to prevent the list from being fetched anew
+    // If we do have the correct data already, optimistically update the cache to avoid a loading state.
     setApiQueryData<Detector[]>(
       queryClient,
       makeDetectorListQueryKey({
         orgSlug: organization.slug,
         ids: newDetectorIds,
       }),
-      newDetectors
+      connectedDetectorsData
     );
-
-    setConnectedIds(newDetectorIds);
-    saveConnectedIds(newDetectorIds);
   };
 
   return (
@@ -183,6 +202,8 @@ export function ConnectMonitorsContent({
 export default function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
   const ref = useRef<HTMLButtonElement>(null);
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
+  const organization = useOrganization();
+  const {monitorsLinkPrefix} = useMonitorViewContext();
 
   const toggleDrawer = () => {
     if (isDrawerOpen) {
@@ -221,9 +242,14 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
       <Container>
         <SelectedMonitors connectedIds={connectedIds} />
         <ButtonWrapper justify="between">
-          <Button size="sm" icon={<IconAdd />} onClick={toggleDrawer}>
+          <LinkButton
+            size="sm"
+            icon={<IconAdd />}
+            href={makeMonitorCreatePathname(organization.slug, monitorsLinkPrefix)}
+            external
+          >
             {t('Create New Monitor')}
-          </Button>
+          </LinkButton>
           <Button size="sm" icon={<IconEdit />} onClick={toggleDrawer}>
             {t('Edit Monitors')}
           </Button>

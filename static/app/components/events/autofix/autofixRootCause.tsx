@@ -6,10 +6,13 @@ import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicato
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Flex} from 'sentry/components/core/layout';
 import {TextArea} from 'sentry/components/core/textarea';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {
+  AutofixStatus,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
   type CommentThread,
@@ -20,8 +23,10 @@ import {
   useLaunchCodingAgent,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChat, IconChevron, IconCopy, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -77,6 +82,7 @@ type AutofixRootCauseProps = {
   groupId: string;
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
+  status: AutofixStatus;
   agentCommentThread?: CommentThread;
   event?: Event;
   isRootCauseFirstAppearance?: boolean;
@@ -246,6 +252,7 @@ function AutofixRootCauseDisplay({
   groupId,
   runId,
   rootCauseSelection,
+  status,
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
@@ -311,6 +318,9 @@ function AutofixRootCauseDisplay({
       return;
     }
 
+    // Show immediate loading toast
+    addLoadingMessage(t('Launching %s...', cursorIntegration.name));
+
     launchCodingAgent({
       integrationId: cursorIntegration.id,
       agentName: cursorIntegration.name,
@@ -356,10 +366,19 @@ function AutofixRootCauseDisplay({
           <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
           <BottomDivider />
           <BottomButtonContainer>
-            <CopyRootCauseButton
-              customRootCause={rootCauseSelection.custom_root_cause}
-              event={event}
-            />
+            <ButtonBar>
+              <CopyRootCauseButton
+                customRootCause={rootCauseSelection.custom_root_cause}
+                event={event}
+              />
+            </ButtonBar>
+            {status === AutofixStatus.COMPLETED && (
+              <AutofixStepFeedback
+                stepType="root_cause"
+                groupId={groupId}
+                runId={runId}
+              />
+            )}
           </BottomButtonContainer>
         </CustomRootCausePadding>
       </CausesContainer>
@@ -444,6 +463,8 @@ function AutofixRootCauseDisplay({
                 disabled={isLoadingAgents}
                 onClick={submitFindSolution}
                 title={findSolutionTitle}
+                analyticsEventName="Autofix: Find Solution"
+                analyticsEventKey="autofix.root_cause.find_solution"
               >
                 {t('Find Solution')}
               </Button>
@@ -451,7 +472,12 @@ function AutofixRootCauseDisplay({
                 items={[
                   {
                     key: 'cursor-agent',
-                    label: t('Send to Cursor Background Agent'),
+                    label: (
+                      <Flex gap="md" align="center">
+                        <PluginIcon pluginId="cursor" size={20} />
+                        <div>{t('Send to Cursor Background Agent')}</div>
+                      </Flex>
+                    ),
                     onAction: handleLaunchCodingAgent,
                     disabled: isLoadingAgents || isLaunchingAgent,
                   },
@@ -464,7 +490,13 @@ function AutofixRootCauseDisplay({
                     busy={isLaunchingAgent}
                     disabled={isLoadingAgents}
                     aria-label={t('More solution options')}
-                    icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+                    icon={
+                      isLaunchingAgent ? (
+                        <LoadingIndicator size={12} />
+                      ) : (
+                        <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+                      )
+                    }
                   />
                 )}
               />
@@ -476,11 +508,16 @@ function AutofixRootCauseDisplay({
               busy={isSelectingRootCause}
               onClick={submitFindSolution}
               title={findSolutionTitle}
+              analyticsEventName="Autofix: Find Solution"
+              analyticsEventKey="autofix.root_cause.find_solution"
             >
               {t('Find Solution')}
             </Button>
           )}
         </ButtonBar>
+        {status === AutofixStatus.COMPLETED && (
+          <AutofixStepFeedback stepType="root_cause" groupId={groupId} runId={runId} />
+        )}
       </BottomButtonContainer>
     </CausesContainer>
   );
@@ -577,6 +614,8 @@ const BottomDivider = styled('div')`
 const BottomButtonContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: ${space(1)};
   padding-top: ${p => p.theme.space.xl};
 `;
 

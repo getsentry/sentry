@@ -901,9 +901,19 @@ def test_which() -> None:
     assert which(event) == EventType.NAVIGATION_SPAN
 
     event = {
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1761671674.977515,
+                "type": "default",
+                "data": {"to": "UIInputWindowController"},
+                "message": "UIInputWindowController",
+                "category": "navigation",
+                "level": "none",
+            },
+        },
         "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "navigation"}},
+        "timestamp": 1761671674977,
     }
     assert which(event) == EventType.NAVIGATION
 
@@ -1038,6 +1048,76 @@ def test_which() -> None:
         },
     }
     assert which(event) == EventType.DEVICE_CONNECTIVITY
+
+    event = {
+        "type": 5,
+        "timestamp": 1760948639388,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1760948639.388,
+                "category": "ui.scroll",
+                "level": "info",
+                "data": {
+                    "view.class": "androidx.recyclerview.widget.RecyclerView",
+                    "view.id": "recycler_view",
+                    "direction": "up",
+                },
+            },
+        },
+    }
+    assert which(event) == EventType.SCROLL
+
+    event = {
+        "type": 5,
+        "timestamp": 1760948640299,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1760948640.299,
+                "category": "ui.swipe",
+                "level": "info",
+                "data": {
+                    "view.class": "androidx.recyclerview.widget.RecyclerView",
+                    "view.id": "recycler_view",
+                    "direction": "up",
+                },
+            },
+        },
+    }
+    assert which(event) == EventType.SWIPE
+
+    event = {
+        "type": 5,
+        "timestamp": 1758735184405,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758735184.405,
+                "category": "app.background",
+                "data": {},
+            },
+        },
+    }
+    assert which(event) == EventType.BACKGROUND
+
+    event = {
+        "type": 5,
+        "timestamp": 1758733250461,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758733250.461,
+                "category": "app.foreground",
+                "data": {},
+            },
+        },
+    }
+    assert which(event) == EventType.FOREGROUND
 
     assert which({}) == EventType.UNKNOWN
 
