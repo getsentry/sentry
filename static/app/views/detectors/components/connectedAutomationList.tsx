@@ -171,11 +171,11 @@ export function ConnectedAutomationsList({
             </SimpleTable.Row>
           ))}
       </SimpleTableWithColumns>
-      {limit && totalCountInt > limit && (
+      {limit && (
         <Pagination
           onCursor={onCursor}
           pageLinks={pageLinks}
-          caption={paginationCaption}
+          caption={totalCountInt > limit ? paginationCaption : null}
         />
       )}
     </Container>
