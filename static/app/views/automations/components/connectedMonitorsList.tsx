@@ -138,10 +138,10 @@ export default function ConnectedMonitorsList({
           />
         )}
         {isError && <LoadingError />}
-        {(isSuccess && detectors.length === 0) ||
-          (detectorIds !== null && detectorIds.length === 0 && (
-            <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
-          ))}
+        {((isSuccess && detectors.length === 0) ||
+          (detectorIds !== null && detectorIds.length === 0)) && (
+          <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
+        )}
         {isSuccess &&
           detectors.map(detector => (
             <SimpleTable.Row key={detector.id}>
