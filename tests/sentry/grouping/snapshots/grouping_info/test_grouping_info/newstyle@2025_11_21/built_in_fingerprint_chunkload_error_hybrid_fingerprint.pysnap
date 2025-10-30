@@ -1,10 +1,10 @@
 ---
-created: '2025-10-29T21:19:25.616272+00:00'
+created: '2025-10-30T17:09:39.363884+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app_exception_message": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because built-in fingerprint takes precedence",
@@ -103,10 +103,10 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "exception message",
+    "description": "exception stacktrace — in-app frames",
     "hash": null,
     "hint": "ignored because built-in fingerprint takes precedence",
-    "key": "app_exception_message",
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
   "built_in_fingerprint": {
