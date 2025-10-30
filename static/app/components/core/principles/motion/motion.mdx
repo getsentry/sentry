@@ -59,6 +59,21 @@ const theme = useTheme();
 theme.motion.smooth.moderate;
 ```
 
+If you need to use the tokens with [Framer Motion](https://motion.dev) you can access the Bézier curve control points values and durations directly.
+
+```jsx
+const theme = useTheme();
+
+<motion.div
+  animate={{opacity: 0}}
+  transition={{
+    type: 'tween',
+    ease: theme.motionControlPoints.enter,
+    duration: theme.motionDurations.slow,
+  }}
+></motion.div>;
+```
+
 ## Easing
 
 The easing curve of an animation drastically changes our perception of it. These easing tokens have been chosen to provide snappy, natural motion to interactions.

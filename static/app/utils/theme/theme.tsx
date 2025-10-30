@@ -252,20 +252,42 @@ const generateTokens = (colors: Colors) => ({
   },
 });
 
-const generateMotion = () => {
-  return {
-    smooth: withDuration('cubic-bezier(0.72, 0, 0.16, 1)'),
-    snap: withDuration('cubic-bezier(0.8, -0.4, 0.5, 1)'),
-    enter: withDuration('cubic-bezier(0.24, 1, 0.32, 1)'),
-    exit: withDuration('cubic-bezier(0.64, 0, 0.8, 0)'),
-  };
+type Curve = 'smooth' | 'snap' | 'enter' | 'exit';
+type ControlPoints = [number, number, number, number];
+
+const BEZIER_CONTROL_POINTS: Record<Curve, ControlPoints> = {
+  smooth: [0.72, 0, 0.16, 1],
+  snap: [0.8, -0.4, 0.5, 1],
+  enter: [0.24, 1, 0.32, 1],
+  exit: [0.64, 0, 0.8, 0],
+};
+
+function formatBezierCurve(points: ControlPoints): string {
+  return `cubic-bezier(${points.join(', ')})`;
+}
+
+type AnimationDuration = 'fast' | 'moderate' | 'slow';
+
+const MOTION_DURATIONS: Record<AnimationDuration, number> = {
+  fast: 0.12,
+  moderate: 0.16,
+  slow: 0.24,
 };
 
 const withDuration = (easing: string) => {
   return {
-    fast: `120ms ${easing}`,
-    moderate: `160ms ${easing}`,
-    slow: `240ms ${easing}`,
+    fast: `${MOTION_DURATIONS.fast}s ${easing}`,
+    moderate: `${MOTION_DURATIONS.moderate}s ${easing}`,
+    slow: `${MOTION_DURATIONS.slow}s ${easing}`,
+  };
+};
+
+const generateMotion = () => {
+  return {
+    smooth: withDuration(formatBezierCurve(BEZIER_CONTROL_POINTS.smooth)),
+    snap: withDuration(formatBezierCurve(BEZIER_CONTROL_POINTS.snap)),
+    enter: withDuration(formatBezierCurve(BEZIER_CONTROL_POINTS.enter)),
+    exit: withDuration(formatBezierCurve(BEZIER_CONTROL_POINTS.exit)),
   };
 };
 
@@ -1152,6 +1174,8 @@ const commonTheme = {
 
   space,
   motion: generateMotion(),
+  motionControlPoints: BEZIER_CONTROL_POINTS,
+  motionDurations: MOTION_DURATIONS,
 
   // Icons
   iconSizes,
