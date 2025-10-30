@@ -749,6 +749,12 @@ class SnubaTagStorage(TagStorage):
                 ]
                 values_by_key[k] = {vk: vd for vk, vd in sorted_items}
 
+            # Increase the count of the key by the count of empty values
+            for keyobj in keys_with_counts:
+                stats = empty_stats_map.get(keyobj.key)
+                if stats and stats.get("count", 0) > 0:
+                    keyobj.count = (keyobj.count or 0) + stats["count"]
+
         for keyobj in keys_with_counts:
             key = keyobj.key
             values = values_by_key.get(key, dict())
