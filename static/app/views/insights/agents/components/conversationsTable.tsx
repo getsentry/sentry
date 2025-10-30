@@ -1,6 +1,9 @@
 import {Fragment, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
+import {Button} from 'sentry/components/core/button';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -16,6 +19,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
 import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
 import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
@@ -52,9 +56,10 @@ export function ConversationsTable() {
 const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
-  {key: 'conversationId', name: t('Conversation ID'), width: 150},
+  {key: 'conversationId', name: t('Conversation ID'), width: 135},
+  {key: 'traceIds', name: t('Traces'), width: 130},
   {key: 'flow', name: t('Flow'), width: COL_WIDTH_UNDEFINED}, // Containing summary of the conversation or list of agents
-  {key: 'duration', name: t('Root Duration'), width: 130},
+  {key: 'duration', name: t('Duration'), width: 130},
   {key: 'errors', name: t('Errors'), width: 100},
   {key: 'llmCalls', name: t('LLM Calls'), width: 110},
   {key: 'toolCalls', name: t('Tool Calls'), width: 110},
@@ -69,6 +74,8 @@ const rightAlignColumns = new Set([
   'toolCalls',
   'totalTokens',
   'totalCost',
+  'timestamp',
+  'duration',
 ]);
 
 function ConversationsTableInner() {
@@ -158,10 +165,26 @@ const BodyCell = memo(function BodyCell({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const {openTraceViewDrawer} = useTraceViewDrawer();
 
   switch (column.key) {
     case 'conversationId':
-      return <span>{dataRow.conversationId}</span>;
+      return dataRow.conversationId.slice(0, 8);
+    case 'traceIds':
+      return (
+        <Flex align="start" direction="column" gap="sm">
+          {dataRow.traceIds.length > 0 &&
+            dataRow.traceIds.map(traceId => (
+              <TraceIdButton
+                key={traceId}
+                priority="link"
+                onClick={() => openTraceViewDrawer(traceId)}
+              >
+                {traceId.slice(0, 8)}
+              </TraceIdButton>
+            ))}
+        </Flex>
+      );
     case 'flow':
       return <span>{dataRow.flow.join(' → ')}</span>;
     case 'duration':
@@ -219,4 +242,8 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   align-items: center;
   gap: ${p => p.theme.space.xs};
   justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
+`;
+
+const TraceIdButton = styled(Button)`
+  font-weight: normal;
 `;

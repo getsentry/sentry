@@ -105,7 +105,7 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
   );
 });
 
-export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProps) {
+export function useTraceViewDrawer({onClose}: UseTraceViewDrawerProps = {}) {
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, drawerUrlState, closeDrawer} = useUrlTraceDrawer();
 

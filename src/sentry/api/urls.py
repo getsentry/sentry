@@ -220,6 +220,7 @@ from sentry.incidents.endpoints.team_alerts_triggered import (
     TeamAlertsTriggeredTotalsEndpoint,
 )
 from sentry.insights.endpoints.starred_segments import InsightsStarredSegmentsEndpoint
+from sentry.integrations.api.endpoints.data_forwarding_details import DataForwardingDetailsEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_index import DataForwardingIndexEndpoint
 from sentry.integrations.api.endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
 from sentry.integrations.api.endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
@@ -513,6 +514,9 @@ from sentry.seer.endpoints.group_autofix_update import GroupAutofixUpdateEndpoin
 from sentry.seer.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
 from sentry.seer.endpoints.organization_seer_explorer_chat import (
     OrganizationSeerExplorerChatEndpoint,
+)
+from sentry.seer.endpoints.organization_seer_explorer_runs import (
+    OrganizationSeerExplorerRunsEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_explorer_update import (
     OrganizationSeerExplorerUpdateEndpoint,
@@ -1425,6 +1429,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-forwarding",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/forwarding/(?P<data_forwarder_id>[^/]+)/$",
+        DataForwardingDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-forwarding-details",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/codeowners-associations/$",
         OrganizationCodeOwnersAssociationsEndpoint.as_view(),
         name="sentry-api-0-organization-codeowners-associations",
@@ -2289,6 +2298,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?:(?P<run_id>[^/]+)/)?$",
         OrganizationSeerExplorerChatEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-chat",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-runs/$",
+        OrganizationSeerExplorerRunsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-explorer-runs",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",
