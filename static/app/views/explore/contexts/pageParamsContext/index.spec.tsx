@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   DEFAULT_VISUALIZATION,
@@ -26,11 +25,7 @@ import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryPar
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 function Wrapper({children}: {children: ReactNode}) {
-  return (
-    <SpansQueryParamsProvider>
-      <PageParamsProvider>{children}</PageParamsProvider>
-    </SpansQueryParamsProvider>
-  );
+  return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
 }
 
 describe('defaults', () => {
@@ -47,7 +42,7 @@ describe('defaults', () => {
   });
 });
 
-describe('PageParamsProvider', () => {
+describe('SpanQueryParamsProvider', () => {
   let queryParams: ReturnType<typeof useQueryParams>;
   let setQueryParams: ReturnType<typeof useSetQueryParams>;
   let setFields: ReturnType<typeof useSetQueryParamsFields>;
