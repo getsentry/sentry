@@ -215,13 +215,13 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             self.feature(features),
             mock.patch("sentry.remote_subscriptions.consumers.result_consumer.logger") as logger,
             mock.patch(
-                "sentry.uptime.consumers.results_consumer.remove_uptime_subscription_if_unused"
-            ) as mock_remove_uptime_subscription_if_unused,
+                "sentry.uptime.consumers.results_consumer.delete_uptime_subscription"
+            ) as mock_delete_uptime_subscription,
         ):
             # Does not produce an error
             self.send_result(result)
             assert not logger.exception.called
-            mock_remove_uptime_subscription_if_unused.assert_called_with(self.subscription)
+            mock_delete_uptime_subscription.assert_called_with(self.subscription)
 
     def test_no_create_issues_option(self) -> None:
         self.detector.config.update({"downtime_threshold": 1, "recovery_threshold": 1})
