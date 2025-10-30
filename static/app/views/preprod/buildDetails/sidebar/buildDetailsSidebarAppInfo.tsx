@@ -38,7 +38,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
 
   let iconUrl = null;
   if (props.appInfo.app_icon_id) {
-    iconUrl = `/api/0/projects/${organization.slug}/${props.projectId}/files/app-icons/${props.appInfo.app_icon_id}/`;
+    iconUrl = `/api/0/projects/${organization.slug}/${props.projectId}/files/images/${props.appInfo.app_icon_id}/`;
   }
 
   return (
