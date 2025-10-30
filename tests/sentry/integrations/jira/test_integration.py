@@ -23,6 +23,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
+    IntegrationProviderError,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
@@ -769,6 +770,64 @@ class RegionJiraIntegrationTest(APITestCase):
         )
         installation = self.integration.get_installation(self.organization.id)
         with pytest.raises(IntegrationConfigurationError):
+            installation.create_issue(
+                {
+                    "title": "example summary",
+                    "description": "example bug report",
+                    "issuetype": "1",
+                    "project": "10000",
+                }
+            )
+
+    @responses.activate
+    def test_create_issue_product_unavailable_error(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            content_type="json",
+        )
+        # Simulate Jira returning an HTML "Product Unavailable" error page
+        responses.add(
+            responses.POST,
+            "https://example.atlassian.net/rest/api/2/issue",
+            status=503,
+            body='<!DOCTYPE html>\n<html lang="en">\n    <head>\n        <title>Atlassian Cloud Notifications - Product Unavailable</title>\n    </head>\n    <body>\n        <h1>Jira has been deactivated</h1>\n    </body>\n</html>',
+            content_type="text/html",
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        with pytest.raises(
+            IntegrationProviderError, match="Something went wrong while communicating with Jira"
+        ):
+            installation.create_issue(
+                {
+                    "title": "example summary",
+                    "description": "example bug report",
+                    "issuetype": "1",
+                    "project": "10000",
+                }
+            )
+
+    @responses.activate
+    def test_create_issue_page_unavailable_error(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            content_type="json",
+        )
+        # Simulate Jira returning an HTML "Page Unavailable" error
+        responses.add(
+            responses.POST,
+            "https://example.atlassian.net/rest/api/2/issue",
+            status=503,
+            body='<!DOCTYPE html>\n<html lang="en">\n    <head>\n        <title>Page Unavailable</title>\n    </head>\n    <body>\n        <h1>Page Unavailable</h1>\n    </body>\n</html>',
+            content_type="text/html",
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        with pytest.raises(
+            IntegrationProviderError, match="Something went wrong while communicating with Jira"
+        ):
             installation.create_issue(
                 {
                     "title": "example summary",

@@ -486,9 +486,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 ## SDK
 /src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
-/src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-web-sdk-frontend
-/src/sentry/web/frontend/setup_wizard.py                             @getsentry/team-web-sdk-frontend
-/src/sentry/api/endpoints/setup_wizard.py                            @getsentry/team-web-sdk-frontend
+/src/sentry/api/endpoints/source_map_debug_blue_thunder_edition.py   @getsentry/team-javascript-sdks
+/src/sentry/web/frontend/setup_wizard.py                             @getsentry/team-javascript-sdks
+/src/sentry/api/endpoints/setup_wizard.py                            @getsentry/team-javascript-sdks
 ## End of SDK
 
 
@@ -705,3 +705,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/prevent/                                @getsentry/prevent
 /static/app/views/nav/secondary/sections/prevent/         @getsentry/prevent
 # End of Prevent
+
+# Conduit
+/src/sentry/conduit/                                  @getsentry/sre-infrastructure-engineering
+/tests/sentry/conduit/                                @getsentry/sre-infrastructure-engineering
+# End of Conduit
