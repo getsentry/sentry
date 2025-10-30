@@ -351,7 +351,11 @@ def get_payload_from_client_secret_jwt(
         raise AuthenticationFailed("Application not found")
 
     client_secret = application.client_secret
-    encoded_jwt = tokens[1]
+    try:
+        encoded_jwt = tokens[1]
+    except IndexError:
+        raise AuthenticationFailed("Invalid Authorization header, should be Bearer <token>")
+
     try:
         payload = jwt.decode(encoded_jwt, client_secret, algorithms=["HS256"])
     except Exception as e:
@@ -365,6 +369,7 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
     Authenticates a Snetry App by validating given JWT was issued by the Sentry App
 
     Currently used for authenticating requests to manually refresh an installation's API token.
+    Expects the URL to contain a `installation_uuid` in the path
     """
 
     def _create_cache_key(self, installation_uuid: str, jti: str) -> str:
@@ -377,7 +382,12 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
         if request.data.get("grant_type") != GrantTypes.CLIENT_SECRET_JWT:
             return None
 
-        installation_uuid = request.path.split("/")[-3]
+        path_params = request.resolver_match
+        # breakpoint()
+        installation_uuid = path_params.kwargs.get("uuid") if path_params else None
+        if not installation_uuid:
+            raise AuthenticationFailed("Installation UUID not found")
+
         try:
             installation = SentryAppInstallation.objects.get(uuid=installation_uuid)
         except SentryAppInstallation.DoesNotExist:
