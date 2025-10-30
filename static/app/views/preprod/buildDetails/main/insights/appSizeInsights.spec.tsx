@@ -41,13 +41,13 @@ describe('AppSizeInsights', () => {
     );
 
     // Should show top 3 insights in main view
-    expect(screen.getByText('Remove duplicate files')).toBeInTheDocument();
-    expect(screen.getByText('Compress large images')).toBeInTheDocument();
-    expect(screen.getByText('Compress large videos')).toBeInTheDocument();
+    expect(screen.getByText('Duplicate Files')).toBeInTheDocument();
+    expect(screen.getByText('Large Images')).toBeInTheDocument();
+    expect(screen.getByText('Large Videos')).toBeInTheDocument();
 
     // Should NOT show lower priority insights in main view
-    expect(screen.queryByText('Unnecessary files')).not.toBeInTheDocument();
-    expect(screen.queryByText('Small files')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unnecessary Files')).not.toBeInTheDocument();
+    expect(screen.queryByText('Small Files')).not.toBeInTheDocument();
   });
 
   it('formats file sizes and percentages correctly', () => {
