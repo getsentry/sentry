@@ -2,11 +2,6 @@ import * as Sentry from '@sentry/react';
 
 import {getHighlightedSpanAttributes} from './highlightedAttributes';
 
-// Mock Sentry
-jest.mock('@sentry/react', () => ({
-  captureMessage: jest.fn(),
-}));
-
 // Mock the query utility
 jest.mock('sentry/views/insights/agents/utils/query', () => ({
   getIsAiSpan: jest.fn(({op}) => op?.startsWith('gen_ai.')),
@@ -14,6 +9,11 @@ jest.mock('sentry/views/insights/agents/utils/query', () => ({
 
 describe('getHighlightedSpanAttributes', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(Sentry.logger, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
@@ -29,28 +29,23 @@ describe('getHighlightedSpanAttributes', () => {
       attributes,
     });
 
-    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+    expect(Sentry.logger.warn).toHaveBeenCalledWith(
       'Gen AI span missing cost calculation',
       {
-        level: 'warning',
-        tags: {
-          feature: 'agent-monitoring',
-          span_type: 'gen_ai',
-          has_model: 'true',
-          has_cost: 'false',
-          span_operation: 'gen_ai.chat',
-          model: 'gpt-4',
-        },
-        extra: {
-          total_costs: '0',
-          span_operation: 'gen_ai.chat',
-          attributes,
-        },
+        feature: 'agent-monitoring',
+        span_type: 'gen_ai',
+        has_model: 'true',
+        has_cost: 'false',
+        span_operation: 'gen_ai.chat',
+        model: 'gpt-4',
+        total_costs: '0',
+        attributes,
       }
     );
   });
 
   it('should not emit Sentry error when gen_ai span has model and cost', () => {
+    jest.spyOn(Sentry.logger, 'warn').mockImplementation(() => {});
     const attributes = {
       'gen_ai.request.model': 'gpt-4',
       'gen_ai.usage.total_cost': '0.05',
@@ -62,7 +57,7 @@ describe('getHighlightedSpanAttributes', () => {
       attributes,
     });
 
-    expect(Sentry.captureMessage).not.toHaveBeenCalled();
+    expect(Sentry.logger.warn).not.toHaveBeenCalled();
   });
 
   it('should not emit Sentry error when gen_ai span has no model', () => {
@@ -76,7 +71,7 @@ describe('getHighlightedSpanAttributes', () => {
       attributes,
     });
 
-    expect(Sentry.captureMessage).not.toHaveBeenCalled();
+    expect(Sentry.logger.warn).not.toHaveBeenCalled();
   });
 
   it('should not emit Sentry error for non-gen_ai spans', () => {
@@ -91,6 +86,6 @@ describe('getHighlightedSpanAttributes', () => {
       attributes,
     });
 
-    expect(Sentry.captureMessage).not.toHaveBeenCalled();
+    expect(Sentry.logger.warn).not.toHaveBeenCalled();
   });
 });
