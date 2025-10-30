@@ -10,7 +10,7 @@ from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
-from typing import Any, TypedDict, Union
+from typing import Any, Literal, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import UUID, uuid4
@@ -3480,6 +3480,7 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
         self,
         metric_name: str,
         metric_value: float,
+        metric_type: Literal["counter", "distribution", "gauge"],
         organization: Organization | None = None,
         project: Project | None = None,
         timestamp: datetime | None = None,
@@ -3505,7 +3506,10 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
 
         attributes_proto = {
             "sentry.metric_name": AnyValue(string_value=metric_name),
+            "sentry.metric_type": AnyValue(string_value=metric_type),
             "sentry.value": AnyValue(double_value=metric_value),
+            f"sentry._internal.cooccuring.name.{metric_name}": AnyValue(bool_value=True),
+            f"sentry._internal.cooccuring.type.{metric_type}": AnyValue(bool_value=True),
         }
 
         if attributes:
