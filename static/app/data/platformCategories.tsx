@@ -382,7 +382,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
 export const withoutLoggingSupport: Set<PlatformKey> = new Set([
   'elixir',
   'unity',
-  'unreal'
+  'unreal',
 ]);
 
 // List of platforms that have metrics onboarding checklist content
