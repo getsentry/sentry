@@ -9,9 +9,9 @@ resources:
 import {Container, Stack} from 'sentry/components/core/layout';
 import * as Storybook from 'sentry/stories';
 
-import APIReference from '!!type-loader!sentry/components/core/layout/stack';
+import documentation from '!!type-loader!@sentry/scraps/layout/stack';
 
-export const types = {Stack: APIReference.Stack};
+export {documentation};
 
 export function CustomComponent(props) {
   return <div {...props} />;

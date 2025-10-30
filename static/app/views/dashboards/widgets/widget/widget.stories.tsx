@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import types from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
+import documentation from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -13,7 +13,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from './widget';
 
 export default Storybook.story('Widget', (story, APIReference) => {
-  APIReference(types.exported);
+  APIReference(documentation.props.Widget);
 
   story('Getting Started', () => {
     return (

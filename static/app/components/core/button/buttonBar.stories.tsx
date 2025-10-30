@@ -1,12 +1,12 @@
 import {Fragment, useState} from 'react';
-import types from '!!type-loader!sentry/components/core/button/buttonBar';
+import documentation from '!!type-loader!sentry/components/core/button/buttonBar';
 
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('ButtonBar', (story, APIReference) => {
-  APIReference(types.ButtonBar);
+  APIReference(documentation.props.ButtonBar);
 
   story('Default', () => {
     const [active, setActive] = useState('One');

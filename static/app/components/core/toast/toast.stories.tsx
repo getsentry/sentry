@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import types from '!!type-loader!sentry/components/core/toast';
+import documentation from '!!type-loader!sentry/components/core/toast';
 
 import {Toast, type ToastProps} from 'sentry/components/core/toast';
 import * as Storybook from 'sentry/stories';
@@ -19,7 +19,7 @@ function makeToastProps(type: 'success' | 'error' | 'loading' | 'undo'): ToastPr
   };
 }
 export default Storybook.story('Toast', (story, APIReference) => {
-  APIReference(types.Toast);
+  APIReference(documentation.props.Toast);
 
   story('Toast types', () => {
     return (

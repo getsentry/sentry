@@ -22,13 +22,22 @@ import {SentryAppAvatar} from './sentryAppAvatar';
 import {TeamAvatar} from './teamAvatar';
 import {UserAvatar} from './userAvatar';
 
-import ProjectAvatarAPIReference from '!!type-loader!sentry/components/core/avatar/projectAvatar';
-import UserAvatarAPIReference from '!!type-loader!sentry/components/core/avatar/userAvatar';
+import ProjectAvatarDocumentation from '!!type-loader!@sentry/scraps/avatar/projectAvatar';
+import UserAvatarDocumentation from '!!type-loader!@sentry/scraps/avatar/userAvatar';
 
-export const types = {
-  UserAvatar: UserAvatarAPIReference.UserAvatar,
-  ProjectAvatar: ProjectAvatarAPIReference.ProjectAvatar,
+export const documentation = {
+  ...UserAvatarDocumentation,
+  ...ProjectAvatarDocumentation,
+  props: {
+    ...ProjectAvatarDocumentation.props,
+    ...UserAvatarDocumentation.props,
+  },
+  exports: {
+    ...ProjectAvatarDocumentation.exports,
+    ...UserAvatarDocumentation.exports,
+  },
 };
+
 export const PREVIEW_SIZE = 40;
 
 export const USER = {

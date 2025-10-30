@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import types from '!!type-loader!sentry/components/core/switch';
+import documentation from '!!type-loader!sentry/components/core/switch';
 import styled from '@emotion/styled';
 
 import {Switch, type SwitchProps} from 'sentry/components/core/switch';
@@ -7,7 +7,7 @@ import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
 export default Storybook.story('Switch', (story, APIReference) => {
-  APIReference(types.Switch);
+  APIReference(documentation.props.Switch);
 
   story('Default', () => {
     return (
