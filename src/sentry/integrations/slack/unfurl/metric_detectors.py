@@ -12,7 +12,6 @@ from django.http import QueryDict
 from django.http.request import HttpRequest
 
 from sentry import features
-from sentry.api.serializers import serialize
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.integrations.messaging.metrics import (
@@ -38,7 +37,6 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.workflow_engine.endpoints.organization_open_periods import GroupOpenPeriodSerializer
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 
@@ -105,17 +103,11 @@ def _unfurl_metric_detectors(
             continue
 
         detector = detector_map[link.args["detector_id"]]
-        selected_open_period = open_period_map.get(link.args["open_period_id"])
 
         chart_url = None
         if features.has("organizations:metric-alert-chartcuterie", org):
             try:
                 alert_rule_serialized_response = get_alert_rule_serializer(detector)
-                open_period_serialized_resonse = serialize(
-                    selected_open_period,
-                    None,
-                    GroupOpenPeriodSerializer(),  # TODO: detailed version of this serializer
-                )
                 dsd = (
                     DataSourceDetector.objects.filter(detector=detector)
                     .select_related("data_source")
