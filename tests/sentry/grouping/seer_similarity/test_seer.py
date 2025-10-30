@@ -4,6 +4,7 @@ from unittest.mock import ANY, MagicMock, patch
 from sentry import options
 from sentry.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
 from sentry.models.grouphash import GroupHash
+from sentry.seer.similarity.types import GroupingVersion
 from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
@@ -60,8 +61,15 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                 "k": 1,
                 "referrer": "ingest",
                 "use_reranking": True,
+                "model": GroupingVersion.V1,
+                "training_mode": False,
             },
-            {"platform": "python", "hybrid_fingerprint": False},
+            {
+                "platform": "python",
+                "model_version": "v1",
+                "training_mode": False,
+                "hybrid_fingerprint": False,
+            },
         )
 
     @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
@@ -182,6 +190,13 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                 "k": 1,
                 "referrer": "ingest",
                 "use_reranking": True,
+                "model": GroupingVersion.V1,
+                "training_mode": False,
             },
-            {"platform": "python", "hybrid_fingerprint": False},
+            {
+                "platform": "python",
+                "model_version": "v1",
+                "training_mode": False,
+                "hybrid_fingerprint": False,
+            },
         )

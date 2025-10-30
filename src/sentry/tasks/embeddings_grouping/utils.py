@@ -11,7 +11,7 @@ from django.db.models import Q
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
-from sentry import nodestore, options
+from sentry import features, nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.grouptype import ErrorGroupType
@@ -25,6 +25,7 @@ from sentry.seer.similarity.grouping_records import (
     post_bulk_grouping_records,
 )
 from sentry.seer.similarity.types import (
+    GroupingVersion,
     IncompleteSeerDataError,
     SeerSimilarIssueData,
     SimilarHashMissingGroupError,
@@ -491,12 +492,20 @@ def send_group_and_stacktrace_to_seer(
         f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
     ):
+        # Get model configuration from feature flags
+        project = Project.objects.get_from_cache(id=project_id)
+        use_v2_model = features.has("projects:similarity-grouping-v2-model", project)
+        model_version = GroupingVersion.V2 if use_v2_model else GroupingVersion.V1
+        training_mode = False  # TODO: currently hardcoded, follow up PR will add the logic
+
         return _make_seer_call(
             CreateGroupingRecordsRequest(
                 group_id_list=groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
                 data=nodestore_results["data"],
                 stacktrace_list=nodestore_results["stacktrace_list"],
                 use_reranking=options.get("similarity.backfill_use_reranking"),
+                model=model_version,
+                training_mode=training_mode,
             ),
             project_id,
         )
@@ -508,6 +517,12 @@ def send_group_and_stacktrace_to_seer_multithreaded(
     nodestore_results,
     project_id,
 ):
+    # Get model configuration from feature flags
+    project = Project.objects.get_from_cache(id=project_id)
+    use_v2_model = features.has("projects:similarity-grouping-v2-model", project)
+    model_version = GroupingVersion.V2 if use_v2_model else GroupingVersion.V1
+    training_mode = False  # TODO: currently hardcoded, follow up PR will add the logic
+
     def process_chunk(chunk_data, chunk_stacktrace):
         return _make_seer_call(
             CreateGroupingRecordsRequest(
@@ -515,6 +530,8 @@ def send_group_and_stacktrace_to_seer_multithreaded(
                 data=chunk_data["data"],
                 stacktrace_list=chunk_stacktrace,
                 use_reranking=options.get("similarity.backfill_use_reranking"),
+                model=model_version,
+                training_mode=training_mode,
             ),
             project_id,
         )
