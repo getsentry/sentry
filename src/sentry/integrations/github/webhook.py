@@ -55,6 +55,7 @@ from sentry.utils import metrics
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
 from .tasks.codecov_account_unlink import codecov_account_unlink
+from .types import IssueEvenntWebhookActionType
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -512,48 +513,140 @@ class IssuesEventWebhook(GitHubWebhook):
         """
 
         action = event.get("action")
+
+        external_issue_key = self._extract_issue_key(integration, event)
+
+        if not external_issue_key:
+            logger.warning(
+                "github.webhook.issues.missing-external-issue-key",
+                extra={
+                    "integration_id": integration.id,
+                    "action": action,
+                },
+            )
+            return
+
+        # Route to appropriate handler based on action
+        if action in [
+            IssueEvenntWebhookActionType.ASSIGNED.value,
+            IssueEvenntWebhookActionType.UNASSIGNED.value,
+        ]:
+            self._handle_assignment(integration, event, external_issue_key, action)
+        elif action in [
+            IssueEvenntWebhookActionType.CLOSED.value,
+            IssueEvenntWebhookActionType.REOPENED.value,
+        ]:
+            self._handle_status_change(integration, external_issue_key, action)
+
+    def _handle_assignment(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        external_issue_key: str,
+        action: str,
+    ) -> None:
+        """
+        Handle issue assignment and unassignment events.
+
+        Args:
+            integration: The GitHub integration
+            event: The webhook event payload
+            external_issue_key: The formatted issue key
+            action: The action type ('assigned' or 'unassigned')
+        """
+        assignee = event.get("assignee", {})
+        assignee_gh_name = assignee.get("login")
+
+        if not assignee_gh_name:
+            logger.warning(
+                "github.webhook.missing-assignee",
+                extra={
+                    "integration_id": integration.id,
+                    "external_issue_key": external_issue_key,
+                    "action": action,
+                },
+            )
+            return
+
+        # Sentry uses the @username format for assignees
+        assignee_name = f"@{assignee_gh_name}"
+
+        sync_group_assignee_inbound_by_external_actor(
+            integration=integration,
+            external_user_name=assignee_name,
+            external_issue_key=external_issue_key,
+            assign=(action == IssueEvenntWebhookActionType.ASSIGNED.value),
+        )
+
+        logger.info(
+            "github.webhook.assignment.synced",
+            extra={
+                "integration_id": integration.id,
+                "external_issue_key": external_issue_key,
+                "assignee_name": assignee_name,
+                "action": action,
+            },
+        )
+
+    def _handle_status_change(
+        self, integration: RpcIntegration, external_issue_key: str, action: str
+    ) -> None:
+        """
+        Handle issue status changes (closed/reopened).
+
+        Args:
+            integration: The GitHub integration
+            external_issue_key: The formatted issue key
+            action: The action type ('closed' or 'reopened')
+        """
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration.id,
+            providers=[integration.provider],
+            status=ObjectStatus.ACTIVE,
+        )
+
+        for oi in org_integrations:
+            installation = integration.get_installation(oi.organization_id)
+
+            if hasattr(installation, "sync_status_inbound"):
+                installation.sync_status_inbound(external_issue_key, {"action": action})
+
+                logger.info(
+                    "github.webhook.status-change.synced",
+                    extra={
+                        "integration_id": integration.id,
+                        "organization_id": oi.organization_id,
+                        "external_issue_key": external_issue_key,
+                        "action": action,
+                    },
+                )
+
+    def _extract_issue_key(
+        self, integration: RpcIntegration, event: Mapping[str, Any]
+    ) -> str | None:
+        """
+        Extract and validate the external issue key from the event.
+
+        Returns the external issue key in format 'repo_full_name#issue_number' or None if invalid.
+        """
         issue = event.get("issue", {})
         repository = event.get("repository", {})
         repo_full_name = repository.get("full_name")
         issue_number = issue.get("number")
-        assignee_gh_name = event.get("assignee", {}).get("login")
 
-        if not repo_full_name or not issue_number or not assignee_gh_name:
+        if not repo_full_name or not issue_number:
             logger.warning(
                 "github.webhook.missing-data",
                 extra={
                     "integration_id": integration.id,
                     "repo": repo_full_name,
                     "issue_number": issue_number,
-                    "action": action,
+                    "action": event.get("action"),
                 },
             )
-            return
+            return None
 
-        external_issue_key = f"{repo_full_name}#{issue_number}"
-
-        # Handle issue assignment changes
-        if action in ["assigned", "unassigned"]:
-            # Sentry uses the @username format for assignees
-            assignee_name = "@" + assignee_gh_name
-
-            # Sync the assignment to Sentry
-            sync_group_assignee_inbound_by_external_actor(
-                integration=integration,
-                external_user_name=assignee_name,
-                external_issue_key=external_issue_key,
-                assign=(action == "assigned"),
-            )
-
-            logger.info(
-                "github.webhook.assignment.synced",
-                extra={
-                    "integration_id": integration.id,
-                    "external_issue_key": external_issue_key,
-                    "assignee_name": assignee_name,
-                    "action": action,
-                },
-            )
+        return f"{repo_full_name}#{issue_number}"
 
 
 class PullRequestEventWebhook(GitHubWebhook):
