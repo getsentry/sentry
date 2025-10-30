@@ -398,10 +398,12 @@ type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions, 'infinit
 export function useInfiniteLogsQuery({
   disabled,
   highFidelity,
+  maxAutoFetches = 5,
   referrer,
 }: {
   disabled?: boolean;
   highFidelity?: boolean;
+  maxAutoFetches?: number;
   referrer?: string;
 } = {}) {
   const _referrer = referrer ?? 'api.explore.logs-table';
@@ -648,10 +650,11 @@ export function useInfiniteLogsQuery({
     return Promise.resolve();
   }, [hasPreviousPage, fetchPreviousPage, isFetchingPreviousPage, isError, autoRefresh]);
 
-  const nextPageHasData =
-    parseLinkHeader(
-      data?.pages?.[data.pages.length - 1]?.[2]?.getResponseHeader('Link') ?? null
-    )?.next?.results ?? false;
+  const nextPageLink = parseLinkHeader(
+    data?.pages?.[data.pages.length - 1]?.[2]?.getResponseHeader('Link') ?? null
+  )?.next;
+  const nextPageHasData = nextPageLink?.results ?? false;
+  const nextPageCursor = nextPageLink?.cursor;
 
   const _fetchNextPage = useCallback(
     () =>
@@ -669,27 +672,29 @@ export function useInfiniteLogsQuery({
     : undefined;
   const lastPageLength = data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0;
   const limit = autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT;
-  const shouldAutoFetchNextPage =
+
+  // the original state starts at -1 because we have to count
+  // the 1 query made by default outside of the auto fetches
+  const [autoFetchesRemaining, setAutoFetchesRemaining] = useState(maxAutoFetches - 1);
+  const canAutoFetchNextPage =
     !!highFidelity &&
     hasNextPage &&
     nextPageHasData &&
     (lastPageLength === 0 || _data.length < limit);
-  const [waitingToAutoFetch, setWaitingToAutoFetch] = useState<boolean>(false);
+  const shouldAutoFetchNextPage = canAutoFetchNextPage && autoFetchesRemaining > 0;
 
   useEffect(() => {
     if (!shouldAutoFetchNextPage) {
-      return () => {};
+      return;
     }
 
-    setWaitingToAutoFetch(true);
+    if (isFetchingNextPage) {
+      return;
+    }
 
-    const timeoutID = setTimeout(() => {
-      setWaitingToAutoFetch(false);
-      _fetchNextPage();
-    }, 0);
-
-    return () => clearTimeout(timeoutID);
-  }, [shouldAutoFetchNextPage, _fetchNextPage]);
+    setAutoFetchesRemaining(remaining => remaining - 1);
+    _fetchNextPage();
+  }, [shouldAutoFetchNextPage, isFetchingNextPage, _fetchNextPage, nextPageCursor]);
 
   return {
     error,
@@ -698,19 +703,17 @@ export function useInfiniteLogsQuery({
     isPending:
       // query is still pending
       queryResult.isPending ||
-      // query finished but we're waiting to auto fetch the next page
-      (waitingToAutoFetch && _data.length === 0) ||
       // started auto fetching the next page
-      (shouldAutoFetchNextPage && _data.length === 0 && isFetchingNextPage),
+      (_data.length === 0 && (isFetchingNextPage || shouldAutoFetchNextPage)),
     data: _data,
     meta: _meta,
     isRefetching: queryResult.isRefetching,
     isEmpty:
       !queryResult.isPending &&
       !queryResult.isRefetching &&
+      !isFetchingNextPage &&
       !isError &&
       _data.length === 0 &&
-      !waitingToAutoFetch &&
       !shouldAutoFetchNextPage,
     fetchNextPage: _fetchNextPage,
     fetchPreviousPage: _fetchPreviousPage,
@@ -718,9 +721,11 @@ export function useInfiniteLogsQuery({
     hasNextPage,
     queryKey: queryKeyWithInfinite,
     hasPreviousPage,
-    isFetchingNextPage: _data.length > 0 && (waitingToAutoFetch || isFetchingNextPage),
+    isFetchingNextPage: _data.length > 0 && isFetchingNextPage,
     isFetchingPreviousPage,
     lastPageLength,
+    canResumeAutoFetch: canAutoFetchNextPage,
+    resumeAutoFetch: () => setAutoFetchesRemaining(maxAutoFetches),
     dataScanned,
     bytesScanned: totalBytesScanned,
   };
