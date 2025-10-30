@@ -107,7 +107,7 @@ function NumericFilterSelector({
               }))}
             />
             <Input
-              aria-label="Filter value"
+              aria-label={t('Filter value')}
               value={stagedFilterValue}
               onChange={e => {
                 setStagedFilterValue(e.target.value);
@@ -160,7 +160,7 @@ function NumericFilterSelector({
                       closeOverlay();
                     }}
                   >
-                    Apply
+                    {t('Apply')}
                   </Button>
                 </FooterInnerWrap>
               </FooterWrap>
