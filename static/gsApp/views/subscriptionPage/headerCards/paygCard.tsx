@@ -157,7 +157,7 @@ function PaygCard({
                     }}
                   />
                 </Currency>
-                <Flex justify="between" align="center">
+                <Flex justify="between" align="center" gap="sm">
                   <Flex gap="sm" align="center">
                     <Button priority="primary" onClick={() => handleSubmit()}>
                       {t('Save')}
@@ -173,7 +173,7 @@ function PaygCard({
                       {t('Cancel')}
                     </Button>
                   </Flex>
-                  <Button
+                  <PaygPricingButton
                     priority="link"
                     onClick={() =>
                       openSpendLimitsPricingModal({organization, subscription, theme})
@@ -184,7 +184,7 @@ function PaygCard({
                         abbreviated: true,
                       }),
                     })}
-                  </Button>
+                  </PaygPricingButton>
                 </Flex>
               </Flex>,
             ]
@@ -254,4 +254,11 @@ const Currency = styled('div')`
 const StyledInput = styled(Input)`
   padding-left: ${p => p.theme.space['3xl']};
   font-weight: bold;
+`;
+
+const PaygPricingButton = styled(Button)`
+  > span {
+    text-align: right;
+    text-wrap: wrap;
+  }
 `;

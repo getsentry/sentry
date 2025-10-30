@@ -82,8 +82,8 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
         <Grid
           columns={{
             xs: '1fr',
-            sm: `repeat(min(${cards.length}, 2), minmax(0, 1fr))`,
-            md: `repeat(${cards.length}, minmax(0, 1fr))`,
+            md: `repeat(min(${cards.length}, 2), minmax(0, 1fr))`,
+            lg: `repeat(${cards.length}, minmax(0, 1fr))`,
           }}
           gap="xl"
         >
