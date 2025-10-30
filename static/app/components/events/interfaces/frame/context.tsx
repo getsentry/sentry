@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
@@ -116,9 +116,12 @@ function Context({
 
   const hasCoverageData =
     !isLoadingCoverage && coverage?.status === CodecovStatusCode.COVERAGE_EXISTS;
-  if (hasCoverageData && !issueHasCoverageData) {
-    setIssueHasCoverageData(true);
-  }
+
+  useEffect(() => {
+    if (hasCoverageData && !issueHasCoverageData) {
+      setIssueHasCoverageData(true);
+    }
+  }, [hasCoverageData, issueHasCoverageData, setIssueHasCoverageData]);
 
   const [lineCoverage = [], hasCoverage] =
     hasCoverageData && coverage?.lineCoverage && !!activeLineNumber! && contextLines
