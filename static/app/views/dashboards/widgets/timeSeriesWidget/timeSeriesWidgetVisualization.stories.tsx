@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
-import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import documentation from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
@@ -71,7 +71,7 @@ const releases = [
 ].filter(hasTimestamp);
 
 export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIReference) => {
-  APIReference(types.TimeSeriesWidgetVisualization);
+  APIReference(documentation.props.TimeSeriesWidgetVisualization);
 
   story('Getting Started', () => {
     return (

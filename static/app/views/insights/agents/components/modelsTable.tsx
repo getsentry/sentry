@@ -31,7 +31,6 @@ import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
 import {formatLLMCosts} from 'sentry/views/insights/agents/utils/formatLLMCosts';
 import {getAIGenerationsFilter} from 'sentry/views/insights/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
-import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -155,7 +154,6 @@ export function ModelsTable() {
       return (
         <HeadSortCell
           sortKey={column.key}
-          cursorParamName={TableUrlParams.CURSOR}
           forceCellGrow={column.key === 'model'}
           align={rightAlignColumns.has(column.key) ? 'right' : undefined}
           onClick={handleSort}
