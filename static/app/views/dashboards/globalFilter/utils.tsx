@@ -10,7 +10,7 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {Tag} from 'sentry/types/group';
 import {getFieldDefinition, type FieldDefinition} from 'sentry/utils/fields';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 
@@ -37,14 +37,15 @@ export function getFieldDefinitionForDataset(
 
 export function parseFilterValue(
   filterValue: string,
-  filterKeys: TagCollection,
   globalFilter: GlobalFilter
 ): Array<TokenResult<Token.FILTER>> {
   const parsedResult = parseQueryBuilderValue(
     filterValue,
     () => getFieldDefinitionForDataset(globalFilter.tag, globalFilter.dataset),
     {
-      filterKeys,
+      filterKeys: {
+        [globalFilter.tag.key]: globalFilter.tag,
+      },
     }
   );
   if (!parsedResult) {
@@ -76,7 +77,6 @@ export function newNumericFilterQuery(
   newValue: string,
   newOperator: TermOperator,
   filterToken: TokenResult<Token.FILTER>,
-  filterKeys: TagCollection,
   globalFilter: GlobalFilter
 ) {
   // Update the value of the filter
@@ -97,7 +97,7 @@ export function newNumericFilterQuery(
     cleanedValue
   );
 
-  const newFilterTokens = parseFilterValue(filterWithNewValue, filterKeys, globalFilter);
+  const newFilterTokens = parseFilterValue(filterWithNewValue, globalFilter);
   const filterTokenWithNewValue = newFilterTokens?.[0];
   if (!filterTokenWithNewValue) {
     return '';
