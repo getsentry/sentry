@@ -27,6 +27,9 @@ import {Chart} from './chart';
 import {useChartSelection} from './chartSelectionContext';
 import {SortingToggle, type SortingMethod} from './sortingToggle';
 
+const CHARTS_COLUMN_COUNT = 3;
+const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
+
 function FeedbackButton() {
   const openForm = useFeedbackForm();
 
@@ -150,7 +153,7 @@ function ContentImpl({
             <Fragment>
               <ChartsGrid>
                 {filteredRankedAttributes
-                  .slice(page * 10, (page + 1) * 10)
+                  .slice(page * CHARTS_PER_PAGE, (page + 1) * CHARTS_PER_PAGE)
                   .map(attribute => (
                     <Chart
                       key={attribute.attributeName}
@@ -177,7 +180,8 @@ function ContentImpl({
                     aria-label={t('Next')}
                     size="sm"
                     disabled={
-                      page === Math.ceil(filteredRankedAttributes.length / 10) - 1
+                      page ===
+                      Math.ceil(filteredRankedAttributes.length / CHARTS_PER_PAGE) - 1
                     }
                     onClick={() => {
                       setPage(page + 1);
@@ -253,7 +257,7 @@ const NoAttributesMessage = styled('div')`
 
 const ChartsGrid = styled('div')`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(${CHARTS_COLUMN_COUNT}, 1fr);
   gap: ${space(1)};
 `;
 

@@ -16,6 +16,7 @@ const MAX_BAR_WIDTH = 20;
 const HIGH_CARDINALITY_THRESHOLD = 20;
 const AXIS_LABEL_FONT_SIZE = 12;
 const TOOLTIP_MAX_VALUE_LENGTH = 300;
+const MAX_CHART_SERIES_LENGTH = 40;
 
 const SELECTED_SERIES_NAME = 'selected';
 const BASELINE_SERIES_NAME = 'baseline';
@@ -76,15 +77,19 @@ function cohortsToSeriesData(
 
   seriesData.sort((a, b) => b.sortValue - a.sortValue);
 
-  const selectedSeriesData = seriesData.map(({label, selectedValue}) => ({
-    label,
-    value: selectedValue,
-  }));
+  const selectedSeriesData = seriesData
+    .slice(0, MAX_CHART_SERIES_LENGTH)
+    .map(({label, selectedValue}) => ({
+      label,
+      value: selectedValue,
+    }));
 
-  const baselineSeriesData = seriesData.map(({label, baselineValue}) => ({
-    label,
-    value: baselineValue,
-  }));
+  const baselineSeriesData = seriesData
+    .slice(0, MAX_CHART_SERIES_LENGTH)
+    .map(({label, baselineValue}) => ({
+      label,
+      value: baselineValue,
+    }));
 
   return {
     [SELECTED_SERIES_NAME]: selectedSeriesData,
