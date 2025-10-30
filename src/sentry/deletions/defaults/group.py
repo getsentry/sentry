@@ -230,7 +230,8 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             self.delete_instance_bulk(instance_list)
         else:
             # Convert tuples to Group objects
-            group_ids = [group[_F_IDX["id"]] for group in instance_list]
+            tuple_list: Sequence[tuple[Any, ...]] = instance_list  # type: ignore[assignment]
+            group_ids = [group[_F_IDX["id"]] for group in tuple_list]
             groups = list(Group.objects.filter(id__in=group_ids))
             self.delete_instance_bulk(groups)
 
@@ -254,7 +255,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
-        if _is_group_list(error_groups) and _is_group_list(issue_platform_groups):
+        if _is_group_sequence(error_groups) and _is_group_sequence(issue_platform_groups):
             error_group_ids = [group.id for group in error_groups]
             issue_platform_group_ids = [group.id for group in issue_platform_groups]
         else:
@@ -313,16 +314,18 @@ def delete_project_group_hashes(project_id: int) -> None:
 
     error_groups, issue_platform_groups = separate_by_group_category(groups)
     # Since groups are all Group objects, the separated groups should also be Group objects
-    if _is_group_list(error_groups):
+    if _is_group_sequence(error_groups):
         error_group_ids = [group.id for group in error_groups]
     else:
-        error_group_ids = [group[_F_IDX["id"]] for group in error_groups]
+        tuple_groups: list[tuple[Any, ...]] = error_groups  # type: ignore[assignment]
+        error_group_ids = [group[_F_IDX["id"]] for group in tuple_groups]
     delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
 
-    if _is_group_list(issue_platform_groups):
+    if _is_group_sequence(issue_platform_groups):
         issue_platform_group_ids = [group.id for group in issue_platform_groups]
     else:
-        issue_platform_group_ids = [group[_F_IDX["id"]] for group in issue_platform_groups]
+        tuple_issue_platform_groups: list[tuple[Any, ...]] = issue_platform_groups  # type: ignore[assignment]
+        issue_platform_group_ids = [group[_F_IDX["id"]] for group in tuple_issue_platform_groups]
     delete_group_hashes(project_id, issue_platform_group_ids)
 
 
