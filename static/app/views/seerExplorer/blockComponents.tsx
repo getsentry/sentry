@@ -11,6 +11,7 @@ import {space} from 'sentry/styles/space';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 import type {Block} from './types';
 import {buildToolLinkUrl, getToolsStringFromBlock} from './utils';
@@ -23,6 +24,8 @@ interface BlockProps {
   isPolling?: boolean;
   onClick?: () => void;
   onDelete?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   onNavigate?: () => void;
   onRegisterEnterHandler?: (
     handler: (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean
@@ -88,17 +91,18 @@ function BlockComponent({
   isPolling,
   onClick,
   onDelete,
+  onMouseEnter,
+  onMouseLeave,
   onNavigate,
   onRegisterEnterHandler,
   ref,
 }: BlockProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const {projects} = useProjects();
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
   const hasContent = hasValidContent(block.message.content);
-
-  const [isHovered, setIsHovered] = useState(false);
 
   // State to track selected tool link (for navigation)
   const [selectedLinkIndex, setSelectedLinkIndex] = useState(0);
@@ -115,7 +119,8 @@ function BlockComponent({
       const toolCallIndex = block.message.tool_calls?.findIndex(
         call => link && call.function === link.kind
       );
-      const canBuildUrl = link && buildToolLinkUrl(link, organization.slug) !== null;
+      const canBuildUrl =
+        link && buildToolLinkUrl(link, organization.slug, projects) !== null;
 
       if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
         return {link, toolCallIndex};
@@ -179,7 +184,7 @@ function BlockComponent({
         const currentIndex = selectedLinkIndexRef.current;
         const selectedLink = validToolLinks[currentIndex];
         if (selectedLink) {
-          const url = buildToolLinkUrl(selectedLink, organization.slug);
+          const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
           if (url) {
             navigate(url);
           }
@@ -194,6 +199,7 @@ function BlockComponent({
     hasValidLinks,
     validToolLinks,
     organization.slug,
+    projects,
     navigate,
     onRegisterEnterHandler,
   ]);
@@ -212,7 +218,7 @@ function BlockComponent({
     // Navigate to the clicked link
     const selectedLink = validToolLinks[linkIndex];
     if (selectedLink) {
-      const url = buildToolLinkUrl(selectedLink, organization.slug);
+      const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
       if (url) {
         navigate(url);
         onNavigate?.();
@@ -220,15 +226,15 @@ function BlockComponent({
     }
   };
 
-  const showActions = (isFocused || isHovered) && !block.loading;
+  const showActions = isFocused && !block.loading;
 
   return (
     <Block
       ref={ref}
       isLast={isLast}
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <AnimatePresence>
         <motion.div

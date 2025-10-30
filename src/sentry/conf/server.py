@@ -189,6 +189,11 @@ SENTRY_SPAN_BUFFER_CLUSTER = "default"
 SENTRY_ASSEMBLE_CLUSTER = "default"
 SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
+SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER = "default"
+SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER = "default"
+SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER = "default"
+SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
+SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -865,7 +870,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
-    "sentry.releases.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.replays.tasks",
@@ -951,7 +955,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
-        "schedule": timedelta(seconds=20),
+        "schedule": timedelta(seconds=15),
     },
     "sync-options": {
         "task": "options:sentry.tasks.options.sync_options",
@@ -1250,6 +1254,7 @@ LOGGING: LoggingConfig = {
         },
         "boto3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
         "botocore": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+        "rediscluster": {"level": "WARNING", "handlers": ["console"], "propagate": False},
     },
 }
 
@@ -1729,6 +1734,7 @@ SENTRY_SCOPES = {
     "project:write",
     "project:admin",
     "project:releases",
+    "project:distribution",
     "event:read",
     "event:write",
     "event:admin",
@@ -1767,6 +1773,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "project:write": {"project:read", "project:write"},
     "project:admin": {"project:read", "project:write", "project:admin"},
     "project:releases": {"project:releases"},
+    "project:distribution": {"project:distribution"},
     "event:read": {"event:read"},
     "event:write": {"event:read", "event:write"},
     "event:admin": {"event:read", "event:write", "event:admin"},

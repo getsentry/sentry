@@ -571,7 +571,9 @@ class RedisBuffer(Buffer):
                             headers={"sentry-propagate-traces": False},
                         )
 
-                self.cluster.zrem(self.pending_key, *keys)
+                if keys:
+                    self.cluster.zrem(self.pending_key, *keys)
+
             elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
                 with self.cluster.all() as conn:
                     results = conn.zrange(self.pending_key, 0, -1)

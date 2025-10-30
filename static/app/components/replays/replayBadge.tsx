@@ -1,5 +1,8 @@
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
+
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
@@ -7,6 +10,12 @@ import {Grid} from 'sentry/components/core/layout';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
+import {
+  getLiveDurationMs,
+  getReplayExpiresAtMs,
+  LIVE_TOOLTIP_MESSAGE,
+  LiveIndicator,
+} from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -14,6 +23,7 @@ import {t} from 'sentry/locale';
 import * as events from 'sentry/utils/events';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import useTimeout from 'sentry/utils/useTimeout';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -25,6 +35,21 @@ export default function ReplayBadge({replay}: Props) {
   const project = useProjectFromId({project_id: replay.project_id ?? undefined});
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
+
+  const [isLive, setIsLive] = useState(
+    Date.now() < getReplayExpiresAtMs(replay.started_at)
+  );
+
+  const {start: startTimeout} = useTimeout({
+    timeMs: getLiveDurationMs(replay.finished_at),
+    onTimeout: () => {
+      setIsLive(false);
+    },
+  });
+
+  useEffect(() => {
+    startTimeout();
+  }, [startTimeout]);
 
   if (replay.is_archived) {
     return (
@@ -65,10 +90,21 @@ export default function ReplayBadge({replay}: Props) {
         }}
         size={24}
       />
+
       <Flex direction="column" gap="xs" justify="center">
-        <Text size="md" bold ellipsis data-underline-on-hover>
-          {replay.user.display_name || t('Anonymous User')}
-        </Text>
+        <Flex direction="row" align="center">
+          <div>
+            <Text size="md" bold ellipsis data-underline-on-hover>
+              {replay.user.display_name || t('Anonymous User')}
+            </Text>
+          </div>
+          {isLive ? (
+            <Tooltip title={LIVE_TOOLTIP_MESSAGE}>
+              <LiveIndicator />
+            </Tooltip>
+          ) : null}
+        </Flex>
+
         <Flex gap="xs">
           {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
           {project ? <ProjectAvatar size={12} project={project} /> : null}

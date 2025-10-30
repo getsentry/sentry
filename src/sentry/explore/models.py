@@ -19,6 +19,7 @@ from sentry.models.organization import Organization
 class ExploreSavedQueryDataset(TypesClass):
     SPANS = 0
     OURLOGS = 1
+    METRICS = 2
     # This is a temporary dataset to be used for the discover -> explore migration.
     # It will track which queries are generated from discover queries.
     SEGMENT_SPANS = 101
@@ -27,6 +28,7 @@ class ExploreSavedQueryDataset(TypesClass):
         (SPANS, "spans"),
         (OURLOGS, "logs"),
         (SEGMENT_SPANS, "segment_spans"),
+        (METRICS, "metrics"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 

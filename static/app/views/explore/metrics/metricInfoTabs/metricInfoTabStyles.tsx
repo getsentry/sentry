@@ -63,11 +63,14 @@ export const StyledSimpleTableBody = styled('div')`
   grid-template-columns: subgrid;
   grid-auto-rows: min-content;
   grid-column: 1 / -1;
+  scrollbar-gutter: stable;
 `;
 
 export const StyledSimpleTableHeader = styled(SimpleTable.Header)`
   height: 33px;
   z-index: unset;
+  position: sticky;
+  top: 0;
 `;
 
 export const StickyTableRow = styled(SimpleTable.Row)<{
@@ -93,4 +96,12 @@ export const DetailsContent = styled(StyledPanel)`
 
 export const MetricsDetailsWrapper = styled(DetailsWrapper)`
   border-top: 0;
+`;
+
+export const NumericSimpleTableHeaderCell = styled(StyledSimpleTableHeaderCell)`
+  justify-content: flex-end;
+`;
+
+export const NumericSimpleTableRowCell = styled(StyledSimpleTableRowCell)`
+  justify-content: flex-end;
 `;
