@@ -2,7 +2,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs from './deno';
+import docs from '.';
 
 describe('deno onboarding docs', () => {
   it('renders doc correctly', () => {
