@@ -885,7 +885,6 @@ function Cart({
         </Stack>
       </Stack>
       <TotalSummary
-        isOpen={summaryIsOpen}
         activePlan={activePlan}
         billedTotal={previewState.billedTotal}
         buttonDisabled={!hasCompleteBillingInfo}
