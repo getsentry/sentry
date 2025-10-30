@@ -1,21 +1,17 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getCurlSnippet = (params: Params) => `
+const getCurlSnippet = (params: DocsParams) => `
 curl -X POST \
 '${params.dsn.minidump}' \
 -F upload_file_minidump=@mini.dmp`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: params => [
     {
       title: t('Creating and Uploading Minidumps'),
@@ -74,7 +70,7 @@ const onboarding: OnboardingConfig = {
     },
   ],
   configure: () => [],
-  verify: params => [
+  verify: (params: DocsParams) => [
     {
       title: t('Further Settings'),
       content: [
@@ -91,10 +87,3 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-const docs: Docs = {
-  onboarding,
-  crashReportOnboarding: CrashReportWebApiOnboarding,
-};
-
-export default docs;
