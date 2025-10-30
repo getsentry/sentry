@@ -190,7 +190,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         query = self.query
         order_by = self.order_by
 
-        while remaining >= 0:
+        while remaining > 0:
             queryset = getattr(self.model, self.manager_name).filter(**query)
 
             if apply_filter:
