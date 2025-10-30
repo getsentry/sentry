@@ -158,7 +158,7 @@ function WidgetBuilderV2({
   }, [isPreviewDraggable]);
 
   return (
-    <Fragment>
+    <AnimatePresence>
       {isOpen && (
         <Fragment>
           <Global
@@ -169,80 +169,72 @@ function WidgetBuilderV2({
             `}
           />
           <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />
-          <AnimatePresence>
-            {isOpen && (
-              <WidgetBuilderProvider>
-                <CustomMeasurementsProvider
-                  organization={organization}
-                  selection={selection}
+          <WidgetBuilderProvider>
+            <CustomMeasurementsProvider organization={organization} selection={selection}>
+              <TraceItemAttributeProviderFromDataset>
+                <ContainerWithoutSidebar
+                  style={
+                    hasValidNav
+                      ? isMediumScreen
+                        ? {
+                            left: 0,
+                            top: `${dimensions.height ?? 0}px`,
+                            willChange: 'top',
+                          }
+                        : {
+                            left: `${dimensions.width ?? 0}px`,
+                            top: 0,
+                            willChange: 'left',
+                          }
+                      : undefined
+                  }
                 >
-                  <TraceItemAttributeProviderFromDataset>
-                    <ContainerWithoutSidebar
-                      style={
-                        hasValidNav
-                          ? isMediumScreen
-                            ? {
-                                left: 0,
-                                top: `${dimensions.height ?? 0}px`,
-                                willChange: 'top',
-                              }
-                            : {
-                                left: `${dimensions.width ?? 0}px`,
-                                top: 0,
-                                willChange: 'left',
-                              }
-                          : undefined
-                      }
-                    >
-                      <WidgetBuilderContainer>
-                        <SlideoutContainer>
-                          <WidgetBuilderSlideout
-                            isOpen={isOpen}
-                            onClose={() => {
-                              onClose();
-                              setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
-                            }}
-                            onSave={onSave}
-                            onQueryConditionChange={setQueryConditionsValid}
-                            dashboard={dashboard}
+                  <WidgetBuilderContainer>
+                    <SlideoutContainer>
+                      <WidgetBuilderSlideout
+                        onClose={() => {
+                          onClose();
+                          setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
+                        }}
+                        onSave={onSave}
+                        onQueryConditionChange={setQueryConditionsValid}
+                        dashboard={dashboard}
+                        dashboardFilters={dashboardFilters}
+                        setIsPreviewDraggable={setIsPreviewDraggable}
+                        isWidgetInvalid={!queryConditionsValid}
+                        openWidgetTemplates={openWidgetTemplates}
+                        setOpenWidgetTemplates={setOpenWidgetTemplates}
+                        onDataFetched={handleWidgetDataFetched}
+                        thresholdMetaState={thresholdMetaState}
+                      />
+                    </SlideoutContainer>
+                    {(!isSmallScreen || isPreviewDraggable) && (
+                      <DndContext
+                        onDragEnd={handleDragEnd}
+                        onDragMove={handleDragMove}
+                        collisionDetection={closestCorners}
+                      >
+                        <SurroundingWidgetContainer>
+                          <WidgetPreviewContainer
                             dashboardFilters={dashboardFilters}
-                            setIsPreviewDraggable={setIsPreviewDraggable}
+                            dashboard={dashboard}
+                            dragPosition={translate}
+                            isDraggable={isPreviewDraggable}
                             isWidgetInvalid={!queryConditionsValid}
-                            openWidgetTemplates={openWidgetTemplates}
-                            setOpenWidgetTemplates={setOpenWidgetTemplates}
                             onDataFetched={handleWidgetDataFetched}
-                            thresholdMetaState={thresholdMetaState}
+                            openWidgetTemplates={openWidgetTemplates}
                           />
-                        </SlideoutContainer>
-                        {(!isSmallScreen || isPreviewDraggable) && (
-                          <DndContext
-                            onDragEnd={handleDragEnd}
-                            onDragMove={handleDragMove}
-                            collisionDetection={closestCorners}
-                          >
-                            <SurroundingWidgetContainer>
-                              <WidgetPreviewContainer
-                                dashboardFilters={dashboardFilters}
-                                dashboard={dashboard}
-                                dragPosition={translate}
-                                isDraggable={isPreviewDraggable}
-                                isWidgetInvalid={!queryConditionsValid}
-                                onDataFetched={handleWidgetDataFetched}
-                                openWidgetTemplates={openWidgetTemplates}
-                              />
-                            </SurroundingWidgetContainer>
-                          </DndContext>
-                        )}
-                      </WidgetBuilderContainer>
-                    </ContainerWithoutSidebar>
-                  </TraceItemAttributeProviderFromDataset>
-                </CustomMeasurementsProvider>
-              </WidgetBuilderProvider>
-            )}
-          </AnimatePresence>
+                        </SurroundingWidgetContainer>
+                      </DndContext>
+                    )}
+                  </WidgetBuilderContainer>
+                </ContainerWithoutSidebar>
+              </TraceItemAttributeProviderFromDataset>
+            </CustomMeasurementsProvider>
+          </WidgetBuilderProvider>
         </Fragment>
       )}
-    </Fragment>
+    </AnimatePresence>
   );
 }
 

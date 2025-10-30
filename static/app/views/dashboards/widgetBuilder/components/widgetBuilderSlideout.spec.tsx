@@ -69,7 +69,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -109,7 +108,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -146,7 +144,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -184,7 +181,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -216,7 +212,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -257,7 +252,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -301,7 +295,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -341,7 +334,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -388,7 +380,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -426,7 +417,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -458,7 +448,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -489,7 +478,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -514,7 +502,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -539,7 +526,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -568,7 +554,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
@@ -609,7 +594,6 @@ describe('WidgetBuilderSlideout', () => {
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
-          isOpen
           openWidgetTemplates={false}
           setOpenWidgetTemplates={jest.fn()}
         />
