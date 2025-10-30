@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './rack';
+import docs from '.';
 
 describe('getting started with rack', () => {
   it('renders errors onboarding docs correctly', () => {
