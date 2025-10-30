@@ -232,7 +232,7 @@ const BodyCell = memo(function BodyCell({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const {openTraceViewDrawer} = useTraceViewDrawer({});
+  const {openTraceViewDrawer} = useTraceViewDrawer();
 
   switch (column.key) {
     case 'traceId':
