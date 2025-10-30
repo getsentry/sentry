@@ -1,15 +1,10 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportApiIntroduction,
-  getCrashReportInstallDescription,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -95,7 +90,7 @@ Future<void> processOrderBatch(ISentrySpan span) async {
   }
 }`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -103,7 +98,7 @@ const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Sentry captures data by using an SDK within your application’s runtime. Add the following to your [pubspec:pubspec.yaml]',
+            "Sentry captures data by using an SDK within your application's runtime. Add the following to your [pubspec:pubspec.yaml]",
             {
               pubspec: <code />,
             }
@@ -234,143 +229,3 @@ const onboarding: OnboardingConfig = {
     return steps;
   },
 };
-
-export const feedbackOnboardingCrashApiDart: OnboardingConfig = {
-  introduction: () => getCrashReportApiIntroduction(),
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportInstallDescription(),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'Dart',
-              language: 'dart',
-              code: `import 'package:sentry/sentry.dart';
-
-SentryId sentryId = Sentry.captureMessage("My message");
-
-final userFeedback = SentryUserFeedback(
-    eventId: sentryId,
-    comments: 'Hello World!',
-    email: 'foo@bar.org',
-    name: 'John Doe',
-);
-
-Sentry.captureUserFeedback(userFeedback);`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  configure: () => [],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const logsOnboarding: OnboardingConfig = {
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Logs for Dart are supported in SDK version [code:9.0.0] or higher. You can update your [pubspec:pubspec.yaml] to the matching version:',
-            {
-              code: <code />,
-              pubspec: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'YAML',
-              language: 'yaml',
-              code: getInstallSnippet(params),
-            },
-          ],
-        },
-        {
-          type: 'text',
-          text: tct(
-            'If you are on an older major version of the SDK, follow our [link:migration guide] to upgrade.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/dart/migration/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'To enable logging, you need to initialize the SDK with the [code:enableLogs] option set to [code:true].',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          language: 'dart',
-          code: `await Sentry.init(
-  (options) {
-    options.dsn = '${params.dsn.public}';
-    // Enable logs to be sent to Sentry
-    options.enableLogs = true;
-  },
-);`,
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'You can verify that logs are working by sending logs with the Sentry logger APIs.'
-          ),
-        },
-        {
-          type: 'code',
-          language: 'dart',
-          code: `Sentry.logger.fmt.info("Test log from %s", ["Sentry"])`,
-        },
-        {
-          type: 'text',
-          text: tct('For more details, check out our [link:logs documentation].', {
-            link: <ExternalLink href="https://docs.sentry.io/platforms/dart/logs/" />,
-          }),
-        },
-      ],
-    },
-  ],
-};
-
-const docs: Docs = {
-  onboarding,
-  feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
-  crashReportOnboarding: feedbackOnboardingCrashApiDart,
-  logsOnboarding,
-};
-
-export default docs;
