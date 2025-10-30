@@ -103,6 +103,8 @@ describe('useStreamingTimeseriesResult', () => {
       lastPageLength: logFixtures.length,
       bytesScanned: 0,
       dataScanned: undefined,
+      canResumeAutoFetch: false,
+      resumeAutoFetch: () => {},
     } as UseInfiniteLogsQueryResult;
   }
 

@@ -102,6 +102,8 @@ describe('useLogsTimeseries', () => {
             lastPageLength: 0,
             bytesScanned: 0,
             dataScanned: undefined,
+            canResumeAutoFetch: false,
+            resumeAutoFetch: () => {},
           },
         }),
       {additionalWrapper: Wrapper}

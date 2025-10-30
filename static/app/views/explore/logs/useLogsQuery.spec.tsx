@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
@@ -313,6 +313,144 @@ describe('useInfiniteLogsQuery', () => {
         }),
       })
     );
+  });
+
+  describe('high fidelity', () => {
+    function makeLinkHeader(cursor: string, hasNext = true) {
+      const url =
+        'https://sentry.io/api/0/organizations/org-slug/events/?caseInsensitive=&dataset=ourlogs&field=id&field=project.id&field=trace&field=severity_number&field=severity&field=timestamp&field=timestamp_precise&field=observed_timestamp&field=message.template&field=message&orderby=-timestamp&per_page=1000&query=&referrer=api.explore.logs-table&sampling=HIGHEST_ACCURACY_FLEX_TIME&sort=-timestamp&statsPeriod=1h&highFidelity=true';
+      return [
+        [
+          `<${url}&cursor=:0:1>`,
+          'rel="previous"',
+          'results="false"',
+          'cursor=":0:1"',
+        ].join('; '),
+        [
+          `<${url}&cursor=${cursor}:0:0>`,
+          'rel="next"',
+          `results="${hasNext ? 'true' : 'false'}"`,
+          `cursor="${cursor}:0:1"`,
+        ].join('; '),
+      ].join(', ');
+    }
+
+    // function makeMockEventsResponse(cursor: string, nextCursor: string, data = []) {
+    function makeMockEventsResponse({
+      cursor,
+      nextCursor,
+      data = [],
+      hasNext,
+    }: {
+      cursor: string;
+      nextCursor: string;
+      data?: any[];
+      hasNext?: boolean;
+    }) {
+      return {
+        url: '/organizations/org-slug/events/',
+        headers: {
+          Link: makeLinkHeader(nextCursor, hasNext),
+        },
+        body: {
+          data,
+          meta: {
+            dataScanned: 'full',
+            fields: {},
+          },
+        },
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return (
+              options.query.sampling === SAMPLING_MODE.FLEX_TIME &&
+              (options.query.cursor || '') === (cursor ? `${cursor}:0:1` : '')
+            );
+          },
+        ],
+      };
+    }
+
+    it('auto fetches only empty pages pages and end when signaled', async () => {
+      const mockFlextTimeRequests = [
+        makeMockEventsResponse({cursor: '', nextCursor: 'page2'}),
+        makeMockEventsResponse({cursor: 'page2', nextCursor: 'page3'}),
+        makeMockEventsResponse({cursor: 'page3', nextCursor: 'page4'}),
+        makeMockEventsResponse({cursor: 'page4', nextCursor: 'page5'}),
+        makeMockEventsResponse({cursor: 'page5', nextCursor: 'page6', hasNext: false}),
+        makeMockEventsResponse({cursor: 'page6', nextCursor: 'page7', hasNext: false}),
+      ].map(response => MockApiClient.addMockResponse(response));
+
+      const {result} = renderHookWithProviders(
+        () => useInfiniteLogsQuery({highFidelity: true, maxAutoFetches: 3}),
+        {
+          additionalWrapper: createWrapper(),
+        }
+      );
+
+      // the first 3 requests should have been called
+      await waitFor(() => expect(mockFlextTimeRequests[0]).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockFlextTimeRequests[1]).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockFlextTimeRequests[2]).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockFlextTimeRequests[3]).not.toHaveBeenCalled());
+
+      // should be allowed to resume autofetching
+      expect(result.current.canResumeAutoFetch).toBe(true);
+      act(() => result.current.resumeAutoFetch());
+
+      // the next 3 requests should have been called
+      await waitFor(() => expect(mockFlextTimeRequests[3]).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockFlextTimeRequests[4]).toHaveBeenCalledTimes(1));
+
+      // should not be allowed to resume autofetching
+      expect(result.current.canResumeAutoFetch).toBe(false);
+
+      await waitFor(() => expect(mockFlextTimeRequests[5]).not.toHaveBeenCalled());
+    });
+
+    it('auto fetches until limit', async () => {
+      function fakeRow(index: number) {
+        return {
+          [OurLogKnownFieldKey.ID]: String(index),
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(index * 100),
+          [OurLogKnownFieldKey.TIMESTAMP]: String(index * 100),
+        };
+      }
+      const mockFlextTimeRequests = [
+        makeMockEventsResponse({
+          cursor: '',
+          nextCursor: 'page2',
+          data: new Array(500).fill(0).map((_, i) => fakeRow(i)),
+        }),
+        makeMockEventsResponse({
+          cursor: 'page2',
+          nextCursor: 'page3',
+          data: new Array(500).fill(0).map((_, i) => fakeRow(i + 500)),
+        }),
+        makeMockEventsResponse({
+          cursor: 'page3',
+          nextCursor: 'page4',
+          data: new Array(500).fill(0).map((_, i) => fakeRow(i + 1000)),
+        }),
+      ].map(response => MockApiClient.addMockResponse(response));
+
+      const {result} = renderHookWithProviders(
+        () => useInfiniteLogsQuery({highFidelity: true, maxAutoFetches: 3}),
+        {
+          additionalWrapper: createWrapper(),
+        }
+      );
+
+      // the first 2 requests should have been called and stop because it totals 1000 results
+      await waitFor(() => expect(mockFlextTimeRequests[0]).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockFlextTimeRequests[1]).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockFlextTimeRequests[2]).not.toHaveBeenCalled());
+
+      // should not be allowed to resume autofetching
+      expect(result.current.canResumeAutoFetch).toBe(false);
+
+      await result.current.fetchNextPage();
+      await waitFor(() => expect(mockFlextTimeRequests[2]).toHaveBeenCalledTimes(1));
+    });
   });
 });
 
