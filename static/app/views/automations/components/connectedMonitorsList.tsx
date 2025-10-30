@@ -169,11 +169,11 @@ export default function ConnectedMonitorsList({
             </SimpleTable.Row>
           ))}
       </SimpleTableWithColumns>
-      {limit && totalCountInt > limit && (
+      {limit && (
         <Pagination
           onCursor={onCursor}
           pageLinks={pageLinks}
-          caption={paginationCaption}
+          caption={totalCountInt > limit ? null : paginationCaption}
         />
       )}
     </Container>
