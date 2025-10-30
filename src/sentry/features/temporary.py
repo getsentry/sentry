@@ -193,6 +193,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-detection-sort-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Whether to allow issue only search on the issue list
     manager.add("organizations:issue-search-allow-postgres-only-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Include empty tag count in issue tag totals/values
+    manager.add("organizations:issue-tags-include-empty-values", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the new issue category mapping
     manager.add("organizations:issue-taxonomy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:metric-issue-poc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -438,7 +440,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Allow organizations to configure all symbol sources.
     manager.add("organizations:symbol-sources", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     # Enable case-insensitive project slug lookup for qualified short ID bulk queries
-    manager.add("organizations:group-case-insensitive-short-id-lookup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:group-case-insensitive-short-id-lookup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable tracking of tombstone hits. When enabled, the feature increments the times_seen column and updates the last_seen timestamp
     manager.add("organizations:grouptombstones-hit-counter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable static ClickHouse sampling for `OrganizationTagsEndpoint`
@@ -632,6 +634,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:similarity-embeddings", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=True)
     manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
+    # Enable v2 similarity grouping model (part of v2 grouping rollout)
+    manager.add("projects:similarity-grouping-v2-model", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Starfish: extract metrics from the spans
     manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     manager.add("projects:span-metrics-extraction-addons", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
