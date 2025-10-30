@@ -276,7 +276,7 @@ function deleteQueryTokens(
   };
 }
 
-function modifyFilterOperatorQuery(
+export function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
   newOperator: TermOperator,
@@ -538,7 +538,7 @@ function replaceTokensWithText(
   };
 }
 
-function modifyFilterValue(
+export function modifyFilterValue(
   query: string,
   token: TokenResult<Token.FILTER>,
   newValue: string

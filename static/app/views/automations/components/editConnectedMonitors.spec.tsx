@@ -89,7 +89,7 @@ describe('EditConnectedMonitors', () => {
     );
     await waitFor(() => {
       expect(
-        screen.queryByTestId('drawer-connected-monitors-list')
+        within(connectedMonitorsList).queryByText(detector1.name)
       ).not.toBeInTheDocument();
     });
 
