@@ -35,22 +35,22 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> st
     use by scripts.
     """
     current_config = project.get_option("sentry:grouping_config")
+    current_config_is_valid = current_config in GROUPING_CONFIG_CLASSES.keys()
+
+    # If the project's current config comes back as the default one, it might be because that's
+    # actually what's set in the database for that project, or it might be relying on the default
+    # value of that project option. In the latter case, we can use this upgrade check as a chance to
+    # set it. (We want projects to have their own record of the config they're using, so that when
+    # we introduce a new one, we know to transition them.)
+    project_option_exists = ProjectOption.objects.filter(
+        key="sentry:grouping_config", project_id=project.id
+    ).exists()
 
     if current_config == BETA_GROUPING_CONFIG:
         return "skipped - beta config"
 
-    if current_config == DEFAULT_GROUPING_CONFIG:
-        # If the project's current config comes back as the default one, it might be because that's
-        # actually what's set in the database for that project, or it might be relying on the
-        # default value of that project option. In the latter case, we can use this upgrade check as
-        # a chance to set it. (We want projects to have their own record of the config they're
-        # using, so that when we introduce a new one, we know to transition them.)
-        project_option_exists = ProjectOption.objects.filter(
-            key="sentry:grouping_config", project_id=project.id
-        ).exists()
-
-        if project_option_exists:
-            return "skipped - up-to-date record exists"
+    if current_config == DEFAULT_GROUPING_CONFIG and project_option_exists:
+        return "skipped - up-to-date record exists"
 
     # We want to try to write the audit log entry and project option change just once, so we use a
     # cache key to avoid raciness. It's not perfect, but it reduces the risk significantly.
@@ -69,10 +69,7 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> st
             changes: dict[str, str | int] = {"sentry:grouping_config": DEFAULT_GROUPING_CONFIG}
 
             # If the current config is out of date but still valid, start a transition period
-            if (
-                current_config != DEFAULT_GROUPING_CONFIG
-                and current_config in GROUPING_CONFIG_CLASSES.keys()
-            ):
+            if current_config != DEFAULT_GROUPING_CONFIG and current_config_is_valid:
                 # This is when we will stop calculating the old hash in cases where we don't find the
                 # new hash (which we do in an effort to preserve group continuity).
                 transition_expiry = (
@@ -85,10 +82,6 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> st
                         "sentry:secondary_grouping_expiry": transition_expiry,
                     }
                 )
-
-            project_option_exists = ProjectOption.objects.filter(
-                key="sentry:grouping_config", project_id=project.id
-            ).exists()
 
             for key, value in changes.items():
                 project.update_option(key, value)

@@ -25,7 +25,7 @@ interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
 export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   position: relative;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: ${p => getAlertGridLayout(p)};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   border-width: ${p => (p.system ? '0px 0px 1px 0px' : '1px')};
   border-style: solid;
@@ -41,6 +41,10 @@ export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
     text-decoration: underline;
   }
 `;
+
+function getAlertGridLayout(p: ChonkAlertProps) {
+  return `1fr ${p.trailingItems ? 'auto' : ''} ${p.expand ? 'min-content' : ''}`;
+}
 
 function makeChonkAlertTheme(props: ChonkAlertProps): SerializedStyles {
   const tokens = getChonkAlertTokens(props.type, props.theme!);
