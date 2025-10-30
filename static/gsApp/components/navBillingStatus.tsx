@@ -260,7 +260,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       );
       localStorage.setItem(
         `billing-status-last-shown-date-${organization.id}`,
-        moment().utc().toDate().toDateString()
+        moment().utc().toISOString()
       );
     }
   }, [
