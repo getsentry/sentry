@@ -310,7 +310,7 @@ describe('ProjectSeer', () => {
 
     // Find the select menu
     const select = await screen.findByRole('textbox', {
-      name: /Auto-Triggered Fixes/i,
+      name: /Auto-Trigger Fixes/i,
     });
 
     act(() => {
@@ -320,11 +320,14 @@ describe('ProjectSeer', () => {
     // Open the menu and select a new value
     await userEvent.click(select);
 
-    const option = await screen.findByText('Minimally Actionable and Above');
-    await userEvent.click(option);
+    const options = await screen.findAllByText('Minimally Actionable and Above');
+    await userEvent.click(options[0]);
 
-    const option2 = await screen.findByText('Highly Actionable and Above');
-    await userEvent.click(option2);
+    // Reopen the menu to select another value
+    await userEvent.click(select);
+
+    const options2 = await screen.findAllByText('Highly Actionable and Above');
+    await userEvent.click(options2[0]);
 
     // Form has saveOnBlur=true, so wait for the PUT request
     await waitFor(() => {
