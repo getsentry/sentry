@@ -28,6 +28,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -344,10 +345,12 @@ export const useOpenSeerDrawer = ({
   group,
   project,
   event,
+  autofixData,
 }: {
   event: Event | null;
   group: Group;
   project: Project;
+  autofixData?: any;
   buttonRef?: React.RefObject<HTMLButtonElement | null>;
 }) => {
   const {openDrawer} = useDrawer();
@@ -363,6 +366,12 @@ export const useOpenSeerDrawer = ({
     ) {
       return;
     }
+
+    trackAnalytics('seer.drawer.opened', {
+      organization,
+      group_id: group.id,
+      has_autofix_data: !!autofixData,
+    });
 
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
@@ -384,7 +393,7 @@ export const useOpenSeerDrawer = ({
         );
       },
     });
-  }, [openDrawer, event, group, project, location, navigate, organization]);
+  }, [openDrawer, event, group, project, location, navigate, organization, autofixData]);
 
   return {openSeerDrawer};
 };

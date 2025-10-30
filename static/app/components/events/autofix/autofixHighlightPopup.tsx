@@ -223,6 +223,21 @@ function AutofixHighlightPopupContent({
   );
   const [showLoadingAssistant, setShowLoadingAssistant] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasTrackedOpenRef = useRef(false);
+
+  // Track analytics when comment thread is opened
+  useEffect(() => {
+    if (!hasTrackedOpenRef.current) {
+      trackAnalytics('autofix.comment_thread.open', {
+        organization,
+        group_id: groupId,
+        run_id: runId,
+        step_index: stepIndex,
+        is_agent_comment: isAgentComment ?? false,
+      });
+      hasTrackedOpenRef.current = true;
+    }
+  }, [organization, groupId, runId, stepIndex, isAgentComment]);
 
   // Fetch current autofix data to get comment thread
   const {data: autofixData} = useAutofixData({groupId, isUserWatching: true});
@@ -345,6 +360,14 @@ function AutofixHighlightPopupContent({
     setHidden(true);
     closeCommentThread({
       thread_id: threadId,
+      step_index: stepIndex,
+      is_agent_comment: isAgentComment ?? false,
+    });
+
+    trackAnalytics('autofix.comment_thread.close', {
+      organization,
+      group_id: groupId,
+      run_id: runId,
       step_index: stepIndex,
       is_agent_comment: isAgentComment ?? false,
     });

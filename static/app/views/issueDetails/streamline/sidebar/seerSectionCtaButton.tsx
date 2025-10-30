@@ -60,6 +60,7 @@ export function SeerSectionCtaButton({
     group,
     project,
     event,
+    autofixData,
     buttonRef: openButtonRef,
   });
 

@@ -65,6 +65,24 @@ interface SetPriorityParams extends CommonGroupAnalyticsData {
 
 export type IssueEventParameters = {
   'actionable_items.expand_clicked': ActionableItemDebugParam;
+  'autofix.comment_thread.close': {
+    group_id: string;
+    is_agent_comment: boolean;
+    run_id: string;
+    step_index: number;
+  };
+  'autofix.comment_thread.open': {
+    group_id: string;
+    is_agent_comment: boolean;
+    run_id: string;
+    step_index: number;
+  };
+  'autofix.root_cause.rerun_with_context': {
+    group_id: string;
+    has_additional_context: boolean;
+    run_id: string;
+    context_length?: number;
+  };
   'autofix.setup_modal_viewed': {
     groupId: string;
     projectId: string;
@@ -415,6 +433,10 @@ export type IssueEventParameters = {
     source: string;
   };
   resolve_issue: {release: string};
+  'seer.drawer.opened': {
+    group_id: string;
+    has_autofix_data: boolean;
+  };
   'settings.inbound_filter_updated': {
     filter: string;
     new_state: FieldValue;
@@ -437,7 +459,11 @@ export type IssueEventParameters = {
 type IssueEventKey = keyof IssueEventParameters;
 
 export const issueEventMap: Record<IssueEventKey, string | null> = {
+  'autofix.comment_thread.close': 'Autofix: Comment Thread Closed',
+  'autofix.comment_thread.open': 'Autofix: Comment Thread Opened',
+  'autofix.root_cause.rerun_with_context': 'Autofix: Root Cause Rerun with Context',
   'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',
+  'seer.drawer.opened': 'Seer: Drawer Opened',
   'breadcrumbs.issue_details.change_time_display': 'Breadcrumb Time Display Toggled',
   'breadcrumbs.issue_details.drawer_opened': 'Breadcrumb Drawer Opened',
   'breadcrumbs.drawer.action': 'Breadcrumb Drawer Action Taken',
