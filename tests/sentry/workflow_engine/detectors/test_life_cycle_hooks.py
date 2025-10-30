@@ -2,10 +2,8 @@ from unittest.mock import Mock, PropertyMock, patch
 
 from django.test.client import RequestFactory
 
-from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.testutils.cases import TestCase
-from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.workflow_engine.endpoints.validators.base.detector import BaseDetectorTypeValidator
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.types import DetectorLifeCycleHooks, DetectorSettings
@@ -79,41 +77,3 @@ class TestDetectorLifeCycleValidatorHooks(TestCase):
 
             assert detector.name == self.valid_data["name"]
             detector.settings.hooks.on_update.assert_called_with(detector)
-
-
-class TestDetectorLifeCycleDeletionHooks(TestCase, HybridCloudTestMixin):
-    def setUp(self) -> None:
-        super().setUp()
-
-        self.detector = self.create_detector(name="Test Detector")
-        self.detector_settings = DetectorSettings(
-            hooks=DetectorLifeCycleHooks(
-                on_delete=Mock(),
-                on_create=Mock(),
-                on_update=Mock(),
-            )
-        )
-
-    def test_delete(self) -> None:
-        detector_id = self.detector.id
-        with patch.object(Detector, "settings", new_callable=PropertyMock) as mock_settings:
-            mock_settings.return_value = self.detector_settings
-            self.ScheduledDeletion.schedule(instance=self.detector, days=0)
-
-            with self.tasks():
-                run_scheduled_deletions()
-
-            # The deletion worked
-            assert not Detector.objects.filter(id=detector_id).exists()
-            self.detector_settings.hooks.on_delete.assert_called_with(detector_id)  # type: ignore[union-attr]
-
-    def test_delete__no_hooks(self) -> None:
-        with patch.object(Detector, "settings", new_callable=PropertyMock) as mock_settings:
-            mock_settings.return_value = DetectorSettings()
-            self.ScheduledDeletion.schedule(instance=self.detector, days=0)
-
-            with self.tasks():
-                run_scheduled_deletions()
-
-            # The deletion still works
-            assert not Detector.objects.filter(id=self.detector.id).exists()
