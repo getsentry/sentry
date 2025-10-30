@@ -364,7 +364,6 @@ function CellAction({
       >
         {cellActions?.length ? (
           <DropdownMenu
-            usePortal
             items={cellActions}
             strategy="fixed"
             size="sm"
