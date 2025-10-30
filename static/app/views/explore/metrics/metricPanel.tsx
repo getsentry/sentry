@@ -1,8 +1,16 @@
-import {useRef} from 'react';
+import {useRef, useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import SplitPanel from 'sentry/components/splitPanel';
+import {IconHide, IconShow} from 'sentry/icons';
+import {IconPanel} from 'sentry/icons/iconPanel';
+import {t} from 'sentry/locale';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
@@ -22,13 +30,99 @@ const PADDING_SIZE = 16;
 const MIN_RIGHT_WIDTH = SAMPLES_PANEL_MIN_WIDTH + PADDING_SIZE;
 
 export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
-  const measureRef = useRef<HTMLDivElement>(null);
-  const {width} = useDimensions({elementRef: measureRef});
-
+  const [orientation, setOrientation] = useState<'side-by-side' | 'stacked'>(
+    'side-by-side'
+  );
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
     enabled: Boolean(traceMetric.name),
   });
+
+  return (
+    <Panel>
+      <PanelBody>
+        {orientation === 'side-by-side' ? (
+          <SideBySideOrientation
+            timeseriesResult={timeseriesResult}
+            queryIndex={queryIndex}
+            traceMetric={traceMetric}
+            setOrientation={setOrientation}
+            orientation={orientation}
+          />
+        ) : (
+          <StackedOrientation
+            timeseriesResult={timeseriesResult}
+            queryIndex={queryIndex}
+            traceMetric={traceMetric}
+            setOrientation={setOrientation}
+            orientation={orientation}
+          />
+        )}
+      </PanelBody>
+    </Panel>
+  );
+}
+
+function StackedOrientation({
+  timeseriesResult,
+  queryIndex,
+  traceMetric,
+  orientation,
+  setOrientation,
+}: {
+  orientation: 'side-by-side' | 'stacked';
+  queryIndex: number;
+  setOrientation: (orientation: 'side-by-side' | 'stacked') => void;
+  timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
+  traceMetric: TraceMetric;
+}) {
+  const [infoContentHidden, setInfoContentHidden] = useState(false);
+  const additionaGraphActions = (
+    <PanelPositionDropdown orientation={orientation} setOrientation={setOrientation} />
+  );
+  const Icon = infoContentHidden ? IconHide : IconShow;
+  const additionalInfoTabActions = (
+    <Button
+      size="zero"
+      borderless
+      aria-label={infoContentHidden ? t('Show Info Tab') : t('Hide Info Tab')}
+      icon={<Icon size="sm" />}
+      onClick={() => setInfoContentHidden(!infoContentHidden)}
+    />
+  );
+  return (
+    <Stack>
+      <MetricsGraph
+        timeseriesResult={timeseriesResult}
+        queryIndex={queryIndex}
+        additionalActions={additionaGraphActions}
+        orientation={orientation}
+      />
+      <MetricInfoTabs
+        traceMetric={traceMetric}
+        additionalActions={additionalInfoTabActions}
+        contentsHidden={infoContentHidden}
+        orientation={orientation}
+      />
+    </Stack>
+  );
+}
+
+function SideBySideOrientation({
+  timeseriesResult,
+  queryIndex,
+  traceMetric,
+  orientation,
+  setOrientation,
+}: {
+  orientation: 'side-by-side' | 'stacked';
+  queryIndex: number;
+  setOrientation: (orientation: 'side-by-side' | 'stacked') => void;
+  timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
+  traceMetric: TraceMetric;
+}) {
+  const measureRef = useRef<HTMLDivElement>(null);
+  const {width} = useDimensions({elementRef: measureRef});
 
   const hasSize = width > 0;
   // Default split is 65% of the available width, but not less than MIN_LEFT_WIDTH
@@ -38,29 +132,80 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     width - MIN_RIGHT_WIDTH
   );
 
+  const additionalActions = (
+    <PanelPositionDropdown orientation={orientation} setOrientation={setOrientation} />
+  );
+
   return (
-    <Panel>
-      <PanelBody>
-        <div ref={measureRef}>
-          {hasSize ? (
-            <SplitPanel
-              availableSize={width}
-              left={{
-                content: (
-                  <MetricsGraph
-                    timeseriesResult={timeseriesResult}
-                    queryIndex={queryIndex}
-                  />
-                ),
-                default: defaultSplit,
-                min: MIN_LEFT_WIDTH,
-                max: width - MIN_RIGHT_WIDTH,
-              }}
-              right={<MetricInfoTabs traceMetric={traceMetric} />}
+    <div ref={measureRef}>
+      {hasSize ? (
+        <SplitPanel
+          availableSize={width}
+          left={{
+            content: (
+              <MetricsGraph
+                timeseriesResult={timeseriesResult}
+                queryIndex={queryIndex}
+                orientation={orientation}
+              />
+            ),
+            default: defaultSplit,
+            min: MIN_LEFT_WIDTH,
+            max: width - MIN_RIGHT_WIDTH,
+          }}
+          right={
+            <MetricInfoTabs
+              traceMetric={traceMetric}
+              additionalActions={additionalActions}
+              orientation={orientation}
             />
-          ) : null}
-        </div>
-      </PanelBody>
-    </Panel>
+          }
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function PanelPositionDropdown({
+  orientation,
+  setOrientation,
+}: {
+  orientation: 'side-by-side' | 'stacked';
+  setOrientation: (orientation: 'side-by-side' | 'stacked') => void;
+}) {
+  const options = [
+    {
+      key: 'side-by-side',
+      label: t('Side by Side'),
+      disabled: orientation === 'side-by-side',
+      onAction: () => setOrientation('side-by-side'),
+      leadingItems: <IconPanel direction="right" size="md" />,
+    },
+    {
+      key: 'stacked',
+      label: t('Stacked'),
+      disabled: orientation === 'stacked',
+      onAction: () => setOrientation('stacked'),
+      leadingItems: <IconPanel direction="down" size="md" />,
+    },
+  ];
+
+  return (
+    <DropdownMenu
+      size="sm"
+      items={options}
+      menuTitle={<div>{t('Panel Position')}</div>}
+      trigger={triggerProps => (
+        <Tooltip title={t('Panel Position')}>
+          <Button
+            {...triggerProps}
+            size="zero"
+            aria-label={t('Panel position')}
+            icon={<IconPanel direction="right" />}
+            borderless
+          />
+        </Tooltip>
+      )}
+    />
   );
 }

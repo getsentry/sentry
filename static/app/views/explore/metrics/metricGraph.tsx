@@ -29,12 +29,21 @@ import {
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
+const STACKED_GRAPH_HEIGHT = 358;
+
 interface MetricsGraphProps {
+  orientation: 'side-by-side' | 'stacked';
   queryIndex: number;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  additionalActions?: React.ReactNode;
 }
 
-export function MetricsGraph({timeseriesResult, queryIndex}: MetricsGraphProps) {
+export function MetricsGraph({
+  timeseriesResult,
+  queryIndex,
+  orientation,
+  additionalActions,
+}: MetricsGraphProps) {
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
 
@@ -48,6 +57,8 @@ export function MetricsGraph({timeseriesResult, queryIndex}: MetricsGraphProps) 
       timeseriesResult={timeseriesResult}
       onChartTypeChange={handleChartTypeChange}
       queryIndex={queryIndex}
+      orientation={orientation}
+      additionalActions={additionalActions}
     />
   );
 }
@@ -58,7 +69,14 @@ interface GraphProps extends MetricsGraphProps {
   visualize: ReturnType<typeof useMetricVisualize>;
 }
 
-function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: GraphProps) {
+function Graph({
+  onChartTypeChange,
+  timeseriesResult,
+  queryIndex,
+  orientation,
+  visualize,
+  additionalActions,
+}: GraphProps) {
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const metricLabel = useMetricLabel();
@@ -126,6 +144,7 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
           options={intervalOptions}
         />
       </Tooltip>
+      {additionalActions}
     </Fragment>
   );
 
@@ -143,7 +162,13 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
           />
         )
       }
-      height={visualize.visible ? undefined : 0}
+      height={
+        visualize.visible
+          ? orientation === 'stacked'
+            ? STACKED_GRAPH_HEIGHT
+            : undefined
+          : 0
+      }
       revealActions="always"
       borderless
     />

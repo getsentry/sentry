@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {TabList, TabPanels, TabStateProvider} from 'sentry/components/core/tabs';
 import {t} from 'sentry/locale';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
@@ -14,10 +16,18 @@ import {
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 
 interface MetricInfoTabsProps {
+  orientation: 'side-by-side' | 'stacked';
   traceMetric: TraceMetric;
+  additionalActions?: React.ReactNode;
+  contentsHidden?: boolean;
 }
 
-export default function MetricInfoTabs({traceMetric}: MetricInfoTabsProps) {
+export default function MetricInfoTabs({
+  traceMetric,
+  additionalActions,
+  contentsHidden,
+  orientation,
+}: MetricInfoTabsProps) {
   const visualize = useMetricVisualize();
   const queryParamsMode = useQueryParamsMode();
   const setAggregatesMode = useSetQueryParamsMode();
@@ -29,14 +39,22 @@ export default function MetricInfoTabs({traceMetric}: MetricInfoTabsProps) {
       }}
       size="xs"
     >
-      <TabListWrapper>
-        <TabList>
-          <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
-          <TabList.Item key={Mode.SAMPLES}>{t('Samples')}</TabList.Item>
-        </TabList>
-      </TabListWrapper>
-
-      {visualize.visible && (
+      {(orientation === 'side-by-side' || visualize.visible) && (
+        <Flex direction="row" justify="between" align="center" paddingRight="md">
+          <TabListWrapper>
+            <TabList>
+              <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
+                {t('Aggregates')}
+              </TabList.Item>
+              <TabList.Item key={Mode.SAMPLES} disabled={contentsHidden}>
+                {t('Samples')}
+              </TabList.Item>
+            </TabList>
+          </TabListWrapper>
+          {additionalActions}
+        </Flex>
+      )}
+      {visualize.visible && !contentsHidden && (
         <BodyContainer>
           <StyledTabPanels>
             <TabPanels.Item key={Mode.AGGREGATE}>
