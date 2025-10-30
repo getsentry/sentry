@@ -111,49 +111,44 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
     [project.slug, queryClient, organization.slug]
   );
 
-  const handleStoppingPointChange = useCallback(
-    (value: 'root_cause' | 'solution' | 'code_changes' | 'open_pr') => {
-      updateProjectSeerPreferences({
-        repositories: preference?.repositories || [],
-        automated_run_stopping_point: value,
-      });
-    },
-    [updateProjectSeerPreferences, preference?.repositories]
+  const hasCursorIntegration = Boolean(
+    organization.features.includes('integrations-cursor') && cursorIntegration
   );
 
-  const handleAutomationHandoffChange = useCallback(
-    (value: boolean) => {
-      if (value && !cursorIntegration) {
-        throw new Error('Cursor integration not found');
+  const handleStoppingPointChange = useCallback(
+    (
+      value: 'root_cause' | 'solution' | 'code_changes' | 'open_pr' | 'cursor_handoff'
+    ) => {
+      if (value === 'cursor_handoff') {
+        if (!cursorIntegration) {
+          throw new Error('Cursor integration not found');
+        }
+        updateProjectSeerPreferences({
+          repositories: preference?.repositories || [],
+          automated_run_stopping_point: 'root_cause',
+          automation_handoff: {
+            handoff_point: 'root_cause',
+            target: 'cursor_background_agent',
+            integration_id: parseInt(cursorIntegration.id, 10),
+          },
+        });
+      } else {
+        updateProjectSeerPreferences({
+          repositories: preference?.repositories || [],
+          automated_run_stopping_point: value,
+          automation_handoff: undefined,
+        });
       }
-
-      updateProjectSeerPreferences({
-        repositories: preference?.repositories || [],
-        automated_run_stopping_point: preference?.automated_run_stopping_point,
-        automation_handoff:
-          value && cursorIntegration
-            ? {
-                handoff_point: 'root_cause',
-                target: 'cursor_background_agent',
-                integration_id: parseInt(cursorIntegration.id, 10),
-              }
-            : undefined,
-      });
     },
-    [
-      cursorIntegration,
-      updateProjectSeerPreferences,
-      preference?.repositories,
-      preference?.automated_run_stopping_point,
-    ]
+    [updateProjectSeerPreferences, preference?.repositories, cursorIntegration]
   );
 
   const automatedRunStoppingPointField = {
     name: 'automated_run_stopping_point',
-    label: t('Stopping Point for Auto-Triggered Fixes'),
+    label: t('Where should Seer stop?'),
     help: () =>
       t(
-        'Choose how far Seer should go before stopping for your approval. This does not affect Issue Fixes that you manually start.'
+        'Choose how far Seer should go during automated runs before stopping for your approval. This does not affect Issue Fixes that you manually start.'
       ),
     type: 'choice',
     options: [
@@ -162,6 +157,21 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
         label: <SeerSelectLabel>{t('Root Cause (default)')}</SeerSelectLabel>,
         details: t('Seer will stop after identifying the root cause.'),
       },
+      ...(hasCursorIntegration
+        ? [
+            {
+              value: 'cursor_handoff',
+              label: (
+                <SeerSelectLabel>
+                  {t('Hand off to Cursor Background Agent')}
+                </SeerSelectLabel>
+              ),
+              details: t(
+                "Seer will identify the root cause and hand off the fix to Cursor's background agent."
+              ),
+            },
+          ]
+        : []),
       {
         value: 'solution',
         label: <SeerSelectLabel>{t('Solution')}</SeerSelectLabel>,
@@ -183,30 +193,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
     onChange: handleStoppingPointChange,
     visible: ({model}) =>
       model?.getValue('seerScannerAutomation') === true &&
-      model?.getValue('autofixAutomationTuning') !== 'off' &&
-      model?.getValue('automation_handoff') !== true,
-  } satisfies FieldObject;
-
-  const hasCursorIntegration = Boolean(
-    organization.features.includes('integrations-cursor') && cursorIntegration
-  );
-
-  const automationHandoffField = {
-    name: 'automation_handoff',
-    label: t('Hand off to Cursor Background Agent'),
-    help: () =>
-      t(
-        "After identifying the root cause, Seer will hand off the fix to Cursor's background agent to implement the solution."
-      ),
-    type: 'boolean',
-    saveOnBlur: true,
-    saveMessage: t('Automation handoff setting updated'),
-    onChange: handleAutomationHandoffChange,
-    visible: ({model}) =>
-      (model?.getValue('seerScannerAutomation') === true &&
-        model?.getValue('autofixAutomationTuning') !== 'off' &&
-        hasCursorIntegration) ||
-      false,
+      model?.getValue('autofixAutomationTuning') !== 'off',
   } satisfies FieldObject;
 
   const seerFormGroups: JsonFormObject[] = [
@@ -236,7 +223,6 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
         seerScannerAutomationField,
         autofixAutomatingTuningField,
         automatedRunStoppingPointField,
-        automationHandoffField,
       ],
     },
   ];
@@ -244,7 +230,11 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
   return (
     <Fragment>
       <Form
-        key={`${preference?.automated_run_stopping_point ?? 'root_cause'}-${preference?.automation_handoff ? 'handoff' : 'no-handoff'}`}
+        key={
+          preference?.automation_handoff
+            ? 'cursor_handoff'
+            : (preference?.automated_run_stopping_point ?? 'root_cause')
+        }
         saveOnBlur
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
@@ -252,9 +242,9 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
         initialData={{
           seerScannerAutomation: project.seerScannerAutomation ?? false,
           autofixAutomationTuning: project.autofixAutomationTuning ?? 'off',
-          automated_run_stopping_point:
-            preference?.automated_run_stopping_point ?? 'root_cause',
-          automation_handoff: !!preference?.automation_handoff,
+          automated_run_stopping_point: preference?.automation_handoff
+            ? 'cursor_handoff'
+            : (preference?.automated_run_stopping_point ?? 'root_cause'),
         }}
         onSubmitSuccess={handleSubmitSuccess}
         additionalFieldProps={{organization}}

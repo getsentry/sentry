@@ -406,9 +406,9 @@ describe('ProjectSeer', () => {
 
     render(<ProjectSeer project={initialProject} />, {organization});
 
-    // Find the select menu for Stopping Point for Auto-Triggered Fixes
+    // Find the select menu for Where should Seer stop?
     const select = await screen.findByRole('textbox', {
-      name: /Stopping Point for Auto-Triggered Fixes/i,
+      name: /Where should Seer stop/i,
     });
 
     act(() => {
@@ -524,22 +524,23 @@ describe('ProjectSeer', () => {
       organization: orgWithCursorFeature,
     });
 
-    // Find the toggle for Hand off to Cursor Background Agent
-    const toggle = await screen.findByRole('checkbox', {
-      name: /Hand off to Cursor Background Agent/i,
+    // Find the select menu for Where should Seer stop?
+    const select = await screen.findByRole('textbox', {
+      name: /Where should Seer stop/i,
     });
-    expect(toggle).toBeInTheDocument();
-    expect(toggle).not.toBeChecked();
 
-    // Toggle it on
-    await userEvent.click(toggle);
+    act(() => {
+      select.focus();
+    });
 
-    // Form should call PUT for the project
+    // Open the menu and select 'Hand off to Cursor Background Agent'
+    await userEvent.click(select);
+    const cursorOption = await screen.findByText('Hand off to Cursor Background Agent');
+    await userEvent.click(cursorOption);
+
+    // Form has saveOnBlur=true, so wait for the PUT request
     await waitFor(() => {
-      expect(projectPutRequest).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({data: {automation_handoff: true}})
-      );
+      expect(projectPutRequest).toHaveBeenCalledTimes(1);
     });
 
     // Wait for the seer preferences POST to be called with automation_handoff
