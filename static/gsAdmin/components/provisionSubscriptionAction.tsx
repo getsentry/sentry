@@ -32,6 +32,7 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {
+  displayBudgetName,
   getAmPlanTier,
   isAm3DsPlan,
   isAm3Plan,
@@ -376,8 +377,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     this.state.data.seerBudget;
 
   /**
-   * If the user is changing the on-demand max spend mode or disabling it,
-   * don't retain the customer's existing on-demand max spend settings.
+   * If the user is changing the PAYG max spend mode or disabling it,
+   * don't retain the customer's existing PAYG max spend settings.
    */
   disableRetainOnDemand = () => {
     if (this.state.data.onDemandInvoicedManual === null) {
@@ -442,7 +443,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       }
     });
 
-    // remove on-demand fields if the plan is not invoiced
+    // remove PAYG fields if the plan is not invoiced
     if (postData.type !== 'invoiced') {
       delete postData.onDemandInvoicedManual;
       const paygCpeFields = Object.keys(postData).filter(key =>
@@ -462,7 +463,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       }));
     }
 
-    // soft cap and on-demand max spend are mutually exclusive
+    // soft cap and PAYG max spend are mutually exclusive
     if (this.isEnablingOnDemandMaxSpend()) {
       Object.keys(postData).forEach(key => {
         if (key.startsWith('softCapType')) {
@@ -534,7 +535,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       }
     }
 
-    // override retainOnDemandBudget based on whether user is changing the mode or disabling on-demand, or not
+    // override retainOnDemandBudget based on whether user is changing the mode or disabling PAYG, or not
     postData.retainOnDemandBudget = postData.retainOnDemandBudget
       ? !this.disableRetainOnDemand()
       : false;
@@ -771,7 +772,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 />
                 {this.state.data.type === 'invoiced' && (
                   <StyledSelectFieldWithHelpText
-                    label="On-Demand Max Spend Setting"
+                    label={`${displayBudgetName(this.state.provisionablePlans[this.state.data.plan], {title: true})} Max Spend Setting`}
                     name="onDemandInvoicedManual"
                     choices={
                       isAm3Plan(this.state.data.plan)
@@ -785,7 +786,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                             ['DISABLE', 'Disable'],
                           ]
                     }
-                    help="Used to enable (Shared or Per Category) or disable on-demand max spend for invoiced customers. Cannot be provisioned with soft cap."
+                    help={`Used to enable (Shared or Per Category) or disable ${displayBudgetName(this.state.provisionablePlans[this.state.data.plan])} max spend for invoiced customers. Cannot be provisioned with soft cap.`}
                     clearable
                     disabled={
                       this.state.data.type === 'credit_card' || this.isEnablingSoftCap()
@@ -802,10 +803,10 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
 
                 {!this.disableRetainOnDemand() && (
                   <BooleanField
-                    label="Retain On-Demand Budget"
+                    label={`Retain ${displayBudgetName(this.state.provisionablePlans[this.state.data.plan], {title: true})} Budget`}
                     name="retainOnDemandBudget"
                     value={this.state.data.retainOnDemandBudget}
-                    help="Check to retain the customer's current On-Demand Budget. Otherwise, the customer's On-Demand Budget will be set based on the default calculations (0.5 times the monthly plan price)."
+                    help={`Check to retain the customer's current ${displayBudgetName(this.state.provisionablePlans[this.state.data.plan], {title: true})} Budget. Otherwise, the customer's ${displayBudgetName(this.state.provisionablePlans[this.state.data.plan])} Budget will be set based on the default calculations (0.5 times the monthly plan price).`}
                     onChange={v =>
                       this.setState(state => ({
                         ...state,
@@ -925,7 +926,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                               )}
                               {this.isEnablingOnDemandMaxSpend() && (
                                 <StyledDollarsAndCentsField
-                                  label={`On-Demand Cost-Per-Event ${titleName}`}
+                                  label={`${displayBudgetName(this.state.provisionablePlans[this.state.data.plan], {title: true})} Cost-Per-Event ${titleName}`}
                                   name={`paygCpe${capitalizedApiName}`}
                                   value={data[`paygCpe${capitalizedApiName}`]}
                                   step={0.00000001}
