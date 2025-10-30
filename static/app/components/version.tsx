@@ -5,6 +5,7 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -122,7 +123,12 @@ function Version({
       }}
     >
       <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
-      <CopyToClipboardButton borderless text={version} size="zero" />
+      <CopyToClipboardButton
+        borderless
+        text={version}
+        size="zero"
+        aria-label={t('Copy version to clipboard')}
+      />
     </TooltipContent>
   );
 

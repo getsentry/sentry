@@ -228,16 +228,13 @@ function CopyRootCauseButton({
   event?: Event;
 }) {
   const text = formatRootCauseWithEvent(cause, customRootCause, event);
-  const {onClick, label} = useCopyToClipboard({
-    text,
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <Button
       size="sm"
-      aria-label={label}
       title="Copy analysis as Markdown / LLM prompt"
-      onClick={onClick}
+      onClick={() => copy(text, {successMessage: t('Analysis copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Root Cause as Markdown"
       analyticsEventKey="autofix.root_cause.copy"
       icon={<IconCopy />}
