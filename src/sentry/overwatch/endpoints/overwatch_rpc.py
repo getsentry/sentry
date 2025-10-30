@@ -24,7 +24,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.prevent.models import PreventAIConfiguration
-from sentry.prevent.types.config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
+from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT
 from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
@@ -143,9 +143,9 @@ class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
             integration_id=github_org_integrations[0].integration_id,
         ).first()
 
-        response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_GITHUB_DEFAULT)
+        response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_DEFAULT)
         if config:
-            response_data["github_organization"][git_org_name] = config.data
+            response_data["organization"][git_org_name] = config.data
 
         return Response(data=response_data)
 

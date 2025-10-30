@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from sentry.constants import ObjectStatus
 from sentry.prevent.models import PreventAIConfiguration
-from sentry.prevent.types.config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
+from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -116,8 +116,8 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        assert resp.data == PREVENT_AI_CONFIG_GITHUB_DEFAULT
-        assert resp.data["github_organization"] == {}
+        assert resp.data == PREVENT_AI_CONFIG_DEFAULT
+        assert resp.data["organization"] == {}
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -152,7 +152,7 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        assert resp.data["github_organization"][git_org_name] == VALID_ORG_CONFIG
+        assert resp.data["organization"][git_org_name] == VALID_ORG_CONFIG
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -227,9 +227,9 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
         assert (
-            resp.data["github_organization"][git_org_name]["repo_overrides"]["my-repo"][
-                "bug_prediction"
-            ]["sensitivity"]
+            resp.data["organization"][git_org_name]["repo_overrides"]["my-repo"]["bug_prediction"][
+                "sensitivity"
+            ]
             == "high"
         )
 
