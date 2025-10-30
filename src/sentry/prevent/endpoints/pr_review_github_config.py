@@ -15,7 +15,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.prevent.models import PreventAIConfiguration
-from sentry.prevent.types.config import ORG_CONFIG_SCHEMA, PREVENT_AI_CONFIG_GITHUB_DEFAULT
+from sentry.prevent.types.config import ORG_CONFIG_SCHEMA, PREVENT_AI_CONFIG_DEFAULT
 
 
 class PreventAIConfigPermission(OrganizationPermission):
@@ -59,9 +59,9 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
             integration_id=github_org_integrations[0].integration_id,
         ).first()
 
-        response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_GITHUB_DEFAULT)
+        response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_DEFAULT)
         if config:
-            response_data["github_organization"][git_organization_name] = config.data
+            response_data["organization"][git_organization_name] = config.data
 
         return Response(response_data, status=200)
 
@@ -102,7 +102,7 @@ class OrganizationPreventGitHubConfigEndpoint(OrganizationEndpoint):
             },
         )
 
-        response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_GITHUB_DEFAULT)
-        response_data["github_organization"][git_organization_name] = request.data
+        response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_DEFAULT)
+        response_data["organization"][git_organization_name] = request.data
 
         return Response(response_data, status=200)
