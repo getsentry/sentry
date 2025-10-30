@@ -643,6 +643,8 @@ register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # Debug values are used for the Notification Debug CLI
 register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Log unfurl payloads for debugging
+register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Issue Summary on Alerts (timeout in seconds)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
