@@ -10,7 +10,7 @@ from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
 from sentry import deletions, nodestore
 from sentry.deletions.tasks.groups import delete_groups_for_project
-from sentry.issues.grouptype import FeedbackGroup, GroupCategory
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group

@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, cast
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -24,7 +24,6 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -95,13 +94,6 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         start: datetime,
         end: datetime,
     ) -> list[EapCheckEntrySerializerResponse]:
-        maybe_cutoff = self._get_date_cutoff_epoch_seconds()
-        epoch_cutoff = (
-            datetime.fromtimestamp(maybe_cutoff, tz=timezone.utc) if maybe_cutoff else None
-        )
-        if epoch_cutoff and epoch_cutoff > start:
-            start = epoch_cutoff
-
         start_timestamp = Timestamp()
         start_timestamp.FromDatetime(start)
         end_timestamp = Timestamp()
@@ -231,7 +223,3 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             return None
         val_str = check_status_reason_val.val_str
         return cast(CheckStatusReasonType, val_str) if val_str != "" else None
-
-    def _get_date_cutoff_epoch_seconds(self) -> float | None:
-        value = float(options.get("uptime.date_cutoff_epoch_seconds"))
-        return None if value == 0 else value
