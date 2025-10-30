@@ -23,6 +23,7 @@ import {
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -90,6 +91,10 @@ export function SizeCompareSelectionContent({
     );
 
   const pageLinks = buildsQuery.getResponseHeader?.('Link') || null;
+
+  const parsedLinks = pageLinks ? parseLinkHeader(pageLinks) : {};
+  const hasPagination =
+    parsedLinks.previous?.results === true || parsedLinks.next?.results === true;
 
   const {mutate: triggerComparison, isPending: isComparing} = useMutation<
     void,
@@ -175,7 +180,7 @@ export function SizeCompareSelectionContent({
             );
           })}
 
-          <Pagination pageLinks={pageLinks} />
+          {hasPagination && <Pagination pageLinks={pageLinks} />}
         </Stack>
       )}
     </Stack>
