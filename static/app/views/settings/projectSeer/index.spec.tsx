@@ -321,13 +321,19 @@ describe('ProjectSeer', () => {
     await userEvent.click(select);
 
     const options = await screen.findAllByText('Minimally Actionable and Above');
-    await userEvent.click(options[0]);
+    expect(options[0]).toBeDefined();
+    if (options[0]) {
+      await userEvent.click(options[0]);
+    }
 
     // Reopen the menu to select another value
     await userEvent.click(select);
 
     const options2 = await screen.findAllByText('Highly Actionable and Above');
-    await userEvent.click(options2[0]);
+    expect(options2[0]).toBeDefined();
+    if (options2[0]) {
+      await userEvent.click(options2[0]);
+    }
 
     // Form has saveOnBlur=true, so wait for the PUT request
     await waitFor(() => {
