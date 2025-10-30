@@ -341,6 +341,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         values = {v["value"] for v in response.data[0]["topValues"]}
         assert values == {"", "bar"}
         assert response.data[0]["topValues"][0]["count"] == 1
+        assert response.data[0]["totalValues"] == 2
 
     def test_include_empty_values_in_all_tags_with_feature(self) -> None:
         event = self.store_event(
@@ -378,6 +379,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
         foo = next((t for t in response.data if t["key"] == "foo"), None)
         assert foo is not None
         assert {v["value"] for v in foo["topValues"]} == {"", "bar"}
+        assert foo["totalValues"] == 2
 
     def test_flags(self) -> None:
         event1 = self.store_event(
