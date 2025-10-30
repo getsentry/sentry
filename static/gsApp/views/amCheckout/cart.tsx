@@ -625,7 +625,7 @@ function TotalSummary({
           {previewDataLoading ? (
             <Placeholder height="16px" width={PRICE_PLACEHOLDER_WIDTH} />
           ) : (
-            <Flex>
+            <Flex align="end" gap="xs">
               {isDueToday ? (
                 <Fragment>
                   {originalBilledTotal > billedTotal && (
@@ -648,6 +648,11 @@ function TotalSummary({
                   })}
                 </Text>
               )}
+              <Flex align="end" paddingBottom="2xs">
+                <Text size="md" bold variant="muted">
+                  USD
+                </Text>
+              </Flex>
             </Flex>
           )}
         </Flex>
