@@ -64,7 +64,7 @@ export function SentryNuqsTestingAdapter({
         // Navigate to the new location using Sentry's navigate
         // We need to construct the full path with the search string
         const newPath = queryString
-          ? `${location.pathname}?${queryString}`
+          ? `${location.pathname}${queryString}`
           : location.pathname;
 
         // The navigate function from TestRouter already wraps this in act()
