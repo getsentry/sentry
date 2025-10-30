@@ -186,32 +186,16 @@ describe('useCopyIssueDetails', () => {
   });
 
   describe('useCopyIssueDetails', () => {
-    const mockClipboard = {writeText: jest.fn()};
-    const mockOnClick = jest.fn().mockImplementation(() => {
-      mockClipboard.writeText('test');
-      indicators.addSuccessMessage('Copied issue to clipboard as Markdown');
-      return Promise.resolve();
-    });
-    const mockCopyToClipboard = jest.fn();
-    let generatedText: string;
+    const mockCopy = jest.fn();
 
     beforeEach(() => {
       jest.clearAllMocks();
 
-      Object.defineProperty(window.navigator, 'clipboard', {
-        value: mockClipboard,
-        writable: true,
-      });
+      mockCopy.mockResolvedValue('');
 
-      mockCopyToClipboard.mockImplementation(({text}) => {
-        generatedText = text;
-        return {
-          onClick: mockOnClick,
-          label: 'Copy',
-        };
+      jest.mocked(copyToClipboardModule.default).mockReturnValue({
+        copy: mockCopy,
       });
-
-      jest.mocked(copyToClipboardModule.default).mockImplementation(mockCopyToClipboard);
 
       jest.spyOn(groupSummaryHooks, 'useGroupSummaryData').mockReturnValue({
         data: mockGroupSummaryData,
@@ -228,16 +212,11 @@ describe('useCopyIssueDetails', () => {
       jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
     });
 
-    it('sets up useCopyToClipboard with the correct parameters', () => {
+    it('calls useCopyToClipboard hook', () => {
       renderHook(() => useCopyIssueDetails(group, event));
 
-      // Check that the hook was called with the expected parameters
-      expect(mockCopyToClipboard).toHaveBeenCalledWith({
-        text: expect.any(String),
-        successMessage: 'Copied issue to clipboard as Markdown',
-        errorMessage: 'Could not copy issue to clipboard',
-        onCopy: expect.any(Function),
-      });
+      // Check that the hook was called
+      expect(copyToClipboardModule.default).toHaveBeenCalled();
     });
 
     it('sets up hotkeys with the correct callbacks', () => {
@@ -260,22 +239,54 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('provides partial data when event is undefined', () => {
+      let capturedText = '';
+
+      mockCopy.mockImplementation((text: string) => {
+        capturedText = text;
+        return Promise.resolve(text);
+      });
+
       renderHook(() => useCopyIssueDetails(group, undefined));
 
-      expect(generatedText).toContain(`# ${group.title}`);
-      expect(generatedText).toContain(`**Issue ID:** ${group.id}`);
-      expect(generatedText).toContain(`**Project:** ${group.project?.slug}`);
-      expect(generatedText).toContain('## Issue Summary');
-      expect(generatedText).toContain('## Root Cause');
-      expect(generatedText).toContain('## Solution');
-      expect(generatedText).not.toContain('## Exception');
+      // Trigger the keyboard event (command+alt+c)
+      const keyboardEvent = new KeyboardEvent('keydown', {
+        keyCode: 67, // 'C'.charCodeAt(0)
+        metaKey: true,
+        altKey: true,
+        bubbles: true,
+      } as KeyboardEventInit);
+      document.dispatchEvent(keyboardEvent);
+
+      expect(capturedText).toContain(`# ${group.title}`);
+      expect(capturedText).toContain(`**Issue ID:** ${group.id}`);
+      expect(capturedText).toContain(`**Project:** ${group.project?.slug}`);
+      expect(capturedText).toContain('## Issue Summary');
+      expect(capturedText).toContain('## Root Cause');
+      expect(capturedText).toContain('## Solution');
+      expect(capturedText).not.toContain('## Exception');
     });
 
     it('generates markdown with the correct data when event is provided', () => {
+      let capturedText = '';
+
+      mockCopy.mockImplementation((text: string) => {
+        capturedText = text;
+        return Promise.resolve(text);
+      });
+
       renderHook(() => useCopyIssueDetails(group, event));
 
-      expect(generatedText).toContain(`# ${group.title}`);
-      expect(generatedText).toContain(`**Issue ID:** ${group.id}`);
+      // Trigger the keyboard event (command+alt+c)
+      const keyboardEvent = new KeyboardEvent('keydown', {
+        keyCode: 67, // 'C'.charCodeAt(0)
+        metaKey: true,
+        altKey: true,
+        bubbles: true,
+      } as KeyboardEventInit);
+      document.dispatchEvent(keyboardEvent);
+
+      expect(capturedText).toContain(`# ${group.title}`);
+      expect(capturedText).toContain(`**Issue ID:** ${group.id}`);
     });
   });
 });
