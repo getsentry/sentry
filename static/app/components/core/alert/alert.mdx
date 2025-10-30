@@ -173,7 +173,7 @@ Add interactive elements like buttons, links or badges to the right side of aler
 <Storybook.Demo>
   <Alert.Container>
     <Alert type="info" trailingItems={<Badge type="warning">Action Required</Badge>}>
-      This alert has a trailing bagde
+      This alert has a trailing badge
     </Alert>
     <Alert
       type="error"
@@ -189,6 +189,25 @@ Add interactive elements like buttons, links or badges to the right side of aler
       }
     >
       This alert has multiple trailing actions
+    </Alert>
+    <Alert
+      type="warning"
+      expand={
+        <div>
+          <p>This alert starts in an expanded state.</p>
+          <p>Users can still collapse it by clicking the chevron.</p>
+        </div>
+      }
+      trailingItems={
+        <Flex gap="sm">
+          <Badge type="warning">Action Required</Badge>
+          <Alert.Button priority="muted" icon={<IconEdit />}>
+            Edit
+          </Alert.Button>
+        </Flex>
+      }
+    >
+      This alert has multiple trailing items and can be expanded.
     </Alert>
   </Alert.Container>
 </Storybook.Demo>
