@@ -173,7 +173,7 @@ export default function ConnectedMonitorsList({
         <Pagination
           onCursor={onCursor}
           pageLinks={pageLinks}
-          caption={totalCountInt > limit ? null : paginationCaption}
+          caption={totalCountInt > limit ? paginationCaption : null}
         />
       )}
     </Container>
