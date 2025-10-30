@@ -443,6 +443,55 @@ def create_data_source(
     )
 
 
+def update_data_source_for_detector(alert_rule: AlertRule, detector: Detector) -> None:
+    """
+    Updates the Detector's DataSource to point to the AlertRule's current QuerySubscription.
+    """
+    snuba_query = alert_rule.snuba_query
+    if not snuba_query:
+        logger.error(
+            "AlertRule has no SnubaQuery",
+            extra={"alert_rule_id": alert_rule.id},
+        )
+        return
+
+    current_subscription = QuerySubscription.objects.filter(snuba_query=snuba_query.id).first()
+    if not current_subscription:
+        logger.error(
+            "No QuerySubscription found for AlertRule's SnubaQuery",
+            extra={"alert_rule_id": alert_rule.id, "snuba_query_id": snuba_query.id},
+        )
+        return
+
+    data_source = DataSource.objects.filter(
+        detectors=detector,
+        type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    ).first()
+
+    if not data_source:
+        logger.warning(
+            "No DataSource found for Detector",
+            extra={"detector_id": detector.id, "alert_rule_id": alert_rule.id},
+        )
+        return
+
+    new_source_id = str(current_subscription.id)
+    if data_source.source_id == new_source_id:
+        return
+
+    old_source_id = data_source.source_id
+    data_source.update(source_id=new_source_id)
+    logger.info(
+        "Updated DataSource to current QuerySubscription",
+        extra={
+            "data_source_id": data_source.id,
+            "old_source_id": old_source_id,
+            "new_source_id": new_source_id,
+            "alert_rule_id": alert_rule.id,
+        },
+    )
+
+
 def create_data_condition_group(organization_id: int) -> DataConditionGroup:
     return DataConditionGroup.objects.create(
         organization_id=organization_id,
@@ -656,6 +705,9 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule) -> (
     detector_state = DetectorState.objects.get(detector=detector)
 
     update_detector(alert_rule, detector)
+
+    # Sync the DataSource to ensure it points to a valid QuerySubscription
+    update_data_source_for_detector(alert_rule, detector)
 
     data_condition_group = detector.workflow_condition_group
     if data_condition_group is None:
