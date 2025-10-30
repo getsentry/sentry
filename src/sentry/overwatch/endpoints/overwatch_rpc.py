@@ -119,11 +119,11 @@ class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
         ):
             raise PermissionDenied
 
-        sentry_org_id = request.GET.get("sentryOrgId")
-        if not sentry_org_id:
+        sentry_org_id_str = request.GET.get("sentryOrgId")
+        if not sentry_org_id_str:
             raise ParseError("Missing required query parameter: sentryOrgId")
         try:
-            sentry_org_id = int(sentry_org_id)
+            sentry_org_id = int(sentry_org_id_str)
             if sentry_org_id <= 0:
                 raise ParseError("sentryOrgId must be a positive integer")
         except ValueError:
