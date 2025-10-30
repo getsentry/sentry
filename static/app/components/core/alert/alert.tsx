@@ -21,8 +21,8 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   type: 'muted' | 'info' | 'warning' | 'success' | 'error';
   defaultExpanded?: boolean;
   expand?: React.ReactNode;
+  handleExpandChange?: (isExpanded: boolean) => void;
   icon?: React.ReactNode;
-  onExpandChange?: (isExpanded: boolean) => void;
   showIcon?: boolean;
   system?: boolean;
   trailingItems?: React.ReactNode;
@@ -62,7 +62,7 @@ export function Alert({
     }
     if (showExpand) {
       setIsExpanded(!isExpanded);
-      props.onExpandChange?.(!isExpanded);
+      props.handleExpandChange?.(!isExpanded);
     }
   }
 
@@ -102,7 +102,7 @@ export function Alert({
               aria-label={isExpanded ? t('Collapse') : t('Expand')}
               onClick={() => {
                 setIsExpanded(!isExpanded);
-                props.onExpandChange?.(!isExpanded);
+                props.handleExpandChange?.(!isExpanded);
               }}
             />
           </ExpandIconWrap>

@@ -369,59 +369,72 @@ function PendingChanges({organization, subscription}: Props) {
   // if there are only two changes total, show all the changes without an expand button
   // otherwise, show the first two changes and the rest with an expand button
   const shouldShowAll = !firstChangeSet || Object.values(changes).flat().length <= 2;
-  const initialEntries = shouldShowAll
+  const initialChanges = shouldShowAll
     ? changes
     : {[firstChangeKey]: firstChangeSet.slice(0, 2)};
 
   return (
-    <Alert
+    <StyledAlert
       type="info"
       trailingItems={
-        <LinkButton style={{textDecoration: 'none'}} to="/settings/billing/activity-logs">
+        <LinkButton to="/settings/billing/activity-logs">
           {t('View all activity')}
         </LinkButton>
       }
-      onExpandChange={setIsExpanded}
+      handleExpandChange={setIsExpanded}
       expand={
-        shouldShowAll
-          ? undefined
-          : Object.entries(changes).map(([effectiveDate, items], index) => (
-              <div key={effectiveDate} data-test-id="pending-list">
-                {index > 0 &&
-                  tct('The following changes will take effect on [date]:', {
-                    date: <strong>{moment(effectiveDate).format('ll')}</strong>,
-                  })}
+        shouldShowAll ? undefined : (
+          <Grid gap="lg" autoRows="auto">
+            {Object.entries(changes).map(([effectiveDate, items], index) => (
+              <div key={effectiveDate} data-test-id={`expanded-pending-list-${index}`}>
+                {effectiveDate !== firstChangeKey && (
+                  <Text>
+                    {tct('The following changes will take effect on [date]:', {
+                      date: <strong>{moment(effectiveDate).format('ll')}</strong>,
+                    })}
+                  </Text>
+                )}
                 <ItemList>
-                  {items.map((item, itemIdx) => (
-                    <Item key={itemIdx} data-test-id="pending-item">
-                      <Text>{item}</Text>
-                    </Item>
-                  ))}
+                  {items
+                    .filter(
+                      item =>
+                        effectiveDate !== firstChangeKey ||
+                        !initialChanges[firstChangeKey]?.includes(item)
+                    )
+                    .map((item, itemIdx) => (
+                      <Item key={itemIdx} data-test-id="pending-item">
+                        <Text>{item}</Text>
+                      </Item>
+                    ))}
                 </ItemList>
               </div>
-            ))
+            ))}
+          </Grid>
+        )
       }
     >
       <Grid gap="lg" autoRows="auto">
-        {Object.entries(initialEntries).map(([effectiveDate, items]) => (
-          <div key={effectiveDate} data-test-id="pending-list">
-            {tct('The following changes will take effect on [date]:', {
-              date: <strong>{moment(effectiveDate).format('ll')}</strong>,
-            })}
-            {!isExpanded && (
-              <ItemList>
-                {items.map((item, itemIdx) => (
-                  <Item key={itemIdx} data-test-id="pending-item">
-                    <Text variant={shouldShowAll ? 'primary' : 'muted'}>{item}</Text>
-                  </Item>
-                ))}
-              </ItemList>
-            )}
+        {Object.entries(initialChanges).map(([effectiveDate, items], index) => (
+          <div key={effectiveDate} data-test-id={`pending-list-${index}`}>
+            <Text>
+              {tct('The following changes will take effect on [date]:', {
+                date: <strong>{moment(effectiveDate).format('ll')}</strong>,
+              })}
+            </Text>
+            <ItemList>
+              {items.map((item, itemIdx) => (
+                <Item key={itemIdx} data-test-id="pending-item">
+                  <Text variant={shouldShowAll || isExpanded ? 'primary' : 'muted'}>
+                    {item}
+                  </Text>
+                </Item>
+              ))}
+            </ItemList>
             {!isExpanded && !shouldShowAll && <Text variant="muted">...</Text>}
           </div>
         ))}
       </Grid>
-    </Alert>
+    </StyledAlert>
   );
 }
 
@@ -432,6 +445,12 @@ const ItemList = styled('ul')`
 
 const Item = styled('li')`
   list-style-type: none;
+`;
+
+const StyledAlert = styled(Alert)`
+  > div:nth-child(2) {
+    padding: 0;
+  }
 `;
 
 export default PendingChanges;
