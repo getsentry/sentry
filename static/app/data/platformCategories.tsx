@@ -383,11 +383,8 @@ export const withoutLoggingSupport: Set<PlatformKey> = new Set([
   'cocoa-objc',
   'cocoa-swift',
   'elixir',
-  'dotnet',
   'php-symfony',
   'unity',
-  'unreal',
-  'native',
 ]);
 
 // List of platforms that have metrics onboarding checklist content
