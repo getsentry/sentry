@@ -140,6 +140,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   return (
     <Tooltip title={tooltipContent} skipWrapper maxWidth={420}>
       <TagPreviewGrid
+        replace
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${tag.key}/`,
           query: location.query,
@@ -202,6 +203,7 @@ function DistributionsDrawerButton({
 
   return (
     <DistributionsDrawerLink
+      replace
       to={{
         pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
         query: location.query,

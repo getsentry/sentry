@@ -1,5 +1,5 @@
 ---
-created: '2025-10-06T21:57:35.774840+00:00'
+created: '2025-10-27T23:46:03.767524+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -17,6 +17,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": false,
+              "hint": "ignored because exception is synthetic",
+              "id": "type",
+              "name": null,
+              "values": [
+                "unknown 0x00004000 / 0x7ff89574837a"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Fatal Error: unknown <hex> / <hex>"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -1367,24 +1385,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "unknown 0x00004000 / 0x7ff89574837a"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Fatal Error: unknown <hex> / <hex>"
-              ]
             }
           ]
         }
@@ -1430,6 +1430,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": false,
+              "hint": "ignored because exception is synthetic",
+              "id": "type",
+              "name": null,
+              "values": [
+                "unknown 0x00004000 / 0x7ff89574837a"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Fatal Error: unknown <hex> / <hex>"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -2779,24 +2797,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "unknown 0x00004000 / 0x7ff89574837a"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Fatal Error: unknown <hex> / <hex>"
               ]
             }
           ]

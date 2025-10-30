@@ -39,6 +39,7 @@ import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
   useQueryParamsMode,
+  useQueryParamsQuery,
   useQueryParamsSearch,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
@@ -119,6 +120,7 @@ function Graph({
   visualize,
 }: GraphProps) {
   const aggregate = visualize.yAxis;
+  const userQuery = useQueryParamsQuery();
   const topEventsLimit = useQueryParamsTopEventsLimit();
 
   const [interval, setInterval, intervalOptions] = useChartInterval({
@@ -204,6 +206,7 @@ function Graph({
             chartInfo={chartInfo}
             isLoading={timeseriesResult.isLoading}
             rawLogCounts={rawLogCounts}
+            hasUserQuery={!!userQuery}
           />
         )
       }

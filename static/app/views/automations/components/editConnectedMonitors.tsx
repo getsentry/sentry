@@ -2,6 +2,7 @@ import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -21,6 +22,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {makeDetectorListQueryKey, useDetectorsQuery} from 'sentry/views/detectors/hooks';
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
+import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
 interface Props {
   connectedIds: Automation['detectorIds'];
@@ -199,6 +202,8 @@ function ConnectMonitorsContent({
 export default function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
   const ref = useRef<HTMLButtonElement>(null);
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
+  const organization = useOrganization();
+  const {monitorsLinkPrefix} = useMonitorViewContext();
 
   const toggleDrawer = () => {
     if (isDrawerOpen) {
@@ -237,9 +242,14 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
       <Container>
         <SelectedMonitors connectedIds={connectedIds} />
         <ButtonWrapper justify="between">
-          <Button size="sm" icon={<IconAdd />} onClick={toggleDrawer}>
+          <LinkButton
+            size="sm"
+            icon={<IconAdd />}
+            href={makeMonitorCreatePathname(organization.slug, monitorsLinkPrefix)}
+            external
+          >
             {t('Create New Monitor')}
-          </Button>
+          </LinkButton>
           <Button size="sm" icon={<IconEdit />} onClick={toggleDrawer}>
             {t('Edit Monitors')}
           </Button>

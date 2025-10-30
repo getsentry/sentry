@@ -224,7 +224,7 @@ describe('SearchQueryBuilder', () => {
         ).not.toBeInTheDocument();
       });
 
-      it('does not display footer when using a wildcard operator', async () => {
+      it('renders swap to is for * when using a wildcard operator', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />,
           {organization: {features: ['search-query-builder-wildcard-operators']}}
@@ -250,10 +250,9 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
-
         expect(
-          screen.queryByText('Wildcard (*) matching allowed')
-        ).not.toBeInTheDocument();
+          screen.getByText('Switch to "is" operator to use wildcard (*) matching')
+        ).toBeInTheDocument();
       });
     });
   });
@@ -811,13 +810,48 @@ describe('SearchQueryBuilder', () => {
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
 
-    it('can remove boolean ops by clicking the delete button', async () => {
-      render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
+    describe('boolean ops', () => {
+      describe('flag disabled', () => {
+        it('can remove boolean ops by clicking the delete button', async () => {
+          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
 
-      expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete OR'}));
+          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+          await userEvent.click(screen.getByRole('gridcell', {name: 'Delete OR'}));
 
-      expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
+          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
+        });
+      });
+
+      describe('flag enabled', () => {
+        it('can remove boolean selector by clicking the delete button', async () => {
+          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
+            organization: {
+              features: ['search-query-builder-add-boolean-operator-select'],
+            },
+          });
+
+          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+          await userEvent.click(screen.getByRole('button', {name: 'Remove boolean: OR'}));
+
+          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
+        });
+
+        it('can select a different boolean operator', async () => {
+          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
+            organization: {
+              features: ['search-query-builder-add-boolean-operator-select'],
+            },
+          });
+
+          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit boolean operator: OR'})
+          );
+          await userEvent.click(screen.getByRole('option', {name: 'AND'}));
+
+          expect(screen.getByRole('row', {name: 'AND'})).toBeInTheDocument();
+        });
+      });
     });
 
     it('can click and drag to select tokens', async () => {
@@ -4216,6 +4250,25 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
+    it('escapes * for is op but not contains op', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'test*');
+
+      const options = within(screen.getByRole('listbox')).getAllByRole('option');
+      expect(options).toHaveLength(2);
+
+      expect(options[0]).toHaveTextContent('span.description contains test\\*');
+      expect(options[1]).toHaveTextContent('span.description is test*');
+    });
+
     describe('with wildcard operators enabled', () => {
       describe('selecting suggestions', () => {
         it('should replace raw search keys with defined key:contains:value', async () => {
@@ -4344,7 +4397,12 @@ describe('SearchQueryBuilder', () => {
           // Should have tokenized the pasted text
           expect(
             screen.getByRole('row', {
-              name: `span.description:${WildcardOperators.CONTAINS}[test,randomValue]`,
+              name: `span.description:${WildcardOperators.CONTAINS}test`,
+            })
+          ).toBeInTheDocument();
+          expect(
+            screen.getByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
             })
           ).toBeInTheDocument();
           // Focus should be at the end of the pasted text
@@ -4422,6 +4480,49 @@ describe('SearchQueryBuilder', () => {
             })
           ).toBeInTheDocument();
           expect(getLastInput()).toHaveFocus();
+        });
+      });
+
+      describe('selecting from filter key suggestions', () => {
+        beforeEach(() => {
+          MockApiClient.addMockResponse({
+            url: '/organizations/org-slug/recent-searches/',
+            body: [{query: 'a or b'}, {query: 'some recent query'}],
+          });
+        });
+
+        it('should replace the raw search key with the defined key:value', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery=""
+              recentSearches={SavedSearchType.ISSUE}
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          await userEvent.click(getLastInput());
+
+          const aOrBOption = await screen.findByRole('option', {name: 'a or b'});
+          expect(aOrBOption).toBeInTheDocument();
+
+          await userEvent.hover(aOrBOption);
+          await userEvent.keyboard('{enter}{enter}');
+
+          expect(
+            await screen.findByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}a`,
+            })
+          ).toBeInTheDocument();
+
+          expect(await screen.findByRole('row', {name: 'OR'})).toBeInTheDocument();
+
+          expect(
+            await screen.findByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}b`,
+            })
+          ).toBeInTheDocument();
         });
       });
     });
