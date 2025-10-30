@@ -241,7 +241,7 @@ def test_count_default_argument() -> None:
     resolved_column, virtual_context = resolver.resolve_column("count()")
     assert resolved_column.proto_definition == AttributeAggregation(
         aggregate=Function.FUNCTION_COUNT,
-        key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
+        key=AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT),
         label="count()",
         extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
     )

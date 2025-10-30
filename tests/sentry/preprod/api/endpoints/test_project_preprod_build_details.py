@@ -226,3 +226,22 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert response.status_code == 200
         resp_data = response.json()
         assert resp_data["size_info"] is None
+
+    def test_get_build_details_with_missing_dsym_binaries(self) -> None:
+        """Test that missing_dsym_binaries is returned in apple_app_info."""
+        self.preprod_artifact.extras = {
+            "missing_dsym_binaries": ["libTest.dylib", "TestFramework.framework"]
+        }
+        self.preprod_artifact.save()
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["app_info"]["apple_app_info"]["missing_dsym_binaries"] == [
+            "libTest.dylib",
+            "TestFramework.framework",
+        ]
