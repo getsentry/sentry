@@ -1,7 +1,7 @@
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-import docs from './elixir';
+import docs from '.';
 
 describe('elixir onboarding docs', () => {
   it('renders docs correctly', () => {
