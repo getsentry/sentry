@@ -89,7 +89,7 @@ ORG_CONFIG_SCHEMA = {
     "additionalProperties": False,
 }
 
-PREVENT_AI_CONFIG_GITHUB_DEFAULT = {
+PREVENT_AI_CONFIG_DEFAULT = {
     "schema_version": "v1",
     "default_org_config": {
         "org_defaults": {
@@ -119,5 +119,5 @@ PREVENT_AI_CONFIG_GITHUB_DEFAULT = {
         },
         "repo_overrides": {},
     },
-    "github_organization": {},
+    "organization": {},
 }
