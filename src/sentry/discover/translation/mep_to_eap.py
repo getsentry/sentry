@@ -200,7 +200,7 @@ class TranslationVisitor(NodeVisitor):
             return term
 
         _, parsed_key, _, _, _ = children
-        flattened_parsed_key = []
+        flattened_parsed_key: list[str] = []
         _flatten(parsed_key, flattened_parsed_key)
         flattened_parsed_key_str = "".join(flattened_parsed_key)
         if flattened_parsed_key_str:
@@ -219,11 +219,11 @@ class TranslationVisitor(NodeVisitor):
             return term
 
         negation, parsed_key, sep, boolean_val = children
-        flattened_parsed_key = []
+        flattened_parsed_key: list[str] = []
         _flatten(parsed_key, flattened_parsed_key)
         flattened_parsed_key_str = "".join(flattened_parsed_key)
 
-        flattened_parsed_val = []
+        flattened_parsed_val: list[str] = []
         _flatten(boolean_val, flattened_parsed_val)
         flattened_parsed_val_str = "".join(flattened_parsed_val)
         if (
@@ -280,7 +280,7 @@ class ArithmeticTranslationVisitor(NodeVisitor):
 
 
 def translate_query(query: str):
-    flattened_query = []
+    flattened_query: list[str] = []
 
     tree = event_search_grammar.parse(query)
     parsed = TranslationVisitor().visit(tree)
@@ -342,7 +342,7 @@ def translate_equations(equations):
 
     for equation in equations:
 
-        flattened_equation = []
+        flattened_equation: list[str] = []
 
         # strip equation prefix
         if arithmetic.is_equation(equation):
