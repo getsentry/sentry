@@ -10,8 +10,8 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
     def test_simple(self) -> None:
         trace_metrics = [
-            self.create_trace_metric("foo", 1),
-            self.create_trace_metric("bar", 2),
+            self.create_trace_metric("foo", 1, "counter"),
+            self.create_trace_metric("bar", 2, "counter"),
         ]
         self.store_trace_metrics(trace_metrics)
 
@@ -35,8 +35,8 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
     def test_simple_aggregation(self) -> None:
         trace_metrics = [
-            self.create_trace_metric("foo", 1),
-            self.create_trace_metric("bar", 2),
+            self.create_trace_metric("foo", 1, "counter"),
+            self.create_trace_metric("bar", 2, "counter"),
         ]
         self.store_trace_metrics(trace_metrics)
 
@@ -59,7 +59,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
     def test_per_minute_formula(self) -> None:
         # Store 6 trace metrics over a 10 minute period
         for _ in range(6):
-            self.store_trace_metrics([self.create_trace_metric("test_metric", 1.0)])
+            self.store_trace_metrics([self.create_trace_metric("test_metric", 1.0, "counter")])
 
         response = self.do_request(
             {
@@ -81,7 +81,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
     def test_per_second_formula(self) -> None:
         # Store 6 trace metrics over a 10 minute period
         for _ in range(6):
-            self.store_trace_metrics([self.create_trace_metric("test_metric", 1.0)])
+            self.store_trace_metrics([self.create_trace_metric("test_metric", 1.0, "counter")])
 
         response = self.do_request(
             {
@@ -104,12 +104,8 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
     def test_per_second_formula_with_counter_metric_type(self) -> None:
         counter_metrics = [
-            self.create_trace_metric(
-                "request_count", 5.0, attributes={"sentry.metric_type": "counter"}
-            ),
-            self.create_trace_metric(
-                "request_count", 3.0, attributes={"sentry.metric_type": "counter"}
-            ),
+            self.create_trace_metric("request_count", 5.0, "counter"),
+            self.create_trace_metric("request_count", 3.0, "counter"),
         ]
         self.store_trace_metrics(counter_metrics)
 
@@ -128,8 +124,8 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
     def test_per_second_formula_with_gauge_metric_type(self) -> None:
         gauge_metrics = [
-            self.create_trace_metric("cpu_usage", 75.0, attributes={"sentry.metric_type": "gauge"}),
-            self.create_trace_metric("cpu_usage", 80.0, attributes={"sentry.metric_type": "gauge"}),
+            self.create_trace_metric("cpu_usage", 75.0, "gauge"),
+            self.create_trace_metric("cpu_usage", 80.0, "gauge"),
         ]
         self.store_trace_metrics(gauge_metrics)
 

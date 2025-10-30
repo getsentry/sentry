@@ -23,7 +23,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
 
         trace_metrics = [
             self.create_trace_metric(
-                metric_name, metric_value, timestamp=self.start + timedelta(hours=i)
+                metric_name, metric_value, "counter", timestamp=self.start + timedelta(hours=i)
             )
             for metric_name in ["foo", "bar"]
             for i, metric_value in enumerate(metric_values)
@@ -53,7 +53,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         for _ in range(36):
             metrics.append(
                 self.create_trace_metric(
-                    "test_metric", 1.0, timestamp=self.start + timedelta(hours=0)
+                    "test_metric", 1.0, "counter", timestamp=self.start + timedelta(hours=0)
                 )
             )
         self.store_trace_metrics(metrics)
