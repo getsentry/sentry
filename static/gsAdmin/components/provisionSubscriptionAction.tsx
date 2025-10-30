@@ -772,7 +772,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 />
                 {this.state.data.type === 'invoiced' && (
                   <StyledSelectFieldWithHelpText
-                    label={`${displayBudgetName(this.state.provisionablePlans[this.state.data.plan], {title: true})} Max Spend Setting`}
+                    label={`${this.state.data.plan ? displayBudgetName(this.state.provisionablePlans[this.state.data.plan], {title: true}) : 'Pay-as-you-go'} Max Spend Setting`}
                     name="onDemandInvoicedManual"
                     choices={
                       isAm3Plan(this.state.data.plan)
@@ -926,7 +926,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                               )}
                               {this.isEnablingOnDemandMaxSpend() && (
                                 <StyledDollarsAndCentsField
-                                  label={`${displayBudgetName(this.state.provisionablePlans[this.state.data.plan], {title: true})} Cost-Per-Event ${titleName}`}
+                                  label={`${this.state.data.plan ? displayBudgetName(this.state.provisionablePlans[this.state.data.plan], {title: true}) : 'Pay-as-you-go'} Cost-Per-Event ${titleName}`}
                                   name={`paygCpe${capitalizedApiName}`}
                                   value={data[`paygCpe${capitalizedApiName}`]}
                                   step={0.00000001}
