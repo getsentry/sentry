@@ -78,7 +78,7 @@ dependencies = [
     "rfc3339-validator>=0.1.2",
     "rfc3986-validator>=0.1.1",
     # [end] jsonschema format validators
-    "sentry-arroyo>=2.29.7",
+    "sentry-arroyo>=2.30.0",
     "sentry-forked-email-reply-parser>=0.5.12.post1",
     "sentry-kafka-schemas>=2.1.11",
     "sentry-ophio>=1.1.3",
