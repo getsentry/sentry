@@ -7,10 +7,7 @@ from django.utils.translation import gettext as _
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
-from sentry.incidents.models.incident import (
-    INCIDENT_STATUS,
-    IncidentStatus,
-)
+from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
@@ -19,7 +16,6 @@ from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mr
 from sentry.snuba.models import SnubaQuery
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
-
 
 QUERY_AGGREGATION_DISPLAY = {
     "count()": "events",
