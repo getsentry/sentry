@@ -1,6 +1,5 @@
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 
@@ -54,20 +53,4 @@ function validateSorts(
       groupBys.includes(sortBy.field) ||
       visualizes.some(visualize => visualize.yAxis === sortBy.field)
   );
-}
-
-export function updateLocationWithAggregateSortBys(
-  location: Location,
-  sortBys: Sort[] | null | undefined
-) {
-  if (defined(sortBys)) {
-    location.query.aggregateSort = sortBys.map(sortBy =>
-      sortBy.kind === 'desc' ? `-${sortBy.field}` : sortBy.field
-    );
-
-    // make sure to clear the cursor every time the query is updated
-    delete location.query.cursor;
-  } else if (sortBys === null) {
-    delete location.query.aggregateSort;
-  }
 }

@@ -3,8 +3,8 @@ import {useCallback, useMemo} from 'react';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
 import {updateNullableLocation} from 'sentry/views/explore/queryParams/location';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 
@@ -19,7 +19,7 @@ export enum Tab {
 export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
   const location = useLocation();
   const navigate = useNavigate();
-  const pageParams = useExplorePageParams();
+  const mode = useQueryParamsMode();
 
   const table = decodeScalar(location.query[SPANS_TABLE_KEY]);
 
@@ -28,7 +28,7 @@ export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
     // short term, we avoid introducing/removing any fields on the
     // query. So we continue using the existing `mode` value and
     // coalesce it with the `tab` value` to create a single tab.
-    if (pageParams.mode === Mode.AGGREGATE) {
+    if (mode === Mode.AGGREGATE) {
       return Mode.AGGREGATE;
     }
 
@@ -40,7 +40,7 @@ export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
     }
 
     return Tab.SPAN;
-  }, [table, pageParams.mode]);
+  }, [table, mode]);
 
   const setTab = useCallback(
     (newTab: Mode | Tab) => {

@@ -1,7 +1,6 @@
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {decodeList} from 'sentry/utils/queryString';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -36,17 +35,6 @@ export function getFieldsFromLocation(
   }
 
   return defaultFields(organization);
-}
-
-export function updateLocationWithFields(
-  location: Location,
-  fields: string[] | undefined | null
-) {
-  if (defined(fields)) {
-    location.query.field = fields;
-  } else if (fields === null) {
-    delete location.query.field;
-  }
 }
 
 export function isDefaultFields(location: Location): boolean {
