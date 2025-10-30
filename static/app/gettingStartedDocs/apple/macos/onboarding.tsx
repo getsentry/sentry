@@ -1,28 +1,20 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportApiIntroduction,
-  getCrashReportInstallDescription,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
-import {appleProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/apple';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-type Params = DocsParams;
-
-const getInstallSnippet = (params: Params) => `
+const getInstallSnippet = (params: DocsParams) => `
 .package(url: "https://github.com/getsentry/sentry-cocoa", from: "${getPackageVersion(
   params,
   'sentry.cocoa',
   '8.9.3'
 )}"),`;
 
-const getConfigurationSnippet = (params: Params) => `
+const getConfigurationSnippet = (params: DocsParams) => `
 import Sentry
 
 // ....
@@ -72,7 +64,7 @@ func applicationDidFinishLaunching(_ aNotification: Notification) {
     return true
 }`;
 
-const getConfigurationSnippetSwiftUi = (params: Params) => `
+const getConfigurationSnippetSwiftUi = (params: DocsParams) => `
 import Sentry
 
 @main
@@ -128,7 +120,7 @@ view.addSubview(button)
     fatalError("Break the world")
 }`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -272,231 +264,3 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-export const appleFeedbackOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportApiIntroduction(),
-  install: (params: Params) => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportInstallDescription(),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'Swift',
-              language: 'swift',
-              code: `import Sentry
-
-let eventId = SentrySDK.capture(message: "My message.")
-
-let userFeedback = UserFeedback(eventId: eventId)
-userFeedback.comments = "It broke."
-userFeedback.email = "john.doe@example.com"
-userFeedback.name = "John Doe"
-SentrySDK.capture(userFeedback: userFeedback)`,
-            },
-            {
-              label: 'Objective-C',
-              language: 'c',
-              code: `@import Sentry;
-
-SentryId *eventId = [SentrySDK captureMessage:@"My message"];
-
-SentryUserFeedback *userFeedback = [[SentryUserFeedback alloc] initWithEventId:eventId];
-userFeedback.comments = @"It broke.";
-userFeedback.email = @"john.doe@example.com";
-userFeedback.name = @"John Doe";
-[SentrySDK captureUserFeedback:userFeedback];`,
-            },
-          ],
-        },
-        {
-          type: 'text',
-          text: tct(
-            'To capture user feedback regarding a crash, use the [code:SentryOptions.onCrashedLastRun] callback. This callback gets called shortly after the initialization of the SDK when the last program execution terminated with a crash. It is not guaranteed that this is called on the main thread.',
-            {code: <code />}
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'Swift',
-              language: 'swift',
-              code: `import Sentry
-
-SentrySDK.start { options in
-    options.dsn = "${params.dsn.public}"
-    options.onCrashedLastRun = { event in
-        // capture user feedback
-    }
-}
-`,
-            },
-            {
-              label: 'Objective-C',
-              language: 'c',
-              code: `@import Sentry;
-
-[SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
-    options.dsn = @"${params.dsn.public}";
-    options.onCrashedLastRun = ^void(SentryEvent * _Nonnull event) {
-        // capture user feedback
-    };
-}];`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  configure: () => [],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const logsOnboarding: OnboardingConfig = {
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Logs for Apple platforms are supported in Sentry Cocoa SDK version [code:8.55.0] and above. If you are using an older major version of the SDK, follow our [link:migration guide] to upgrade.',
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/apple/guides/macos/migration/" />
-              ),
-            }
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'SPM',
-              language: 'swift',
-              code: `.package(url: "https://github.com/getsentry/sentry-cocoa", from: "${getPackageVersion(
-                params,
-                'sentry.cocoa',
-                '8.55.0'
-              )}"),`,
-            },
-            {
-              label: 'CocoaPods',
-              language: 'ruby',
-              code: `pod update`,
-            },
-            {
-              label: 'Carthage',
-              language: 'swift',
-              code: `github "getsentry/sentry-cocoa" "${getPackageVersion(
-                params,
-                'sentry.cocoa',
-                '8.55.0'
-              )}"`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'To enable logging, you need to initialize the SDK with the [code:enableLogs] option set to true.',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'Swift',
-              language: 'swift',
-              code: `import Sentry
-
-SentrySDK.start { options in
-    options.dsn = "${params.dsn.public}"
-    // Enable logs to be sent to Sentry
-    options.experimental.enableLogs = true
-}`,
-            },
-            {
-              label: 'Objective-C',
-              language: 'objc',
-              code: `@import Sentry;
-
-[SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
-    options.dsn = @"${params.dsn.public}";
-    // Enable logs to be sent to Sentry
-    options.experimental.enableLogs = YES;
-}];`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'Swift',
-              language: 'swift',
-              code: `import Sentry
-
-let logger = SentrySDK.logger
-
-logger.info("Sending a test info log")
-
-logger.warn("Sending a test warning log", attributes: [
-    "log_type": "test",
-])`,
-            },
-            {
-              label: 'Objective-C',
-              language: 'objc',
-              code: `@import Sentry;
-
-SentryLogger *logger = SentrySDK.logger;
-
-[logger info:@"Sending a test info log"];
-[logger warn:@"Sending a test warning log" attributes:@{@"log_type": @"test"}];`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-};
-
-const docs: Docs = {
-  onboarding,
-  feedbackOnboardingCrashApi: appleFeedbackOnboarding,
-  crashReportOnboarding: appleFeedbackOnboarding,
-  profilingOnboarding: appleProfilingOnboarding,
-  logsOnboarding,
-};
-
-export default docs;
