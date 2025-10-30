@@ -1,4 +1,11 @@
-import {useCallback, useMemo, useRef, useState, type ComponentProps} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -25,6 +32,10 @@ import {
   DetectorListRowSkeleton,
 } from 'sentry/views/detectors/components/detectorListTable/detectorListRow';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
+import {
+  useMonitorViewContext,
+  type MonitorListAdditionalColumn,
+} from 'sentry/views/detectors/monitorViewContext';
 import {useCanEditDetectors} from 'sentry/views/detectors/utils/useCanEditDetector';
 import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 
@@ -45,14 +56,14 @@ function LoadingSkeletons() {
   ));
 }
 
-function HeaderCell({
+export function HeaderCell({
   children,
   sortKey,
   sort,
   ...props
 }: {
-  children: React.ReactNode;
   sort: Sort | undefined;
+  children?: React.ReactNode;
   divider?: boolean;
   sortKey?: string;
 } & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
@@ -137,10 +148,14 @@ function DetectorListTable({
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
   const hasVisualization = defined(renderVisualization);
+  const {additionalColumns = []} = useMonitorViewContext();
 
   return (
     <TableContainer>
-      <DetectorListSimpleTable hasVisualization={hasVisualization}>
+      <DetectorListSimpleTable
+        hasVisualization={hasVisualization}
+        additionalColumns={additionalColumns}
+      >
         {selected.size === 0 ? (
           <SimpleTable.Header>
             <HeaderCell sortKey="name" sort={sort}>
@@ -174,6 +189,9 @@ function DetectorListTable({
             >
               {t('Alerts')}
             </HeaderCell>
+            {additionalColumns.map(col => (
+              <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
+            ))}
             {hasVisualization && (
               <Container
                 data-column-name="visualization"
@@ -211,7 +229,6 @@ function DetectorListTable({
             detector={detector}
             selected={selected.has(detector.id)}
             onSelect={handleSelect}
-            renderVisualization={renderVisualization}
           />
         ))}
         {hasVisualization && (
@@ -235,7 +252,10 @@ const TableContainer = styled('div')`
   container-type: inline-size;
 `;
 
-const gridDefinitions = (p: {theme: Theme}) => css`
+const gridDefinitions = (
+  p: {theme: Theme},
+  additionalColumns: MonitorListAdditionalColumn[]
+) => css`
   @container (min-width: ${p.theme.breakpoints.xs}) {
     grid-template-columns: 3fr 0.8fr;
 
@@ -267,10 +287,27 @@ const gridDefinitions = (p: {theme: Theme}) => css`
       display: flex;
     }
   }
+
+  @container (min-width: ${p.theme.breakpoints.xl}) {
+    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 1.1fr ${additionalColumns
+        .map(col => col.columnWidth ?? 'auto')
+        .join(' ')};
+
+    ${additionalColumns.map(
+      col => css`
+        [data-column-name='${col.id}'] {
+          display: flex;
+        }
+      `
+    )}
+  }
 `;
 
 // When there is a visualization, replace the "Type" column with the visualization
-const gridDefinitionsWithVisualization = (p: {theme: Theme}) => css`
+const gridDefinitionsWithVisualization = (
+  p: {theme: Theme},
+  additionalColumns: MonitorListAdditionalColumn[]
+) => css`
   @container (min-width: ${p.theme.breakpoints.sm}) {
     grid-template-columns: 3fr 1.5fr;
 
@@ -296,15 +333,28 @@ const gridDefinitionsWithVisualization = (p: {theme: Theme}) => css`
   }
 
   @container (min-width: ${p.theme.breakpoints.xl}) {
-    grid-template-columns: 4.5fr 2fr auto 1.1fr 6fr;
+    grid-template-columns: 4.5fr 2fr auto 1.1fr ${additionalColumns
+        .map(col => col.columnWidth ?? 'auto')
+        .join(' ')} 6fr;
 
     [data-column-name='visualization'] {
       display: block;
     }
+
+    ${additionalColumns.map(
+      col => css`
+        [data-column-name='${col.id}'] {
+          display: flex;
+        }
+      `
+    )}
   }
 `;
 
-const DetectorListSimpleTable = styled(SimpleTable)<{hasVisualization: boolean}>`
+const DetectorListSimpleTable = styled(SimpleTable)<{
+  additionalColumns: MonitorListAdditionalColumn[];
+  hasVisualization: boolean;
+}>`
   grid-template-columns: 1fr;
   margin-bottom: ${space(2)};
 
@@ -316,7 +366,19 @@ const DetectorListSimpleTable = styled(SimpleTable)<{hasVisualization: boolean}>
     display: none;
   }
 
-  ${p => (p.hasVisualization ? gridDefinitionsWithVisualization(p) : gridDefinitions(p))}
+  ${p =>
+    p.additionalColumns.map(
+      col => css`
+        [data-column-name='${col.id}'] {
+          display: none;
+        }
+      `
+    )}
+
+  ${p =>
+    p.hasVisualization
+      ? gridDefinitionsWithVisualization(p, p.additionalColumns)
+      : gridDefinitions(p, p.additionalColumns)}
 `;
 
 const PositionedGridLineOverlay = styled(GridLineOverlay)`
@@ -327,7 +389,7 @@ const PositionedGridLineOverlay = styled(GridLineOverlay)`
 
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
+  @container (min-width: ${p => p.theme.breakpoints.xl}) {
     display: block;
   }
 `;
