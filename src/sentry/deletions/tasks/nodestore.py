@@ -20,7 +20,14 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
-from sentry.utils.snuba import UnqualifiedQueryError, bulk_snuba_queries
+from sentry.utils.snuba import (
+    QueryExecutionTimeMaximum,
+    QueryMemoryLimitExceeded,
+    QueryTooManySimultaneous,
+    RateLimitExceeded,
+    UnqualifiedQueryError,
+    bulk_snuba_queries,
+)
 
 EVENT_CHUNK_SIZE = 10000
 # https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
@@ -132,7 +139,25 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
             # Report to Sentry to investigate
             raise DeleteAborted(f"{error.args[0]}. We won't retry this task.") from error
 
-    # TODO: Add specific error handling for retryable errors and raise RetryTask when appropriate
+    except (
+        RateLimitExceeded,
+        QueryTooManySimultaneous,
+        QueryMemoryLimitExceeded,
+        QueryExecutionTimeMaximum,
+    ) as error:
+        # These are transient Snuba errors that should be retried
+        # RateLimitExceeded: Snuba concurrent query rate limit hit
+        # QueryTooManySimultaneous: Too many simultaneous queries
+        # QueryMemoryLimitExceeded: Query exceeded memory limit
+        # QueryExecutionTimeMaximum: Query took too long
+        error_type = type(error).__name__
+        metrics.incr(f"{prefix}.error", tags={"type": f"snuba-{error_type}"}, sample_rate=1)
+        logger.warning(
+            f"{prefix}.transient_error",
+            extra={**extra, "error_type": error_type, "error_message": str(error)},
+        )
+        raise RetryTask(f"Transient Snuba error: {error_type}") from error
+
     except Exception:
         metrics.incr(f"{prefix}.error", tags={"type": "unhandled-exception"}, sample_rate=1)
         raise DeleteAborted("Failed to delete events from nodestore. We won't retry this task.")
