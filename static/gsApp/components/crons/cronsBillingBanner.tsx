@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {t, tct, tn} from 'sentry/locale';
+import {tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -149,7 +149,7 @@ function TrialEndedBanner({hasBillingAccess, plan}: BannerProps & {plan: Plan}) 
             'Your free business trial has ended. One cron job monitor is included in your current plan. If you want to monitor more than one cron job, please increase your [budgetTerm].',
             {budgetTerm: displayBudgetName(plan, {withBudget: true})}
           )
-        : t(
+        : tct(
             "Your free business trial has ended. One cron job monitor is included in your current plan. If you want to monitor more than one cron job, please ask your organization's owner or billing manager to set up [budgetTerm] for cron monitoring.",
             {budgetTerm: displayBudgetName(plan)}
           )}

@@ -228,7 +228,7 @@ function UsageHistoryRow({history}: RowProps) {
         <thead>
           <tr>
             <th>
-              {tct('[budgetTerm] spend[suffix]', {
+              {tct('[budgetTerm] Spend[suffix]', {
                 budgetTerm: displayBudgetName(history.planDetails, {title: true}),
                 suffix: history.planDetails?.hasOnDemandModes
                   ? history.onDemandBudgetMode === OnDemandBudgetMode.PER_CATEGORY
