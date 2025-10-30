@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 
 class ToolCall(BaseModel):
@@ -27,8 +27,6 @@ class Message(BaseModel):
 class MemoryBlock(BaseModel):
     """A block in the Explorer agent's conversation/memory."""
 
-    model_config = ConfigDict(extra="allow")
-
     id: str
     message: Message
     timestamp: str
@@ -37,8 +35,6 @@ class MemoryBlock(BaseModel):
 
 class SeerRunState(BaseModel):
     """State of a Seer Explorer session."""
-
-    model_config = ConfigDict(extra="allow")
 
     run_id: int
     blocks: list[MemoryBlock]

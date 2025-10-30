@@ -14,7 +14,7 @@ from typing import Any
 import orjson
 import requests
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def has_seer_explorer_access_with_detail(
-    organization: Organization, actor: User | AnonymousUser | SentryUser | RpcUser | None = None
+    organization: Organization, actor: SentryUser | AnonymousUser | RpcUser | None = None
 ) -> tuple[bool, str | None]:
     """
     Check if the actor has access to Seer Explorer.
@@ -62,7 +62,7 @@ def has_seer_explorer_access_with_detail(
 
 
 def collect_user_org_context(
-    user: User | AnonymousUser | None, organization: Organization
+    user: SentryUser | AnonymousUser | None, organization: Organization
 ) -> dict[str, Any]:
     """Collect user and organization context for a new Explorer run."""
     all_projects = Project.objects.filter(
@@ -94,10 +94,15 @@ def collect_user_org_context(
     )
     user_projects = [{"id": p["id"], "slug": p["slug"]} for p in my_projects]
 
+    # Handle name attribute - SentryUser has name
+    user_name: str | None = None
+    if isinstance(user, SentryUser):
+        user_name = user.name
+
     return {
         "org_slug": organization.slug,
         "user_id": user.id,
-        "user_name": user.name,
+        "user_name": user_name,
         "user_email": user.email,
         "user_teams": user_teams,
         "user_projects": user_projects,

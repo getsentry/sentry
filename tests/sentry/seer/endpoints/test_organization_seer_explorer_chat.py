@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.models.organizationmember import OrganizationMember
@@ -42,7 +43,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert mock_get_seer_run.call_count == 1
 
     def test_post_without_query_returns_400(self) -> None:
-        data = {}
+        data: dict[str, Any] = {}
         response = self.client.post(self.url, data, format="json")
 
         assert response.status_code == 400

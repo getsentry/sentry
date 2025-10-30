@@ -36,7 +36,7 @@ from typing import Any
 import orjson
 import requests
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.models.organization import Organization
 from sentry.seer.explorer.sdk_models import SeerRunState
@@ -48,6 +48,7 @@ from sentry.seer.explorer.sdk_utils import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.users.models.user import User
 
 
 def start_seer_run(
