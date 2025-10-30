@@ -6,7 +6,7 @@ import {motion, type Transition} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
 
-const PANEL_WIDTH = '50vw';
+const RIGHT_SIDE_PANEL_WIDTH = '50vw';
 const LEFT_SIDE_PANEL_WIDTH = '40vw';
 const PANEL_HEIGHT = '50vh';
 
@@ -18,8 +18,8 @@ const OPEN_STYLES = {
 
 const COLLAPSED_STYLES = {
   bottom: {transform: `translateX(0) translateY(${PANEL_HEIGHT})`, opacity: 0},
-  right: {transform: `translateX(${PANEL_WIDTH}) translateY(0)`, opacity: 0},
-  left: {transform: `translateX(-${PANEL_WIDTH}) translateY(0)`, opacity: 0},
+  right: {transform: `translateX(${RIGHT_SIDE_PANEL_WIDTH}) translateY(0)`, opacity: 0},
+  left: {transform: `translateX(-${LEFT_SIDE_PANEL_WIDTH}) translateY(0)`, opacity: 0},
 };
 
 type SlideOverPanelProps = {
@@ -130,7 +130,7 @@ const _SlideOverPanel = styled(motion.div, {
           ? css`
               position: fixed;
 
-              width: ${p.panelWidth ?? PANEL_WIDTH};
+              width: ${p.panelWidth ?? RIGHT_SIDE_PANEL_WIDTH};
               height: 100%;
 
               top: 0;
