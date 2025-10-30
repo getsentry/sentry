@@ -83,7 +83,8 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         tenant_ids = {"organization_id": group.project.organization_id}
         include_empty_values = features.has(
             "organizations:issue-tags-include-empty-values",
-            organization=group.project.organization,
+            group.project.organization,
+            actor=request.user,
         )
         try:
             tagstore.backend.get_group_tag_key(

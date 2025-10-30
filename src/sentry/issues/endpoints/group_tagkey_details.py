@@ -71,7 +71,8 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         tenant_ids = {"organization_id": group.project.organization_id}
         include_empty_values = features.has(
             "organizations:issue-tags-include-empty-values",
-            organization=group.project.organization,
+            group.project.organization,
+            actor=request.user,
         )
         try:
             environment_id = get_environment_id(request, group.project.organization_id)
