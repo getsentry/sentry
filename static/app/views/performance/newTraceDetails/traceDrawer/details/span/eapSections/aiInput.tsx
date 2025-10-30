@@ -61,13 +61,11 @@ function parseAIMessages(messages: string): AIMessage[] | string {
           message !== null && Boolean(message.content)
       );
   } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing ai.prompt.messages', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+    Sentry.captureMessage('Error parsing ai.prompt.messages', {
+      extra: {
+        error,
+      },
+    });
     return messages;
   }
 }
@@ -91,13 +89,11 @@ function transformInputMessages(inputMessages: string) {
     }
     return JSON.stringify(result);
   } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing ai.input_messages', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+    Sentry.captureMessage('Error parsing ai.input_messages', {
+      extra: {
+        error,
+      },
+    });
     return undefined;
   }
 }
@@ -119,11 +115,11 @@ function transformPrompt(prompt: string) {
     }
     return JSON.stringify(result);
   } catch (error) {
-    try {
-      Sentry.captureException(new Error('Error parsing ai.prompt', {cause: error}));
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+    Sentry.captureMessage('Error parsing ai.prompt', {
+      extra: {
+        error,
+      },
+    });
     return undefined;
   }
 }
