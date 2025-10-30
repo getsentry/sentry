@@ -13,7 +13,7 @@ class IssueStreamGroupType(GroupType):
     category_v2 = GroupCategory.ERROR.value
     released = False
     in_default_search = False
-    enable_auto_resolve: bool = True
+    enable_auto_resolve = False
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
