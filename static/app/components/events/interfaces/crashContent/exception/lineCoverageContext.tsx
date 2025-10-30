@@ -1,5 +1,7 @@
 import {createContext, useContext, useState} from 'react';
 
+// This context is used to track whether any of the frames in the exception have line
+// coverage data to accurately display the line coverage legend if relevant.
 export const LineCoverageContext = createContext<{
   hasCoverageData: boolean;
   setHasCoverageData: (hasCoverageData: boolean) => void;
