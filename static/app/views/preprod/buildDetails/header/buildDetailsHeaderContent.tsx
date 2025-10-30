@@ -13,7 +13,13 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Version from 'sentry/components/version';
-import {IconDelete, IconDownload, IconEllipsis, IconTelescope} from 'sentry/icons';
+import {
+  IconDelete,
+  IconDownload,
+  IconEllipsis,
+  IconRefresh,
+  IconTelescope,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -60,11 +66,15 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
   const {buildDetailsQuery, projectId, artifactId} = props;
-  const {isDeletingArtifact, handleDeleteArtifact, handleDownloadAction} =
-    useBuildDetailsActions({
-      projectId,
-      artifactId,
-    });
+  const {
+    isDeletingArtifact,
+    handleDeleteArtifact,
+    handleRerunAction,
+    handleDownloadAction,
+  } = useBuildDetailsActions({
+    projectId,
+    artifactId,
+  });
 
   const {
     data: buildDetailsData,
@@ -173,6 +183,17 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
                   key: 'admin-section',
                   label: t('Admin (Sentry Employees only)'),
                   children: [
+                    {
+                      key: 'rerun',
+                      label: (
+                        <Flex align="center" gap="sm">
+                          <IconRefresh size="sm" />
+                          {t('Rerun Analysis')}
+                        </Flex>
+                      ),
+                      onAction: handleRerunAction,
+                      textValue: t('Rerun Analysis'),
+                    },
                     {
                       key: 'download',
                       label: (
