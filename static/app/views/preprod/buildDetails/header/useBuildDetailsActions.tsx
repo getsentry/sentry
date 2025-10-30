@@ -11,6 +11,24 @@ interface UseBuildDetailsActionsProps {
   projectId: string;
 }
 
+type ErrorDetail = string | {code?: string; message?: string} | null | undefined;
+
+function handleStaffPermissionError(responseDetail: ErrorDetail) {
+  if (typeof responseDetail !== 'string' && responseDetail?.code === 'staff-required') {
+    addErrorMessage(
+      t(
+        'Re-authenticate as staff first and then return to this page and try again. Redirecting...'
+      )
+    );
+    setTimeout(() => {
+      window.location.href = '/_admin/';
+    }, 2000);
+    return;
+  }
+
+  addErrorMessage(t('Access denied. You may need to re-authenticate as staff.'));
+}
+
 export function useBuildDetailsActions({
   projectId,
   artifactId,
@@ -42,68 +60,65 @@ export function useBuildDetailsActions({
     deleteArtifact();
   };
 
+  const {mutate: rerunAnalysis} = useMutation<void, RequestError>({
+    mutationFn: () => {
+      return fetchMutation({
+        url: `/internal/preprod-artifact/rerun-analysis/`,
+        method: 'POST',
+        data: {
+          preprod_artifact_id: artifactId,
+        },
+      });
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Analysis rerun initiated successfully'));
+    },
+    onError: error => {
+      if (error.status === 403) {
+        handleStaffPermissionError(error.responseJSON?.detail);
+      } else {
+        addErrorMessage(t('Failed to rerun analysis'));
+      }
+    },
+  });
+
+  const handleRerunAction = () => {
+    rerunAnalysis();
+  };
+
   const handleDownloadAction = async () => {
     const downloadUrl = `/api/0/internal/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/`;
 
     try {
+      // We use a HEAD request to enable large file downloads using chunked downloading.
       const response = await fetch(downloadUrl, {
         method: 'HEAD',
         credentials: 'include',
       });
 
       if (!response.ok) {
-        let errorMessage = `Download failed (${response.status})`;
-
-        let errorResponse: Response;
-        try {
-          errorResponse = await fetch(downloadUrl, {
-            method: 'GET',
-            credentials: 'include',
-          });
-        } catch {
-          if (response.status === 403) {
-            errorMessage = 'Access denied. You may need to re-authenticate as staff.';
-          } else if (response.status === 404) {
-            errorMessage = 'Build file not found.';
-          } else if (response.status === 401) {
-            errorMessage = 'Unauthorized.';
-          }
-          addErrorMessage(t('Download failed: %s', errorMessage));
-          return;
-        }
-
-        if (!errorResponse.ok) {
-          const errorText = await errorResponse.text();
-          let errorJson: any;
+        if (response.status === 403) {
+          let detail: ErrorDetail = null;
           try {
-            errorJson = JSON.parse(errorText);
+            // HEAD requests don't include a response body per HTTP spec, so we make a follow-up GET call to retrieve the error details and check for the staff-required code.
+            const errorResponse = await fetch(downloadUrl, {
+              method: 'GET',
+              credentials: 'include',
+            });
+            const errorText = await errorResponse.text();
+            const errorJson = JSON.parse(errorText);
+            detail = errorJson.detail;
           } catch {
-            addErrorMessage(t('Download failed: %s', errorText || errorMessage));
-            return;
+            // Fall through to generic handling
           }
-
-          if (errorJson.detail) {
-            if (typeof errorJson.detail === 'string') {
-              errorMessage = errorJson.detail;
-            } else if (errorJson.detail.code === 'staff-required') {
-              addErrorMessage(
-                t(
-                  'Re-authenticate as staff first and then return to this page and try again. Redirecting...'
-                )
-              );
-              setTimeout(() => {
-                window.location.href = '/_admin/';
-              }, 2000);
-              return;
-            } else if (errorJson.detail.message) {
-              errorMessage = errorJson.detail.message;
-            } else if (errorJson.detail.code) {
-              errorMessage = `${errorJson.detail.code}: ${errorJson.detail.message || 'Authentication required'}`;
-            }
-          }
+          handleStaffPermissionError(detail);
+        } else if (response.status === 404) {
+          addErrorMessage(t('Build file not found.'));
+        } else if (response.status === 401) {
+          addErrorMessage(t('Unauthorized.'));
+        } else {
+          addErrorMessage(t('Download failed (status: %s)', response.status));
         }
-
-        addErrorMessage(t('Download failed: %s', errorMessage));
         return;
       }
 
@@ -127,6 +142,7 @@ export function useBuildDetailsActions({
 
     // Actions
     handleDeleteArtifact,
+    handleRerunAction,
     handleDownloadAction,
   };
 }
