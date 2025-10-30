@@ -1,4 +1,4 @@
-import type {ComponentProps, CSSProperties, HTMLAttributes, RefObject} from 'react';
+import type {ComponentProps, HTMLAttributes, RefObject} from 'react';
 import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -81,24 +81,14 @@ function Row({children, variant = 'default', ...props}: RowProps) {
 
 function RowCell({
   children,
-  className,
-  justify,
   ...props
 }: ComponentProps<typeof Flex> & {
   children: React.ReactNode;
-  className?: string;
-  justify?: CSSProperties['justifyContent'];
 }) {
   return (
-    <StyledRowCell
-      {...props}
-      className={className}
-      role="cell"
-      align="center"
-      justify={justify}
-    >
+    <Flex role="cell" align="center" overflow="hidden" padding="lg xl" {...props}>
       {children}
-    </StyledRowCell>
+    </Flex>
   );
 }
 
@@ -122,14 +112,6 @@ const StyledPanelHeader = styled('div')`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-`;
-
-const StyledRowCell = styled(Flex)`
-  overflow: hidden;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const StyledRow = styled('div', {
@@ -148,7 +130,7 @@ const StyledRow = styled('div', {
   ${p =>
     p.variant === 'faded' &&
     css`
-      ${StyledRowCell}, {
+      [role='cell'] {
         opacity: 0.8;
       }
     `}
