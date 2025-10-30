@@ -380,11 +380,9 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
 export const withoutLoggingSupport: Set<PlatformKey> = new Set([
-  'cocoa-objc',
-  'cocoa-swift',
   'elixir',
-  'php-symfony',
   'unity',
+  'unreal'
 ]);
 
 // List of platforms that have metrics onboarding checklist content
