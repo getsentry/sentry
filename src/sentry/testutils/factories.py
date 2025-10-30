@@ -1203,6 +1203,15 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_forwarder_project(data_forwarder, project, **kwargs):
+        from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+
+        return DataForwarderProject.objects.create(
+            data_forwarder=data_forwarder, project=project, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_file_from_path(path, name=None, **kwargs):
         if name is None:
             name = os.path.basename(path)
