@@ -39,10 +39,7 @@ export function useGroupByFields({
         .map(([_, tag]) => optionFromTag(tag, traceItemType)),
       ...groupBys
         .filter(
-          groupBy =>
-            groupBy &&
-            !numberTags.hasOwnProperty(groupBy) &&
-            !stringTags.hasOwnProperty(groupBy)
+          groupBy => groupBy && !(groupBy in numberTags) && !(groupBy in stringTags)
         )
         .map(groupBy =>
           optionFromTag({key: groupBy, name: groupBy, kind: FieldKind.TAG}, traceItemType)
