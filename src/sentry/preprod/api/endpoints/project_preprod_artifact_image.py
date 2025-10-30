@@ -4,7 +4,6 @@ import logging
 
 from django.http import HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
@@ -66,7 +65,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
         request: Request,
         project: Project,
         image_id: str,
-    ) -> Response:
+    ) -> HttpResponse:
 
         analytics.record(
             PreprodArtifactApiImageEvent(
@@ -123,7 +122,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
                 )
 
                 # Upload failed, return appropriate error
-                return Response({"error": "Not found"}, status=404)
+                return HttpResponse({"error": "Not found"}, status=404)
 
             logger.warning(
                 "Failed to retrieve app icon from objectstore",
@@ -135,7 +134,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
                     "status": e.status,
                 },
             )
-            return Response({"error": "Failed to retrieve app icon"}, status=500)
+            return HttpResponse({"error": "Failed to retrieve app icon"}, status=500)
 
         except Exception:
             logger.exception(
@@ -146,4 +145,4 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
                     "image_id": image_id,
                 },
             )
-            return Response({"error": "Internal server error"}, status=500)
+            return HttpResponse({"error": "Internal server error"}, status=500)
