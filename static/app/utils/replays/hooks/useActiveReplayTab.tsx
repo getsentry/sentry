@@ -23,6 +23,7 @@ function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}
     TabKey.CONSOLE,
     TabKey.TRACE,
     TabKey.LOGS,
+    TabKey.AI,
   ];
 
   if (isVideoReplay) {

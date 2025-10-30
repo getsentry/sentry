@@ -28,12 +28,13 @@ function getReplayTabs({
   organization: Organization;
   replayRecord?: ReplayRecord | null;
 }): Record<TabKey, ReactNode> {
-  // For video replays, we hide the memory tab (not applicable for mobile)
+  const hasAiSummary =
+    organization.features.includes('replay-ai-summaries') && areAiFeaturesAllowed;
+  const hasMobileSummary = organization.features.includes('replay-ai-summaries-mobile');
+
   return {
     [TabKey.AI]:
-      organization.features.includes('replay-ai-summaries') &&
-      areAiFeaturesAllowed &&
-      !isVideoReplay ? (
+      hasAiSummary && (!isVideoReplay || hasMobileSummary) ? (
         <Flex align="center" gap="sm">
           {t('AI Summary')}
           <FeatureBadge type="beta" />
@@ -45,6 +46,7 @@ function getReplayTabs({
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
     [TabKey.TRACE]: t('Trace'),
+    // For video replays, we hide the memory tab (not applicable for mobile)
     [TabKey.MEMORY]: isVideoReplay ? null : t('Memory'),
     [TabKey.TAGS]: t('Tags'),
   };
@@ -67,10 +69,11 @@ export default function FocusTabs({isVideoReplay}: Props) {
   ).filter(([_, v]) => v !== null);
 
   useEffect(() => {
-    const isAiTabAvailable =
-      organization.features.includes('replay-ai-summaries') &&
-      areAiFeaturesAllowed &&
-      !isVideoReplay;
+    const hasAiSummary =
+      organization.features.includes('replay-ai-summaries') && areAiFeaturesAllowed;
+    const hasMobileSummary = organization.features.includes('replay-ai-summaries-mobile');
+
+    const isAiTabAvailable = hasAiSummary && (!isVideoReplay || hasMobileSummary);
 
     if (isAiTabAvailable) {
       trackAnalytics('replay.ai_tab_shown', {
