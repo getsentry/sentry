@@ -303,6 +303,7 @@ function AutofixRootCauseDisplay({
     mutateUserOptions({autofixLastUsedRootCauseAction: 'seer_solution'});
 
     const instruction = solutionText.trim();
+
     if (instruction) {
       selectRootCause({
         cause_id: cause.id,
@@ -319,7 +320,7 @@ function AutofixRootCauseDisplay({
     trackAnalytics('autofix.root_cause.find_solution', {
       organization,
       group_id: groupId,
-      instruction_provided: solutionText.trim().length > 0,
+      instruction_provided: instruction.length > 0,
     });
   };
 
