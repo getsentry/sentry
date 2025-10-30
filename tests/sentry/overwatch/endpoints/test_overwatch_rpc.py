@@ -67,6 +67,45 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
         ["test-secret"],
     )
+    def test_invalid_sentry_org_id_returns_400(self):
+        """Test that invalid sentryOrgId (non-integer) returns 400."""
+        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
+        params = {"sentryOrgId": "not-a-number", "gitOrgName": "test-org", "provider": "github"}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 400
+        assert "must be a valid integer" in resp.data["detail"]
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_negative_sentry_org_id_returns_400(self):
+        """Test that negative sentryOrgId returns 400."""
+        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
+        params = {"sentryOrgId": "-123", "gitOrgName": "test-org", "provider": "github"}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 400
+        assert "must be a positive integer" in resp.data["detail"]
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
+    def test_zero_sentry_org_id_returns_400(self):
+        """Test that zero sentryOrgId returns 400."""
+        url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")
+        params = {"sentryOrgId": "0", "gitOrgName": "test-org", "provider": "github"}
+        auth = self._auth_header_for_get(url, params, "test-secret")
+        resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
+        assert resp.status_code == 400
+        assert "must be a positive integer" in resp.data["detail"]
+
+    @patch(
+        "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
+        ["test-secret"],
+    )
     def test_missing_git_org_name_returns_400(self):
         """Test that missing gitOrgName parameter returns 400."""
         url = reverse("sentry-api-0-prevent-pr-review-configs-resolved")

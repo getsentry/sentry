@@ -122,6 +122,13 @@ class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
         sentry_org_id = request.GET.get("sentryOrgId")
         if not sentry_org_id:
             raise ParseError("Missing required query parameter: sentryOrgId")
+        try:
+            sentry_org_id = int(sentry_org_id)
+            if sentry_org_id <= 0:
+                raise ParseError("sentryOrgId must be a positive integer")
+        except ValueError:
+            raise ParseError("sentryOrgId must be a valid integer")
+
         git_org_name = request.GET.get("gitOrgName")
         if not git_org_name:
             raise ParseError("Missing required query parameter: gitOrgName")
