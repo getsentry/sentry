@@ -5,9 +5,8 @@ from django.db import router
 
 from sentry.models.commit import Commit as OldCommit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange as OldCommitFileChange
 from sentry.models.organization import Organization
-from sentry.releases.models import Commit, CommitFileChange
+from sentry.releases.models import Commit
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger(__name__)
@@ -102,60 +101,3 @@ def get_or_create_commit(
         new_commit = _dual_write_commit(old_commit)
 
     return old_commit, new_commit, created
-
-
-def bulk_create_commit_file_changes(
-    file_changes: list[OldCommitFileChange],
-) -> tuple[list[OldCommitFileChange], list[CommitFileChange]]:
-    """
-    Bulk creates commit file changes with dual write support.
-    """
-    if not file_changes:
-        return [], []
-
-    with atomic_transaction(
-        using=(
-            router.db_for_write(OldCommitFileChange),
-            router.db_for_write(CommitFileChange),
-        )
-    ):
-        old_file_changes = OldCommitFileChange.objects.bulk_create(
-            file_changes,
-            ignore_conflicts=True,
-            batch_size=100,
-        )
-        new_file_changes = []
-        # Since ignore_conflicts doesn't return IDs, fetch all file changes for the commits
-        # and match them up by filename and type
-        commit_ids = {fc.commit_id for fc in file_changes}
-
-        existing_old_fcs = OldCommitFileChange.objects.filter(
-            commit_id__in=commit_ids,
-        )
-        existing_lookup = {
-            (old_fc.commit_id, old_fc.filename, old_fc.type): old_fc for old_fc in existing_old_fcs
-        }
-
-        new_file_change_objects = []
-        for fc in file_changes:
-            key = (fc.commit_id, fc.filename, fc.type)
-            if key in existing_lookup:
-                old_fc = existing_lookup[key]
-                new_file_change_objects.append(
-                    CommitFileChange(
-                        id=old_fc.id,
-                        organization_id=old_fc.organization_id,
-                        commit_id=old_fc.commit_id,
-                        filename=old_fc.filename,
-                        type=old_fc.type,
-                    )
-                )
-
-        if new_file_change_objects:
-            new_file_changes = CommitFileChange.objects.bulk_create(
-                new_file_change_objects,
-                ignore_conflicts=True,
-                batch_size=100,
-            )
-
-    return old_file_changes, new_file_changes

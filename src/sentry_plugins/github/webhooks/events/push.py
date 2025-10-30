@@ -15,7 +15,7 @@ from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
-from sentry.releases.commits import bulk_create_commit_file_changes, create_commit
+from sentry.releases.commits import create_commit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
 from sentry_plugins.github.client import GithubPluginClient
@@ -188,7 +188,7 @@ class PushEventWebhook(Webhook):
                         )
 
                     if file_changes:
-                        bulk_create_commit_file_changes(file_changes)
+                        CommitFileChange.objects.bulk_create(file_changes)
 
             except IntegrityError:
                 pass
