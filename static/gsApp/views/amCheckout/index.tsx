@@ -777,15 +777,6 @@ class AMCheckout extends Component<Props, State> {
     );
   }
 
-  // TODO(checkout v3): remove this once checkout v3 is GA'd
-  renderParentComponent({children}: {children: React.ReactNode}) {
-    const {isNewCheckout} = this.props;
-    if (isNewCheckout) {
-      return <Fragment>{children}</Fragment>;
-    }
-    return children;
-  }
-
   render() {
     const {
       subscription,
@@ -965,93 +956,85 @@ class AMCheckout extends Component<Props, State> {
       </Fragment>
     );
 
-    return this.renderParentComponent({
-      children: (
-        <Flex
-          width="100%"
-          background={isNewCheckout ? 'primary' : 'secondary'}
-          justify="center"
-          align="center"
-          direction="column"
-        >
-          <SentryDocumentTitle
-            title={t('Change Subscription')}
-            orgSlug={organization.slug}
-          />
-          {isOnSponsoredPartnerPlan && (
-            <Alert.Container>
-              <Alert type="info">
-                {t(
-                  'Your promotional plan with %s ends on %s.',
-                  subscription.partner?.partnership.displayName,
-                  moment(subscription.contractPeriodEnd).format('ll')
-                )}
-              </Alert>
-            </Alert.Container>
-          )}
-          {promotionDisclaimerText && (
-            <Alert.Container>
-              <Alert type="info">{promotionDisclaimerText}</Alert>
-            </Alert.Container>
-          )}
-          {isNewCheckout && (
-            <CheckoutHeader>
-              <Flex
-                width="100%"
-                align="center"
-                maxWidth="82rem"
-                gap="lg"
-                padding="lg 2xl"
+    return (
+      <Flex
+        width="100%"
+        background={isNewCheckout ? 'primary' : 'secondary'}
+        justify="center"
+        align="center"
+        direction="column"
+      >
+        <SentryDocumentTitle
+          title={t('Change Subscription')}
+          orgSlug={organization.slug}
+        />
+        {isOnSponsoredPartnerPlan && (
+          <Alert.Container>
+            <Alert type="info">
+              {t(
+                'Your promotional plan with %s ends on %s.',
+                subscription.partner?.partnership.displayName,
+                moment(subscription.contractPeriodEnd).format('ll')
+              )}
+            </Alert>
+          </Alert.Container>
+        )}
+        {promotionDisclaimerText && (
+          <Alert.Container>
+            <Alert type="info">{promotionDisclaimerText}</Alert>
+          </Alert.Container>
+        )}
+        {isNewCheckout && (
+          <CheckoutHeader>
+            <Flex width="100%" align="center" maxWidth="82rem" gap="lg" padding="lg 2xl">
+              <LogoSentry height="20px" />
+              <LinkButton
+                aria-label={t('Back to Subscription Overview')}
+                to={`/settings/${organization.slug}/billing/`}
+                icon={<IconChevron direction="left" />}
+                size="xs"
+                borderless
+                onClick={() => {
+                  trackGetsentryAnalytics('checkout.exit', {
+                    subscription,
+                    organization,
+                  });
+                }}
               >
-                <LogoSentry height="20px" />
-                <LinkButton
-                  aria-label={t('Back to Subscription Overview')}
-                  to={`/settings/${organization.slug}/billing/`}
-                  icon={<IconChevron direction="left" />}
-                  size="xs"
-                  borderless
-                  onClick={() => {
-                    trackGetsentryAnalytics('checkout.exit', {
-                      subscription,
-                      organization,
-                    });
-                  }}
-                >
-                  {t('Manage Subscription')}
-                </LinkButton>
+                {t('Manage Subscription')}
+              </LinkButton>
 
-                <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
-              </Flex>
-            </CheckoutHeader>
-          )}
-          {isNewCheckout ? (
-            <Flex
-              direction={{xs: 'column', md: 'row'}}
-              gap="md 3xl"
-              justify="between"
-              width="100%"
-              maxWidth="82rem"
-              align="start"
-              paddingTop="3xl"
-            >
-              {renderCheckoutContent()}
+              <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
             </Flex>
-          ) : (
-            <Grid
-              gap="2xl"
-              width="100%"
-              maxWidth="1440px"
-              columns={{
-                sm: 'auto',
-                lg: '3fr 2fr',
-              }}
-            >
-              {renderCheckoutContent()}
-            </Grid>
-          )}
-        </Flex>
-      ),
-    });
+          </CheckoutHeader>
+        )}
+        {isNewCheckout ? (
+          <Flex
+            direction={{xs: 'column', md: 'row'}}
+            gap="md 3xl"
+            justify="between"
+            width="100%"
+            maxWidth="82rem"
+            align="start"
+            paddingTop="3xl"
+          >
+            {renderCheckoutContent()}
+          </Flex>
+        ) : (
+          <Grid
+            gap="2xl"
+            width="100%"
+            maxWidth="1440px"
+            columns={{
+              sm: 'auto',
+              lg: '3fr 2fr',
+            }}
+          >
+            {renderCheckoutContent()}
+          </Grid>
+        )}
+      </Flex>
+    );
   }
 }
 
