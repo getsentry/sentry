@@ -50,7 +50,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
         assert not resp.data["options"]["prefersChonkUI"]
-        assert resp.data["options"]["autofixLastUsedSolutionAction"] is None
+        assert resp.data["options"]["autofixLastUsedRootCauseAction"] is None
 
     def test_superuser_simple(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
@@ -239,32 +239,32 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
     def test_user_options_autofix_last_used_solution_action_seer(self) -> None:
         resp = self.get_success_response(
-            "me", options={"autofixLastUsedSolutionAction": "seer_solution"}
+            "me", options={"autofixLastUsedRootCauseAction": "seer_solution"}
         )
 
         # Verify saved in UserOption
-        option = UserOption.objects.get(user=self.user, key="autofix_last_used_solution_action")
+        option = UserOption.objects.get(user=self.user, key="autofix_last_used_root_cause_action")
         assert option.value == "seer_solution"
 
         # Verify returned in response
-        assert resp.data["options"]["autofixLastUsedSolutionAction"] == "seer_solution"
+        assert resp.data["options"]["autofixLastUsedRootCauseAction"] == "seer_solution"
 
     def test_user_options_autofix_last_used_solution_action_cursor(self) -> None:
         resp = self.get_success_response(
-            "me", options={"autofixLastUsedSolutionAction": "cursor_background_agent"}
+            "me", options={"autofixLastUsedRootCauseAction": "cursor_background_agent"}
         )
 
         # Verify saved in UserOption
-        option = UserOption.objects.get(user=self.user, key="autofix_last_used_solution_action")
+        option = UserOption.objects.get(user=self.user, key="autofix_last_used_root_cause_action")
         assert option.value == "cursor_background_agent"
 
         # Verify returned in response
-        assert resp.data["options"]["autofixLastUsedSolutionAction"] == "cursor_background_agent"
+        assert resp.data["options"]["autofixLastUsedRootCauseAction"] == "cursor_background_agent"
 
     def test_user_options_autofix_invalid_choice(self) -> None:
         # Verify invalid values are rejected with 400 error
         self.get_error_response(
-            "me", options={"autofixLastUsedSolutionAction": "invalid_option"}, status_code=400
+            "me", options={"autofixLastUsedRootCauseAction": "invalid_option"}, status_code=400
         )
 
 

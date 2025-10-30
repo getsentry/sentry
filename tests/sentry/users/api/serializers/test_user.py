@@ -136,12 +136,14 @@ class DetailedSelfUserSerializerTest(TestCase):
 
     def test_autofix_last_used_solution_action_serialization(self) -> None:
         UserOption.objects.set_value(
-            user=self.user, key="autofix_last_used_solution_action", value="cursor_background_agent"
+            user=self.user,
+            key="autofix_last_used_root_cause_action",
+            value="cursor_background_agent",
         )
 
         result = serialize(self.user, self.user, DetailedSelfUserSerializer())
-        assert result["options"]["autofixLastUsedSolutionAction"] == "cursor_background_agent"
+        assert result["options"]["autofixLastUsedRootCauseAction"] == "cursor_background_agent"
 
     def test_autofix_last_used_solution_action_not_set(self) -> None:
         result = serialize(self.user, self.user, DetailedSelfUserSerializer())
-        assert result["options"]["autofixLastUsedSolutionAction"] is None
+        assert result["options"]["autofixLastUsedRootCauseAction"] is None

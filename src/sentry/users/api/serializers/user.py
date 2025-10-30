@@ -75,7 +75,7 @@ class _UserOptions(TypedDict):
     prefersIssueDetailsStreamlinedUI: bool | None
     prefersNextjsInsightsOverview: bool
     prefersChonkUI: bool
-    autofixLastUsedSolutionAction: str | None
+    autofixLastUsedRootCauseAction: str | None
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
@@ -221,7 +221,9 @@ class UserSerializer(Serializer):
                     "prefers_issue_details_streamlined_ui"
                 ),
                 "prefersChonkUI": options.get("prefers_chonk_ui", False),
-                "autofixLastUsedSolutionAction": options.get("autofix_last_used_solution_action"),
+                "autofixLastUsedRootCauseAction": options.get(
+                    "autofix_last_used_root_cause_action"
+                ),
             }
 
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}

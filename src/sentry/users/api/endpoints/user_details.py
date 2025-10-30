@@ -69,7 +69,7 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
     prefersNextjsInsightsOverview = serializers.BooleanField(required=False)
     prefersChonkUI = serializers.BooleanField(required=False)
-    autofixLastUsedSolutionAction = serializers.ChoiceField(
+    autofixLastUsedRootCauseAction = serializers.ChoiceField(
         choices=(
             ("seer_solution", _("Seer Solution")),
             ("cursor_background_agent", _("Cursor Background Agent")),
@@ -246,7 +246,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
             "prefersNextjsInsightsOverview": "prefers_nextjs_insights_overview",
             "prefersChonkUI": "prefers_chonk_ui",
-            "autofixLastUsedSolutionAction": "autofix_last_used_solution_action",
+            "autofixLastUsedRootCauseAction": "autofix_last_used_root_cause_action",
         }
 
         options_result = serializer_options.validated_data
