@@ -129,16 +129,18 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
 };
 
 function BranchButton({change}: {change: AutofixCodebaseChange}) {
-  const {onClick} = useCopyToClipboard({
-    text: change.branch_name ?? '',
-    successMessage: t('Branch name copied.'),
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <CopyContainer>
       <CopyButton
         size="xs"
-        onClick={onClick}
+        disabled={!change.branch_name}
+        onClick={() =>
+          copy(change.branch_name ?? '', {
+            successMessage: t('Branch name copied to clipboard.'),
+          })
+        }
         icon={<IconCopy size="xs" />}
         aria-label={t('Copy branch in %s', change.repo_name)}
         title={t('Copy branch in %s', change.repo_name)}

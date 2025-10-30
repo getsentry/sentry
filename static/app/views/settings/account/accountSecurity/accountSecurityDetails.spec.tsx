@@ -292,7 +292,9 @@ describe('AccountSecurityDetails', () => {
 
       expect(screen.getByTestId('frame')).toBeInTheDocument();
 
-      expect(screen.getByRole('button', {name: 'Copy'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Copy recovery codes to clipboard'})
+      ).toBeInTheDocument();
     });
   });
 });

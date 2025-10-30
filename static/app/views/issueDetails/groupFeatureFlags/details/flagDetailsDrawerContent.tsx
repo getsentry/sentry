@@ -174,9 +174,7 @@ function GroupFirstSeenRow({group}: {group: Group}) {
 
 function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
   const organization = useOrganization();
-  const {onClick: handleCopy} = useCopyToClipboard({
-    text: flagValue.flag,
-  });
+  const {copy} = useCopyToClipboard();
   const key = flagValue.flag;
   const [isVisible, setIsVisible] = useState(false);
 
@@ -211,7 +209,8 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
         {
           key: 'copy-value',
           label: t('Copy flag value to clipboard'),
-          onAction: handleCopy,
+          onAction: () =>
+            copy(flagValue.flag, {successMessage: t('Copied flag value to clipboard')}),
         },
       ]}
     />

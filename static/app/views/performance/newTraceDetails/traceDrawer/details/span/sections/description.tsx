@@ -180,6 +180,7 @@ export function SpanDescription({
               size="zero"
               text={formattedDescription}
               tooltipProps={{disabled: true}}
+              aria-label={t('Copy formatted description to clipboard')}
             />
           </Fragment>
         ) : (
@@ -280,6 +281,7 @@ function ResourceImage(props: {
           borderless
           size="zero"
           text={fileName}
+          aria-label={t('Copy file name to clipboard')}
           title={t('Copy file name')}
         />
       </FilenameContainer>

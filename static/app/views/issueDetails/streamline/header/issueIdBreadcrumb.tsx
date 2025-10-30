@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -28,17 +28,17 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
   const organization = useOrganization();
   const [isHovered, setIsHovered] = useState(false);
   const shareUrl = group?.shareId ? getShareUrl(group) : null;
-  const {onClick: handleCopyShortId} = useCopyToClipboard({
-    text: group.shortId,
-    successMessage: t('Copied Short-ID to clipboard'),
-    onCopy: () => {
+  const {copy} = useCopyToClipboard();
+
+  const handleCopyShortId = useCallback(() => {
+    copy(group.shortId, {successMessage: t('Copied Short-ID to clipboard')}).then(() => {
       trackAnalytics('issue_details.copy_issue_short_id_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
         streamline: true,
       });
-    },
-  });
+    });
+  }, [copy, organization, group]);
 
   if (!group.shortId) {
     return null;

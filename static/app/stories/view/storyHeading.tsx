@@ -17,18 +17,7 @@ export function StoryHeading(props: ComponentProps<typeof Heading>) {
   const text = stringifyReactNode(props.children);
   const id = props.id ?? slugify(text);
 
-  const {onClick} = useCopyToClipboard({
-    text: `${window.location.toString().replace(/#.*$/, '')}#${id}`,
-    successMessage: (
-      <Fragment>
-        Copied link to{' '}
-        <strong>
-          {storyTitle ? `${storyTitle} > ` : null}
-          {text}
-        </strong>
-      </Fragment>
-    ),
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <Flex gap="md" align="center">
@@ -37,10 +26,21 @@ export function StoryHeading(props: ComponentProps<typeof Heading>) {
         priority="transparent"
         size="xs"
         href={`#${id}`}
-        onClick={onClick}
-      >
-        <IconLink />
-      </StyledLinkButton>
+        icon={<IconLink />}
+        onClick={() =>
+          copy(`${window.location.toString().replace(/#.*$/, '')}#${id}`, {
+            successMessage: (
+              <Fragment>
+                Copied link to{' '}
+                <strong>
+                  {storyTitle ? `${storyTitle} > ` : null}
+                  {text}
+                </strong>
+              </Fragment>
+            ),
+          })
+        }
+      />
     </Flex>
   );
 }

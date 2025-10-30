@@ -411,15 +411,14 @@ function CopyFrameLink({event, frame}: CopyFrameLinkProps) {
       ? `${frame.filename}:${frame.lineNo}`
       : frame.filename || '';
 
-  const {onClick: handleCopyPath} = useCopyToClipboard({
-    text: filePath,
-    successMessage: t('File path copied to clipboard'),
-    errorMessage: t('Failed to copy file path'),
-  });
+  const {copy} = useCopyToClipboard();
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    handleCopyPath();
+    copy(filePath, {
+      successMessage: t('File path copied to clipboard'),
+      errorMessage: t('Failed to copy file path'),
+    });
   };
 
   // Don't render if there's no valid file path to copy

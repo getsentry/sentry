@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
@@ -155,11 +155,10 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
     return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
   }, [group, event, groupSummaryData, autofixData]);
 
-  const {onClick} = useCopyToClipboard({
-    text,
-    successMessage: t('Copied issue to clipboard as Markdown'),
-    errorMessage: t('Could not copy issue to clipboard'),
-    onCopy: () => {
+  const {copy} = useCopyToClipboard();
+
+  const handleCopyIssueDetailsAsMarkdown = useCallback(() => {
+    copy(text, {successMessage: t('Copied issue to clipboard as Markdown')}).then(() => {
       trackAnalytics('issue_details.copy_issue_details_as_markdown', {
         organization,
         groupId: group.id,
@@ -167,18 +166,18 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
         hasAutofix: Boolean(autofixData),
         hasSummary: Boolean(groupSummaryData),
       });
-    },
-  });
+    });
+  }, [copy, text, organization, group.id, event?.id, autofixData, groupSummaryData]);
 
   useHotkeys([
     {
       match: 'command+alt+c',
-      callback: onClick,
+      callback: handleCopyIssueDetailsAsMarkdown,
       skipPreventDefault: NODE_ENV === 'development',
     },
     {
       match: 'ctrl+alt+c',
-      callback: onClick,
+      callback: handleCopyIssueDetailsAsMarkdown,
       skipPreventDefault: NODE_ENV === 'development',
     },
   ]);

@@ -44,7 +44,11 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
         {t('Unused Codes')}
 
         <ButtonBar>
-          <CopyToClipboardButton text={formattedCodes} size="xs" />
+          <CopyToClipboardButton
+            text={formattedCodes}
+            aria-label={t('Copy recovery codes to clipboard')}
+            size="xs"
+          />
           <Button
             size="xs"
             onClick={printCodes}

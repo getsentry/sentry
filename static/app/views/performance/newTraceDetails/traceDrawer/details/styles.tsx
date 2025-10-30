@@ -147,6 +147,7 @@ function SubtitleWithCopyButton({
       <StyledSubTitleText>{subTitle}</StyledSubTitleText>
       {clipboardText ? (
         <CopyToClipboardButton
+          aria-label={t('Copy to clipboard')}
           borderless
           size="zero"
           text={clipboardText}
@@ -173,6 +174,7 @@ function TitleOp({text}: {text: string}) {
         <Fragment>
           {text}
           <CopyToClipboardButton
+            aria-label={t('Copy to clipboard')}
             borderless
             size="zero"
             text={text}
@@ -1219,7 +1221,12 @@ function CopyableCardValueWithLink({
       <CardValueText>
         {value}
         {typeof value === 'string' ? (
-          <StyledCopyToClipboardButton borderless size="zero" text={value} />
+          <StyledCopyToClipboardButton
+            borderless
+            size="zero"
+            text={value}
+            aria-label={t('Copy to clipboard')}
+          />
         ) : null}
       </CardValueText>
       {linkTarget && linkTarget ? (

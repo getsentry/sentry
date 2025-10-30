@@ -265,6 +265,7 @@ export function AutofixSummary({
                     </CardTitleSpacer>
                     {card.copyText && card.copyTitle && (
                       <CopyToClipboardButton
+                        aria-label={t('Copy to clipboard')}
                         size="xs"
                         text={card.copyText}
                         borderless

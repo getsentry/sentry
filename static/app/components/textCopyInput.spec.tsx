@@ -13,7 +13,7 @@ describe('TextCopyInput', () => {
 
   it('copies text to clipboard on click', async () => {
     render(<TextCopyInput>Text to Copy</TextCopyInput>);
-    const button = screen.getByRole('button', {name: 'Copy'});
+    const button = screen.getByRole('button', {name: 'Copy to clipboard'});
     expect(button).toBeInTheDocument();
 
     await userEvent.click(button);
