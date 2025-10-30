@@ -11,11 +11,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
 
-from sentry import analytics, features
+from sentry import analytics, features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
-from sentry.auth.superuser import SUPERUSER_ORG_ID
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -271,7 +270,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 )
             except SlackApiError as e:
                 lifecycle.add_extras(logger_params)
-                if organization_id == SUPERUSER_ORG_ID:
+                if options.get("slack.log-unfurl-payload", False):
                     lifecycle.add_extra("unfurls", payload["unfurls"])
                 lifecycle.record_failure(e)
                 return False
