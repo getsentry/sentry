@@ -134,6 +134,7 @@ def fetch_metric_issue_open_periods(
     time_period: Mapping[str, str],
     user: User | RpcUser | None = None,
 ) -> list[Any]:
+    detector_id = open_period_identifier
     try:
         if features.has(
             "organizations:workflow-engine-single-process-metric-issues",
@@ -147,23 +148,33 @@ def fetch_metric_issue_open_periods(
                 # open_period_identifier is a metric detector ID -> get the alert rule ID
                 open_period_identifier = alert_rule_detector.alert_rule_id
 
-        resp = client.get(
-            auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
-            user=user,
-            path=f"/organizations/{organization.slug}/incidents/",
-            # TODO(iamrajjoshi): Use the correct endpoint and update the params
-            params={
-                "alertRule": open_period_identifier,
-                "expand": "activities",
-                "includeSnapshots": True,
-                "project": -1,
-                **time_period,
-            },
-        )
+        if organization.slug == "mf-test-n7":
+            resp = client.get(
+                auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
+                user=user,
+                path=f"/organizations/{organization.slug}/open-periods/",
+                params={
+                    "detectorId": detector_id,
+                    **time_period,
+                },
+            )
+        else:
+            resp = client.get(
+                auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
+                user=user,
+                path=f"/organizations/{organization.slug}/incidents/",
+                params={
+                    "alertRule": open_period_identifier,
+                    "expand": "activities",
+                    "includeSnapshots": True,
+                    "project": -1,
+                    **time_period,
+                },
+            )
         # TODO (mifu67): temporary log that I'm going to remove after debugging. Get the data for old and new
-        if organization.slug == "sentry" or organization.slug == "demo":
+        if organization.slug == "mf-test-n7":
             logger.info(
-                "fetching metric issue incidents",
+                "fetching metric issue open periods",
                 extra={
                     "organization_id": organization.id,
                     "open_period_id": open_period_identifier,
