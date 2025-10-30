@@ -13,12 +13,14 @@ def _get_valid_data(project_id, environment_name, **overrides):
         "projectId": project_id,
         "name": "Test Uptime Detector",
         "type": UptimeDomainCheckFailure.slug,
-        "dataSource": {
-            "timeout_ms": 30000,
-            "name": "Test Uptime Detector",
-            "url": "https://www.google.com",
-            "interval_seconds": UptimeSubscription.IntervalSeconds.ONE_MINUTE,
-        },
+        "dataSources": [
+            {
+                "timeout_ms": 30000,
+                "name": "Test Uptime Detector",
+                "url": "https://www.google.com",
+                "interval_seconds": UptimeSubscription.IntervalSeconds.ONE_MINUTE,
+            }
+        ],
         "conditionGroup": {
             "logicType": "any",
             "conditions": [
@@ -85,9 +87,11 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
             "type": UptimeDomainCheckFailure.slug,
             "dateCreated": self.detector.date_added,
             "dateUpdated": timezone.now(),
-            "dataSource": {
-                "timeout_ms": 15000,
-            },
+            "dataSources": [
+                {
+                    "timeout_ms": 15000,
+                }
+            ],
             "conditionGroup": {
                 "id": self.detector.workflow_condition_group.id,
                 "organizationId": self.organization.id,
@@ -118,9 +122,11 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
             "type": UptimeDomainCheckFailure.slug,
             "dateCreated": self.detector.date_added,
             "dateUpdated": timezone.now(),
-            "dataSource": {
-                "timeout_ms": 80000,
-            },
+            "dataSources": [
+                {
+                    "timeout_ms": 80000,
+                }
+            ],
             "conditionGroup": {
                 "id": self.detector.workflow_condition_group.id,
                 "organizationId": self.organization.id,
@@ -136,9 +142,9 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
             method="PUT",
         )
 
-        assert "dataSource" in response.data
+        assert "dataSources" in response.data
         assert "Ensure this value is less than or equal to 60000." in str(
-            response.data["dataSource"]
+            response.data["dataSources"]
         )
 
 
@@ -152,7 +158,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
 
     def test_create_detector_validation_error(self):
         invalid_data = _get_valid_data(
-            self.project.id, self.environment.name, dataSource={"timeout_ms": 80000}
+            self.project.id, self.environment.name, dataSources=[{"timeout_ms": 80000}]
         )
 
         response = self.get_error_response(
@@ -161,9 +167,9 @@ class OrganizationDetectorIndexPostTest(APITestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-        assert "dataSource" in response.data
+        assert "dataSources" in response.data
         assert "Ensure this value is less than or equal to 60000" in str(
-            response.data["dataSource"]
+            response.data["dataSources"]
         )
 
     def test_create_detector(self):
@@ -193,16 +199,18 @@ class OrganizationDetectorIndexPostTest(APITestCase):
         valid_data = _get_valid_data(
             self.project.id,
             self.environment.name,
-            dataSource={
-                "timeout_ms": 30000,
-                "name": "Test Uptime Detector",
-                "url": "https://www.google.com",
-                "interval_seconds": UptimeSubscription.IntervalSeconds.ONE_MINUTE,
-                "method": "PUT",
-                "headers": [["key", "value"]],
-                "body": "<html/>",
-                "trace_sampling": True,
-            },
+            dataSources=[
+                {
+                    "timeout_ms": 30000,
+                    "name": "Test Uptime Detector",
+                    "url": "https://www.google.com",
+                    "interval_seconds": UptimeSubscription.IntervalSeconds.ONE_MINUTE,
+                    "method": "PUT",
+                    "headers": [["key", "value"]],
+                    "body": "<html/>",
+                    "trace_sampling": True,
+                }
+            ],
         )
 
         response = self.get_success_response(

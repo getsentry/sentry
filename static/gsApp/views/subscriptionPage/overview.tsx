@@ -38,7 +38,6 @@ import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editO
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 import UsageOverview from 'getsentry/views/subscriptionPage/usageOverview';
 
-import openPerformanceQuotaCreditsPromoModal from './promotions/performanceQuotaCreditsPromo';
 import openPerformanceReservedTransactionsDiscountModal from './promotions/performanceReservedTransactionsPromo';
 import TrialEnded from './trial/trialEnded';
 import OnDemandDisabled from './ondemandDisabled';
@@ -96,7 +95,7 @@ function Overview({location, subscription, promotionData}: Props) {
 
   useEffect(() => {
     if (promotionData) {
-      let promotion = promotionData.availablePromotions?.find(
+      const promotion = promotionData.availablePromotions?.find(
         promo => promo.promptActivityTrigger === 'performance_reserved_txns_discount_v1'
       );
 
@@ -108,15 +107,6 @@ function Overview({location, subscription, promotionData}: Props) {
           promptFeature: 'performance_reserved_txns_discount_v1',
           navigate,
         });
-        return;
-      }
-
-      promotion = promotionData.availablePromotions?.find(
-        promo => promo.promptActivityTrigger === 'performance_quota_credits_v1'
-      );
-
-      if (promotion) {
-        openPerformanceQuotaCreditsPromoModal({api, promotionData, organization});
         return;
       }
     }
