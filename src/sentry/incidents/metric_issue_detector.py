@@ -136,7 +136,6 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
 
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
-    data_source = SnubaQueryValidator(required=False, timeWindowSeconds=True)
     data_sources = serializers.ListField(
         child=SnubaQueryValidator(timeWindowSeconds=True), required=False
     )
@@ -253,9 +252,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         data_source: SnubaQueryDataSourceType | None = None
 
-        if "data_source" in validated_data:
-            data_source = validated_data.pop("data_source")
-        elif "data_sources" in validated_data:
+        if "data_sources" in validated_data:
             data_source = validated_data.pop("data_sources")[0]
 
         if data_source is not None:
@@ -267,11 +264,6 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return instance
 
     def create(self, validated_data: dict[str, Any]):
-        if "data_source" in validated_data:
-            self._validate_transaction_dataset_deprecation(
-                validated_data["data_source"].get("dataset")
-            )
-
         if "data_sources" in validated_data:
             for validated_data_source in validated_data["data_sources"]:
                 self._validate_transaction_dataset_deprecation(validated_data_source.get("dataset"))

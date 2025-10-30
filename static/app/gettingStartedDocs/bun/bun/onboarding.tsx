@@ -1,21 +1,9 @@
-import {widgetCalloutBlock} from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportJavaScriptInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t} from 'sentry/locale';
-import {getNodeLogsOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -45,7 +33,7 @@ const getVerifySnippet = () => `try {
   Sentry.captureException(e);
 }`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -117,39 +105,3 @@ const onboarding: OnboardingConfig = {
     return steps;
   },
 };
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/bun/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-        widgetCalloutBlock({
-          link: 'https://docs.sentry.io/platforms/javascript/guides/bun/user-feedback/#user-feedback-widget',
-        }),
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  replayOnboardingJsLoader,
-  crashReportOnboarding,
-  feedbackOnboardingJsLoader,
-  logsOnboarding: getNodeLogsOnboarding({
-    docsPlatform: 'bun',
-    packageName: '@sentry/bun',
-  }),
-};
-
-export default docs;
