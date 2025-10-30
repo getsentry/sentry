@@ -332,9 +332,9 @@ export function WidgetPreviewContainer({
   };
 
   const animatedProps: MotionNodeAnimationOptions = {
-    initial: {opacity: 0, transform: 'translateX(100%) translateY(0)'},
-    animate: {opacity: 1, transform: 'translateX(0) translateY(0)'},
-    exit: {opacity: 0, transform: 'translateX(100%) translateY(0)'},
+    initial: {opacity: 0, x: '100%', y: 0},
+    animate: {opacity: 1, x: 0, y: 0},
+    exit: {opacity: 0, x: '100%', y: 0},
     transition: transitionSettings,
   };
 
