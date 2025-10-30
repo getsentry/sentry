@@ -1,31 +1,18 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportGenericInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
-import {getGoLogsOnboarding} from 'sentry/utils/gettingStartedDocs/go';
 
-type Params = DocsParams;
-
-const getConfigureSnippet = (params: Params) => `
+const getConfigureSnippet = (params: DocsParams) => `
 import (
   "fmt"
+  "net/http"
 
   "github.com/getsentry/sentry-go"
-  sentryiris "github.com/getsentry/sentry-go/iris"
-  "github.com/kataras/iris/v12"
+  sentryfasthttp "github.com/getsentry/sentry-go/fasthttp"
 )
 
 // To initialize Sentry's handler, you need to initialize Sentry itself beforehand
@@ -33,6 +20,7 @@ if err := sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",${
     params.isPerformanceSelected
       ? `
+  EnableTracing: true,
   // Set TracesSampleRate to 1.0 to capture 100%
   // of transactions for tracing.
   // We recommend adjusting this value in production,
@@ -49,91 +37,106 @@ if err := sentry.Init(sentry.ClientOptions{
   fmt.Printf("Sentry initialization failed: %v\\n", err)
 }
 
-// Then create your app
-app := iris.Default()
+// Create an instance of sentryfasthttp
+sentryHandler := sentryfasthttp.New(sentryfasthttp.Options{})
 
-// Once it's done, you can attach the handler as one of your middleware
-app.Use(sentryiris.New(sentryiris.Options{}))
-
-// Set up routes
-app.Get("/", func(ctx iris.Context) {
-  ctx.Writef("Hello world!")
+// After creating the instance, you can attach the handler as one of your middleware
+fastHTTPHandler := sentryHandler.Handle(func(ctx *fasthttp.RequestCtx) {
+  panic("y tho")
 })
 
+fmt.Println("Listening and serving HTTP on :3000")
+
 // And run it
-app.Run(iris.Addr(":3000"))`;
+if err := fasthttp.ListenAndServe(":3000", fastHTTPHandler); err != nil {
+  panic(err)
+}`;
 
 const getOptionsSnippet = () => `
-// Whether Sentry should repanic after recovery, in most cases it should be set to true,
-// as iris.Default includes its own Recovery middleware what handles http responses.
+// Repanic configures whether Sentry should repanic after recovery, in most cases, it defaults to false,
+// as fasthttp doesn't include its own Recovery handler.
 Repanic bool
-// Whether you want to block the request before moving forward with the response.
-// Because Iris's default "Recovery" handler doesn't restart the application,
-// it's safe to either skip this option or set it to "false".
+// WaitForDelivery configures whether you want to block the request before moving forward with the response.
+// Because fasthttp doesn't include its own "Recovery" handler, it will restart the application,
+// and the event won't be delivered otherwise.
 WaitForDelivery bool
 // Timeout for the event delivery requests.
 Timeout time.Duration`;
 
 const getUsageSnippet = () => `
-app := iris.Default()
-
-app.Use(sentryiris.New(sentryiris.Options{
-  Repanic: true,
-}))
-
-app.Use(func(ctx iris.Context) {
-  if hub := sentryiris.GetHubFromContext(ctx); hub != nil {
-    hub.Scope().SetTag("someRandomTag", "maybeYouNeedIt")
+func enhanceSentryEvent(handler fasthttp.RequestHandler) fasthttp.RequestHandler {
+  return func(ctx *fasthttp.RequestCtx) {
+    if hub := sentryfasthttp.GetHubFromContext(ctx); hub != nil {
+      hub.Scope().SetTag("someRandomTag", "maybeYouNeedIt")
+    }
+    handler(ctx)
   }
-  ctx.Next()
+}
+
+// Later in the code
+sentryHandler := sentryfasthttp.New(sentryfasthttp.Options{
+  Repanic: true,
+  WaitForDelivery: true,
 })
 
-app.Get("/", func(ctx iris.Context) {
-  if hub := sentryiris.GetHubFromContext(ctx); hub != nil {
+defaultHandler := func(ctx *fasthttp.RequestCtx) {
+  if hub := sentryfasthttp.GetHubFromContext(ctx); hub != nil {
     hub.WithScope(func(scope *sentry.Scope) {
       scope.SetExtra("unwantedQuery", "someQueryDataMaybe")
       hub.CaptureMessage("User provided unwanted query string, but we recovered just fine")
     })
   }
-})
+  ctx.SetStatusCode(fasthttp.StatusOK)
+}
 
-app.Get("/foo", func(ctx iris.Context) {
-  // sentryiris handler will catch it just fine. Also, because we attached "someRandomTag"
-  // in the middleware before, it will be sent through as well
+fooHandler := enhanceSentryEvent(func(ctx *fasthttp.RequestCtx) {
   panic("y tho")
 })
 
-app.Run(iris.Addr(":3000"))`;
+fastHTTPHandler := func(ctx *fasthttp.RequestCtx) {
+  switch string(ctx.Path()) {
+  case "/foo":
+    fooHandler(ctx)
+  default:
+    defaultHandler(ctx)
+  }
+}
 
-const getBeforeSendSnippet = (params: any) => `
+fmt.Println("Listening and serving HTTP on :3000")
+
+if err := fasthttp.ListenAndServe(":3000", sentryHandler.Handle(fastHTTPHandler)); err != nil {
+  panic(err)
+}`;
+
+const getBeforeSendSnippet = (params: DocsParams) => `
 sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
     if hint.Context != nil {
-      if req, ok := hint.Context.Value(sentry.RequestContextKey).(*http.Request); ok {
-        // You have access to the original Request here
+      if ctx, ok := hint.Context.Value(sentry.RequestContextKey).(*fasthttp.RequestCtx); ok {
+        // You have access to the original Context if it panicked
+        fmt.Println(string(ctx.Request.Host()))
       }
     }
-
     return event
   },
 })`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
       content: [
         {
           type: 'text',
-          text: tct('Install our Go Iris SDK using [code:go get]:', {
+          text: tct('Install our Go FastHTTP SDK using [code:go get]:', {
             code: <code />,
           }),
         },
         {
           type: 'code',
           language: 'bash',
-          code: 'go get github.com/getsentry/sentry-go/iris',
+          code: 'go get github.com/getsentry/sentry-go/fasthttp',
         },
       ],
     },
@@ -161,7 +164,7 @@ const onboarding: OnboardingConfig = {
           type: 'text',
           text: [
             tct(
-              '[code:sentryiris] accepts a struct of [code:Options] that allows you to configure how the handler will behave.',
+              '[code:sentryfasthttp] accepts a struct of [code:Options] that allows you to configure how the handler will behave.',
               {code: <code />}
             ),
             t('Currently it respects 3 options:'),
@@ -180,12 +183,12 @@ const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            "[code:sentryiris] attaches an instance of [sentryHubLink:*sentry.Hub] to the [code:iris.Context], which makes it available throughout the rest of the request's lifetime. You can access it by using the [code:sentryiris.GetHubFromContext()] method on the context itself in any of your proceeding middleware and routes. And it should be used instead of the global [code:sentry.CaptureMessage], [code:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
+            "[code:sentryfasthttp] attaches an instance of [sentryHubLink:*sentry.Hub] to the request's context, which makes it available throughout the rest of the request's lifetime. You can access it by using the [code:sentryfasthttp.GetHubFromContext()] method on the context itself in any of your proceeding middleware and routes. And it should be used instead of the global [code:sentry.CaptureMessage], [code:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
             {
-              code: <code />,
               sentryHubLink: (
                 <ExternalLink href="https://pkg.go.dev/github.com/getsentry/sentry-go#Hub" />
               ),
+              code: <code />,
             }
           ),
         },
@@ -194,7 +197,7 @@ const onboarding: OnboardingConfig = {
           alertType: 'info',
           showIcon: false,
           text: tct(
-            "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentryiris]!",
+            "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentryfasthttp]!",
             {code: <code />}
           ),
         },
@@ -218,7 +221,7 @@ const onboarding: OnboardingConfig = {
     },
   ],
   verify: () => [],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [];
 
     if (params.isLogsSelected) {
@@ -235,35 +238,3 @@ const onboarding: OnboardingConfig = {
     return steps;
   },
 };
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportGenericInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/go/guides/iris/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  replayOnboardingJsLoader,
-  crashReportOnboarding,
-  feedbackOnboardingJsLoader,
-  logsOnboarding: getGoLogsOnboarding({
-    docsPlatform: 'iris',
-  }),
-};
-
-export default docs;
