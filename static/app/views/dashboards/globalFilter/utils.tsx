@@ -91,22 +91,18 @@ export function newNumericFilterQuery(
     token: filterToken,
   });
   if (!cleanedValue) return '';
-  const filterWithNewValue = modifyFilterValue(
-    filterToken.text,
-    filterToken,
-    cleanedValue
-  );
+  const newFilterValue = modifyFilterValue(filterToken.text, filterToken, cleanedValue);
 
-  const newFilterTokens = parseFilterValue(filterWithNewValue, globalFilter);
-  const filterTokenWithNewValue = newFilterTokens?.[0];
-  if (!filterTokenWithNewValue) {
+  const newFilterTokens = parseFilterValue(newFilterValue, globalFilter);
+  const newFilterToken = newFilterTokens?.[0];
+  if (!newFilterToken) {
     return '';
   }
 
   // Update the operator of the filter
   const newFilterQuery = modifyFilterOperatorQuery(
-    filterWithNewValue,
-    filterTokenWithNewValue,
+    newFilterValue,
+    newFilterToken,
     newOperator,
     false
   );
