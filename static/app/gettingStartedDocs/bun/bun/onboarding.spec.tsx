@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './bun';
+import docs from '.';
 
 describe('bun onboarding docs', () => {
   it('renders doc correctly', () => {
