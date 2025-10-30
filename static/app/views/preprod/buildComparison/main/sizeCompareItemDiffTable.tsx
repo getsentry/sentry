@@ -1,6 +1,10 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout/stack';
+import {Text} from '@sentry/scraps/text';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -42,9 +46,15 @@ type Sort = {
 
 interface SizeCompareItemDiffTableProps {
   diffItems: DiffItem[];
+  disableHideSmallChanges: () => void;
+  originalItemCount: number;
 }
 
-export function SizeCompareItemDiffTable({diffItems}: SizeCompareItemDiffTableProps) {
+export function SizeCompareItemDiffTable({
+  diffItems,
+  originalItemCount,
+  disableHideSmallChanges,
+}: SizeCompareItemDiffTableProps) {
   // Sort by diff initially
   const [sort, setSort] = useState<Sort>({
     field: 'size_diff',
@@ -120,7 +130,18 @@ export function SizeCompareItemDiffTable({diffItems}: SizeCompareItemDiffTablePr
         ))}
       </SimpleTableHeader>
       {sortedDiffItems.length === 0 && (
-        <SimpleTable.Empty>{t('No items changed')}</SimpleTable.Empty>
+        <SimpleTable.Empty>
+          <Stack gap="lg" align="center" justify="center">
+            <Text size="lg" variant="muted" bold>
+              {t('No results found')}
+            </Text>
+            {originalItemCount > 0 && (
+              <Button priority="primary" onClick={disableHideSmallChanges}>
+                {t('Show all changes')}
+              </Button>
+            )}
+          </Stack>
+        </SimpleTable.Empty>
       )}
       {sortedDiffItems.map((diffItem, index) => {
         let changeTypeLabel: string;
