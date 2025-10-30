@@ -31,7 +31,6 @@ from sentry.integrations.slack.unfurl.types import (
     UnfurledUrl,
     make_type_coercer,
 )
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
     get_alert_rule_serializer,
@@ -43,11 +42,10 @@ from sentry.workflow_engine.endpoints.organization_open_periods import GroupOpen
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 
-map_open_period_args = make_type_coercer(
+map_detector_args = make_type_coercer(
     {
         "org_slug": str,
         "detector_id": int,
-        "open_period_id": int,
         "period": str,
         "start": str,
         "end": str,
@@ -74,20 +72,14 @@ def _unfurl_metric_detectors(
     user: User | RpcUser | None = None,
 ):
     detector_filter_query = Q()
-    open_period_filter_query = Q()
 
     # Since we don't have real ids here, we use the org slug so that we can
     # make sure the identifiers correspond to the correct organization.
     for link in links:
         # org_slug = link.args["org_slug"]
         detector_id = link.args["detector_id"]
-        open_period_id = link.args["open_period_id"]
 
-        if open_period_id:
-            open_period_filter_query |= Q(id=open_period_id)
-        else:
-            # TODO: make sure organization has access to detector
-            detector_filter_query |= Q(id=detector_id)
+        detector_filter_query |= Q(id=detector_id)
 
     org_integrations = integration_service.get_organization_integrations(
         integration_id=integration.id
@@ -96,15 +88,11 @@ def _unfurl_metric_detectors(
         id__in=[oi.organization_id for oi in org_integrations]
     )
 
-    # Since we don't have real ids here, we use the org slug so that we can
+    # TODO: since we don't have real ids here, we use the org slug so that we can
     # make sure the identifiers correspond to the correct organization.
     detector_map = {
         detector.id: detector for detector in Detector.objects.filter(detector_filter_query)
     }
-    if bool(open_period_filter_query):
-        open_period_map = {
-            op.id: op for op in GroupOpenPeriod.objects.filter(open_period_filter_query)
-        }
 
     orgs_by_slug: dict[str, Organization] = {org.slug: org for org in organizations}
 
@@ -170,6 +158,7 @@ def _unfurl_metric_detectors(
 
 
 # detector link example https://sentry.sentry.io/monitors/123456/?end=2025-10-08T14%3A41%3A00&start=2025-10-08T11%3A11%3A00
+# the link is either to the group or the detector?
 
 metric_detectors_link_regex = re.compile(
     r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/monitors/(?P<detector_id>\d+)"
@@ -187,13 +176,12 @@ def map_metric_detector_query_args(url: str, args: Mapping[str, str | None]) -> 
     url = html.unescape(url)
     parsed_url = urlparse(url)
     params = QueryDict(parsed_url.query)
-    open_period_id = None  # TODO: figure out how to handle this?
     period = params.get("period", None)
     start = params.get("start", None)
     end = params.get("end", None)
 
-    data = {**args, "open_period_id": open_period_id, "period": period, "start": start, "end": end}
-    return map_open_period_args(url, data)
+    data = {**args, "period": period, "start": start, "end": end}
+    return map_detector_args(url, data)
 
 
 metric_detector_handler = Handler(
