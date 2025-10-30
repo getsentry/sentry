@@ -233,7 +233,8 @@ function renderBodyCell(
     // In eap, blank transaction ops are set to `default` but not in non-eap.
     // The transaction summary is not eap yet, so we should exclude the `default` transaction.op filter
     const spanOp =
-      row['span.op'].toLowerCase() === 'default' ? undefined : row['span.op'];
+      row['span.op']?.toLowerCase() === 'default' ? undefined : row['span.op'];
+
     return (
       <TransactionCell
         project={row.project}
