@@ -1,4 +1,3 @@
-import datetime
 import logging
 from collections import defaultdict
 
@@ -22,7 +21,6 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsArgsDict, StatsMixin, region_silo_endpoint
@@ -73,18 +71,12 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         except ValueError:
             return self.respond("Invalid uptime detector ids provided", status=400)
 
-        maybe_cutoff = self._get_date_cutoff_epoch_seconds()
-        epoch_cutoff = (
-            datetime.datetime.fromtimestamp(maybe_cutoff, tz=datetime.UTC) if maybe_cutoff else None
-        )
-
         try:
             eap_response = self._make_eap_request(
                 organization,
                 projects,
                 subscription_ids,
                 timerange_args,
-                epoch_cutoff,
             )
             formatted_response = self._format_response(eap_response)
         except Exception:
@@ -104,13 +96,9 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         projects: list[Project],
         subscription_ids: list[str],
         timerange_args: StatsArgsDict,
-        epoch_cutoff: datetime.datetime | None,
     ) -> TimeSeriesResponse:
 
         eap_query_start = timerange_args["start"]
-        if epoch_cutoff and epoch_cutoff > timerange_args["start"]:
-            eap_query_start = epoch_cutoff
-
         start_timestamp = Timestamp()
         start_timestamp.FromDatetime(eap_query_start)
         end_timestamp = Timestamp()
@@ -234,7 +222,3 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             subscription_id_to_original_id[subscription_id]: data
             for subscription_id, data in formatted_response.items()
         }
-
-    def _get_date_cutoff_epoch_seconds(self) -> float | None:
-        value = float(options.get("uptime.date_cutoff_epoch_seconds"))
-        return None if value == 0 else value

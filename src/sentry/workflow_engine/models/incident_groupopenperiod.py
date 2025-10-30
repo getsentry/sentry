@@ -1,6 +1,6 @@
 import logging
 
-from django.db import models
+from django.db import IntegrityError, models
 from django.db.models import Q
 
 from sentry import features
@@ -207,6 +207,13 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                 },
             )
 
+            return incident_group_open_period
+
+        except IntegrityError:
+            incident_group_open_period = cls.objects.get(
+                group_open_period=open_period,
+                incident_id=incident.id,
+            )
             return incident_group_open_period
 
         except Exception as e:

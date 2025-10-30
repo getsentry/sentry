@@ -142,8 +142,10 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 tags={"model": model_name, "type": "multiprocess_worker"},
                 sample_rate=1.0,
             )
-            capture_exception(tags={"model": model_name})
-            debug_output(f"--> Error processing chunk of {len(chunk)} {model_name} objects.")
+            if os.environ.get("SENTRY_CLEANUP_SILENT", None):
+                capture_exception(tags={"model": model_name})
+            else:
+                logger.exception("Error processing chunk of %s objects", model_name)
         finally:
             task_queue.task_done()
 
@@ -248,7 +250,7 @@ def _cleanup(
 
             deletes = models_which_use_deletions_code_path()
 
-            _run_specialized_cleanups(is_filtered, days, silent, models_attempted)
+            _run_specialized_cleanups(is_filtered, days, models_attempted)
 
             # Handle project/organization specific logic
             project_id, organization_id = _handle_project_organization_cleanup(
@@ -285,7 +287,7 @@ def _cleanup(
                 task_queue, organization_id, is_filtered, days, models_attempted
             )
 
-            remove_file_blobs(is_filtered, silent, models_attempted)
+            remove_file_blobs(is_filtered, models_attempted)
         except CleanupExecutionAborted:
             click.echo("Cleanup was aborted via cleanup.abort_execution option.")
             metrics.incr(
@@ -370,7 +372,6 @@ def _validate_and_setup_environment(concurrency: int, silent: bool) -> None:
 def _run_specialized_cleanups(
     is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
-    silent: bool,
     models_attempted: set[str],
 ) -> None:
     """Run specialized cleanup operations for specific models."""
@@ -382,7 +383,7 @@ def _run_specialized_cleanups(
     remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
     remove_expired_values_for_org_members(is_filtered, days, models_attempted)
     delete_api_models(is_filtered, models_attempted)
-    exported_data(is_filtered, silent, models_attempted)
+    exported_data(is_filtered, models_attempted)
 
 
 def _handle_project_organization_cleanup(
@@ -453,10 +454,10 @@ def remove_expired_values_for_lost_passwords(
 ) -> None:
     from sentry.users.models.lostpasswordhash import LostPasswordHash
 
-    debug_output("Removing expired values for LostPasswordHash")
     if is_filtered(LostPasswordHash):
         debug_output(">> Skipping LostPasswordHash")
     else:
+        debug_output("Removing expired values for LostPasswordHash")
         models_attempted.add(LostPasswordHash.__name__.lower())
         LostPasswordHash.objects.filter(
             date_added__lte=timezone.now() - timedelta(hours=48)
@@ -469,10 +470,10 @@ def remove_expired_values_for_org_members(
 ) -> None:
     from sentry.models.organizationmember import OrganizationMember
 
-    debug_output("Removing expired values for OrganizationMember")
     if is_filtered(OrganizationMember):
         debug_output(">> Skipping OrganizationMember")
     else:
+        debug_output("Removing expired values for OrganizationMember")
         models_attempted.add(OrganizationMember.__name__.lower())
         expired_threshold = timezone.now() - timedelta(days=days)
         OrganizationMember.objects.delete_expired(expired_threshold)
@@ -486,11 +487,10 @@ def delete_api_models(
     from sentry.models.apitoken import ApiToken
 
     for model_tp in (ApiGrant, ApiToken):
-        debug_output(f"Removing expired values for {model_tp.__name__}")
-
         if is_filtered(model_tp):
             debug_output(f">> Skipping {model_tp.__name__}")
         else:
+            debug_output(f"Removing expired values for {model_tp.__name__}")
             models_attempted.add(model_tp.__name__.lower())
             queryset = model_tp.objects.filter(
                 expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS))
@@ -508,16 +508,14 @@ def delete_api_models(
 
 @continue_on_error("specialized_cleanup_exported_data")
 def exported_data(
-    is_filtered: Callable[[type[BaseModel]], bool], silent: bool, models_attempted: set[str]
+    is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
 ) -> None:
     from sentry.data_export.models import ExportedData
-
-    if not silent:
-        click.echo("Removing expired files associated with ExportedData")
 
     if is_filtered(ExportedData):
         debug_output(">> Skipping ExportedData files")
     else:
+        debug_output("Removing expired files associated with ExportedData")
         models_attempted.add(ExportedData.__name__.lower())
         export_data_queryset = ExportedData.objects.filter(date_expired__lt=(timezone.now()))
         for item in export_data_queryset:
@@ -639,10 +637,10 @@ def run_bulk_query_deletes(
     for model_tp, dtfield, order_by in bulk_query_deletes:
         chunk_size = 10000
 
-        debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
         if is_filtered(model_tp):
             debug_output(">> Skipping %s" % model_tp.__name__)
         else:
+            debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
             models_attempted.add(model_tp.__name__.lower())
             try:
                 BulkDeleteQuery(
@@ -680,11 +678,10 @@ def run_bulk_deletes_in_deletes(
 
     debug_output("Running bulk deletes in DELETES")
     for model_tp, dtfield, order_by in deletes:
-        debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
-
         if is_filtered(model_tp):
             debug_output(">> Skipping %s" % model_tp.__name__)
         else:
+            debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
             models_attempted.add(model_tp.__name__.lower())
             try:
                 imp = ".".join((model_tp.__module__, model_tp.__name__))
@@ -924,7 +921,7 @@ def prepare_deletes_by_organization(
 
 @continue_on_error("fileblob_cleanup")
 def remove_file_blobs(
-    is_filtered: Callable[[type[BaseModel]], bool], silent: bool, models_attempted: set[str]
+    is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
 ) -> None:
     from sentry import options
     from sentry.models.file import FileBlob
@@ -934,15 +931,15 @@ def remove_file_blobs(
 
     # Clean up FileBlob instances which are no longer used and aren't super
     # recent (as there could be a race between blob creation and reference)
-    debug_output("Cleaning up unused FileBlob references")
     if is_filtered(FileBlob):
         debug_output(">> Skipping FileBlob")
     else:
+        debug_output("Cleaning up unused FileBlob references")
         models_attempted.add(FileBlob.__name__.lower())
-        cleanup_unused_files(silent)
+        cleanup_unused_files()
 
 
-def cleanup_unused_files(quiet: bool = False) -> None:
+def cleanup_unused_files() -> None:
     """
     Remove FileBlob's (and thus the actual files) if they are no longer
     referenced by any File.
@@ -955,7 +952,7 @@ def cleanup_unused_files(quiet: bool = False) -> None:
     from sentry.models.files.fileblob import FileBlob
     from sentry.models.files.fileblobindex import FileBlobIndex
 
-    if quiet:
+    if os.environ.get("SENTRY_CLEANUP_SILENT", None):
         from sentry.utils.query import RangeQuerySetWrapper
     else:
         from sentry.utils.query import RangeQuerySetWrapperWithProgressBar as RangeQuerySetWrapper
