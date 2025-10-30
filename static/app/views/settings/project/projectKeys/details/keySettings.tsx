@@ -22,9 +22,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
+import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/credentials';
 import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
-import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
 
 type Props = {
   data: ProjectKey;
@@ -72,6 +72,9 @@ export function KeySettings({
   const showOtlpTraces =
     useOTelFriendlyUI() && organization.features.includes('relay-otlp-traces-endpoint');
   const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
+  const showVercelLogDrainEndpoint = organization.features.includes(
+    'relay-vercel-log-drain-endpoint'
+  );
 
   return (
     <Fragment>
@@ -153,6 +156,7 @@ export function KeySettings({
                   data={data}
                   showOtlpTraces={showOtlpTraces}
                   showOtlpLogs={showOtlpLogs}
+                  showVercelLogDrainEndpoint={showVercelLogDrainEndpoint}
                   showPublicKey
                   showSecretKey
                   showProjectId

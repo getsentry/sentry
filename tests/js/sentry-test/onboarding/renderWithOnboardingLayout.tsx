@@ -77,6 +77,7 @@ export function renderWithOnboardingLayout<
         minidump: 'test-minidump',
         unreal: 'test-unreal',
         playstation: 'test-playstation',
+        integration: 'test-integration',
         otlp_traces: 'test-otlp_traces',
         otlp_logs: 'test-otlp_logs',
       }}
