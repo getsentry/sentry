@@ -90,6 +90,7 @@ export function useBuildDetailsActions({
     const downloadUrl = `/api/0/internal/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/`;
 
     try {
+      // We use a HEAD request to enable large file downloads using chunked downloading.
       const response = await fetch(downloadUrl, {
         method: 'HEAD',
         credentials: 'include',
@@ -99,6 +100,7 @@ export function useBuildDetailsActions({
         if (response.status === 403) {
           let detail: ErrorDetail = null;
           try {
+            // HEAD requests don't include a response body per HTTP spec, so we make a follow-up GET call to retrieve the error details and check for the staff-required code.
             const errorResponse = await fetch(downloadUrl, {
               method: 'GET',
               credentials: 'include',
