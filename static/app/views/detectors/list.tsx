@@ -2,6 +2,8 @@ import {useCallback} from 'react';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Pagination from 'sentry/components/pagination';
@@ -71,7 +73,8 @@ export default function DetectorsList() {
   const location = useLocation();
   const navigate = useNavigate();
   const {selection, isReady} = usePageFilters();
-  const {detectorFilter, assigneeFilter} = useMonitorViewContext();
+  const {detectorFilter, assigneeFilter, renderVisualization, emptyState} =
+    useMonitorViewContext();
 
   const {
     sort: sorts,
@@ -166,15 +169,20 @@ export default function DetectorsList() {
               id="MonitorsList-Table"
               isLoading={isLoading}
             >
-              <DetectorListTable
-                detectors={detectors ?? []}
-                isPending={isLoading}
-                isError={isError}
-                isSuccess={isSuccess}
-                sort={sort}
-                queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
-                allResultsVisible={allResultsVisible()}
-              />
+              {isSuccess && detectors?.length === 0 ? (
+                emptyState
+              ) : (
+                <DetectorListTable
+                  detectors={detectors ?? []}
+                  isPending={isLoading}
+                  isError={isError}
+                  isSuccess={isSuccess}
+                  sort={sort}
+                  queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
+                  allResultsVisible={allResultsVisible()}
+                  renderVisualization={renderVisualization}
+                />
+              )}
             </VisuallyCompleteWithData>
             <Pagination
               pageLinks={pageLinks}
@@ -195,7 +203,7 @@ export default function DetectorsList() {
 function TableHeader() {
   const location = useLocation();
   const navigate = useNavigate();
-  const {detectorFilter, assigneeFilter} = useMonitorViewContext();
+  const {detectorFilter, assigneeFilter, showTimeRangeSelector} = useMonitorViewContext();
   const query = typeof location.query.query === 'string' ? location.query.query : '';
 
   const onSearch = (searchQuery: string) => {
@@ -212,7 +220,10 @@ function TableHeader() {
 
   return (
     <Flex gap="xl">
-      <ProjectPageFilter />
+      <PageFilterBar condensed>
+        <ProjectPageFilter />
+        {showTimeRangeSelector && <DatePageFilter />}
+      </PageFilterBar>
       <div style={{flexGrow: 1}}>
         <DetectorSearch
           initialQuery={query}

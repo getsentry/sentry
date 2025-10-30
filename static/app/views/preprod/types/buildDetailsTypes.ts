@@ -10,6 +10,7 @@ export interface BuildDetailsApiResponse {
 
 export interface BuildDetailsAppInfo {
   app_id?: string | null;
+  apple_app_info?: AppleAppInfo | null;
   artifact_type?: BuildDetailsArtifactType | null;
   build_configuration?: string | null;
   build_number?: string | null;
@@ -19,6 +20,10 @@ export interface BuildDetailsAppInfo {
   name?: string | null;
   platform?: Platform | null;
   version?: string | null;
+}
+
+interface AppleAppInfo {
+  missing_dsym_binaries?: string[];
 }
 
 export interface BuildDetailsVcsInfo {

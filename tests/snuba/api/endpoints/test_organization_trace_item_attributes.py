@@ -815,6 +815,7 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
             self.create_trace_metric(
                 metric_name="http.request.duration",
                 metric_value=123.45,
+                metric_type="distribution",
                 organization=self.organization,
                 project=self.project,
                 attributes={
@@ -826,6 +827,7 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
             self.create_trace_metric(
                 metric_name="http.request.duration",
                 metric_value=234.56,
+                metric_type="distribution",
                 organization=self.organization,
                 project=self.project,
                 attributes={
@@ -856,6 +858,7 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
             self.create_trace_metric(
                 metric_name="http.request.duration",
                 metric_value=100.0,
+                metric_type="distribution",
                 organization=self.organization,
                 project=self.project,
                 attributes={
@@ -866,6 +869,7 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
             self.create_trace_metric(
                 metric_name="database.query.duration",
                 metric_value=50.0,
+                metric_type="distribution",
                 organization=self.organization,
                 project=self.project,
                 attributes={
@@ -897,6 +901,7 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
             self.create_trace_metric(
                 metric_name="custom.metric",
                 metric_value=100.0,
+                metric_type="distribution",
                 organization=self.organization,
                 project=self.project,
                 attributes={
@@ -1916,11 +1921,13 @@ class OrganizationTraceItemAttributeValuesEndpointTraceMetricsTest(
             self.create_trace_metric(
                 metric_name="http.request.duration",
                 metric_value=123.45,
+                metric_type="distribution",
                 attributes={"http.method": "GET"},
             ),
             self.create_trace_metric(
                 metric_name="http.request.duration",
                 metric_value=234.56,
+                metric_type="distribution",
                 attributes={"http.method": "POST"},
             ),
         ]
