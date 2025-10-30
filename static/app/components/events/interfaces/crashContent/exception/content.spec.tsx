@@ -471,4 +471,111 @@ describe('Exception Content', () => {
       expect(screen.getAllByRole('button', {name: 'View Section'})).toHaveLength(4);
     });
   });
+
+  it('shows line coverage legend when coverage data is available', () => {
+    const event = EventFixture({
+      projectID: project.id,
+      entries: [
+        {
+          type: EntryType.EXCEPTION,
+          data: {
+            values: [
+              {
+                type: 'ValueError',
+                value: 'test',
+                stacktrace: {
+                  frames: [
+                    {
+                      function: 'func4',
+                      filename: 'file4.py',
+                      lineNo: 50,
+                      context: [[50, 'raise ValueError("test")']],
+                      inApp: true,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    const MockLineCoverageContext = require('sentry/components/events/interfaces/crashContent/exception/lineCoverageContext');
+
+    function Wrapper({children}: {children: React.ReactNode}) {
+      return (
+        <MockLineCoverageContext.LineCoverageContext.Provider
+          value={{hasCoverageData: true, setHasCoverageData: () => {}}}
+        >
+          {children}
+        </MockLineCoverageContext.LineCoverageContext.Provider>
+      );
+    }
+
+    render(
+      <Wrapper>
+        <Content
+          type={StackType.ORIGINAL}
+          stackView={StackView.APP}
+          event={event}
+          values={event.entries[0]!.data.values}
+          projectSlug={project.slug}
+          newestFirst
+        />
+      </Wrapper>,
+      {deprecatedRouterMocks: true}
+    );
+
+    // Legend should show when hasCoverageData is true
+    expect(screen.getByText('Line covered by tests')).toBeInTheDocument();
+    expect(screen.getByText('Line uncovered by tests')).toBeInTheDocument();
+    expect(screen.getByText('Line partially covered by tests')).toBeInTheDocument();
+  });
+
+  it('does not show line coverage legend when coverage data is not available', () => {
+    const event = EventFixture({
+      projectID: project.id,
+      entries: [
+        {
+          type: EntryType.EXCEPTION,
+          data: {
+            values: [
+              {
+                type: 'ValueError',
+                value: 'test',
+                stacktrace: {
+                  frames: [
+                    {
+                      function: 'func4',
+                      filename: 'file4.py',
+                      lineNo: 50,
+                      context: [[50, 'raise ValueError("test")']],
+                      inApp: true,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(
+      <Content
+        type={StackType.ORIGINAL}
+        stackView={StackView.APP}
+        event={event}
+        values={event.entries[0]!.data.values}
+        projectSlug={project.slug}
+        newestFirst
+      />,
+      {deprecatedRouterMocks: true}
+    );
+
+    expect(screen.queryByText('Line covered by tests')).not.toBeInTheDocument();
+    expect(screen.queryByText('Line uncovered by tests')).not.toBeInTheDocument();
+    expect(screen.queryByText('Line partially covered by tests')).not.toBeInTheDocument();
+  });
 });
