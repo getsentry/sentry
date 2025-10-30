@@ -1,4 +1,5 @@
 import {useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
@@ -78,13 +79,18 @@ function StackedOrientation({
 }: {
   orientation: Orientation;
   queryIndex: number;
-  setOrientation: (orientation: 'side-by-side' | 'stacked') => void;
+  setOrientation: (orientation: Orientation) => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
   traceMetric: TraceMetric;
 }) {
+  const breakpoints = useBreakpoints();
   const [infoContentHidden, setInfoContentHidden] = useState(false);
   const additionaGraphActions = (
-    <PanelPositionDropdown orientation={orientation} setOrientation={setOrientation} />
+    <PanelPositionDropdown
+      orientation={orientation}
+      setOrientation={setOrientation}
+      disabled={!breakpoints.md}
+    />
   );
   const Icon = infoContentHidden ? IconHide : IconShow;
   const additionalInfoTabActions = (
@@ -123,7 +129,7 @@ function SideBySideOrientation({
 }: {
   orientation: Orientation;
   queryIndex: number;
-  setOrientation: (orientation: 'side-by-side' | 'stacked') => void;
+  setOrientation: (orientation: Orientation) => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
   traceMetric: TraceMetric;
 }) {
@@ -139,7 +145,9 @@ function SideBySideOrientation({
   );
 
   const additionalActions = (
-    <PanelPositionDropdown orientation={orientation} setOrientation={setOrientation} />
+    <SideBySidePositionSelectorWrapper>
+      <PanelPositionDropdown orientation={orientation} setOrientation={setOrientation} />
+    </SideBySidePositionSelectorWrapper>
   );
 
   return (
@@ -175,9 +183,11 @@ function SideBySideOrientation({
 function PanelPositionDropdown({
   orientation,
   setOrientation,
+  disabled,
 }: {
-  orientation: 'side-by-side' | 'stacked';
-  setOrientation: (orientation: 'side-by-side' | 'stacked') => void;
+  orientation: Orientation;
+  setOrientation: (orientation: Orientation) => void;
+  disabled?: boolean;
 }) {
   const options = [
     {
@@ -199,6 +209,7 @@ function PanelPositionDropdown({
   return (
     <DropdownMenu
       size="sm"
+      isDisabled={disabled}
       items={options}
       menuTitle={<div>{t('Panel Position')}</div>}
       trigger={triggerProps => (
@@ -215,3 +226,7 @@ function PanelPositionDropdown({
     />
   );
 }
+
+const SideBySidePositionSelectorWrapper = styled('div')`
+  margin-top: ${p => p.theme.space.md};
+`;
