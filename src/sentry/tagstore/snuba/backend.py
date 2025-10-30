@@ -751,9 +751,9 @@ class SnubaTagStorage(TagStorage):
 
             # Increase the count of the key by the count of empty values
             for keyobj in keys_with_counts:
-                stats: dict[str, Any] | None = empty_stats_map.get(keyobj.key)
-                if stats and stats.get("count", 0) > 0:
-                    keyobj.count = (keyobj.count or 0) + stats["count"]
+                empty_stats: dict[str, Any] | None = empty_stats_map.get(keyobj.key)
+                if empty_stats and empty_stats.get("count", 0) > 0:
+                    keyobj.count = (keyobj.count or 0) + empty_stats["count"]
 
         for keyobj in keys_with_counts:
             key = keyobj.key
