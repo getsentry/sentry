@@ -621,6 +621,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     const isAm3Ds = isAm3DsPlan(data.plan);
     const hasCustomSkuPrices = isAmEnt;
     const hasCustomPrice = hasCustomSkuPrices || !!data.managed; // Refers to ACV
+    const selectedPlan = this.state.provisionablePlans[data.plan];
 
     if (this.state.isLoading) {
       return <LoadingIndicator />;
@@ -772,7 +773,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 />
                 {this.state.data.type === 'invoiced' && (
                   <StyledSelectFieldWithHelpText
-                    label={`${this.state.data.plan ? displayBudgetName(this.state.provisionablePlans[this.state.data.plan], {title: true}) : 'Pay-as-you-go'} Max Spend Setting`}
+                    label={`${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Max Spend Setting`}
                     name="onDemandInvoicedManual"
                     choices={
                       isAm3Plan(this.state.data.plan)
@@ -786,7 +787,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                             ['DISABLE', 'Disable'],
                           ]
                     }
-                    help={`Used to enable (Shared or Per Category) or disable ${displayBudgetName(this.state.provisionablePlans[this.state.data.plan])} max spend for invoiced customers. Cannot be provisioned with soft cap.`}
+                    help={`Used to enable (Shared or Per Category) or disable ${selectedPlan ? displayBudgetName(selectedPlan) : 'pay-as-you-go'} max spend for invoiced customers. Cannot be provisioned with soft cap.`}
                     clearable
                     disabled={
                       this.state.data.type === 'credit_card' || this.isEnablingSoftCap()
@@ -803,10 +804,10 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
 
                 {!this.disableRetainOnDemand() && (
                   <BooleanField
-                    label={`Retain ${displayBudgetName(this.state.provisionablePlans[this.state.data.plan], {title: true})} Budget`}
+                    label={`Retain ${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Budget`}
                     name="retainOnDemandBudget"
                     value={this.state.data.retainOnDemandBudget}
-                    help={`Check to retain the customer's current ${displayBudgetName(this.state.provisionablePlans[this.state.data.plan], {title: true})} Budget. Otherwise, the customer's ${displayBudgetName(this.state.provisionablePlans[this.state.data.plan])} Budget will be set based on the default calculations (0.5 times the monthly plan price).`}
+                    help={`Check to retain the customer's current ${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Budget. Otherwise, the customer's ${selectedPlan ? displayBudgetName(selectedPlan) : 'Pay-as-you-go'} Budget will be set based on the default calculations (0.5 times the monthly plan price).`}
                     onChange={v =>
                       this.setState(state => ({
                         ...state,
@@ -818,252 +819,235 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     }
                   />
                 )}
-                {this.state.data.plan &&
-                  (this.state.provisionablePlans[this.state.data.plan]?.categories
-                    .length ?? 0) > 0 && (
-                    <Fragment>
-                      <SectionHeader>Plan Quotas</SectionHeader>
-                      <SectionHeaderDescription>
-                        Monthly quantities for each SKU
-                      </SectionHeaderDescription>
-                      {this.state.data.plan &&
-                        (
-                          this.state.provisionablePlans[this.state.data.plan]
-                            ?.categories ?? []
-                        ).map(category => {
-                          const categoryInfo = getCategoryInfoFromPlural(category);
-                          if (!categoryInfo) {
-                            return null;
-                          }
-                          const titleName = getPlanCategoryName({
-                            plan: this.state.provisionablePlans[this.state.data.plan],
-                            category,
-                            title: true,
-                            hadCustomDynamicSampling: isAm3Ds,
-                          });
-                          const suffix = isByteCategory(category) ? ' (in GB)' : '';
-                          const capitalizedApiName = this.capitalizeForApiName(
-                            categoryInfo.plural
-                          );
-                          return (
-                            <Fragment key={categoryInfo.plural}>
-                              <NumberField
-                                label={`Reserved ${titleName}${suffix}`}
-                                name={`reserved${capitalizedApiName}`}
-                                required
-                                disabled={
+                {selectedPlan && (selectedPlan?.categories.length ?? 0) > 0 && (
+                  <Fragment>
+                    <SectionHeader>Plan Quotas</SectionHeader>
+                    <SectionHeaderDescription>
+                      Monthly quantities for each SKU
+                    </SectionHeaderDescription>
+                    {selectedPlan?.categories.map(category => {
+                      const categoryInfo = getCategoryInfoFromPlural(category);
+                      if (!categoryInfo) {
+                        return null;
+                      }
+                      const titleName = getPlanCategoryName({
+                        plan: selectedPlan,
+                        category,
+                        title: true,
+                        hadCustomDynamicSampling: isAm3Ds,
+                      });
+                      const suffix = isByteCategory(category) ? ' (in GB)' : '';
+                      const capitalizedApiName = this.capitalizeForApiName(
+                        categoryInfo.plural
+                      );
+                      return (
+                        <Fragment key={categoryInfo.plural}>
+                          <NumberField
+                            label={`Reserved ${titleName}${suffix}`}
+                            name={`reserved${capitalizedApiName}`}
+                            required
+                            disabled={this.state.data[`reservedCpe${capitalizedApiName}`]}
+                            value={this.state.data[`reserved${capitalizedApiName}`]}
+                            onChange={v =>
+                              this.setState(state => ({
+                                ...state,
+                                data: {
+                                  ...state.data,
+                                  [`reserved${capitalizedApiName}`]: v,
+                                },
+                              }))
+                            }
+                          />
+                          <SelectField
+                            label={`Soft Cap Type ${titleName}`}
+                            name={`softCapType${capitalizedApiName}`}
+                            clearable
+                            required={false}
+                            choices={[
+                              ['ON_DEMAND', 'On Demand'],
+                              ['TRUE_FORWARD', 'True Forward'],
+                            ]}
+                            disabled={this.isEnablingOnDemandMaxSpend()}
+                            value={this.state.data[`softCapType${capitalizedApiName}`]}
+                            onChange={v =>
+                              this.setState(state => ({
+                                ...state,
+                                data: {
+                                  ...state.data,
+                                  [`softCapType${capitalizedApiName}`]: v ? v : null,
+                                },
+                              }))
+                            }
+                          />
+                          {this.isReservedBudgetCategory(isAm3Ds, category) && (
+                            <StyledDollarsAndCentsField
+                              label={`Reserved Cost-Per-Event ${titleName}`}
+                              name={`reservedCpe${capitalizedApiName}`}
+                              value={data[`reservedCpe${capitalizedApiName}`]}
+                              step={0.00000001}
+                              min={0}
+                              max={1}
+                              onChange={v =>
+                                this.setState(state => ({
+                                  ...state,
+                                  data: {
+                                    ...state.data,
+                                    [`reservedCpe${capitalizedApiName}`]: v,
+                                    [`reserved${capitalizedApiName}`]:
+                                      RESERVED_BUDGET_QUOTA,
+                                  },
+                                }))
+                              }
+                              onBlur={() => {
+                                const currentValue = parseFloat(
                                   this.state.data[`reservedCpe${capitalizedApiName}`]
-                                }
-                                value={this.state.data[`reserved${capitalizedApiName}`]}
-                                onChange={v =>
+                                );
+                                if (!isNaN(currentValue)) {
                                   this.setState(state => ({
                                     ...state,
                                     data: {
                                       ...state.data,
-                                      [`reserved${capitalizedApiName}`]: v,
+                                      [`reservedCpe${capitalizedApiName}`]:
+                                        currentValue.toFixed(CPE_DECIMAL_PRECISION),
                                     },
-                                  }))
+                                  }));
                                 }
-                              />
-                              <SelectField
-                                label={`Soft Cap Type ${titleName}`}
-                                name={`softCapType${capitalizedApiName}`}
-                                clearable
-                                required={false}
-                                choices={[
-                                  ['ON_DEMAND', 'On Demand'],
-                                  ['TRUE_FORWARD', 'True Forward'],
-                                ]}
-                                disabled={this.isEnablingOnDemandMaxSpend()}
-                                value={
-                                  this.state.data[`softCapType${capitalizedApiName}`]
-                                }
-                                onChange={v =>
+                              }}
+                            />
+                          )}
+                          {this.isEnablingOnDemandMaxSpend() && (
+                            <StyledDollarsAndCentsField
+                              label={`${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Cost-Per-Event ${titleName}`}
+                              name={`paygCpe${capitalizedApiName}`}
+                              value={data[`paygCpe${capitalizedApiName}`]}
+                              step={0.00000001}
+                              min={0.00000001}
+                              max={1}
+                              onChange={v =>
+                                this.setState(state => ({
+                                  ...state,
+                                  data: {
+                                    ...state.data,
+                                    [`paygCpe${capitalizedApiName}`]: v,
+                                  },
+                                }))
+                              }
+                              required
+                              onBlur={() => {
+                                const currentValue = parseFloat(
+                                  this.state.data[`paygCpe${capitalizedApiName}`]
+                                );
+                                if (!isNaN(currentValue)) {
                                   this.setState(state => ({
                                     ...state,
                                     data: {
                                       ...state.data,
-                                      [`softCapType${capitalizedApiName}`]: v ? v : null,
+                                      [`paygCpe${capitalizedApiName}`]:
+                                        currentValue.toFixed(CPE_DECIMAL_PRECISION),
                                     },
-                                  }))
+                                  }));
                                 }
-                              />
-                              {this.isReservedBudgetCategory(isAm3Ds, category) && (
-                                <StyledDollarsAndCentsField
-                                  label={`Reserved Cost-Per-Event ${titleName}`}
-                                  name={`reservedCpe${capitalizedApiName}`}
-                                  value={data[`reservedCpe${capitalizedApiName}`]}
-                                  step={0.00000001}
-                                  min={0}
-                                  max={1}
-                                  onChange={v =>
-                                    this.setState(state => ({
-                                      ...state,
-                                      data: {
-                                        ...state.data,
-                                        [`reservedCpe${capitalizedApiName}`]: v,
-                                        [`reserved${capitalizedApiName}`]:
-                                          RESERVED_BUDGET_QUOTA,
-                                      },
-                                    }))
-                                  }
-                                  onBlur={() => {
-                                    const currentValue = parseFloat(
-                                      this.state.data[`reservedCpe${capitalizedApiName}`]
-                                    );
-                                    if (!isNaN(currentValue)) {
-                                      this.setState(state => ({
-                                        ...state,
-                                        data: {
-                                          ...state.data,
-                                          [`reservedCpe${capitalizedApiName}`]:
-                                            currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                                        },
-                                      }));
-                                    }
-                                  }}
-                                />
-                              )}
-                              {this.isEnablingOnDemandMaxSpend() && (
-                                <StyledDollarsAndCentsField
-                                  label={`${this.state.data.plan ? displayBudgetName(this.state.provisionablePlans[this.state.data.plan], {title: true}) : 'Pay-as-you-go'} Cost-Per-Event ${titleName}`}
-                                  name={`paygCpe${capitalizedApiName}`}
-                                  value={data[`paygCpe${capitalizedApiName}`]}
-                                  step={0.00000001}
-                                  min={0.00000001}
-                                  max={1}
-                                  onChange={v =>
-                                    this.setState(state => ({
-                                      ...state,
-                                      data: {
-                                        ...state.data,
-                                        [`paygCpe${capitalizedApiName}`]: v,
-                                      },
-                                    }))
-                                  }
-                                  required
-                                  onBlur={() => {
-                                    const currentValue = parseFloat(
-                                      this.state.data[`paygCpe${capitalizedApiName}`]
-                                    );
-                                    if (!isNaN(currentValue)) {
-                                      this.setState(state => ({
-                                        ...state,
-                                        data: {
-                                          ...state.data,
-                                          [`paygCpe${capitalizedApiName}`]:
-                                            currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                                        },
-                                      }));
-                                    }
-                                  }}
-                                />
-                              )}
-                            </Fragment>
-                          );
-                        })}
-                      {this.isSettingSeerBudget() && (
-                        <StyledDollarsField
-                          label="Seer Budget"
-                          name="seerBudget"
-                          help="Monthly reserved budget for Seer"
-                          required={this.isSettingSeerBudget()}
-                          value={data.seerBudget}
-                          onChange={v =>
-                            this.setState(state => ({
-                              ...state,
-                              data: {
-                                ...state.data,
-                                seerBudget: v,
-                              },
-                            }))
-                          }
-                        />
-                      )}
-                      {isAm3DsPlan(this.state.data.plan) && (
-                        <StyledDollarsField
-                          label="Dynamic Sampling Budget"
-                          name="dynamicSamplingBudget"
-                          help="Monthly reserved budget for Dynamic Sampling"
-                          required={this.isSettingSpansBudget()}
-                          value={data.dynamicSamplingBudget}
-                          onChange={v =>
-                            this.setState(state => ({
-                              ...state,
-                              data: {
-                                ...state.data,
-                                dynamicSamplingBudget: v,
-                              },
-                            }))
-                          }
-                        />
-                      )}
-                    </Fragment>
-                  )}
+                              }}
+                            />
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                    {this.isSettingSeerBudget() && (
+                      <StyledDollarsField
+                        label="Seer Budget"
+                        name="seerBudget"
+                        help="Monthly reserved budget for Seer"
+                        required={this.isSettingSeerBudget()}
+                        value={data.seerBudget}
+                        onChange={v =>
+                          this.setState(state => ({
+                            ...state,
+                            data: {
+                              ...state.data,
+                              seerBudget: v,
+                            },
+                          }))
+                        }
+                      />
+                    )}
+                    {isAm3DsPlan(selectedPlan.id) && (
+                      <StyledDollarsField
+                        label="Dynamic Sampling Budget"
+                        name="dynamicSamplingBudget"
+                        help="Monthly reserved budget for Dynamic Sampling"
+                        required={this.isSettingSpansBudget()}
+                        value={data.dynamicSamplingBudget}
+                        onChange={v =>
+                          this.setState(state => ({
+                            ...state,
+                            data: {
+                              ...state.data,
+                              dynamicSamplingBudget: v,
+                            },
+                          }))
+                        }
+                      />
+                    )}
+                  </Fragment>
+                )}
               </div>
               <div>
                 <SectionHeader>Reserved Volume Prices</SectionHeader>
                 <SectionHeaderDescription>
                   Annual prices for reserved volumes, in whole dollars.
                 </SectionHeaderDescription>
-                {this.state.data.plan &&
-                  this.state.provisionablePlans[this.state.data.plan]?.categories.map(
-                    category => {
-                      const categoryInfo = getCategoryInfoFromPlural(category);
-                      if (!categoryInfo) {
-                        return null;
+                {selectedPlan?.categories.map(category => {
+                  const categoryInfo = getCategoryInfoFromPlural(category);
+                  if (!categoryInfo) {
+                    return null;
+                  }
+                  const titleName = getPlanCategoryName({
+                    plan: selectedPlan,
+                    category,
+                    title: true,
+                    hadCustomDynamicSampling: isAm3Ds,
+                  });
+                  const settingReservedBudget = this.isSettingReservedBudget(category);
+                  const isDisabled =
+                    settingReservedBudget &&
+                    (category === DataCategory.SPANS_INDEXED ||
+                      category === DataCategory.SEER_SCANNER);
+                  const suffix =
+                    settingReservedBudget &&
+                    (category === DataCategory.SPANS ||
+                      category === DataCategory.SEER_AUTOFIX)
+                      ? ` (${toTitleCase(
+                          Object.values(
+                            selectedPlan?.availableReservedBudgetTypes ?? {}
+                          ).find(budgetInfo =>
+                            budgetInfo.dataCategories.includes(category)
+                          )?.productName ?? ''
+                        )} ARR)`
+                      : '';
+                  const capitalizedApiName = this.capitalizeForApiName(
+                    categoryInfo.plural
+                  );
+                  return (
+                    <StyledDollarsField
+                      key={`customPrice${capitalizedApiName}`}
+                      label={`Price for ${titleName}${suffix}`}
+                      name={`customPrice${capitalizedApiName}`}
+                      disabled={!hasCustomSkuPrices || isDisabled}
+                      required={hasCustomSkuPrices}
+                      value={isDisabled ? 0 : data[`customPrice${capitalizedApiName}`]}
+                      onChange={v =>
+                        this.setState(state => ({
+                          ...state,
+                          data: {
+                            ...state.data,
+                            [`customPrice${capitalizedApiName}`]: v,
+                          },
+                        }))
                       }
-                      const titleName = getPlanCategoryName({
-                        plan: this.state.provisionablePlans[this.state.data.plan],
-                        category,
-                        title: true,
-                        hadCustomDynamicSampling: isAm3Ds,
-                      });
-                      const settingReservedBudget =
-                        this.isSettingReservedBudget(category);
-                      const isDisabled =
-                        settingReservedBudget &&
-                        (category === DataCategory.SPANS_INDEXED ||
-                          category === DataCategory.SEER_SCANNER);
-                      const suffix =
-                        settingReservedBudget &&
-                        (category === DataCategory.SPANS ||
-                          category === DataCategory.SEER_AUTOFIX)
-                          ? ` (${toTitleCase(
-                              Object.values(
-                                this.state.provisionablePlans[this.state.data.plan]
-                                  ?.availableReservedBudgetTypes ?? {}
-                              ).find(budgetInfo =>
-                                budgetInfo.dataCategories.includes(category)
-                              )?.productName ?? ''
-                            )} ARR)`
-                          : '';
-                      const capitalizedApiName = this.capitalizeForApiName(
-                        categoryInfo.plural
-                      );
-                      return (
-                        <StyledDollarsField
-                          key={`customPrice${capitalizedApiName}`}
-                          label={`Price for ${titleName}${suffix}`}
-                          name={`customPrice${capitalizedApiName}`}
-                          disabled={!hasCustomSkuPrices || isDisabled}
-                          required={hasCustomSkuPrices}
-                          value={
-                            isDisabled ? 0 : data[`customPrice${capitalizedApiName}`]
-                          }
-                          onChange={v =>
-                            this.setState(state => ({
-                              ...state,
-                              data: {
-                                ...state.data,
-                                [`customPrice${capitalizedApiName}`]: v,
-                              },
-                            }))
-                          }
-                        />
-                      );
-                    }
-                  )}
+                    />
+                  );
+                })}
                 <StyledDollarsField
                   label="Price for PCSS"
                   name="customPricePcss"
