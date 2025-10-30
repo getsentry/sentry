@@ -19,10 +19,10 @@ import {IconCheckmark, IconCircle, IconRefresh, IconWarning} from 'sentry/icons'
 import * as Storybook from 'sentry/stories';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
-import BadgeAPIReference from '!!type-loader!sentry/components/core/badge/index';
-import TagAPIReference from '!!type-loader!sentry/components/core/badge/tag';
+import BadgeDocumentation from '!!type-loader!@sentry/scraps/badge/index';
+import TagDocumentation from '!!type-loader!@sentry/scraps/badge/tag';
 
-export const types = {Badge: BadgeAPIReference.Badge, Tag: TagAPIReference.Tag};
+export const documentation = {Badge: BadgeDocumentation.Badge, Tag: TagDocumentation.Tag};
 
 Badges are a contextual highlighted text components that support specific use cases like `FeatureBadge`, `AlertBadge`, and `DeployBadge`.
 
