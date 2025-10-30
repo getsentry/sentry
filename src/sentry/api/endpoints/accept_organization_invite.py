@@ -17,7 +17,7 @@ from sentry.api.invite_helper import (
     add_invite_details_to_session,
     remove_invite_details_from_session,
 )
-from sentry.demo_mode.utils import is_demo_user
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -122,9 +122,9 @@ class AcceptOrganizationInvite(Endpoint):
         organization_id_or_slug: int | str | None = None,
     ) -> Response | HttpResponse:
 
-        # Demo user cant accept invites, this invite is probably meant for another user
+        # Demo user can't accept invites, this invite is probably meant for another user
         # so we log out the demo user and redirect them to the logout
-        if is_demo_user(request.user):
+        if is_demo_mode_enabled() and is_demo_user(request.user):
             logout(request)
             return HttpResponseRedirect(absolute_uri(reverse("sentry-logout")))
 
