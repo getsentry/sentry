@@ -63,4 +63,10 @@ export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
   },
   supportedDetectionTypes: ['static', 'percent', 'dynamic'],
   getDiscoverDataset: () => DiscoverDatasets.OURLOGS,
+  formatAggregateForTitle: aggregate => {
+    if (aggregate === 'count()') {
+      return t('Number of logs');
+    }
+    return aggregate;
+  },
 };

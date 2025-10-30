@@ -564,11 +564,11 @@ export function findSuggestedColumns(
     }
 
     const isStringAttribute = key.startsWith('!')
-      ? attributes.stringAttributes.hasOwnProperty(key.slice(1))
-      : attributes.stringAttributes.hasOwnProperty(key);
+      ? key.slice(1) in attributes.stringAttributes
+      : key in attributes.stringAttributes;
     const isNumberAttribute = key.startsWith('!')
-      ? attributes.numberAttributes.hasOwnProperty(key.slice(1))
-      : attributes.numberAttributes.hasOwnProperty(key);
+      ? key.slice(1) in attributes.numberAttributes
+      : key in attributes.numberAttributes;
 
     // guard against unknown keys and aggregate keys
     if (!isStringAttribute && !isNumberAttribute) {
@@ -628,7 +628,7 @@ function isSimpleFilter(
 
   // all number attributes are considered non trivial because they
   // almost always match on a range of values
-  if (attributes.numberAttributes.hasOwnProperty(key)) {
+  if (key in attributes.numberAttributes) {
     return false;
   }
 

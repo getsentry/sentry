@@ -112,6 +112,7 @@ export type ProjectKey = {
     cdn: string;
     crons: string;
     csp: string;
+    integration: string;
     minidump: string;
     otlp_logs: string;
     otlp_traces: string;

@@ -1,30 +1,28 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {
   EAPSpanSearchQueryBuilder,
   useEAPSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
-import {useRemoveUrlCursorsOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveUrlCursorsOnSearch';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
+import {GenerationsChart} from 'sentry/views/insights/aiGenerations/views/components/generationsChart';
+import {GenerationsTable} from 'sentry/views/insights/aiGenerations/views/components/generationsTable';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -48,9 +46,11 @@ function AIGenerationsPage() {
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
-  const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
-
-  useRemoveUrlCursorsOnSearch();
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'query',
+    parseAsString.withOptions({history: 'replace'})
+  );
+  const {unsetCursor} = useTableCursor();
 
   const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
     useTraceItemTags('number');
@@ -66,6 +66,7 @@ function AIGenerationsPage() {
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
         setSearchQuery(newQuery);
+        unsetCursor();
       },
       searchSource: 'ai-generations',
       numberTags,
@@ -86,6 +87,7 @@ function AIGenerationsPage() {
       setSearchQuery,
       stringSecondaryAliases,
       stringTags,
+      unsetCursor,
     ]
   );
 
@@ -107,9 +109,9 @@ function AIGenerationsPage() {
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (
-                    <QueryBuilderWrapper>
+                    <Flex flex={2}>
                       <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
-                    </QueryBuilderWrapper>
+                    </Flex>
                   )}
                 </ToolRibbon>
               </ModuleLayout.Full>
@@ -119,31 +121,8 @@ function AIGenerationsPage() {
                   <Onboarding />
                 ) : (
                   <Stack direction="column" gap="xl">
-                    <Widget
-                      Title={<Widget.WidgetTitle title="count(generations)" />}
-                      Visualization={null}
-                      height={200}
-                    />
-                    <PanelTable
-                      headers={['id', 'input/output', 'model', 'cost', 'timestamp']}
-                    >
-                      <div>1244</div>
-                      <div>
-                        <div>User Input</div>
-                        <div>Some AI response</div>
-                      </div>
-                      <div>gpt-4o</div>
-                      <div>1244$</div>
-                      <div>2025-01-01 12:00:00</div>
-                      <div>1245</div>
-                      <div>
-                        <div>Another user query</div>
-                        <div>Short AI answer</div>
-                      </div>
-                      <div>gpt-4o</div>
-                      <div>8$</div>
-                      <div>2025-01-01 8:00:00</div>
-                    </PanelTable>
+                    <GenerationsChart />
+                    <GenerationsTable />
                   </Stack>
                 )}
               </ModuleLayout.Full>
@@ -164,9 +143,5 @@ function PageWithProviders() {
     </ModulePageProviders>
   );
 }
-
-const QueryBuilderWrapper = styled('div')`
-  flex: 2;
-`;
 
 export default PageWithProviders;
