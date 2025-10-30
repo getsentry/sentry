@@ -18,7 +18,6 @@ import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSetExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useSetQueryParamsSavedQuery} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -48,19 +47,7 @@ function SaveQueryModal({
   const [isSaving, setIsSaving] = useState(false);
   const [starred, setStarred] = useState(true);
 
-  const setExplorePageParams = useSetExplorePageParams();
   const setQueryParamsSavedQuery = useSetQueryParamsSavedQuery();
-
-  const updatePageIdAndTitle = useCallback(
-    (id: string, title: string) => {
-      if (traceItemDataset === TraceItemDataset.LOGS) {
-        setQueryParamsSavedQuery(id, title);
-      } else if (traceItemDataset === TraceItemDataset.SPANS) {
-        setExplorePageParams({id, title});
-      }
-    },
-    [setExplorePageParams, setQueryParamsSavedQuery, traceItemDataset]
-  );
 
   const onSave = useCallback(async () => {
     try {
@@ -68,7 +55,7 @@ function SaveQueryModal({
       addLoadingMessage(t('Saving query...'));
       const {id} = await saveQuery(name, initialName === undefined ? starred : undefined);
       if (initialName === undefined) {
-        updatePageIdAndTitle(id, name);
+        setQueryParamsSavedQuery(id, name);
       }
       addSuccessMessage(t('Query saved successfully'));
       if (defined(source)) {
@@ -99,7 +86,7 @@ function SaveQueryModal({
     saveQuery,
     name,
     starred,
-    updatePageIdAndTitle,
+    setQueryParamsSavedQuery,
     closeModal,
     organization,
     initialName,

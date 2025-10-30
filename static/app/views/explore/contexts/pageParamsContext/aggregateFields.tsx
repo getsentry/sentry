@@ -18,7 +18,7 @@ export interface GroupBy {
   groupBy: string;
 }
 
-export function isBaseVisualize(value: any): value is BaseVisualize {
+function isBaseVisualize(value: any): value is BaseVisualize {
   return (
     defined(value) &&
     typeof value === 'object' &&
@@ -105,23 +105,6 @@ export function getAggregateFieldsFromLocation(
   }
 
   return aggregateFields;
-}
-
-export function updateLocationWithAggregateFields(
-  location: Location,
-  aggregateFields: Array<GroupBy | BaseVisualize> | null | undefined
-) {
-  if (defined(aggregateFields)) {
-    location.query.aggregateField = aggregateFields.flatMap(aggregateField => {
-      if (isBaseVisualize(aggregateField)) {
-        const visualizes = Visualize.fromJSON(aggregateField);
-        return visualizes.map(visualize => JSON.stringify(visualize.toJSON()));
-      }
-      return [JSON.stringify(aggregateField)];
-    });
-  } else if (aggregateFields === null) {
-    delete location.query.aggregateField;
-  }
 }
 
 function parseGroupByOrBaseVisualize(

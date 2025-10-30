@@ -1,6 +1,5 @@
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
@@ -23,15 +22,4 @@ function parseDataset(rawDataset: string | undefined) {
   }
 
   return undefined;
-}
-
-export function updateLocationWithDataset(
-  location: Location,
-  dataset: DiscoverDatasets | null | undefined
-) {
-  if (defined(dataset)) {
-    location.query.dataset = dataset;
-  } else if (dataset === null) {
-    delete location.query.dataset;
-  }
 }
