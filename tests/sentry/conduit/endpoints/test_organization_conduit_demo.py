@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 from django.test.utils import override_settings
 
 from sentry.testutils.cases import APITestCase
@@ -14,9 +16,9 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
         self.login_as(user=self.user)
 
     @override_settings(
-        CONDUIT_PRIVATE_KEY=RS256_KEY,
-        CONDUIT_JWT_ISSUER="sentry",
-        CONDUIT_JWT_AUDIENCE="conduit",
+        CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY,
+        CONDUIT_GATEWAY_JWT_ISSUER="sentry",
+        CONDUIT_GATEWAY_JWT_AUDIENCE="conduit",
         CONDUIT_GATEWAY_URL="https://conduit.example.com",
     )
     def test_post_generate_credentials(self) -> None:
@@ -55,9 +57,9 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
         assert response.data == {"error": "Conduit is not configured properly"}
 
     @override_settings(
-        CONDUIT_PRIVATE_KEY=RS256_KEY,
-        CONDUIT_JWT_ISSUER="sentry",
-        CONDUIT_JWT_AUDIENCE="conduit",
+        CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY,
+        CONDUIT_GATEWAY_JWT_ISSUER="sentry",
+        CONDUIT_GATEWAY_JWT_AUDIENCE="conduit",
         CONDUIT_GATEWAY_URL="https://conduit.example.com",
     )
     def test_credentials_are_unique(self) -> None:
@@ -76,3 +78,18 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
 
         assert response1.data["conduit"]["token"] != response2.data["conduit"]["token"]
         assert response1.data["conduit"]["channel_id"] != response2.data["conduit"]["channel_id"]
+
+    @override_settings(
+        CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY,
+        CONDUIT_GATEWAY_JWT_ISSUER="sentry",
+        CONDUIT_GATEWAY_JWT_AUDIENCE="conduit",
+        CONDUIT_GATEWAY_URL="https://conduit.example.com",
+    )
+    @patch("sentry.conduit.endpoints.organization_conduit_demo.stream_demo_data")
+    def test_post_queues_task(self, mock_task: MagicMock):
+        self.get_success_response(
+            self.organization.slug,
+            method="POST",
+            status_code=201,
+        )
+        mock_task.delay.assert_called_once()

@@ -8,6 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.conduit.auth import get_conduit_credentials
+from sentry.conduit.tasks import stream_demo_data
 from sentry.models.organization import Organization
 
 
@@ -39,9 +40,19 @@ class OrganizationConduitDemoEndpoint(OrganizationEndpoint):
                 {"error": "Conduit is not configured properly"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+        # Kick off a task to stream data to Conduit
+        try:
+            stream_demo_data.delay(organization.id, conduit_credentials.channel_id)
+        except Exception as e:
+            sentry_sdk.capture_exception(e, level="warning")
+            return Response(
+                {"error": "Failed to start stream"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         serializer = ConduitCredentialsResponseSerializer(
             {
                 "conduit": conduit_credentials._asdict(),
             }
         )
+        # Respond back to the user with the credentials needed to connect to Conduit
         return Response(serializer.data, status=status.HTTP_201_CREATED)
