@@ -26,7 +26,6 @@ import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQu
 import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
-import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
@@ -120,7 +119,6 @@ export function ToolsTable() {
       return (
         <HeadSortCell
           sortKey={column.key}
-          cursorParamName={TableUrlParams.CURSOR}
           forceCellGrow={column.key === 'tool'}
           align={rightAlignColumns.has(column.key) ? 'right' : undefined}
           onClick={handleSort}

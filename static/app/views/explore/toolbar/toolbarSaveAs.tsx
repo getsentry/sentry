@@ -27,7 +27,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
-import {useExploreId} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -37,6 +36,7 @@ import {
   useQueryParamsAggregateSortBys,
   useQueryParamsFields,
   useQueryParamsGroupBys,
+  useQueryParamsId,
   useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsSortBys,
@@ -63,7 +63,7 @@ export function ToolbarSaveAs() {
   const sampleSortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const mode = useQueryParamsMode();
-  const id = useExploreId();
+  const id = useQueryParamsId();
   const visualizeYAxes = useMemo(
     () => dedupeArray(visualizes.filter(isVisualizeFunction).map(v => v.yAxis)),
     [visualizes]
