@@ -2,6 +2,7 @@ from typing import Any
 
 import pytest
 
+from sentry.grouping.component import StacktraceGroupingComponent
 from sentry.grouping.strategies.base import GroupingContext, create_strategy_configuration_class
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
@@ -151,3 +152,150 @@ class ChainedExceptionTest(TestCase):
         ).get_hashes()
 
         assert js_with_mechanism_hashes != no_mechanism_hashes
+
+
+class StacktraceTest(TestCase):
+    def setUp(self) -> None:
+        self.event = Event(
+            event_id="1121201212312012",
+            project_id=self.project.id,
+            data={
+                # Test on an event-level stacktrace to show that it's the stacktrace strategy
+                # (rather than the exception or threads strategies) which is handling the
+                # `contributes` value. This means it will work regardless of where in the event the
+                # stacktrace appears.
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "dog_walker",
+                            "context_line": "take_dogs_on_walk()",
+                        },
+                        {
+                            "function": "take_dogs_on_walk",
+                            "context_line": "raise InappropriateChasingError('Charlie! Stop chasing the poor squirrel!')",
+                        },
+                    ]
+                },
+            },
+        )
+
+    def test_stacktrace_contribution_values_with_in_app_frames(self) -> None:
+        self.project.update_option("sentry:grouping_enhancements", "function:dog_walker +app")
+
+        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+        app_stacktrace_component = variants["app"].root_component.values[0]
+        system_stacktrace_component = variants["system"].root_component.values[0]
+
+        assert isinstance(app_stacktrace_component, StacktraceGroupingComponent)
+        assert isinstance(system_stacktrace_component, StacktraceGroupingComponent)
+
+        # Make sure the stacktrace rule worked, so that we're testing what we think we're testing
+        for frame_component, expected_in_app, expected_contributes in zip(
+            app_stacktrace_component.values,
+            (True, False),  # expected in-app for both frames
+            (True, False),  # expected contributes for both frames
+        ):
+            assert frame_component.in_app == expected_in_app
+            assert frame_component.contributes == expected_contributes
+        for frame_component, expected_in_app, expected_contributes in zip(
+            system_stacktrace_component.values,
+            (True, False),  # expected in-app for both frames
+            (True, True),  # expected contributes for both frames
+        ):
+            assert frame_component.in_app == expected_in_app
+            assert frame_component.contributes == expected_contributes
+
+        # Assert on the actual behavior we're trying to test
+        assert app_stacktrace_component.contributes is True
+        assert app_stacktrace_component.hint is None
+
+        assert system_stacktrace_component.contributes is True
+        assert system_stacktrace_component.hint is None
+
+    def test_stacktrace_contribution_values_no_in_app_frames(self) -> None:
+        self.project.update_option("sentry:grouping_enhancements", "function:* -app")
+
+        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+        app_stacktrace_component = variants["app"].root_component.values[0]
+        system_stacktrace_component = variants["system"].root_component.values[0]
+
+        assert isinstance(app_stacktrace_component, StacktraceGroupingComponent)
+        assert isinstance(system_stacktrace_component, StacktraceGroupingComponent)
+
+        # Make sure the stacktrace rule worked, so that we're testing what we think we're testing
+        for frame_component in app_stacktrace_component.values:
+            assert frame_component.in_app is False
+            assert frame_component.contributes is False
+        for frame_component in system_stacktrace_component.values:
+            assert frame_component.in_app is False
+            assert frame_component.contributes is True
+
+        # Assert on the actual behavior we're trying to test
+        assert app_stacktrace_component.contributes is False
+        assert app_stacktrace_component.hint == "ignored because it contains no in-app frames"
+
+        assert system_stacktrace_component.contributes is True
+        assert system_stacktrace_component.hint is None
+
+    def test_stacktrace_contribution_values_no_contributing_in_app_frames(self) -> None:
+        self.project.update_option(
+            "sentry:grouping_enhancements",
+            "function:dog_walker +app -group \n function:take_dogs_on_walk -app +group",
+        )
+
+        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+        app_stacktrace_component = variants["app"].root_component.values[0]
+        system_stacktrace_component = variants["system"].root_component.values[0]
+
+        assert isinstance(app_stacktrace_component, StacktraceGroupingComponent)
+        assert isinstance(system_stacktrace_component, StacktraceGroupingComponent)
+
+        # Make sure the stacktrace rules worked, so that we're testing what we think we're testing
+        for frame_component, expected_in_app, expected_contributes in zip(
+            app_stacktrace_component.values,
+            (True, False),  # expected in-app for both frames
+            (False, False),  # expected contributes for both frames
+        ):
+            assert frame_component.in_app == expected_in_app
+            assert frame_component.contributes == expected_contributes
+        for frame_component, expected_in_app, expected_contributes in zip(
+            system_stacktrace_component.values,
+            (True, False),  # expected in-app for both frames
+            (False, True),  # expected contributes for both frames
+        ):
+            assert frame_component.in_app == expected_in_app
+            assert frame_component.contributes == expected_contributes
+
+        # Assert on the actual behavior we're trying to test
+        assert app_stacktrace_component.contributes is False
+        assert app_stacktrace_component.hint == "ignored because it contains no contributing frames"
+
+        assert system_stacktrace_component.contributes is True
+        assert system_stacktrace_component.hint is None
+
+    def test_stacktrace_contribution_values_no_contributing_frames(self) -> None:
+        self.project.update_option("sentry:grouping_enhancements", "function:* +app -group")
+
+        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+        app_stacktrace_component = variants["app"].root_component.values[0]
+        system_stacktrace_component = variants["system"].root_component.values[0]
+
+        assert isinstance(app_stacktrace_component, StacktraceGroupingComponent)
+        assert isinstance(system_stacktrace_component, StacktraceGroupingComponent)
+
+        # Make sure the stacktrace rule worked, so that we're testing what we think we're testing
+        for frame_component in app_stacktrace_component.values:
+            assert frame_component.in_app is True
+            assert frame_component.contributes is False
+        for frame_component in system_stacktrace_component.values:
+            assert frame_component.in_app is True
+            assert frame_component.contributes is False
+
+        # Assert on the actual behavior we're trying to test
+        assert app_stacktrace_component.contributes is False
+        assert app_stacktrace_component.hint == "ignored because it contains no contributing frames"
+
+        assert system_stacktrace_component.contributes is False
+        assert (
+            system_stacktrace_component.hint == "ignored because it contains no contributing frames"
+        )

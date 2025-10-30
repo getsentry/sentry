@@ -4,7 +4,6 @@ import base64
 import logging
 import os
 import zlib
-from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import cached_property
@@ -404,13 +403,6 @@ class EnhancementsConfig:
         platform: str | None,
         exception_data: dict[str, Any] | None = None,
     ) -> StacktraceGroupingComponent:
-        """
-        This assembles a `stacktrace` grouping component out of the given
-        `frame` components and source frames.
-
-        This also handles cases where the entire stacktrace should be discarded.
-        """
-
         with metrics.timer("grouping.enhancements.get_contributes_and_hint") as metrics_timer_tags:
             metrics_timer_tags.update({"split": True, "variant": variant_name})
 
@@ -447,11 +439,6 @@ class EnhancementsConfig:
                 )
             )
 
-        # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
-        # both collect metrics and use the information in decisions about whether to send the event
-        # to Seer
-        frame_counts: Counter[str] = Counter()
-
         # Update frame components with results from rust
         for frame, frame_component, in_app_rust_frame, contributes_rust_frame in zip(
             frames, frame_components, in_app_rust_frames, contributes_rust_frames
@@ -481,27 +468,10 @@ class EnhancementsConfig:
 
             frame_component.update(hint=hint)
 
-            # Add this frame to our tally
-            key = f"{"in_app" if frame_component.in_app else "system"}_{"contributing" if frame_component.contributes else "non_contributing"}_frames"
-            frame_counts[key] += 1
-
-        # Because of the special case above, in which we ignore the rust-derived `contributes` value
-        # for certain frames, it's possible for the rust-derived `contributes` value for the overall
-        # stacktrace to be wrong, too (if in the process of ignoring rust we turn a stacktrace with
-        # at least one contributing frame into one without any). So we need to special-case here as
-        # well.
-        if variant_name == "app" and frame_counts["in_app_contributing_frames"] == 0:
-            stacktrace_contributes = False
-            stacktrace_hint = None
-        else:
-            stacktrace_contributes = rust_stacktrace_results.contributes
-            stacktrace_hint = rust_stacktrace_results.hint
-
         stacktrace_component = StacktraceGroupingComponent(
             values=frame_components,
-            hint=stacktrace_hint,
-            contributes=stacktrace_contributes,
-            frame_counts=frame_counts,
+            hint=rust_stacktrace_results.hint,
+            contributes=rust_stacktrace_results.contributes,
         )
 
         return stacktrace_component
