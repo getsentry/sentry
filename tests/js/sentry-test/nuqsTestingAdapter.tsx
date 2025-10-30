@@ -1,5 +1,8 @@
 import {useCallback, useMemo, type ReactElement, type ReactNode} from 'react';
-import {unstable_createAdapterProvider as createAdapterProvider} from 'nuqs/adapters/custom';
+import {
+  unstable_createAdapterProvider as createAdapterProvider,
+  renderQueryString,
+} from 'nuqs/adapters/custom';
 import type {unstable_AdapterInterface as AdapterInterface} from 'nuqs/adapters/custom';
 import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
 
@@ -49,7 +52,7 @@ export function SentryNuqsTestingAdapter({
 
       const updateUrl: AdapterInterface['updateUrl'] = (search, options) => {
         const newSearchParams = new URLSearchParams(search);
-        const queryString = newSearchParams.toString();
+        const queryString = renderQueryString(newSearchParams);
 
         // Call the onUrlUpdate callback if provided
         onUrlUpdate?.({
