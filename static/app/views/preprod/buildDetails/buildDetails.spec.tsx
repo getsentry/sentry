@@ -4,7 +4,6 @@ import {
   PreprodVcsInfoFullFixture,
 } from 'sentry-fixture/preprod';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {BuildDetailsSizeAnalysisState} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -12,15 +11,7 @@ import {BuildDetailsSizeAnalysisState} from 'sentry/views/preprod/types/buildDet
 import BuildDetails from './buildDetails';
 
 describe('BuildDetails', () => {
-  const {organization} = initializeOrg({
-    organization: OrganizationFixture(),
-    router: {
-      params: {
-        projectId: 'project-1',
-        artifactId: 'artifact-1',
-      },
-    },
-  });
+  const organization = OrganizationFixture();
 
   const initialRouterConfig = {
     location: {
