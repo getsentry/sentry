@@ -67,6 +67,8 @@ def test_post_bulk_grouping_records_success(
             "project_id": 1,
             "stacktrace_length_sum": 24,
             "use_reranking": False,
+            "model": None,
+            "training_mode": None,
         },
     )
 
@@ -91,10 +93,12 @@ def test_post_bulk_grouping_records_timeout(
         extra={
             "group_ids": json.dumps(_create_grouping_records_request_params()["group_id_list"]),
             "project_id": 1,
-            "reason": "ReadTimeoutError",
-            "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT,
             "stacktrace_length_sum": 24,
             "use_reranking": False,
+            "model": None,
+            "training_mode": None,
+            "reason": "ReadTimeoutError",
+            "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT,
         },
     )
 
@@ -124,6 +128,8 @@ def test_post_bulk_grouping_records_failure(
             "reason": "INTERNAL SERVER ERROR",
             "stacktrace_length_sum": 24,
             "use_reranking": False,
+            "model": None,
+            "training_mode": None,
         },
     )
 
@@ -169,6 +175,8 @@ def test_post_bulk_grouping_records_use_reranking(
             "project_id": 1,
             "stacktrace_length_sum": 24,
             "use_reranking": True,
+            "model": None,
+            "training_mode": None,
         },
     )
 

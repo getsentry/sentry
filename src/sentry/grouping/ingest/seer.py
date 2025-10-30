@@ -6,7 +6,7 @@ import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import options
+from sentry import features, options
 from sentry import ratelimits as ratelimiter
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
@@ -18,7 +18,7 @@ from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
-from sentry.seer.similarity.types import SimilarIssuesEmbeddingsRequest
+from sentry.seer.similarity.types import GroupingVersion, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
     SEER_INELIGIBLE_EVENT_PLATFORMS,
     ReferrerOptions,
@@ -272,6 +272,11 @@ def get_seer_similar_issues(
         get_stacktrace_string(get_grouping_info_from_variants_legacy(variants)),
     )
 
+    # Get model configuration from feature flags
+    use_v2_model = features.has("projects:similarity-grouping-v2-model", event.project)
+    model_version = GroupingVersion.V2 if use_v2_model else GroupingVersion.V1
+    training_mode = False  # PR #B will add the smart logic
+
     request_data: SimilarIssuesEmbeddingsRequest = {
         "event_id": event.event_id,
         "hash": event_hash,
@@ -281,10 +286,16 @@ def get_seer_similar_issues(
         "k": options.get("seer.similarity.ingest.num_matches_to_request"),
         "referrer": "ingest",
         "use_reranking": options.get("seer.similarity.ingest.use_reranking"),
+        "model": model_version,
+        "training_mode": training_mode,
     }
     event.data.pop("stacktrace_string", None)
 
-    seer_request_metric_tags = {"platform": event.platform or "unknown"}
+    seer_request_metric_tags: dict[str, str | int | bool] = {
+        "platform": event.platform or "unknown",
+        "model_version": model_version.value,
+        "training_mode": training_mode,
+    }
 
     seer_results = get_similarity_data_from_seer(
         request_data,

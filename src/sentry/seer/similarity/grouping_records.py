@@ -15,7 +15,7 @@ from sentry.conf.server import (
 )
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.seer.similarity.types import RawSeerSimilarIssueData
+from sentry.seer.similarity.types import GroupingVersion, RawSeerSimilarIssueData
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -36,6 +36,8 @@ class CreateGroupingRecordsRequest(TypedDict):
     data: list[CreateGroupingRecordData]
     stacktrace_list: list[str]
     use_reranking: bool | None
+    model: NotRequired[GroupingVersion]  # Model version, defaults to V1 for backward compatibility
+    training_mode: NotRequired[bool]
 
 
 class BulkCreateGroupingRecordsResponse(TypedDict):
@@ -62,6 +64,8 @@ def post_bulk_grouping_records(
             [len(stacktrace) for stacktrace in grouping_records_request["stacktrace_list"]]
         ),
         "use_reranking": grouping_records_request.get("use_reranking"),
+        "model": grouping_records_request.get("model"),
+        "training_mode": grouping_records_request.get("training_mode"),
     }
 
     try:

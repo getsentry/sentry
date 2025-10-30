@@ -1,11 +1,19 @@
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any, ClassVar, NotRequired, Self, TypedDict
 
 from sentry.models.grouphash import GroupHash
 
 logger = logging.getLogger(__name__)
+
+
+class GroupingVersion(StrEnum):
+    """Model version for similarity grouping."""
+
+    V1 = "v1"
+    V2 = "v2"
 
 
 class IncompleteSeerDataError(Exception):
@@ -31,6 +39,8 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     event_id: NotRequired[str]
     referrer: NotRequired[str]
     use_reranking: NotRequired[bool]
+    model: NotRequired[GroupingVersion]  # Model version, defaults to V1 for backward compatibility
+    training_mode: NotRequired[bool]  # whether to just insert embedding without querying
 
 
 class RawSeerSimilarIssueData(TypedDict):

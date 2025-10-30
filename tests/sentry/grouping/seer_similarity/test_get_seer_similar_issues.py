@@ -10,7 +10,7 @@ from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
-from sentry.seer.similarity.types import SeerSimilarIssueData
+from sentry.seer.similarity.types import GroupingVersion, SeerSimilarIssueData
 from sentry.seer.similarity.utils import get_stacktrace_string
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
@@ -108,8 +108,15 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "k": options.get("seer.similarity.ingest.num_matches_to_request"),
                 "referrer": "ingest",
                 "use_reranking": True,
+                "model": GroupingVersion.V1,
+                "training_mode": False,
             },
-            {"platform": "python", "hybrid_fingerprint": False},
+            {
+                "platform": "python",
+                "model_version": "v1",
+                "training_mode": False,
+                "hybrid_fingerprint": False,
+            },
         )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -152,6 +159,8 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "project_id": self.project.id,
                 "stacktrace": new_stacktrace_string,
                 "exception_type": "FailedToFetchError",
+                "model": GroupingVersion.V1,
+                "training_mode": False,
             }
 
             assert mock_get_similarity_data.call_count == 2
@@ -164,7 +173,12 @@ class GetSeerSimilarIssuesTest(TestCase):
                         "referrer": "ingest",
                         "use_reranking": True,
                     },
-                    {"platform": "python", "hybrid_fingerprint": False},
+                    {
+                        "platform": "python",
+                        "model_version": "v1",
+                        "training_mode": False,
+                        "hybrid_fingerprint": False,
+                    },
                 ),
                 # Second call to store the event's data since the match that came back from Seer
                 # wasn't usable
@@ -175,7 +189,11 @@ class GetSeerSimilarIssuesTest(TestCase):
                         "referrer": "ingest_follow_up",
                         "use_reranking": False,
                     },
-                    {"platform": "python"},
+                    {
+                        "platform": "python",
+                        "model_version": "v1",
+                        "training_mode": False,
+                    },
                 ),
             ]
 
