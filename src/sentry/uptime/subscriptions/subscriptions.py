@@ -529,20 +529,7 @@ def delete_uptime_detector(detector: Detector):
     quotas.backend.remove_seat(DataCategory.UPTIME, detector)
     detector.update(status=ObjectStatus.PENDING_DELETION)
     RegionScheduledDeletion.schedule(detector, days=0)
-    remove_uptime_subscription_if_unused(uptime_subscription)
-
-
-def remove_uptime_subscription_if_unused(uptime_subscription: UptimeSubscription):
-    """
-    Determines if an uptime subscription is no longer used by any detectors and removes it if so
-    """
-    # If the uptime subscription is no longer used, we also remove it.
-    has_active_detector = Detector.objects.filter(
-        data_sources__source_id=str(uptime_subscription.id),
-        status=ObjectStatus.ACTIVE,
-    ).exists()
-    if not has_active_detector:
-        delete_uptime_subscription(uptime_subscription)
+    delete_uptime_subscription(uptime_subscription)
 
 
 def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:
