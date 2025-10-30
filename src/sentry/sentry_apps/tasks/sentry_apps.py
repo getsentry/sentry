@@ -153,6 +153,7 @@ class WebhookGroupResponse(BaseGroupSerializerResponse):
     web_url: str
     project_url: str
     url: str
+    issue_category: str
 
 
 def _webhook_issue_data(
