@@ -15,6 +15,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from rest_framework.exceptions import (
+    APIException,
     AuthenticationFailed,
     NotFound,
     ParseError,
@@ -1008,7 +1009,7 @@ def trigger_coding_agent_launch(
         trigger_source: Either "root_cause" or "solution" (default: "solution")
 
     Returns:
-        dict: {"success": bool, "detail": str (optional)}
+        dict: {"success": bool}
     """
     try:
         launch_coding_agents_for_run(
@@ -1018,17 +1019,16 @@ def trigger_coding_agent_launch(
             trigger_source=AutofixTriggerSource(trigger_source),
         )
         return {"success": True}
-    except Exception as e:
+    except (NotFound, PermissionDenied, ValidationError, APIException):
         logger.exception(
             "coding_agent.rpc_launch_error",
             extra={
                 "organization_id": organization_id,
                 "integration_id": integration_id,
                 "run_id": run_id,
-                "error": str(e),
             },
         )
-        return {"success": False, "detail": str(e)}
+        return {"success": False}
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
