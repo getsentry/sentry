@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import orjson
 from django.conf import settings
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,6 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
 from sentry.net.http import connection_from_url
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -27,21 +28,6 @@ class OrganizationSeerExplorerRunsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
     }
-
-
-class ExplorerRunsRequestSerializer(serializers.Serializer):
-    offset = serializers.IntegerField(required=False, allow_null=False)
-    limit = serializers.IntegerField(required=False, allow_null=False)
-
-    def validate_offset(self, value: int) -> int:
-        if value < 0:
-            raise serializers.ValidationError("Offset must be non-negative")
-        return value
-
-    def validate_limit(self, value: int) -> int:
-        if value < 1:
-            raise serializers.ValidationError("Limit must be greater than 0")
-        return value
 
 
 @region_silo_endpoint
@@ -72,34 +58,26 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
                 status=403,
             )
 
-        serializer = ExplorerRunsRequestSerializer(data=request.GET)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
-        offset: int | None = serializer.validated_data.get("offset")
-        limit: int | None = serializer.validated_data.get("limit")
-
-        path = "/v1/automation/explorer/runs"
-        body = orjson.dumps(
-            {
-                "organization_id": organization.id,
-                "user_id": request.user.id,
-                "offset": offset,
-                "limit": limit,
-            },
-            option=orjson.OPT_NON_STR_KEYS,
-        )
-
-        response = make_signed_seer_api_request(autofix_connection_pool, path, body)
-        if response.status < 200 or response.status >= 300:
-            logger.error(
-                "Seer explorer runs endpoint failed",
-                extra={
-                    "path": path,
-                    "status_code": response.status,
-                    "response_data": response.data,
+        def make_seer_runs_request(offset: int, limit: int) -> dict[str, Any]:
+            path = "/v1/automation/explorer/runs"
+            body = orjson.dumps(
+                {
+                    "organization_id": organization.id,
+                    "user_id": request.user.id,
+                    "offset": offset,
+                    "limit": limit,
                 },
+                option=orjson.OPT_NON_STR_KEYS,
             )
-            return Response({"detail": "Internal Server Error"}, status=502)
 
-        return Response(response.json(), status=response.status)
+            response = make_signed_seer_api_request(autofix_connection_pool, path, body)
+            if response.status < 200 or response.status >= 300:
+                raise Exception(f"Seer explorer runs endpoint failed with status {response.status}")
+
+            return response.json()
+
+        return self.paginate(
+            request=request,
+            paginator=GenericOffsetPaginator(data_fn=make_seer_runs_request),
+            default_per_page=100,
+        )
