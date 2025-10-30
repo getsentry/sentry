@@ -27,7 +27,6 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
-import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
@@ -49,6 +48,7 @@ import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hook
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
+import {useWidgetBuilderTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderAnimationSettings';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
@@ -90,6 +90,7 @@ function WidgetBuilderSlideout({
   const [error, setError] = useState<Record<string, any>>({});
   const theme = useTheme();
   const isEditing = useIsEditingWidget();
+  const transitionSettings = useWidgetBuilderTransitionSettings();
   const source = useDashboardWidgetSource();
   const {cacheBuilderState} = useCacheBuilderState();
   const {setSegmentSpanBuilderState} = useSegmentSpanWidgetState();
@@ -208,7 +209,7 @@ function WidgetBuilderSlideout({
       collapsed={!isOpen}
       slidePosition="left"
       data-test-id="widget-slideout"
-      transitionProps={animationTransitionSettings}
+      transitionProps={transitionSettings}
     >
       <SlideoutHeaderWrapper>
         <Breadcrumbs crumbs={breadcrumbs} />

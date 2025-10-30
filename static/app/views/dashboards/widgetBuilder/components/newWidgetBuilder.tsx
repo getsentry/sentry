@@ -25,7 +25,6 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
-import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import {
   DEFAULT_WIDGET_DRAG_POSITIONING,
   DRAGGABLE_PREVIEW_HEIGHT_PX,
@@ -43,6 +42,7 @@ import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useWidgetBuilderTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderAnimationSettings';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
@@ -269,6 +269,7 @@ export function WidgetPreviewContainer({
   const organization = useOrganization();
   const location = useLocation();
   const theme = useTheme();
+  const transitionSettings = useWidgetBuilderTransitionSettings();
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   // if small screen and draggable, enable dragging
   const isDragEnabled = isSmallScreen && isDraggable;
@@ -334,7 +335,7 @@ export function WidgetPreviewContainer({
     initial: {opacity: 0, x: '100%', y: 0},
     animate: {opacity: 1, x: 0, y: 0},
     exit: {opacity: 0, x: '100%', y: 0},
-    transition: animationTransitionSettings,
+    transition: transitionSettings,
   };
 
   return (
