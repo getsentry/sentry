@@ -13,6 +13,7 @@ from sentry.grouping.component import (
     ErrorTypeGroupingComponent,
     ErrorValueGroupingComponent,
     ExceptionGroupingComponent,
+    ExceptionGroupingComponentChildren,
     FilenameGroupingComponent,
     FrameGroupingComponent,
     FunctionGroupingComponent,
@@ -509,7 +510,7 @@ def _single_stacktrace_variant(
         and frame_components[0].contributes
         and get_behavior_family_for_platform(frames[0].platform or event.platform) == "javascript"
         and not frames[0].function
-        and frames[0].is_url()
+        and has_url_origin(frames[0].abs_path, files_count_as_urls=True)
     ):
         frame_components[0].update(
             contributes=False, hint="ignored single non-URL JavaScript frame"
@@ -586,16 +587,6 @@ def single_exception(
     exception_components_by_variant = {}
 
     for variant_name, stacktrace_component in stacktrace_components_by_variant.items():
-        values: list[
-            ErrorTypeGroupingComponent
-            | ErrorValueGroupingComponent
-            | NSErrorGroupingComponent
-            | StacktraceGroupingComponent
-        ] = [stacktrace_component, type_component]
-
-        if ns_error_component is not None:
-            values.append(ns_error_component)
-
         value_component = ErrorValueGroupingComponent()
 
         raw = exception.value
@@ -621,7 +612,11 @@ def single_exception(
                 hint="ignored because ns-error info takes precedence",
             )
 
-        values.append(value_component)
+        values: list[ExceptionGroupingComponentChildren] = []
+        if ns_error_component is not None:
+            values = [stacktrace_component, type_component, ns_error_component, value_component]
+        else:
+            values = [stacktrace_component, type_component, value_component]
 
         exception_components_by_variant[variant_name] = ExceptionGroupingComponent(
             values=values, frame_counts=stacktrace_component.frame_counts
