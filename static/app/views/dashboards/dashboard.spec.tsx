@@ -78,7 +78,7 @@ describe('Dashboards > Dashboard', () => {
   let tagsMock: jest.Mock;
 
   beforeEach(() => {
-    initialData = initializeOrg({organization, router: {}, projects: []});
+    initialData = initializeOrg({organization, projects: []});
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/dashboards/widgets/`,
       method: 'POST',

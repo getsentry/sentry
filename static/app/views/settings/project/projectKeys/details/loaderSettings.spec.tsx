@@ -43,11 +43,7 @@ describe('Loader Script Settings', () => {
       keyId: '1',
     };
 
-    const {organization, project} = initializeOrg({
-      router: {
-        params,
-      },
-    });
+    const {organization, project} = initializeOrg();
 
     const data = {
       ...ProjectKeysFixture()[0],
