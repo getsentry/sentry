@@ -49,33 +49,6 @@ export function renderResolutionReason({
     activity => activity.type === GroupActivityType.SET_RESOLVED_IN_RELEASE
   );
 
-  // Resolved in next release has current_release_version (semver only)
-  if (relevantActivity && 'current_release_version' in relevantActivity.data) {
-    const version = (
-      <VersionHoverCard
-        organization={organization}
-        projectSlug={project.slug}
-        releaseVersion={relevantActivity.data.current_release_version}
-      >
-        <VersionComponent
-          version={relevantActivity.data.current_release_version}
-          projectId={project.id}
-        />
-      </VersionHoverCard>
-    );
-    return statusDetails.actor
-      ? tct('[actor] marked this issue as resolved in versions greater than [version].', {
-          actor,
-          version,
-        })
-      : tct(
-          'This issue has been marked as resolved in versions greater than [version].',
-          {
-            version,
-          }
-        );
-  }
-
   if (statusDetails.inNextRelease) {
     return actor
       ? tct('[actor] marked this issue as resolved in the upcoming release.', {
@@ -84,6 +57,36 @@ export function renderResolutionReason({
       : t('This issue has been marked as resolved in the upcoming release.');
   }
   if (statusDetails.inRelease) {
+    // Resolved in next release has current_release_version (semver only)
+    if (relevantActivity && 'current_release_version' in relevantActivity.data) {
+      const version = (
+        <VersionHoverCard
+          organization={organization}
+          projectSlug={project.slug}
+          releaseVersion={relevantActivity.data.current_release_version}
+        >
+          <VersionComponent
+            version={relevantActivity.data.current_release_version}
+            projectId={project.id}
+          />
+        </VersionHoverCard>
+      );
+      return statusDetails.actor
+        ? tct(
+            '[actor] marked this issue as resolved in versions greater than [version].',
+            {
+              actor,
+              version,
+            }
+          )
+        : tct(
+            'This issue has been marked as resolved in versions greater than [version].',
+            {
+              version,
+            }
+          );
+    }
+
     const version = (
       <VersionHoverCard
         organization={organization}

@@ -73,7 +73,7 @@ describe('ResolutionBox', () => {
       'David Cramer marked this issue as resolved in the upcoming release.'
     );
   });
-  it('handles in next release (semver current_release_version)', () => {
+  it('handles inNextRelease (semver current_release_version)', () => {
     const currentReleaseVersion = '1.2.0';
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/${currentReleaseVersion}/`,
@@ -89,7 +89,7 @@ describe('ResolutionBox', () => {
     const {container} = render(
       <ResolutionBox
         statusDetails={{
-          inNextRelease: true,
+          inRelease: currentReleaseVersion,
           actor: UserFixture(),
         }}
         project={project}
@@ -118,6 +118,30 @@ describe('ResolutionBox', () => {
         }}
         project={project}
         organization={organization}
+      />
+    );
+    expect(container).toHaveTextContent(
+      `This issue has been marked as resolved in version ${release.version}.`
+    );
+  });
+  it('handles inRelease with activity', () => {
+    const {container} = render(
+      <ResolutionBox
+        statusDetails={{
+          inRelease: release.version,
+        }}
+        project={project}
+        organization={organization}
+        activities={[
+          {
+            id: '1',
+            type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
+            data: {
+              version: release.version,
+            },
+            dateCreated: new Date().toISOString(),
+          },
+        ]}
       />
     );
     expect(container).toHaveTextContent(
