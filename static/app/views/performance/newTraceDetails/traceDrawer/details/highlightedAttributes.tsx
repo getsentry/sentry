@@ -133,21 +133,15 @@ function getAISpanAttributes({
 
   // Check for missing cost calculation and emit Sentry error
   if (model && (!totalCosts || Number(totalCosts) === 0)) {
-    Sentry.captureMessage('Gen AI span missing cost calculation', {
-      level: 'warning',
-      tags: {
-        feature: 'agent-monitoring',
-        span_type: 'gen_ai',
-        has_model: 'true',
-        has_cost: 'false',
-        span_operation: op || 'unknown',
-        model: model.toString(),
-      },
-      extra: {
-        total_costs: totalCosts,
-        span_operation: op,
-        attributes,
-      },
+    Sentry.logger.warn('Gen AI span missing cost calculation', {
+      feature: 'agent-monitoring',
+      span_type: 'gen_ai',
+      has_model: 'true',
+      has_cost: 'false',
+      span_operation: op || 'unknown',
+      model: model.toString(),
+      total_costs: totalCosts,
+      attributes,
     });
   }
 
