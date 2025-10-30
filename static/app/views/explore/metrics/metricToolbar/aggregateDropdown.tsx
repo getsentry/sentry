@@ -109,10 +109,7 @@ const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
   gauge: 'avg',
 };
 
-function getFunctionArguments(functionName: string, traceMetric: TraceMetric): string {
-  if (functionName === 'per_second' || functionName === 'per_minute') {
-    return `${traceMetric.name}, ${traceMetric.type}`;
-  }
+function getFunctionArguments(): string {
   return 'value';
 }
 
@@ -129,7 +126,7 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
     ) {
       const defaultFunction = DEFAULT_YAXIS_BY_TYPE[traceMetric.type];
       if (defaultFunction) {
-        const functionArgs = getFunctionArguments(defaultFunction, traceMetric);
+        const functionArgs = getFunctionArguments();
         setVisualize(
           visualize.replace({
             yAxis: `${defaultFunction}(${functionArgs})`,
@@ -148,7 +145,7 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
       options={OPTIONS_BY_TYPE[traceMetric.type] ?? []}
       value={visualize.parsedFunction?.name ?? ''}
       onChange={option => {
-        const functionArgs = getFunctionArguments(option.value, traceMetric);
+        const functionArgs = getFunctionArguments();
         setVisualize(
           visualize.replace({
             yAxis: `${option.value}(${functionArgs})`,
