@@ -34,3 +34,18 @@ def has_seer_access(
         and not bool(organization.get_option("sentry:hide_ai_features"))
         and get_seer_org_acknowledgement(org_id=organization.id)
     )
+
+
+def has_seer_access_with_detail(
+    organization: Organization, actor: User | AnonymousUser | RpcUser | None = None
+) -> tuple[bool, str | None]:
+    if not features.has("organizations:gen-ai-features", organization, actor=actor):
+        return False, "Feature flag not enabled"
+
+    if organization.get_option("sentry:hide_ai_features"):
+        return False, "AI features are disabled for this organization."
+
+    if not get_seer_org_acknowledgement(organization.id):
+        return False, "Seer has not been acknowledged by the organization."
+
+    return True, None
