@@ -19,9 +19,7 @@ from sentry.web_vitals.types import WebVitalIssueDetectionType, WebVitalIssueGro
 logger = logging.getLogger("sentry.tasks.web_vitals_issue_detection")
 
 TRANSACTIONS_PER_PROJECT_LIMIT = 5
-DEFAULT_START_TIME_DELTA = {
-    "minutes": 30
-}  # Low scores within this time range create web vital issues
+DEFAULT_START_TIME_DELTA = {"days": 7}  # Low scores within this time range create web vital issues
 SCORE_THRESHOLD = 0.9  # Scores below this threshold will create web vital issues
 SAMPLES_COUNT_THRESHOLD = (
     10  # Web Vitals require at least this amount of samples to create an issue
@@ -81,7 +79,15 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
 def get_highest_opportunity_page_vitals_for_project(
     project_id: int, limit: int = 500, start_time_delta: dict[str, int] = DEFAULT_START_TIME_DELTA
 ) -> list[WebVitalIssueGroupData]:
+    """
+    Fetches the top opportunity pages for a project and returns a WebVitalIssueGroupData per page per vital
+    under the score threshold and with enough samples.
 
+    Top opportunity is calculated as ((1.0 - avg(score)) * count) for each page.
+    We only consider the top n pages, where n is set by TRANSACTIONS_PER_PROJECT_LIMIT.
+    The score threshold is set by SCORE_THRESHOLD.
+    The number of samples is set by SAMPLES_COUNT_THRESHOLD.
+    """
     try:
         project = Project.objects.get(id=project_id)
     except Project.DoesNotExist:

@@ -1120,7 +1120,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "web-vitals-issue-detection": {
         "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
-        "schedule": task_crontab("0", "0", "sat", "*", "*"),
+        "schedule": task_crontab("0", "0", "*", "1,15", "*"),
     },
 }
 
