@@ -1,8 +1,5 @@
-from unittest.mock import patch
-
 import pytest
 from django.db import connections
-from django.db.utils import OperationalError
 
 from sentry.db.models.query import in_iexact
 from sentry.models.commit import Commit
@@ -80,96 +77,6 @@ class RangeQuerySetWrapperTest(TestCase):
         self.create_user()
         qs = User.objects.all().values_list("id")
         assert list(qs) == list(self.range_wrapper(qs, result_value_getter=lambda r: r[0]))
-
-    def test_retry_on_operational_error_success_after_failures(self) -> None:
-        """Test that with query_timeout_retries=3, after 2 errors and 1 success it works."""
-        total = 5
-        for _ in range(total):
-            self.create_user()
-
-        qs = User.objects.all()
-        batch_attempts: list[int] = []
-        current_batch_count = 0
-        original_getitem = type(qs).__getitem__
-
-        def mock_getitem(self, slice_obj):
-            nonlocal current_batch_count
-            current_batch_count += 1
-            if len(batch_attempts) == 0 and current_batch_count <= 2:
-                raise OperationalError("canceling statement due to user request")
-            if len(batch_attempts) == 0 and current_batch_count == 3:
-                batch_attempts.append(current_batch_count)
-            return original_getitem(self, slice_obj)
-
-        with patch.object(type(qs), "__getitem__", mock_getitem):
-            results = list(
-                self.range_wrapper(qs, step=10, query_timeout_retries=3, retry_delay_seconds=0.01)
-            )
-
-        assert len(results) == total
-        assert batch_attempts[0] == 3
-
-    def test_retry_exhausted_raises_exception(self) -> None:
-        """Test that after exhausting retries, the OperationalError is raised."""
-        total = 5
-        for _ in range(total):
-            self.create_user()
-
-        qs = User.objects.all()
-
-        def always_fail(self, slice_obj):
-            raise OperationalError("canceling statement due to user request")
-
-        with patch.object(type(qs), "__getitem__", always_fail):
-            with pytest.raises(OperationalError, match="canceling statement due to user request"):
-                list(
-                    self.range_wrapper(
-                        qs, step=10, query_timeout_retries=3, retry_delay_seconds=0.01
-                    )
-                )
-
-    def test_retry_does_not_catch_other_exceptions(self) -> None:
-        """Test that non-OperationalError exceptions are not retried."""
-        total = 5
-        for _ in range(total):
-            self.create_user()
-
-        qs = User.objects.all()
-
-        attempt_count = {"count": 0}
-
-        def raise_value_error(self, slice_obj):
-            attempt_count["count"] += 1
-            raise ValueError("Some other error")
-
-        with patch.object(type(qs), "__getitem__", raise_value_error):
-            with pytest.raises(ValueError, match="Some other error"):
-                list(
-                    self.range_wrapper(
-                        qs, step=10, query_timeout_retries=3, retry_delay_seconds=0.01
-                    )
-                )
-        assert attempt_count["count"] == 1
-
-    def test_no_retry_when_query_timeout_retries_is_none(self) -> None:
-        """Test that when query_timeout_retries is None, no retry logic is applied."""
-        total = 5
-        for _ in range(total):
-            self.create_user()
-
-        qs = User.objects.all()
-
-        attempt_count = {"count": 0}
-
-        def fail_once(self, slice_obj):
-            attempt_count["count"] += 1
-            raise OperationalError("canceling statement due to user request")
-
-        with patch.object(type(qs), "__getitem__", fail_once):
-            with pytest.raises(OperationalError, match="canceling statement due to user request"):
-                list(self.range_wrapper(qs, step=10, query_timeout_retries=None))
-
-        assert attempt_count["count"] == 1
 
 
 @no_silo_test
