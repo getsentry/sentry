@@ -24,16 +24,13 @@ import {
 
 function NumericFilterSelector({
   globalFilter,
-  searchBarData,
   onRemoveFilter,
   onUpdateFilter,
 }: GenericFilterSelectorProps) {
-  const filterKeys = useMemo(() => searchBarData.getFilterKeys(), [searchBarData]);
-
   // Parse global filter condition to retrieve initial state
   const globalFilterTokens = useMemo(
-    () => parseFilterValue(globalFilter.value, filterKeys, globalFilter),
-    [filterKeys, globalFilter]
+    () => parseFilterValue(globalFilter.value, globalFilter),
+    [globalFilter]
   );
 
   const globalFilterToken = globalFilterTokens ? globalFilterTokens[0] : null;
@@ -150,7 +147,6 @@ function NumericFilterSelector({
                         stagedFilterValue,
                         stagedFilterOperator,
                         globalFilterToken,
-                        filterKeys,
                         globalFilter
                       );
                       onUpdateFilter({
