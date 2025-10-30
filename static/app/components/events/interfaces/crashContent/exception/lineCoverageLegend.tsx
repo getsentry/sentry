@@ -1,13 +1,15 @@
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout/flex';
+import {coverageText as COVERAGE_TEXT} from 'sentry/components/events/interfaces/frame/contextLineNumber';
+import {Coverage} from 'sentry/types/integrations';
 
 export function LineCoverageLegend() {
   return (
     <Flex gap="2xl" align="center" direction="row">
-      <CoveredLine>Line covered by tests</CoveredLine>
-      <UncoveredLine>Line uncovered by tests</UncoveredLine>
-      <PartiallyCoveredLine>Line partially covered by tests</PartiallyCoveredLine>
+      <CoveredLine>{COVERAGE_TEXT[Coverage.COVERED]}</CoveredLine>
+      <UncoveredLine>{COVERAGE_TEXT[Coverage.NOT_COVERED]}</UncoveredLine>
+      <PartiallyCoveredLine>{COVERAGE_TEXT[Coverage.PARTIAL]}</PartiallyCoveredLine>
     </Flex>
   );
 }
