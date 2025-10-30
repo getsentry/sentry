@@ -132,35 +132,38 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
             )
     except UnqualifiedQueryError as error:
         if error.args[0] == "All project_ids from the filter no longer exist":
-            # We currently don't have a way to handle this error, so we just track it and don't retry the task
-            metrics.incr(f"{prefix}.warning", tags={"type": "all-projects-deleted"}, sample_rate=1)
+            # When deleting groups, if the project gets deleted concurrently (e.g., by another deletion task),
+            # Snuba raises UnqualifiedQueryError with the message "All project_ids from the filter no longer exist".
+            # This happens because the task tries to fetch event IDs from Snuba for a project that no longer exists.
+            # This is not a transient error - retrying won't help since the project is permanently gone.
+            logger.info("All project_ids from the filter no longer exist")
+            # There may be no value to track this metric, but it's better to be safe than sorry.
+            metrics.incr(f"{prefix}.info", tags={"type": "all-projects-deleted"}, sample_rate=1)
         else:
-            metrics.incr(f"{prefix}.error", tags={"type": "unqualified-query-error"}, sample_rate=1)
-            # Report to Sentry to investigate
-            raise DeleteAborted(f"{error.args[0]}. We won't retry this task.") from error
+            metrics.incr(f"{prefix}.error", tags={"type": type(error).__name__}, sample_rate=1)
+            # Report to Sentry to investigate and abort the task
+            raise DeleteAborted(f"{error.args[0]}. Aborting this task.") from error
 
+    # These are transient Snuba errors that should be retried
     except (
-        RateLimitExceeded,
-        QueryTooManySimultaneous,
-        QueryMemoryLimitExceeded,
-        QueryExecutionTimeMaximum,
+        RateLimitExceeded,  # Concurrent query rate limit exceeded
+        QueryTooManySimultaneous,  # Too many simultaneous queries
+        QueryMemoryLimitExceeded,  # Query exceeded memory limit
+        QueryExecutionTimeMaximum,  # Query took too long
     ) as error:
-        # These are transient Snuba errors that should be retried
-        # RateLimitExceeded: Snuba concurrent query rate limit hit
-        # QueryTooManySimultaneous: Too many simultaneous queries
-        # QueryMemoryLimitExceeded: Query exceeded memory limit
-        # QueryExecutionTimeMaximum: Query took too long
         error_type = type(error).__name__
-        metrics.incr(f"{prefix}.error", tags={"type": f"snuba-{error_type}"}, sample_rate=1)
+        metrics.incr(f"{prefix}.retry", tags={"type": f"snuba-{error_type}"}, sample_rate=1)
         logger.warning(
-            f"{prefix}.transient_error",
-            extra={**extra, "error_type": error_type, "error_message": str(error)},
+            f"{prefix}.retry", extra={**extra, "error_type": error_type, "error": str(error)}
         )
-        raise RetryTask(f"Transient Snuba error: {error_type}") from error
+        raise RetryTask(f"Snuba error: {error_type}. We will retry this task.") from error
 
-    except Exception:
-        metrics.incr(f"{prefix}.error", tags={"type": "unhandled-exception"}, sample_rate=1)
-        raise DeleteAborted("Failed to delete events from nodestore. We won't retry this task.")
+    except Exception as error:
+        metrics.incr(f"{prefix}.error", tags={"type": type(error).__name__}, sample_rate=1)
+        # Report to Sentry to investigate and abort the task
+        raise DeleteAborted(
+            f"Failed to delete events from nodestore. Aborting this task. {error}"
+        ) from error
 
 
 def fetch_events_from_eventstore(
