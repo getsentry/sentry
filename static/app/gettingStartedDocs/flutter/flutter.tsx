@@ -11,7 +11,7 @@ import {
   getReplayMobileConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {feedbackOnboardingCrashApiDart} from 'sentry/gettingStartedDocs/dart/dart';
+import {crashReport} from 'sentry/gettingStartedDocs/dart/dart/crashReport';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
@@ -436,7 +436,7 @@ const logsOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
-  crashReportOnboarding: feedbackOnboardingCrashApiDart,
+  crashReportOnboarding: crashReport,
   replayOnboarding,
   logsOnboarding,
 };
