@@ -7,6 +7,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer, DetailedUserSerializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user_avatar import UserAvatar
+from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userpermission import UserPermission
 
@@ -132,3 +133,15 @@ class DetailedSelfUserSerializerTest(TestCase):
         assert len(result["authenticators"]) == 1
         assert result["authenticators"][0]["id"] == str(self.auth.id)
         assert result["permissions"] == ["foo"]
+
+    def test_autofix_last_used_solution_action_serialization(self) -> None:
+        UserOption.objects.set_value(
+            user=self.user, key="autofix_last_used_solution_action", value="cursor_background_agent"
+        )
+
+        result = serialize(self.user, self.user, DetailedSelfUserSerializer())
+        assert result["options"]["autofixLastUsedSolutionAction"] == "cursor_background_agent"
+
+    def test_autofix_last_used_solution_action_not_set(self) -> None:
+        result = serialize(self.user, self.user, DetailedSelfUserSerializer())
+        assert result["options"]["autofixLastUsedSolutionAction"] is None

@@ -69,6 +69,13 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
     prefersNextjsInsightsOverview = serializers.BooleanField(required=False)
     prefersChonkUI = serializers.BooleanField(required=False)
+    autofixLastUsedSolutionAction = serializers.ChoiceField(
+        choices=(
+            ("seer_solution", _("Seer Solution")),
+            ("cursor_background_agent", _("Cursor Background Agent")),
+        ),
+        required=False,
+    )
 
 
 class BaseUserSerializer(CamelSnakeModelSerializer[User]):
@@ -239,6 +246,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
             "prefersNextjsInsightsOverview": "prefers_nextjs_insights_overview",
             "prefersChonkUI": "prefers_chonk_ui",
+            "autofixLastUsedSolutionAction": "autofix_last_used_solution_action",
         }
 
         options_result = serializer_options.validated_data
