@@ -22,7 +22,6 @@ from sentry.constants import (
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
-from sentry.types.prevent_config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
 
 logger = logging.getLogger(__name__)
 
@@ -115,22 +114,10 @@ class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
             request.successful_authenticator, OverwatchRpcSignatureAuthentication
         ):
             raise PermissionDenied
-        sentry_org_id = request.GET.get("sentryOrgId")
-        if not sentry_org_id:
-            raise ParseError("Missing required query parameter: sentryOrgId")
 
-        try:
-            organization = Organization.objects.get(id=sentry_org_id)
-        except Organization.DoesNotExist:
-            raise ParseError(f"Organization with ID {sentry_org_id} not found")
-        except ValueError:
-            raise ParseError(f"Invalid organization ID: {sentry_org_id}")
+        # TODO: Fetch config from PreventAIConfiguration model
 
-        prevent_ai_config = organization.get_option(
-            "sentry:prevent_ai_config_github", PREVENT_AI_CONFIG_GITHUB_DEFAULT
-        )
-
-        return Response(data=prevent_ai_config)
+        return Response(data={})
 
 
 @region_silo_endpoint
