@@ -523,6 +523,18 @@ table.table.key-value {
     overflow: hidden;
     border-radius: 50%;
   }
+
+  @media (max-width: 500px) {
+    width: 90vw;
+    margin-left: -45vw;
+
+    .loading-message {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      padding: 0 1rem;
+      box-sizing: border-box;
+    }
+  }
 }
 
 .theme-dark .loading.triangle .loading-indicator {
