@@ -118,7 +118,6 @@ interface TotalSummaryProps extends BaseSummaryProps {
   billedTotal: number;
   buttonDisabled: boolean;
   effectiveDate: Date | null;
-  isOpen: boolean;
   isSubmitting: boolean;
   onSubmit: (applyNow?: boolean) => void;
   organization: Organization;
