@@ -3,9 +3,7 @@ from __future__ import annotations
 import logging
 
 from django.http import HttpResponse
-from rest_framework.request import Request
 
-from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -13,7 +11,6 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
 from sentry.objectstore import preprod
 from sentry.objectstore.service import ClientError
-from sentry.preprod.analytics import PreprodArtifactApiImageEvent
 
 logger = logging.getLogger(__name__)
 
@@ -62,58 +59,29 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
 
     def get(
         self,
-        request: Request,
         project: Project,
         image_id: str,
     ) -> HttpResponse:
-
-        analytics.record(
-            PreprodArtifactApiImageEvent(
-                organization_id=project.organization_id,
-                project_id=project.id,
-                user_id=request.user.id,
-                image_id=image_id,
-            )
-        )
 
         organization_id = project.organization_id
         project_id = project.id
 
         object_key = f"{organization_id}/{project_id}/{image_id}"
-        logger.info(
-            "Retrieving image from objectstore",
-            extra={
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "image_id": image_id,
-            },
-        )
         client = preprod.for_project(organization_id, project_id)
 
         try:
             result = client.get(object_key)
-            # Read the entire stream at once
+            # Read the entire stream at once (necessary for content_type)
             image_data = result.payload.read()
 
             # Detect content type from the image data
             content_type = detect_image_content_type(image_data)
-
-            logger.info(
-                "Retrieved image from objectstore",
-                extra={
-                    "organization_id": organization_id,
-                    "project_id": project_id,
-                    "image_id": image_id,
-                    "size_bytes": len(image_data),
-                    "content_type": content_type,
-                },
-            )
             return HttpResponse(image_data, content_type=content_type)
 
         except ClientError as e:
             if e.status == 404:
                 logger.warning(
-                    "App icon not found in objectstore",
+                    "Image not found in objectstore",
                     extra={
                         "organization_id": organization_id,
                         "project_id": project_id,
@@ -125,7 +93,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
                 return HttpResponse({"error": "Not found"}, status=404)
 
             logger.warning(
-                "Failed to retrieve app icon from objectstore",
+                "Failed to retrieve image from objectstore",
                 extra={
                     "organization_id": organization_id,
                     "project_id": project_id,
@@ -134,11 +102,11 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
                     "status": e.status,
                 },
             )
-            return HttpResponse({"error": "Failed to retrieve app icon"}, status=500)
+            return HttpResponse({"error": "Failed to retrieve image"}, status=500)
 
         except Exception:
             logger.exception(
-                "Unexpected error retrieving app icon",
+                "Unexpected error retrieving image",
                 extra={
                     "organization_id": organization_id,
                     "project_id": project_id,
