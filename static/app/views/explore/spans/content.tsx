@@ -14,7 +14,6 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
@@ -71,9 +70,7 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
       <SpansQueryParamsProvider>
-        <PageParamsProvider>
-          <ExploreTagsProvider>{children}</ExploreTagsProvider>
-        </PageParamsProvider>
+        <ExploreTagsProvider>{children}</ExploreTagsProvider>
       </SpansQueryParamsProvider>
     </SpansTabTourProvider>
   );

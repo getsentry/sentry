@@ -8,7 +8,6 @@ import type {Organization} from 'sentry/types/organization';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
@@ -23,11 +22,9 @@ function createWrapper(organization: Organization) {
     return (
       <QueryClientProvider client={makeTestQueryClient()}>
         <OrganizationContext value={organization}>
-          <PageParamsProvider>
-            <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-              {children}
-            </TraceItemAttributeProvider>
-          </PageParamsProvider>
+          <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+            {children}
+          </TraceItemAttributeProvider>
         </OrganizationContext>
       </QueryClientProvider>
     );

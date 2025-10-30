@@ -4,7 +4,6 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {
@@ -15,11 +14,7 @@ import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryPar
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 function Wrapper({children}: {children: ReactNode}) {
-  return (
-    <SpansQueryParamsProvider>
-      <PageParamsProvider>{children}</PageParamsProvider>
-    </SpansQueryParamsProvider>
-  );
+  return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
 }
 
 jest.mock('sentry/actionCreators/modal');

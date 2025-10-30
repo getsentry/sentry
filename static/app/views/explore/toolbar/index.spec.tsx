@@ -14,7 +14,6 @@ import {
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
@@ -35,11 +34,9 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 function Wrapper({children}: {children: ReactNode}) {
   return (
     <SpansQueryParamsProvider>
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          {children}
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        {children}
+      </TraceItemAttributeProvider>
     </SpansQueryParamsProvider>
   );
 }
