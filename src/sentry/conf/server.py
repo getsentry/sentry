@@ -191,6 +191,8 @@ SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
 SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER = "default"
 SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER = "default"
+SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER = "default"
+SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -867,7 +869,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
-    "sentry.releases.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.replays.tasks",
@@ -1252,6 +1253,7 @@ LOGGING: LoggingConfig = {
         },
         "boto3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
         "botocore": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+        "rediscluster": {"level": "WARNING", "handlers": ["console"], "propagate": False},
     },
 }
 

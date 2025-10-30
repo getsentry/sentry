@@ -88,7 +88,7 @@ type LocationConfig = {
   query?: Record<string, string | number | string[]>;
 };
 
-type RouterConfig = {
+export type RouterConfig = {
   /**
    * Child routes
    */

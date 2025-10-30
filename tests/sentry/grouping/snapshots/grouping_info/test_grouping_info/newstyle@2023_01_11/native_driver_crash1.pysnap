@@ -1,5 +1,5 @@
 ---
-created: '2025-10-07T22:42:56.611181+00:00'
+created: '2025-10-27T23:46:03.114196+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -17,6 +17,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": false,
+              "hint": "ignored because exception is synthetic",
+              "id": "type",
+              "name": null,
+              "values": [
+                "EXCEPTION_ACCESS_VIOLATION_READ"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "value",
+              "name": null,
+              "values": [
+                "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+              ]
+            },
             {
               "contributes": false,
               "hint": "ignored because it contains no in-app frames",
@@ -239,24 +257,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "EXCEPTION_ACCESS_VIOLATION_READ"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": [
-                "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
-              ]
             }
           ]
         }
@@ -302,6 +302,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": false,
+              "hint": "ignored because exception is synthetic",
+              "id": "type",
+              "name": null,
+              "values": [
+                "EXCEPTION_ACCESS_VIOLATION_READ"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -523,24 +541,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "EXCEPTION_ACCESS_VIOLATION_READ"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
               ]
             }
           ]

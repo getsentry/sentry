@@ -50,6 +50,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
+    IntegrationProviderError,
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
@@ -1008,6 +1009,12 @@ class JiraIntegration(IssueSyncIntegration):
                 },
             )
             raise IntegrationConfigurationError(exc.text) from exc
+        elif isinstance(exc, ApiError):
+            if "Product Unavailable" in exc.text or "Page Unavailable" in exc.text:
+                raise IntegrationProviderError(
+                    "Something went wrong while communicating with Jira"
+                ) from exc
+
         super().raise_error(exc, identity=identity)
 
     def sync_assignee_outbound(
