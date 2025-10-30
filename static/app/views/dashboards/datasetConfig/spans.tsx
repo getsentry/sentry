@@ -273,15 +273,6 @@ function getPrimaryFieldOptions(
   return {...baseFieldOptions, ...spanTags};
 }
 
-function _isNotNumericTag(option: FieldValueOption) {
-  // Filter out numeric tags from primary options, they only show up in
-  // the parameter fields for aggregate functions
-  if ('dataType' in option.value.meta) {
-    return option.value.meta.dataType !== 'number';
-  }
-  return true;
-}
-
 function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
   // Allow for unknown values to be used for aggregate functions
   // This supports showing the tag value even if it's not in the current
@@ -383,10 +374,7 @@ function getGroupByFieldOptions(
   );
   const yAxisFilter = filterYAxisOptions();
 
-  // The only options that should be returned as valid group by options
-  // are string tags
-  const filterGroupByOptions = (option: FieldValueOption) =>
-    _isNotNumericTag(option) && !yAxisFilter(option);
+  const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 
   return pickBy(primaryFieldOptions, filterGroupByOptions);
 }
