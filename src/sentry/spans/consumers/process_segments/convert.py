@@ -60,7 +60,7 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
 
     # For `is_segment`, we trust the value written by `flush_segments` over a pre-existing attribute:
     if (is_segment := span.get("is_segment")) is not None:
-        attributes["sentry.is_segment"] = is_segment
+        attributes["sentry.is_segment"] = _anyvalue(is_segment)
 
     for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
         attribute = span.get(field_name)  # type:ignore[assignment]
