@@ -10,11 +10,10 @@ import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {
-  type BasePlatformOptions,
-  type Docs,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {InstallationMode} from 'sentry/gettingStartedDocs/console/playstation/utils';
 import {t, tct} from 'sentry/locale';
 import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
 import {
@@ -24,35 +23,11 @@ import {
 import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
 import {RequestSdkAccessButton} from 'sentry/views/settings/project/tempest/RequestSdkAccessButton';
 
-type Params = DocsParams;
-
-enum InstallationMode {
-  RETAIL = 'retail',
-  DEVKIT = 'devkit',
-}
-
-const isRetailMode = (params: Params) =>
+const isRetailMode = (params: DocsParams) =>
   params.platformOptions?.installationMode === InstallationMode.RETAIL;
 
-const platformOptions = {
-  installationMode: {
-    label: t('Installation Mode'),
-    items: [
-      {
-        label: t('Retail'),
-        value: InstallationMode.RETAIL,
-      },
-      {
-        label: t('Devkit'),
-        value: InstallationMode.DEVKIT,
-      },
-    ],
-    defaultValue: InstallationMode.DEVKIT,
-  },
-} satisfies BasePlatformOptions;
-
 const onboardingRetail: OnboardingConfig = {
-  install: (params: Params) => [
+  install: (params: DocsParams) => [
     {
       title: t('Retrieve Back Office Server Credential from Sony'),
       content: [
@@ -102,7 +77,7 @@ const onboardingRetail: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       title: t('Allow list our IP Addresses'),
       content: [
@@ -167,7 +142,7 @@ const onboardingRetail: OnboardingConfig = {
 };
 
 const onboardingDevkit: OnboardingConfig = {
-  install: (params: Params) => [
+  install: (params: DocsParams) => [
     {
       title: t('Copy PlayStation Ingestion URL'),
       content: [
@@ -260,18 +235,18 @@ const onboardingDevkit: OnboardingConfig = {
   ],
 };
 
-const onboarding: OnboardingConfig = {
-  install: (params: Params) => {
+export const onboarding: OnboardingConfig = {
+  install: (params: DocsParams) => {
     return isRetailMode(params)
       ? onboardingRetail.install(params)
       : onboardingDevkit.install(params);
   },
-  configure: (params: Params) => {
+  configure: (params: DocsParams) => {
     return isRetailMode(params)
       ? onboardingRetail.configure(params)
       : onboardingDevkit.configure(params);
   },
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     ...(isRetailMode(params)
       ? onboardingRetail.verify(params)
       : onboardingDevkit.verify(params)),
@@ -304,13 +279,6 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-const docs: Docs = {
-  onboarding,
-  platformOptions,
-};
-
-export default docs;
 
 const CardIllustration = styled('img')`
   width: 100%;
