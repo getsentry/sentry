@@ -11,6 +11,7 @@ import SplitPanel from 'sentry/components/splitPanel';
 import {IconHide, IconShow} from 'sentry/icons';
 import {IconPanel} from 'sentry/icons/iconPanel';
 import {t} from 'sentry/locale';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
@@ -23,6 +24,8 @@ interface MetricPanelProps {
   traceMetric: TraceMetric;
 }
 
+type Orientation = 'side-by-side' | 'stacked';
+
 const MIN_LEFT_WIDTH = 400;
 
 // Defined by the size of the expected samples tab component
@@ -30,24 +33,27 @@ const PADDING_SIZE = 16;
 const MIN_RIGHT_WIDTH = SAMPLES_PANEL_MIN_WIDTH + PADDING_SIZE;
 
 export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
-  const [orientation, setOrientation] = useState<'side-by-side' | 'stacked'>(
-    'side-by-side'
+  const breakpoints = useBreakpoints();
+  const [orientation, setOrientation] = useState<Orientation>(
+    breakpoints.sm ? 'side-by-side' : 'stacked'
   );
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
     enabled: Boolean(traceMetric.name),
   });
 
+  const currentOrientation = breakpoints.md ? orientation : 'stacked';
+
   return (
     <Panel>
       <PanelBody>
-        {orientation === 'side-by-side' ? (
+        {currentOrientation === 'side-by-side' ? (
           <SideBySideOrientation
             timeseriesResult={timeseriesResult}
             queryIndex={queryIndex}
             traceMetric={traceMetric}
             setOrientation={setOrientation}
-            orientation={orientation}
+            orientation={currentOrientation}
           />
         ) : (
           <StackedOrientation
@@ -55,7 +61,7 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
             queryIndex={queryIndex}
             traceMetric={traceMetric}
             setOrientation={setOrientation}
-            orientation={orientation}
+            orientation={currentOrientation}
           />
         )}
       </PanelBody>
@@ -70,7 +76,7 @@ function StackedOrientation({
   orientation,
   setOrientation,
 }: {
-  orientation: 'side-by-side' | 'stacked';
+  orientation: Orientation;
   queryIndex: number;
   setOrientation: (orientation: 'side-by-side' | 'stacked') => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
@@ -115,7 +121,7 @@ function SideBySideOrientation({
   orientation,
   setOrientation,
 }: {
-  orientation: 'side-by-side' | 'stacked';
+  orientation: Orientation;
   queryIndex: number;
   setOrientation: (orientation: 'side-by-side' | 'stacked') => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
