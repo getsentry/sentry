@@ -3,6 +3,7 @@ import type {Location} from 'history';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateFieldsFromLocation} from 'sentry/views/explore/queryParams/aggregateField';
@@ -19,6 +20,12 @@ import {updateNullableLocation} from 'sentry/views/explore/queryParams/location'
 import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {
+  getIdFromLocation,
+  getTitleFromLocation,
+  ID_KEY,
+  TITLE_KEY,
+} from 'sentry/views/explore/queryParams/savedQuery';
 import {getSortBysFromLocation} from 'sentry/views/explore/queryParams/sortBy';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {
@@ -39,6 +46,12 @@ const SPANS_GROUP_BY_KEY = 'groupBy';
 const SPANS_VISUALIZATION_KEY = 'visualize';
 const SPANS_AGGREGATE_SORT_KEY = 'aggregateSort';
 const SPANS_EXTRAPOLATE_KEY = 'extrapolate';
+const SPANS_ID_KEY = ID_KEY;
+const SPANS_TITLE_KEY = TITLE_KEY;
+
+export function useSpansDataset(): DiscoverDatasets {
+  return DiscoverDatasets.SPANS;
+}
 
 export function isDefaultFields(location: Location): boolean {
   return getFieldsFromLocation(location, SPANS_FIELD_KEY) ? false : true;
@@ -67,6 +80,9 @@ export function getReadableQueryParamsFromLocation(
       aggregateFields
     ) ?? defaultAggregateSortBys(aggregateFields);
 
+  const id = getIdFromLocation(location, SPANS_ID_KEY);
+  const title = getTitleFromLocation(location, SPANS_TITLE_KEY);
+
   return new ReadableQueryParams({
     extrapolate,
     mode,
@@ -79,6 +95,9 @@ export function getReadableQueryParamsFromLocation(
     aggregateCursor,
     aggregateFields,
     aggregateSortBys,
+
+    id,
+    title,
   });
 }
 
