@@ -210,9 +210,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     organization,
     daysToSnooze:
       -1 *
-      getDaysSinceDate(
-        subscription?.onDemandPeriodEnd ?? moment().utc().toDate().toDateString()
-      ),
+      getDaysSinceDate(subscription?.onDemandPeriodEnd ?? moment().utc().toISOString()),
     isDismissed: isSnoozedForCurrentPeriod,
     options: {
       enabled: promptsToCheck.length > 0,
@@ -262,7 +260,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       );
       localStorage.setItem(
         `billing-status-last-shown-date-${organization.id}`,
-        moment().utc().toDate().toDateString()
+        moment().utc().toISOString()
       );
     }
   }, [
