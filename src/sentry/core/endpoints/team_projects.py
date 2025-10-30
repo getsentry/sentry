@@ -35,7 +35,6 @@ from sentry.seer.similarity.utils import (
     set_default_project_seer_scanner_automation,
 )
 from sentry.signals import project_created
-from sentry.utils.platform_categories import CONSOLES
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
@@ -85,6 +84,8 @@ their own alerts to be notified of new issues.
         if not Project.is_valid_platform(value):
             raise serializers.ValidationError("Invalid platform")
 
+        # Short circuting while we figure out customer complaint.
+        """
         if value in CONSOLES:
             organization = self.context.get("organization")
             assert organization is not None
@@ -98,6 +99,9 @@ their own alerts to be notified of new issues.
                 )
 
         return value
+        """
+
+        return True
 
     def validate_name(self, value: str) -> str:
         if value in RESERVED_PROJECT_SLUGS:
