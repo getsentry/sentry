@@ -25,7 +25,7 @@ notifications: 0002_notificationmessage_jsonfield
 
 preprod: 0018_add_preprod_artifact_app_icon_id_field
 
-prevent: 0001_create_prevent_ai_configuration
+prevent: 0002_alter_integration_id_not_null
 
 releases: 0001_release_models
 
