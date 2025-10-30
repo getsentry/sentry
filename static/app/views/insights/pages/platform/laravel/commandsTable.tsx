@@ -55,7 +55,6 @@ export function CommandsTable() {
       'p95(span.duration)',
       'sum(span.duration)',
     ],
-    cursorParamName: 'commandsCursor',
     referrer: Referrer.PATHS_TABLE,
   });
 
@@ -65,7 +64,6 @@ export function CommandsTable() {
         sortKey={column.key}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
         forceCellGrow={column.key === 'command'}
-        cursorParamName="commandsCursor"
       >
         {column.name}
       </HeadSortCell>
@@ -115,7 +113,6 @@ export function CommandsTable() {
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="commandsCursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />

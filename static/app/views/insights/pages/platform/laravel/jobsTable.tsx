@@ -69,7 +69,6 @@ export function JobsTable() {
       'failure_rate()',
       'sum(span.duration)',
     ],
-    cursorParamName: 'jobsCursor',
     referrer: Referrer.PATHS_TABLE,
   });
 
@@ -79,7 +78,6 @@ export function JobsTable() {
         sortKey={column.key}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
         forceCellGrow={column.key === 'transaction'}
-        cursorParamName="jobsCursor"
       >
         {column.name}
       </HeadSortCell>
@@ -132,7 +130,6 @@ export function JobsTable() {
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="jobsCursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />
