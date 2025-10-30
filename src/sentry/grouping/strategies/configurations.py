@@ -50,6 +50,7 @@ def register_grouping_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     return strategy_class
 
 
+# This is the current default config
 register_grouping_config(
     id="newstyle:2023-01-11",
     # There's no `base` argument here because this config is based on `BASE_STRATEGY`. To base a
@@ -62,4 +63,11 @@ register_grouping_config(
     initial_context={},
     enhancements_base="all-platforms:2023-01-11",
     fingerprinting_bases=["javascript@2024-02-02"],
+)
+
+FALL_2025_GROUPING_CONFIG = "newstyle:2025-11-21"
+register_grouping_config(
+    id=FALL_2025_GROUPING_CONFIG,
+    base="newstyle:2023-01-11",
+    initial_context={},
 )

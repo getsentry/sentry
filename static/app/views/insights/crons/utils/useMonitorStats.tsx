@@ -56,6 +56,7 @@ export function useMonitorStats(
     {
       staleTime: 0,
       enabled: enabled && rollupConfig.totalBuckets > 0,
+      retry: false,
       ...options,
     }
   );

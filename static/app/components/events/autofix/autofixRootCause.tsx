@@ -460,6 +460,8 @@ function AutofixRootCauseDisplay({
                 disabled={isLoadingAgents}
                 onClick={submitFindSolution}
                 title={findSolutionTitle}
+                analyticsEventName="Autofix: Find Solution"
+                analyticsEventKey="autofix.root_cause.find_solution"
               >
                 {t('Find Solution')}
               </Button>
@@ -503,6 +505,8 @@ function AutofixRootCauseDisplay({
               busy={isSelectingRootCause}
               onClick={submitFindSolution}
               title={findSolutionTitle}
+              analyticsEventName="Autofix: Find Solution"
+              analyticsEventKey="autofix.root_cause.find_solution"
             >
               {t('Find Solution')}
             </Button>
