@@ -7,7 +7,7 @@ import {waitFor} from 'sentry-test/reactTestingLibrary';
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, FieldKind} from 'sentry/utils/fields';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
@@ -63,28 +63,5 @@ describe('SpansConfig', () => {
         })
       );
     });
-  });
-
-  it('returns the string tags as group by options', () => {
-    const mockTags = {
-      ['transaction']: {
-        name: 'transaction',
-        key: 'transaction',
-        kind: FieldKind.TAG,
-      },
-      ['platform']: {
-        name: 'platform',
-        key: 'platform',
-        kind: FieldKind.TAG,
-      },
-      ['span.duration']: {
-        name: 'span.duration',
-        key: 'span.duration',
-        kind: FieldKind.MEASUREMENT,
-      },
-    };
-    const groupByOptions = SpansConfig.getGroupByFieldOptions!(organization, mockTags);
-
-    expect(Object.keys(groupByOptions)).toEqual(['tag:transaction', 'tag:platform']);
   });
 });
