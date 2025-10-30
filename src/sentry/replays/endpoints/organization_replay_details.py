@@ -1,8 +1,10 @@
 import uuid
+from datetime import datetime
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from snuba_sdk import Column, Condition, Entity, Function, Op, Query
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -15,9 +17,66 @@ from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
+from sentry.replays.lib.eap import read as eap_read
+from sentry.replays.lib.eap.snuba_transpiler import RequestMeta, Settings
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.validators import ReplayValidator
+
+
+def query_replay_instance_eap(
+    project_ids: list[int],
+    replay_id: str,
+    start: datetime,
+    end: datetime,
+    organization_id: int | None = None,
+    referrer: str = "replays.query.details_query",
+):
+    snuba_query = Query(
+        match=Entity("replays"),
+        select=[
+            Column("replay_id"),
+            Column("project_id"),
+            Column("timestamp"),
+            Column("segment_id"),
+            Column("is_archived"),
+        ],
+        where=[
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("timestamp"), Op.LT, int(end.timestamp())),
+            Condition(Column("timestamp"), Op.GTE, int(start.timestamp())),
+            Condition(Column("replay_id"), Op.EQ, replay_id),
+        ],
+        having=[
+            Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
+        ],
+    )
+
+    settings = Settings(
+        attribute_types={
+            "replay_id": str,
+            "project_id": int,
+            "timestamp": int,
+            "segment_id": int,
+            "is_archived": int,
+        },
+        default_limit=1,
+        default_offset=0,
+    )
+
+    request_meta = RequestMeta(
+        cogs_category="replays",
+        debug=False,
+        start_datetime=start,
+        end_datetime=end,
+        organization_id=organization_id or 0,
+        project_ids=project_ids,
+        referrer=referrer,
+        request_id=str(uuid.uuid4().hex),
+        trace_item_type="replay",
+    )
+
+    return eap_read.query(snuba_query, settings, request_meta, [])
 
 
 @region_silo_endpoint
