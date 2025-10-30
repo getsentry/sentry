@@ -156,7 +156,7 @@ def get_highest_opportunity_page_vitals_for_project(
             p75_value = row.get(f"p75(measurements.{vital})")
             samples_count = row.get(f"count_scores(measurements.score.{vital})")
             score_under_threshold = score is not None and score < SCORE_THRESHOLD
-            enough_samples = samples_count is not None and samples_count >= 10
+            enough_samples = samples_count is not None and samples_count >= SAMPLES_COUNT_THRESHOLD
             if (
                 score is not None
                 and score_under_threshold
