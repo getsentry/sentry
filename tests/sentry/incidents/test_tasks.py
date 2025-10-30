@@ -15,7 +15,6 @@ from sentry.incidents.models.incident import IncidentActivityType, IncidentStatu
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_kafka, requires_snuba
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
@@ -101,7 +100,6 @@ class HandleTriggerActionTest(TestCase):
                 notification_uuid=str(activity.notification_uuid),
             )
 
-    @with_feature("organizations:workflow-engine-single-process-metric-issues")
     def test_when_workflow_engine_is_enabled(self) -> None:
         with TemporaryAlertRuleTriggerActionRegistry.registry_patched():
             mock_handler = Mock()
