@@ -10,4 +10,4 @@ class WebVitalIssueGroupData(TypedDict):
     vital: WebVitalIssueDetectionType
     score: float
     project: Project
-    value: int
+    value: float

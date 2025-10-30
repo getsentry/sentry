@@ -16,9 +16,7 @@ def create_fingerprint(vital: WebVitalIssueDetectionType, transaction: str) -> s
     return fingerprint
 
 
-def send_web_vitals_issue_to_platform(
-    data: WebVitalIssueGroupData, trace_id: str | None = None
-) -> None:
+def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: str) -> None:
     # Do not create a new web vital issue if an open issue already exists
     if check_unresolved_web_vitals_issue_exists(data):
         return
