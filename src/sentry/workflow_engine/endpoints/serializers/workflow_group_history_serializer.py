@@ -131,6 +131,8 @@ def fetch_workflow_groups_paginated(
     return cast(
         CursorResult[Group],
         OffsetPaginator(
-            qs, order_by=("-count", "-last_triggered"), on_results=convert_results
-        ).get_result(per_page, cursor),
+            qs,
+            order_by=("-count", "-last_triggered"),
+            on_results=convert_results,
+        ).get_result(per_page, cursor, count_hits=True),
     )
