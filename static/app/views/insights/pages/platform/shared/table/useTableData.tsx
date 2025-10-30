@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useTableSortParams} from 'sentry/views/insights/agents/components/headSortCell';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanProperty} from 'sentry/views/insights/types';
 
@@ -12,15 +12,13 @@ export function useSpanTableData<Fields extends SpanProperty>({
   fields,
   referrer,
   query,
-  cursorParamName,
 }: {
-  cursorParamName: string;
   fields: Fields[];
   query: string | MutableSearch;
   referrer: string;
 }) {
-  const location = useLocation();
   const {sortField, sortOrder} = useTableSortParams();
+  const {cursor} = useTableCursor();
 
   const isValidSortKey = fields.includes(sortField as Fields);
 
@@ -31,10 +29,7 @@ export function useSpanTableData<Fields extends SpanProperty>({
       fields,
       limit: PER_PAGE,
       keepPreviousData: true,
-      cursor:
-        typeof location.query[cursorParamName] === 'string'
-          ? location.query[cursorParamName]
-          : undefined,
+      cursor,
     },
     referrer
   );
@@ -43,10 +38,8 @@ export function useSpanTableData<Fields extends SpanProperty>({
 export function useTableDataWithController<Fields extends SpanProperty>({
   fields,
   referrer,
-  cursorParamName,
   query,
 }: {
-  cursorParamName: string;
   fields: Fields[];
   query: string | MutableSearch;
   referrer: string;
@@ -54,7 +47,6 @@ export function useTableDataWithController<Fields extends SpanProperty>({
   const transactionsRequest = useSpanTableData({
     query,
     fields: ['transaction', ...fields],
-    cursorParamName,
     referrer,
   });
 

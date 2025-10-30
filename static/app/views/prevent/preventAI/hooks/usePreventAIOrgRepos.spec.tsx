@@ -1,34 +1,30 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {PreventAIConfigFixture} from 'sentry-fixture/prevent';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  usePreventAIOrgRepos,
-  type PreventAIOrgReposResponse,
-} from './usePreventAIOrgRepos';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+
+import {usePreventAIOrgs} from './usePreventAIOrgRepos';
 
 describe('usePreventAIOrgRepos', () => {
   const mockOrg = OrganizationFixture({
     preventAiConfigGithub: PreventAIConfigFixture(),
   });
 
-  const mockResponse: PreventAIOrgReposResponse = {
-    orgRepos: [
-      {
-        githubOrganizationId: '1',
-        name: 'repo1',
-        provider: 'github',
-        repos: [{id: '1', name: 'repo1', fullName: 'org-1/repo1'}],
-      },
-      {
-        githubOrganizationId: '2',
-        name: 'repo2',
-        provider: 'github',
-        repos: [{id: '2', name: 'repo2', fullName: 'org-2/repo2'}],
-      },
-    ],
-  };
+  const mockResponse: OrganizationIntegration[] = [
+    OrganizationIntegrationsFixture({
+      id: '1',
+      name: 'repo1',
+      externalId: 'ext-1',
+    }),
+    OrganizationIntegrationsFixture({
+      id: '2',
+      name: 'repo2',
+      externalId: 'ext-2',
+    }),
+  ];
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -36,11 +32,11 @@ describe('usePreventAIOrgRepos', () => {
 
   it('returns data on success', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${mockOrg.slug}/prevent/github/repos/`,
+      url: `/organizations/${mockOrg.slug}/integrations/`,
       body: mockResponse,
     });
 
-    const {result} = renderHookWithProviders(() => usePreventAIOrgRepos(), {
+    const {result} = renderHookWithProviders(() => usePreventAIOrgs(), {
       organization: mockOrg,
     });
 
@@ -51,12 +47,12 @@ describe('usePreventAIOrgRepos', () => {
 
   it('returns error on failure', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${mockOrg.slug}/prevent/github/repos/`,
+      url: `/organizations/${mockOrg.slug}/integrations/`,
       statusCode: 500,
       body: {error: 'Internal Server Error'},
     });
 
-    const {result} = renderHookWithProviders(() => usePreventAIOrgRepos(), {
+    const {result} = renderHookWithProviders(() => usePreventAIOrgs(), {
       organization: mockOrg,
     });
 
@@ -65,33 +61,30 @@ describe('usePreventAIOrgRepos', () => {
 
   it('refetches data', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${mockOrg.slug}/prevent/github/repos/`,
+      url: `/organizations/${mockOrg.slug}/integrations/`,
       body: mockResponse,
     });
 
-    const {result} = renderHookWithProviders(() => usePreventAIOrgRepos(), {
+    const {result} = renderHookWithProviders(() => usePreventAIOrgs(), {
       organization: mockOrg,
     });
 
     await waitFor(() => expect(result.current.data).toEqual(mockResponse));
 
-    const newResponse: PreventAIOrgReposResponse = {
-      orgRepos: [
-        {
-          githubOrganizationId: '3',
-          name: 'repo3',
-          provider: 'github',
-          repos: [{id: '3', name: 'repo3', fullName: 'org-3/repo3'}],
-        },
-      ],
-    };
+    const newResponse: OrganizationIntegration[] = [
+      OrganizationIntegrationsFixture({
+        id: '3',
+        name: 'repo3',
+        externalId: 'ext-3',
+      }),
+    ];
     MockApiClient.addMockResponse({
-      url: `/organizations/${mockOrg.slug}/prevent/github/repos/`,
+      url: `/organizations/${mockOrg.slug}/integrations/`,
       body: newResponse,
     });
 
     result.current.refetch();
-    await waitFor(() => expect(result.current.data?.orgRepos?.[0]?.name).toBe('repo3'));
+    await waitFor(() => expect(result.current.data?.[0]?.name).toBe('repo3'));
     expect(result.current.data).toEqual(newResponse);
   });
 });

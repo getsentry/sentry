@@ -195,6 +195,8 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
   const dateAdded = build.app_info?.date_added;
   const sizeInfo = build.size_info;
 
+  const hasGitInfo = prNumber || branchName || commitHash;
+
   return (
     <BuildItemContainer
       onClick={onSelect}
@@ -203,23 +205,26 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
       gap="md"
     >
       <Flex direction="column" gap="sm" flex={1}>
-        <Flex align="center" gap="md">
-          {(prNumber || branchName) && <IconBranch size="xs" color="gray300" />}
-          {prNumber && (
-            <Flex align="center" gap="sm">
-              <Text>#{prNumber}</Text>
-            </Flex>
-          )}
-          {branchName && (
-            <BuildItemBranchTag>{build.vcs_info?.head_ref}</BuildItemBranchTag>
-          )}
-          {commitHash && (
-            <Flex align="center" gap="sm">
-              <IconCommit size="xs" color="gray300" />
-              <Text>{commitHash}</Text>
-            </Flex>
-          )}
-        </Flex>
+        {hasGitInfo && (
+          <Flex align="center" gap="md">
+            {(prNumber || branchName) && <IconBranch size="xs" color="gray300" />}
+            {prNumber && (
+              <Flex align="center" gap="sm">
+                <Text>#{prNumber}</Text>
+              </Flex>
+            )}
+            {branchName && (
+              <BuildItemBranchTag>{build.vcs_info?.head_ref}</BuildItemBranchTag>
+            )}
+            {commitHash && (
+              <Flex align="center" gap="sm">
+                <IconCommit size="xs" color="gray300" />
+                <Text>{commitHash}</Text>
+              </Flex>
+            )}
+          </Flex>
+        )}
+
         <Flex align="center" gap="md">
           {dateAdded && (
             <Flex align="center" gap="sm">
@@ -237,14 +242,14 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
           )}
           {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
-              <IconDownload size="xs" color="gray300" />
-              <Text>{formatBytesBase10(sizeInfo.download_size_bytes)}</Text>
+              <IconCode size="xs" color="gray300" />
+              <Text>{formatBytesBase10(sizeInfo.install_size_bytes)}</Text>
             </Flex>
           )}
           {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
-              <IconCode size="xs" color="gray300" />
-              <Text>{formatBytesBase10(sizeInfo.install_size_bytes)}</Text>
+              <IconDownload size="xs" color="gray300" />
+              <Text>{formatBytesBase10(sizeInfo.download_size_bytes)}</Text>
             </Flex>
           )}
         </Flex>
