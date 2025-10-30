@@ -73,7 +73,6 @@ export function PathsTable() {
       'http.request.method',
       'count_unique(user)',
     ],
-    cursorParamName: 'pathsCursor',
     referrer: Referrer.PATHS_TABLE,
   });
 
@@ -83,7 +82,6 @@ export function PathsTable() {
         sortKey={column.key}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
         forceCellGrow={column.key === 'transaction'}
-        cursorParamName="pathsCursor"
       >
         {column.name}
       </HeadSortCell>
@@ -157,7 +155,6 @@ export function PathsTable() {
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="pathsCursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />

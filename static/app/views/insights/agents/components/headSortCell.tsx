@@ -5,6 +5,7 @@ import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import type {QueryValue} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 
 function decodeSortField(value: QueryValue): string {
   if (typeof value === 'string') {
@@ -27,8 +28,8 @@ function decodeSortOrder(value: QueryValue): 'asc' | 'desc' {
 export function useTableSortParams() {
   const {field: sortField, order: sortOrder} = useLocationQuery({
     fields: {
-      field: decodeSortField,
-      order: decodeSortOrder,
+      [TableUrlParams.SORT_FIELD]: decodeSortField,
+      [TableUrlParams.SORT_ORDER]: decodeSortOrder,
     },
   });
   return {sortField, sortOrder};
@@ -39,13 +40,11 @@ export const HeadSortCell = memo(function HeadCell({
   children,
   align = 'left',
   forceCellGrow = false,
-  cursorParamName = 'cursor',
   onClick,
 }: {
   children: React.ReactNode;
   sortKey: string;
   align?: 'left' | 'right';
-  cursorParamName?: string;
   forceCellGrow?: boolean;
   onClick?: (sortKey: string, newDirection: 'asc' | 'desc') => void;
 }) {
@@ -64,9 +63,9 @@ export const HeadSortCell = memo(function HeadCell({
         ...location,
         query: {
           ...location.query,
-          [cursorParamName]: undefined,
-          field: sortKey,
-          order: newDirection,
+          [TableUrlParams.CURSOR]: undefined,
+          [TableUrlParams.SORT_FIELD]: sortKey,
+          [TableUrlParams.SORT_ORDER]: newDirection,
         },
       })}
       onClick={() => onClick?.(sortKey, newDirection)}

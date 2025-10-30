@@ -1,8 +1,7 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
-import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {
   GridColumnOrder,
@@ -13,15 +12,14 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useTableSortParams} from 'sentry/views/insights/agents/components/headSortCell';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 
 interface PlatformInsightsTableProps<DataRow extends Record<string, any>>
   extends Omit<
     React.ComponentProps<typeof GridEditable<DataRow>>,
     'columnOrder' | 'columnSortBy'
   > {
-  cursorParamName: string;
   initialColumnOrder:
     | Array<GridColumnOrder<keyof DataRow>>
     | (() => Array<GridColumnOrder<keyof DataRow>>);
@@ -32,32 +30,17 @@ interface PlatformInsightsTableProps<DataRow extends Record<string, any>>
 const COL_WIDTH_MINIMUM = 120;
 
 export function PlatformInsightsTable<DataRow extends Record<string, any>>({
-  cursorParamName,
   pageLinks,
   isPlaceholderData,
   initialColumnOrder,
   ...props
 }: PlatformInsightsTableProps<DataRow>) {
-  const navigate = useNavigate();
-
   const {sortField, sortOrder} = useTableSortParams();
+  const {setCursor} = useTableCursor();
 
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: initialColumnOrder,
   });
-
-  const handleCursor = useCallback<CursorHandler>(
-    (cursor, pathname, previousQuery) => {
-      navigate(
-        {
-          pathname,
-          query: {...previousQuery, [cursorParamName]: cursor},
-        },
-        {replace: true, preventScrollReset: true}
-      );
-    },
-    [cursorParamName, navigate]
-  );
 
   return (
     <Fragment>
@@ -84,7 +67,7 @@ export function PlatformInsightsTable<DataRow extends Record<string, any>>({
         />
         {isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Pagination pageLinks={pageLinks} onCursor={setCursor} />
     </Fragment>
   );
 }

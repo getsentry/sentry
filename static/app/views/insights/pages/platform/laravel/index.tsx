@@ -8,6 +8,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 import OverviewApiLatencyChartWidget from 'sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget';
 import OverviewCacheMissChartWidget from 'sentry/views/insights/common/components/widgets/overviewCacheMissChartWidget';
 import OverviewJobsChartWidget from 'sentry/views/insights/common/components/widgets/overviewJobsChartWidget';
@@ -66,12 +67,10 @@ export function LaravelOverviewPage() {
         query: {
           ...location.query,
           // Reset cursors when view changes
-          pathsCursor: undefined,
-          commandsCursor: undefined,
-          jobsCursor: undefined,
+          [TableUrlParams.CURSOR]: undefined,
           // Reset sort parameters when view changes
-          field: undefined,
-          order: undefined,
+          [TableUrlParams.SORT_FIELD]: undefined,
+          [TableUrlParams.SORT_ORDER]: undefined,
           view,
         },
       },
