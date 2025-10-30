@@ -14,7 +14,6 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
-import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {MCPReferrer} from 'sentry/views/insights/mcp/utils/referrer';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
@@ -56,7 +55,6 @@ export function McpResourcesTable() {
       AVG_DURATION,
       P95_DURATION,
     ],
-    cursorParamName: TableUrlParams.CURSOR,
     referrer: MCPReferrer.MCP_RESOURCE_TABLE,
   });
 
@@ -79,7 +77,6 @@ export function McpResourcesTable() {
           sortKey={column.key}
           align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
           forceCellGrow={column.key === SpanFields.MCP_RESOURCE_URI}
-          cursorParamName={TableUrlParams.CURSOR}
           onClick={handleSort}
         >
           {column.name}
@@ -132,7 +129,6 @@ export function McpResourcesTable() {
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName={TableUrlParams.CURSOR}
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />
