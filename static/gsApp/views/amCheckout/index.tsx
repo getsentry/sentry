@@ -1063,59 +1063,56 @@ const OrgSlug = styled('div')`
 
 const CheckoutBody = styled('div')<{isNewCheckout: boolean}>`
   ${p =>
-    !p.isNewCheckout &&
-    css`
-      flex-basis: 0;
-      flex-grow: 999;
-      min-inline-size: 60%;
-    `}
-  ${p =>
-    p.isNewCheckout &&
-    css`
-      padding: 0 ${p.theme.space['2xl']} ${p.theme.space['3xl']} ${p.theme.space['2xl']};
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      @media (min-width: ${p.theme.breakpoints.md}) {
-        max-width: 47.5rem;
-        padding-top: ${p.theme.space.md};
-      }
-    `}
+    p.isNewCheckout
+      ? css`
+          padding: 0 ${p.theme.space['2xl']} ${p.theme.space['3xl']}
+            ${p.theme.space['2xl']};
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          @media (min-width: ${p.theme.breakpoints.md}) {
+            max-width: 47.5rem;
+            padding-top: ${p.theme.space.md};
+          }
+        `
+      : css`
+          flex-basis: 0;
+          flex-grow: 999;
+          min-inline-size: 60%;
+        `}
 `;
 
 const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
   ${p =>
-    p.isNewCheckout &&
-    css`
-      width: 100%;
-      border-top: 1px solid ${p.theme.border};
-      display: flex;
-      flex-direction: column;
-      padding: 0 ${p.theme.space['2xl']};
-      background-color: ${p.theme.backgroundSecondary};
+    p.isNewCheckout
+      ? css`
+          width: 100%;
+          border-top: 1px solid ${p.theme.border};
+          display: flex;
+          flex-direction: column;
+          padding: 0 ${p.theme.space['2xl']};
+          background-color: ${p.theme.backgroundSecondary};
 
-      @media (min-width: ${p.theme.breakpoints.md}) {
-        position: sticky;
-        right: 0;
-        top: 6.25rem;
-        max-width: 26rem;
-        border-top: none;
-        padding-left: ${p.theme.space['3xl']};
-        background-color: ${p.theme.background};
-        padding-bottom: ${p.theme.space['3xl']};
-      }
-    `}
-  ${p =>
-    !p.isNewCheckout &&
-    css`
-      height: max-content;
-      position: sticky;
-      top: 30px;
-      align-self: start;
-      flex-grow: 1;
-      flex-basis: 25rem;
-    `}
+          @media (min-width: ${p.theme.breakpoints.md}) {
+            position: sticky;
+            right: 0;
+            top: 6.25rem;
+            max-width: 26rem;
+            border-top: none;
+            padding-left: ${p.theme.space['3xl']};
+            background-color: ${p.theme.background};
+            padding-bottom: ${p.theme.space['3xl']};
+          }
+        `
+      : css`
+          height: max-content;
+          position: sticky;
+          top: 30px;
+          align-self: start;
+          flex-grow: 1;
+          flex-basis: 25rem;
+        `}
 `;
 
 /**
@@ -1125,26 +1122,24 @@ const SidePanel = styled('aside')<{isNewCheckout: boolean}>`
  */
 const OverviewContainer = styled('div')<{isNewCheckout: boolean}>`
   ${p =>
-    !p.isNewCheckout &&
-    css`
-      @media (max-width: ${p.theme.breakpoints.lg}) {
-        display: none;
-      }
-    `}
-  ${p =>
-    p.isNewCheckout &&
-    css`
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      gap: ${p.theme.space.xl};
-      padding: ${p.theme.space['2xl']} 0;
+    p.isNewCheckout
+      ? css`
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          position: relative;
+          gap: ${p.theme.space.xl};
+          padding: ${p.theme.space['2xl']} 0;
 
-      @media (min-width: ${p.theme.breakpoints.md}) {
-        padding: 0;
-      }
-    `}
+          @media (min-width: ${p.theme.breakpoints.md}) {
+            padding: 0;
+          }
+        `
+      : css`
+          @media (max-width: ${p.theme.breakpoints.lg}) {
+            display: none;
+          }
+        `}
 `;
 
 const CheckoutStepsContainer = styled('div')<{isNewCheckout: boolean}>`
