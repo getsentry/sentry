@@ -77,14 +77,6 @@ class PreprodArtifactApiDeleteEvent(analytics.Event):
     artifact_id: str
 
 
-@analytics.eventclass("preprod_artifact.api.image")
-class PreprodArtifactApiImageEvent(analytics.Event):
-    organization_id: int
-    project_id: int
-    user_id: int | None = None
-    image_id: str
-
-
 # Size analysis
 @analytics.eventclass("preprod_artifact.api.size_analysis_download")
 class PreprodArtifactApiSizeAnalysisDownloadEvent(analytics.Event):
@@ -155,7 +147,6 @@ analytics.register(PreprodArtifactApiRerunAnalysisEvent)
 analytics.register(PreprodArtifactApiAdminGetInfoEvent)
 analytics.register(PreprodArtifactApiAdminBatchDeleteEvent)
 analytics.register(PreprodArtifactApiDeleteEvent)
-analytics.register(PreprodArtifactApiImageEvent)
 # Size analysis
 analytics.register(PreprodArtifactApiSizeAnalysisDownloadEvent)
 analytics.register(PreprodArtifactApiSizeAnalysisCompareGetEvent)
