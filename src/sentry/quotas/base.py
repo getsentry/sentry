@@ -71,7 +71,11 @@ class RetentionSettings:
 
 # This mirrors the Retentions struct in relay
 # https://github.com/getsentry/relay/blob/641e7f20cd/relay-dynamic-config/src/project.rs#L34-L45
-RETENTIONS_CONFIG_MAPPING = {DataCategory.SPAN: "span", DataCategory.LOG_BYTE: "log"}
+RETENTIONS_CONFIG_MAPPING = {
+    DataCategory.LOG_BYTE: "log",
+    DataCategory.TRANSACTION: "span",
+    DataCategory.SPAN: "span",
+}
 
 
 def build_metric_abuse_quotas() -> list[AbuseQuota]:

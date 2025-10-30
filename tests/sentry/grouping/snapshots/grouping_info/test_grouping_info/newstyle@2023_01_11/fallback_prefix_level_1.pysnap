@@ -1,5 +1,5 @@
 ---
-created: '2025-10-07T22:42:54.917685+00:00'
+created: '2025-10-27T23:46:01.490854+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -17,6 +17,22 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "EXC_BAD_ACCESS"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": null,
+              "id": "value",
+              "name": null,
+              "values": []
+            },
             {
               "contributes": false,
               "hint": "ignored because it contains no in-app frames",
@@ -210,22 +226,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "EXC_BAD_ACCESS"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": []
             }
           ]
         }
@@ -271,6 +271,22 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "EXC_BAD_ACCESS"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": null,
+              "id": "value",
+              "name": null,
+              "values": []
+            },
             {
               "contributes": true,
               "hint": null,
@@ -464,22 +480,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "EXC_BAD_ACCESS"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": []
             }
           ]
         }
