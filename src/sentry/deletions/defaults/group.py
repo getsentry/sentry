@@ -4,7 +4,7 @@ import logging
 import os
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, TypeGuard
 
 from sentry import models, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
@@ -68,6 +68,11 @@ _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
 )
 
 
+def _is_group_sequence(groups: Sequence[Group | tuple[Any, ...]]) -> TypeGuard[Sequence[Group]]:
+    """Type guard to narrow Sequence[Group | tuple] to Sequence[Group]."""
+    return all(isinstance(group, Group) for group in groups)
+
+
 class EventsBaseDeletionTask(BaseDeletionTask[Group]):
     """
     Base class to delete events associated to groups and its related models.
@@ -122,19 +127,21 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
 
         # Schedule nodestore deletion task for each project
         for project_id, groups in self.project_groups.items():
-            if all(isinstance(group, Group) for group in groups):
+            if _is_group_sequence(groups):
                 sorted_groups = sorted(groups, key=lambda g: (g.times_seen, g.id))
                 sorted_group_ids = [group.id for group in sorted_groups]
                 sorted_times_seen = [group.times_seen for group in sorted_groups]
             else:
+                # groups must be list[tuple[Any, ...]]
+                tuple_groups: list[tuple[Any, ...]] = groups  # type: ignore[assignment]
                 times_seen_index = _F_IDX["times_seen"]
                 id_index = _F_IDX["id"]
-                sorted_groups = sorted(
-                    groups,
+                sorted_tuple_groups = sorted(
+                    tuple_groups,
                     key=lambda g: (g[times_seen_index], g[id_index]),
                 )
-                sorted_group_ids = [group[id_index] for group in sorted_groups]
-                sorted_times_seen = [group[times_seen_index] for group in sorted_groups]
+                sorted_group_ids = [group[id_index] for group in sorted_tuple_groups]
+                sorted_times_seen = [group[times_seen_index] for group in sorted_tuple_groups]
             # The scheduled task will not have access to the Group model, thus, we need to pass the times_seen
             # in order to enable proper batching and calling deletions with less than ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
             delete_events_for_groups_from_nodestore_and_eventstore.apply_async(
@@ -218,7 +225,14 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         self.mark_deletion_in_progress(instance_list)
         self._delete_children(instance_list)
         # Remove group objects with children removed.
-        self.delete_instance_bulk(instance_list)
+        # If instances are tuples, convert them to Group objects for deletion
+        if _is_group_sequence(instance_list):
+            self.delete_instance_bulk(instance_list)
+        else:
+            # Convert tuples to Group objects
+            group_ids = [group[_F_IDX["id"]] for group in instance_list]
+            groups = list(Group.objects.filter(id__in=group_ids))
+            self.delete_instance_bulk(groups)
 
         return False
 
@@ -226,12 +240,13 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         if not instance_list:
             return
 
-        if all(isinstance(group, Group) for group in instance_list):
+        if _is_group_sequence(instance_list):
             group_ids = [group.id for group in instance_list]
             project_id = instance_list[0].project_id
         else:
-            group_ids = [group[_F_IDX["id"]] for group in instance_list]
-            project_id = instance_list[0][_F_IDX["project_id"]]
+            tuple_list: Sequence[tuple[Any, ...]] = instance_list  # type: ignore[assignment]
+            group_ids = [group[_F_IDX["id"]] for group in tuple_list]
+            project_id = tuple_list[0][_F_IDX["project_id"]]
 
         # Remove child relations for all groups first.
         child_relations: list[BaseRelation] = []
@@ -239,14 +254,16 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
-        if all(isinstance(group, Group) for group in error_groups) and all(
-            isinstance(group, Group) for group in issue_platform_groups
-        ):
+        if _is_group_list(error_groups) and _is_group_list(issue_platform_groups):
             error_group_ids = [group.id for group in error_groups]
             issue_platform_group_ids = [group.id for group in issue_platform_groups]
         else:
-            error_group_ids = [group[_F_IDX["id"]] for group in error_groups]
-            issue_platform_group_ids = [group[_F_IDX["id"]] for group in issue_platform_groups]
+            error_tuple_groups: list[tuple[Any, ...]] = error_groups  # type: ignore[assignment]
+            issue_platform_tuple_groups: list[tuple[Any, ...]] = issue_platform_groups  # type: ignore[assignment]
+            error_group_ids = [group[_F_IDX["id"]] for group in error_tuple_groups]
+            issue_platform_group_ids = [
+                group[_F_IDX["id"]] for group in issue_platform_tuple_groups
+            ]
 
         delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
         delete_group_hashes(project_id, issue_platform_group_ids)
@@ -277,27 +294,35 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         return super().delete_instance(instance)
 
     def mark_deletion_in_progress(self, instance_list: Sequence[Group | tuple[Any, ...]]) -> None:
-        if all(isinstance(group, Group) for group in instance_list):
+        if _is_group_sequence(instance_list):
             group_ids = [group.id for group in instance_list]
         else:
-            group_ids = [group[_F_IDX["id"]] for group in instance_list]
+            tuple_list: Sequence[tuple[Any, ...]] = instance_list  # type: ignore[assignment]
+            group_ids = [group[_F_IDX["id"]] for group in tuple_list]
         Group.objects.filter(id__in=group_ids).exclude(
             status=GroupStatus.DELETION_IN_PROGRESS
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
 
 
 def delete_project_group_hashes(project_id: int) -> None:
-    groups = []
+    groups: list[Group] = []
     for group in RangeQuerySetWrapper(
         Group.objects.filter(project_id=project_id), step=GROUP_CHUNK_SIZE
     ):
         groups.append(group)
 
     error_groups, issue_platform_groups = separate_by_group_category(groups)
-    error_group_ids = [group.id for group in error_groups]
+    # Since groups are all Group objects, the separated groups should also be Group objects
+    if _is_group_list(error_groups):
+        error_group_ids = [group.id for group in error_groups]
+    else:
+        error_group_ids = [group[_F_IDX["id"]] for group in error_groups]
     delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
 
-    issue_platform_group_ids = [group.id for group in issue_platform_groups]
+    if _is_group_list(issue_platform_groups):
+        issue_platform_group_ids = [group.id for group in issue_platform_groups]
+    else:
+        issue_platform_group_ids = [group[_F_IDX["id"]] for group in issue_platform_groups]
     delete_group_hashes(project_id, issue_platform_group_ids)
 
 
