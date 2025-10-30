@@ -46,9 +46,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
     selectText(node);
   }, [userNodeId]);
 
-  const {onClick: handleCopyToClipboard} = useCopyToClipboard({
-    text: user ?? '',
-  });
+  const {copy} = useCopyToClipboard();
 
   if (!name && !email) {
     return <strong>{t('Anonymous User')}</strong>;
@@ -83,7 +81,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
             gap="xs"
             onClick={() => {
               handleSelectText();
-              handleCopyToClipboard();
+              copy(user ?? '');
             }}
           >
             {isSameNameAndEmail ? (

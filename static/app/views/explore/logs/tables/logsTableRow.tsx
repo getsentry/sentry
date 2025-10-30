@@ -1,5 +1,13 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
-import {Fragment, memo, useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
@@ -609,18 +617,26 @@ function LogRowDetailsActions({
   const organization = useOrganization();
   const showFilterButtons = !isFrozen;
 
-  const {onClick: betterCopyToClipboard} = useCopyToClipboard({
-    text: isPending || isError ? '' : ourlogToJson(data),
-    onCopy: () => {
+  const {copy} = useCopyToClipboard();
+
+  // Memoize in case we are attempting to copy large JSON objects.
+  const json = useMemo(() => ourlogToJson(data), [data]);
+
+  const betterCopyToClipboard = useCallback(() => {
+    if (!json) {
+      return;
+    }
+    copy(json, {
+      successMessage: t('Copied!'),
+      errorMessage: t('Failed to copy'),
+    }).then(() => {
       trackAnalytics('logs.table.row_copied_as_json', {
         log_id: String(tableDataRow[OurLogKnownFieldKey.ID]),
         organization,
       });
-    },
+    });
+  }, [copy, organization, tableDataRow, json]);
 
-    successMessage: t('Copied!'),
-    errorMessage: t('Failed to copy'),
-  });
   return (
     <Fragment>
       {showFilterButtons ? (
@@ -633,9 +649,8 @@ function LogRowDetailsActions({
           priority="link"
           size="sm"
           borderless
-          onClick={() => {
-            betterCopyToClipboard();
-          }}
+          onClick={betterCopyToClipboard}
+          disabled={isPending || isError || !json}
         >
           <IconJson size="md" style={{paddingRight: space(0.5)}} />
           {t('Copy as JSON')}

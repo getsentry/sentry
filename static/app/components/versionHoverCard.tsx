@@ -207,7 +207,12 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
       {t('Release:')}
       <VersionWrapper>
         <StyledVersion version={releaseVersion} truncate anchor={false} />
-        <CopyToClipboardButton borderless size="zero" text={releaseVersion} />
+        <CopyToClipboardButton
+          borderless
+          size="zero"
+          text={releaseVersion}
+          aria-label={t('Copy release version to clipboard')}
+        />
       </VersionWrapper>
     </Flex>
   );

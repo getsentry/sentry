@@ -265,9 +265,8 @@ function TagValueActionsMenu({
   tagValue: TagValue;
 }) {
   const organization = useOrganization();
-  const {onClick: handleCopy} = useCopyToClipboard({
-    text: tagValue.value,
-  });
+  const {copy} = useCopyToClipboard();
+
   const referrer = 'tag-details-drawer';
   const key = escapeIssueTagKey(tagValue.key ?? tag.key);
   const query = tagValue.query
@@ -319,7 +318,8 @@ function TagValueActionsMenu({
         {
           key: 'copy-value',
           label: t('Copy tag value to clipboard'),
-          onAction: handleCopy,
+          onAction: () =>
+            copy(tagValue.value, {successMessage: t('Copied tag value to clipboard')}),
         },
       ]}
     />

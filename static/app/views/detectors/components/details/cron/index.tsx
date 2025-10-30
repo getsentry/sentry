@@ -236,6 +236,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                     <Text ellipsis>{dataSource.queryObj.slug}</Text>
                     <CopyToClipboardButton
                       text={dataSource.queryObj.slug}
+                      aria-label={t('Copy monitor slug to clipboard')}
                       size="zero"
                       borderless
                     />

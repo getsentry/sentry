@@ -43,10 +43,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
       })()
     : '';
 
-  const {onClick: handleCopyReplayLink} = useCopyToClipboard({
-    text: replayUrlWithTimestamp,
-    successMessage: t('Copied replay link to clipboard'),
-  });
+  const {copy} = useCopyToClipboard();
 
   const listPageCrumb = {
     to: {
@@ -83,12 +80,24 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <div onClick={handleCopyReplayLink}>{getShortEventId(replayRecord?.id)}</div>
+        <div
+          onClick={() =>
+            copy(replayUrlWithTimestamp, {
+              successMessage: t('Copied replay link to clipboard'),
+            })
+          }
+        >
+          {getShortEventId(replayRecord?.id)}
+        </div>
         {isHovered && (
           <Tooltip title={t('Copy link to replay at current timestamp')}>
             <Button
               aria-label={t('Copy link to replay at current timestamp')}
-              onClick={handleCopyReplayLink}
+              onClick={() =>
+                copy(replayUrlWithTimestamp, {
+                  successMessage: t('Copied replay link to clipboard'),
+                })
+              }
               size="zero"
               borderless
               icon={<IconCopy size="xs" color="subText" />}

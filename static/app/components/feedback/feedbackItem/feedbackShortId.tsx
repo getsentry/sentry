@@ -56,20 +56,7 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
       },
     });
 
-  const {onClick: handleCopyUrl} = useCopyToClipboard({
-    successMessage: t('Copied Feedback URL to clipboard'),
-    text: feedbackUrl,
-  });
-
-  const {onClick: handleCopyShortId} = useCopyToClipboard({
-    successMessage: t('Copied Short-ID to clipboard'),
-    text: feedbackItem.shortId,
-  });
-
-  const {onClick: handleCopyMarkdown} = useCopyToClipboard({
-    text: `[${feedbackItem.shortId}](${feedbackUrl})`,
-    successMessage: t('Copied Markdown Feedback Link to clipboard'),
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <Flex gap="md" align="center" className={className} style={style} css={hideDropdown}>
@@ -98,17 +85,26 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
           {
             key: 'copy-url',
             label: t('Copy Feedback URL'),
-            onAction: handleCopyUrl,
+            onAction: () =>
+              copy(feedbackUrl, {
+                successMessage: t('Copied Feedback URL to clipboard'),
+              }),
           },
           {
             key: 'copy-short-id',
             label: t('Copy Short-ID'),
-            onAction: handleCopyShortId,
+            onAction: () =>
+              copy(feedbackItem.shortId, {
+                successMessage: t('Copied Short-ID to clipboard'),
+              }),
           },
           {
             key: 'copy-markdown-link',
             label: t('Copy Markdown Link'),
-            onAction: handleCopyMarkdown,
+            onAction: () =>
+              copy(`[${feedbackItem.shortId}](${feedbackUrl})`, {
+                successMessage: t('Copied Markdown Feedback Link to clipboard'),
+              }),
           },
         ]}
       />

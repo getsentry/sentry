@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -28,44 +29,43 @@ export function ShortIdBreadcrumb({
   group,
 }: ShortIdBreadcrumbProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const {onClick: handleCopyShortId} = useCopyToClipboard({
-    text: group.shortId,
-    successMessage: t('Copied Short-ID to clipboard'),
-    onCopy: () => {
+  const {copy} = useCopyToClipboard();
+
+  const handleCopyShortId = useCallback(() => {
+    copy(group.shortId, {successMessage: t('Copied Short-ID to clipboard')}).then(() => {
       trackAnalytics('issue_details.copy_issue_short_id_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
         streamline: hasStreamlinedUI,
       });
-    },
-  });
+    });
+  }, [copy, organization, group, hasStreamlinedUI]);
+
   const issueUrl =
     window.location.origin +
     normalizeUrl(`/organizations/${organization.slug}/issues/${group.id}/`);
 
-  const {onClick: handleCopyUrl} = useCopyToClipboard({
-    text: issueUrl,
-    successMessage: t('Copied Issue URL to clipboard'),
-    onCopy: () => {
+  const handleCopyUrl = useCallback(() => {
+    copy(issueUrl, {successMessage: t('Copied Issue URL to clipboard')}).then(() => {
       trackAnalytics('issue_details.copy_issue_url_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
         streamline: hasStreamlinedUI,
       });
-    },
-  });
+    });
+  }, [copy, organization, group, hasStreamlinedUI, issueUrl]);
 
-  const {onClick: handleCopyMarkdown} = useCopyToClipboard({
-    text: `[${group.shortId}](${issueUrl})`,
-    successMessage: t('Copied Markdown Issue Link to clipboard'),
-    onCopy: () => {
+  const handleCopyMarkdown = useCallback(() => {
+    copy(`[${group.shortId}](${issueUrl})`, {
+      successMessage: t('Copied Markdown Issue Link to clipboard'),
+    }).then(() => {
       trackAnalytics('issue_details.copy_issue_markdown_link_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
         streamline: hasStreamlinedUI,
       });
-    },
-  });
+    });
+  }, [copy, organization, group, hasStreamlinedUI, issueUrl]);
 
   if (!group.shortId) {
     return null;

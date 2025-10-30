@@ -391,6 +391,7 @@ function LeafBreadCrumbLabel({
       )}
       <span>{formatVersion(traceSlug)}</span>
       <CopyToClipboardButton
+        aria-label={t('Copy trace ID to clipboard')}
         className="trace-id-copy-button"
         text={traceSlug}
         size="zero"

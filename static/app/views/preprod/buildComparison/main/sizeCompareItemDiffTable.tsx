@@ -184,6 +184,7 @@ export function SizeCompareItemDiffTable({
                         size="zero"
                         text={diffItem.path}
                         style={{flexShrink: 0}}
+                        aria-label="Copy path to clipboard"
                       />
                     </Flex>
                   ) : null
