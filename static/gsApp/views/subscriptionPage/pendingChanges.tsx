@@ -368,10 +368,13 @@ function PendingChanges({organization, subscription}: Props) {
 
   // if there are only two changes total, show all the changes without an expand button
   // otherwise, show the first two changes and the rest with an expand button
-  const shouldShowAll = !firstChangeSet || Object.values(changes).flat().length <= 2;
+  const totalChangeLength = Object.values(changes).flat().length;
+  const shouldShowAll = !firstChangeSet || totalChangeLength <= 2;
   const initialChanges = shouldShowAll
     ? changes
     : {[firstChangeKey]: firstChangeSet.slice(0, 2)};
+  const remainingChangeLength =
+    totalChangeLength - Object.values(initialChanges).flat().length;
 
   return (
     <StyledAlert
@@ -426,11 +429,17 @@ function PendingChanges({organization, subscription}: Props) {
                 <Item key={itemIdx} data-test-id="pending-item">
                   <Text variant={shouldShowAll || isExpanded ? 'primary' : 'muted'}>
                     {item}
+                    {itemIdx === items.length - 1 &&
+                      remainingChangeLength > 0 &&
+                      !isExpanded &&
+                      tct(' and [remainingChangeLength] more [changeTerm]...', {
+                        remainingChangeLength,
+                        changeTerm: remainingChangeLength === 1 ? 'change' : 'changes',
+                      })}
                   </Text>
                 </Item>
               ))}
             </ItemList>
-            {!isExpanded && !shouldShowAll && <Text variant="muted">...</Text>}
           </div>
         ))}
       </Grid>

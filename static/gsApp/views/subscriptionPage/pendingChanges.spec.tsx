@@ -664,6 +664,7 @@ describe('Subscription > PendingChanges', () => {
     expect(
       screen.getByText(/The following changes will take effect on/)
     ).toBeInTheDocument();
+    expect(screen.queryByText(/more change/)).not.toBeInTheDocument();
   });
 
   it('does not render expand button when there are less than 3 changes across all dates', () => {
@@ -692,6 +693,7 @@ describe('Subscription > PendingChanges', () => {
     );
     expect(screen.getByTestId('pending-list-0')).toBeInTheDocument();
     expect(screen.getByTestId('pending-list-1')).toBeInTheDocument();
+    expect(screen.queryByText(/more change/)).not.toBeInTheDocument();
   });
 
   it('renders expand button when there are 3 or more changes', async () => {
@@ -722,6 +724,7 @@ describe('Subscription > PendingChanges', () => {
       screen.getByText(/The following changes will take effect on/)
     ).toBeInTheDocument();
     expect(screen.queryByTestId('expanded-pending-list-0')).not.toBeInTheDocument();
+    expect(screen.getByText(/and 1 more change.../)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
     await screen.findByTestId('expanded-pending-list-0');
@@ -763,6 +766,7 @@ describe('Subscription > PendingChanges', () => {
     expect(screen.queryByTestId('pending-list-1')).not.toBeInTheDocument();
     expect(screen.queryByTestId('expanded-pending-list-0')).not.toBeInTheDocument();
     expect(screen.queryByTestId('expanded-pending-list-1')).not.toBeInTheDocument();
+    expect(screen.getByText(/and 2 more changes.../)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
     await screen.findByTestId('expanded-pending-list-0');
