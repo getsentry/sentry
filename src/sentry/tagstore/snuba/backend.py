@@ -170,6 +170,7 @@ class SnubaTagStorage(TagStorage):
         limit=3,
         raise_on_empty=True,
         tenant_ids=None,
+        include_empty_values=False,
         **kwargs,
     ):
         tag = self.format_string.format(key)
@@ -180,7 +181,8 @@ class SnubaTagStorage(TagStorage):
         aggregations = kwargs.get("aggregations", [])
 
         dataset, filters = self.apply_group_filters(group, filters)
-        conditions.append([tag, "!=", ""])
+        if not include_empty_values:
+            conditions.append([tag, "!=", ""])
         aggregations += [
             ["uniq", tag, "values_seen"],
             ["count()", "", "count"],
@@ -500,7 +502,14 @@ class SnubaTagStorage(TagStorage):
         )
         return set(key.top_values)
 
-    def get_group_tag_key(self, group, environment_id, key, tenant_ids=None):
+    def get_group_tag_key(
+        self,
+        group,
+        environment_id,
+        key,
+        tenant_ids=None,
+        include_empty_values=None,
+    ):
         return self.__get_tag_key_and_top_values(
             group.project_id,
             group,
@@ -508,6 +517,7 @@ class SnubaTagStorage(TagStorage):
             key,
             limit=TOP_VALUES_DEFAULT_LIMIT,
             tenant_ids=tenant_ids,
+            include_empty_values=include_empty_values,
         )
 
     def get_group_tag_keys(
@@ -651,12 +661,21 @@ class SnubaTagStorage(TagStorage):
                 dataset = Dataset.IssuePlatform
         return dataset, filters
 
-    def get_group_tag_value_count(self, group, environment_id, key: str, tenant_ids=None):
+    def get_group_tag_value_count(
+        self,
+        group,
+        environment_id,
+        key: str,
+        tenant_ids=None,
+        include_empty_values=False,
+    ):
         tag = self.format_string.format(key)
         filters = {"project_id": get_project_list(group.project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
         conditions = [[tag, "!=", ""]]
+        if include_empty_values:
+            conditions = []
         aggregations = [["count()", "", "count"]]
         dataset, filters = self.apply_group_filters(group, filters)
 
@@ -670,10 +689,22 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_top_group_tag_values(
-        self, group, environment_id, key: str, limit=TOP_VALUES_DEFAULT_LIMIT, tenant_ids=None
+        self,
+        group,
+        environment_id,
+        key: str,
+        limit=TOP_VALUES_DEFAULT_LIMIT,
+        tenant_ids=None,
+        include_empty_values=False,
     ):
         tag = self.__get_tag_key_and_top_values(
-            group.project_id, group, environment_id, key, limit, tenant_ids=tenant_ids
+            group.project_id,
+            group,
+            environment_id,
+            key,
+            limit,
+            tenant_ids=tenant_ids,
+            include_empty_values=include_empty_values,
         )
         return tag.top_values
 
@@ -1452,18 +1483,24 @@ class SnubaTagStorage(TagStorage):
         limit: int = 1000,
         offset: int = 0,
         tenant_ids: dict[str, int | str] | None = None,
+        include_empty_values=False,
     ) -> list[GroupTagValue]:
-        filters = {
+        filters: dict[str, list[Any]] = {
             "project_id": get_project_list(group.project_id),
             self.key_column: [key],
         }
+        # When you filter by tags_key = ["foo"], we're filtering to where the tags_key array contains "foo".
+        # In order to get the total count with empty values, we need to remove the filter.
+        if include_empty_values:
+            del filters[self.key_column]
         dataset, filters = self.apply_group_filters(group, filters)
 
         if environment_ids:
             filters["environment"] = environment_ids
+        tag_expression = self.format_string.format(key)
         results = snuba.query(
             dataset=dataset,
-            groupby=[self.value_column],
+            groupby=[tag_expression],
             filter_keys=filters,
             conditions=[],
             aggregations=[
@@ -1486,7 +1523,13 @@ class SnubaTagStorage(TagStorage):
         return group_tag_values
 
     def get_group_tag_value_paginator(
-        self, group, environment_ids, key: str, order_by="-id", tenant_ids=None
+        self,
+        group,
+        environment_ids,
+        key: str,
+        order_by="-id",
+        tenant_ids=None,
+        include_empty_values=False,
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -1499,7 +1542,12 @@ class SnubaTagStorage(TagStorage):
             raise ValueError("Unsupported order_by: %s" % order_by)
 
         group_tag_values = self.get_group_tag_value_iter(
-            group, environment_ids, key, orderby="-last_seen", tenant_ids=tenant_ids
+            group,
+            environment_ids,
+            key,
+            orderby="-last_seen",
+            tenant_ids=tenant_ids,
+            include_empty_values=include_empty_values,
         )
 
         desc = order_by.startswith("-")
