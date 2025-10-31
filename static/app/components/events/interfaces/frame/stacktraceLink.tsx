@@ -191,11 +191,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   }
 
   if ((isPending && isQueryEnabled) || !match) {
-    return (
-      <StacktraceLinkWrapper>
-        <Placeholder height="14px" width={coverageEnabled ? '40px' : '14px'} />
-      </StacktraceLinkWrapper>
-    );
+    return null;
   }
 
   // Match found - display link to source
