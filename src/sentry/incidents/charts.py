@@ -24,6 +24,9 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import build_query_strings
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
+    DetectorSerializerResponse,
+)
 from sentry.workflow_engine.models import AlertRuleDetector
 
 CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
@@ -148,7 +151,10 @@ def fetch_metric_issue_open_periods(
                 # open_period_identifier is a metric detector ID -> get the alert rule ID
                 open_period_identifier = alert_rule_detector.alert_rule_id
 
-        if organization.slug == "mf-test-n7":
+        if features.has(
+            "organizations:new-metric-issue-charts",
+            organization,
+        ):
             resp = client.get(
                 auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
                 user=user,
@@ -204,6 +210,7 @@ def build_metric_alert_chart(
     user: User | RpcUser | None = None,
     size: ChartSize | None = None,
     subscription: QuerySubscription | None = None,
+    detector_serialized_response: DetectorSerializerResponse | None = None,
 ) -> str | None:
     """
     Builds the dataset required for metric alert chart the same way the frontend would
@@ -231,17 +238,32 @@ def build_metric_alert_chart(
             "start": period_start.strftime(TIME_FORMAT),
             "end": timezone.now().strftime(TIME_FORMAT),
         }
-
-    chart_data = {
-        "rule": alert_rule_serialized_response,
-        "selectedIncident": selected_incident_serialized,
-        "incidents": fetch_metric_issue_open_periods(
-            organization,
-            alert_context.action_identifier_id,
-            time_period,
-            user,
-        ),
-    }
+    if features.has(
+        "organizations:new-metric-issue-charts",
+        organization,
+    ):
+        # TODO(mifu67): create detailed serializer for open period, pass here.
+        # But we don't need it to render the chart, so it's fine for now.
+        chart_data_detector = {
+            "detector": detector_serialized_response,
+            "open_periods": fetch_metric_issue_open_periods(
+                organization,
+                alert_context.action_identifier_id,
+                time_period,
+                user,
+            ),
+        }
+    else:
+        chart_data_alert_rule = {
+            "rule": alert_rule_serialized_response,
+            "selectedIncident": selected_incident_serialized,
+            "incidents": fetch_metric_issue_open_periods(
+                organization,
+                alert_context.action_identifier_id,
+                time_period,
+                user,
+            ),
+        }
 
     allow_mri = features.has(
         "organizations:insights-alerts",
@@ -275,6 +297,7 @@ def build_metric_alert_chart(
         )
     )
 
+    chart_data = {}
     query_params = {
         **env_params,
         **time_period,
@@ -314,6 +337,13 @@ def build_metric_alert_chart(
         )
 
     try:
+        if features.has(
+            "organizations:new-metric-issue-charts",
+            organization,
+        ):
+            chart_data.update(chart_data_detector)
+        else:
+            chart_data.update(chart_data_alert_rule)
         return charts.generate_chart(style, chart_data, size=size)
     except RuntimeError as exc:
         logger.error(
