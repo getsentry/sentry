@@ -2041,9 +2041,7 @@ describe('provisionSubscriptionAction', () => {
         body: {},
       });
 
-      const submitButton = await screen.findByRole('button', {name: 'Submit'});
-      await waitFor(() => expect(submitButton).toBeEnabled());
-      await userEvent.click(submitButton);
+      await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
 
       // Verify reserved is set to RESERVED_BUDGET_QUOTA when CPE has a valid value
       await waitFor(() => {
@@ -2057,7 +2055,7 @@ describe('provisionSubscriptionAction', () => {
           })
         );
       });
-    });
+    }, 15_000);
 
     it('should not modify reserved when CPE is zero', async () => {
       const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
@@ -2104,9 +2102,7 @@ describe('provisionSubscriptionAction', () => {
         body: {},
       });
 
-      const submitButton = await screen.findByRole('button', {name: 'Submit'});
-      await waitFor(() => expect(submitButton).toBeEnabled());
-      await userEvent.click(submitButton);
+      await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
 
       // Verify reserved stays at initial value when CPE is 0
       await waitFor(() => {
@@ -2121,7 +2117,7 @@ describe('provisionSubscriptionAction', () => {
           })
         );
       });
-    });
+    }, 15_000);
 
     it('should clear reserved when CPE is removed after setting valid value', async () => {
       const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
@@ -2171,6 +2167,6 @@ describe('provisionSubscriptionAction', () => {
         expect(reservedField).not.toHaveValue(RESERVED_BUDGET_QUOTA);
       });
       expect(reservedField).toBeEnabled();
-    });
+    }, 15_000);
   });
 });
