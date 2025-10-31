@@ -23,6 +23,7 @@ import {
   StyledTopResultsIndicator,
   TransparentLoadingMask,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {createMetricNameFilter, getMetricsUnit} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -35,17 +36,17 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 const RESULT_LIMIT = 50;
 
 interface AggregatesTabProps {
-  metricName: string;
+  traceMetric: TraceMetric;
 }
 
-export function AggregatesTab({metricName}: AggregatesTabProps) {
+export function AggregatesTab({traceMetric}: AggregatesTabProps) {
   const topEvents = useTopEvents();
   const tableRef = useRef<HTMLDivElement>(null);
 
   const {result, eventView, fields} = useMetricAggregatesTable({
-    enabled: Boolean(metricName),
+    enabled: Boolean(traceMetric.name),
     limit: RESULT_LIMIT,
-    metricName,
+    traceMetric,
   });
 
   const columns = useMemo(
@@ -56,7 +57,7 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
   const setSorts = useSetQueryParamsAggregateSortBys();
   const groupBys = useQueryParamsGroupBys();
 
-  const metricNameFilter = createMetricNameFilter(metricName);
+  const metricNameFilter = createMetricNameFilter(traceMetric.name);
 
   const {attributes: numberTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
