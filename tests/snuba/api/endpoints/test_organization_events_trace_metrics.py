@@ -1,12 +1,44 @@
 from unittest import mock
 
 import pytest
+from rest_framework.exceptions import ErrorDetail
 
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
 class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     dataset = "tracemetrics"
+
+    def test_missing_metric_name_and_type(self):
+        response = self.do_request(
+            {
+                "field": ["sum(value)"],
+                "orderby": "value",
+                "dataset": self.dataset,
+                "project": self.project.id,
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "metricName": ErrorDetail("This field is required.", code="required"),
+            "metricType": ErrorDetail("This field is required.", code="required"),
+        }
+
+    def test_invalid_metric_type(self):
+        response = self.do_request(
+            {
+                "metricName": "foo",
+                "metricType": "bar",
+                "field": ["sum(value)"],
+                "orderby": "value",
+                "dataset": self.dataset,
+                "project": self.project.id,
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "metricType": ErrorDetail('"bar" is not a valid choice.', code="invalid_choice"),
+        }
 
     def test_simple(self) -> None:
         trace_metrics = [
@@ -17,9 +49,10 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         response = self.do_request(
             {
+                "metricName": "foo",
+                "metricType": "counter",
                 "field": ["metric.name", "value"],
                 "orderby": "value",
-                "query": "metric.name:foo",
                 "dataset": self.dataset,
             }
         )
@@ -42,8 +75,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         response = self.do_request(
             {
+                "metricName": "foo",
+                "metricType": "counter",
                 "field": ["metric.name", "sum(value)"],
-                "query": "metric.name:foo",
                 "orderby": "sum(value)",
                 "dataset": self.dataset,
             }
@@ -63,8 +97,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         response = self.do_request(
             {
+                "metricName": "test_metric",
+                "metricType": "counter",
                 "field": ["per_minute(test_metric)"],
-                "query": "",
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "statsPeriod": "10m",
@@ -85,8 +120,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         response = self.do_request(
             {
+                "metricName": "test_metric",
+                "metricType": "counter",
                 "field": ["per_second(test_metric, counter)"],
-                "query": "",
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "statsPeriod": "10m",
@@ -111,8 +147,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         response = self.do_request(
             {
+                "metricName": "request_count",
+                "metricType": "counter",
                 "field": ["per_second(request_count,counter)"],
-                "query": "metric.name:request_count",
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "statsPeriod": "10m",
@@ -131,6 +168,8 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         response = self.do_request(
             {
+                "metricName": "cpu_usage",
+                "metricType": "gauge",
                 "field": [
                     "per_second(cpu_usage, gauge)"
                 ],  # Trying space in the formula here to make sure it works.

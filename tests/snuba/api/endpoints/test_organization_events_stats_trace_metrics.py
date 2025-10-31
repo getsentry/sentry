@@ -32,11 +32,12 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
 
         response = self.do_request(
             {
+                "metricName": "foo",
+                "metricType": "counter",
                 "start": self.start,
                 "end": self.end,
                 "interval": "1h",
                 "yAxis": "sum(value)",
-                "query": "metric.name:foo",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
@@ -60,6 +61,8 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
 
         response = self.do_request(
             {
+                "metricName": "test_metric",
+                "metricType": "counter",
                 "start": self.start,
                 "end": self.end,
                 "interval": "1h",

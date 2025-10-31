@@ -14,7 +14,7 @@ class FieldsACL:
     attributes: set[str] = field(default_factory=set)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class SearchResolverConfig:
     # Automatically add id, etc. if there are no aggregates
     auto_fields: bool = False

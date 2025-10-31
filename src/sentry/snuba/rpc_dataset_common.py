@@ -87,6 +87,7 @@ class TableQuery:
     name: str | None = None
     page_token: PageToken | None = None
     additional_queries: AdditionalQueries | None = None
+    extra_conditions: TraceItemFilter | None = None
 
 
 @dataclass
@@ -214,6 +215,12 @@ class RPCBase:
         sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
         meta = resolver.resolve_meta(referrer=query.referrer, sampling_mode=query.sampling_mode)
         where, having, query_contexts = resolver.resolve_query(query.query_string)
+
+        # if there are additional conditions to be added, make sure to merge them with the
+        if where is None:
+            where = query.extra_conditions
+        elif query.extra_conditions is not None:
+            where = TraceItemFilter(and_filter=AndFilter(filters=[query.extra_conditions, where]))
 
         cross_trace_queries = cls.get_cross_trace_queries(query)
 
@@ -582,11 +589,10 @@ class RPCBase:
                 col = search_resolver.map_context_to_original_column(context)
                 groupbys[i] = col
 
-        if extra_conditions is not None:
-            if query is not None:
-                query = TraceItemFilter(and_filter=AndFilter(filters=[query, extra_conditions]))
-            else:
-                query = extra_conditions
+        if query is None:
+            query = extra_conditions
+        elif extra_conditions is not None:
+            query = TraceItemFilter(and_filter=AndFilter(filters=[query, extra_conditions]))
 
         if timeseries_filter is not None:
             if query is not None:

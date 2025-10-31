@@ -7,6 +7,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry.search.eap import constants
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
+from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
@@ -42,6 +43,9 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
         debug: bool = False,
         additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
+        if not isinstance(config, TraceMetricsSearchResolverConfig):
+            raise ValueError("Trace Metrics require a TraceMetricsSearchResolverConfig")
+
         """timestamp_precise is always displayed in the UI in lieu of timestamp but since the TraceItem table isn't a DateTime64
         so we need to always order by it regardless of what is actually passed to the orderby."""
         if (
@@ -54,6 +58,10 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
             if constants.TIMESTAMP_PRECISE_ALIAS not in selected_columns:
                 selected_columns.append(constants.TIMESTAMP_PRECISE_ALIAS)
 
+        search_resolver = search_resolver or cls.get_resolver(params=params, config=config)
+
+        extra_conditions = config.get_metric_trace_item_filter(search_resolver)
+
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
                 query_string=query_string,
@@ -63,13 +71,10 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
                 limit=limit,
                 referrer=referrer,
                 sampling_mode=sampling_mode,
-                resolver=search_resolver
-                or cls.get_resolver(
-                    params=params,
-                    config=config,
-                ),
+                resolver=search_resolver,
                 page_token=page_token,
                 additional_queries=additional_queries,
+                extra_conditions=extra_conditions,
             ),
             debug=debug,
         )
@@ -87,8 +92,14 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
         sampling_mode: SAMPLING_MODES | None,
         comparison_delta: timedelta | None = None,
     ) -> SnubaTSResult:
+        if not isinstance(config, TraceMetricsSearchResolverConfig):
+            raise ValueError("Trace Metrics require a TraceMetricsSearchResolverConfig")
+
         cls.validate_granularity(params)
         search_resolver = cls.get_resolver(params, config)
+
+        extra_conditions = config.get_metric_trace_item_filter(search_resolver)
+
         rpc_request, aggregates, groupbys = cls.get_timeseries_query(
             search_resolver=search_resolver,
             params=params,
@@ -97,6 +108,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
             groupby=[],
             referrer=referrer,
             sampling_mode=sampling_mode,
+            extra_conditions=extra_conditions,
         )
 
         """Run the query"""
