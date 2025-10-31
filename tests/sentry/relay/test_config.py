@@ -471,12 +471,6 @@ def test_project_config_with_all_biases_enabled(
                 "samplingValue": {"type": "sampleRate", "value": 1.0},
                 "type": "trace",
             },
-            # {
-            #     "condition": {"inner": [], "op": "and"},
-            #     "id": 1004,
-            #     "samplingValue": {"type": "factor", "value": default_factor},
-            #     "type": "trace",
-            # },
             {
                 "samplingValue": {"type": "sampleRate", "value": 1.0},
                 "type": "trace",
@@ -491,6 +485,12 @@ def test_project_config_with_all_biases_enabled(
                     ],
                 },
                 "id": 1001,
+            },
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1004,
+                "samplingValue": {"type": "factor", "value": default_factor},
+                "type": "trace",
             },
             {
                 "samplingValue": {"type": "factor", "value": 1.5},
