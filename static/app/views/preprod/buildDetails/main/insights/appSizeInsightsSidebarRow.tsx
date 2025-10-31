@@ -39,15 +39,15 @@ export function formatUpside(percentage: number): string {
   return `~0%`;
 }
 
-const INSIGHTS_WITH_MORE_INFO_MODAL = [
-  'image_optimization',
-  'alternate_icons_optimization',
-  'main_binary_exported_symbols',
-  'localized_strings_minify',
-  'strip_binary',
-];
-
 const DEFAULT_ITEMS_PER_PAGE = 20;
+
+const MODAL_HANDLERS: Record<string, (platform?: Platform) => void> = {
+  alternate_icons_optimization: () => openAlternativeIconsInsightModal(),
+  image_optimization: platform => openOptimizeImagesModal(platform),
+  main_binary_exported_symbols: () => openMainBinaryExportedSymbolsModal(),
+  localized_strings_minify: () => openMinifyLocalizedStringsModal(),
+  strip_binary: () => openStripDebugSymbolsModal(),
+};
 
 export function AppSizeInsightsSidebarRow({
   insight,
@@ -63,7 +63,7 @@ export function AppSizeInsightsSidebarRow({
   platform?: Platform;
 }) {
   const theme = useTheme();
-  const shouldShowTooltip = INSIGHTS_WITH_MORE_INFO_MODAL.includes(insight.key);
+  const shouldShowTooltip = insight.key in MODAL_HANDLERS;
   const [currentPage, setCurrentPage] = useState(0);
 
   const totalPages = Math.ceil(insight.files.length / itemsPerPage);
@@ -73,17 +73,7 @@ export function AppSizeInsightsSidebarRow({
   const showPagination = insight.files.length > itemsPerPage;
 
   const handleOpenModal = () => {
-    if (insight.key === 'alternate_icons_optimization') {
-      openAlternativeIconsInsightModal();
-    } else if (insight.key === 'image_optimization') {
-      openOptimizeImagesModal(platform);
-    } else if (insight.key === 'main_binary_exported_symbols') {
-      openMainBinaryExportedSymbolsModal();
-    } else if (insight.key === 'localized_strings_minify') {
-      openMinifyLocalizedStringsModal();
-    } else if (insight.key === 'strip_binary') {
-      openStripDebugSymbolsModal();
-    }
+    MODAL_HANDLERS[insight.key]?.(platform);
   };
 
   const handlePageChange = (newPage: number) => {
