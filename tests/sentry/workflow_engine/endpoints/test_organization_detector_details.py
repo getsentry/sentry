@@ -744,7 +744,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
             with outbox_runner():
                 self.get_success_response(self.organization.slug, self.detector.id)
 
-            detector_settings.hooks.pending_delete.assert_called_with(self.detector)
+            detector_settings.hooks.pending_delete.assert_called_with(self.detector)  # type: ignore[union-attr]
 
     def test_detector_life_cycle__no_delete_hook(self) -> None:
         detector_settings = DetectorSettings(hooks=DetectorLifeCycleHooks())
