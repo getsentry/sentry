@@ -12,6 +12,60 @@ from sentry.types.group import PriorityLevel
 
 logger = logging.getLogger(__name__)
 
+IS_VALUES = [
+    "resolved",
+    "unresolved",
+    "archived",
+    "escalating",
+    "new",
+    "ongoing",
+    "regressed",
+    "assigned",
+    "unassigned",
+    "for_review",
+    "linked",
+    "unlinked",
+]
+
+ISSUE_CATEGORY_VALUES = [
+    "error",
+    "outage",
+    "metric",
+    "db_query",
+    "http_client",
+    "frontend",
+    "mobile",
+]
+
+PRIORITY_VALUES = [
+    PriorityLevel.HIGH.to_str(),
+    PriorityLevel.MEDIUM.to_str(),
+    PriorityLevel.LOW.to_str(),
+]
+
+FIXABILITY_VALUES = [
+    FixabilityScoreThresholds.SUPER_HIGH.to_str(),
+    FixabilityScoreThresholds.HIGH.to_str(),
+    FixabilityScoreThresholds.MEDIUM.to_str(),
+    FixabilityScoreThresholds.LOW.to_str(),
+    FixabilityScoreThresholds.SUPER_LOW.to_str(),
+]
+
+FIELDS_WITHOUT_PREDEFINED_VALUES = (
+    "assigned",
+    "assigned_or_suggested",
+    "bookmarks",
+    "lastSeen",
+    "firstSeen",
+    "firstRelease",
+    "event.timestamp",
+    "timesSeen",
+    "issue.seer_last_run",
+)
+
+# API key scopes required for issue queries
+API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
+
 
 def _get_built_in_field_values(
     attribute_key: str, organization: Organization, tag_keys: list[str] | None = None
@@ -28,21 +82,7 @@ def _get_built_in_field_values(
         List of value dicts in the format expected by the API, or None if not a built-in field
     """
     if attribute_key == "is":
-        is_values = [
-            "resolved",
-            "unresolved",
-            "archived",
-            "escalating",
-            "new",
-            "ongoing",
-            "regressed",
-            "assigned",
-            "unassigned",
-            "for_review",
-            "linked",
-            "unlinked",
-        ]
-        return [{"value": val, "name": val} for val in is_values]
+        return [{"value": val, "name": val} for val in IS_VALUES]
 
     # HAS field values - return tag keys
     if attribute_key == "has":
@@ -52,36 +92,15 @@ def _get_built_in_field_values(
 
     # ISSUE_PRIORITY field values
     if attribute_key == "issue.priority":
-        priority_values = [
-            PriorityLevel.HIGH.to_str(),
-            PriorityLevel.MEDIUM.to_str(),
-            PriorityLevel.LOW.to_str(),
-        ]
-        return [{"value": val, "name": val} for val in priority_values]
+        return [{"value": val, "name": val} for val in PRIORITY_VALUES]
 
     # ISSUE_SEER_ACTIONABILITY field values
     if attribute_key == "issue.seer_actionability":
-        fixability_values = [
-            FixabilityScoreThresholds.SUPER_HIGH.to_str(),
-            FixabilityScoreThresholds.HIGH.to_str(),
-            FixabilityScoreThresholds.MEDIUM.to_str(),
-            FixabilityScoreThresholds.LOW.to_str(),
-            FixabilityScoreThresholds.SUPER_LOW.to_str(),
-        ]
-        return [{"value": val, "name": val} for val in fixability_values]
+        return [{"value": val, "name": val} for val in FIXABILITY_VALUES]
 
     # ISSUE_CATEGORY field values
     if attribute_key == "issue.category":
-        category_values = [
-            "error",
-            "outage",
-            "metric",
-            "db_query",
-            "http_client",
-            "frontend",
-            "mobile",
-        ]
-        return [{"value": val, "name": val} for val in category_values]
+        return [{"value": val, "name": val} for val in ISSUE_CATEGORY_VALUES]
 
     # ISSUE_TYPE field values
     if attribute_key == "issue.type":
@@ -89,17 +108,7 @@ def _get_built_in_field_values(
         issue_type_values = [gt.slug for gt in visible_group_types]
         return [{"value": val, "name": val} for val in issue_type_values]
 
-    if attribute_key in (
-        "assigned",
-        "assigned_or_suggested",
-        "bookmarks",
-        "lastSeen",
-        "firstSeen",
-        "firstRelease",
-        "event.timestamp",
-        "timesSeen",
-        "issue.seer_last_run",
-    ):
+    if attribute_key in FIELDS_WITHOUT_PREDEFINED_VALUES:
         # These fields don't have predefined values
         # Return empty list to indicate no suggested values available
         return []
@@ -123,27 +132,10 @@ def _get_built_in_issue_fields(
     built_in_fields: list[dict[str, Any]] = []
 
     # IS field - Status field with exact values from IsFieldValues enum
-    is_values = [
-        "resolved",
-        "unresolved",
-        "archived",
-        "escalating",
-        "new",
-        "ongoing",
-        "regressed",
-        "assigned",
-        "unassigned",
-        "for_review",
-        "linked",
-        "unlinked",
-    ]
     built_in_fields.append(
         {
             "key": "is",
-            "name": "Status",
-            "predefined": True,
-            "values": is_values,
-            "maxSuggestedValues": len(is_values),
+            "values": IS_VALUES,
         }
     )
 
@@ -152,8 +144,6 @@ def _get_built_in_issue_fields(
     built_in_fields.append(
         {
             "key": "has",
-            "name": "Has Tag",
-            "predefined": True,
             "values": has_field_values,
         }
     )
@@ -162,8 +152,6 @@ def _get_built_in_issue_fields(
     built_in_fields.append(
         {
             "key": "assigned",
-            "name": "Assigned To",
-            "predefined": True,
             "values": [],  # Values would come from user/team data
         }
     )
@@ -172,8 +160,6 @@ def _get_built_in_issue_fields(
     built_in_fields.append(
         {
             "key": "assigned_or_suggested",
-            "name": "Assigned or Suggested",
-            "predefined": True,
             "isInput": True,
             "values": [],  # Values would come from user/team data
         }
@@ -183,28 +169,15 @@ def _get_built_in_issue_fields(
     built_in_fields.append(
         {
             "key": "bookmarks",
-            "name": "Bookmarked By",
-            "predefined": True,
             "values": [],  # Values would come from user data
         }
     )
 
     # ISSUE_CATEGORY field
-    category_values = [
-        "error",
-        "outage",
-        "metric",
-        "db_query",
-        "http_client",
-        "frontend",
-        "mobile",
-    ]
     built_in_fields.append(
         {
             "key": "issue.category",
-            "name": "Issue Category",
-            "predefined": True,
-            "values": category_values,
+            "values": ISSUE_CATEGORY_VALUES,
         }
     )
 
@@ -214,8 +187,6 @@ def _get_built_in_issue_fields(
     built_in_fields.append(
         {
             "key": "issue.type",
-            "name": "Issue Type",
-            "predefined": True,
             "values": issue_type_values,
         }
     )
@@ -224,8 +195,6 @@ def _get_built_in_issue_fields(
     built_in_fields.append(
         {
             "key": "lastSeen",
-            "name": "Last Seen",
-            "predefined": False,
             "values": [],
         }
     )
@@ -234,8 +203,6 @@ def _get_built_in_issue_fields(
     built_in_fields.append(
         {
             "key": "firstSeen",
-            "name": "First Seen",
-            "predefined": False,
             "values": [],
         }
     )
@@ -244,42 +211,24 @@ def _get_built_in_issue_fields(
     built_in_fields.append(
         {
             "key": "timesSeen",
-            "name": "Times Seen",
-            "predefined": True,
             "isInput": True,
             "values": [],
         }
     )
 
     # ISSUE_PRIORITY field
-    priority_values = [
-        PriorityLevel.HIGH.to_str(),
-        PriorityLevel.MEDIUM.to_str(),
-        PriorityLevel.LOW.to_str(),
-    ]
     built_in_fields.append(
         {
             "key": "issue.priority",
-            "name": "Issue Priority",
-            "predefined": True,
-            "values": priority_values,
+            "values": PRIORITY_VALUES,
         }
     )
 
     # ISSUE_SEER_ACTIONABILITY field
-    fixability_values = [
-        FixabilityScoreThresholds.SUPER_HIGH.to_str(),
-        FixabilityScoreThresholds.HIGH.to_str(),
-        FixabilityScoreThresholds.MEDIUM.to_str(),
-        FixabilityScoreThresholds.LOW.to_str(),
-        FixabilityScoreThresholds.SUPER_LOW.to_str(),
-    ]
     built_in_fields.append(
         {
             "key": "issue.seer_actionability",
-            "name": "Issue Fixability",
-            "predefined": True,
-            "values": fixability_values,
+            "values": FIXABILITY_VALUES,
         }
     )
 
@@ -287,8 +236,6 @@ def _get_built_in_issue_fields(
     built_in_fields.append(
         {
             "key": "issue.seer_last_run",
-            "name": "Issue Fix Last Triggered",
-            "predefined": False,
             "values": [],
         }
     )
@@ -325,9 +272,7 @@ def get_issue_filter_keys(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    api_key = ApiKey(
-        organization_id=organization.id, scope_list=["org:read", "project:read", "event:read"]
-    )
+    api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
     base_params: dict[str, Any] = {
         "statsPeriod": stats_period,
@@ -455,9 +400,7 @@ def get_filter_key_values(
         return built_in_values
 
     # Not a built-in field, query tags endpoint
-    api_key = ApiKey(
-        organization_id=organization.id, scope_list=["org:read", "project:read", "event:read"]
-    )
+    api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
     base_params: dict[str, Any] = {
         "statsPeriod": stats_period,
@@ -558,9 +501,7 @@ def execute_issues_query(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    api_key = ApiKey(
-        organization_id=organization.id, scope_list=["org:read", "project:read", "event:read"]
-    )
+    api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
     params: dict[str, Any] = {
         "query": query,
