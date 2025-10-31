@@ -65,39 +65,3 @@ def create_commit(
         )
         new_commit = _dual_write_commit(old_commit)
     return old_commit, new_commit
-
-
-def get_or_create_commit(
-    organization: Organization,
-    repo_id: int,
-    key: str,
-    message: str | None = None,
-    author: CommitAuthor | None = None,
-    date_added: datetime | None = None,
-) -> tuple[OldCommit, Commit, bool]:
-    """
-    Gets or creates a commit with dual write support.
-    """
-    defaults = {
-        "author": author,
-        "message": message,
-    }
-    if date_added is not None:
-        defaults["date_added"] = date_added  # type: ignore[assignment]
-
-    with atomic_transaction(
-        using=(
-            router.db_for_write(OldCommit),
-            router.db_for_write(Commit),
-        )
-    ):
-        old_commit, created = OldCommit.objects.get_or_create(
-            organization_id=organization.id,
-            repository_id=repo_id,
-            key=key,
-            defaults=defaults,
-        )
-
-        new_commit = _dual_write_commit(old_commit)
-
-    return old_commit, new_commit, created

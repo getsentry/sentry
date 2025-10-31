@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry.models.commit import Commit as OldCommit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.repository import Repository
-from sentry.releases.commits import create_commit, get_or_create_commit
+from sentry.releases.commits import create_commit
 from sentry.releases.models import Commit
 from sentry.testutils.cases import TestCase
 
@@ -143,90 +143,3 @@ class CreateCommitDualWriteTest(TestCase):
             )
         assert not OldCommit.objects.filter(key="test_atomicity_key").exists()
         assert not Commit.objects.filter(key="test_atomicity_key").exists()
-
-
-class GetOrCreateCommitDualWriteTest(TestCase):
-    def setUp(self):
-        super().setUp()
-        self.repo = Repository.objects.create(
-            name="test-repo",
-            organization_id=self.organization.id,
-        )
-        self.author = CommitAuthor.objects.create(
-            organization_id=self.organization.id,
-            email="test@example.com",
-            name="Test Author",
-        )
-
-    def test_get_or_create_commit_creates_new(self):
-        """Test that get_or_create creates a new commit when it doesn't exist"""
-        old_commit, new_commit, created = get_or_create_commit(
-            organization=self.organization,
-            repo_id=self.repo.id,
-            key="new123",
-            message="New commit message",
-            author=self.author,
-        )
-
-        assert created is True
-        assert old_commit.key == "new123"
-        assert old_commit.message == "New commit message"
-        assert old_commit.author == self.author
-
-        assert new_commit is not None
-        assert new_commit.id == old_commit.id
-        assert new_commit.key == "new123"
-        assert new_commit.message == "New commit message"
-        assert new_commit.author == self.author
-
-    def test_get_or_create_commit_gets_existing(self):
-        """Test that get_or_create returns existing commit when it exists"""
-        existing_old, existing_new = create_commit(
-            organization=self.organization,
-            repo_id=self.repo.id,
-            key="existing456",
-            message="Existing commit",
-            author=self.author,
-        )
-        assert existing_new is not None
-        old_commit, new_commit, created = get_or_create_commit(
-            organization=self.organization,
-            repo_id=self.repo.id,
-            key="existing456",
-            message="This should not be used",
-            author=None,
-        )
-        assert created is False
-        assert old_commit.id == existing_old.id
-        assert old_commit.key == "existing456"
-        assert old_commit.message == "Existing commit"
-        assert old_commit.author == self.author
-        assert new_commit is not None
-        assert new_commit.id == existing_new.id
-
-    def test_get_or_create_commit_backfills_to_new_table(self):
-        """Test that get_or_create backfills to new table if commit exists only in old table"""
-        old_only_commit = OldCommit.objects.create(
-            organization_id=self.organization.id,
-            repository_id=self.repo.id,
-            key="old_only789",
-            message="Old table only",
-            author=self.author,
-        )
-        assert not Commit.objects.filter(id=old_only_commit.id).exists()
-
-        old_commit, new_commit, created = get_or_create_commit(
-            organization=self.organization,
-            repo_id=self.repo.id,
-            key="old_only789",
-            message="Should not be used",
-        )
-
-        assert created is False
-        assert old_commit.id == old_only_commit.id
-        assert old_commit.message == "Old table only"
-        assert new_commit is not None
-        assert new_commit.id == old_only_commit.id
-        assert new_commit.key == "old_only789"
-        assert new_commit.message == "Old table only"
-        assert new_commit.author == self.author

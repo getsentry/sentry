@@ -32,6 +32,7 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.artifactbundle import ArtifactBundle
+from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.releases.constants import (
     DB_VERSION_LENGTH,
@@ -41,7 +42,6 @@ from sentry.models.releases.constants import (
 from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
-from sentry.releases.commits import get_or_create_commit
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -618,8 +618,8 @@ class Release(Model):
             for ref in refs:
                 repo = repos_by_name[ref["repository"]]
 
-                commit = get_or_create_commit(
-                    organization=self.organization, repo_id=repo.id, key=ref["commit"]
+                commit = Commit.objects.get_or_create(
+                    organization_id=self.organization_id, repository_id=repo.id, key=ref["commit"]
                 )[0]
                 # update head commit for repo/release if exists
                 ReleaseHeadCommit.objects.create_or_update(
