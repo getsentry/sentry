@@ -2,6 +2,7 @@ from sentry.deletions.base import ModelDeletionTask
 from sentry.models.grouphistory import GroupHistory
 
 
+# XXX: Once we remove prev_history from GroupHistory, we can simplify this to a regular BulkModelDeletionTask.
 class GroupHistoryDeletionTask(ModelDeletionTask[GroupHistory]):
     """
     Specialized deletion handling that operates per group
