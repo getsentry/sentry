@@ -21,7 +21,11 @@ import {
   type SharedOnDemandBudget,
   type Subscription,
 } from 'getsentry/types';
-import {formatReservedWithUnits, isNewPayingCustomer} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  formatReservedWithUnits,
+  isNewPayingCustomer,
+} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
@@ -210,9 +214,14 @@ function OnDemandDiff({
               if (index === 0) {
                 leftComponent = (
                   <ChangeSectionTitle>
-                    {newPlan.budgetTerm === 'pay-as-you-go'
-                      ? t('PAYG spend limit')
-                      : t('Shared spend limit')}
+                    {tct('[budgetTerm] spend limit', {
+                      budgetTerm: displayBudgetName(
+                        newPlan,
+                        newPlan.budgetTerm === 'pay-as-you-go'
+                          ? {abbreviated: true}
+                          : {title: true}
+                      ),
+                    })}
                   </ChangeSectionTitle>
                 );
               }

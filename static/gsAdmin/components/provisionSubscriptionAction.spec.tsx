@@ -281,22 +281,22 @@ describe('provisionSubscriptionAction', () => {
     );
 
     expect(
-      within(container).getByLabelText('On-Demand Max Spend Setting')
+      within(container).getByLabelText('Pay-as-you-go Max Spend Setting')
     ).toBeInTheDocument();
     expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Errors')
+      within(container).queryByLabelText('Pay-as-you-go Cost-Per-Event Errors')
     ).not.toBeInTheDocument();
     expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Performance Units')
+      within(container).queryByLabelText('Pay-as-you-go Cost-Per-Event Performance Units')
     ).not.toBeInTheDocument();
     expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Replays')
+      within(container).queryByLabelText('Pay-as-you-go Cost-Per-Event Replays')
     ).not.toBeInTheDocument();
     expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Attachments')
+      within(container).queryByLabelText('Pay-as-you-go Cost-Per-Event Attachments')
     ).not.toBeInTheDocument();
     expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Cron Monitors')
+      within(container).queryByLabelText('Pay-as-you-go Cost-Per-Event Cron Monitors')
     ).not.toBeInTheDocument();
   });
 
@@ -325,19 +325,19 @@ describe('provisionSubscriptionAction', () => {
     ).not.toBeInTheDocument();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      screen.getByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Shared'
     );
     expect(
-      (await within(container).findAllByLabelText(/On-Demand Cost-Per-Event/)).length
+      (await within(container).findAllByLabelText(/Pay-as-you-go Cost-Per-Event/)).length
     ).toBeGreaterThan(0);
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      screen.getByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Disable'
     );
     expect(
-      within(container).queryByLabelText(/On-Demand Cost-Per-Event/)
+      within(container).queryByLabelText(/Pay-as-you-go Cost-Per-Event/)
     ).not.toBeInTheDocument();
   });
 
@@ -363,7 +363,7 @@ describe('provisionSubscriptionAction', () => {
       'Invoiced'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      screen.getByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Shared'
     );
     const disabledSoftCapFields = screen.getAllByLabelText(/Soft Cap Type/);
@@ -389,7 +389,7 @@ describe('provisionSubscriptionAction', () => {
       'Invoiced'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      screen.getByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Disable'
     );
     const enabledSoftCapFields = screen.getAllByLabelText(/Soft Cap Type/);
@@ -845,21 +845,21 @@ describe('provisionSubscriptionAction', () => {
       'Invoiced'
     );
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Shared'
     );
 
     expect(
-      within(container).getByLabelText('Retain On-Demand Budget')
+      within(container).getByLabelText('Retain Pay-as-you-go Budget')
     ).toBeInTheDocument();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Per Category'
     );
 
     expect(
-      within(container).queryByLabelText('Retain On-Demand Budget')
+      within(container).queryByLabelText('Retain Pay-as-you-go Budget')
     ).not.toBeInTheDocument();
 
     await selectEvent.select(
@@ -1251,7 +1251,7 @@ describe('provisionSubscriptionAction', () => {
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Disable'
     );
 
@@ -1380,7 +1380,7 @@ describe('provisionSubscriptionAction', () => {
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Disable'
     );
 
@@ -1500,7 +1500,7 @@ describe('provisionSubscriptionAction', () => {
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Disable'
     );
 
