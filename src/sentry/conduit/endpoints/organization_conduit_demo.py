@@ -3,6 +3,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -30,6 +31,8 @@ class OrganizationConduitDemoEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INFRA_ENG
 
     def post(self, request: Request, organization: Organization) -> Response:
+        if not features.has("organizations:conduit-demo", organization, actor=request.user):
+            return Response(status=404)
         try:
             conduit_credentials = get_conduit_credentials(
                 organization.id,
