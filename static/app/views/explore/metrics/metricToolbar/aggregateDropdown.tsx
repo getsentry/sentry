@@ -125,7 +125,10 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
     if (
       defined(previousType) &&
       previousType !== traceMetric.type &&
-      defined(DEFAULT_YAXIS_BY_TYPE[traceMetric.type])
+      defined(DEFAULT_YAXIS_BY_TYPE[traceMetric.type]) &&
+      // Don't reset aggregate function if it's already set to a non-default value
+      // This prevents overriding saved query aggregate functions
+      visualize.parsedFunction?.name === DEFAULT_YAXIS_BY_TYPE[previousType]
     ) {
       const defaultFunction = DEFAULT_YAXIS_BY_TYPE[traceMetric.type];
       if (defaultFunction) {
