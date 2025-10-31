@@ -41,6 +41,11 @@ function PaygCard({
   subscription: Subscription;
 }) {
   const hasBillingPerms = hasBillingAccess(organization);
+  const hasPaymentSource = !!(
+    subscription.paymentSource ||
+    subscription.isSelfServePartner ||
+    subscription.onDemandInvoicedManual
+  );
   const api = useApi();
   const theme = useTheme();
   const paygBudget = parseOnDemandBudgetsFromSubscription(subscription);
@@ -200,6 +205,12 @@ function PaygCard({
                 {hasBillingPerms && (
                   <Button
                     size="xs"
+                    disabled={!hasPaymentSource}
+                    title={
+                      hasPaymentSource
+                        ? undefined
+                        : t('You must add a payment method to edit the limit')
+                    }
                     onClick={() => {
                       handleEditPayg(false);
                     }}

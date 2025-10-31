@@ -203,7 +203,7 @@ class OnDemandBudgets extends Component<Props> {
       return this.renderNotEnabled();
     }
 
-    if (!hasPaymentSource && !subscription.onDemandInvoicedManual) {
+    if (!hasPaymentSource) {
       return this.renderNeedsPaymentSource();
     }
 
