@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Literal, cast
 
-from rest_framework.exceptions import ErrorDetail, ValidationError
 from rest_framework.request import Request
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
@@ -21,7 +20,12 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
     metric_name: str
     metric_type: MetricType
 
-    def get_metric_trace_item_filter(self, search_resolver: SearchResolver) -> TraceItemFilter:
+    def get_metric_trace_item_filter(
+        self, search_resolver: SearchResolver
+    ) -> TraceItemFilter | None:
+        if not self.metric_name or not self.metric_type:
+            return None
+
         metric_name, _ = search_resolver.resolve_column("metric.name")
         if not isinstance(metric_name.proto_definition, AttributeKey):
             raise ValueError("Unable to resolve metric.name")
@@ -59,20 +63,27 @@ def get_trace_metric_info(
     metric_name = request.GET.get("metricName")
     metric_type = request.GET.get("metricType")
 
-    errors = {}
-
+    # TODO: remove this when these args are not optional anymore
     if not metric_name:
-        errors["metricName"] = ErrorDetail("This field is required.", code="required")
-
+        metric_name = ""
     if not metric_type:
-        errors["metricType"] = ErrorDetail("This field is required.", code="required")
-    elif metric_type not in ALLOWED_METRIC_TYPES:
-        errors["metricType"] = ErrorDetail(
-            string=f'"{metric_type}" is not a valid choice.', code="invalid_choice"
-        )
+        metric_type = ""
 
-    if errors:
-        raise ValidationError(errors)
+    # errors = {}
 
-    assert metric_name
+    # if not metric_name:
+    #     errors["metricName"] = ErrorDetail("This field is required.", code="required")
+
+    # if not metric_type:
+    #     errors["metricType"] = ErrorDetail("This field is required.", code="required")
+    # elif metric_type not in ALLOWED_METRIC_TYPES:
+    #     errors["metricType"] = ErrorDetail(
+    #         string=f'"{metric_type}" is not a valid choice.', code="invalid_choice"
+    #     )
+
+    # if errors:
+    #     raise ValidationError(errors)
+
+    # assert metric_name
+
     return metric_name, cast(MetricType, metric_type)

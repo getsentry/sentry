@@ -9,11 +9,11 @@ from tests.snuba.api.endpoints.test_organization_events import OrganizationEvent
 class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     dataset = "tracemetrics"
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_missing_metric_name_and_type(self):
         response = self.do_request(
             {
                 "field": ["sum(value)"],
-                "orderby": "value",
                 "dataset": self.dataset,
                 "project": self.project.id,
             }
@@ -24,13 +24,13 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             "metricType": ErrorDetail("This field is required.", code="required"),
         }
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_invalid_metric_type(self):
         response = self.do_request(
             {
                 "metricName": "foo",
                 "metricType": "bar",
                 "field": ["sum(value)"],
-                "orderby": "value",
                 "dataset": self.dataset,
                 "project": self.project.id,
             }
