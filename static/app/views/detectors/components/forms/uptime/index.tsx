@@ -6,6 +6,7 @@ import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {HTTPSnippet} from 'sentry/views/alerts/rules/uptime/httpSnippet';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
+import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
 import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/common/useSetAutomaticName';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
@@ -69,6 +70,7 @@ function UptimeDetectorForm() {
       <ConnectedHttpSnippet />
       <UptimeDetectorResolveSection />
       <AssignSection />
+      <DescribeSection />
       <AutomateSection />
     </FormStack>
   );

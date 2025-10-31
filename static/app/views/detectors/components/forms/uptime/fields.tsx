@@ -23,6 +23,7 @@ interface UptimeDetectorFormData {
   traceSampling: boolean;
   url: string;
   workflowIds: string[];
+  description?: string;
 }
 
 export function uptimeFormDataToEndpointPayload(
@@ -34,6 +35,7 @@ export function uptimeFormDataToEndpointPayload(
     owner: data.owner,
     projectId: data.projectId,
     workflowIds: data.workflowIds,
+    description: data.description || null,
     dataSources: [
       {
         intervalSeconds: data.intervalSeconds,
@@ -69,6 +71,7 @@ export function uptimeSavedDetectorToFormData(
     projectId: detector.projectId,
     recoveryThreshold,
     downtimeThreshold,
+    description: detector.description || '',
   };
 
   if (dataSource?.type === 'uptime_subscription') {
