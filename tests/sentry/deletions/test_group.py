@@ -6,12 +6,11 @@ from typing import Any
 from unittest import mock
 from uuid import uuid4
 
-import pytest
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
 from sentry import deletions, nodestore
 from sentry.deletions.tasks.groups import delete_groups_for_project
-from sentry.issues.grouptype import FeedbackGroup, GroupCategory
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
@@ -93,10 +92,6 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert not nodestore.backend.get(self._get_node_id(event))
         assert not nodestore.backend.get(self._get_node_id(event2))
 
-    def test_delete_group_with_many_related_children_with_new_option(self) -> None:
-        with self.options({"deletions.fetch-subset-of-fields": True}):
-            self.test_delete_group_with_many_related_children()
-
     def test_multiple_groups(self) -> None:
         event = self.store_event(
             data=self._generate_data(fingerprint="group1"),
@@ -128,10 +123,6 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert Group.objects.filter(id=keep_event.group.id).exists()
         assert nodestore.backend.get(self._get_node_id(keep_event))
-
-    def test_multiple_groups_with_new_option(self) -> None:
-        with self.options({"deletions.fetch-subset-of-fields": True}):
-            self.test_multiple_groups()
 
     def test_grouphistory_relation(self) -> None:
         other_event = self.store_event(
@@ -166,10 +157,6 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert GroupHistory.objects.filter(id=other_history_one.id).exists() is False
         assert GroupHistory.objects.filter(id=other_history_two.id).exists() is False
 
-    def test_grouphistory_relation_with_new_option(self) -> None:
-        with self.options({"deletions.fetch-subset-of-fields": True}):
-            self.test_grouphistory_relation()
-
     @mock.patch("sentry.services.nodestore.delete_multi")
     def test_cleanup(self, nodestore_delete_multi: mock.Mock) -> None:
         os.environ["_SENTRY_CLEANUP"] = "1"
@@ -186,10 +173,6 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             assert nodestore_delete_multi.call_count == 0
         finally:
             del os.environ["_SENTRY_CLEANUP"]
-
-    def test_cleanup_with_new_option(self) -> None:
-        with self.options({"deletions.fetch-subset-of-fields": True}):
-            self.test_cleanup()
 
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
@@ -239,10 +222,6 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             "args": [event.project.id, hashes, 0]
         }
 
-    def test_delete_groups_delete_grouping_records_by_hash_with_new_option(self) -> None:
-        with self.options({"deletions.fetch-subset-of-fields": True}):
-            self.test_delete_groups_delete_grouping_records_by_hash()
-
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
@@ -290,10 +269,6 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
                 "args": [self.project.id, error_group_hashes, 0]
             }
-
-    def test_invalid_group_type_handling_with_new_option(self) -> None:
-        with self.options({"deletions.fetch-subset-of-fields": True}):
-            self.test_invalid_group_type_handling()
 
     def test_delete_grouphashes_and_metadata(self) -> None:
         """
@@ -356,10 +331,6 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             assert not GroupHash.objects.filter(id=grouphash_b.id).exists()
             assert not GroupHashMetadata.objects.filter(id=metadata_b_id).exists()
 
-    def test_delete_grouphashes_and_metadata_with_new_option(self) -> None:
-        with self.options({"deletions.fetch-subset-of-fields": True}):
-            self.test_delete_grouphashes_and_metadata()
-
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     referrer = Referrer.TESTING_TEST.value
@@ -412,67 +383,6 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     def tenant_ids(self) -> dict[str, str]:
         return {"referrer": self.referrer, "organization_id": self.organization.id}
 
-    @pytest.mark.skip(reason="Skipping issue platform test since it started failing in mastter")
-    def test_simple_issue_platform(self) -> None:
-        # Adding this query here to make sure that the cache is not being used
-        assert self.select_error_events(self.project.id) is None
-        assert self.select_issue_platform_events(self.project.id) is None
-
-        # Create initial error event and occurrence related to it; two different groups will exist
-        event = self.store_event(data={}, project_id=self.project.id)
-        # XXX: We need a different way of creating occurrences which will insert into the nodestore
-        occurrence_event, issue_platform_group = self.create_occurrence(
-            event, type_id=FeedbackGroup.type_id
-        )
-
-        # Assertions after creation
-        assert occurrence_event.id != event.event_id
-        assert event.group_id != issue_platform_group.id
-        assert event.group.issue_category == GroupCategory.ERROR
-        assert issue_platform_group.issue_category == GroupCategory.FEEDBACK
-        assert issue_platform_group.type == FeedbackGroup.type_id
-
-        # Assert that the error event has been inserted in the nodestore & Snuba
-        event_node_id = Event.generate_node_id(event.project_id, event.event_id)
-        assert nodestore.backend.get(event_node_id)
-        expected_error = {"event_id": event.event_id, "group_id": event.group_id}
-        assert self.select_error_events(self.project.id) == expected_error
-
-        # Assert that the occurrence event has been inserted in the nodestore & Snuba
-        # occurrence_node_id = Event.generate_node_id(
-        #     occurrence_event.project_id, occurrence_event.id
-        # )
-        # assert nodestore.backend.get(occurrence_node_id)
-        expected_occurrence_event = {
-            "event_id": occurrence_event.event_id,
-            "group_id": issue_platform_group.id,
-            "occurrence_id": occurrence_event.id,
-        }
-        assert self.select_issue_platform_events(self.project.id) == expected_occurrence_event
-
-        # This will delete the group and the events from the node store and Snuba
-        with self.tasks():
-            delete_groups_for_project(
-                object_ids=[issue_platform_group.id],
-                transaction_id=uuid4().hex,
-                project_id=self.project.id,
-            )
-
-        # The original error event and group still exist
-        assert Group.objects.filter(id=event.group_id).exists()
-        assert nodestore.backend.get(event_node_id)
-        assert self.select_error_events(self.project.id) == expected_error
-
-        # The Issue Platform group and occurrence have been deleted
-        assert not Group.objects.filter(id=issue_platform_group.id).exists()
-        # assert not nodestore.backend.get(occurrence_node_id)
-        assert self.select_issue_platform_events(self.project.id) is None
-
-    @pytest.mark.skip(reason="Skipping issue platform test since it started failing in mastter")
-    def test_simple_issue_platform_with_new_option(self) -> None:
-        with self.options({"deletions.fetch-subset-of-fields": True}):
-            self.test_simple_issue_platform()
-
     @mock.patch("sentry.deletions.tasks.nodestore.bulk_snuba_queries")
     def test_issue_platform_batching(self, mock_bulk_snuba_queries: mock.Mock) -> None:
         # Patch max_rows_to_delete to a small value for testing
@@ -515,7 +425,3 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             assert first_batch == [group2.id, group1.id]  # group2 has less times_seen than group1
             # group3 and group4 have the same times_seen, thus sorted by id
             assert second_batch == [group3.id, group4.id]
-
-    def test_issue_platform_batching_with_new_option(self) -> None:
-        with self.options({"deletions.fetch-subset-of-fields": True}):
-            self.test_issue_platform_batching()
