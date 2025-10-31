@@ -31,7 +31,11 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import (
+    DetectorLifeCycleHooks,
+    DetectorPriorityLevel,
+    DetectorSettings,
+)
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 
@@ -726,3 +730,29 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
                 event=audit_log.get_event_id("DETECTOR_REMOVE"),
                 actor=self.user,
             ).exists()
+
+    def test_detector_life_cycle_delete_hook(self) -> None:
+        detector_settings = DetectorSettings(
+            hooks=DetectorLifeCycleHooks(pending_delete=mock.Mock())
+        )
+
+        with mock.patch.object(
+            Detector, "settings", new_callable=mock.PropertyMock
+        ) as mock_settings:
+            mock_settings.return_value = detector_settings
+
+            with outbox_runner():
+                self.get_success_response(self.organization.slug, self.detector.id)
+
+            detector_settings.hooks.pending_delete.assert_called_with(self.detector)  # type: ignore[union-attr]
+
+    def test_detector_life_cycle__no_delete_hook(self) -> None:
+        detector_settings = DetectorSettings(hooks=DetectorLifeCycleHooks())
+
+        with mock.patch.object(
+            Detector, "settings", new_callable=mock.PropertyMock
+        ) as mock_settings:
+            mock_settings.return_value = detector_settings
+
+            with outbox_runner():
+                self.get_success_response(self.organization.slug, self.detector.id)
