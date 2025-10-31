@@ -4,9 +4,9 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './iris';
+import docs from '.';
 
-describe('iris onboarding docs', () => {
+describe('http onboarding docs', () => {
   it('renders errors onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 

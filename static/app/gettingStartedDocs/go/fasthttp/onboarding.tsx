@@ -1,25 +1,12 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportGenericInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
-import {getGoLogsOnboarding} from 'sentry/utils/gettingStartedDocs/go';
 
-type Params = DocsParams;
-
-const getConfigureSnippet = (params: Params) => `
+const getConfigureSnippet = (params: DocsParams) => `
 import (
   "fmt"
   "net/http"
@@ -121,7 +108,7 @@ if err := fasthttp.ListenAndServe(":3000", sentryHandler.Handle(fastHTTPHandler)
   panic(err)
 }`;
 
-const getBeforeSendSnippet = (params: Params) => `
+const getBeforeSendSnippet = (params: DocsParams) => `
 sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
@@ -135,7 +122,7 @@ sentry.Init(sentry.ClientOptions{
   },
 })`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -234,7 +221,7 @@ const onboarding: OnboardingConfig = {
     },
   ],
   verify: () => [],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [];
 
     if (params.isLogsSelected) {
@@ -251,35 +238,3 @@ const onboarding: OnboardingConfig = {
     return steps;
   },
 };
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportGenericInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/go/guides/fasthttp/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  replayOnboardingJsLoader,
-  crashReportOnboarding,
-  feedbackOnboardingJsLoader,
-  logsOnboarding: getGoLogsOnboarding({
-    docsPlatform: 'fasthttp',
-  }),
-};
-
-export default docs;
