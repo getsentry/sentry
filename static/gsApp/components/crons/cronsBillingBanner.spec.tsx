@@ -91,7 +91,7 @@ describe('CronsBillingBanner', () => {
     expect(mockApiCall).toHaveBeenCalled();
     expect(
       await screen.findByText(
-        "Your free business trial has ended. One cron job monitor is included in your current plan. If you want to monitor more than one cron job, please ask your organization's owner or billing manager to set up an on-demand budget for cron monitoring."
+        "Your free business trial has ended. One cron job monitor is included in your current plan. If you want to monitor more than one cron job, please ask your organization's owner or billing manager to set up on-demand for cron monitoring."
       )
     ).toBeInTheDocument();
 
