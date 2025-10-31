@@ -9,6 +9,7 @@ import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBy
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
+  useQueryParamsAggregateCursor,
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
   useQueryParamsExtrapolate,
@@ -64,6 +65,7 @@ function useExploreAggregatesTableImp({
   const {selection} = usePageFilters();
 
   const dataset = useSpansDataset();
+  const aggregateCursor = useQueryParamsAggregateCursor();
   const aggregateFields = useQueryParamsAggregateFields({validate: true});
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
@@ -106,6 +108,7 @@ function useExploreAggregatesTableImp({
   const result = useSpansQuery({
     enabled,
     eventView,
+    cursor: aggregateCursor,
     initialData: [],
     limit,
     referrer: 'api.explore.spans-aggregates-table',
