@@ -841,6 +841,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert detector.name == "Test Detector"
         assert detector.type == MetricIssue.slug
         assert detector.project_id == self.project.id
+        assert detector.description is None
 
         # Verify data source
         data_source = DataSource.objects.get(detector=detector)
@@ -889,6 +890,18 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             data=detector.get_audit_log_data(),
         )
         mock_schedule_update_project_config.assert_called_once_with(detector)
+
+    def test_creation_with_description(self) -> None:
+        data = {**self.valid_data, "description": "This is a test metric detector"}
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **data,
+                status_code=201,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.description == "This is a test metric detector"
 
     def test_invalid_workflow_ids(self) -> None:
         # Workflow doesn't exist at all

@@ -234,6 +234,24 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         self.assert_snuba_query_updated(snuba_query)
         mock_schedule_update_project_config.assert_called_once_with(detector)
 
+    def test_update_description(self) -> None:
+        assert self.detector.description is None
+
+        data = {
+            "description": "New description for the detector",
+        }
+
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        self.detector.refresh_from_db()
+        assert self.detector.description == "New description for the detector"
+
     def test_update_add_data_condition(self) -> None:
         """
         Test that we can add an additional data condition

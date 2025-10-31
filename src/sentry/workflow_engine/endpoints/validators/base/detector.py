@@ -47,6 +47,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     type = serializers.CharField()
     config = serializers.JSONField(default=dict)
     owner = ActorField(required=False, allow_null=True)
+    description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     enabled = serializers.BooleanField(required=False)
     condition_group = BaseDataConditionGroupValidator(required=False)
 
@@ -96,6 +97,10 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         with transaction.atomic(router.db_for_write(Detector)):
             if "name" in validated_data:
                 instance.name = validated_data.get("name", instance.name)
+
+            # Handle description field update
+            if "description" in validated_data:
+                instance.description = validated_data.get("description", instance.description)
 
             # Handle enable/disable detector
             if "enabled" in validated_data:
@@ -182,6 +187,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             detector = Detector(
                 project_id=self.context["project"].id,
                 name=validated_data["name"],
+                description=validated_data.get("description"),
                 workflow_condition_group=condition_group,
                 type=validated_data["type"].slug,
                 config=validated_data.get("config", {}),
