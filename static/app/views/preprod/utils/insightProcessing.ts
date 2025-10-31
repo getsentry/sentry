@@ -45,85 +45,81 @@ interface InsightConfig {
 const INSIGHT_CONFIGS: InsightConfig[] = [
   {
     key: 'image_optimization',
-    name: 'Optimize images',
+    name: 'Image Optimization',
     description:
-      'We determine how much size could be saved if images were optimized. In some cases you can convert to HEIC for better compression.',
+      'We determine how much size could be reduced if images were better optimized. In some cases you can convert to HEIC for better compression.',
   },
   {
     key: 'duplicate_files',
-    name: 'Remove duplicate files',
+    name: 'Duplicate Files',
     description:
-      'Multiple copies of the same file were found, expand each to see the duplicates. Move files to shared locations to save space.',
+      'Multiple copies of the same file were found. Move these files to shared locations to reduce size.',
   },
   {
     key: 'strip_binary',
     name: 'Strip Binary Symbols',
     description:
-      'Debug symbols and symbol tables can be removed from binaries to reduce size.',
+      'Debug symbols and symbol tables can be removed from production binaries to reduce size.',
   },
   {
     key: 'loose_images',
-    name: 'Move images to asset catalogs',
+    name: 'Loose Images',
     description: 'Loose image files can be moved to asset catalogs to reduce size.',
   },
   {
     key: 'main_binary_exported_symbols',
-    name: 'Remove Symbol Metadata',
-    description: 'Symbol metadata can be removed to reduce binary size.',
+    name: 'Main Binary Export Metadata',
+    description:
+      'Symbol metadata can be removed from entrypoint binaries to reduce size.',
   },
   {
     key: 'large_images',
-    name: 'Compress large images',
-    description: 'Large image files can be compressed to reduce size.',
+    name: 'Large Images',
+    description: 'Large image files can be removed or compressed to reduce size.',
   },
   {
     key: 'large_videos',
-    name: 'Compress large videos',
-    description: 'Large video files can be compressed to reduce size.',
+    name: 'Large Videos',
+    description: 'Large video files can be removed or compressed to reduce size.',
   },
   {
     key: 'large_audio',
-    name: 'Compress large audio files',
-    description: 'Large audio files can be compressed to reduce size.',
+    name: 'Large Audio',
+    description: 'Large audio files can be removed or compressed to reduce size.',
   },
   {
     key: 'unnecessary_files',
-    name: 'Remove unnecessary files',
-    description: 'Files that are not needed can be removed to save space.',
-  },
-  {
-    key: 'localized_strings',
-    name: 'Optimize localized strings',
-    description: 'Localized string files can be optimized to reduce size.',
+    name: 'Unnecessary Files',
+    description: 'Files that are not needed can be removed to reduce size.',
   },
   {
     key: 'localized_strings_minify',
-    name: 'Minify localized strings',
-    description: 'Localized string comments can be minified to reduce size.',
+    name: 'Minify Localized Strings',
+    description: 'Localized string files can be minified to reduce size.',
   },
   {
     key: 'small_files',
-    name: 'Optimize small files',
-    description: 'Small files can be optimized or bundled to reduce overhead.',
+    name: 'Small Files',
+    description: 'Small files can be moved to asset catalogs to reduce size.',
   },
   {
     key: 'hermes_debug_info',
-    name: 'Remove Hermes debug info',
+    name: 'Hermes Debug Info',
     description: 'Hermes debug information can be removed to reduce size.',
   },
   {
     key: 'audio_compression',
-    name: 'Compress audio files',
+    name: 'Audio Compression',
     description: 'Audio files can be compressed to reduce size.',
   },
   {
     key: 'video_compression',
-    name: 'Compress video files',
+    name: 'Video Compression',
     description: 'Video files can be compressed to reduce size.',
   },
   {
     key: 'alternate_icons_optimization',
-    name: 'Optimize alternate app icons',
+    name: 'Alternate Icon Optimization',
     description:
       'Alternate icons don’t need full size quality because they are only shown downscaled in the homescreen.',
   },
@@ -317,7 +313,6 @@ export function processInsights(
     'large_videos',
     'large_audio',
     'unnecessary_files',
-    'localized_strings',
     'localized_strings_minify',
     'small_files',
     'hermes_debug_info',

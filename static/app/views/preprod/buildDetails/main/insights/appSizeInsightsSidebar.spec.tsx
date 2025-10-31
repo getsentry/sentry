@@ -44,8 +44,8 @@ describe('AppSizeInsightsSidebar', () => {
     render(<AppSizeInsightsSidebar {...getDefaultProps()} />);
 
     // Should render processed insights (the processInsights util creates these display names)
-    expect(screen.getByText('Remove duplicate files')).toBeInTheDocument();
-    expect(screen.getByText('Compress large images')).toBeInTheDocument();
+    expect(screen.getByText('Duplicate Files')).toBeInTheDocument();
+    expect(screen.getByText('Large Images')).toBeInTheDocument();
   });
 
   it('calls onClose when close button is clicked', async () => {
