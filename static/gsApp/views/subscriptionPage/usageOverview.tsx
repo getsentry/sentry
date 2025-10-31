@@ -499,7 +499,7 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
       columnSortBy={[]}
       grid={{
         renderHeadCell: column => {
-          const isSpendColumn = column.name.toLowerCase().endsWith('spend');
+          const isSpendColumn = column.key.toString().toLowerCase().endsWith('spend');
           return (
             <Container width="100%" justifySelf={isSpendColumn ? 'end' : 'start'}>
               <Text align={isSpendColumn ? 'right' : 'left'}>{column.name}</Text>
