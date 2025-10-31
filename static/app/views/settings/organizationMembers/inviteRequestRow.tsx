@@ -9,7 +9,7 @@ import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteM
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import PanelItem from 'sentry/components/panels/panelItem';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

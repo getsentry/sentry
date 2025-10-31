@@ -19,11 +19,11 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
-import withOrganization from 'sentry/utils/withOrganization';
 
 const UnassignedWrapper = styled('div')`
   display: flex;
@@ -101,13 +101,8 @@ const placeholderSelectStyles: StylesConfig = {
   }),
 };
 
-type Props = {
+interface Props extends ControlProps {
   onChange: (value: any) => any;
-  /**
-   * Received via withOrganization
-   * Note: withOrganization collects it from the context, this is not type safe
-   */
-  organization: Organization;
   /**
    * Controls whether the dropdown allows to create a new team
    */
@@ -133,7 +128,7 @@ type Props = {
    * Flag that lets the caller decide to use the team value by default if there is only one option
    */
   useTeamDefaultIfOnlyOne?: boolean;
-} & ControlProps;
+}
 
 type TeamActor = {
   id: string;
@@ -141,12 +136,13 @@ type TeamActor = {
   type: 'team';
 };
 
-export type TeamOption = GeneralSelectValue & {
+export interface TeamOption extends GeneralSelectValue {
   actor: TeamActor | null;
   searchKey: string;
-};
+}
 
-function TeamSelector(props: Props) {
+export function TeamSelector(props: Props) {
+  const organization = useOrganization();
   const {
     allowCreate,
     includeUnassigned,
@@ -156,7 +152,7 @@ function TeamSelector(props: Props) {
     useTeamDefaultIfOnlyOne = false,
     ...extraProps
   } = props;
-  const {teamFilter, organization, project, multiple, value, useId} = props;
+  const {teamFilter, project, multiple, value, useId} = props;
 
   const api = useApi();
   const {teams: initialTeams, fetching, onSearch} = useTeams();
@@ -295,8 +291,9 @@ function TeamSelector(props: Props) {
                 : t('You do not have permission to add team to project.')
             }
             containerDisplayMode="flex"
+            skipWrapper
           >
-            <AddToProjectButton
+            <Button
               size="zero"
               borderless
               disabled={!canAddTeam}
@@ -405,12 +402,3 @@ function TeamSelector(props: Props) {
     />
   );
 }
-
-const AddToProjectButton = styled(Button)`
-  flex-shrink: 0;
-`;
-
-export {TeamSelector};
-
-// TODO(davidenwang): this is broken due to incorrect types on react-select
-export default withOrganization(TeamSelector);

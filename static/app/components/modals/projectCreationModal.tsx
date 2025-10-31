@@ -22,7 +22,7 @@ import PlatformPicker, {
   type Platform,
 } from 'sentry/components/platformPicker';
 import type {TeamOption} from 'sentry/components/teamSelector';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
