@@ -14,6 +14,7 @@ import {t, tn} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
+import {openMainBinaryExportedSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/mainBinaryExportedSymbolsModal';
 import {openMinifyLocalizedStringsModal} from 'sentry/views/preprod/buildDetails/main/insights/minifyLocalizedStringsModal';
 import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
 import {openStripDebugSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/stripDebugSymbolsModal';
@@ -41,6 +42,7 @@ export function formatUpside(percentage: number): string {
 const INSIGHTS_WITH_MORE_INFO_MODAL = [
   'image_optimization',
   'alternate_icons_optimization',
+  'main_binary_exported_symbols',
   'localized_strings_minify',
   'strip_binary',
 ];
@@ -75,6 +77,8 @@ export function AppSizeInsightsSidebarRow({
       openAlternativeIconsInsightModal();
     } else if (insight.key === 'image_optimization') {
       openOptimizeImagesModal(platform);
+    } else if (insight.key === 'main_binary_exported_symbols') {
+      openMainBinaryExportedSymbolsModal();
     } else if (insight.key === 'localized_strings_minify') {
       openMinifyLocalizedStringsModal();
     } else if (insight.key === 'strip_binary') {
