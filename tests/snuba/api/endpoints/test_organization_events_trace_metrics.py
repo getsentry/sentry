@@ -182,3 +182,25 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert data[0] == {"per_second(cpu_usage, gauge)": pytest.approx(2 / 600, abs=0.001)}
+
+    def test_per_second_formula_with_gauge_metric_type_without_top_level_metric_type(self) -> None:
+        gauge_metrics = [
+            self.create_trace_metric("cpu_usage", 75.0, "gauge"),
+            self.create_trace_metric("cpu_usage", 80.0, "gauge"),
+        ]
+        self.store_trace_metrics(gauge_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "per_second(cpu_usage, gauge)"
+                ],  # Trying space in the formula here to make sure it works.
+                "query": "metric.name:cpu_usage",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data[0] == {"per_second(cpu_usage, gauge)": pytest.approx(2 / 600, abs=0.001)}
