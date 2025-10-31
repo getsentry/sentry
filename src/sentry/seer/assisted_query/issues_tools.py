@@ -365,7 +365,7 @@ def get_filter_key_values(
     Returns:
         List of dicts containing:
         - value: The actual value
-        - count: Number of occurrences (0 for built-in fields)
+        - count: Number of occurrences (optional for built-in fields)
         - lastSeen: ISO timestamp of last occurrence (optional)
         - firstSeen: ISO timestamp of first occurrence (optional)
         Returns None if organization doesn't exist, empty list if attribute not found in any source.
