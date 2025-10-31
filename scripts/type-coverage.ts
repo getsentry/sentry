@@ -91,7 +91,7 @@ function isContextuallyTypedCallbackParam(param: ParameterDeclaration): boolean 
 type AnyHit = {
   column: number;
   file: string;
-  kind: 'var' | 'var(binding)' | 'param' | 'param(binding)';
+  kind: 'var' | 'var(binding)' | 'param' | 'param(binding)' | 'as-any';
   // 1-based numbers below
   line: number;
   name: string;
@@ -353,20 +353,43 @@ function main() {
       }
 
       // --- Type assertions (expr as Type) ---
-      if (opts.listTypeAssertions && Node.isAsExpression?.(node)) {
+      if (Node.isAsExpression?.(node)) {
         const targetType = (node as any).getTypeNode?.()?.getText() ?? 'unknown';
+
+        // Handle "as any" - treat it as an any-typed symbol, always report
+        if (targetType === 'any') {
+          const code = textPreview(node.getText());
+          recordAny(anyHits, rel, node, 'as-any', code);
+          return;
+        }
+
         // Skip "as const" assertions since they're for literal type narrowing, not unsafe coercion
         if (targetType === 'const') {
           return;
         }
-        recordTypeAssertion(typeAssertionHits, rel, node, 'type(as)', targetType);
+
+        // Only record other type assertions if the flag is set
+        if (opts.listTypeAssertions) {
+          recordTypeAssertion(typeAssertionHits, rel, node, 'type(as)', targetType);
+        }
         return;
       }
 
       // --- Type assertions (<Type>expr - angle bracket syntax) ---
-      if (opts.listTypeAssertions && Node.isTypeAssertion?.(node)) {
+      if (Node.isTypeAssertion?.(node)) {
         const targetType = (node as any).getTypeNode?.()?.getText() ?? 'unknown';
-        recordTypeAssertion(typeAssertionHits, rel, node, 'type(angle)', targetType);
+
+        // Handle "<any>expr" - treat it as an any-typed symbol, always report
+        if (targetType === 'any') {
+          const code = textPreview(node.getText());
+          recordAny(anyHits, rel, node, 'as-any', code);
+          return;
+        }
+
+        // Only record other type assertions if the flag is set
+        if (opts.listTypeAssertions) {
+          recordTypeAssertion(typeAssertionHits, rel, node, 'type(angle)', targetType);
+        }
         return;
       }
     });
