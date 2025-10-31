@@ -9,6 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
@@ -63,11 +64,7 @@ export function getDetectorDetails({
     return {
       detectorType: 'metric_alert',
       detectorId,
-      detectorPath: makeAlertsPathname({
-        path: `/monitors/${detectorId}/`,
-        organization,
-        useLegacyBasePath: false,
-      }),
+      detectorPath: makeMonitorDetailsPathname(organization.slug, detectorId, 'monitors'),
       description: t(
         'This issue was created by a metric alert detector. View the detector details to learn more.'
       ),
