@@ -47,7 +47,6 @@ type DetectorListTableProps = {
   isSuccess: boolean;
   queryCount: string;
   sort: Sort | undefined;
-  renderVisualization?: (detector: Detector) => React.ReactNode;
 };
 
 function LoadingSkeletons() {
@@ -101,7 +100,6 @@ function DetectorListTable({
   sort,
   queryCount,
   allResultsVisible,
-  renderVisualization,
 }: DetectorListTableProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -147,8 +145,8 @@ function DetectorListTable({
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
+  const {additionalColumns = [], renderVisualization} = useMonitorViewContext();
   const hasVisualization = defined(renderVisualization);
-  const {additionalColumns = []} = useMonitorViewContext();
 
   return (
     <TableContainer>
