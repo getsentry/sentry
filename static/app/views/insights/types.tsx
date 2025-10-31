@@ -95,6 +95,9 @@ export enum SpanFields {
   GEN_AI_AGENT_NAME = 'gen_ai.agent.name',
   GEN_AI_FUNCTION_ID = 'gen_ai.function_id',
   GEN_AI_REQUEST_MODEL = 'gen_ai.request.model',
+  GEN_AI_REQUEST_MESSAGES = 'gen_ai.request.messages',
+  GEN_AI_RESPONSE_TEXT = 'gen_ai.response.text',
+  GEN_AI_RESPONSE_OBJECT = 'gen_ai.response.object',
   GEN_AI_RESPONSE_MODEL = 'gen_ai.response.model',
   GEN_AI_TOOL_NAME = 'gen_ai.tool.name',
   GEN_AI_COST_INPUT_TOKENS = 'gen_ai.cost.input_tokens',
@@ -251,6 +254,9 @@ export type SpanStringFields =
   | SpanFields.STATUS_MESSAGE
   | SpanFields.GEN_AI_AGENT_NAME
   | SpanFields.GEN_AI_REQUEST_MODEL
+  | SpanFields.GEN_AI_REQUEST_MESSAGES
+  | SpanFields.GEN_AI_RESPONSE_TEXT
+  | SpanFields.GEN_AI_RESPONSE_OBJECT
   | SpanFields.GEN_AI_RESPONSE_MODEL
   | SpanFields.GEN_AI_TOOL_NAME
   | SpanFields.MCP_CLIENT_NAME
