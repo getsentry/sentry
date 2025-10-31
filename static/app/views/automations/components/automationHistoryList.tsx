@@ -154,7 +154,7 @@ export default function AutomationHistoryList({
           });
         }}
         pageLinks={pageLinks}
-        caption={paginationCaption}
+        caption={totalCountInt > limit ? paginationCaption : null}
       />
     </Fragment>
   );
