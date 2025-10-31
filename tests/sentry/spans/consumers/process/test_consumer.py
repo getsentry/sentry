@@ -81,9 +81,9 @@ def test_basic(kafka_slice_id: int | None) -> None:
                 "spans": [
                     {
                         "attributes": {
-                            "sentry.is_segment": {"type": "boolean", "value": True},
                             "sentry.segment.id": {"type": "string", "value": "aaaaaaaaaaaaaaaa"},
                         },
+                        "is_segment": True,
                         "project_id": 12,
                         "span_id": "aaaaaaaaaaaaaaaa",
                         "trace_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
