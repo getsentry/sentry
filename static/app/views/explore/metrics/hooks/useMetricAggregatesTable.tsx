@@ -4,7 +4,6 @@ import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
@@ -86,11 +85,11 @@ function useMetricAggregatesTableImp({
   }, [groupBys, visualize.yAxis]);
 
   const query = useMemo(() => {
-    const currentSearch = new MutableSearch(`metric.name:${metricName}`);
+    const baseQuery = `metric.name:${metricName}`;
     if (!searchQuery.isEmpty()) {
-      currentSearch.addStringFilter(searchQuery.formatString());
+      return `${baseQuery} (${searchQuery.formatString()})`;
     }
-    return currentSearch.formatString();
+    return baseQuery;
   }, [metricName, searchQuery]);
 
   const eventView = useMemo(() => {
