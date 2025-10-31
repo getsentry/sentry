@@ -104,7 +104,6 @@ export const platformProductAvailability = {
   'go-gin': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'go-http': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'go-iris': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  'go-martini': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'go-negroni': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   ionic: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   java: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
