@@ -2821,6 +2821,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# This is here in case we want to roll out a new config gradually. Can also be used as a killswitch
+# for config upgrades if one is ever needed.
+register(
+    "grouping.config_transition.config_upgrade_sample_rate",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Sample rate for double writing to experimental dsn
 register(
