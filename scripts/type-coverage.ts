@@ -47,7 +47,15 @@ function parseArgs(): Options {
   return opts;
 }
 
-const isAny = (t: Type) => t.isAny() || t.getText() === 'any';
+const isAny = (t: Type) => {
+  if (t.isAny()) return true;
+  const typeText = t.getText();
+  if (typeText === 'any') return true;
+
+  // Check for 'any' within generic types like Record<string, any>, Array<any>, etc.
+  // This regex matches 'any' as a complete word (not part of another word)
+  return /\bany\b/.test(typeText);
+};
 
 function hasExplicitType(node: {getTypeNode?: () => any}): boolean {
   try {
