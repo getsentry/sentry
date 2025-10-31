@@ -17,6 +17,7 @@ import {
 
 type Options = {
   tsconfigPath: string;
+  detail?: boolean;
   failBelow?: number;
   ignoreFiles?: string[];
   json?: boolean;
@@ -37,6 +38,7 @@ function parseArgs(): Options {
     else if (a === '--list-nonnull')
       opts.listNonNull = true; // NEW
     else if (a === '--list-type-assertions') opts.listTypeAssertions = true;
+    else if (a === '--detail') opts.detail = true;
     else if (a === '--ignore-files') {
       if (!opts.ignoreFiles) opts.ignoreFiles = [];
       opts.ignoreFiles.push(args[++i]!);
@@ -457,13 +459,16 @@ function main() {
       if (anyHits.length === 0) {
         console.log(pc.green('No any-typed symbols found.'));
       } else {
-        console.log(pc.bold(`\nFound ${anyHits.length} any-typed symbol(s):\n`));
-        for (const hit of anyHits) {
-          console.log(
-            `${hit.file}:${hit.line}:${hit.column}  ${pc.red(hit.kind.padEnd(13))}  ${pc.dim(hit.name)}`
-          );
+        console.log(pc.bold(`Found ${anyHits.length} any-typed symbol(s)`));
+        if (opts.detail) {
+          console.log();
+          for (const hit of anyHits) {
+            console.log(
+              `${hit.file}:${hit.line}:${hit.column}  ${pc.red(hit.kind.padEnd(13))}  ${pc.dim(hit.name)}`
+            );
+          }
+          console.log();
         }
-        console.log();
       }
     }
 
@@ -471,14 +476,17 @@ function main() {
       if (nonNullHits.length === 0) {
         console.log(pc.green('No non-null assertions found.'));
       } else {
-        console.log(pc.bold(`\nFound ${nonNullHits.length} non-null assertion(s):\n`));
-        for (const hit of nonNullHits) {
-          // file:line:col  kind            code
-          console.log(
-            `${hit.file}:${hit.line}:${hit.column}  ${pc.yellow(hit.kind.padEnd(16))}  ${pc.dim(hit.code)}`
-          );
+        console.log(pc.bold(`Found ${nonNullHits.length} non-null assertion(s)`));
+        if (opts.detail) {
+          console.log();
+          for (const hit of nonNullHits) {
+            // file:line:col  kind            code
+            console.log(
+              `${hit.file}:${hit.line}:${hit.column}  ${pc.yellow(hit.kind.padEnd(16))}  ${pc.dim(hit.code)}`
+            );
+          }
+          console.log();
         }
-        console.log();
       }
     }
 
@@ -486,14 +494,17 @@ function main() {
       if (typeAssertionHits.length === 0) {
         console.log(pc.green('No type assertions found.'));
       } else {
-        console.log(pc.bold(`\nFound ${typeAssertionHits.length} type assertion(s):\n`));
-        for (const hit of typeAssertionHits) {
-          // file:line:col  kind            target type    code
-          console.log(
-            `${hit.file}:${hit.line}:${hit.column}  ${pc.cyan(hit.kind.padEnd(12))}  ${pc.magenta(hit.targetType.padEnd(20))}  ${pc.dim(hit.code)}`
-          );
+        console.log(pc.bold(`Found ${typeAssertionHits.length} type assertion(s)`));
+        if (opts.detail) {
+          console.log();
+          for (const hit of typeAssertionHits) {
+            // file:line:col  kind            target type    code
+            console.log(
+              `${hit.file}:${hit.line}:${hit.column}  ${pc.cyan(hit.kind.padEnd(12))}  ${pc.magenta(hit.targetType.padEnd(20))}  ${pc.dim(hit.code)}`
+            );
+          }
+          console.log();
         }
-        console.log();
       }
     }
 
