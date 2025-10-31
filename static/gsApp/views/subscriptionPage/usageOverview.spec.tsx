@@ -76,8 +76,12 @@ describe('UsageOverview', () => {
     expect(screen.getByRole('columnheader', {name: 'Product'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Total usage'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Reserved'})).toBeInTheDocument();
-    expect(screen.queryByText('Reserved spend')).not.toBeInTheDocument();
-    expect(screen.queryByText('Pay-as-you-go spend')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Reserved spend'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Pay-as-you-go spend'})
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'View usage history'})
     ).not.toBeInTheDocument();

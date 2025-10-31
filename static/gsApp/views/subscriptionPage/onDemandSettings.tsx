@@ -66,9 +66,11 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
   }
 
   const onDemandEnabled = subscription.planDetails.allowOnDemand;
-  // VC partner accounts don't require a payment source (i.e. credit card) since they make all payments via VC
-  const isVCPartner = subscription.partner?.partnership?.id === 'VC';
-  const hasPaymentSource = !!subscription.paymentSource || isVCPartner;
+  const hasPaymentSource = !!(
+    subscription.paymentSource ||
+    subscription.isSelfServePartner ||
+    subscription.onDemandInvoicedManual
+  );
   const hasOndemandBudgets =
     hasOnDemandBudgetsFeature(organization, subscription) &&
     Boolean(subscription.onDemandBudgets);
