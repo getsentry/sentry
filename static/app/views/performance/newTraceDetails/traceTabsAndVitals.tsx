@@ -1,15 +1,11 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
-import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceLayoutTabsConfig} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
@@ -52,9 +48,6 @@ export function TraceTabsAndVitals({
   const containerRef = useRef<HTMLDivElement>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>();
-  const organization = useOrganization();
-
-  const showLinkedTraces = organization?.features.includes('trace-view-linked-traces');
 
   const onResize = useCallback(() => {
     if (containerRef.current) {
@@ -111,29 +104,6 @@ export function TraceTabsAndVitals({
           ))}
         </TabList>
       </Tabs>
-      {showLinkedTraces && (
-        <TraceLinksNavigationContainer>
-          {isTraceItemDetailsResponse(rootEventResults.data) &&
-            rootEventResults.data.timestamp && (
-              <Fragment>
-                <TraceLinkNavigationButton
-                  direction="previous"
-                  attributes={rootEventResults.data.attributes}
-                  currentTraceStartTimestamp={
-                    new Date(rootEventResults.data.timestamp).getTime() / 1000
-                  }
-                />
-                <TraceLinkNavigationButton
-                  direction="next"
-                  attributes={rootEventResults.data.attributes}
-                  currentTraceStartTimestamp={
-                    new Date(rootEventResults.data.timestamp).getTime() / 1000
-                  }
-                />
-              </Fragment>
-            )}
-        </TraceLinksNavigationContainer>
-      )}
       <TraceContextVitals
         rootEventResults={rootEventResults}
         tree={tree}
@@ -145,13 +115,4 @@ export function TraceTabsAndVitals({
 
 const StyledPlaceholder = styled(TraceHeaderComponents.StyledPlaceholder)`
   background-color: ${p => p.theme.purple100};
-`;
-
-const TraceLinksNavigationContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
-  &:not(:last-child) {
-    margin-right: ${space(1)};
-  }
 `;

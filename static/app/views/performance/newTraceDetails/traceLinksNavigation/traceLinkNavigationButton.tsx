@@ -1,19 +1,14 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button/linkButton';
+
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {IconChevron} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {
-  useFindNextTrace,
-  useFindPreviousTrace,
-} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useFindLinkedTraces';
+import {useFindAdjacentTrace} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useFindLinkedTraces';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -46,21 +41,22 @@ export function TraceLinkNavigationButton({
     id: previousTraceSpanId,
     trace: previousTraceId,
     isLoading: isPreviousTraceLoading,
-  } = useFindPreviousTrace({
-    direction,
-    previousTraceEndTimestamp: currentTraceStartTimestamp,
-    previousTraceStartTimestamp: linkedTraceWindowTimestamp,
+  } = useFindAdjacentTrace({
+    direction: 'previous',
+    adjacentTraceEndTimestamp: currentTraceStartTimestamp,
+    adjacentTraceStartTimestamp: linkedTraceWindowTimestamp,
     attributes,
   });
 
   const {
+    available: isNextTraceAvailable,
     id: nextTraceSpanId,
     trace: nextTraceId,
     isLoading: isNextTraceLoading,
-  } = useFindNextTrace({
-    direction,
-    nextTraceEndTimestamp: linkedTraceWindowTimestamp,
-    nextTraceStartTimestamp: currentTraceStartTimestamp,
+  } = useFindAdjacentTrace({
+    direction: 'next',
+    adjacentTraceEndTimestamp: linkedTraceWindowTimestamp,
+    adjacentTraceStartTimestamp: currentTraceStartTimestamp,
     attributes,
   });
 
@@ -78,93 +74,45 @@ export function TraceLinkNavigationButton({
     });
   }
 
-  if (
-    direction === 'previous' &&
-    previousTraceId &&
-    !isPreviousTraceLoading &&
-    isPreviousTraceAvailable
-  ) {
+  if (direction === 'previous') {
     return (
-      <StyledTooltip
-        position="top"
-        delay={400}
-        isHoverable
-        title={tct(`Go to the previous trace of the same session. [link:Learn More]`, {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
-          ),
+      <LinkButton
+        size="xs"
+        icon={<IconChevron direction="left" />}
+        aria-label={t('Previous Trace')}
+        onClick={() => closeSpanDetailsDrawer()}
+        disabled={!previousTraceId || isPreviousTraceLoading || !isPreviousTraceAvailable}
+        to={getTraceDetailsUrl({
+          traceSlug: previousTraceId ?? '',
+          spanId: previousTraceSpanId,
+          dateSelection,
+          timestamp: linkedTraceWindowTimestamp,
+          location,
+          organization,
         })}
-      >
-        <TraceLink
-          color="gray500"
-          onClick={() => closeSpanDetailsDrawer()}
-          to={getTraceDetailsUrl({
-            traceSlug: previousTraceId,
-            spanId: previousTraceSpanId,
-            dateSelection,
-            timestamp: linkedTraceWindowTimestamp,
-            location,
-            organization,
-          })}
-        >
-          <IconChevron direction="left" />
-          <TraceLinkText>{t('Previous Trace')}</TraceLinkText>
-        </TraceLink>
-      </StyledTooltip>
+      />
     );
   }
 
-  if (direction === 'next' && !isNextTraceLoading && nextTraceId && nextTraceSpanId) {
+  if (direction === 'next') {
     return (
-      <StyledTooltip
-        position="top"
-        delay={400}
-        isHoverable
-        title={tct(`Go to the next trace of the same session. [link:Learn More]`, {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
-          ),
+      <LinkButton
+        size="xs"
+        icon={<IconChevron direction="right" />}
+        aria-label={t('Next Trace')}
+        onClick={closeSpanDetailsDrawer}
+        disabled={!nextTraceId || isNextTraceLoading || !isNextTraceAvailable}
+        to={getTraceDetailsUrl({
+          traceSlug: nextTraceId ?? '',
+          spanId: nextTraceSpanId,
+          dateSelection,
+          timestamp: linkedTraceWindowTimestamp,
+          location,
+          organization,
         })}
-      >
-        <TraceLink
-          color="gray500"
-          onClick={closeSpanDetailsDrawer}
-          to={getTraceDetailsUrl({
-            traceSlug: nextTraceId,
-            spanId: nextTraceSpanId,
-            dateSelection,
-            timestamp: linkedTraceWindowTimestamp,
-            location,
-            organization,
-          })}
-        >
-          <TraceLinkText>{t('Next Trace')}</TraceLinkText>
-          <IconChevron direction="right" />
-        </TraceLink>
-      </StyledTooltip>
+      />
     );
   }
 
   return null;
 }
-
-const StyledTooltip = styled(Tooltip)`
-  text-decoration: underline dotted
-    ${p => (p.disabled ? p.theme.gray300 : p.theme.gray300)};
-`;
-
-const TraceLink = styled(Link)`
-  font-weight: ${p => p.theme.fontWeight.normal};
-  padding: ${space(0.25)} ${space(0.5)};
-  display: flex;
-  align-items: center;
-
-  color: ${p => p.theme.subText};
-  :hover {
-    color: ${p => p.theme.subText};
-  }
-`;
-
-const TraceLinkText = styled('span')`
-  line-height: normal;
-`;
