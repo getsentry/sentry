@@ -82,8 +82,8 @@ class SpanBuilder:
             "start_timestamp": self.start_timestamp,
             "timestamp": self.timestamp,
             "same_process_as_parent": self.same_process_as_parent,
+            "is_segment": self.is_segment,
             "attributes": {
-                "sentry.is_segment": {"value": self.is_segment},
                 "sentry.op": {"value": self.op},
                 "sentry.description": {"value": self.description},
                 **{k: {"value": v} for (k, v) in (self.tags or {}).items()},

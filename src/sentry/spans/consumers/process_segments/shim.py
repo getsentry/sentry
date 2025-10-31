@@ -33,7 +33,6 @@ def make_compatible(span: SpanEvent) -> CompatibleSpan:
         "sentry_tags": _sentry_tags(span.get("attributes") or {}),
         "op": get_span_op(span),
         "exclusive_time": attribute_value(span, "sentry.exclusive_time_ms"),
-        "is_segment": bool(attribute_value(span, "sentry.is_segment")),
     }
 
     return ret

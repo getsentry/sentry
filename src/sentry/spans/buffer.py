@@ -438,10 +438,7 @@ class SpansBuffer:
                     }
 
                 is_segment = segment_span_id == span["span_id"]
-                span.setdefault("attributes", {})["sentry.is_segment"] = {
-                    "type": "boolean",
-                    "value": is_segment,
-                }
+                span["is_segment"] = is_segment
                 if is_segment:
                     has_root_span = True
 

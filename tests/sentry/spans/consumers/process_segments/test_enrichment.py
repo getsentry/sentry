@@ -458,9 +458,9 @@ def _mock_performance_issue_span(is_segment, attributes, **fields) -> SpanEvent:
             "received": 1707953019.044972,
             "retention_days": 90,
             "segment_id": "a49b42af9fb69da0",
+            "is_segment": is_segment,
             "attributes": {
                 **attributes,
-                "sentry.is_segment": {"type": "boolean", "value": is_segment},
                 "sentry.description": {"type": "string", "value": "OrganizationNPlusOne"},
             },
             "span_id": "a49b42af9fb69da0",

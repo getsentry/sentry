@@ -14,7 +14,7 @@ from sentry.spans.consumers.process_segments.types import CompatibleSpan
 ###############################################
 
 SPAN_KAFKA_MESSAGE: SpanEvent = {
-    "is_remote": True,
+    "is_segment": True,
     "attributes": {
         "http.status_code": {"value": "200", "type": "string"},
         "my.array.field": {"value": [1, 2, ["nested", "array"]], "type": "array"},
@@ -127,7 +127,6 @@ def test_convert_span_to_item() -> None:
         "sentry.duration_ms": AnyValue(int_value=152),
         "sentry.end_timestamp_precise": AnyValue(double_value=1721319572.768806),
         "sentry.environment": AnyValue(string_value="development"),
-        "sentry.is_remote": AnyValue(bool_value=True),
         "sentry.is_segment": AnyValue(bool_value=True),
         "sentry.name": AnyValue(string_value="endpoint"),
         "sentry.normalized_description": AnyValue(string_value="normalized_description"),
@@ -167,7 +166,7 @@ def test_convert_span_to_item() -> None:
 
 def test_convert_falsy_fields() -> None:
     message: SpanEvent = {**SPAN_KAFKA_MESSAGE}
-    message["attributes"]["sentry.is_segment"] = {"type": "boolean", "value": False}  # type: ignore[index]
+    message["is_segment"] = False
 
     item = convert_span_to_item(cast(CompatibleSpan, message))
 

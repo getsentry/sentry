@@ -57,7 +57,7 @@ class SpanGroupingStrategy:
         # compatibility with transaction events, but fall back to default
         # fingerprinting if the span doesn't have a transaction.
         if (
-            attribute_value(span, "sentry.is_segment")
+            span.get("is_segment")
             and (transaction := attribute_value(span, "sentry.transaction")) is not None
         ):
             result = Hash()
