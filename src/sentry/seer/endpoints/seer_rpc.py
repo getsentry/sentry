@@ -65,7 +65,7 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute
 from sentry.search.events.types import SnubaParams
-from sentry.seer.assisted_query.tools import (
+from sentry.seer.assisted_query.issues_tools import (
     execute_issues_query,
     get_filter_key_values,
     get_issue_filter_keys,

@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.seer.assisted_query.tools import (
+from sentry.seer.assisted_query.issues_tools import (
     execute_issues_query,
     get_filter_key_values,
     get_issue_filter_keys,
