@@ -761,9 +761,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
             ).exists()
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @mock.patch(
-        "sentry.workflow_engine.endpoints.organization_detector_details.delete_rule_in_seer"
-    )
+    @mock.patch("sentry.seer.anomaly_detection.delete_rule.delete_rule_in_seer")
     @mock.patch(
         "sentry.workflow_engine.endpoints.organization_detector_details.schedule_update_project_config"
     )

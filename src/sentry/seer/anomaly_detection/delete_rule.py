@@ -20,6 +20,36 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 
 if TYPE_CHECKING:
     from sentry.incidents.models.alert_rule import AlertRule
+    from sentry.workflow_engine.models.detector import Detector
+
+
+def delete_data_in_seer_for_detector(detector: "Detector"):
+    from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+    from sentry.workflow_engine.models import DataSourceDetector
+
+    data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()
+    if not data_source_detector:
+        logger.error(
+            "No data source found for detector",
+            extra={
+                "detector_id": detector.id,
+            },
+        )
+        return
+
+    organization = detector.project.organization
+
+    if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
+        success = delete_rule_in_seer(
+            source_id=data_source_detector.data_source_id, organization=organization
+        )
+        if not success:
+            logger.error(
+                "Call to delete rule data in Seer failed",
+                extra={
+                    "detector_id": detector.id,
+                },
+            )
 
 
 def delete_rule_in_seer(source_id: int, organization: Organization) -> bool:
