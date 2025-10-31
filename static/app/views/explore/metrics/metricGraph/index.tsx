@@ -33,7 +33,7 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 import {WidgetWrapper} from './styles';
 
 const MINIMIZED_GRAPH_HEIGHT = 50;
-const STACKED_GRAPH_HEIGHT = 360;
+const STACKED_GRAPH_HEIGHT = 362;
 
 interface MetricsGraphProps {
   orientation: TableOrientation;
