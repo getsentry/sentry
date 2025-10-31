@@ -41,7 +41,7 @@ def delete_data_in_seer_for_detector(detector: "Detector"):
 
     if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
         success = delete_rule_in_seer(
-            source_id=data_source_detector.data_source_id, organization=organization
+            source_id=int(data_source_detector.data_source.source_id), organization=organization
         )
         if not success:
             logger.error(
