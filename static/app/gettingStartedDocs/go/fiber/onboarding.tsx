@@ -1,31 +1,18 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportGenericInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
-import {getGoLogsOnboarding} from 'sentry/utils/gettingStartedDocs/go';
 
-type Params = DocsParams;
-
-const getConfigureSnippet = (params: Params) => `
+const getConfigureSnippet = (params: DocsParams) => `
 import (
-  "fmt"
+	"fmt"
+	"net/http"
 
-  "github.com/getsentry/sentry-go"
-  sentryiris "github.com/getsentry/sentry-go/iris"
-  "github.com/kataras/iris/v12"
+	"github.com/getsentry/sentry-go"
+	sentryfiber "github.com/getsentry/sentry-go/fiber"
 )
 
 // To initialize Sentry's handler, you need to initialize Sentry itself beforehand
@@ -49,63 +36,88 @@ if err := sentry.Init(sentry.ClientOptions{
   fmt.Printf("Sentry initialization failed: %v\\n", err)
 }
 
-// Then create your app
-app := iris.Default()
-
-// Once it's done, you can attach the handler as one of your middleware
-app.Use(sentryiris.New(sentryiris.Options{}))
-
-// Set up routes
-app.Get("/", func(ctx iris.Context) {
-  ctx.Writef("Hello world!")
+// Later in the code
+sentryHandler := sentryfiber.New(sentryfiber.Options{
+  Repanic:         true,
+  WaitForDelivery: true,
 })
 
-// And run it
-app.Run(iris.Addr(":3000"))`;
+enhanceSentryEvent := func(ctx *fiber.Ctx) error {
+	if hub := sentryfiber.GetHubFromContext(ctx); hub != nil {
+		hub.Scope().SetTag("someRandomTag", "maybeYouNeedIt")
+	}
+	return ctx.Next()
+}
+
+app := fiber.New()
+
+app.Use(sentryHandler)
+
+app.All("/foo", enhanceSentryEvent, func(c *fiber.Ctx) error {
+	panic("y tho")
+})
+
+app.All("/", func(ctx *fiber.Ctx) error {
+	if hub := sentryfiber.GetHubFromContext(ctx); hub != nil {
+		hub.WithScope(func(scope *sentry.Scope) {
+			scope.SetExtra("unwantedQuery", "someQueryDataMaybe")
+			hub.CaptureMessage("User provided unwanted query string, but we recovered just fine")
+		})
+	}
+	return ctx.SendStatus(fiber.StatusOK)
+})
+
+if err := app.Listen(":3000"); err != nil {
+	panic(err)
+}`;
 
 const getOptionsSnippet = () => `
-// Whether Sentry should repanic after recovery, in most cases it should be set to true,
-// as iris.Default includes its own Recovery middleware what handles http responses.
+// Repanic configures whether Sentry should repanic after recovery, in most cases it should be set to true,
+// as fiber includes its own Recover middleware that handles http responses.
 Repanic bool
-// Whether you want to block the request before moving forward with the response.
-// Because Iris's default "Recovery" handler doesn't restart the application,
+// WaitForDelivery configures whether you want to block the request before moving forward with the response.
+// Because Fiber's "Recover" handler doesn't restart the application,
 // it's safe to either skip this option or set it to "false".
 WaitForDelivery bool
 // Timeout for the event delivery requests.
 Timeout time.Duration`;
 
 const getUsageSnippet = () => `
-app := iris.Default()
-
-app.Use(sentryiris.New(sentryiris.Options{
-  Repanic: true,
-}))
-
-app.Use(func(ctx iris.Context) {
-  if hub := sentryiris.GetHubFromContext(ctx); hub != nil {
-    hub.Scope().SetTag("someRandomTag", "maybeYouNeedIt")
-  }
-  ctx.Next()
+sentryHandler := sentryfiber.New(sentryfiber.Options{
+  Repanic:         true,
+  WaitForDelivery: true,
 })
 
-app.Get("/", func(ctx iris.Context) {
-  if hub := sentryiris.GetHubFromContext(ctx); hub != nil {
+enhanceSentryEvent := func(ctx *fiber.Ctx) error {
+  if hub := sentryfiber.GetHubFromContext(ctx); hub != nil {
+    hub.Scope().SetTag("someRandomTag", "maybeYouNeedIt")
+  }
+  return ctx.Next()
+}
+
+app := fiber.New()
+
+app.Use(sentryHandler)
+
+app.All("/foo", enhanceSentryEvent, func(c *fiber.Ctx) error {
+  panic("y tho")
+})
+
+app.All("/", func(ctx *fiber.Ctx) error {
+  if hub := sentryfiber.GetHubFromContext(ctx); hub != nil {
     hub.WithScope(func(scope *sentry.Scope) {
       scope.SetExtra("unwantedQuery", "someQueryDataMaybe")
       hub.CaptureMessage("User provided unwanted query string, but we recovered just fine")
     })
   }
+  return ctx.SendStatus(fiber.StatusOK)
 })
 
-app.Get("/foo", func(ctx iris.Context) {
-  // sentryiris handler will catch it just fine. Also, because we attached "someRandomTag"
-  // in the middleware before, it will be sent through as well
-  panic("y tho")
-})
+if err := app.Listen(":3000"); err != nil {
+  panic(err)
+};`;
 
-app.Run(iris.Addr(":3000"))`;
-
-const getBeforeSendSnippet = (params: any) => `
+const getBeforeSendSnippet = (params: DocsParams) => `
 sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
@@ -119,21 +131,21 @@ sentry.Init(sentry.ClientOptions{
   },
 })`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
       content: [
         {
           type: 'text',
-          text: tct('Install our Go Iris SDK using [code:go get]:', {
+          text: tct('Install our Go Fiber SDK using [code:go get]:', {
             code: <code />,
           }),
         },
         {
           type: 'code',
           language: 'bash',
-          code: 'go get github.com/getsentry/sentry-go/iris',
+          code: 'go get github.com/getsentry/sentry-go/fiber',
         },
       ],
     },
@@ -161,7 +173,7 @@ const onboarding: OnboardingConfig = {
           type: 'text',
           text: [
             tct(
-              '[code:sentryiris] accepts a struct of [code:Options] that allows you to configure how the handler will behave.',
+              '[code:sentryfiber] accepts a struct of [code:Options] that allows you to configure how the handler will behave.',
               {code: <code />}
             ),
             t('Currently it respects 3 options:'),
@@ -180,11 +192,11 @@ const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            "[code:sentryiris] attaches an instance of [sentryHubLink:*sentry.Hub] to the [code:iris.Context], which makes it available throughout the rest of the request's lifetime. You can access it by using the [code:sentryiris.GetHubFromContext()] method on the context itself in any of your proceeding middleware and routes. And it should be used instead of the global [code:sentry.CaptureMessage], [code:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
+            "[code:sentryfiber] attaches an instance of [sentryHubLink:*sentry.Hub] to the [code:*fiber.Ctx], which makes it available throughout the rest of the request's lifetime. You can access it by using the [code:sentryfiber.GetHubFromContext()] method on the context itself in any of your proceeding middleware and routes. And it should be used instead of the global [code:sentry.CaptureMessage], [code:sentry.CaptureException] or any other calls, as it keeps the separation of data between the requests.",
             {
               code: <code />,
               sentryHubLink: (
-                <ExternalLink href="https://pkg.go.dev/github.com/getsentry/sentry-go#Hub" />
+                <ExternalLink href="https://godoc.org/github.com/getsentry/sentry-go#Hub" />
               ),
             }
           ),
@@ -194,7 +206,7 @@ const onboarding: OnboardingConfig = {
           alertType: 'info',
           showIcon: false,
           text: tct(
-            "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentryiris]!",
+            "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentryfiber]!",
             {code: <code />}
           ),
         },
@@ -218,7 +230,7 @@ const onboarding: OnboardingConfig = {
     },
   ],
   verify: () => [],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [];
 
     if (params.isLogsSelected) {
@@ -235,35 +247,3 @@ const onboarding: OnboardingConfig = {
     return steps;
   },
 };
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportGenericInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/go/guides/iris/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  replayOnboardingJsLoader,
-  crashReportOnboarding,
-  feedbackOnboardingJsLoader,
-  logsOnboarding: getGoLogsOnboarding({
-    docsPlatform: 'iris',
-  }),
-};
-
-export default docs;
