@@ -17,6 +17,11 @@ export function useUrlTraceDrawer() {
     parseAsString.withOptions({history: 'replace'})
   );
 
+  const [_, setSelectedSpan] = useQueryState(
+    DrawerUrlParams.SELECTED_SPAN,
+    parseAsString.withOptions({history: 'replace'})
+  );
+
   const removeQueryParams = useCallback(() => {
     setSelectedTrace(null);
   }, [setSelectedTrace]);
@@ -29,12 +34,24 @@ export function useUrlTraceDrawer() {
   const openDrawer = useCallback(
     (
       renderer: Parameters<typeof baseOpenDrawer>[0],
-      options?: Parameters<typeof baseOpenDrawer>[1] & {traceSlug?: string}
+      options?: Parameters<typeof baseOpenDrawer>[1] & {
+        spanId?: string;
+        traceSlug?: string;
+      }
     ) => {
-      const {traceSlug: optionsTraceSlug, onClose, ariaLabel, ...rest} = options || {};
+      const {
+        traceSlug: optionsTraceSlug,
+        spanId: optionsSpanId,
+        onClose,
+        ariaLabel,
+        ...rest
+      } = options || {};
 
       if (optionsTraceSlug) {
         setSelectedTrace(optionsTraceSlug);
+      }
+      if (optionsSpanId) {
+        setSelectedSpan(optionsSpanId);
       }
 
       return baseOpenDrawer(renderer, {
@@ -49,7 +66,7 @@ export function useUrlTraceDrawer() {
         },
       });
     },
-    [baseOpenDrawer, setSelectedTrace, removeQueryParams]
+    [baseOpenDrawer, setSelectedTrace, setSelectedSpan, removeQueryParams]
   );
 
   return {

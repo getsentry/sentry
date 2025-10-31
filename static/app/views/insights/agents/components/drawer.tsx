@@ -110,7 +110,7 @@ export function useTraceViewDrawer({onClose}: UseTraceViewDrawerProps = {}) {
   const {openDrawer, isDrawerOpen, drawerUrlState, closeDrawer} = useUrlTraceDrawer();
 
   const openTraceViewDrawer = useCallback(
-    (traceSlug: string) => {
+    (traceSlug: string, spanId?: string) => {
       trackAnalytics('agent-monitoring.drawer.open', {
         organization,
       });
@@ -124,6 +124,7 @@ export function useTraceViewDrawer({onClose}: UseTraceViewDrawerProps = {}) {
           drawerWidth: `${DRAWER_WIDTH}px`,
           resizable: true,
           traceSlug,
+          spanId,
           drawerKey: 'abbreviated-trace-view-drawer',
         }
       );
