@@ -173,7 +173,6 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                 "field": [
                     "per_second(cpu_usage, gauge)"
                 ],  # Trying space in the formula here to make sure it works.
-                "query": "metric.name:cpu_usage",
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "statsPeriod": "10m",
