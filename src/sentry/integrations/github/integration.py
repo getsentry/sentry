@@ -77,6 +77,7 @@ from sentry.templatetags.sentry_helpers import small_count
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import determine_active_organization
@@ -234,7 +235,7 @@ class GitHubIntegration(
     integration_name = IntegrationProviderSlug.GITHUB
 
     # IssueSyncIntegration configuration keys
-    comment_key = None
+    comment_key = "sync_comments"
     outbound_status_key = None
     inbound_status_key = "sync_status_reverse"
     outbound_assignee_key = "sync_forward_assignment"
@@ -539,6 +540,12 @@ class GitHubIntegration(
                             "Select what action to take on Sentry Issue when GitHub ticket is marked Closed."
                         ),
                     },
+                    {
+                        "name": self.comment_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Comments to GitHub"),
+                        "help": _("Post comments from Sentry issues to linked GitHub issues"),
+                    },
                 ]
             )
 
@@ -580,6 +587,33 @@ class GitHubIntegration(
 
     def get_open_pr_comment_workflow(self) -> OpenPRCommentWorkflow:
         return GitHubOpenPRCommentWorkflow(integration=self)
+
+    def create_comment_attribution(self, user_id, comment_text):
+        user = user_service.get_user(user_id)
+        username = "Unknown User" if user is None else user.name
+
+        attribution = f"**{username}** wrote:\n\n"
+        # GitHub uses markdown blockquotes
+        quoted_text = "\n".join(f"> {line}" for line in comment_text.split("\n"))
+        return f"{attribution}{quoted_text}"
+
+    def update_comment(self, issue_id, user_id, group_note):
+        quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
+
+        repo, issue_number = issue_id.rsplit("#", 1)
+
+        return self.get_client().update_comment(
+            repo, issue_number, group_note.data["external_id"], {"body": quoted_comment}
+        )
+
+    def create_comment(self, issue_id, user_id, group_note):
+        # GitHub uses markdown syntax directly without needing special formatting
+        comment = group_note.data["text"]
+        quoted_comment = self.create_comment_attribution(user_id, comment)
+
+        repo, issue_number = issue_id.rsplit("#", 1)
+
+        return self.get_client().create_comment(repo, issue_number, {"body": quoted_comment})
 
 
 MERGED_PR_COMMENT_BODY_TEMPLATE = """\
