@@ -570,4 +570,95 @@ describe('ProjectSeer', () => {
       );
     });
   });
+
+  it('removes stale repositories from preferences on load', async () => {
+    const mockRepos = [
+      RepositoryFixture({
+        id: '1',
+        name: 'getsentry/sentry',
+        externalId: '101',
+        provider: {id: 'integrations:github', name: 'GitHub'},
+        integrationId: '201',
+      }),
+      RepositoryFixture({
+        id: '2',
+        name: 'getsentry/seer',
+        externalId: '102',
+        provider: {id: 'integrations:github', name: 'GitHub'},
+        integrationId: '202',
+      }),
+    ];
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      method: 'GET',
+      body: mockRepos,
+    });
+
+    const seerPreferencesResponse: SeerPreferencesResponse = {
+      preference: {
+        repositories: [
+          // Stale repo - completely missing from org
+          {
+            provider: 'github',
+            owner: 'getsentry',
+            name: 'stale-repo',
+            external_id: 'stale-repo-123',
+            branch_name: 'main',
+            instructions: '',
+            integration_id: '999',
+            organization_id: parseInt(organization.id, 10),
+            branch_overrides: [],
+          },
+          // Stale repo - same external_id but different integration_id
+          // (e.g., switched GitHub Enterprise installations)
+          {
+            provider: 'github',
+            owner: 'getsentry',
+            name: 'sentry',
+            external_id: '101',
+            branch_name: 'main',
+            instructions: '',
+            integration_id: '999', // Old integration ID
+            organization_id: parseInt(organization.id, 10),
+            branch_overrides: [],
+          },
+          // Valid repo - correct integration_id and external_id
+          {
+            provider: 'github',
+            owner: 'getsentry',
+            name: 'sentry',
+            external_id: '101',
+            branch_name: 'main',
+            instructions: '',
+            integration_id: '201', // Current integration ID
+            organization_id: parseInt(organization.id, 10),
+            branch_overrides: [],
+          },
+        ],
+        automated_run_stopping_point: 'root_cause',
+      },
+      code_mapping_repos: [],
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+      method: 'GET',
+      body: seerPreferencesResponse,
+    });
+
+    render(<ProjectSeer project={project} />, {organization});
+
+    // Wait for the component to load and display only valid repos
+    await waitFor(() => {
+      expect(screen.getByText('getsentry/sentry')).toBeInTheDocument();
+    });
+
+    // Verify stale repos are NOT displayed
+    expect(screen.queryByText('getsentry/stale-repo')).not.toBeInTheDocument();
+
+    // Verify we only see the repo once (not the stale duplicate with old integration_id)
+    const sentryRepoElements = screen.getAllByText('getsentry/sentry');
+    expect(sentryRepoElements).toHaveLength(1);
+  });
 });

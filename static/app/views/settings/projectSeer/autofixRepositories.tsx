@@ -1,5 +1,6 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
@@ -48,13 +49,44 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   const [automatedRunStoppingPoint, setAutomatedRunStoppingPoint] = useState<
     'root_cause' | 'solution' | 'code_changes' | 'open_pr'
   >('root_cause');
+  const hasCleanedStaleRepos = useRef(false);
 
   useEffect(() => {
     if (repositories) {
       if (preference?.repositories) {
-        // Handle existing preferences
+        // Filter out stale repositories that don't exist in org anymore
+        const validIntegrationIdExternalIdPairs = new Set(
+          repositories.map(r => `${r.integrationId}-${r.externalId}`)
+        );
+        const validRepoExternalIds = new Set(repositories.map(r => r.externalId));
+        const validPreferences = preference.repositories.filter(repo =>
+          validRepoExternalIds.has(repo.external_id)
+        );
+
+        const staleRepos = preference.repositories.filter(repo => {
+          if (repo.integration_id) {
+            return !validIntegrationIdExternalIdPairs.has(
+              `${repo.integration_id}-${repo.external_id}`
+            );
+          }
+
+          return !validRepoExternalIds.has(repo.external_id);
+        });
+
+        // Log and clean up stale repos if found
+        if (staleRepos.length > 0 && !hasCleanedStaleRepos.current) {
+          hasCleanedStaleRepos.current = true;
+          Sentry.logger.info('seer.preferences.stale_repos_cleaned', {
+            project_id: project.id,
+            organization_id: organization.id,
+            num_stale_repos: staleRepos.length,
+            stale_repo_ids: staleRepos.map(r => r.external_id),
+          });
+        }
+
+        // Handle existing preferences (use validPreferences instead of all preferences)
         const preferencesMap = new Map(
-          preference.repositories.map(repo => [
+          validPreferences.map(repo => [
             repo.external_id,
             {
               branch: repo.branch_name || '',
@@ -64,7 +96,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           ])
         );
 
-        setSelectedRepoIds(preference.repositories.map(repo => repo.external_id));
+        setSelectedRepoIds(validPreferences.map(repo => repo.external_id));
 
         const initialSettings: Record<string, RepoSettings> = {};
         repositories.forEach(repo => {
@@ -97,7 +129,14 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         setAutomatedRunStoppingPoint('root_cause');
       }
     }
-  }, [preference, repositories, codeMappingRepos, updateProjectSeerPreferences]);
+  }, [
+    preference,
+    repositories,
+    codeMappingRepos,
+    updateProjectSeerPreferences,
+    project.id,
+    organization.id,
+  ]);
 
   const updatePreferences = useCallback(
     (
