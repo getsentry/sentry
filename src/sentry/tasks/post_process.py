@@ -1288,12 +1288,26 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
 
 
 def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
+    # Feature flag check for expanded sentry apps webhooks
     has_expanded_sentry_apps_webhooks = features.has(
         "organizations:expanded-sentry-apps-webhooks", job["event"].project.organization
     )
     group_category = job["event"].group.issue_category
+
     if group_category != GroupCategory.ERROR and not has_expanded_sentry_apps_webhooks:
         return False
+
+    # Only support ERROR, FEEDBACK, UPTIME and CRON issues for initial test
+    supported_group_categories = [
+        GroupCategory.ERROR,
+        GroupCategory.FEEDBACK,
+        GroupCategory.OUTAGE,
+        GroupCategory.UPTIME,
+        GroupCategory.CRON,
+    ]
+    if group_category not in supported_group_categories:
+        return False
+
     return True
 
 
@@ -1659,6 +1673,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_rules,
         process_workflow_engine_issue_alerts,
         process_service_hooks,
+        process_resource_change_bounds,
         process_plugins,
         process_code_mappings,
         process_similarity,
@@ -1674,6 +1689,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         feedback_filter_decorator(process_snoozes),
         feedback_filter_decorator(process_inbox_adds),
         feedback_filter_decorator(process_rules),
+        feedback_filter_decorator(process_resource_change_bounds),
     ],
     GroupCategory.METRIC_ALERT: [
         process_workflow_engine_metric_issues,
