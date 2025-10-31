@@ -10,7 +10,8 @@ feature_name = "seer_autofix_setup_acknowledged"
 
 
 def get_seer_user_acknowledgement(user_id: int, organization: Organization) -> bool:
-    # If consent flow is removed via feature flag, always treat as acknowledged
+    # The consent requirement for generative AI features is being removed
+    # After GA, remove all calls to this function
     if features.has("organizations:gen-ai-consent-flow-removal", organization):
         return True
 
@@ -23,7 +24,8 @@ def get_seer_user_acknowledgement(user_id: int, organization: Organization) -> b
 
 
 def get_seer_org_acknowledgement(organization: Organization) -> bool:
-    # If consent flow is removed via feature flag, always treat as acknowledged
+    # The consent requirement for generative AI features is being removed
+    # After GA, remove all calls to this function
     if features.has("organizations:gen-ai-consent-flow-removal", organization):
         return True
 
