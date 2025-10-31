@@ -20,6 +20,7 @@ type Options = {
   json?: boolean;
   listAny?: boolean;
   listNonNull?: boolean;
+  listTypeAssertions?: boolean;
 };
 
 function parseArgs(): Options {
@@ -31,7 +32,9 @@ function parseArgs(): Options {
     else if (a === '--json') opts.json = true;
     else if (a === '--project' || a === '-p') opts.tsconfigPath = args[++i]!;
     else if (a === '--list-any') opts.listAny = true;
-    else if (a === '--list-nonnull') opts.listNonNull = true; // NEW
+    else if (a === '--list-nonnull')
+      opts.listNonNull = true; // NEW
+    else if (a === '--list-type-assertions') opts.listTypeAssertions = true;
   }
   return opts;
 }
@@ -103,6 +106,16 @@ type NonNullHit = {
   line: number; // short preview
 };
 
+type TypeAssertionHit = {
+  code: string;
+  column: number;
+  file: string;
+  kind: 'type(as)' | 'type(angle)';
+  // 1-based
+  line: number;
+  targetType: string;
+};
+
 // record helpers
 function recordAny(
   hits: AnyHit[],
@@ -134,6 +147,21 @@ function recordNonNull(
   const {line, column} = sf.getLineAndColumnAtPos(pos);
   const code = textPreview((codeNode ?? node).getText());
   hits.push({file: sfRelPath, line, column, kind, code});
+}
+
+function recordTypeAssertion(
+  hits: TypeAssertionHit[],
+  sfRelPath: string,
+  node: Node,
+  kind: TypeAssertionHit['kind'],
+  targetType: string,
+  codeNode?: Node
+) {
+  const sf = node.getSourceFile();
+  const pos = node.getStart();
+  const {line, column} = sf.getLineAndColumnAtPos(pos);
+  const code = textPreview((codeNode ?? node).getText());
+  hits.push({file: sfRelPath, line, column, kind, code, targetType});
 }
 
 /**
@@ -223,6 +251,7 @@ function main() {
   const perFile: Record<string, {total: number; typed: number}> = {};
   const anyHits: AnyHit[] = []; // for --list-any
   const nonNullHits: NonNullHit[] = []; // for --list-nonnull
+  const typeAssertionHits: TypeAssertionHit[] = []; // for --list-type-assertions
 
   function bump(file: string, typed: boolean) {
     const rec = (perFile[file] ||= {total: 0, typed: 0});
@@ -322,6 +351,20 @@ function main() {
         }
         return;
       }
+
+      // --- Type assertions (expr as Type) ---
+      if (opts.listTypeAssertions && Node.isAsExpression?.(node)) {
+        const targetType = (node as any).getTypeNode?.()?.getText() ?? 'unknown';
+        recordTypeAssertion(typeAssertionHits, rel, node, 'type(as)', targetType);
+        return;
+      }
+
+      // --- Type assertions (<Type>expr - angle bracket syntax) ---
+      if (opts.listTypeAssertions && Node.isTypeAssertion?.(node)) {
+        const targetType = (node as any).getTypeNode?.()?.getText() ?? 'unknown';
+        recordTypeAssertion(typeAssertionHits, rel, node, 'type(angle)', targetType);
+        return;
+      }
     });
   }
 
@@ -345,8 +388,9 @@ function main() {
     };
     if (opts.listAny) data.anySymbols = anyHits;
     if (opts.listNonNull) data.nonNullAssertions = nonNullHits;
+    if (opts.listTypeAssertions) data.typeAssertions = typeAssertionHits;
     console.log(JSON.stringify(data, null, 2));
-  } else if (opts.listAny || opts.listNonNull) {
+  } else if (opts.listAny || opts.listNonNull || opts.listTypeAssertions) {
     if (opts.listAny) {
       if (anyHits.length === 0) {
         console.log(pc.green('No any-typed symbols found.'));
@@ -370,6 +414,21 @@ function main() {
           // file:line:col  kind            code
           console.log(
             `${hit.file}:${hit.line}:${hit.column}  ${pc.yellow(hit.kind.padEnd(16))}  ${pc.dim(hit.code)}`
+          );
+        }
+        console.log();
+      }
+    }
+
+    if (opts.listTypeAssertions) {
+      if (typeAssertionHits.length === 0) {
+        console.log(pc.green('No type assertions found.'));
+      } else {
+        console.log(pc.bold(`\nFound ${typeAssertionHits.length} type assertion(s):\n`));
+        for (const hit of typeAssertionHits) {
+          // file:line:col  kind            target type    code
+          console.log(
+            `${hit.file}:${hit.line}:${hit.column}  ${pc.cyan(hit.kind.padEnd(12))}  ${pc.magenta(hit.targetType.padEnd(20))}  ${pc.dim(hit.code)}`
           );
         }
         console.log();
