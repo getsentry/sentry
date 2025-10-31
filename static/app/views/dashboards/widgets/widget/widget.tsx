@@ -181,7 +181,7 @@ const VisualizationWrapper = styled('div')<{noPadding?: boolean}>`
   padding: ${p => (p.noPadding ? 0 : `0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER}`)};
 `;
 
-const FooterWrapper = styled('div')<{noPadding?: boolean}>`
+export const FooterWrapper = styled('div')<{noPadding?: boolean}>`
   margin: 0;
   border-top: 1px solid ${p => p.theme.border};
   padding: ${p => (p.noPadding ? 0 : `${space(1)} ${X_GUTTER} ${space(1)} ${X_GUTTER}`)};
