@@ -15,6 +15,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from rest_framework.exceptions import (
+    APIException,
     AuthenticationFailed,
     NotFound,
     ParseError,
@@ -66,6 +67,8 @@ from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
+from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
+from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
     rpc_get_profiles_for_trace,
@@ -989,6 +992,45 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
     return {"success": True}
 
 
+def trigger_coding_agent_launch(
+    *,
+    organization_id: int,
+    integration_id: int,
+    run_id: int,
+    trigger_source: str = "solution",
+) -> dict:
+    """
+    Trigger a coding agent launch for an autofix run.
+
+    Args:
+        organization_id: The organization ID
+        integration_id: The coding agent integration ID
+        run_id: The autofix run ID
+        trigger_source: Either "root_cause" or "solution" (default: "solution")
+
+    Returns:
+        dict: {"success": bool}
+    """
+    try:
+        launch_coding_agents_for_run(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            run_id=run_id,
+            trigger_source=AutofixTriggerSource(trigger_source),
+        )
+        return {"success": True}
+    except (NotFound, PermissionDenied, ValidationError, APIException):
+        logger.exception(
+            "coding_agent.rpc_launch_error",
+            extra={
+                "organization_id": organization_id,
+                "integration_id": integration_id,
+                "run_id": run_id,
+            },
+        )
+        return {"success": False}
+
+
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
@@ -1002,6 +1044,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_profile_details": get_profile_details,
     "send_seer_webhook": send_seer_webhook,
     "get_attributes_for_span": get_attributes_for_span,
+    "trigger_coding_agent_launch": trigger_coding_agent_launch,
     #
     # Bug prediction
     "get_sentry_organization_ids": get_sentry_organization_ids,
