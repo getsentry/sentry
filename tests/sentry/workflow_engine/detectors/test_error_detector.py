@@ -9,6 +9,7 @@ from sentry.workflow_engine.endpoints.validators.error_detector import ErrorDete
 from sentry.workflow_engine.models.detector import Detector
 
 
+# TODO - This should probably live in the same module the detector does
 class TestErrorDetectorValidator(TestCase):
     def setUp(self) -> None:
         super().setUp()

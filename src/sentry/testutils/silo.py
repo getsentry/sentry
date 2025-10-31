@@ -574,12 +574,14 @@ def validate_no_cross_silo_deletions(
 ) -> None:
     from sentry import deletions
     from sentry.deletions.base import BaseDeletionTask
+    from sentry.incidents.grouptype import MetricIssue
     from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-    from sentry.workflow_engine.models.data_source import DataSource
+    from sentry.workflow_engine.models import DataSource, Detector
 
     # hack for datasource registry, needs type
     instantiation_params: dict[type[Model], dict[str, str]] = {
-        DataSource: {"type": DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION}
+        DataSource: {"type": DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION},
+        Detector: {"type": MetricIssue.slug},
     }
 
     for model_class in iter_models(app_name):
