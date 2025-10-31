@@ -43,10 +43,10 @@ def unfurl_issues(
     for a particular issue by the URL of the yet-unfurled links a user included
     in their Slack message.
     """
-    event = MessagingInteractionEvent(
+    with MessagingInteractionEvent(
         MessagingInteractionType.UNFURL_ISSUES, SlackMessagingSpec(), user=user
-    )
-    with event.capture():
+    ).capture() as lifecycle:
+        lifecycle.add_extras({"integration_id": integration.id})
         return _unfurl_issues(integration, links)
 
 

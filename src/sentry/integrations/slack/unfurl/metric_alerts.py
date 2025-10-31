@@ -57,10 +57,10 @@ def unfurl_metric_alerts(
     links: list[UnfurlableUrl],
     user: User | RpcUser | None = None,
 ) -> UnfurledUrl:
-    event = MessagingInteractionEvent(
+    with MessagingInteractionEvent(
         MessagingInteractionType.UNFURL_METRIC_ALERTS, SlackMessagingSpec(), user=user
-    )
-    with event.capture():
+    ).capture() as lifecycle:
+        lifecycle.add_extras({"integration_id": integration.id})
         return _unfurl_metric_alerts(integration, links, user)
 
 

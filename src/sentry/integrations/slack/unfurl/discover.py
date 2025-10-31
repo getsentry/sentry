@@ -123,10 +123,10 @@ def unfurl_discover(
     links: list[UnfurlableUrl],
     user: User | RpcUser | None = None,
 ) -> UnfurledUrl:
-    event = MessagingInteractionEvent(
+    with MessagingInteractionEvent(
         MessagingInteractionType.UNFURL_DISCOVER, SlackMessagingSpec(), user=user
-    )
-    with event.capture():
+    ).capture() as lifecycle:
+        lifecycle.add_extras({"integration_id": integration.id})
         return _unfurl_discover(integration, links, user)
 
 
