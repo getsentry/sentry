@@ -351,9 +351,10 @@ describe('TagDetailsDrawerContent', () => {
     expect(await screen.findByText('(empty)')).toBeInTheDocument();
 
     await userEvent.hover(screen.getByText('(empty)'));
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Tag Value Actions Menu'})
-    );
+    const actionButtons = await screen.findAllByRole('button', {
+      name: 'Tag Value Actions Menu',
+    });
+    await userEvent.click(actionButtons[0]!);
 
     const viewEventsMenuItem = screen.getByRole('menuitemradio', {
       name: 'View other events with this tag value',
