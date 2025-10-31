@@ -26,11 +26,7 @@ def get_relay_biases_combinator(organization: Organization) -> BiasesCombinator:
 
     default_combinator.add(RuleType.BOOST_REPLAY_ID_RULE, BoostReplayIdBias())
     default_combinator.add(RuleType.BOOST_ENVIRONMENTS_RULE, BoostEnvironmentsBias())
-    default_combinator.add_if(
-        RuleType.RECALIBRATION_RULE,
-        RecalibrationBias(),
-        lambda: features.has("organizations:ds-org-recalibration", organization, actor=None),
-    )
+    default_combinator.add(RuleType.RECALIBRATION_RULE, RecalibrationBias())
     default_combinator.add(RuleType.BOOST_LATEST_RELEASES_RULE, BoostLatestReleasesBias())
     default_combinator.add(
         RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE, BoostLowVolumeTransactionsBias()
