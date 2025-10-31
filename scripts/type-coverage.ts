@@ -88,7 +88,24 @@ function isContextuallyTypedCallbackParam(param: ParameterDeclaration): boolean 
   const parent = param.getParent();
   if (!parent || !isFunctionExpressionLike(parent)) return false;
 
-  // Only expressions (arrow/function expressions) have contextual type
+  // Check for styled-components pattern: styled('div')`...${p => ...}...`
+  // The arrow function is inside a template expression inside a tagged template
+  let current: Node | undefined = parent.getParent();
+  while (current) {
+    if (Node.isTemplateExpression?.(current)) {
+      const taggedTemplate = current.getParent();
+      if (Node.isTaggedTemplateExpression?.(taggedTemplate)) {
+        const tag = taggedTemplate.getTag();
+        // Check if it's a styled-components call (styled.div, styled('div'), etc.)
+        if (tag && /styled/.test(tag.getText())) {
+          return true;
+        }
+      }
+    }
+    current = current.getParent();
+  }
+
+  // Original contextual type checking
   const ctxt = parent.getContextualType();
   if (!ctxt) return false;
   const sig = ctxt.getCallSignatures()[0];
@@ -189,7 +206,8 @@ function countBindingPatternElements(
   relPath: string,
   bumpFile: (typed: boolean) => void,
   anyHits: AnyHit[],
-  parentKind: 'var(binding)' | 'param(binding)'
+  parentKind: 'var(binding)' | 'param(binding)',
+  parentDeclaration?: any
 ) {
   if (Node.isIdentifier(nameNode)) {
     // single identifier case — let caller handle it
@@ -207,13 +225,40 @@ function countBindingPatternElements(
 
       const nameText = nameNodeInner.getText?.() ?? '<pattern>';
 
-      // If there’s an explicit type on the binding element (rare), that counts
+      // If there's an explicit type on the binding element (rare), that counts
       const explicit = (el as any).getTypeNode?.();
-      let typed = !!explicit;
+      const hasExplicitAny = explicit && /\bany\b/.test(explicit.getText());
+      let typed = !!explicit && !hasExplicitAny;
 
-      if (!typed) {
+      if (!typed && !explicit) {
         const t = (el as any).getType?.();
-        if (t && !isAny(t)) typed = true;
+        if (t && !isAny(t)) {
+          typed = true;
+        } else {
+          // For rest spread elements in destructuring, check if the parent has a proper type
+          // Example: {includeAllArgs, ...options} where options gets the remaining properties
+          if ((el as any).getDotDotDotToken?.()) {
+            const parentType = (el as any).getParent()?.getParent()?.getType?.();
+            if (parentType && !isAny(parentType)) {
+              typed = true;
+            }
+          } else if (parentDeclaration && parentKind === 'param(binding)') {
+            // For function parameters with destructuring, check if parent has explicit type or contextual type
+            const parentType = parentDeclaration.getType?.();
+            const hasParentExplicitType = hasExplicitType(parentDeclaration);
+            const isContextuallyTyped =
+              Node.isParameterDeclaration(parentDeclaration) &&
+              isContextuallyTypedCallbackParam(parentDeclaration);
+
+            if (
+              (hasParentExplicitType || isContextuallyTyped) &&
+              parentType &&
+              !isAny(parentType)
+            ) {
+              typed = true;
+            }
+          }
+        }
       }
 
       bumpFile(typed);
@@ -231,7 +276,8 @@ function countBindingPatternElements(
           relPath,
           bumpFile,
           anyHits,
-          parentKind
+          parentKind,
+          parentDeclaration
         );
       }
     }
@@ -302,14 +348,29 @@ function main() {
         const nameNode = (v as any).getNameNode?.();
         if (
           nameNode &&
-          countBindingPatternElements(nameNode, rel, relBump, anyHits, 'var(binding)')
+          countBindingPatternElements(nameNode, rel, relBump, anyHits, 'var(binding)', v)
         ) {
           return;
         }
 
         const t = v.getType();
-        const typed = hasExplicitType(v) || !isAny(t);
-        bump(rel, typed);
+        const explicitTypeNode = v.getTypeNode();
+        const hasExplicitAny =
+          explicitTypeNode && /\bany\b/.test(explicitTypeNode.getText());
+
+        // Check if this is a styled-components variable
+        const initializer = v.getInitializer();
+        const isStyledComponent =
+          initializer &&
+          Node.isTaggedTemplateExpression?.(initializer) &&
+          /styled/.test(initializer.getTag()?.getText() ?? '');
+
+        // If has explicit type, check if it contains 'any'; otherwise check inferred type
+        // Styled components should be considered typed (they have proper theme types)
+        const typed = hasExplicitType(v)
+          ? !hasExplicitAny
+          : !isAny(t) || isStyledComponent;
+        bump(rel, !!typed);
         if (!typed && opts.listAny) {
           const nameText = (v as any).getName?.() ?? nameNode?.getText?.() ?? '<pattern>';
           recordAny(anyHits, rel, v, 'var', String(nameText));
@@ -325,7 +386,14 @@ function main() {
         const nameNode = (param as any).getNameNode?.();
         if (
           nameNode &&
-          countBindingPatternElements(nameNode, rel, relBump, anyHits, 'param(binding)')
+          countBindingPatternElements(
+            nameNode,
+            rel,
+            relBump,
+            anyHits,
+            'param(binding)',
+            param
+          )
         ) {
           // Also count the parameter itself once (represents the whole tuple/object)
           let typedParam = false;
@@ -345,12 +413,21 @@ function main() {
         }
 
         let typed = false;
+        const explicitTypeNode = param.getTypeNode();
+        const hasExplicitAny =
+          explicitTypeNode && /\bany\b/.test(explicitTypeNode.getText());
+
         if (hasExplicitType(param)) {
-          typed = true;
+          // Has explicit type - only typed if it doesn't contain 'any'
+          typed = !hasExplicitAny;
         } else {
+          // No explicit type - check inferred type and contextual typing
           const t = param.getType();
-          if (!isAny(t)) typed = true;
-          else if (isContextuallyTypedCallbackParam(param)) typed = true;
+          if (!isAny(t)) {
+            typed = true;
+          } else if (isContextuallyTypedCallbackParam(param)) {
+            typed = true;
+          }
         }
         bump(rel, typed);
         if (!typed && opts.listAny) {
