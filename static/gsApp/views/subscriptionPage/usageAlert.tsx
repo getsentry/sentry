@@ -74,8 +74,8 @@ function UsageAlert({subscription, usage}: Props) {
   }
 
   function projectedCategoryOverages() {
-    // hide projected overages for plans with on-demand for now since
-    // shared on-demand budget can be applied to any data category
+    // hide projected overages for plans with on-demand/PAYG for now since
+    // shared on-demand/PAYG budget can be applied to any data category
     if (subscription.onDemandMaxSpend) {
       return [];
     }
