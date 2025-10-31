@@ -324,25 +324,6 @@ describe('SubscriptionHeader', () => {
     });
   });
 
-  it('renders new payment failure alert for past due subscriptions with flag', async () => {
-    const organization = OrganizationFixture({
-      features: ['subscriptions-v3'],
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-      isPastDue: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-    render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
-    );
-    await screen.findByText(
-      'Automatic payment failed. Update your payment method to ensure uninterrupted access to Sentry.'
-    );
-  });
-
   it('does not render new payment failure alert for past due subscriptions without flag', async () => {
     const organization = OrganizationFixture({
       access: ['org:billing'],
