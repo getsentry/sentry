@@ -8,6 +8,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
+import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -87,8 +88,13 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const queryClient = useQueryClient();
   const {preference} = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
+  const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
 
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
+
+  const cursorIntegration = codingAgentIntegrations?.integrations.find(
+    integration => integration.provider === 'cursor'
+  );
 
   const handleSubmitSuccess = useCallback(
     (resp: Project) => {
@@ -103,22 +109,44 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     [project.slug, queryClient, organization.slug]
   );
 
+  const hasCursorIntegration = Boolean(
+    organization.features.includes('integrations-cursor') && cursorIntegration
+  );
+
   const handleStoppingPointChange = useCallback(
-    (value: 'root_cause' | 'solution' | 'code_changes' | 'open_pr') => {
-      updateProjectSeerPreferences({
-        repositories: preference?.repositories || [],
-        automated_run_stopping_point: value,
-      });
+    (
+      value: 'root_cause' | 'solution' | 'code_changes' | 'open_pr' | 'cursor_handoff'
+    ) => {
+      if (value === 'cursor_handoff') {
+        if (!cursorIntegration) {
+          throw new Error('Cursor integration not found');
+        }
+        updateProjectSeerPreferences({
+          repositories: preference?.repositories || [],
+          automated_run_stopping_point: 'root_cause',
+          automation_handoff: {
+            handoff_point: 'root_cause',
+            target: 'cursor_background_agent',
+            integration_id: parseInt(cursorIntegration.id, 10),
+          },
+        });
+      } else {
+        updateProjectSeerPreferences({
+          repositories: preference?.repositories || [],
+          automated_run_stopping_point: value,
+          automation_handoff: undefined,
+        });
+      }
     },
-    [updateProjectSeerPreferences, preference?.repositories]
+    [updateProjectSeerPreferences, preference?.repositories, cursorIntegration]
   );
 
   const automatedRunStoppingPointField = {
     name: 'automated_run_stopping_point',
-    label: t('Stopping Point for Auto-Triggered Fixes'),
+    label: t('Where should Seer stop?'),
     help: () =>
       t(
-        'Choose how far Seer should go before stopping for your approval. This does not affect Issue Fixes that you manually start.'
+        'Choose how far Seer should go during automated runs before stopping for your approval. This does not affect Issue Fixes that you manually start.'
       ),
     type: 'choice',
     options: [
@@ -127,6 +155,21 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         label: <SeerSelectLabel>{t('Root Cause (default)')}</SeerSelectLabel>,
         details: t('Seer will stop after identifying the root cause.'),
       },
+      ...(hasCursorIntegration
+        ? [
+            {
+              value: 'cursor_handoff',
+              label: (
+                <SeerSelectLabel>
+                  {t('Hand off to Cursor Background Agent')}
+                </SeerSelectLabel>
+              ),
+              details: t(
+                "Seer will identify the root cause and hand off the fix to Cursor's background agent."
+              ),
+            },
+          ]
+        : []),
       {
         value: 'solution',
         label: <SeerSelectLabel>{t('Solution')}</SeerSelectLabel>,
@@ -185,7 +228,11 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   return (
     <Fragment>
       <Form
-        key={preference?.automated_run_stopping_point ?? 'root_cause'}
+        key={
+          preference?.automation_handoff
+            ? 'cursor_handoff'
+            : (preference?.automated_run_stopping_point ?? 'root_cause')
+        }
         saveOnBlur
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
@@ -193,8 +240,9 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         initialData={{
           seerScannerAutomation: project.seerScannerAutomation ?? false,
           autofixAutomationTuning: project.autofixAutomationTuning ?? 'off',
-          automated_run_stopping_point:
-            preference?.automated_run_stopping_point ?? 'root_cause',
+          automated_run_stopping_point: preference?.automation_handoff
+            ? 'cursor_handoff'
+            : (preference?.automated_run_stopping_point ?? 'root_cause'),
         }}
         onSubmitSuccess={handleSubmitSuccess}
         additionalFieldProps={{organization}}
