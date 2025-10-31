@@ -57,7 +57,11 @@ export function useNodeDetailsLink({
   return getTraceDetailsUrl({
     source,
     organization,
-    location,
+    location: {
+      ...location,
+      // Do not forward all query params to the trace view
+      query: {},
+    },
     traceSlug,
     spanId,
     targetId,
