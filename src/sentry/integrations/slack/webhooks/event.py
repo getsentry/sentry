@@ -30,6 +30,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.integrations.slack.views.link_identity import build_linking_url
+from sentry.models.organization import Organization
 from sentry.organizations.services.organization import organization_service
 
 from .base import SlackDMEndpoint
@@ -159,40 +160,17 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         return self.respond()
 
-    def on_link_shared(self, request: Request, slack_request: SlackDMRequest) -> bool:
-        """Returns true on success"""
+    def _get_unfurlable_links(
+        self,
+        request: Request,
+        slack_request: SlackDMRequest,
+        data: Mapping[str, Any],
+        organization: Organization,
+        logger_params: Mapping[str, Any],
+    ) -> list[UnfurlableUrl]:
         matches: MutableMapping[LinkType, list[UnfurlableUrl]] = defaultdict(list)
         links_seen = set()
 
-        data = slack_request.data.get("event", {})
-
-        ois = integration_service.get_organization_integrations(
-            integration_id=slack_request.integration.id, limit=1
-        )
-        organization_id = ois[0].organization_id if len(ois) > 0 else None
-        organization_context = (
-            organization_service.get_organization_by_id(
-                id=organization_id,
-                user_id=None,
-                include_projects=False,
-                include_teams=False,
-            )
-            if organization_id
-            else None
-        )
-        organization = organization_context.organization if organization_context else None
-
-        logger_params = {
-            "integration_id": slack_request.integration.id,
-            "team_id": slack_request.team_id,
-            "channel_id": slack_request.channel_id,
-            "user_id": slack_request.user_id,
-            "channel": slack_request.channel_id,
-            "organization_id": organization_id,
-            **data,
-        }
-
-        # An unfurl may have multiple links to unfurl
         for item in data.get("links", []):
             with MessagingInteractionEvent(
                 interaction_type=MessagingInteractionType.PROCESS_SHARED_LINK,
@@ -241,23 +219,16 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 links_seen.add(seen_marker)
                 matches[link_type].append(UnfurlableUrl(url=url, args=args))
 
-        if not matches:
-            return False
-
-        # Unfurl each link type
+    def _unfurl_links(
+        self, slack_request: SlackDMRequest, matches: MutableMapping[LinkType, list[UnfurlableUrl]]
+    ) -> MutableMapping[str, Any]:
         results: MutableMapping[str, Any] = {}
         for link_type, unfurl_data in matches.items():
             results.update(
                 link_handlers[link_type].fn(
-                    request,
-                    slack_request.integration,
-                    unfurl_data,
-                    slack_request.user,
+                    slack_request.integration, unfurl_data, slack_request.user
                 )
             )
-
-        if not results:
-            return False
 
         # XXX(isabella): we use our message builders to create the blocks for each link to be
         # unfurled, so the original result will include the fallback text string, however, the
@@ -265,6 +236,51 @@ class SlackEventEndpoint(SlackDMEndpoint):
         for link_info in results.values():
             if "text" in link_info:
                 del link_info["text"]
+
+        return results
+
+    def on_link_shared(self, request: Request, slack_request: SlackDMRequest) -> bool:
+        """Returns true on success"""
+
+        data = slack_request.data.get("event", {})
+
+        ois = integration_service.get_organization_integrations(
+            integration_id=slack_request.integration.id, limit=1
+        )
+        organization_id = ois[0].organization_id if len(ois) > 0 else None
+        organization_context = (
+            organization_service.get_organization_by_id(
+                id=organization_id,
+                user_id=None,
+                include_projects=False,
+                include_teams=False,
+            )
+            if organization_id
+            else None
+        )
+        organization = organization_context.organization if organization_context else None
+
+        logger_params = {
+            "integration_id": slack_request.integration.id,
+            "team_id": slack_request.team_id,
+            "channel_id": slack_request.channel_id,
+            "user_id": slack_request.user_id,
+            "channel": slack_request.channel_id,
+            "organization_id": organization_id,
+            **data,
+        }
+
+        # An unfurl may have multiple links to unfurl
+        matches = self._get_unfurlable_links(
+            request, slack_request, data, organization, logger_params
+        )
+        if not matches:
+            return False
+
+        # Unfurl each link type
+        results = self._unfurl_links(slack_request, matches)
+        if not results:
+            return False
 
         with MessagingInteractionEvent(
             interaction_type=MessagingInteractionType.UNFURL_LINK,

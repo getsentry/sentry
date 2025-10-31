@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import re
 
-from django.http.request import HttpRequest
-
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -33,7 +31,6 @@ map_issue_args = make_type_coercer(
 
 
 def unfurl_issues(
-    request: HttpRequest,
     integration: Integration | RpcIntegration,
     links: list[UnfurlableUrl],
     user: User | RpcUser | None = None,

@@ -8,7 +8,7 @@ from datetime import timedelta
 from typing import Any
 from urllib.parse import urlparse
 
-from django.http.request import HttpRequest, QueryDict
+from django.http.request import QueryDict
 
 from sentry import analytics, features
 from sentry.api import client
@@ -118,7 +118,6 @@ def is_aggregate(field: str) -> bool:
 
 
 def unfurl_discover(
-    request: HttpRequest,
     integration: Integration | RpcIntegration,
     links: list[UnfurlableUrl],
     user: User | RpcUser | None = None,
