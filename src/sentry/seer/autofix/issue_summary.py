@@ -351,7 +351,9 @@ def get_issue_summary(
     if group.organization.get_option("sentry:hide_ai_features"):
         return {"detail": "AI features are disabled for this organization."}, 403
 
-    if not get_seer_org_acknowledgement(group.organization.id):
+    if not features.has(
+        "organizations:gen-ai-consent-flow-removal", group.organization
+    ) and not get_seer_org_acknowledgement(group.organization.id):
         return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
 
     cache_key = get_issue_summary_cache_key(group.id)
