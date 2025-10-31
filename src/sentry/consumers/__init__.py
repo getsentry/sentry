@@ -467,6 +467,7 @@ def get_stream_processor(
     kafka_slice_id: int | None = None,
     shutdown_strategy_before_consumer: bool = False,
     add_global_tags: bool = False,
+    profile_consumer_join: bool = False,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -594,6 +595,9 @@ def get_stream_processor(
         strategy_factory = HealthcheckStrategyFactoryWrapper(
             healthcheck_file_path, strategy_factory
         )
+
+    if profile_consumer_join:
+        strategy_factory = JoinProfilerStrategyFactoryWrapper(strategy_factory)
 
     if enable_dlq and consumer_definition.get("dlq_topic"):
         dlq_topic = consumer_definition["dlq_topic"]

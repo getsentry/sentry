@@ -1,11 +1,9 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from sentry.consumers import JoinProfilerStrategyFactoryWrapper
 
 
-@patch("sentry_sdk.init")
-@patch("sentry_sdk.start_transaction")
-def test_join_profiler(mock_init: Mock, mock_transaction) -> None:
+def test_join_profiler() -> None:
     inner_factory_mock = Mock()
     inner_strategy_mock = Mock()
     inner_factory_mock.create_with_partitions = Mock(return_value=inner_strategy_mock)
