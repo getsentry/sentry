@@ -7,7 +7,6 @@ import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -85,11 +84,11 @@ function useMetricSamplesTableImpl({
   const sortBys = useQueryParamsSortBys();
 
   const query = useMemo(() => {
-    const currentSearch = new MutableSearch(`metric.name:${metricName}`);
+    const baseQuery = `metric.name:${metricName}`;
     if (!searchQuery.isEmpty()) {
-      currentSearch.addStringFilter(searchQuery.formatString());
+      return `${baseQuery} (${searchQuery.formatString()})`;
     }
-    return currentSearch.formatString();
+    return baseQuery;
   }, [metricName, searchQuery]);
 
   // Calculate adjusted datetime values with ingestion delay applied
