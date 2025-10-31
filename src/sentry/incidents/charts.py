@@ -218,11 +218,22 @@ def build_metric_alert_chart(
     dataset = Dataset(snuba_query.dataset)
     query_type = SnubaQuery.Type(snuba_query.type)
     is_crash_free_alert = query_type == SnubaQuery.Type.CRASH_RATE
-    style = (
-        ChartType.SLACK_METRIC_ALERT_SESSIONS
-        if is_crash_free_alert
-        else ChartType.SLACK_METRIC_ALERT_EVENTS
+    using_new_charts = features.has(
+        "organizations:new-metric-issue-charts",
+        organization,
     )
+    if is_crash_free_alert:
+        style = (
+            ChartType.SLACK_METRIC_DETECTOR_SESSIONS
+            if using_new_charts
+            else ChartType.SLACK_METRIC_ALERT_SESSIONS
+        )
+    else:
+        style = (
+            ChartType.SLACK_METRIC_DETECTOR_EVENTS
+            if using_new_charts
+            else ChartType.SLACK_METRIC_ALERT_EVENTS
+        )
 
     if open_period_context:
         time_period = incident_date_range(
@@ -337,10 +348,7 @@ def build_metric_alert_chart(
         )
 
     try:
-        if features.has(
-            "organizations:new-metric-issue-charts",
-            organization,
-        ):
+        if using_new_charts:
             chart_data.update(chart_data_detector)
         else:
             chart_data.update(chart_data_alert_rule)
