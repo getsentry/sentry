@@ -431,6 +431,17 @@ def my_function():
     ...
 ```
 
+## Exception Handling
+
+- Avoid blanket exception handling (`except Exception:` or bare `except:`)
+- Only catch specific exceptions when you have a meaningful way to handle them
+- We have global exception handlers in tasks and endpoints that automatically log errors and report them to Sentry
+- Let exceptions bubble up unless you need to:
+  - Add context to the error
+  - Perform cleanup operations
+  - Convert one exception type to another with additional information
+  - Recover from expected error conditions
+
 ## Performance Considerations
 
 1. Use database indexing appropriately
