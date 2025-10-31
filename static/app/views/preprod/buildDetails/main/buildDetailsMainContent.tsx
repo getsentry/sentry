@@ -211,6 +211,30 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const missingDsymBinaries =
     buildDetailsData?.app_info?.apple_app_info?.missing_dsym_binaries;
 
+  const missingProguardMapping =
+    buildDetailsData?.app_info?.android_app_info?.has_proguard_mapping === false;
+
+  const getAlertMessage = () => {
+    if (missingDsymBinaries && missingDsymBinaries.length > 0) {
+      if (missingDsymBinaries?.length === 1) {
+        return t(
+          'Missing debug symbols for some binaries (%s). Those binaries will not have a detailed breakdown.',
+          missingDsymBinaries[0]
+        );
+      }
+      return t(
+        'Missing debug symbols for some binaries (%s and others). Those binaries will not have a detailed breakdown.',
+        missingDsymBinaries[0]
+      );
+    }
+
+    if (missingProguardMapping) {
+      return t('Missing proguard mapping. Dex will not have a detailed breakdown.');
+    }
+
+    return undefined;
+  };
+
   // Filter data based on search query and categories
   const filteredRoot = filterTreemapElement(
     appSizeData.treemap.root,
@@ -234,7 +258,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             root={filteredTreemapData.root}
             searchQuery={searchQuery || ''}
             unfilteredRoot={appSizeData.treemap.root}
-            missingDsymBinaries={missingDsymBinaries}
+            alertMessage={getAlertMessage()}
             onSearchChange={value => setSearchQuery(value || undefined)}
           />
         ) : (
@@ -249,7 +273,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         root={filteredTreemapData.root}
         searchQuery={searchQuery || ''}
         unfilteredRoot={appSizeData.treemap.root}
-        missingDsymBinaries={missingDsymBinaries}
+        alertMessage={getAlertMessage()}
         onSearchChange={value => setSearchQuery(value || undefined)}
       />
     ) : (
