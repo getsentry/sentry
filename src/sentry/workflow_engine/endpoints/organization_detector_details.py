@@ -205,7 +205,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
         detector.update(status=ObjectStatus.PENDING_DELETION)
 
-        DetectorLifeCycleHooks.on_delete(detector)
+        DetectorLifeCycleHooks.on_pending_delete(detector)
 
         if detector.type == MetricIssue.slug:
             schedule_update_project_config(detector)

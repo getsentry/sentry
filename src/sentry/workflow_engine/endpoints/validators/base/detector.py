@@ -136,7 +136,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             data=instance.get_audit_log_data(),
         )
 
-        DetectorLifeCycleHooks.on_update(instance)
+        DetectorLifeCycleHooks.on_after_update(instance)
         return instance
 
     def _create_data_source(self, validated_data_source, detector: Detector):
@@ -210,6 +210,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 data=detector.get_audit_log_data(),
             )
 
-            DetectorLifeCycleHooks.on_create(detector)
+            DetectorLifeCycleHooks.on_after_create(detector)
 
         return detector
