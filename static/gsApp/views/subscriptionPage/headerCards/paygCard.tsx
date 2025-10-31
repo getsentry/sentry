@@ -121,7 +121,7 @@ function PaygCard({
         window.location.pathname + window.location.search
       );
     }
-  }, [handleEditPayg, hasBillingPerms]);
+  }, [handleEditPayg]);
 
   return (
     <SubscriptionHeaderCard
