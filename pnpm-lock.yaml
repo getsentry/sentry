@@ -652,6 +652,9 @@ importers:
       knip:
         specifier: 5.64.0
         version: 5.64.0(@types/node@22.15.21)(typescript@5.9.2)
+      minimatch:
+        specifier: ^10.1.1
+        version: 10.1.1
       picocolors:
         specifier: ^1.1.1
         version: 1.1.1

@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import {minimatch} from 'minimatch';
 import pc from 'picocolors';
 import {
   ArrowFunction,
@@ -17,6 +18,7 @@ import {
 type Options = {
   tsconfigPath: string;
   failBelow?: number;
+  ignoreFiles?: string[];
   json?: boolean;
   listAny?: boolean;
   listNonNull?: boolean;
@@ -35,6 +37,10 @@ function parseArgs(): Options {
     else if (a === '--list-nonnull')
       opts.listNonNull = true; // NEW
     else if (a === '--list-type-assertions') opts.listTypeAssertions = true;
+    else if (a === '--ignore-files') {
+      if (!opts.ignoreFiles) opts.ignoreFiles = [];
+      opts.ignoreFiles.push(args[++i]!);
+    }
   }
   return opts;
 }
@@ -238,9 +244,22 @@ function main() {
     skipAddingFilesFromTsConfig: false,
   });
 
-  const files = project
-    .getSourceFiles()
-    .filter(sf => !sf.getFilePath().includes('node_modules'));
+  const files = project.getSourceFiles().filter(sf => {
+    const filePath = sf.getFilePath();
+    if (filePath.includes('node_modules')) return false;
+
+    // Check ignore patterns
+    if (opts.ignoreFiles) {
+      const relPath = path.relative(process.cwd(), filePath);
+      for (const pattern of opts.ignoreFiles) {
+        if (minimatch(relPath, pattern)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  });
 
   if (files.length === 0) {
     console.error(pc.yellow('No files found in tsconfig include/exclude settings.'));
