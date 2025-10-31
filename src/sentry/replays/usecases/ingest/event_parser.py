@@ -342,11 +342,12 @@ def parse_trace_item(
     try:
         return as_trace_item(context, event_type, event)
     except (AttributeError, KeyError, TypeError, ValueError) as e:
-        logger.warning(
-            "[EVENT PARSE FAIL] Could not transform breadcrumb to trace-item",
-            exc_info=e,
-            extra={"event": event},
-        )
+        if random.random() < 0.01:
+            logger.warning(
+                "[EVENT PARSE FAIL] Could not transform breadcrumb to trace-item",
+                exc_info=e,
+                extra={"event": event},
+            )
         return None
 
 
