@@ -22,7 +22,7 @@ import {filterTreemapElement} from 'sentry/views/preprod/utils/treemapFiltering'
 interface AppSizeTreemapProps {
   root: TreemapElement | null;
   searchQuery: string;
-  missingDsymBinaries?: string[];
+  alertMessage?: string;
   onSearchChange?: (query: string) => void;
   unfilteredRoot?: TreemapElement;
 }
@@ -30,12 +30,12 @@ interface AppSizeTreemapProps {
 function FullscreenModalContent({
   unfilteredRoot,
   initialSearch,
-  missingDsymBinaries,
+  alertMessage,
   onSearchChange,
 }: {
   initialSearch: string;
   unfilteredRoot: TreemapElement;
-  missingDsymBinaries?: string[];
+  alertMessage?: string;
   onSearchChange?: (query: string) => void;
 }) {
   const [localSearch, setLocalSearch] = useState(initialSearch);
@@ -74,7 +74,7 @@ function FullscreenModalContent({
         <AppSizeTreemap
           root={filteredRoot}
           searchQuery={localSearch}
-          missingDsymBinaries={missingDsymBinaries}
+          alertMessage={alertMessage}
         />
       </Container>
     </Flex>
@@ -83,7 +83,7 @@ function FullscreenModalContent({
 
 export function AppSizeTreemap(props: AppSizeTreemapProps) {
   const theme = useTheme();
-  const {root, searchQuery, unfilteredRoot, missingDsymBinaries, onSearchChange} = props;
+  const {root, searchQuery, unfilteredRoot, alertMessage, onSearchChange} = props;
   const appSizeCategoryInfo = getAppSizeCategoryInfo(theme);
   const renderingContext = useContext(ChartRenderingContext);
   const isFullscreen = renderingContext?.isFullscreen ?? false;
@@ -314,24 +314,9 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     },
   };
 
-  const hasMissingDsyms = missingDsymBinaries && missingDsymBinaries.length > 0;
-
-  const getBinariesMessage = () => {
-    if (missingDsymBinaries?.length === 1) {
-      return t(
-        'Missing debug symbols for some binaries (%s). Those binaries will not have a detailed breakdown.',
-        missingDsymBinaries[0]
-      );
-    }
-    return t(
-      'Missing debug symbols for some binaries (%s and others). Those binaries will not have a detailed breakdown.',
-      missingDsymBinaries![0]
-    );
-  };
-
   return (
     <Flex direction="column" gap="sm" height="100%" width="100%">
-      {hasMissingDsyms && <Alert type="warning">{getBinariesMessage()}</Alert>}
+      {alertMessage && <Alert type="warning">{alertMessage}</Alert>}
       <Container
         height="100%"
         width="100%"
@@ -379,7 +364,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
                     <FullscreenModalContent
                       unfilteredRoot={unfilteredRoot}
                       initialSearch={searchQuery}
-                      missingDsymBinaries={missingDsymBinaries}
+                      alertMessage={alertMessage}
                       onSearchChange={onSearchChange}
                     />
                   ) : (
@@ -387,7 +372,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
                       <AppSizeTreemap
                         root={root}
                         searchQuery={searchQuery}
-                        missingDsymBinaries={missingDsymBinaries}
+                        alertMessage={alertMessage}
                       />
                     </Container>
                   ),
