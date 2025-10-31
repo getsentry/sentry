@@ -225,7 +225,6 @@ function AutofixHighlightPopupContent({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasTrackedOpenRef = useRef(false);
 
-  // Track analytics when comment thread is opened
   useEffect(() => {
     if (!hasTrackedOpenRef.current) {
       trackAnalytics('autofix.comment_thread.open', {
