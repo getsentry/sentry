@@ -41,14 +41,7 @@ class OrganizationConduitDemoEndpoint(OrganizationEndpoint):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
         # Kick off a task to stream data to Conduit
-        try:
-            stream_demo_data.delay(organization.id, conduit_credentials.channel_id)
-        except Exception as e:
-            sentry_sdk.capture_exception(e, level="warning")
-            return Response(
-                {"error": "Failed to start stream"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        stream_demo_data.delay(organization.id, conduit_credentials.channel_id)
         serializer = ConduitCredentialsResponseSerializer(
             {
                 "conduit": conduit_credentials._asdict(),

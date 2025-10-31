@@ -13,7 +13,6 @@ from sentry_protos.conduit.v1alpha.publish_pb2 import Phase, PublishRequest
 from sentry.conduit.tasks import (
     NUM_DELTAS,
     PUBLISH_REQUEST_MAX_RETRIES,
-    _do_publish,
     generate_jwt,
     get_timestamp,
     publish_data,
@@ -111,7 +110,7 @@ class PublishDataTest(TestCase):
             status=200,
         )
 
-        response = _do_publish(
+        response = publish_data(
             org_id=org_id,
             publish_request=publish_request,
             token=token,
