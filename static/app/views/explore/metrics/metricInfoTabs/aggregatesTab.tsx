@@ -10,6 +10,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {parseFunction} from 'sentry/utils/discover/fields';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
@@ -47,7 +48,10 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
     metricName,
   });
 
-  const columns = useMemo(() => eventView.getColumns(), [eventView]);
+  const columns = useMemo(
+    () => decodeColumnOrder(eventView.fields, result.meta),
+    [eventView, result.meta]
+  );
   const sorts = useQueryParamsAggregateSortBys();
   const setSorts = useSetQueryParamsAggregateSortBys();
   const groupBys = useQueryParamsGroupBys();
@@ -207,6 +211,7 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
                     data={row}
                     unit={getMetricsUnit(meta, field)}
                     meta={meta}
+                    usePortalOnDropdown
                   />
                 </StickyCompatibleStyledRowCell>
               ))}

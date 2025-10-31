@@ -328,11 +328,13 @@ export enum ActionTriggerType {
 
 type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
   triggerType?: ActionTriggerType;
+  usePortalOnDropdown?: boolean;
 };
 
 function CellAction({
   triggerType = ActionTriggerType.BOLD_HOVER,
   allowActions,
+  usePortalOnDropdown,
   ...props
 }: Props) {
   const organization = useOrganization();
@@ -364,6 +366,7 @@ function CellAction({
       >
         {cellActions?.length ? (
           <DropdownMenu
+            usePortal={usePortalOnDropdown}
             items={cellActions}
             strategy="fixed"
             size="sm"
