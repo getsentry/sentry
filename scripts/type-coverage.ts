@@ -6,14 +6,7 @@ import path from 'node:path';
 
 import {minimatch} from 'minimatch';
 import pc from 'picocolors';
-import {
-  ArrowFunction,
-  FunctionExpression,
-  Node,
-  ParameterDeclaration,
-  Project,
-  Type,
-} from 'ts-morph';
+import * as ts from 'typescript';
 
 type Options = {
   tsconfigPath: string;
@@ -35,8 +28,7 @@ function parseArgs(): Options {
     else if (a === '--json') opts.json = true;
     else if (a === '--project' || a === '-p') opts.tsconfigPath = args[++i]!;
     else if (a === '--list-any') opts.listAny = true;
-    else if (a === '--list-nonnull')
-      opts.listNonNull = true; // NEW
+    else if (a === '--list-nonnull') opts.listNonNull = true;
     else if (a === '--list-type-assertions') opts.listTypeAssertions = true;
     else if (a === '--detail') opts.detail = true;
     else if (a === '--ignore-files') {
@@ -47,85 +39,80 @@ function parseArgs(): Options {
   return opts;
 }
 
-const isAny = (t: Type) => {
-  if (t.isAny()) return true;
-  const typeText = t.getText();
+const isAny = (type: ts.Type, typeChecker: ts.TypeChecker) => {
+  if (type.flags & ts.TypeFlags.Any) return true;
+  const typeText = typeChecker.typeToString(type);
   if (typeText === 'any') return true;
-
   // Check for 'any' within generic types like Record<string, any>, Array<any>, etc.
-  // This regex matches 'any' as a complete word (not part of another word)
   return /\bany\b/.test(typeText);
 };
 
-function hasExplicitType(node: {getTypeNode?: () => any}): boolean {
-  try {
-    return !!node.getTypeNode?.();
-  } catch {
-    return false;
-  }
+function hasExplicitType(
+  node: ts.VariableDeclaration | ts.ParameterDeclaration
+): boolean {
+  return !!node.type;
 }
 
-function isFunctionExpressionLike(fn: Node): fn is ArrowFunction | FunctionExpression {
-  return Node.isArrowFunction(fn) || Node.isFunctionExpression(fn);
-}
-
-function isAnyFunctionLike(n: Node) {
-  return (
-    Node.isFunctionDeclaration(n) ||
-    Node.isMethodDeclaration(n) ||
-    Node.isArrowFunction(n) ||
-    Node.isFunctionExpression(n)
-  );
-}
-
-function paramIndex(param: ParameterDeclaration) {
-  const parent = param.getParent();
-  if (!parent || !isAnyFunctionLike(parent)) return -1;
-  return parent.getParameters().indexOf(param);
-}
-
-function isContextuallyTypedCallbackParam(param: ParameterDeclaration): boolean {
-  const parent = param.getParent();
-  if (!parent || !isFunctionExpressionLike(parent)) return false;
+function isContextuallyTypedCallbackParam(
+  param: ts.ParameterDeclaration,
+  typeChecker: ts.TypeChecker
+): boolean {
+  const parent = param.parent;
+  if (!ts.isFunctionExpression(parent) && !ts.isArrowFunction(parent)) return false;
 
   // Check for styled-components pattern: styled('div')`...${p => ...}...`
-  // The arrow function is inside a template expression inside a tagged template
-  let current: Node | undefined = parent.getParent();
+  let current: ts.Node | undefined = parent.parent;
   while (current) {
-    if (Node.isTemplateExpression?.(current)) {
-      const taggedTemplate = current.getParent();
-      if (Node.isTaggedTemplateExpression?.(taggedTemplate)) {
-        const tag = taggedTemplate.getTag();
-        // Check if it's a styled-components call (styled.div, styled('div'), etc.)
-        if (tag && /styled/.test(tag.getText())) {
+    // Check if we're in a tagged template expression
+    if (ts.isTaggedTemplateExpression(current)) {
+      const tagText = current.tag.getText();
+      // Match styled, chonkStyled, or any variation ending with 'styled'
+      if (/styled/i.test(tagText) || tagText.toLowerCase().includes('styled')) {
+        return true;
+      }
+    }
+    // Also check template expressions and spans
+    if (
+      ts.isTemplateExpression(current) ||
+      ts.isTemplateSpan(current) ||
+      ts.isNoSubstitutionTemplateLiteral(current)
+    ) {
+      const taggedTemplate = current.parent;
+      if (ts.isTaggedTemplateExpression(taggedTemplate)) {
+        const tagText = taggedTemplate.tag.getText();
+        if (/styled/i.test(tagText) || tagText.toLowerCase().includes('styled')) {
           return true;
         }
       }
     }
-    current = current.getParent();
+    current = current.parent;
   }
 
   // Original contextual type checking
-  const ctxt = parent.getContextualType();
-  if (!ctxt) return false;
-  const sig = ctxt.getCallSignatures()[0];
-  if (!sig) return false;
+  const contextualType = typeChecker.getContextualType(parent);
+  if (!contextualType) return false;
 
-  const idx = paramIndex(param);
-  if (idx < 0) return false;
+  const signatures = typeChecker.getSignaturesOfType(
+    contextualType,
+    ts.SignatureKind.Call
+  );
+  if (signatures.length === 0) return false;
 
-  const sigParams = sig.getParameters();
-  if (idx >= sigParams.length) return false;
+  const sig = signatures[0]!;
+  const paramIndex = parent.parameters.indexOf(param);
+  if (paramIndex < 0 || paramIndex >= sig.parameters.length) return false;
 
-  const paramType = sigParams[idx]!.getValueDeclarationOrThrow().getType();
-  return !isAny(paramType);
+  const paramType = typeChecker.getTypeOfSymbolAtLocation(
+    sig.parameters[paramIndex]!,
+    param
+  );
+  return !isAny(paramType, typeChecker);
 }
 
 type AnyHit = {
   column: number;
   file: string;
   kind: 'var' | 'var(binding)' | 'param' | 'param(binding)' | 'as-any';
-  // 1-based numbers below
   line: number;
   name: string;
 };
@@ -135,8 +122,7 @@ type NonNullHit = {
   column: number;
   file: string;
   kind: 'nonnull(expr)' | 'nonnull(property)';
-  // 1-based
-  line: number; // short preview
+  line: number;
 };
 
 type TypeAssertionHit = {
@@ -144,23 +130,67 @@ type TypeAssertionHit = {
   column: number;
   file: string;
   kind: 'type(as)' | 'type(angle)';
-  // 1-based
   line: number;
   targetType: string;
 };
 
-// record helpers
 function recordAny(
   hits: AnyHit[],
-  sfRelPath: string,
-  node: Node,
+  sourceFile: ts.SourceFile,
+  node: ts.Node,
   kind: AnyHit['kind'],
   name: string
 ) {
-  const sf = node.getSourceFile();
-  const pos = (node as any).getNameNode?.()?.getStart?.() ?? node.getStart();
-  const {line, column} = sf.getLineAndColumnAtPos(pos);
-  hits.push({file: sfRelPath, line, column, kind, name});
+  const pos = ts.getLineAndCharacterOfPosition(sourceFile, node.getStart(sourceFile));
+  const relPath = path.relative(process.cwd(), sourceFile.fileName);
+
+  hits.push({
+    file: relPath,
+    line: pos.line + 1,
+    column: pos.character + 1,
+    kind,
+    name,
+  });
+}
+
+function recordNonNull(
+  hits: NonNullHit[],
+  sourceFile: ts.SourceFile,
+  node: ts.Node,
+  kind: NonNullHit['kind'],
+  codeNode?: ts.Node
+) {
+  const pos = ts.getLineAndCharacterOfPosition(sourceFile, node.getStart(sourceFile));
+  const relPath = path.relative(process.cwd(), sourceFile.fileName);
+  const code = textPreview((codeNode ?? node).getText(sourceFile));
+  hits.push({
+    file: relPath,
+    line: pos.line + 1,
+    column: pos.character + 1,
+    kind,
+    code,
+  });
+}
+
+function recordTypeAssertion(
+  hits: TypeAssertionHit[],
+  sourceFile: ts.SourceFile,
+  node: ts.Node,
+  kind: TypeAssertionHit['kind'],
+  targetType: string,
+  codeNode?: ts.Node
+) {
+  const pos = ts.getLineAndCharacterOfPosition(sourceFile, node.getStart(sourceFile));
+  const relPath = path.relative(process.cwd(), sourceFile.fileName);
+  const code = textPreview((codeNode ?? node).getText(sourceFile));
+  hits.push({
+    file: relPath,
+    line: pos.line + 1,
+    column: pos.character + 1,
+    kind,
+    code,
+    targetType,
+  });
 }
 
 function textPreview(s: string, max = 80) {
@@ -168,143 +198,327 @@ function textPreview(s: string, max = 80) {
   return one.length <= max ? one : one.slice(0, max - 1) + '…';
 }
 
-function recordNonNull(
-  hits: NonNullHit[],
-  sfRelPath: string,
-  node: Node,
-  kind: NonNullHit['kind'],
-  codeNode?: Node
-) {
-  const sf = node.getSourceFile();
-  const pos = node.getStart();
-  const {line, column} = sf.getLineAndColumnAtPos(pos);
-  const code = textPreview((codeNode ?? node).getText());
-  hits.push({file: sfRelPath, line, column, kind, code});
-}
-
-function recordTypeAssertion(
-  hits: TypeAssertionHit[],
-  sfRelPath: string,
-  node: Node,
-  kind: TypeAssertionHit['kind'],
-  targetType: string,
-  codeNode?: Node
-) {
-  const sf = node.getSourceFile();
-  const pos = node.getStart();
-  const {line, column} = sf.getLineAndColumnAtPos(pos);
-  const code = textPreview((codeNode ?? node).getText());
-  hits.push({file: sfRelPath, line, column, kind, code, targetType});
-}
-
-/**
- * Count elements inside an object/array binding pattern, bumping coverage and recording "any" hits.
- * Returns true if it handled a binding pattern (caller shouldn't double-count parent).
- */
 function countBindingPatternElements(
-  nameNode: any,
-  relPath: string,
+  pattern: ts.BindingPattern,
+  sourceFile: ts.SourceFile,
+  typeChecker: ts.TypeChecker,
   bumpFile: (typed: boolean) => void,
   anyHits: AnyHit[],
   parentKind: 'var(binding)' | 'param(binding)',
-  parentDeclaration?: any
-) {
-  if (Node.isIdentifier(nameNode)) {
-    // single identifier case — let caller handle it
-    return false;
+  parentDeclaration?: ts.VariableDeclaration | ts.ParameterDeclaration
+): number {
+  let count = 0;
+
+  for (const element of pattern.elements) {
+    if (ts.isOmittedExpression(element)) continue;
+
+    count++;
+    let typed = false;
+    const nameText =
+      element.name && ts.isIdentifier(element.name)
+        ? element.name.getText(sourceFile)
+        : '<pattern>';
+
+    // Check inferred type
+    const elementType = typeChecker.getTypeAtLocation(element);
+    if (!isAny(elementType, typeChecker)) {
+      typed = true;
+    } else if (element.dotDotDotToken) {
+      // Rest spread element - check parent type
+      const parentType = parentDeclaration
+        ? typeChecker.getTypeAtLocation(parentDeclaration)
+        : undefined;
+      if (parentType && !isAny(parentType, typeChecker)) {
+        typed = true;
+      }
+    } else if (
+      parentDeclaration &&
+      parentKind === 'param(binding)' &&
+      ts.isParameter(parentDeclaration)
+    ) {
+      // Function parameter destructuring - check parent context
+      const parentType = typeChecker.getTypeAtLocation(parentDeclaration);
+      const hasParentExplicitType = hasExplicitType(parentDeclaration);
+      const isContextuallyTyped = isContextuallyTypedCallbackParam(
+        parentDeclaration,
+        typeChecker
+      );
+
+      if (
+        (hasParentExplicitType || isContextuallyTyped) &&
+        !isAny(parentType, typeChecker)
+      ) {
+        typed = true;
+      }
+    }
+
+    bumpFile(typed);
+    if (!typed) {
+      recordAny(anyHits, sourceFile, element, parentKind, nameText);
+    }
+
+    // Recurse for nested patterns
+    if (
+      ts.isArrayBindingPattern(element.name) ||
+      ts.isObjectBindingPattern(element.name)
+    ) {
+      count += countBindingPatternElements(
+        element.name,
+        sourceFile,
+        typeChecker,
+        bumpFile,
+        anyHits,
+        parentKind,
+        parentDeclaration
+      );
+    }
   }
 
-  if (Node.isObjectBindingPattern(nameNode) || Node.isArrayBindingPattern(nameNode)) {
-    for (const el of nameNode.getElements()) {
-      // Skip holes in array patterns
-      if ((Node as any).isOmittedExpression?.(el)) continue;
+  return count;
+}
 
-      // Identifier or nested pattern
-      const nameNodeInner = (el as any).getNameNode?.() ?? (el as any).getName?.();
-      if (!nameNodeInner) continue;
+function analyzeNode(
+  node: ts.Node,
+  sourceFile: ts.SourceFile,
+  typeChecker: ts.TypeChecker,
+  opts: Options,
+  bump: (typed: boolean) => void,
+  anyHits: AnyHit[],
+  nonNullHits: NonNullHit[],
+  typeAssertionHits: TypeAssertionHit[]
+) {
+  // Variable declarations
+  if (ts.isVariableDeclaration(node)) {
+    if (ts.isArrayBindingPattern(node.name) || ts.isObjectBindingPattern(node.name)) {
+      const relBump = (typed: boolean) => bump(typed);
+      countBindingPatternElements(
+        node.name,
+        sourceFile,
+        typeChecker,
+        relBump,
+        anyHits,
+        'var(binding)',
+        node
+      );
+      return;
+    }
 
-      const nameText = nameNodeInner.getText?.() ?? '<pattern>';
+    const nodeType = typeChecker.getTypeAtLocation(node);
+    const explicitTypeNode = node.type;
+    const hasExplicitAny =
+      explicitTypeNode && /\bany\b/.test(explicitTypeNode.getText(sourceFile));
 
-      // If there's an explicit type on the binding element (rare), that counts
-      const explicit = (el as any).getTypeNode?.();
-      const hasExplicitAny = explicit && /\bany\b/.test(explicit.getText());
-      let typed = !!explicit && !hasExplicitAny;
+    // Check if it's a styled component
+    const isStyledComponent =
+      node.initializer &&
+      ts.isTaggedTemplateExpression(node.initializer) &&
+      (/styled/i.test(node.initializer.tag.getText(sourceFile)) ||
+        node.initializer.tag.getText(sourceFile).toLowerCase().includes('styled'));
 
-      if (!typed && !explicit) {
-        const t = (el as any).getType?.();
-        if (t && !isAny(t)) {
-          typed = true;
-        } else {
-          // For rest spread elements in destructuring, check if the parent has a proper type
-          // Example: {includeAllArgs, ...options} where options gets the remaining properties
-          if ((el as any).getDotDotDotToken?.()) {
-            const parentType = (el as any).getParent()?.getParent()?.getType?.();
-            if (parentType && !isAny(parentType)) {
-              typed = true;
-            }
-          } else if (parentDeclaration && parentKind === 'param(binding)') {
-            // For function parameters with destructuring, check if parent has explicit type or contextual type
-            const parentType = parentDeclaration.getType?.();
-            const hasParentExplicitType = hasExplicitType(parentDeclaration);
-            const isContextuallyTyped =
-              Node.isParameterDeclaration(parentDeclaration) &&
-              isContextuallyTypedCallbackParam(parentDeclaration);
+    const typed = hasExplicitType(node)
+      ? !hasExplicitAny
+      : !isAny(nodeType, typeChecker) || isStyledComponent;
 
-            if (
-              (hasParentExplicitType || isContextuallyTyped) &&
-              parentType &&
-              !isAny(parentType)
-            ) {
-              typed = true;
-            }
-          }
+    bump(!!typed);
+    if (!typed && opts.listAny) {
+      const nameText = ts.isIdentifier(node.name)
+        ? node.name.getText(sourceFile)
+        : '<pattern>';
+      recordAny(anyHits, sourceFile, node, 'var', nameText);
+    }
+  }
+
+  // Parameter declarations
+  else if (ts.isParameter(node)) {
+    if (ts.isArrayBindingPattern(node.name) || ts.isObjectBindingPattern(node.name)) {
+      const relBump = (typed: boolean) => bump(typed);
+      countBindingPatternElements(
+        node.name,
+        sourceFile,
+        typeChecker,
+        relBump,
+        anyHits,
+        'param(binding)',
+        node
+      );
+
+      // Also count the parameter itself
+      let typedParam = false;
+      if (hasExplicitType(node)) {
+        const hasExplicitAny = node.type && /\bany\b/.test(node.type.getText(sourceFile));
+        typedParam = !hasExplicitAny;
+      } else {
+        const paramType = typeChecker.getTypeAtLocation(node);
+        if (!isAny(paramType, typeChecker)) {
+          typedParam = true;
+        } else if (isContextuallyTypedCallbackParam(node, typeChecker)) {
+          typedParam = true;
         }
       }
 
-      bumpFile(typed);
-      if (!typed) {
-        recordAny(anyHits, relPath, nameNodeInner, parentKind, nameText);
+      bump(typedParam);
+      if (!typedParam && opts.listAny) {
+        let nameText = '<pattern>';
+        if (ts.isIdentifier(node.name)) {
+          nameText = (node.name as ts.Identifier).getText(sourceFile);
+        }
+        recordAny(anyHits, sourceFile, node, 'param', nameText);
       }
+      return;
+    }
 
-      // Recurse into nested patterns like { a: { b } }
-      if (
-        Node.isObjectBindingPattern(nameNodeInner) ||
-        Node.isArrayBindingPattern(nameNodeInner)
-      ) {
-        countBindingPatternElements(
-          nameNodeInner,
-          relPath,
-          bumpFile,
-          anyHits,
-          parentKind,
-          parentDeclaration
-        );
+    let typed = false;
+    const hasExplicitAny = node.type && /\bany\b/.test(node.type.getText(sourceFile));
+
+    if (hasExplicitType(node)) {
+      typed = !hasExplicitAny;
+    } else {
+      const paramType = typeChecker.getTypeAtLocation(node);
+      if (!isAny(paramType, typeChecker)) {
+        typed = true;
+      } else if (isContextuallyTypedCallbackParam(node, typeChecker)) {
+        typed = true;
       }
     }
-    return true;
+
+    bump(typed);
+    if (!typed && opts.listAny) {
+      let nameText = '<pattern>';
+      if (ts.isIdentifier(node.name)) {
+        nameText = node.name.getText(sourceFile);
+      }
+      recordAny(anyHits, sourceFile, node, 'param', nameText);
+    }
   }
 
-  return false;
+  // Non-null assertions
+  else if (ts.isNonNullExpression(node)) {
+    if (opts.listNonNull) {
+      recordNonNull(nonNullHits, sourceFile, node, 'nonnull(expr)');
+      bump(false); // Count as untyped
+    }
+  }
+
+  // Property declarations with definite assignment assertion
+  else if (ts.isPropertyDeclaration(node) && node.exclamationToken) {
+    if (opts.listNonNull) {
+      recordNonNull(nonNullHits, sourceFile, node, 'nonnull(property)');
+      bump(false); // Count as untyped
+    }
+  }
+
+  // Type assertions (as expressions)
+  else if (ts.isAsExpression(node)) {
+    const targetType = node.type.getText(sourceFile);
+
+    if (targetType === 'any') {
+      const code = textPreview(node.getText(sourceFile));
+      recordAny(anyHits, sourceFile, node, 'as-any', code);
+      bump(false); // Always count as untyped
+    } else if (targetType === 'const') {
+      // Skip "as const" - not unsafe
+    } else if (opts.listTypeAssertions) {
+      recordTypeAssertion(typeAssertionHits, sourceFile, node, 'type(as)', targetType);
+      bump(false); // Count as untyped when flag is enabled
+    }
+  }
+
+  // Type assertions (angle bracket syntax)
+  else if (ts.isTypeAssertionExpression(node)) {
+    const targetType = node.type.getText(sourceFile);
+
+    if (targetType === 'any') {
+      const code = textPreview(node.getText(sourceFile));
+      recordAny(anyHits, sourceFile, node, 'as-any', code);
+      bump(false); // Always count as untyped
+    } else if (opts.listTypeAssertions) {
+      recordTypeAssertion(typeAssertionHits, sourceFile, node, 'type(angle)', targetType);
+      bump(false); // Count as untyped when flag is enabled
+    }
+  }
+
+  // Recursively analyze child nodes
+  ts.forEachChild(node, child =>
+    analyzeNode(
+      child,
+      sourceFile,
+      typeChecker,
+      opts,
+      bump,
+      anyHits,
+      nonNullHits,
+      typeAssertionHits
+    )
+  );
 }
 
 function main() {
   const opts = parseArgs();
   const tsconfigPath = path.resolve(opts.tsconfigPath);
+
   if (!fs.existsSync(tsconfigPath)) {
     console.error(pc.red(`tsconfig.json not found at: ${tsconfigPath}`));
     process.exit(1);
   }
 
-  const project = new Project({
-    tsConfigFilePath: tsconfigPath,
-    skipAddingFilesFromTsConfig: false,
+  // Read and parse tsconfig
+  const configFile = ts.readConfigFile(tsconfigPath, filename => {
+    try {
+      return fs.readFileSync(filename, 'utf8');
+    } catch {
+      return undefined;
+    }
   });
 
-  const files = project.getSourceFiles().filter(sf => {
-    const filePath = sf.getFilePath();
+  if (configFile.error) {
+    console.error(
+      pc.red('Error reading tsconfig:'),
+      ts.formatDiagnostic(configFile.error, {
+        getCurrentDirectory: () => process.cwd(),
+        getCanonicalFileName: fileName => fileName,
+        getNewLine: () => ts.sys.newLine,
+      })
+    );
+    process.exit(1);
+  }
+
+  const host: ts.ParseConfigHost = {
+    fileExists: fs.existsSync,
+    readDirectory: ts.sys.readDirectory,
+    readFile: filename => {
+      try {
+        return fs.readFileSync(filename, 'utf8');
+      } catch {
+        return undefined;
+      }
+    },
+    useCaseSensitiveFileNames: true,
+  };
+
+  const parsedConfig = ts.parseJsonConfigFileContent(
+    configFile.config,
+    host,
+    path.dirname(tsconfigPath)
+  );
+
+  if (parsedConfig.errors.length > 0) {
+    console.error(pc.red('Error parsing tsconfig:'));
+    for (const error of parsedConfig.errors) {
+      console.error(
+        ts.formatDiagnostic(error, {
+          getCurrentDirectory: () => process.cwd(),
+          getCanonicalFileName: fileName => fileName,
+          getNewLine: () => ts.sys.newLine,
+        })
+      );
+    }
+    process.exit(1);
+  }
+
+  // Filter files
+  const files = parsedConfig.fileNames.filter(filePath => {
     if (filePath.includes('node_modules')) return false;
 
-    // Check ignore patterns
     if (opts.ignoreFiles) {
       const relPath = path.relative(process.cwd(), filePath);
       for (const pattern of opts.ignoreFiles) {
@@ -322,11 +536,15 @@ function main() {
     process.exit(2);
   }
 
+  // Create program
+  const program = ts.createProgram(files, parsedConfig.options);
+  const typeChecker = program.getTypeChecker();
+
   const totals = {total: 0, typed: 0};
   const perFile: Record<string, {total: number; typed: number}> = {};
-  const anyHits: AnyHit[] = []; // for --list-any
-  const nonNullHits: NonNullHit[] = []; // for --list-nonnull
-  const typeAssertionHits: TypeAssertionHit[] = []; // for --list-type-assertions
+  const anyHits: AnyHit[] = [];
+  const nonNullHits: NonNullHit[] = [];
+  const typeAssertionHits: TypeAssertionHit[] = [];
 
   function bump(file: string, typed: boolean) {
     const rec = (perFile[file] ||= {total: 0, typed: 0});
@@ -336,190 +554,28 @@ function main() {
     if (typed) totals.typed++;
   }
 
-  for (const sf of files) {
-    const rel = path.relative(process.cwd(), sf.getFilePath());
+  // Analyze each source file
+  for (const sourceFile of program.getSourceFiles()) {
+    if (!files.includes(sourceFile.fileName)) continue;
 
-    sf.forEachDescendant(node => {
-      // --- Variables ---
-      if (Node.isVariableDeclaration(node)) {
-        const v = node;
-        const relBump = (typed: boolean) => bump(rel, typed);
+    const relPath = path.relative(process.cwd(), sourceFile.fileName);
+    const fileBump = (typed: boolean) => bump(relPath, typed);
 
-        const nameNode = (v as any).getNameNode?.();
-        if (
-          nameNode &&
-          countBindingPatternElements(nameNode, rel, relBump, anyHits, 'var(binding)', v)
-        ) {
-          return;
-        }
-
-        const t = v.getType();
-        const explicitTypeNode = v.getTypeNode();
-        const hasExplicitAny =
-          explicitTypeNode && /\bany\b/.test(explicitTypeNode.getText());
-
-        // Check if this is a styled-components variable
-        const initializer = v.getInitializer();
-        const isStyledComponent =
-          initializer &&
-          Node.isTaggedTemplateExpression?.(initializer) &&
-          /styled/.test(initializer.getTag()?.getText() ?? '');
-
-        // If has explicit type, check if it contains 'any'; otherwise check inferred type
-        // Styled components should be considered typed (they have proper theme types)
-        const typed = hasExplicitType(v)
-          ? !hasExplicitAny
-          : !isAny(t) || isStyledComponent;
-        bump(rel, !!typed);
-        if (!typed && opts.listAny) {
-          const nameText = (v as any).getName?.() ?? nameNode?.getText?.() ?? '<pattern>';
-          recordAny(anyHits, rel, v, 'var', String(nameText));
-        }
-        return;
-      }
-
-      // --- Parameters ---
-      if (Node.isParameterDeclaration(node)) {
-        const param = node;
-        const relBump = (typed: boolean) => bump(rel, typed);
-
-        const nameNode = (param as any).getNameNode?.();
-        if (
-          nameNode &&
-          countBindingPatternElements(
-            nameNode,
-            rel,
-            relBump,
-            anyHits,
-            'param(binding)',
-            param
-          )
-        ) {
-          // Also count the parameter itself once (represents the whole tuple/object)
-          let typedParam = false;
-          if (hasExplicitType(param)) typedParam = true;
-          else {
-            const t = param.getType();
-            if (!isAny(t)) typedParam = true;
-            else if (isContextuallyTypedCallbackParam(param)) typedParam = true;
-          }
-          bump(rel, typedParam);
-          if (!typedParam && opts.listAny) {
-            const nameText =
-              (param as any).getName?.() ?? nameNode?.getText?.() ?? '<pattern>';
-            recordAny(anyHits, rel, param, 'param', String(nameText));
-          }
-          return;
-        }
-
-        let typed = false;
-        const explicitTypeNode = param.getTypeNode();
-        const hasExplicitAny =
-          explicitTypeNode && /\bany\b/.test(explicitTypeNode.getText());
-
-        if (hasExplicitType(param)) {
-          // Has explicit type - only typed if it doesn't contain 'any'
-          typed = !hasExplicitAny;
-        } else {
-          // No explicit type - check inferred type and contextual typing
-          const t = param.getType();
-          if (!isAny(t)) {
-            typed = true;
-          } else if (isContextuallyTypedCallbackParam(param)) {
-            typed = true;
-          }
-        }
-        bump(rel, typed);
-        if (!typed && opts.listAny) {
-          const nameText =
-            (param as any).getName?.() ?? nameNode?.getText?.() ?? '<param>';
-          recordAny(anyHits, rel, param, 'param', String(nameText));
-        }
-        return;
-      }
-
-      // --- Non-null assertions (expr!) ---
-      if (Node.isNonNullExpression?.(node)) {
-        if (opts.listNonNull) {
-          // NonNullExpression wraps the inner expression; show the whole 'expr!' text
-          recordNonNull(nonNullHits, rel, node, 'nonnull(expr)');
-          // Count as untyped when flag is enabled
-          bump(rel, false);
-        }
-        return;
-      }
-
-      // --- Definite assignment assertions on class fields: prop!: T ---
-      if (Node.isPropertyDeclaration(node)) {
-        const pd = node;
-        // hasExclamationToken() exists on PropertyDeclaration in ts-morph
-        if ((pd as any).hasExclamationToken?.()) {
-          if (opts.listNonNull) {
-            // Use the identifier name as preview if available
-            const nameNode =
-              ((pd as any).getNameNode?.() ?? pd.getName()) ? (pd as any) : undefined;
-            recordNonNull(nonNullHits, rel, node, 'nonnull(property)', nameNode ?? node);
-            // Count as untyped when flag is enabled
-            bump(rel, false);
-          }
-        }
-        return;
-      }
-
-      // --- Type assertions (expr as Type) ---
-      if (Node.isAsExpression?.(node)) {
-        const targetType = (node as any).getTypeNode?.()?.getText() ?? 'unknown';
-
-        // Handle "as any" - treat it as an any-typed symbol, always report
-        if (targetType === 'any') {
-          const code = textPreview(node.getText());
-          recordAny(anyHits, rel, node, 'as-any', code);
-          // Always count "as any" as untyped
-          bump(rel, false);
-          return;
-        }
-
-        // Skip "as const" assertions since they're for literal type narrowing, not unsafe coercion
-        if (targetType === 'const') {
-          return;
-        }
-
-        // Record other type assertions if the flag is set
-        if (opts.listTypeAssertions) {
-          recordTypeAssertion(typeAssertionHits, rel, node, 'type(as)', targetType);
-          // Count as untyped when flag is enabled
-          bump(rel, false);
-        }
-        return;
-      }
-
-      // --- Type assertions (<Type>expr - angle bracket syntax) ---
-      if (Node.isTypeAssertion?.(node)) {
-        const targetType = (node as any).getTypeNode?.()?.getText() ?? 'unknown';
-
-        // Handle "<any>expr" - treat it as an any-typed symbol, always report
-        if (targetType === 'any') {
-          const code = textPreview(node.getText());
-          recordAny(anyHits, rel, node, 'as-any', code);
-          // Always count "<any>" as untyped
-          bump(rel, false);
-          return;
-        }
-
-        // Record other type assertions if the flag is set
-        if (opts.listTypeAssertions) {
-          recordTypeAssertion(typeAssertionHits, rel, node, 'type(angle)', targetType);
-          // Count as untyped when flag is enabled
-          bump(rel, false);
-        }
-        return;
-      }
-    });
+    analyzeNode(
+      sourceFile,
+      sourceFile,
+      typeChecker,
+      opts,
+      fileBump,
+      anyHits,
+      nonNullHits,
+      typeAssertionHits
+    );
   }
 
   const pct = totals.total ? (totals.typed / totals.total) * 100 : 100;
 
-  // Output
+  // Output results (same as before)
   if (opts.json) {
     const data: any = {
       summary: {
@@ -547,7 +603,12 @@ function main() {
         console.log(pc.bold(`Found ${anyHits.length} any-typed symbol(s)`));
         if (opts.detail) {
           console.log();
-          for (const hit of anyHits) {
+          // Sort hits by file path first, then by line number
+          const sortedHits = anyHits.sort((a, b) => {
+            if (a.file !== b.file) return a.file.localeCompare(b.file);
+            return a.line - b.line;
+          });
+          for (const hit of sortedHits) {
             console.log(
               `${hit.file}:${hit.line}:${hit.column}  ${pc.red(hit.kind.padEnd(13))}  ${pc.dim(hit.name)}`
             );
@@ -564,8 +625,12 @@ function main() {
         console.log(pc.bold(`Found ${nonNullHits.length} non-null assertion(s)`));
         if (opts.detail) {
           console.log();
-          for (const hit of nonNullHits) {
-            // file:line:col  kind            code
+          // Sort hits by file path first, then by line number
+          const sortedHits = nonNullHits.sort((a, b) => {
+            if (a.file !== b.file) return a.file.localeCompare(b.file);
+            return a.line - b.line;
+          });
+          for (const hit of sortedHits) {
             console.log(
               `${hit.file}:${hit.line}:${hit.column}  ${pc.yellow(hit.kind.padEnd(16))}  ${pc.dim(hit.code)}`
             );
@@ -582,8 +647,12 @@ function main() {
         console.log(pc.bold(`Found ${typeAssertionHits.length} type assertion(s)`));
         if (opts.detail) {
           console.log();
-          for (const hit of typeAssertionHits) {
-            // file:line:col  kind            target type    code
+          // Sort hits by file path first, then by line number
+          const sortedHits = typeAssertionHits.sort((a, b) => {
+            if (a.file !== b.file) return a.file.localeCompare(b.file);
+            return a.line - b.line;
+          });
+          for (const hit of sortedHits) {
             console.log(
               `${hit.file}:${hit.line}:${hit.column}  ${pc.cyan(hit.kind.padEnd(12))}  ${pc.magenta(hit.targetType.padEnd(20))}  ${pc.dim(hit.code)}`
             );
@@ -593,14 +662,12 @@ function main() {
       }
     }
 
-    // Quick summary
     console.log(pc.bold('Summary'));
     console.log(`Files scanned: ${files.length}`);
     console.log(`Items total : ${totals.total}`);
     console.log(`Items typed : ${totals.typed}`);
     console.log(`Coverage    : ${pc.green(pct.toFixed(2) + '%')}\n`);
   } else {
-    // Original summary
     console.log(pc.bold('\nType Coverage Report (tsconfig-aware)'));
     console.log(`Files scanned: ${files.length}`);
     console.log(`Items total : ${totals.total}`);

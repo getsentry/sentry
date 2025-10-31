@@ -230,7 +230,6 @@
     "stylelint": "16.10.0",
     "stylelint-config-recommended": "^14.0.1",
     "terser": "5.40.0",
-    "ts-morph": "^27.0.2",
     "typescript-eslint": "8.39.0"
   },
   "pnpm": {
