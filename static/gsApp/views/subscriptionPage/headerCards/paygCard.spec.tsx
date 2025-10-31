@@ -26,6 +26,28 @@ describe('PaygCard', () => {
     resetMockDate();
   });
 
+  it('renders set/edit button for users with billing perms', () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+    });
+    render(<PaygCard organization={organization} subscription={subscription} />);
+    expect(screen.getByRole('button', {name: 'Set limit'})).toBeInTheDocument();
+  });
+
+  it('does not render set/edit button for users without billing perms', () => {
+    const diffOrg = OrganizationFixture({
+      access: [],
+    });
+    const subscription = SubscriptionFixture({
+      organization: diffOrg,
+      plan: 'am3_team',
+    });
+    render(<PaygCard organization={diffOrg} subscription={subscription} />);
+    expect(screen.queryByRole('button', {name: 'Set limit'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Edit limit'})).not.toBeInTheDocument();
+  });
+
   it('renders for plan with no budget modes', async () => {
     const subscription = SubscriptionFixture({
       organization,

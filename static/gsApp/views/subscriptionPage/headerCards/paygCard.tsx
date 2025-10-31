@@ -21,7 +21,7 @@ import {
   type OnDemandBudgets,
   type Subscription,
 } from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
+import {displayBudgetName, hasBillingAccess} from 'getsentry/utils/billing';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 import {
@@ -40,6 +40,7 @@ function PaygCard({
   organization: Organization;
   subscription: Subscription;
 }) {
+  const hasBillingPerms = hasBillingAccess(organization);
   const api = useApi();
   const theme = useTheme();
   const paygBudget = parseOnDemandBudgetsFromSubscription(subscription);
@@ -88,6 +89,9 @@ function PaygCard({
 
   const handleEditPayg = useCallback(
     (shouldHighlight = false) => {
+      if (!hasBillingPerms) {
+        return;
+      }
       if (hasBudgetModes) {
         openOnDemandBudgetEditModal({organization, subscription, theme});
       } else {
@@ -97,7 +101,7 @@ function PaygCard({
         setIsEditing(true);
       }
     },
-    [hasBudgetModes, organization, subscription, theme]
+    [hasBudgetModes, organization, subscription, theme, hasBillingPerms]
   );
 
   useEffect(() => {
@@ -117,7 +121,7 @@ function PaygCard({
         window.location.pathname + window.location.search
       );
     }
-  }, [handleEditPayg]);
+  }, [handleEditPayg, hasBillingPerms]);
 
   return (
     <SubscriptionHeaderCard
@@ -193,14 +197,16 @@ function PaygCard({
                 <Heading as="h2" size="lg">
                   {displayBudgetName(subscription.planDetails, {title: true})}
                 </Heading>
-                <Button
-                  size="xs"
-                  onClick={() => {
-                    handleEditPayg(false);
-                  }}
-                >
-                  {totalBudget > 0 ? t('Edit limit') : t('Set limit')}
-                </Button>
+                {hasBillingPerms && (
+                  <Button
+                    size="xs"
+                    onClick={() => {
+                      handleEditPayg(false);
+                    }}
+                  >
+                    {totalBudget > 0 ? t('Edit limit') : t('Set limit')}
+                  </Button>
+                )}
               </Flex>,
               <Container key="payg-budget">
                 <Text size="xl" bold>
