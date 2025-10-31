@@ -996,7 +996,7 @@ sentry_sdk.init(dsn="${params.dsn.public}", traces_sample_rate=1.0)`,
           language: 'python',
           code: `
 import sentry_sdk
-from sentry_sdk.integrations.pydantic_ai import PydanticAiIntegration
+from sentry_sdk.integrations.pydantic_ai import PydanticAIIntegration
 from sentry_sdk.integrations.openai import OpenAIIntegration
 
 
@@ -1008,7 +1008,7 @@ sentry_sdk.init(
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,
     integrations=[
-        PydanticAiIntegration(),
+        PydanticAIIntegration(),
     ],
     # Disable OpenAI integration for correct token accounting
     disabled_integrations=[OpenAIIntegration()],
