@@ -3,13 +3,21 @@ from typing import Any
 from arroyo.backends.kafka import build_kafka_producer_configuration
 from confluent_kafka import Producer
 
+from sentry.utils.confluent_producer import get_confluent_producer
+
 
 class KafkaPublisher:
     # XXX(markus): Deprecated. Please use `sentry.utils.arroyo_producer.get_arroyo_producer`.
     def __init__(self, connection: dict[str, Any], asynchronous: bool = True) -> None:
-        self.producer = Producer(
-            build_kafka_producer_configuration(default_config=connection or {})
+        connection = connection or {}
+        if "client.id" not in connection:
+            connection["client.id"] = "sentry.utils.pubsub"
+        self.producer = get_confluent_producer(
+            build_kafka_producer_configuration(default_config=connection)
         )
+        # fallback to confluent_kafka Producer if not rolled out
+        if self.producer is None:
+            self.producer = Producer(build_kafka_producer_configuration(default_config=connection))
         self.asynchronous = asynchronous
 
     def publish(self, channel: str, value: str, key: str | None = None) -> None:

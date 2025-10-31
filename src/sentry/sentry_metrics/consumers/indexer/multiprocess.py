@@ -14,6 +14,7 @@ from confluent_kafka import Producer
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.utils import kafka_config, metrics
+from sentry.utils.confluent_producer import get_confluent_producer
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,10 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         snuba_metrics = kafka_config.get_topic_definition(output_topic)
         producer_config = kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"])
         producer_config["client.id"] = "sentry.sentry_metrics.multiprocess"
-        self.__producer = Producer(producer_config)
+        self.__producer = get_confluent_producer(producer_config)
+        # fallback to confluent_kafka Producer if not rolled out
+        if self.__producer is None:
+            self.__producer = Producer(producer_config)
         self.__producer_topic = snuba_metrics["real_topic_name"]
 
         self.__commit = CommitOffsets(commit_function)
