@@ -352,21 +352,29 @@ function main() {
       }
 
       // --- Non-null assertions (expr!) ---
-      if (opts.listNonNull && Node.isNonNullExpression?.(node)) {
-        // NonNullExpression wraps the inner expression; show the whole 'expr!' text
-        recordNonNull(nonNullHits, rel, node, 'nonnull(expr)');
+      if (Node.isNonNullExpression?.(node)) {
+        if (opts.listNonNull) {
+          // NonNullExpression wraps the inner expression; show the whole 'expr!' text
+          recordNonNull(nonNullHits, rel, node, 'nonnull(expr)');
+          // Count as untyped when flag is enabled
+          bump(rel, false);
+        }
         return;
       }
 
       // --- Definite assignment assertions on class fields: prop!: T ---
-      if (opts.listNonNull && Node.isPropertyDeclaration(node)) {
+      if (Node.isPropertyDeclaration(node)) {
         const pd = node;
         // hasExclamationToken() exists on PropertyDeclaration in ts-morph
         if ((pd as any).hasExclamationToken?.()) {
-          // Use the identifier name as preview if available
-          const nameNode =
-            ((pd as any).getNameNode?.() ?? pd.getName()) ? (pd as any) : undefined;
-          recordNonNull(nonNullHits, rel, node, 'nonnull(property)', nameNode ?? node);
+          if (opts.listNonNull) {
+            // Use the identifier name as preview if available
+            const nameNode =
+              ((pd as any).getNameNode?.() ?? pd.getName()) ? (pd as any) : undefined;
+            recordNonNull(nonNullHits, rel, node, 'nonnull(property)', nameNode ?? node);
+            // Count as untyped when flag is enabled
+            bump(rel, false);
+          }
         }
         return;
       }
@@ -379,6 +387,8 @@ function main() {
         if (targetType === 'any') {
           const code = textPreview(node.getText());
           recordAny(anyHits, rel, node, 'as-any', code);
+          // Always count "as any" as untyped
+          bump(rel, false);
           return;
         }
 
@@ -387,9 +397,11 @@ function main() {
           return;
         }
 
-        // Only record other type assertions if the flag is set
+        // Record other type assertions if the flag is set
         if (opts.listTypeAssertions) {
           recordTypeAssertion(typeAssertionHits, rel, node, 'type(as)', targetType);
+          // Count as untyped when flag is enabled
+          bump(rel, false);
         }
         return;
       }
@@ -402,12 +414,16 @@ function main() {
         if (targetType === 'any') {
           const code = textPreview(node.getText());
           recordAny(anyHits, rel, node, 'as-any', code);
+          // Always count "<any>" as untyped
+          bump(rel, false);
           return;
         }
 
-        // Only record other type assertions if the flag is set
+        // Record other type assertions if the flag is set
         if (opts.listTypeAssertions) {
           recordTypeAssertion(typeAssertionHits, rel, node, 'type(angle)', targetType);
+          // Count as untyped when flag is enabled
+          bump(rel, false);
         }
         return;
       }
