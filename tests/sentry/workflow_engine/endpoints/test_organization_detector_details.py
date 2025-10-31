@@ -733,7 +733,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
 
     def test_detector_life_cycle_delete_hook(self) -> None:
         detector_settings = DetectorSettings(
-            hooks=DetectorLifeCycleHooks(on_delete=mock.Mock(), on_create=None, on_update=None)
+            hooks=DetectorLifeCycleHooks(pending_delete=mock.Mock())
         )
 
         with mock.patch.object(
@@ -744,12 +744,10 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
             with outbox_runner():
                 self.get_success_response(self.organization.slug, self.detector.id)
 
-            detector_settings.hooks.on_delete.assert_called_with(self.detector.id)  # type: ignore[union-attr]
+            detector_settings.hooks.pending_delete.assert_called_with(self.detector)
 
     def test_detector_life_cycle__no_delete_hook(self) -> None:
-        detector_settings = DetectorSettings(
-            hooks=DetectorLifeCycleHooks(on_delete=None, on_create=None, on_update=None)
-        )
+        detector_settings = DetectorSettings(hooks=DetectorLifeCycleHooks())
 
         with mock.patch.object(
             Detector, "settings", new_callable=mock.PropertyMock

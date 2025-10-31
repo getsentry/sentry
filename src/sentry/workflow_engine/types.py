@@ -194,38 +194,38 @@ class DetectorLifeCycleHooks:
     it's recommended to use a signal to capture the model updates.
 
     Args:
-        create (DetectorLifeCycleHook | None):
+        after_create (DetectorLifeCycleHook | None):
             This method is used as a callback after a detector is created. The first argument is the detector that was created.
 
-        delete (DetectorLifeCycleHook | None):
+        before_delete (DetectorLifeCycleHook | None):
             This method is used in the deletion API for a detector, the callback will be invoked with the id for the detector
             that is deleted.
 
-        update (DetectorLifeCycleHook | None):
+        after_update (DetectorLifeCycleHook | None):
            This method is used to access when a detector is updated in the API.
     """
 
-    create: DetectorLifeCycleHook | None
-    delete: DetectorLifeCycleHook | None
-    update: DetectorLifeCycleHook | None
+    after_create: DetectorLifeCycleHook | None = None
+    pending_delete: DetectorLifeCycleHook | None = None
+    after_update: DetectorLifeCycleHook | None = None
 
     @staticmethod
     def on_create(detector: Detector):
         hooks = detector.settings.hooks
-        if hooks and hooks.create:
-            hooks.create(detector)
+        if hooks and hooks.after_create:
+            hooks.after_create(detector)
 
     @staticmethod
     def on_update(detector: Detector):
         hooks = detector.settings.hooks
-        if hooks and hooks.update:
-            hooks.update(detector)
+        if hooks and hooks.after_update:
+            hooks.after_update(detector)
 
     @staticmethod
     def on_delete(detector: Detector):
         hooks = detector.settings.hooks
-        if hooks and hooks.delete:
-            hooks.delete(detector)
+        if hooks and hooks.pending_delete:
+            hooks.pending_delete(detector)
 
 
 @dataclass(frozen=True)
