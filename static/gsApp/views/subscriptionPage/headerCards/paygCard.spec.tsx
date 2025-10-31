@@ -1,6 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {
+  InvoicedSubscriptionFixture,
+  SubscriptionFixture,
+} from 'getsentry-test/fixtures/subscription';
 import {
   render,
   renderGlobalModal,
@@ -169,5 +172,46 @@ describe('PaygCard', () => {
 
     // closes inline edit
     expect(screen.getByRole('heading', {name: 'Pay-as-you-go'})).toBeInTheDocument();
+  });
+
+  it('enables edit button for present payment source', () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+    });
+    render(<PaygCard organization={organization} subscription={subscription} />);
+    expect(screen.getByRole('button', {name: 'Set limit'})).toBeEnabled();
+  });
+
+  it('disables edit button if no payment source', () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team', // we should never have a paid plan without a payment source IRL, but for testing purposes
+      paymentSource: null,
+    });
+    render(<PaygCard organization={organization} subscription={subscription} />);
+    expect(screen.getByRole('button', {name: 'Set limit'})).toBeDisabled();
+  });
+
+  it('enables edit button for self-serve partner accounts', () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      paymentSource: null,
+      isSelfServePartner: true,
+    });
+    render(<PaygCard organization={organization} subscription={subscription} />);
+    expect(screen.getByRole('button', {name: 'Set limit'})).toBeEnabled();
+  });
+
+  it('enables edit button for manually invoiced PAYG', () => {
+    const subscription = InvoicedSubscriptionFixture({
+      organization,
+      plan: 'am3_business_ent',
+      paymentSource: null,
+      onDemandInvoicedManual: true,
+    });
+    render(<PaygCard organization={organization} subscription={subscription} />);
+    expect(screen.getByRole('button', {name: 'Set limit'})).toBeEnabled();
   });
 });
