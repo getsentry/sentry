@@ -111,7 +111,7 @@ const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
 
 function getFunctionArguments(functionName: string, traceMetric: TraceMetric): string {
   if (functionName === 'per_second' || functionName === 'per_minute') {
-    return `${traceMetric.name}, ${traceMetric.type}`;
+    return `value,${traceMetric.type}`;
   }
   return 'value';
 }
