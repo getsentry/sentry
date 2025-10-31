@@ -28,7 +28,6 @@ from sentry.issues.auto_source_code_config.code_mapping import (
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
-from sentry.releases.commits import create_commit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 from sentry.utils.committers import get_stacktrace_path_from_event_frame
@@ -159,9 +158,9 @@ def get_or_create_commit_from_blame(
             email=blame.commit.commitAuthorEmail,
             defaults={"name": blame.commit.commitAuthorName},
         )
-        commit, _ = create_commit(
-            organization=Organization.objects.get(id=organization_id),
-            repo_id=blame.repo.id,
+        commit = Commit.objects.create(
+            organization_id=organization_id,
+            repository_id=blame.repo.id,
             key=blame.commit.commitId,
             date_added=blame.commit.committedDate,
             author=commit_author,
