@@ -57,7 +57,6 @@ export interface User extends Omit<AvatarUser, 'options'> {
     stacktraceOrder: StacktraceOrder;
     theme: 'system' | 'light' | 'dark';
     timezone: string;
-    autofixLastUsedRootCauseAction?: 'seer_solution' | 'cursor_background_agent';
   };
   permissions: Set<string>;
   authenticators?: UserEnrolledAuthenticator[];

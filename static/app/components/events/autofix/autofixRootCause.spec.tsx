@@ -1,17 +1,13 @@
 import {AutofixRootCauseData} from 'sentry-fixture/autofixRootCauseData';
-import {ConfigFixture} from 'sentry-fixture/config';
-import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixStatus} from 'sentry/components/events/autofix/types';
-import ConfigStore from 'sentry/stores/configStore';
 
 describe('AutofixRootCause', () => {
   beforeEach(() => {
-    // Reset ConfigStore to default state
-    ConfigStore.loadInitialData(ConfigFixture());
+    localStorage.clear();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
@@ -24,6 +20,7 @@ describe('AutofixRootCause', () => {
   });
 
   afterEach(() => {
+    localStorage.clear();
     MockApiClient.clearMockResponses();
     jest.clearAllTimers();
   });
@@ -110,27 +107,15 @@ describe('AutofixRootCause', () => {
       },
     });
 
-    const updateUserMock = MockApiClient.addMockResponse({
-      url: '/users/me/',
-      method: 'PUT',
-    });
-
     render(<AutofixRootCause {...defaultProps} />);
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Find Solution with Seer'})
     );
 
-    await waitFor(() => {
-      expect(updateUserMock).toHaveBeenCalledWith(
-        '/users/me/',
-        expect.objectContaining({
-          data: {
-            options: {autofixLastUsedRootCauseAction: 'seer_solution'},
-          },
-        })
-      );
-    });
+    expect(JSON.parse(localStorage.getItem('autofix:rootCauseActionPreference')!)).toBe(
+      'seer_solution'
+    );
   });
 
   it('saves preference when clicking Cursor agent', async () => {
@@ -145,11 +130,6 @@ describe('AutofixRootCause', () => {
           },
         ],
       },
-    });
-
-    const updateUserMock = MockApiClient.addMockResponse({
-      url: '/users/me/',
-      method: 'PUT',
     });
 
     MockApiClient.addMockResponse({
@@ -169,16 +149,9 @@ describe('AutofixRootCause', () => {
     // Click the Cursor option in the dropdown
     await userEvent.click(await screen.findByText('Send to Cursor Background Agent'));
 
-    await waitFor(() => {
-      expect(updateUserMock).toHaveBeenCalledWith(
-        '/users/me/',
-        expect.objectContaining({
-          data: {
-            options: {autofixLastUsedRootCauseAction: 'cursor_background_agent'},
-          },
-        })
-      );
-    });
+    expect(JSON.parse(localStorage.getItem('autofix:rootCauseActionPreference')!)).toBe(
+      'cursor_background_agent'
+    );
   });
 
   it('shows Seer as primary button by default', async () => {
@@ -203,15 +176,9 @@ describe('AutofixRootCause', () => {
       },
     });
 
-    ConfigStore.loadInitialData(
-      ConfigFixture({
-        user: UserFixture({
-          options: {
-            ...UserFixture().options,
-            autofixLastUsedRootCauseAction: 'seer_solution',
-          },
-        }),
-      })
+    localStorage.setItem(
+      'autofix:rootCauseActionPreference',
+      JSON.stringify('seer_solution')
     );
 
     render(<AutofixRootCause {...defaultProps} />);
@@ -235,15 +202,9 @@ describe('AutofixRootCause', () => {
       },
     });
 
-    ConfigStore.loadInitialData(
-      ConfigFixture({
-        user: UserFixture({
-          options: {
-            ...UserFixture().options,
-            autofixLastUsedRootCauseAction: 'cursor_background_agent',
-          },
-        }),
-      })
+    localStorage.setItem(
+      'autofix:rootCauseActionPreference',
+      JSON.stringify('cursor_background_agent')
     );
 
     render(<AutofixRootCause {...defaultProps} />);

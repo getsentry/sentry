@@ -35,9 +35,8 @@ import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
@@ -262,8 +261,6 @@ function AutofixRootCauseDisplay({
 }: AutofixRootCauseProps) {
   const cause = causes[0];
   const organization = useOrganization();
-  const user = useUser();
-  const {mutate: mutateUserOptions} = useMutateUserOptions();
   const iconFocusRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
   const [solutionText, setSolutionText] = useState('');
@@ -279,7 +276,9 @@ function AutofixRootCauseDisplay({
     runId
   );
 
-  const preferredAction = user.options.autofixLastUsedRootCauseAction || 'seer_solution';
+  const [preferredAction, setPreferredAction] = useLocalStorageState<
+    'seer_solution' | 'cursor_background_agent'
+  >('autofix:rootCauseActionPreference', 'seer_solution');
 
   const handleSelectDescription = () => {
     if (descriptionRef.current) {
@@ -300,7 +299,7 @@ function AutofixRootCauseDisplay({
     }
 
     // Save user preference
-    mutateUserOptions({autofixLastUsedRootCauseAction: 'seer_solution'});
+    setPreferredAction('seer_solution');
 
     const instruction = solutionText.trim();
 
@@ -335,7 +334,7 @@ function AutofixRootCauseDisplay({
     }
 
     // Save user preference
-    mutateUserOptions({autofixLastUsedRootCauseAction: 'cursor_background_agent'});
+    setPreferredAction('cursor_background_agent');
 
     // Show immediate loading toast
     addLoadingMessage(t('Launching %s...', cursorIntegration.name));
