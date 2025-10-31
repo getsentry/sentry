@@ -10,10 +10,8 @@ from sentry import features
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.types.actor import Actor
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import (
-    IssueAlertMigrator,
-    ensure_default_error_detector,
-)
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
+from sentry.workflow_engine.processors.detector import ensure_default_detectors
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +34,7 @@ class ProjectRuleCreator:
         if features.has(
             "organizations:workflow-engine-issue-alert-dual-write", self.project.organization
         ):
-            ensure_default_error_detector(self.project)
+            ensure_default_detectors(self.project)
 
         with transaction.atomic(router.db_for_write(Rule)):
             self.rule = self._create_rule()
