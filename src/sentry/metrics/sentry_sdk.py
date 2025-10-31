@@ -1,7 +1,7 @@
 from random import random
 from typing import Any
 
-from sentry_sdk import _metrics as metrics
+from sentry_sdk import metrics
 
 from .base import MetricsBackend, Tags
 
