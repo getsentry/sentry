@@ -1263,11 +1263,7 @@ def process_service_hooks(job: PostProcessJob) -> None:
 
 
 def process_resource_change_bounds(job: PostProcessJob) -> None:
-    has_user_feedback_hooks = features.has(
-        "organizations:user-feedback-sentry-apps-webhooks", job["event"].project.organization
-    )
-    group_category = job["event"].group.issue_category
-    if group_category == GroupCategory.FEEDBACK and not has_user_feedback_hooks:
+    if not should_process_resource_change_bounds(job):
         return
 
     if job["is_reprocessed"]:
@@ -1289,6 +1285,16 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
         process_resource_change_bound.delay(
             action="created", sender="Group", instance_id=event.group_id
         )
+
+
+def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
+    has_expanded_sentry_apps_webhooks = features.has(
+        "organizations:expanded-sentry-apps-webhooks", job["event"].project.organization
+    )
+    group_category = job["event"].group.issue_category
+    if group_category != GroupCategory.ERROR and not has_expanded_sentry_apps_webhooks:
+        return False
+    return True
 
 
 def process_plugins(job: PostProcessJob) -> None:
@@ -1653,7 +1659,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_rules,
         process_workflow_engine_issue_alerts,
         process_service_hooks,
-        process_resource_change_bounds,
         process_plugins,
         process_code_mappings,
         process_similarity,
@@ -1669,7 +1674,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         feedback_filter_decorator(process_snoozes),
         feedback_filter_decorator(process_inbox_adds),
         feedback_filter_decorator(process_rules),
-        feedback_filter_decorator(process_resource_change_bounds),
     ],
     GroupCategory.METRIC_ALERT: [
         process_workflow_engine_metric_issues,
@@ -1681,4 +1685,5 @@ GENERIC_POST_PROCESS_PIPELINE = [
     process_inbox_adds,
     kick_off_seer_automation,
     process_rules,
+    process_resource_change_bounds,
 ]
