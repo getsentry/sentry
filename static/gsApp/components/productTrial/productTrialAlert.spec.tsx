@@ -1,6 +1,7 @@
 import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -158,6 +159,183 @@ describe('ProductTrialAlert', () => {
         'Your unlimited Continuous Profiling trial ended. Keep using more by upgrading your plan.'
       )
     ).toBeInTheDocument();
+  });
+
+  it('does not show trial alert for managed subscriptions', () => {
+    const managedSubscription = SubscriptionFixture({
+      organization,
+      partner: {
+        externalId: '123',
+        name: 'heroku',
+        isActive: true,
+        partnership: {
+          id: '456',
+          displayName: 'Heroku',
+          supportNote: 'Contact Heroku to manage your subscription',
+        },
+      },
+    });
+
+    const trial: ProductTrial = {
+      category: DataCategory.REPLAYS,
+      isStarted: true,
+      reasonCode: 2001,
+      endDate: moment().utc().add(2, 'days').format(), // Ending soon
+      lengthDays: 14,
+    };
+
+    const {container} = render(
+      <ProductTrialAlert
+        api={api}
+        organization={organization}
+        subscription={managedSubscription}
+        trial={trial}
+      />
+    );
+
+    // Should not render anything for managed subscriptions
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('does not show checkout link for partner subscription with trial ending', () => {
+    const partnerSubscription = SubscriptionFixture({
+      organization,
+      partner: {
+        externalId: '789',
+        name: 'vercel',
+        isActive: true,
+        partnership: {
+          id: '101',
+          displayName: 'Vercel',
+          supportNote: '<a href="https://vercel.com">Contact Vercel</a> to upgrade',
+        },
+      },
+    });
+
+    const trial: ProductTrial = {
+      category: DataCategory.TRANSACTIONS,
+      isStarted: true,
+      reasonCode: 2001,
+      startDate: moment().utc().subtract(10, 'days').format(),
+      endDate: moment().utc().add(3, 'days').format(), // Ending in 3 days
+      lengthDays: 14,
+    };
+
+    const {container} = render(
+      <ProductTrialAlert
+        api={api}
+        organization={organization}
+        subscription={partnerSubscription}
+        trial={trial}
+      />
+    );
+
+    // Should not render anything for partner subscriptions
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('shows Request Upgrade for users without billing permissions on paid plan', () => {
+    const orgWithoutBillingPerms = OrganizationFixture({
+      access: ['org:read', 'org:write'], // No 'org:billing'
+    });
+
+    const paidSubscription = SubscriptionFixture({
+      organization: orgWithoutBillingPerms,
+      planDetails: PlanDetailsLookupFixture('am3_team'),
+    });
+
+    const trial: ProductTrial = {
+      category: DataCategory.REPLAYS,
+      isStarted: true,
+      reasonCode: 2001,
+      startDate: moment().utc().subtract(10, 'days').format(),
+      endDate: moment().utc().add(2, 'days').format(), // Ending soon
+      lengthDays: 14,
+    };
+
+    render(
+      <ProductTrialAlert
+        api={api}
+        organization={orgWithoutBillingPerms}
+        subscription={paidSubscription}
+        trial={trial}
+      />
+    );
+
+    expect(screen.getByText('Request Upgrade')).toBeInTheDocument();
+    expect(screen.queryByText('Update Plan')).not.toBeInTheDocument();
+  });
+
+  it('shows Update Plan for users with billing permissions on paid plan', () => {
+    const orgWithBillingPerms = OrganizationFixture({
+      access: ['org:read', 'org:write', 'org:billing'],
+    });
+
+    const paidSubscription = SubscriptionFixture({
+      organization: orgWithBillingPerms,
+      planDetails: PlanDetailsLookupFixture('am3_team'),
+    });
+
+    const trial: ProductTrial = {
+      category: DataCategory.REPLAYS,
+      isStarted: true,
+      reasonCode: 2001,
+      startDate: moment().utc().subtract(10, 'days').format(),
+      endDate: moment().utc().add(2, 'days').format(), // Ending soon
+      lengthDays: 14,
+    };
+
+    render(
+      <ProductTrialAlert
+        api={api}
+        organization={orgWithBillingPerms}
+        subscription={paidSubscription}
+        trial={trial}
+      />
+    );
+
+    expect(screen.getByText('Update Plan')).toBeInTheDocument();
+    expect(screen.queryByText('Request Upgrade')).not.toBeInTheDocument();
+  });
+
+  it('does not show trial alert for managed subscription even with billing permissions', () => {
+    const orgWithBillingPerms = OrganizationFixture({
+      access: ['org:read', 'org:write', 'org:billing'],
+    });
+
+    const managedSubscription = SubscriptionFixture({
+      organization: orgWithBillingPerms,
+      partner: {
+        externalId: '999',
+        name: 'github',
+        isActive: true,
+        partnership: {
+          id: '888',
+          displayName: 'GitHub',
+          supportNote: 'Manage your subscription through GitHub Marketplace',
+        },
+      },
+    });
+
+    const trial: ProductTrial = {
+      category: DataCategory.ERRORS,
+      isStarted: true,
+      reasonCode: 2001,
+      endDate: moment().utc().subtract(1, 'days').format(), // Ended yesterday
+      lengthDays: 14,
+    };
+
+    const {container} = render(
+      <ProductTrialAlert
+        api={api}
+        organization={orgWithBillingPerms}
+        subscription={managedSubscription}
+        trial={trial}
+      />
+    );
+
+    // Even with billing permissions, managed subscriptions should not show trial alerts
+    expect(container).toBeEmptyDOMElement();
   });
 });
 

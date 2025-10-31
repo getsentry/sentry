@@ -22,6 +22,7 @@ import StartTrialButton from 'getsentry/components/startTrialButton';
 import type {ProductTrial, Subscription} from 'getsentry/types';
 import {UsageAction} from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
+import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import titleCase from 'getsentry/utils/titleCase';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -63,6 +64,12 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
   const isPaid = subscription.planDetails?.price > 0;
   const hasBillingRole = organization.access?.includes('org:billing');
   const categoryUsesOnDemand = shouldUseOnDemandCta(trial.category);
+
+  // Don't show trial CTAs for partner-managed subscriptions
+  // These organizations manage their billing through partners (Heroku, Vercel, GitHub, etc.)
+  if (isDisabledByPartner(subscription)) {
+    return null;
+  }
 
   let alertText: string | null = null;
   let alertHeader: string | null = null;
