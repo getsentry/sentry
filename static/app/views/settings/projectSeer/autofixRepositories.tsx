@@ -59,28 +59,35 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           repositories.map(r => `${r.integrationId}-${r.externalId}`)
         );
         const validRepoExternalIds = new Set(repositories.map(r => r.externalId));
-        const validPreferences = preference.repositories.filter(repo =>
-          validRepoExternalIds.has(repo.external_id)
-        );
-
-        const staleRepos = preference.repositories.filter(repo => {
+        const validPreferences = preference.repositories.filter(repo => {
           if (repo.integration_id) {
-            return !validIntegrationIdExternalIdPairs.has(
+            return validIntegrationIdExternalIdPairs.has(
               `${repo.integration_id}-${repo.external_id}`
             );
           }
 
-          return !validRepoExternalIds.has(repo.external_id);
+          return validRepoExternalIds.has(repo.external_id);
         });
 
         // Log and clean up stale repos if found
-        if (staleRepos.length > 0 && !hasCleanedStaleRepos.current) {
+        if (
+          validPreferences.length < preference.repositories.length &&
+          !hasCleanedStaleRepos.current
+        ) {
           hasCleanedStaleRepos.current = true;
+
           Sentry.logger.info('seer.preferences.stale_repos_cleaned', {
             project_id: project.id,
             organization_id: organization.id,
-            num_stale_repos: staleRepos.length,
-            stale_repo_ids: staleRepos.map(r => r.external_id),
+            num_stale_repos: preference.repositories.length - validPreferences.length,
+            stale_repo_ids: preference.repositories
+              .filter(r => !validPreferences.includes(r))
+              .map(r => r.external_id),
+          });
+
+          updateProjectSeerPreferences({
+            ...preference,
+            repositories: validPreferences,
           });
         }
 
