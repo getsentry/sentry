@@ -1,12 +1,14 @@
-import styled from '@emotion/styled';
-
 import {Flex} from '@sentry/scraps/layout';
 
 import {TabList, TabPanels, TabStateProvider} from 'sentry/components/core/tabs';
 import {t} from 'sentry/locale';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
-import {TabListWrapper} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
+import {
+  BodyContainer,
+  StyledTabPanels,
+  TabListWrapper,
+} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {SamplesTab} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -41,7 +43,7 @@ export default function MetricInfoTabs({
       size="xs"
     >
       {(orientation === 'right' || visualize.visible) && (
-        <Flex direction="row" justify="between" align="center" paddingRight="md">
+        <Flex direction="row" justify="between" align="center" paddingRight="xl">
           <TabListWrapper orientation={orientation}>
             <TabList>
               <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
@@ -70,14 +72,3 @@ export default function MetricInfoTabs({
     </TabStateProvider>
   );
 }
-
-const BodyContainer = styled('div')`
-  padding: ${p => p.theme.space.md};
-  padding-top: 0;
-  height: 320px;
-  container-type: inline-size;
-`;
-
-const StyledTabPanels = styled(TabPanels)`
-  overflow: auto;
-`;
