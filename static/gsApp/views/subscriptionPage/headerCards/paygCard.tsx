@@ -157,7 +157,7 @@ function PaygCard({
                     }}
                   />
                 </Currency>
-                <Flex justify="between" align="center">
+                <Flex justify="between" align="center" gap="xl sm" wrap="wrap">
                   <Flex gap="sm" align="center">
                     <Button priority="primary" onClick={() => handleSubmit()}>
                       {t('Save')}
