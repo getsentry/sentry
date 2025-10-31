@@ -6,7 +6,7 @@ import {DetailsWrapper} from 'sentry/views/explore/logs/styles';
 import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
 export const TabListWrapper = styled('div')`
-  padding-top: ${p => p.theme.space.sm};
+  padding-top: ${p => p.theme.space.md};
   width: 100%;
 `;
 

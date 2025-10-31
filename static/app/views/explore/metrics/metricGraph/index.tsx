@@ -29,13 +29,16 @@ import {
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
+import {WidgetWrapper} from './styles';
+
 const STACKED_GRAPH_HEIGHT = 358;
 
 interface MetricsGraphProps {
-  orientation: 'side-by-side' | 'stacked';
+  orientation: 'right' | 'bottom';
   queryIndex: number;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   additionalActions?: React.ReactNode;
+  infoContentHidden?: boolean;
 }
 
 export function MetricsGraph({
@@ -43,6 +46,7 @@ export function MetricsGraph({
   queryIndex,
   orientation,
   additionalActions,
+  infoContentHidden,
 }: MetricsGraphProps) {
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
@@ -59,6 +63,7 @@ export function MetricsGraph({
       queryIndex={queryIndex}
       orientation={orientation}
       additionalActions={additionalActions}
+      infoContentHidden={infoContentHidden}
     />
   );
 }
@@ -75,6 +80,7 @@ function Graph({
   queryIndex,
   orientation,
   visualize,
+  infoContentHidden,
   additionalActions,
 }: GraphProps) {
   const aggregate = visualize.yAxis;
@@ -149,28 +155,30 @@ function Graph({
   );
 
   return (
-    <Widget
-      Title={Title}
-      Actions={Actions}
-      Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
-      Footer={
-        visualize.visible && (
-          <ConfidenceFooter
-            chartInfo={chartInfo}
-            isLoading={timeseriesResult.isFetching}
-            hasUserQuery={!!userQuery}
-          />
-        )
-      }
-      height={
-        visualize.visible
-          ? orientation === 'stacked'
-            ? STACKED_GRAPH_HEIGHT
-            : undefined
-          : 0
-      }
-      revealActions="always"
-      borderless
-    />
+    <WidgetWrapper hideFooterBorder={orientation === 'bottom'}>
+      <Widget
+        Title={Title}
+        Actions={Actions}
+        Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
+        Footer={
+          visualize.visible && (
+            <ConfidenceFooter
+              chartInfo={chartInfo}
+              isLoading={timeseriesResult.isFetching}
+              hasUserQuery={!!userQuery}
+            />
+          )
+        }
+        height={
+          visualize.visible
+            ? orientation === 'bottom' || infoContentHidden
+              ? STACKED_GRAPH_HEIGHT
+              : undefined
+            : 50
+        }
+        revealActions="always"
+        borderless
+      />
+    </WidgetWrapper>
   );
 }

@@ -4,6 +4,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {TabList, TabPanels, TabStateProvider} from 'sentry/components/core/tabs';
 import {t} from 'sentry/locale';
+import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
 import {TabListWrapper} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {SamplesTab} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab';
@@ -16,7 +17,7 @@ import {
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 
 interface MetricInfoTabsProps {
-  orientation: 'side-by-side' | 'stacked';
+  orientation: TableOrientation;
   traceMetric: TraceMetric;
   additionalActions?: React.ReactNode;
   contentsHidden?: boolean;
@@ -39,7 +40,7 @@ export default function MetricInfoTabs({
       }}
       size="xs"
     >
-      {(orientation === 'side-by-side' || visualize.visible) && (
+      {(orientation === 'right' || visualize.visible) && (
         <Flex direction="row" justify="between" align="center" paddingRight="md">
           <TabListWrapper>
             <TabList>
