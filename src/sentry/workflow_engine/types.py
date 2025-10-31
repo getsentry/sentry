@@ -183,6 +183,9 @@ class SnubaQueryDataSourceType(TypedDict):
     event_types: list[SnubaQueryEventType]
 
 
+type DetectorLifeCycleHook = Callable[[Detector], None]
+
+
 @dataclass(frozen=True)
 class DetectorLifeCycleHooks:
     """
@@ -191,20 +194,38 @@ class DetectorLifeCycleHooks:
     it's recommended to use a signal to capture the model updates.
 
     Args:
-        on_create (Callable[[Detector], None] | None):
+        create (DetectorLifeCycleHook | None):
             This method is used as a callback after a detector is created. The first argument is the detector that was created.
 
-        on_delete (Callable[[int], None] | None):
+        delete (DetectorLifeCycleHook | None):
             This method is used in the deletion API for a detector, the callback will be invoked with the id for the detector
             that is deleted.
 
-        on_update (Callable[[Detector], None] | None):
-           The `on_update` method is used to handle changes to a detector. This is invoked after the API has updated a detector.
+        update (DetectorLifeCycleHook | None):
+           This method is used to access when a detector is updated in the API.
     """
 
-    on_create: Callable[[Detector], None] | None
-    on_delete: Callable[[int], None] | None
-    on_update: Callable[[Detector], None] | None
+    create: DetectorLifeCycleHook | None
+    delete: DetectorLifeCycleHook | None
+    update: DetectorLifeCycleHook | None
+
+    @staticmethod
+    def on_create(detector: Detector):
+        hooks = detector.settings.hooks
+        if hooks and hooks.create:
+            hooks.create(detector)
+
+    @staticmethod
+    def on_update(detector: Detector):
+        hooks = detector.settings.hooks
+        if hooks and hooks.update:
+            hooks.update(detector)
+
+    @staticmethod
+    def on_delete(detector: Detector):
+        hooks = detector.settings.hooks
+        if hooks and hooks.delete:
+            hooks.delete(detector)
 
 
 @dataclass(frozen=True)

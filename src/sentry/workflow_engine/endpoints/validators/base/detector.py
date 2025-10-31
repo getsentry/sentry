@@ -28,7 +28,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.detector import enforce_config_schema
-from sentry.workflow_engine.types import DataConditionType
+from sentry.workflow_engine.types import DataConditionType, DetectorLifeCycleHooks
 
 
 @dataclass(frozen=True)
@@ -136,11 +136,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             data=instance.get_audit_log_data(),
         )
 
-        # This hook is used for _after_ a detector has been updated
-        hooks = instance.settings.hooks
-        if hooks and hooks.on_update:
-            hooks.on_update(instance)
-
+        DetectorLifeCycleHooks.on_update(instance)
         return instance
 
     def _create_data_source(self, validated_data_source, detector: Detector):
@@ -214,9 +210,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 data=detector.get_audit_log_data(),
             )
 
-            hooks = detector.settings.hooks
-
-            if hooks and hooks.on_create:
-                hooks.on_create(detector)
+            DetectorLifeCycleHooks.on_create(detector)
 
         return detector

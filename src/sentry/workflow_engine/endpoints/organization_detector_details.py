@@ -37,6 +37,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow import (
 )
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.types import DetectorLifeCycleHooks
 
 
 def get_detector_validator(
@@ -204,11 +205,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
         detector.update(status=ObjectStatus.PENDING_DELETION)
 
-        # When a detector is deleted, we want to invoke the life cycle for deletion
-        # This is helpful when cleaning up related models or billing changes
-        hooks = detector.settings.hooks
-        if hooks and hooks.on_delete:
-            hooks.on_delete(detector.id)
+        DetectorLifeCycleHooks.on_delete(detector)
 
         if detector.type == MetricIssue.slug:
             schedule_update_project_config(detector)

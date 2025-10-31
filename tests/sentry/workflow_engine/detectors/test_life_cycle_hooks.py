@@ -32,9 +32,9 @@ class TestDetectorLifeCycleValidatorHooks(TestCase):
 
         self.detector_settings = DetectorSettings(
             hooks=DetectorLifeCycleHooks(
-                on_delete=Mock(),
-                on_create=Mock(),
-                on_update=Mock(),
+                delete=Mock(),
+                create=Mock(),
+                update=Mock(),
             )
         )
 
@@ -44,7 +44,7 @@ class TestDetectorLifeCycleValidatorHooks(TestCase):
         with patch.object(Detector, "settings", new_callable=PropertyMock) as mock_settings:
             mock_settings.return_value = self.detector_settings
             detector = validator.create(self.valid_data)
-            detector.settings.hooks.on_create.assert_called_with(detector)
+            detector.settings.hooks.create.assert_called_with(detector)
 
     def test_create__no_hooks(self) -> None:
         validator = BaseDetectorTypeValidator(self.valid_data, context=self.context)
@@ -65,7 +65,7 @@ class TestDetectorLifeCycleValidatorHooks(TestCase):
 
             # Ensure update happened, and hook was invoked
             assert detector.name == self.valid_data["name"]
-            detector.settings.hooks.on_update.assert_called_with(detector)
+            detector.settings.hooks.update.assert_called_with(detector)
 
     def test_update__no_hooks(self) -> None:
         validator = BaseDetectorTypeValidator(self.valid_data, context=self.context)
@@ -76,4 +76,4 @@ class TestDetectorLifeCycleValidatorHooks(TestCase):
             detector = validator.update(self.detector, self.valid_data)
 
             assert detector.name == self.valid_data["name"]
-            detector.settings.hooks.on_update.assert_called_with(detector)
+            detector.settings.hooks.update.assert_called_with(detector)
