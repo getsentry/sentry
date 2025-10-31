@@ -19,6 +19,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
@@ -238,6 +239,80 @@ class EventManagerGroupingTest(TestCase):
         assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
         assert self.project.get_option("sentry:secondary_grouping_config") is None
         assert self.project.get_option("sentry:secondary_grouping_expiry") == 0
+
+    @patch(
+        "sentry.event_manager.update_or_set_grouping_config_if_needed",
+        wraps=update_or_set_grouping_config_if_needed,
+    )
+    def test_no_ops_if_sample_rate_test_fails(self, update_config_spy: MagicMock):
+        with (
+            # Ensure our die roll will fall outside the sample rate
+            patch("sentry.grouping.ingest.config.random", return_value=0.1121),
+            override_options({"grouping.config_transition.config_upgrade_sample_rate": 0.0908}),
+        ):
+            self.project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
+            assert self.project.get_option("sentry:grouping_config") == NO_MSG_PARAM_CONFIG
+
+            save_new_event({"message": "Dogs are great!"}, self.project)
+
+            update_config_spy.assert_called_with(self.project, "ingest")
+
+            # After the function has been called, the config hasn't changed and no transition has
+            # started
+            assert self.project.get_option("sentry:grouping_config") == NO_MSG_PARAM_CONFIG
+            assert self.project.get_option("sentry:secondary_grouping_config") is None
+            assert self.project.get_option("sentry:secondary_grouping_expiry") == 0
+
+    @patch(
+        "sentry.event_manager.update_or_set_grouping_config_if_needed",
+        wraps=update_or_set_grouping_config_if_needed,
+    )
+    def test_ignores_sample_rate_if_current_config_is_invalid(self, update_config_spy: MagicMock):
+        with (
+            # Ensure our die roll will fall outside the sample rate
+            patch("sentry.grouping.ingest.config.random", return_value=0.1121),
+            override_options({"grouping.config_transition.config_upgrade_sample_rate": 0.0908}),
+        ):
+            self.project.update_option("sentry:grouping_config", "not_a_real_config")
+            assert self.project.get_option("sentry:grouping_config") == "not_a_real_config"
+
+            save_new_event({"message": "Dogs are great!"}, self.project)
+
+            update_config_spy.assert_called_with(self.project, "ingest")
+
+            # The config has been updated, but no transition has started because we can't calculate
+            # a secondary hash using a config that doesn't exist
+            assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+            assert self.project.get_option("sentry:secondary_grouping_config") is None
+            assert self.project.get_option("sentry:secondary_grouping_expiry") == 0
+
+    @patch(
+        "sentry.event_manager.update_or_set_grouping_config_if_needed",
+        wraps=update_or_set_grouping_config_if_needed,
+    )
+    def test_ignores_sample_rate_if_no_record_exists(self, update_config_spy: MagicMock):
+        with (
+            # Ensure our die roll will fall outside the sample rate
+            patch("sentry.grouping.ingest.config.random", return_value=0.1121),
+            override_options({"grouping.config_transition.config_upgrade_sample_rate": 0.0908}),
+        ):
+            assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+            assert not ProjectOption.objects.filter(
+                project_id=self.project.id, key="sentry:grouping_config"
+            ).exists()
+
+            save_new_event({"message": "Dogs are great!"}, self.project)
+
+            update_config_spy.assert_called_with(self.project, "ingest")
+
+            # The config hasn't been updated, but now the project has its own record. No transition
+            # has started because the config was already up to date.
+            assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+            assert ProjectOption.objects.filter(
+                project_id=self.project.id, key="sentry:grouping_config"
+            ).exists()
+            assert self.project.get_option("sentry:secondary_grouping_config") is None
+            assert self.project.get_option("sentry:secondary_grouping_expiry") == 0
 
 
 class PlaceholderTitleTest(TestCase):

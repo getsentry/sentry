@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import MutableMapping
+from random import random
 from typing import Any
 
 from django.conf import settings
@@ -58,6 +59,17 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> st
     lock_key = f"grouping-update-lock:{project.id}"
     if cache.get(cache_key) is not None:
         return "skipped - race condition"
+
+    # Check if we're rate-limiting upgrades. Note that we only allow skips here if the project will
+    # be left with a valid config record even if it's skipped.
+    upgrade_sample_rate = options.get("grouping.config_transition.config_upgrade_sample_rate")
+    if (
+        upgrade_sample_rate < 1
+        and current_config_is_valid
+        and project_option_exists
+        and random() > upgrade_sample_rate
+    ):
+        return "skipped - sample rate"
 
     try:
         with locks.get(lock_key, duration=60, name="grouping-update-lock").acquire():
