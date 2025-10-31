@@ -37,26 +37,36 @@ export function TraceLinkNavigationButton({
       : currentTraceStartTimestamp + LINKED_TRACE_MAX_DURATION; // Latest end time of next trace (+ 1h)
 
   const {
-    available: isPreviousTraceAvailable,
-    id: previousTraceSpanId,
-    trace: previousTraceId,
-    isLoading: isPreviousTraceLoading,
-  } = useFindAdjacentTrace({
-    direction: 'previous',
-    adjacentTraceEndTimestamp: currentTraceStartTimestamp,
-    adjacentTraceStartTimestamp: linkedTraceWindowTimestamp,
-    attributes,
-  });
+    adjacentTraceEndTimestamp,
+    adjacentTraceStartTimestamp,
+    iconDirection,
+    ariaLabel,
+  } = useMemo(() => {
+    if (direction === 'previous') {
+      return {
+        adjacentTraceEndTimestamp: currentTraceStartTimestamp,
+        adjacentTraceStartTimestamp: linkedTraceWindowTimestamp,
+        iconDirection: 'left' as const,
+        ariaLabel: t('Previous Trace'),
+      };
+    }
+    return {
+      adjacentTraceEndTimestamp: linkedTraceWindowTimestamp,
+      adjacentTraceStartTimestamp: currentTraceStartTimestamp,
+      iconDirection: 'right' as const,
+      ariaLabel: t('Next Trace'),
+    };
+  }, [direction, currentTraceStartTimestamp, linkedTraceWindowTimestamp]);
 
   const {
-    available: isNextTraceAvailable,
-    id: nextTraceSpanId,
-    trace: nextTraceId,
-    isLoading: isNextTraceLoading,
+    available: isTraceAvailable,
+    id: traceSpanId,
+    trace: traceId,
+    isLoading: isTraceLoading,
   } = useFindAdjacentTrace({
-    direction: 'next',
-    adjacentTraceEndTimestamp: linkedTraceWindowTimestamp,
-    adjacentTraceStartTimestamp: currentTraceStartTimestamp,
+    direction,
+    adjacentTraceEndTimestamp,
+    adjacentTraceStartTimestamp,
     attributes,
   });
 
@@ -74,45 +84,21 @@ export function TraceLinkNavigationButton({
     });
   }
 
-  if (direction === 'previous') {
-    return (
-      <LinkButton
-        size="xs"
-        icon={<IconChevron direction="left" />}
-        aria-label={t('Previous Trace')}
-        onClick={() => closeSpanDetailsDrawer()}
-        disabled={!previousTraceId || isPreviousTraceLoading || !isPreviousTraceAvailable}
-        to={getTraceDetailsUrl({
-          traceSlug: previousTraceId ?? '',
-          spanId: previousTraceSpanId,
-          dateSelection,
-          timestamp: linkedTraceWindowTimestamp,
-          location,
-          organization,
-        })}
-      />
-    );
-  }
-
-  if (direction === 'next') {
-    return (
-      <LinkButton
-        size="xs"
-        icon={<IconChevron direction="right" />}
-        aria-label={t('Next Trace')}
-        onClick={closeSpanDetailsDrawer}
-        disabled={!nextTraceId || isNextTraceLoading || !isNextTraceAvailable}
-        to={getTraceDetailsUrl({
-          traceSlug: nextTraceId ?? '',
-          spanId: nextTraceSpanId,
-          dateSelection,
-          timestamp: linkedTraceWindowTimestamp,
-          location,
-          organization,
-        })}
-      />
-    );
-  }
-
-  return null;
+  return (
+    <LinkButton
+      size="xs"
+      icon={<IconChevron direction={iconDirection} />}
+      aria-label={ariaLabel}
+      onClick={closeSpanDetailsDrawer}
+      disabled={!traceId || isTraceLoading || !isTraceAvailable}
+      to={getTraceDetailsUrl({
+        traceSlug: traceId ?? '',
+        spanId: traceSpanId,
+        dateSelection,
+        timestamp: linkedTraceWindowTimestamp,
+        location,
+        organization,
+      })}
+    />
+  );
 }
