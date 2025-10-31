@@ -85,7 +85,7 @@ OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, Dec
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     namespace=telemetry_experience_tasks,
-    processing_deadline_duration=15 * 60 + 5,
+    processing_deadline_duration=20 * 60 + 5,
     retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
 )
