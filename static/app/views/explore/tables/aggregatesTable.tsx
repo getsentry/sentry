@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,7 +6,7 @@ import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
@@ -17,6 +17,7 @@ import {defined} from 'sentry/utils';
 import {parseCursor} from 'sentry/utils/cursor';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
@@ -45,6 +46,7 @@ import {
   useQueryParamsVisualizes,
   useSetQueryParamsAggregateSortBys,
 } from 'sentry/views/explore/queryParams/context';
+import {SPANS_AGGREGATE_CURSOR} from 'sentry/views/explore/spans/spansQueryParams';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 
@@ -55,6 +57,7 @@ interface AggregatesTableProps {
 export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const theme = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
   const {projects} = useProjects();
 
   const {result, eventView} = aggregatesTableResult;
@@ -67,7 +70,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const sorts = useQueryParamsAggregateSortBys();
   const setSorts = useSetQueryParamsAggregateSortBys();
   const query = useQueryParamsQuery();
-  const cursor = useQueryParamsAggregateCursor();
+  const aggregateCursor = useQueryParamsAggregateCursor();
 
   const visibleAggregateFields = useMemo(
     () =>
@@ -103,6 +106,12 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
+
+  const cursorHandler = useCallback<CursorHandler>(
+    (cursor, path, q) =>
+      navigate({pathname: path, query: {...q, [SPANS_AGGREGATE_CURSOR]: cursor}}),
+    [navigate]
+  );
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'aggregates',
@@ -206,9 +215,11 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
               return (
                 <TableRow key={i}>
                   <TableBodyCell>
-                    {topEvents && i < topEvents && !parseCursor(cursor)?.offset && (
-                      <TopResultsIndicator color={palette[i]!} />
-                    )}
+                    {topEvents &&
+                      i < topEvents &&
+                      !parseCursor(aggregateCursor)?.offset && (
+                        <TopResultsIndicator color={palette[i]!} />
+                      )}
                     <Tooltip title={t('View Samples')} containerDisplayMode="flex">
                       <StyledLink to={target}>
                         <IconStack />
@@ -246,6 +257,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
       <Pagination
         pageLinks={result.pageLinks}
         paginationAnalyticsEvent={paginationAnalyticsEvent}
+        onCursor={cursorHandler}
       />
     </Fragment>
   );
