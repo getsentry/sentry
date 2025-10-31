@@ -58,9 +58,9 @@ export function OnDemandMetricAlert({
       <InfoAlert type="info">
         {message}
         {dismissable && (
-          <DismissButton
-            priority="link"
+          <Button
             size="sm"
+            priority="transparent"
             icon={<IconClose />}
             aria-label={t('Close Alert')}
             onClick={dismiss}
@@ -82,13 +82,6 @@ const InfoAlert = styled(Alert)`
     justify-content: space-between;
 
     line-height: 1.5em;
-  }
-`;
-
-const DismissButton = styled(Button)`
-  pointer-events: all;
-  &:hover {
-    opacity: 0.5;
   }
 `;
 
