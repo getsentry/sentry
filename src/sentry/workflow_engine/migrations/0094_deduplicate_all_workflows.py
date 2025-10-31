@@ -19,19 +19,80 @@ class WorkflowData:
         self.workflow = workflow
 
     def serialize(self) -> str:
-        workflow_data: dict[str, Any] = {}
-        return json.dumps(workflow_data)
+        # Extract when conditions
+        when_conditions = []
+        if self.workflow.when_condition_group and hasattr(
+            self.workflow.when_condition_group, "prefetched_when_conditions"
+        ):
+            for condition in self.workflow.when_condition_group.prefetched_when_conditions:
+                when_conditions.append(
+                    {
+                        "type": condition.type,
+                        "comparison": condition.comparison,
+                        "result": condition.condition_result,
+                    }
+                )
+
+        # Extract action groups
+        action_groups = []
+        if hasattr(self.workflow, "prefetched_action_groups"):
+            for wdcg in self.workflow.prefetched_action_groups:
+                group_conditions = []
+                for condition in wdcg.condition_group.prefetched_conditions:
+                    group_conditions.append(
+                        {
+                            "type": condition.type,
+                            "comparison": condition.comparison,
+                            "result": condition.condition_result,
+                        }
+                    )
+
+                group_actions = []
+                for action_data in wdcg.condition_group.prefetched_actions:
+                    group_actions.append(
+                        {
+                            "type": action_data.action.type,
+                            "config": action_data.action.config,
+                        }
+                    )
+
+                # Sort conditions and actions for consistent hashing
+                group_conditions.sort(
+                    key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True))
+                )
+                group_actions.sort(
+                    key=lambda a: (a["type"], json.dumps(a["config"], sort_keys=True))
+                )
+
+                action_groups.append(
+                    {
+                        "conditions": group_conditions,
+                        "actions": group_actions,
+                    }
+                )
+
+        # Sort when conditions and action groups for consistent hashing
+        when_conditions.sort(key=lambda c: (c["type"], json.dumps(c["comparison"], sort_keys=True)))
+        action_groups.sort(key=lambda g: json.dumps(g, sort_keys=True))
+
+        workflow_data = {
+            "organization_id": self.workflow.organization_id,
+            "environment_id": self.workflow.environment_id,
+            "when_conditions": when_conditions,
+            "action_groups": action_groups,
+        }
+
+        return json.dumps(workflow_data, sort_keys=True)
 
 
 def deduplicate_workflows(app: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
-    Organization = app.get_model("sentry", "Organization")
     AlertRuleWorkflow = app.get_model("sentry", "AlertRuleWorkflow")
-    Workflow = app.get_model("workflow_engine", "Workflow")
-    DetectorWorkflow = app.get_model("workflow_engine", "DetectorWorkflow")
+    Organization = app.get_model("sentry", "Organization")
     DataCondition = app.get_model("workflow_engine", "DataCondition")
-    WorkflowDataConditionGroup = app.get_model("workflow_engine", "WorkflowDataConditionGroup")
     DataConditionGroupAction = app.get_model("workflow_engine", "DataConditionGroupAction")
+    DetectorWorkflow = app.get_model("workflow_engine", "DetectorWorkflow")
     Workflow = app.get_model("workflow_engine", "Workflow")
+    WorkflowDataConditionGroup = app.get_model("workflow_engine", "WorkflowDataConditionGroup")
 
     organizations = Organization.objects.filter()
 
@@ -81,7 +142,7 @@ def deduplicate_workflows(app: StateApps, schema_editor: BaseDatabaseSchemaEdito
             workflow_data = WorkflowData(workflow)
             workflow_hash = workflow_data.serialize()
 
-            if workflow_data_to_ids[workflow_hash]:
+            if workflow_hash in workflow_data_to_ids:
                 workflow_data_to_ids[workflow_hash].append(workflow.id)
             else:
                 workflow_data_to_ids[workflow_hash] = [workflow.id]
@@ -92,10 +153,19 @@ def deduplicate_workflows(app: StateApps, schema_editor: BaseDatabaseSchemaEdito
 
             # Get the first workflow and remove it from the list of duplicate ids
             workflow_id = workflow_ids.pop(0)
-            DetectorWorkflow.objects.filter(workflow_ids__in=workflow_ids).update(
+
+            # Update DetectorWorkflow entries to point to the canonical workflow
+            DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
                 workflow_id=workflow_id
             )
-            # Update the DetectorWorkflow by selecting a
+
+            # Update AlertRuleWorkflow entries to point to the canonical workflow
+            AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids).update(
+                workflow_id=workflow_id
+            )
+
+            # Delete the duplicate workflows
+            Workflow.objects.filter(id__in=workflow_ids).delete()
 
 
 class Migration(CheckedMigration):
