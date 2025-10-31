@@ -360,9 +360,8 @@ export function SizeCompareMainContent() {
         <Flex direction="column" gap="0">
           <Flex align="center" justify="between" padding="xl">
             <Flex align="center" gap="sm">
-              <Heading as="h2">{t('Items Changed:')}</Heading>
-              <Heading as="h2" variant="muted">
-                {filteredDiffItems.length}
+              <Heading as="h2">
+                {t('Items Changed: %s', comparisonDataQuery.data?.diff_items.length)}
               </Heading>
             </Flex>
             <Flex align="center" gap="sm">
@@ -403,7 +402,7 @@ export function SizeCompareMainContent() {
                   />
                 </InputGroup>
                 <Flex align="center" gap="lg" wrap="nowrap">
-                  <Text wrap="nowrap">{t('Hide small changes (< 500B)')}</Text>
+                  <Text wrap="nowrap">{t('Hide changes < 500B')}</Text>
                   <Switch
                     checked={hideSmallChanges}
                     size="sm"
@@ -415,7 +414,11 @@ export function SizeCompareMainContent() {
                   />
                 </Flex>
               </Flex>
-              <SizeCompareItemDiffTable diffItems={filteredDiffItems} />
+              <SizeCompareItemDiffTable
+                diffItems={filteredDiffItems}
+                originalItemCount={comparisonDataQuery.data?.diff_items.length ?? 0}
+                disableHideSmallChanges={() => setHideSmallChanges(!hideSmallChanges)}
+              />
             </Stack>
           )}
         </Flex>

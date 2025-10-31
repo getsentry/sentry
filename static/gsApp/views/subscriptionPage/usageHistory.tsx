@@ -37,6 +37,7 @@ import type {
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {
   convertUsageToReservedUnit,
+  displayBudgetName,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getSoftCapType,
@@ -184,7 +185,7 @@ type RowProps = {
   subscription: Subscription;
 };
 
-function UsageHistoryRow({history, subscription}: RowProps) {
+function UsageHistoryRow({history}: RowProps) {
   const organization = useOrganization();
   const [expanded, setExpanded] = useState<boolean>(history.isCurrent);
 
@@ -228,11 +229,14 @@ function UsageHistoryRow({history, subscription}: RowProps) {
         <thead>
           <tr>
             <th>
-              {subscription.planDetails.budgetTerm === 'pay-as-you-go'
-                ? t('Pay-as-you-go Spend')
-                : history.onDemandBudgetMode === OnDemandBudgetMode.PER_CATEGORY
-                  ? t('On-Demand Spend (Per-Category)')
-                  : t('On-Demand Spend (Shared)')}
+              {tct('[budgetTerm] Spend[suffix]', {
+                budgetTerm: displayBudgetName(history.planDetails, {title: true}),
+                suffix: history.planDetails?.hasOnDemandModes
+                  ? history.onDemandBudgetMode === OnDemandBudgetMode.PER_CATEGORY
+                    ? ' (Per-Category)'
+                    : ' (Shared)'
+                  : '',
+              })}
             </th>
             <th>{t('Amount Spent')}</th>
             <th>{t('Maximum')}</th>

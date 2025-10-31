@@ -37,6 +37,7 @@ def track_response_data(response: SlackResponse, method: str, error: str | None 
         "status_string": str(code),
         "error": error,
         "method": method,
+        "ok": is_ok,
     }
     logger.info("integration.http_response", extra=extra)
 
