@@ -81,7 +81,6 @@ export type IssueEventParameters = {
     group_id: string;
     has_additional_context: boolean;
     run_id: string;
-    context_length?: number;
   };
   'autofix.setup_modal_viewed': {
     groupId: string;

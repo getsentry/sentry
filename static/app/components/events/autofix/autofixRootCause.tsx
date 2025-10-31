@@ -300,7 +300,6 @@ function AutofixRootCauseDisplay({
       group_id: groupId,
       run_id: runId,
       has_additional_context: !!instruction,
-      context_length: instruction ? instruction.length : undefined,
     });
 
     if (instruction) {
