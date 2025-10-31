@@ -11,6 +11,7 @@ import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVis
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
+import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {
   useMetricLabel,
   useMetricVisualize,
@@ -35,7 +36,7 @@ const MINIMIZED_GRAPH_HEIGHT = 50;
 const STACKED_GRAPH_HEIGHT = 360;
 
 interface MetricsGraphProps {
-  orientation: 'right' | 'bottom';
+  orientation: TableOrientation;
   queryIndex: number;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   additionalActions?: React.ReactNode;
