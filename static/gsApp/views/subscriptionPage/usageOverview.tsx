@@ -111,7 +111,6 @@ function ReservedUsageBar({percentUsed}: {percentUsed: number}) {
 }
 
 function UsageOverviewTable({subscription, organization, usageData}: UsageOverviewProps) {
-  const hasBillingPerms = organization.access.includes('org:billing');
   const navigate = useNavigate();
   const location = useLocation();
   const [openState, setOpenState] = useState<Partial<Record<AddOnCategory, boolean>>>({});
@@ -273,7 +272,6 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
       },
     ].filter(
       column =>
-        (hasBillingPerms || !column.key.endsWith('Spend')) &&
         (subscription.canSelfServe ||
           !column.key.endsWith('Spend') ||
           ((subscription.onDemandInvoiced || subscription.onDemandInvoicedManual) &&
@@ -281,7 +279,6 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
         (hasAnyPotentialOrActiveProductTrial || column.key !== 'trialInfo')
     );
   }, [
-    hasBillingPerms,
     subscription.planDetails,
     subscription.productTrials,
     subscription.canSelfServe,
