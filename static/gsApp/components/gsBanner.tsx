@@ -5,6 +5,8 @@ import Cookies from 'js-cookie';
 import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
@@ -16,7 +18,7 @@ import {
 } from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
 import {Alert, type AlertProps} from 'sentry/components/core/alert';
-import {Badge} from 'sentry/components/core/badge';
+import {Tag} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -951,9 +953,15 @@ class GSBanner extends Component<Props, State> {
 
       return (
         <Alert.Container>
-          <InvertedAlert
+          <Alert
+            system
+            type="error"
             data-test-id="banner-alert-past-due"
-            trailingItems={<Badge type="warning">{t('Action Required')}</Badge>}
+            trailingItems={
+              <Flex align="center" height="100%">
+                <Tag type="error">{t('Action Required')}</Tag>
+              </Flex>
+            }
           >
             {billingPermissions
               ? tct(
@@ -984,7 +992,7 @@ class GSBanner extends Component<Props, State> {
                     ),
                   }
                 )}
-          </InvertedAlert>
+          </Alert>
         </Alert.Container>
       );
     }
