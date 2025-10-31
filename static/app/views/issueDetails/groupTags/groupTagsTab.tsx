@@ -15,7 +15,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {percent} from 'sentry/utils';
+import {generateQueryWithTag, percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
@@ -113,9 +113,10 @@ export function GroupTagsTab() {
                           <TagBarGlobalSelectionLink
                             to={{
                               pathname: `${baseUrl}events/`,
-                              query: {
-                                query: tagValue.query || `${tag.key}:"${tagValue.value}"`,
-                              },
+                              query: generateQueryWithTag(location.query, {
+                                key: tag.key,
+                                value: tagValue.value,
+                              }),
                             }}
                           >
                             <TagBarBackground
