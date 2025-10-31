@@ -30,6 +30,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.integrations.slack.views.link_identity import build_linking_url
+from sentry.integrations.utils.metrics import IntegrationEventLifecycle
 from sentry.organizations.services.organization import organization_service
 
 from .base import SlackDMEndpoint
@@ -159,7 +160,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         return self.respond()
 
-    def on_link_shared(self, request: Request, slack_request: SlackDMRequest) -> bool:
+    def on_link_shared(
+        self, request: Request, slack_request: SlackDMRequest, lifecycle: IntegrationEventLifecycle
+    ) -> bool:
         """Returns true on success"""
         matches: MutableMapping[LinkType, list[UnfurlableUrl]] = defaultdict(list)
         links_seen = set()
@@ -231,6 +234,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
             matches[link_type].append(UnfurlableUrl(url=url, args=args))
 
         if not matches:
+            lifecycle.add_extras(logger_params)
+            lifecycle.record_failure("No matches found")
             return False
 
         # Unfurl each link type
@@ -246,6 +251,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
             )
 
         if not results:
+            lifecycle.add_extras(logger_params)
+            lifecycle.record_failure("No unfurls generated")
             return False
 
         # XXX(isabella): we use our message builders to create the blocks for each link to be
@@ -257,23 +264,19 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         payload = {"channel": data["channel"], "ts": data["message_ts"], "unfurls": results}
 
-        with MessagingInteractionEvent(
-            interaction_type=MessagingInteractionType.UNFURL_LINK,
-            spec=SlackMessagingSpec(),
-        ).capture() as lifecycle:
-            client = SlackSdkClient(integration_id=slack_request.integration.id)
-            try:
-                client.chat_unfurl(
-                    channel=data["channel"],
-                    ts=data["message_ts"],
-                    unfurls=payload["unfurls"],
-                )
-            except SlackApiError as e:
-                lifecycle.add_extras(logger_params)
-                if options.get("slack.log-unfurl-payload", False):
-                    lifecycle.add_extra("unfurls", payload["unfurls"])
-                lifecycle.record_failure(e)
-                return False
+        client = SlackSdkClient(integration_id=slack_request.integration.id)
+        try:
+            client.chat_unfurl(
+                channel=data["channel"],
+                ts=data["message_ts"],
+                unfurls=payload["unfurls"],
+            )
+        except SlackApiError as e:
+            lifecycle.add_extras(logger_params)
+            if options.get("slack.log-unfurl-payload", False):
+                lifecycle.add_extra("unfurls", payload["unfurls"])
+            lifecycle.record_failure(e)
+            return False
 
         return True
 
@@ -288,8 +291,12 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if slack_request.is_challenge():
             return self.on_url_verification(request, slack_request.data)
         if slack_request.type == "link_shared":
-            if self.on_link_shared(request, slack_request):
-                return self.respond()
+            with MessagingInteractionEvent(
+                interaction_type=MessagingInteractionType.UNFURL_LINK,
+                spec=SlackMessagingSpec(),
+            ).capture() as lifecycle:
+                if self.on_link_shared(request, slack_request, lifecycle):
+                    return self.respond()
 
         if slack_request.type == "message":
             if slack_request.is_bot():
