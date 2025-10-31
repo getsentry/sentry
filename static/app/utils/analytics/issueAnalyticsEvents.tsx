@@ -82,6 +82,18 @@ export type IssueEventParameters = {
     run_id: string;
     step_index: number;
   };
+  'autofix.comment_thread.rework': {
+    group_id: string;
+    is_agent_comment: boolean;
+    run_id: string;
+    step_index: number;
+  };
+  'autofix.comment_thread.submit': {
+    group_id: string;
+    is_agent_comment: boolean;
+    run_id: string;
+    step_index: number;
+  };
   'autofix.root_cause.find_solution': {
     group_id: string;
     instruction_provided: boolean;
@@ -463,6 +475,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Autofix: Coding Agent Launch From Root Cause',
   'autofix.comment_thread.close': 'Autofix: Comment Thread Closed',
   'autofix.comment_thread.open': 'Autofix: Comment Thread Opened',
+  'autofix.comment_thread.rework': 'Autofix: Comment Thread Rework',
+  'autofix.comment_thread.submit': 'Autofix: Comment Thread Submit',
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
   'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',
   'breadcrumbs.issue_details.change_time_display': 'Breadcrumb Time Display Toggled',
