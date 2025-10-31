@@ -203,8 +203,8 @@ class DetectorLifeCycleHooks:
     """
 
     on_create: Callable[[Detector], None] | None
-    on_delete: Callable[[int], None] | None  # invoked when the `deletion` code is invoked
-    on_update: Callable[[Detector], None] | None  # invoked on the validator.update()
+    on_delete: Callable[[int], None] | None
+    on_update: Callable[[Detector], None] | None
 
 
 @dataclass(frozen=True)
