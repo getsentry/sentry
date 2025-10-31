@@ -35,7 +35,7 @@ def test_dualwrite_distribution(distribution, timing):
     distribution.assert_not_called()
 
 
-@mock.patch("sentry_sdk._metrics.count")
+@mock.patch("sentry_sdk.metrics.count")
 @mock.patch("datadog.dogstatsd.base.DogStatsd.increment")
 @thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
 def test_dualwrite_experimental_backend(dogstatsd_incr, sentry_sdk_incr):
@@ -57,7 +57,7 @@ def test_dualwrite_experimental_backend(dogstatsd_incr, sentry_sdk_incr):
     sentry_sdk_incr.assert_not_called()
 
 
-@mock.patch("sentry_sdk._metrics.gauge")
+@mock.patch("sentry_sdk.metrics.gauge")
 @mock.patch("datadog.dogstatsd.base.DogStatsd.gauge")
 @thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
 def test_dualwrite_experimental_backend_rollout_disabled(dogstatsd_gauge, sentry_sdk_gauge):

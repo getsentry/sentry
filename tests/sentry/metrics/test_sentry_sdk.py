@@ -10,7 +10,7 @@ class TestSentrySDKMetricsBackend:
     def backend(self):
         return SentrySDKMetricsBackend(prefix="test.", experimental_sample_rate=1.0)
 
-    @mock.patch("sentry_sdk._metrics.count")
+    @mock.patch("sentry_sdk.metrics.count")
     def test_incr(self, mock_count, backend):
         with mock.patch.object(backend, "_should_send", return_value=True):
             backend.incr("foo", tags={"x": "y"}, amount=2, unit="count")
@@ -22,7 +22,7 @@ class TestSentrySDKMetricsBackend:
             attributes={"x": "y"},
         )
 
-    @mock.patch("sentry_sdk._metrics.count")
+    @mock.patch("sentry_sdk.metrics.count")
     def test_incr_no_unit(self, mock_count, backend):
         with mock.patch.object(backend, "_should_send", return_value=True):
             backend.incr("foo", tags={"x": "y"}, amount=2)
@@ -34,7 +34,7 @@ class TestSentrySDKMetricsBackend:
             attributes={"x": "y"},
         )
 
-    @mock.patch("sentry_sdk._metrics.gauge")
+    @mock.patch("sentry_sdk.metrics.gauge")
     def test_gauge(self, mock_gauge, backend):
         with mock.patch.object(backend, "_should_send", return_value=True):
             backend.gauge("bar", value=42.0, tags={"x": "y"}, unit="bytes")
@@ -46,7 +46,7 @@ class TestSentrySDKMetricsBackend:
             attributes={"x": "y"},
         )
 
-    @mock.patch("sentry_sdk._metrics.distribution")
+    @mock.patch("sentry_sdk.metrics.distribution")
     def test_distribution(self, mock_distribution, backend):
         with mock.patch.object(backend, "_should_send", return_value=True):
             backend.distribution("baz", value=100.0, tags={"x": "y"}, unit="millisecond")
@@ -58,7 +58,7 @@ class TestSentrySDKMetricsBackend:
             attributes={"x": "y"},
         )
 
-    @mock.patch("sentry_sdk._metrics.count")
+    @mock.patch("sentry_sdk.metrics.count")
     def test_incr_with_instance(self, mock_count, backend):
         with mock.patch.object(backend, "_should_send", return_value=True):
             backend.incr("foo", instance="web", tags={"x": "y"}, amount=1)
@@ -76,13 +76,13 @@ class TestSentrySDKMetricsBackend:
     def test_event_noop(self, backend):
         backend.event("title", "message")
 
-    @mock.patch("sentry_sdk._metrics.count")
+    @mock.patch("sentry_sdk.metrics.count")
     def test_incr_sampling(self, mock_count):
         backend = SentrySDKMetricsBackend(prefix="test.", experimental_sample_rate=0.0)
         backend.incr("foo", amount=1)
         mock_count.assert_not_called()
 
-    @mock.patch("sentry_sdk._metrics.count")
+    @mock.patch("sentry_sdk.metrics.count")
     def test_incr_deny_list(self, mock_count):
         backend = SentrySDKMetricsBackend(
             prefix="test.", experimental_sample_rate=1.0, deny_list=["test.denied"]
