@@ -16,9 +16,9 @@ import {Checkbox} from 'sentry/components/core/checkbox';
 import {Stack} from 'sentry/components/core/layout';
 import * as Storybook from 'sentry/stories';
 
-import APIReference from '!!type-loader!sentry/components/core/checkbox';
+import documentation from '!!type-loader!@sentry/scraps/checkbox';
 
-export const types = {Checkbox: APIReference.Checkbox};
+export {documentation};
 
 Checkboxes are form controls that allow users to select one or more options from a set. They represent a binary choice and can be in one of three states: unchecked, checked, or indeterminate.
 

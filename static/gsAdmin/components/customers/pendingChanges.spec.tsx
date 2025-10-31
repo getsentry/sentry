@@ -46,6 +46,7 @@ describe('PendingChanges', () => {
           name: 'Team (Enterprise)',
           contractInterval: 'annual',
           billingInterval: 'annual',
+          budgetTerm: 'on-demand',
         }),
         plan: 'am1_team_ent',
         planName: 'Team (Enterprise)',
@@ -87,7 +88,7 @@ describe('PendingChanges', () => {
     expect(container).toHaveTextContent(
       'The following changes will take effect on Feb 16, 2022'
     );
-    expect(container).toHaveTextContent('On-demand maximum — $0.00 → $500.00');
+    expect(container).toHaveTextContent('On-Demand maximum — $0.00 → $500.00');
   });
 
   it('renders pending changes with all categories', () => {
@@ -100,6 +101,7 @@ describe('PendingChanges', () => {
           name: 'Team (Enterprise)',
           contractInterval: 'annual',
           billingInterval: 'annual',
+          budgetTerm: 'on-demand',
         }),
         plan: 'am3_team_ent',
         planName: 'Team (Enterprise)',
@@ -140,7 +142,7 @@ describe('PendingChanges', () => {
     expect(container).toHaveTextContent(
       'The following changes will take effect on Feb 20, 2024'
     );
-    expect(container).toHaveTextContent('On-demand maximum — $0.00 → $500.00');
+    expect(container).toHaveTextContent('On-Demand maximum — $0.00 → $500.00');
   });
 
   it('renders on-demand budgets', () => {
@@ -189,7 +191,7 @@ describe('PendingChanges', () => {
       'The following changes will take effect on Feb 16, 2022'
     );
     expect(container).toHaveTextContent(
-      'On-demand budget — shared on-demand budget of $100 → per-category on-demand budget (errors at $3, transactions at $2, and attachments at $1)'
+      'On-Demand Budget — shared on-demand budget of $100 → per-category on-demand budget (errors at $3, transactions at $2, and attachments at $1)'
     );
   });
 
@@ -234,7 +236,7 @@ describe('PendingChanges', () => {
     );
     expect(container).toHaveTextContent('Plan changes — Developer → Team (Enterprise)');
     expect(container).toHaveTextContent(
-      'On-demand budget — shared on-demand budget of $100 → per-category on-demand budget (errors at $3, transactions at $2, and attachments at $1)'
+      'On-Demand Budget — shared on-demand budget of $100 → per-category on-demand budget (errors at $3, transactions at $2, and attachments at $1)'
     );
     expect(screen.getAllByText(/The following changes will take effect on/)).toHaveLength(
       1

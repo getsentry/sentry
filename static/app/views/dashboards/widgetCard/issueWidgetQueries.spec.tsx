@@ -1,4 +1,5 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -39,9 +40,7 @@ describe('IssueWidgetQueries', () => {
     },
   };
 
-  const {organization} = initializeOrg({
-    router: {orgId: 'orgId'},
-  } as Parameters<typeof initializeOrg>[0]);
+  const organization = OrganizationFixture();
   const api = new MockApiClient();
 
   it('does an issue query and passes correct tableResults to child component', async () => {
