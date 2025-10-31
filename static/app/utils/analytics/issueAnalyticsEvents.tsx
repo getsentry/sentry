@@ -442,10 +442,6 @@ export type IssueEventParameters = {
     source: string;
   };
   resolve_issue: {release: string};
-  'seer.drawer.opened': {
-    group_id: string;
-    has_autofix_data: boolean;
-  };
   'settings.inbound_filter_updated': {
     filter: string;
     new_state: FieldValue;
@@ -475,7 +471,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
   'autofix.root_cause.rerun_with_context': 'Autofix: Root Cause Rerun with Context',
   'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',
-  'seer.drawer.opened': 'Seer: Drawer Opened',
   'breadcrumbs.issue_details.change_time_display': 'Breadcrumb Time Display Toggled',
   'breadcrumbs.issue_details.drawer_opened': 'Breadcrumb Drawer Opened',
   'breadcrumbs.drawer.action': 'Breadcrumb Drawer Action Taken',
