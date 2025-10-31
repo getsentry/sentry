@@ -1,6 +1,7 @@
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {PriorityLevel} from 'sentry/types/group';
 import type {IntegrationType} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
@@ -65,6 +66,10 @@ interface SetPriorityParams extends CommonGroupAnalyticsData {
 
 export type IssueEventParameters = {
   'actionable_items.expand_clicked': ActionableItemDebugParam;
+  'autofix.coding_agent.launch_from_root_cause': {
+    group_id: string;
+    organization: Organization;
+  };
   'autofix.comment_thread.close': {
     group_id: string;
     is_agent_comment: boolean;
@@ -76,6 +81,11 @@ export type IssueEventParameters = {
     is_agent_comment: boolean;
     run_id: string;
     step_index: number;
+  };
+  'autofix.root_cause.find_solution': {
+    group_id: string;
+    instruction_provided: boolean;
+    organization: Organization;
   };
   'autofix.root_cause.rerun_with_context': {
     group_id: string;
@@ -458,8 +468,11 @@ export type IssueEventParameters = {
 type IssueEventKey = keyof IssueEventParameters;
 
 export const issueEventMap: Record<IssueEventKey, string | null> = {
+  'autofix.coding_agent.launch_from_root_cause':
+    'Autofix: Coding Agent Launch From Root Cause',
   'autofix.comment_thread.close': 'Autofix: Comment Thread Closed',
   'autofix.comment_thread.open': 'Autofix: Comment Thread Opened',
+  'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
   'autofix.root_cause.rerun_with_context': 'Autofix: Root Cause Rerun with Context',
   'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',
   'seer.drawer.opened': 'Seer: Drawer Opened',

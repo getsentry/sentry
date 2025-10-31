@@ -369,10 +369,6 @@ interface StatusPageAffectedComponent {
 
 export interface StatusPageIncidentUpdate {
   /**
-   * Components affected by the update
-   */
-  affected_components: StatusPageAffectedComponent[];
-  /**
    * Message to display for this update
    */
   body: string;
@@ -400,6 +396,10 @@ export interface StatusPageIncidentUpdate {
    * ISO Update update time
    */
   updated_at: string;
+  /**
+   * Components affected by the update
+   */
+  affected_components?: StatusPageAffectedComponent[];
 }
 
 // See: https://doers.statuspage.io/api/v2/incidents/

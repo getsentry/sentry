@@ -10,6 +10,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {parseFunction} from 'sentry/utils/discover/fields';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
@@ -47,7 +48,10 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
     metricName,
   });
 
-  const columns = useMemo(() => eventView.getColumns(), [eventView]);
+  const columns = useMemo(
+    () => decodeColumnOrder(eventView.fields, result.meta),
+    [eventView, result.meta]
+  );
   const sorts = useQueryParamsAggregateSortBys();
   const setSorts = useSetQueryParamsAggregateSortBys();
   const groupBys = useQueryParamsGroupBys();
@@ -103,14 +107,20 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
 
       // Update box-shadow directly on DOM elements (prevents re-renders)
       const shouldShowShadow = hasOverflow && !isScrolledFullyRight;
-      const stickyCells = tableElement.querySelectorAll<HTMLElement>(
-        '[data-sticky-column="true"]'
-      );
-      stickyCells.forEach(cell => {
-        cell.style.boxShadow = shouldShowShadow
-          ? '-2px 0px 4px -1px rgba(0, 0, 0, 0.1)'
-          : 'none';
-      });
+      tableElement
+        .querySelectorAll<HTMLElement>('[data-sticky-column="true"]')
+        .forEach(cell => {
+          cell.style.boxShadow = shouldShowShadow
+            ? '-2px 0px 4px -1px rgba(0, 0, 0, 0.1)'
+            : 'none';
+        });
+      tableElement
+        .querySelectorAll<HTMLElement>('[data-sticky-column="false"]')
+        .forEach(cell => {
+          if (cell.style.boxShadow !== 'none') {
+            cell.style.boxShadow = 'none';
+          }
+        });
     };
 
     // Throttle scroll handler to avoid calling this too often
@@ -164,7 +174,7 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
             <StickyCompatibleStyledHeaderCell
               key={i}
               divider={!isLastColumn(i)}
-              data-sticky-column={isLastColumn(i) ? 'true' : undefined}
+              data-sticky-column={isLastColumn(i) ? 'true' : 'false'}
               isSticky={isLastColumn(i)}
               sort={direction}
               handleSortClick={updateSort}
@@ -192,7 +202,7 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
                 <StickyCompatibleStyledRowCell
                   key={j}
                   hasPadding
-                  data-sticky-column={isLastColumn(j) ? 'true' : undefined}
+                  data-sticky-column={isLastColumn(j) ? 'true' : 'false'}
                   isSticky={isLastColumn(j)}
                   offset={j === 0 ? firstColumnOffset : '0px'}
                 >
@@ -201,6 +211,7 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
                     data={row}
                     unit={getMetricsUnit(meta, field)}
                     meta={meta}
+                    usePortalOnDropdown
                   />
                 </StickyCompatibleStyledRowCell>
               ))}

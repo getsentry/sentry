@@ -315,9 +315,7 @@ function CopySolutionButton({
   rootCause?: any;
 }) {
   const text = formatSolutionWithEvent(solution, customSolution, event, rootCause);
-  const {onClick, label} = useCopyToClipboard({
-    text,
-  });
+  const {copy} = useCopyToClipboard();
 
   if (isEditing) {
     return null;
@@ -326,9 +324,8 @@ function CopySolutionButton({
   return (
     <Button
       size="sm"
-      aria-label={label}
       title="Copy plan as Markdown / LLM prompt"
-      onClick={onClick}
+      onClick={() => copy(text, {successMessage: t('Solution copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Solution as Markdown"
       analyticsEventKey="autofix.solution.copy"
       icon={<IconCopy />}

@@ -258,6 +258,7 @@ function ProjectKeyCredentials({
       case 'otlp':
         return (
           <OtlpTab
+            integrationEndpoint={data.dsn.integration}
             logsEndpoint={data.dsn.otlp_logs}
             tracesEndpoint={data.dsn.otlp_traces}
             publicKey={data.public}
