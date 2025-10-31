@@ -48,7 +48,7 @@ export function SideBySideOrientation({
   );
 
   const additionalActions = (
-    <Flex direction="row" gap="sm" marginTop={infoContentHidden ? undefined : 'md'}>
+    <Flex direction="row" marginTop={infoContentHidden ? undefined : 'sm'}>
       <PanelPositionSelector
         orientation={orientation}
         setOrientation={setOrientation}

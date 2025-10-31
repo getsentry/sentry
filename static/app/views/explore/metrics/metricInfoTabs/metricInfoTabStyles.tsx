@@ -17,7 +17,7 @@ export const TabListWrapper = styled('div')<{orientation: TableOrientation}>`
     p.orientation === 'bottom' &&
     css`
       padding-top: 0;
-      padding-bottom: ${p.theme.space['2xs']};
+      padding-bottom: 1px;
     `}
 `;
 

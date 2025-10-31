@@ -30,7 +30,7 @@ export function StackedOrientation({
   traceMetric: TraceMetric;
 }) {
   const additionalInfoTabActions = (
-    <Flex direction="row" gap="sm">
+    <Flex direction="row">
       <PanelPositionSelector
         orientation={orientation}
         setOrientation={setOrientation}
