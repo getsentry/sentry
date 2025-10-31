@@ -82,31 +82,31 @@ def _get_built_in_field_values(
         List of value dicts in the format expected by the API, or None if not a built-in field
     """
     if attribute_key == "is":
-        return [{"value": val, "name": val} for val in IS_VALUES]
+        return [{"value": val} for val in IS_VALUES]
 
     # HAS field values - return tag keys
     if attribute_key == "has":
         if tag_keys is None:
             return []
-        return [{"value": tag_key, "name": tag_key} for tag_key in sorted(tag_keys)]
+        return [{"value": tag_key} for tag_key in sorted(tag_keys)]
 
     # ISSUE_PRIORITY field values
     if attribute_key == "issue.priority":
-        return [{"value": val, "name": val} for val in PRIORITY_VALUES]
+        return [{"value": val} for val in PRIORITY_VALUES]
 
     # ISSUE_SEER_ACTIONABILITY field values
     if attribute_key == "issue.seer_actionability":
-        return [{"value": val, "name": val} for val in FIXABILITY_VALUES]
+        return [{"value": val} for val in FIXABILITY_VALUES]
 
     # ISSUE_CATEGORY field values
     if attribute_key == "issue.category":
-        return [{"value": val, "name": val} for val in ISSUE_CATEGORY_VALUES]
+        return [{"value": val} for val in ISSUE_CATEGORY_VALUES]
 
     # ISSUE_TYPE field values
     if attribute_key == "issue.type":
         visible_group_types = group_type_registry.get_visible(organization)
         issue_type_values = [gt.slug for gt in visible_group_types]
-        return [{"value": val, "name": val} for val in issue_type_values]
+        return [{"value": val} for val in issue_type_values]
 
     if attribute_key in FIELDS_WITHOUT_PREDEFINED_VALUES:
         # These fields don't have predefined values
@@ -365,7 +365,6 @@ def get_filter_key_values(
     Returns:
         List of dicts containing:
         - value: The actual value
-        - name: Display name of the value
         - count: Number of occurrences (0 for built-in fields)
         - lastSeen: ISO timestamp of last occurrence (optional)
         - firstSeen: ISO timestamp of first occurrence (optional)
