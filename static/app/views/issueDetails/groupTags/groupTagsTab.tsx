@@ -106,32 +106,37 @@ export function GroupTagsTab() {
                     </Link>
                   </TagHeading>
                   <UnstyledUnorderedList>
-                    {tag.topValues.map((tagValue, tagValueIdx) => (
-                      <li key={tagValueIdx} data-test-id={tag.key}>
-                        <TagBarGlobalSelectionLink
-                          to={{
-                            pathname: `${baseUrl}events/`,
-                            query: {
-                              query: tagValue.query || `${tag.key}:"${tagValue.value}"`,
-                            },
-                          }}
-                        >
-                          <TagBarBackground
-                            widthPercent={percent(tagValue.count, tag.totalValues) + '%'}
-                          />
-                          <TagBarLabel>
-                            {tag.key === 'release' ? (
-                              <Version version={tagValue.name} anchor={false} />
-                            ) : (
-                              <DeviceName value={tagValue.name} />
-                            )}
-                          </TagBarLabel>
-                          <TagBarCount>
-                            <Count value={tagValue.count} />
-                          </TagBarCount>
-                        </TagBarGlobalSelectionLink>
-                      </li>
-                    ))}
+                    {tag.topValues.map((tagValue, tagValueIdx) => {
+                      const tagName = tagValue.name === '' ? t('(empty)') : tagValue.name;
+                      return (
+                        <li key={tagValueIdx} data-test-id={tag.key}>
+                          <TagBarGlobalSelectionLink
+                            to={{
+                              pathname: `${baseUrl}events/`,
+                              query: {
+                                query: tagValue.query || `${tag.key}:"${tagValue.value}"`,
+                              },
+                            }}
+                          >
+                            <TagBarBackground
+                              widthPercent={
+                                percent(tagValue.count, tag.totalValues) + '%'
+                              }
+                            />
+                            <TagBarLabel>
+                              {tag.key === 'release' ? (
+                                <Version version={tagName} anchor={false} />
+                              ) : (
+                                <DeviceName value={tagName} />
+                              )}
+                            </TagBarLabel>
+                            <TagBarCount>
+                              <Count value={tagValue.count} />
+                            </TagBarCount>
+                          </TagBarGlobalSelectionLink>
+                        </li>
+                      );
+                    })}
                   </UnstyledUnorderedList>
                 </PanelBody>
               </StyledPanel>
