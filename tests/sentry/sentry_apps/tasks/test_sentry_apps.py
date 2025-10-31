@@ -1720,6 +1720,116 @@ class TestWebhookRequests(TestCase):
         assert first_request["project_id"] == "1"
 
 
+@patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+class TestExpandedSentryAppsWebhooks(TestCase):
+
+    def setUp(self) -> None:
+        self.sentry_app = self.create_sentry_app(
+            organization=self.organization, events=["issue.created"]
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_non_error_issue_without_feature_flag(
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        """Test that non-ERROR issues don't send webhooks without the feature flag"""
+        # Create a performance issue (non-ERROR category)
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        # Manually set to PERFORMANCE category for testing
+        with assume_test_silo_mode_of(type(event.group)):
+            event.group.update(type=2001)  # Performance issue type
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Generic.value,
+            )
+
+        # Should NOT send webhook for non-ERROR issues without feature flag
+        assert not safe_urlopen.called
+
+    @with_feature("organizations:expanded-sentry-apps-webhooks")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_non_error_issue_with_feature_flag(
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        # Create a performance issue (non-ERROR category)
+        event = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "performance issue",
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        # Manually set to PERFORMANCE category for testing
+        with assume_test_silo_mode_of(type(event.group)):
+            event.group.update(type=2001)  # Performance issue type
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Generic.value,
+            )
+
+        # SHOULD send webhook for non-ERROR issues with feature flag
+        assert safe_urlopen.called
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "created"
+        assert data["installation"]["uuid"] == self.install.uuid
+        assert data["data"]["issue"]["id"] == str(event.group.id)
+
+        assert_success_metric(mock_record)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_error_issue_always_sends_webhook(
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error.value,
+            )
+
+        assert safe_urlopen.called
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "created"
+        assert data["installation"]["uuid"] == self.install.uuid
+        assert data["data"]["issue"]["id"] == str(event.group.id)
+
+        assert_success_metric(mock_record)
+
+
 class TestBackfillServiceHooksEvents(TestCase):
     def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(
