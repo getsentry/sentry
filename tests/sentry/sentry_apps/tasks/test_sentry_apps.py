@@ -1743,6 +1743,8 @@ class TestExpandedSentryAppsWebhooks(TestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
+
         # Set to CRON category (type_id = 4001, MonitorIncidentType)
         with assume_test_silo_mode(SiloMode.REGION):
             event.group.update(type=4001)
@@ -1773,6 +1775,7 @@ class TestExpandedSentryAppsWebhooks(TestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         with assume_test_silo_mode(SiloMode.REGION):
             event.group.update(type=4001)
 
