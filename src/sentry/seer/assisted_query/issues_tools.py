@@ -1,7 +1,6 @@
 import logging
 from typing import Any
 
-from sentry import features
 from sentry.api import client
 from sentry.issues.grouptype import registry as group_type_registry
 from sentry.models.apikey import ApiKey
@@ -73,19 +72,15 @@ def _get_built_in_field_values(
 
     # ISSUE_CATEGORY field values
     if attribute_key == "issue.category":
-        has_issue_taxonomy = features.has("organizations:issue-taxonomy", organization)
-        if has_issue_taxonomy:
-            category_values = [
-                "error",
-                "outage",
-                "metric",
-                "db_query",
-                "http_client",
-                "frontend",
-                "mobile",
-            ]
-        else:
-            category_values = ["error", "performance", "replay", "cron", "uptime"]
+        category_values = [
+            "error",
+            "outage",
+            "metric",
+            "db_query",
+            "http_client",
+            "frontend",
+            "mobile",
+        ]
         return [{"value": val, "name": val} for val in category_values]
 
     # ISSUE_TYPE field values
