@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
+'use strict';
+
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -196,7 +197,7 @@ function countBindingPatternElements(
   return false;
 }
 
-async function main() {
+function main() {
   const opts = parseArgs();
   const tsconfigPath = path.resolve(opts.tsconfigPath);
   if (!fs.existsSync(tsconfigPath)) {
@@ -412,7 +413,9 @@ async function main() {
   }
 }
 
-main().catch(err => {
+try {
+  main();
+} catch (err) {
   console.error(pc.red(String(err)));
   process.exit(1);
-});
+}
