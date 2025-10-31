@@ -1,13 +1,22 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import {DetailsWrapper} from 'sentry/views/explore/logs/styles';
+import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
-export const TabListWrapper = styled('div')`
+export const TabListWrapper = styled('div')<{orientation: TableOrientation}>`
   padding-top: ${p => p.theme.space.md};
   width: 100%;
+
+  ${p =>
+    p.orientation === 'bottom' &&
+    css`
+      padding-top: 0;
+      padding-bottom: ${p.theme.space['2xs']};
+    `}
 `;
 
 export const StyledTopResultsIndicator = styled(TopResultsIndicator)``;

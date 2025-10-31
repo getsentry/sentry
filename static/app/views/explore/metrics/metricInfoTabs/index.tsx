@@ -42,7 +42,7 @@ export default function MetricInfoTabs({
     >
       {(orientation === 'right' || visualize.visible) && (
         <Flex direction="row" justify="between" align="center" paddingRight="md">
-          <TabListWrapper>
+          <TabListWrapper orientation={orientation}>
             <TabList>
               <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
                 {t('Aggregates')}

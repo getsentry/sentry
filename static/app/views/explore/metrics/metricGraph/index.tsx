@@ -31,7 +31,8 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 
 import {WidgetWrapper} from './styles';
 
-const STACKED_GRAPH_HEIGHT = 358;
+const MINIMIZED_GRAPH_HEIGHT = 50;
+const STACKED_GRAPH_HEIGHT = 360;
 
 interface MetricsGraphProps {
   orientation: 'right' | 'bottom';
@@ -174,7 +175,7 @@ function Graph({
             ? orientation === 'bottom' || infoContentHidden
               ? STACKED_GRAPH_HEIGHT
               : undefined
-            : 50
+            : MINIMIZED_GRAPH_HEIGHT
         }
         revealActions="always"
         borderless
