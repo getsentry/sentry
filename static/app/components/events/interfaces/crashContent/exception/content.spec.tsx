@@ -16,8 +16,10 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Content} from 'sentry/components/events/interfaces/crashContent/exception/content';
+import {LineCoverageProvider} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
+import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 
 describe('Exception Content', () => {
@@ -472,110 +474,91 @@ describe('Exception Content', () => {
     });
   });
 
-  it('shows line coverage legend when coverage data is available', () => {
-    const event = EventFixture({
-      projectID: project.id,
-      entries: [
-        {
-          type: EntryType.EXCEPTION,
-          data: {
-            values: [
-              {
-                type: 'ValueError',
-                value: 'test',
-                stacktrace: {
-                  frames: [
-                    {
-                      function: 'func4',
-                      filename: 'file4.py',
-                      lineNo: 50,
-                      context: [[50, 'raise ValueError("test")']],
-                      inApp: true,
-                    },
-                  ],
+  describe('line coverage', () => {
+    it('shows line coverage legend when coverage data is available', async () => {
+      const orgWithCodecov = OrganizationFixture({codecovAccess: true});
+      const event = EventFixture({
+        projectID: project.id,
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                {
+                  type: 'ValueError',
+                  value: 'test',
+                  stacktrace: {
+                    frames: [
+                      {
+                        function: 'func4',
+                        filename: 'file4.py',
+                        absPath: '/path/to/file4.py',
+                        lineNo: 50,
+                        context: [
+                          [48, 'def func4():'],
+                          [49, '    try:'],
+                          [50, 'raise ValueError("test")'],
+                          [51, '    except:'],
+                          [52, '        pass'],
+                        ],
+                        inApp: true,
+                      },
+                    ],
+                  },
                 },
-              },
-            ],
+              ],
+            },
           },
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithCodecov.slug}/${project.slug}/stacktrace-coverage/`,
+        body: {
+          status: CodecovStatusCode.COVERAGE_EXISTS,
+          coverageUrl: 'https://codecov.io/gh/owner/repo/file4.py',
+          lineCoverage: [
+            [48, Coverage.NOT_APPLICABLE],
+            [49, Coverage.COVERED],
+            [50, Coverage.NOT_COVERED],
+            [51, Coverage.COVERED],
+            [52, Coverage.PARTIAL],
+          ],
         },
-      ],
-    });
+      });
 
-    const MockLineCoverageContext = require('sentry/components/events/interfaces/crashContent/exception/lineCoverageContext');
-
-    function Wrapper({children}: {children: React.ReactNode}) {
-      return (
-        <MockLineCoverageContext.LineCoverageContext.Provider
-          value={{hasCoverageData: true, setHasCoverageData: () => {}}}
-        >
-          {children}
-        </MockLineCoverageContext.LineCoverageContext.Provider>
+      render(
+        <LineCoverageProvider>
+          <Content
+            type={StackType.ORIGINAL}
+            stackView={StackView.APP}
+            event={event}
+            values={event.entries[0]!.data.values}
+            projectSlug={project.slug}
+            newestFirst
+          />
+        </LineCoverageProvider>,
+        {
+          organization: orgWithCodecov,
+          deprecatedRouterMocks: true,
+        }
       );
-    }
 
-    render(
-      <Wrapper>
-        <Content
-          type={StackType.ORIGINAL}
-          stackView={StackView.APP}
-          event={event}
-          values={event.entries[0]!.data.values}
-          projectSlug={project.slug}
-          newestFirst
-        />
-      </Wrapper>,
-      {deprecatedRouterMocks: true}
-    );
+      // The frame should be expandable. Try to expand it if it's not already expanded
+      const toggleButton = screen.queryByRole('button', {name: 'Toggle Context'});
+      if (toggleButton) {
+        const isCollapsed =
+          toggleButton.getAttribute('data-test-id') === 'toggle-button-collapsed';
+        if (isCollapsed) {
+          await userEvent.click(toggleButton);
+        }
+      }
 
-    // Legend should show when hasCoverageData is true
-    expect(screen.getByText('Line covered by tests')).toBeInTheDocument();
-    expect(screen.getByText('Line uncovered by tests')).toBeInTheDocument();
-    expect(screen.getByText('Line partially covered by tests')).toBeInTheDocument();
-  });
+      await screen.findByText('def func4():');
 
-  it('does not show line coverage legend when coverage data is not available', () => {
-    const event = EventFixture({
-      projectID: project.id,
-      entries: [
-        {
-          type: EntryType.EXCEPTION,
-          data: {
-            values: [
-              {
-                type: 'ValueError',
-                value: 'test',
-                stacktrace: {
-                  frames: [
-                    {
-                      function: 'func4',
-                      filename: 'file4.py',
-                      lineNo: 50,
-                      context: [[50, 'raise ValueError("test")']],
-                      inApp: true,
-                    },
-                  ],
-                },
-              },
-            ],
-          },
-        },
-      ],
+      expect(await screen.findByText('Line covered by tests')).toBeInTheDocument();
+      expect(screen.getByText('Line uncovered by tests')).toBeInTheDocument();
+      expect(screen.getByText('Line partially covered by tests')).toBeInTheDocument();
     });
-
-    render(
-      <Content
-        type={StackType.ORIGINAL}
-        stackView={StackView.APP}
-        event={event}
-        values={event.entries[0]!.data.values}
-        projectSlug={project.slug}
-        newestFirst
-      />,
-      {deprecatedRouterMocks: true}
-    );
-
-    expect(screen.queryByText('Line covered by tests')).not.toBeInTheDocument();
-    expect(screen.queryByText('Line uncovered by tests')).not.toBeInTheDocument();
-    expect(screen.queryByText('Line partially covered by tests')).not.toBeInTheDocument();
   });
 });
