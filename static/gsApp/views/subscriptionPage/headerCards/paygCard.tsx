@@ -189,14 +189,7 @@ function PaygCard({
               </Flex>,
             ]
           : [
-              <Flex
-                justify="between"
-                align="start"
-                key="title"
-                width="100%"
-                wrap="wrap"
-                gap="sm"
-              >
+              <Flex justify="between" align="start" key="title" width="100%" gap="sm">
                 <Heading as="h2" size="lg">
                   {displayBudgetName(subscription.planDetails, {title: true})}
                 </Heading>
