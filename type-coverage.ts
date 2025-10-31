@@ -18,6 +18,7 @@ type Options = {
   failBelow?: number;
   json?: boolean;
   listAny?: boolean;
+  listNonNull?: boolean;
 };
 
 function parseArgs(): Options {
@@ -29,6 +30,7 @@ function parseArgs(): Options {
     else if (a === '--json') opts.json = true;
     else if (a === '--project' || a === '-p') opts.tsconfigPath = args[++i]!;
     else if (a === '--list-any') opts.listAny = true;
+    else if (a === '--list-nonnull') opts.listNonNull = true; // NEW
   }
   return opts;
 }
@@ -83,16 +85,24 @@ function isContextuallyTypedCallbackParam(param: ParameterDeclaration): boolean 
 }
 
 type AnyHit = {
-  // 1-based
   column: number;
   file: string;
-  // 1-based
   kind: 'var' | 'var(binding)' | 'param' | 'param(binding)';
+  // 1-based numbers below
   line: number;
   name: string;
 };
 
-// record a found-any occurrence
+type NonNullHit = {
+  code: string;
+  column: number;
+  file: string;
+  kind: 'nonnull(expr)' | 'nonnull(property)';
+  // 1-based
+  line: number; // short preview
+};
+
+// record helpers
 function recordAny(
   hits: AnyHit[],
   sfRelPath: string,
@@ -104,6 +114,25 @@ function recordAny(
   const pos = (node as any).getNameNode?.()?.getStart?.() ?? node.getStart();
   const {line, column} = sf.getLineAndColumnAtPos(pos);
   hits.push({file: sfRelPath, line, column, kind, name});
+}
+
+function textPreview(s: string, max = 80) {
+  const one = s.replace(/\s+/g, ' ').trim();
+  return one.length <= max ? one : one.slice(0, max - 1) + '…';
+}
+
+function recordNonNull(
+  hits: NonNullHit[],
+  sfRelPath: string,
+  node: Node,
+  kind: NonNullHit['kind'],
+  codeNode?: Node
+) {
+  const sf = node.getSourceFile();
+  const pos = node.getStart();
+  const {line, column} = sf.getLineAndColumnAtPos(pos);
+  const code = textPreview((codeNode ?? node).getText());
+  hits.push({file: sfRelPath, line, column, kind, code});
 }
 
 /**
@@ -191,7 +220,8 @@ async function main() {
 
   const totals = {total: 0, typed: 0};
   const perFile: Record<string, {total: number; typed: number}> = {};
-  const anyHits: AnyHit[] = []; // <- collect all any occurrences (for --list-any)
+  const anyHits: AnyHit[] = []; // for --list-any
+  const nonNullHits: NonNullHit[] = []; // for --list-nonnull
 
   function bump(file: string, typed: boolean) {
     const rec = (perFile[file] ||= {total: 0, typed: 0});
@@ -215,8 +245,6 @@ async function main() {
           nameNode &&
           countBindingPatternElements(nameNode, rel, relBump, anyHits, 'var(binding)')
         ) {
-          // For destructuring we already counted each binding element; optionally also count the parent declaration
-          // bump(rel, hasExplicitType(v) || !isAny(v.getType()));
           return;
         }
 
@@ -224,7 +252,6 @@ async function main() {
         const typed = hasExplicitType(v) || !isAny(t);
         bump(rel, typed);
         if (!typed && opts.listAny) {
-          // Prefer a simple identifier; if it's a pattern, use the textual name
           const nameText = (v as any).getName?.() ?? nameNode?.getText?.() ?? '<pattern>';
           recordAny(anyHits, rel, v, 'var', String(nameText));
         }
@@ -274,6 +301,26 @@ async function main() {
         }
         return;
       }
+
+      // --- Non-null assertions (expr!) ---
+      if (opts.listNonNull && Node.isNonNullExpression?.(node)) {
+        // NonNullExpression wraps the inner expression; show the whole 'expr!' text
+        recordNonNull(nonNullHits, rel, node, 'nonnull(expr)');
+        return;
+      }
+
+      // --- Definite assignment assertions on class fields: prop!: T ---
+      if (opts.listNonNull && Node.isPropertyDeclaration(node)) {
+        const pd = node;
+        // hasExclamationToken() exists on PropertyDeclaration in ts-morph
+        if ((pd as any).hasExclamationToken?.()) {
+          // Use the identifier name as preview if available
+          const nameNode =
+            ((pd as any).getNameNode?.() ?? pd.getName()) ? (pd as any) : undefined;
+          recordNonNull(nonNullHits, rel, node, 'nonnull(property)', nameNode ?? node);
+        }
+        return;
+      }
     });
   }
 
@@ -296,23 +343,39 @@ async function main() {
       })),
     };
     if (opts.listAny) data.anySymbols = anyHits;
+    if (opts.listNonNull) data.nonNullAssertions = nonNullHits;
     console.log(JSON.stringify(data, null, 2));
-  } else if (opts.listAny) {
-    // Plain text: list all any hits
-    if (anyHits.length === 0) {
-      console.log(pc.green('No any-typed symbols found.'));
-    } else {
-      console.log(pc.bold(`\nFound ${anyHits.length} any-typed symbol(s):\n`));
-      for (const hit of anyHits) {
-        // file:line:col  kind  name
-        console.log(
-          `${hit.file}:${hit.line}:${hit.column}  ${pc.red(hit.kind.padEnd(13))}  ${pc.dim(hit.name)}`
-        );
+  } else if (opts.listAny || opts.listNonNull) {
+    if (opts.listAny) {
+      if (anyHits.length === 0) {
+        console.log(pc.green('No any-typed symbols found.'));
+      } else {
+        console.log(pc.bold(`\nFound ${anyHits.length} any-typed symbol(s):\n`));
+        for (const hit of anyHits) {
+          console.log(
+            `${hit.file}:${hit.line}:${hit.column}  ${pc.red(hit.kind.padEnd(13))}  ${pc.dim(hit.name)}`
+          );
+        }
+        console.log();
       }
-      console.log();
     }
 
-    // Also print a quick summary at the end
+    if (opts.listNonNull) {
+      if (nonNullHits.length === 0) {
+        console.log(pc.green('No non-null assertions found.'));
+      } else {
+        console.log(pc.bold(`\nFound ${nonNullHits.length} non-null assertion(s):\n`));
+        for (const hit of nonNullHits) {
+          // file:line:col  kind            code
+          console.log(
+            `${hit.file}:${hit.line}:${hit.column}  ${pc.yellow(hit.kind.padEnd(16))}  ${pc.dim(hit.code)}`
+          );
+        }
+        console.log();
+      }
+    }
+
+    // Quick summary
     console.log(pc.bold('Summary'));
     console.log(`Files scanned: ${files.length}`);
     console.log(`Items total : ${totals.total}`);
