@@ -1,12 +1,24 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {TabPanels} from '@sentry/scraps/tabs';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import {DetailsWrapper} from 'sentry/views/explore/logs/styles';
+import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
-export const TabListWrapper = styled('div')`
-  padding-top: ${p => p.theme.space.sm};
+export const TabListWrapper = styled('div')<{orientation: TableOrientation}>`
+  padding-top: 10px;
+  width: 100%;
+
+  ${p =>
+    p.orientation === 'bottom' &&
+    css`
+      padding-top: 0;
+      padding-bottom: 1px;
+    `}
 `;
 
 export const StyledTopResultsIndicator = styled(TopResultsIndicator)``;
@@ -104,4 +116,15 @@ export const NumericSimpleTableHeaderCell = styled(StyledSimpleTableHeaderCell)`
 
 export const NumericSimpleTableRowCell = styled(StyledSimpleTableRowCell)`
   justify-content: flex-end;
+`;
+
+export const BodyContainer = styled('div')`
+  padding: ${p => p.theme.space.md};
+  padding-top: 0;
+  height: 320px;
+  container-type: inline-size;
+`;
+
+export const StyledTabPanels = styled(TabPanels)`
+  overflow: auto;
 `;
