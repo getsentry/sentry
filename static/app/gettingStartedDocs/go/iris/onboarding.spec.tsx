@@ -4,16 +4,16 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './go';
+import docs from '.';
 
-describe('go onboarding docs', () => {
+describe('iris onboarding docs', () => {
   it('renders errors onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Usage'})).toBeInTheDocument();
   });
 
   it('renders performance onboarding docs correctly', async () => {
