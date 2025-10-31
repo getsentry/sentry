@@ -75,6 +75,11 @@ describe('Screens Landing Page', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
       });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/releases/`,
+        body: [],
+      });
     });
 
     afterEach(() => {
@@ -216,6 +221,11 @@ describe('Screens Landing Page', () => {
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/releases/`,
+        body: [],
       });
     });
 

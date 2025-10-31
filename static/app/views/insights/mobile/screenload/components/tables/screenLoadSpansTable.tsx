@@ -60,7 +60,10 @@ export function ScreenLoadSpansTable({
   secondaryRelease,
 }: Props) {
   // Only show comparison when we have two different releases selected
-  const showComparison = defined(primaryRelease) && defined(secondaryRelease);
+  const showComparison =
+    defined(primaryRelease) &&
+    defined(secondaryRelease) &&
+    primaryRelease !== secondaryRelease;
   const organization = useOrganization();
   const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
   const baseURL = `${moduleURL}/details/`;

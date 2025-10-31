@@ -47,9 +47,9 @@ describe('ScreenLoadSpansTable', () => {
       }
     );
 
-    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenCalledTimes(2);
 
-    // Span table data
+    // Span op selector
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
@@ -57,17 +57,43 @@ describe('ScreenLoadSpansTable', () => {
         query: expect.objectContaining({
           dataset: 'spans',
           environment: [],
-          field: expect.arrayContaining([
+          field: ['span.op', 'count()'],
+          per_page: 25,
+          project: [],
+          query:
+            'transaction.op:[ui.load,navigation] transaction:MainActivity span.op:[file.read,file.write,ui.load,navigation,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] has:span.description ( release:io.sentry.samples.android@7.0.0+2 OR release:io.sentry.samples.android@6.27.0+2 )',
+          referrer: 'api.insights.get-span-operations',
+          statsPeriod: '14d',
+        }),
+      })
+    );
+
+    // Span table data
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'spans',
+          environment: [],
+          field: [
             'project.id',
             'span.op',
             'span.group',
             'span.description',
-          ]),
+            'ttid_contribution_rate()',
+            'ttfd_contribution_rate()',
+            'count()',
+            'sum(span.self_time)',
+            'avg_if(span.self_time,release,equals,io.sentry.samples.android@7.0.0+2)',
+            'avg_if(span.self_time,release,equals,io.sentry.samples.android@6.27.0+2)',
+          ],
           per_page: 25,
           project: [],
           query:
             'transaction.op:[ui.load,navigation] transaction:MainActivity has:span.description span.op:[file.read,file.write,ui.load,navigation,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] ( release:io.sentry.samples.android@7.0.0+2 OR release:io.sentry.samples.android@6.27.0+2 )',
           referrer: 'api.insights.mobile-span-table',
+          sort: '-sum(span.self_time)',
           statsPeriod: '14d',
         }),
       })
