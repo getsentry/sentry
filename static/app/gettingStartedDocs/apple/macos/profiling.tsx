@@ -14,7 +14,7 @@ const getInstallSnippet = (params: DocsParams) => `
   '8.49.0'
 )}"),`;
 
-export const appleProfilingOnboarding: OnboardingConfig = {
+export const profiling: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
