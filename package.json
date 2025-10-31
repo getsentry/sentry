@@ -223,11 +223,13 @@
     "jest-fail-on-console": "3.3.1",
     "jest-junit": "16.0.0",
     "knip": "5.64.0",
+    "picocolors": "^1.1.1",
     "postcss-styled-syntax": "0.7.0",
     "react-refresh": "0.18.0",
     "stylelint": "16.10.0",
     "stylelint-config-recommended": "^14.0.1",
     "terser": "5.40.0",
+    "ts-morph": "^27.0.2",
     "typescript-eslint": "8.39.0"
   },
   "pnpm": {
@@ -248,6 +250,7 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
+    "type-coverage": "NODE_OPTIONS='--experimental-transform-types' node type-coverage.ts -p tsconfig.json",
     "test": "NODE_OPTIONS='--experimental-transform-types' node scripts/test.js --watch",
     "test-ci": "NODE_OPTIONS='--experimental-transform-types' node scripts/test.js --ci --maxWorkers=75% --colors",
     "test-debug": "NODE_OPTIONS='--experimental-transform-types' node --inspect-brk scripts/test.js --runInBand",
