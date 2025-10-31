@@ -355,6 +355,10 @@ function main() {
       // --- Type assertions (expr as Type) ---
       if (opts.listTypeAssertions && Node.isAsExpression?.(node)) {
         const targetType = (node as any).getTypeNode?.()?.getText() ?? 'unknown';
+        // Skip "as const" assertions since they're for literal type narrowing, not unsafe coercion
+        if (targetType === 'const') {
+          return;
+        }
         recordTypeAssertion(typeAssertionHits, rel, node, 'type(as)', targetType);
         return;
       }
