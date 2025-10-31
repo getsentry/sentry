@@ -1,7 +1,7 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
-  Docs,
+  DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -15,7 +15,7 @@ func _ready():
 	SentrySDK.capture_message("Hello, World!")
 `;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -35,7 +35,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: params => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -59,7 +59,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: params => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -106,7 +106,3 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-const docs: Docs = {onboarding};
-
-export default docs;
