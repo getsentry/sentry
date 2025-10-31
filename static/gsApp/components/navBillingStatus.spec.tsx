@@ -83,7 +83,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     );
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
-      'Mon Jun 06 2022' // MOCK_TODAY
+      '2022-06-06T05:09:33.000Z' // MOCK_TODAY
     );
   });
 
@@ -97,7 +97,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     ).toBe('errors-replays-spans-profileDuration');
     expect(
       localStorage.getItem(`billing-status-last-shown-date-${organization.id}`)
-    ).toBe('Mon Jun 06 2022');
+    ).toBe('2022-06-06T05:09:33.000Z');
   }
 
   it('should render for multiple categories', async () => {
@@ -399,7 +399,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     assertLocalStorageStateAfterAutoOpen();
   });
 
-  it('should auto open the alert when more than a day has passed', async () => {
+  it('should auto open the alert when more than a day has passed (deprecated date format)', async () => {
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
       'Sun Jun 05 2022'
@@ -409,10 +409,30 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     assertLocalStorageStateAfterAutoOpen();
   });
 
-  it('should auto open the alert when the last shown date is before the current usage cycle started', async () => {
+  it('should auto open the alert when the last shown date is before the current usage cycle started (deprecated date format)', async () => {
     localStorage.setItem(
       `billing-status-last-shown-date-${organization.id}`,
       'Sun May 29 2022'
+    ); // last seen before current usage cycle started, so alert should show even though categories haven't changed
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
+    assertLocalStorageStateAfterAutoOpen();
+  });
+
+  it('should auto open the alert when more than a day has passed (ISO date format)', async () => {
+    localStorage.setItem(
+      `billing-status-last-shown-date-${organization.id}`,
+      '2022-06-05T15:00:32.000Z'
+    ); // more than a day, so alert should show even though categories haven't changed
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
+    assertLocalStorageStateAfterAutoOpen();
+  });
+
+  it('should auto open the alert when the last shown date is before the current usage cycle started (ISO date format))', async () => {
+    localStorage.setItem(
+      `billing-status-last-shown-date-${organization.id}`,
+      '2022-05-29T05:09:33.000Z'
     ); // last seen before current usage cycle started, so alert should show even though categories haven't changed
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
