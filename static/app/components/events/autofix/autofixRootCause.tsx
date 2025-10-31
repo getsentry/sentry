@@ -300,13 +300,6 @@ function AutofixRootCauseDisplay({
 
     const instruction = solutionText.trim();
 
-    trackAnalytics('autofix.root_cause.rerun_with_context', {
-      organization,
-      group_id: groupId,
-      run_id: runId,
-      has_additional_context: !!instruction,
-    });
-
     if (instruction) {
       selectRootCause({
         cause_id: cause.id,

@@ -87,11 +87,6 @@ export type IssueEventParameters = {
     instruction_provided: boolean;
     organization: Organization;
   };
-  'autofix.root_cause.rerun_with_context': {
-    group_id: string;
-    has_additional_context: boolean;
-    run_id: string;
-  };
   'autofix.setup_modal_viewed': {
     groupId: string;
     projectId: string;
@@ -469,7 +464,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'autofix.comment_thread.close': 'Autofix: Comment Thread Closed',
   'autofix.comment_thread.open': 'Autofix: Comment Thread Opened',
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
-  'autofix.root_cause.rerun_with_context': 'Autofix: Root Cause Rerun with Context',
   'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',
   'breadcrumbs.issue_details.change_time_display': 'Breadcrumb Time Display Toggled',
   'breadcrumbs.issue_details.drawer_opened': 'Breadcrumb Drawer Opened',
