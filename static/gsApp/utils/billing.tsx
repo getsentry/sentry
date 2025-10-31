@@ -41,6 +41,7 @@ import {
   isByteCategory,
   isContinuousProfiling,
 } from 'getsentry/utils/dataCategory';
+import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import titleCase from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
@@ -545,6 +546,12 @@ export function getBestActionToIncreaseEventLimits(
 ) {
   const isPaidPlan = subscription.planDetails?.price > 0;
   const hasBillingPerms = organization.access?.includes('org:billing');
+
+  // Managed subscriptions should always request (can't self-serve via checkout)
+  // These organizations manage their billing through partners (Heroku, Vercel, GitHub, etc.)
+  if (isDisabledByPartner(subscription)) {
+    return UsageAction.REQUEST_ADD_EVENTS;
+  }
 
   // free orgs can increase event limits by trialing
   if (!isPaidPlan && subscription.canTrial) {
