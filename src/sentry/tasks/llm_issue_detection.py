@@ -130,6 +130,7 @@ def create_issue_occurrence_from_detection(
         "tags": {
             "trace_id": trace.trace_id,
             "transaction": transaction_name,
+            "llm_detected": "true",
         },
     }
 
@@ -185,8 +186,11 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     transactions = get_transactions_for_project(
         project_id, limit=50, start_time_delta={"minutes": 30}
     )
+    if not transactions:
+        return
+
     # Sample a random subset of transactions to process
-    transactions = random.sample(transactions, NUM_TRANSACTIONS_TO_PROCESS)
+    transactions = random.sample(transactions, min(len(transactions), NUM_TRANSACTIONS_TO_PROCESS))
     for transaction in transactions:
         try:
             trace: TraceData | None = get_trace_for_transaction(
