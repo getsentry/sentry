@@ -180,6 +180,30 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert stored_apple_info == apple_info
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_with_android_app_info(self) -> None:
+        android_info = {
+            "has_proguard_mapping": True,
+        }
+        data = {
+            "date_built": "2024-01-01T00:00:00Z",
+            "artifact_type": 2,
+            "build_version": "1.2.3",
+            "build_number": 123,
+            "android_app_info": android_info,
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert "extras" in resp_data["updatedFields"]
+
+        self.preprod_artifact.refresh_from_db()
+        stored_android_info = self.preprod_artifact.extras or {}
+        assert stored_android_info == android_info
+        assert stored_android_info["has_proguard_mapping"] is True
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_with_missing_dsym_binaries_truncation(self) -> None:
         """Test that missing_dsym_binaries list is truncated if it exceeds 1024 chars."""
         # Create a list that exceeds 1024 chars total
