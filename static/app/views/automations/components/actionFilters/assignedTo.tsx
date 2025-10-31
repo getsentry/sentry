@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import SelectMembers from 'sentry/components/selectMembers';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import {
   AutomationBuilderSelect,
   selectControlStyles,
