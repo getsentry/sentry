@@ -5,11 +5,13 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.auth.services.auth.impl import promote_request_api_user
+from sentry.organizations.services.organization.service import organization_service
 from sentry.security.utils import capture_security_activity
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppAuthorizationsBaseEndpoint
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -80,6 +82,19 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     user=promote_request_api_user(request),
                 ).run()
             elif request.data.get("grant_type") == GrantTypes.CLIENT_SECRET_JWT:
+                context = organization_service.get_organization_by_id(
+                    id=installation.organization_id, include_projects=False, include_teams=False
+                )
+                if context is None or not features.has(
+                    "organizations:sentry-app-manual-token-refresh",
+                    context.organization,
+                    actor=request.user,
+                ):
+                    raise SentryAppIntegratorError(
+                        message="Manual token refresh is not enabled for this organization",
+                        status_code=403,
+                    )
+
                 client_secret_jwt_serializer = SentryAppClientSecretJWTSerializer(data=request.data)
                 if not client_secret_jwt_serializer.is_valid():
                     return Response(client_secret_jwt_serializer.errors, status=400)
