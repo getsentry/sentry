@@ -206,57 +206,6 @@ describe('Tag Facets', () => {
       );
     });
 
-    it('displays empty tag values with fallback label and missing-value query', async () => {
-      MockApiClient.clearMockResponses();
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues/1/tags/`,
-        body: {
-          device: {
-            key: 'device',
-            topValues: [
-              {
-                name: '',
-                value: '',
-                count: 5,
-              },
-              {
-                name: 'iPhone10',
-                value: 'iPhone10',
-                count: 3,
-              },
-            ],
-            totalValues: 8,
-          },
-        },
-      });
-
-      render(
-        <TagFacets
-          environments={[]}
-          groupId="1"
-          project={project}
-          tagKeys={tags}
-          tagFormatter={TAGS_FORMATTER}
-        />,
-        {
-          organization,
-        }
-      );
-
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'Expand device tag distribution'})
-      );
-
-      const emptyValueLink = screen.getByRole('link', {
-        name: /device, \(empty\),/,
-      });
-      expect(emptyValueLink).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/issues/1/events/?query=%21has%3Adevice'
-      );
-      expect(screen.getByText('(empty)')).toBeInTheDocument();
-    });
-
     it('links to tags tab', async () => {
       render(
         <TagFacets

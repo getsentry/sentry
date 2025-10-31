@@ -293,45 +293,51 @@ describe('TagDetailsDrawerContent', () => {
   });
 
   it('renders empty tag value label and hides copy action', async () => {
-    const emptyTagValues = TagValuesFixture().map((tagValue, index) =>
-      index === 0
-        ? {
-            ...tagValue,
-            name: '',
-            value: '',
-            query: undefined,
-          }
-        : tagValue
-    );
-    const tagsWithEmpty = TagsFixture().map(tagItem =>
-      tagItem.key === 'device'
-        ? {
-            ...tagItem,
-            topValues: tagItem.topValues.map((value, valueIndex) =>
-              valueIndex === 0
-                ? {
-                    ...value,
-                    name: '',
-                    value: '',
-                  }
-                : value
-            ),
-          }
-        : tagItem
-    );
+    const makeTopValue = (value: string, count: number) => ({
+      count,
+      name: value,
+      value,
+      key: 'device',
+      lastSeen: '2024-01-01T00:00:00Z',
+      firstSeen: '2024-01-01T00:00:00Z',
+    });
+    const makeTagValue = (value: string, count: number, id: string): TagValue => ({
+      count,
+      firstSeen: '2024-01-01T00:00:00Z',
+      lastSeen: '2024-01-01T00:00:00Z',
+      name: value,
+      value,
+      key: 'device',
+      id,
+      email: '',
+      username: '',
+      ip_address: '',
+    });
+
+    const deviceTag: TagWithTopValues = {
+      key: 'device',
+      name: 'Device',
+      totalValues: 8,
+      uniqueValues: 2,
+      topValues: [makeTopValue('', 5), makeTopValue('iPhone10', 3)],
+    };
+    const deviceValues: TagValue[] = [
+      makeTagValue('', 5, '1'),
+      makeTagValue('iPhone10', 3, '2'),
+    ];
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/',
-      body: tagsWithEmpty,
+      body: [deviceTag],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/device/',
-      body: tagsWithEmpty.find(({key}) => key === 'device'),
+      body: deviceTag,
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/device/values/',
-      body: emptyTagValues,
+      body: deviceValues,
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/1/`,
