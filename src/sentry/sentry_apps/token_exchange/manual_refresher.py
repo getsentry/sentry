@@ -53,7 +53,7 @@ class ManualTokenRefresher:
                     self._delete_existing_token()
 
                     token = self._create_new_token()
-                    self._record_analytics()
+                    self._record_token_exchange()
                     return token
             except (OutboxDatabaseError, OutboxFlushError) as e:
                 if token is not None:
@@ -62,6 +62,7 @@ class ManualTokenRefresher:
                         extra=context,
                         exc_info=e,
                     )
+                    self._record_token_exchange()
                     return token
 
                 raise SentryAppSentryError(
@@ -84,12 +85,19 @@ class ManualTokenRefresher:
             )
         self.installation.api_token.delete()
 
-    def _record_analytics(self) -> None:
+    def _record_token_exchange(self) -> None:
         analytics.record(
             SentryAppTokenExchangedEvent(
                 sentry_app_installation_id=self.install.id,
                 exchange_type="manual_refresh",
             )
+        )
+        logger.info(
+            "manual_refresher.token_exchange",
+            extra={
+                "installation_uuid": self.install.uuid,
+                "sentry_app_id": self.install.sentry_app.id,
+            },
         )
 
     def _validate(self) -> None:

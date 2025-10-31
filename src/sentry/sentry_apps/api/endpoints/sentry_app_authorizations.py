@@ -7,10 +7,10 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.authentication import get_payload_from_client_secret_jwt
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.auth.services.auth.impl import promote_request_api_user
+from sentry.security.utils import capture_security_activity
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppAuthorizationsBaseEndpoint
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
@@ -85,12 +85,28 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     return Response(client_secret_jwt_serializer.errors, status=400)
 
                 # we've already validated the JWT in the authentication class so we can use the payload
-                payload = get_payload_from_client_secret_jwt(request.headers, installation)
+                payload = getattr(request, "jwt_payload", None)
+                if not payload:
+                    raise SentryAppIntegratorError(message="JWT payload not found", status_code=400)
+
+                user = promote_request_api_user(request)
                 token = ManualTokenRefresher(
                     install=installation,
                     client_id=payload["iss"],
-                    user=promote_request_api_user(request),
+                    user=user,
                 ).run()
+
+                capture_security_activity(
+                    account=user,
+                    type="sentry-app-token-refreshed",
+                    actor=user,
+                    ip_address=request.META["REMOTE_ADDR"],
+                    context={
+                        "installation_uuid": installation.uuid,
+                        "sentry_app_id": installation.sentry_app.id,
+                    },
+                    send_email=False,
+                )
 
             else:
                 raise SentryAppIntegratorError(message="Invalid grant_type", status_code=403)
