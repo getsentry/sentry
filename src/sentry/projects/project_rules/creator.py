@@ -7,15 +7,11 @@ from django.db import router, transaction
 from rest_framework.request import Request
 
 from sentry import features
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.types.actor import Actor
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import (
-    IssueAlertMigrator,
-    ensure_default_detector,
-)
-from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
+from sentry.workflow_engine.processors.detector import ensure_default_detectors
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +34,7 @@ class ProjectRuleCreator:
         if features.has(
             "organizations:workflow-engine-issue-alert-dual-write", self.project.organization
         ):
-            ensure_default_detector(self.project, ErrorGroupType.slug)
-            ensure_default_detector(
-                self.project, IssueStreamGroupType.slug
-            )  # TODO: connect workflow to issue stream detector
+            ensure_default_detectors(self.project)
 
         with transaction.atomic(router.db_for_write(Rule)):
             self.rule = self._create_rule()
