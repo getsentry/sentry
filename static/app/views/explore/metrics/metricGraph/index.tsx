@@ -11,6 +11,7 @@ import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVis
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
+import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {
   useMetricLabel,
   useMetricVisualize,
@@ -29,12 +30,26 @@ import {
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
+import {WidgetWrapper} from './styles';
+
+const MINIMIZED_GRAPH_HEIGHT = 50;
+const STACKED_GRAPH_HEIGHT = 362;
+
 interface MetricsGraphProps {
+  orientation: TableOrientation;
   queryIndex: number;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  additionalActions?: React.ReactNode;
+  infoContentHidden?: boolean;
 }
 
-export function MetricsGraph({timeseriesResult, queryIndex}: MetricsGraphProps) {
+export function MetricsGraph({
+  timeseriesResult,
+  queryIndex,
+  orientation,
+  additionalActions,
+  infoContentHidden,
+}: MetricsGraphProps) {
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
 
@@ -48,6 +63,9 @@ export function MetricsGraph({timeseriesResult, queryIndex}: MetricsGraphProps) 
       timeseriesResult={timeseriesResult}
       onChartTypeChange={handleChartTypeChange}
       queryIndex={queryIndex}
+      orientation={orientation}
+      additionalActions={additionalActions}
+      infoContentHidden={infoContentHidden}
     />
   );
 }
@@ -58,7 +76,15 @@ interface GraphProps extends MetricsGraphProps {
   visualize: ReturnType<typeof useMetricVisualize>;
 }
 
-function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: GraphProps) {
+function Graph({
+  onChartTypeChange,
+  timeseriesResult,
+  queryIndex,
+  orientation,
+  visualize,
+  infoContentHidden,
+  additionalActions,
+}: GraphProps) {
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const metricLabel = useMetricLabel();
@@ -126,26 +152,35 @@ function Graph({onChartTypeChange, timeseriesResult, queryIndex, visualize}: Gra
           options={intervalOptions}
         />
       </Tooltip>
+      {additionalActions}
     </Fragment>
   );
 
   return (
-    <Widget
-      Title={Title}
-      Actions={Actions}
-      Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
-      Footer={
-        visualize.visible && (
-          <ConfidenceFooter
-            chartInfo={chartInfo}
-            isLoading={timeseriesResult.isFetching}
-            hasUserQuery={!!userQuery}
-          />
-        )
-      }
-      height={visualize.visible ? undefined : 0}
-      revealActions="always"
-      borderless
-    />
+    <WidgetWrapper hideFooterBorder={orientation === 'bottom'}>
+      <Widget
+        Title={Title}
+        Actions={Actions}
+        Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
+        Footer={
+          visualize.visible && (
+            <ConfidenceFooter
+              chartInfo={chartInfo}
+              isLoading={timeseriesResult.isFetching}
+              hasUserQuery={!!userQuery}
+            />
+          )
+        }
+        height={
+          visualize.visible
+            ? orientation === 'bottom' || infoContentHidden
+              ? STACKED_GRAPH_HEIGHT
+              : undefined
+            : MINIMIZED_GRAPH_HEIGHT
+        }
+        revealActions="always"
+        borderless
+      />
+    </WidgetWrapper>
   );
 }
