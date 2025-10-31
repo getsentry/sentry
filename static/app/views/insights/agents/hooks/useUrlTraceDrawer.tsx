@@ -43,21 +43,11 @@ export function useUrlTraceDrawer() {
         ...rest
       } = options || {};
 
-      if (optionsTraceSlug) {
-        setTraceDrawerQueryState({
-          traceId: optionsTraceSlug,
-        });
-      }
-      if (optionsSpanId) {
-        setTraceDrawerQueryState({
-          spanId: optionsSpanId,
-        });
-      }
-      if (optionsTimestamp) {
-        setTraceDrawerQueryState({
-          timestamp: optionsTimestamp,
-        });
-      }
+      setTraceDrawerQueryState({
+        traceId: optionsTraceSlug,
+        spanId: optionsSpanId,
+        timestamp: optionsTimestamp,
+      });
 
       return baseOpenDrawer(renderer, {
         ...rest,

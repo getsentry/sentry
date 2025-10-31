@@ -70,7 +70,6 @@ export function GenerationsTable() {
       search: query,
       fields: [
         SpanFields.TRACE,
-        SpanFields.TIMESTAMP,
         SpanFields.SPAN_ID,
         SpanFields.SPAN_STATUS,
         SpanFields.SPAN_DESCRIPTION,
