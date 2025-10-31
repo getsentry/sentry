@@ -145,7 +145,11 @@ def transform_preprod_artifact_to_build_details(
 
     size_info = to_size_info(size_metrics)
 
-    platform = platform_from_artifact_type(artifact.artifact_type)
+    platform = None
+    # artifact_type can be null before preprocessing has completed
+    if artifact.artifact_type is not None:
+        platform = platform_from_artifact_type(artifact.artifact_type)
+
     apple_app_info = None
     if platform == Platform.IOS or platform == Platform.MACOS:
         apple_app_info = AppleAppInfo(
@@ -155,7 +159,7 @@ def transform_preprod_artifact_to_build_details(
         )
 
     android_app_info = None
-    if platform_from_artifact_type(artifact.artifact_type) == Platform.ANDROID:
+    if platform == Platform.ANDROID:
         android_app_info = AndroidAppInfo(
             has_proguard_mapping=(
                 artifact.extras.get("has_proguard_mapping", True) if artifact.extras else True
