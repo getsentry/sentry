@@ -66,6 +66,9 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
     """
     Process a single project for Web Vitals issue detection.
     """
+    if not options.get("issue-detection.web-vitals-detection.enabled"):
+        return
+
     web_vital_issue_groups = get_highest_opportunity_page_vitals_for_project(
         project_id, limit=TRANSACTIONS_PER_PROJECT_LIMIT
     )
