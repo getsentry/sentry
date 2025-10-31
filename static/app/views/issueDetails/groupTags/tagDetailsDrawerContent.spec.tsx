@@ -291,6 +291,78 @@ describe('TagDetailsDrawerContent', () => {
     expect(screen.getByText('997')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
   });
+
+  it('renders empty tag value label and hides copy action', async () => {
+    const emptyTagValues = TagValuesFixture().map((tagValue, index) =>
+      index === 0
+        ? {
+            ...tagValue,
+            name: '',
+            value: '',
+            query: undefined,
+          }
+        : tagValue
+    );
+    const tagsWithEmpty = TagsFixture().map(tagItem =>
+      tagItem.key === 'device'
+        ? {
+            ...tagItem,
+            topValues: tagItem.topValues.map((value, valueIndex) =>
+              valueIndex === 0
+                ? {
+                    ...value,
+                    name: '',
+                    value: '',
+                  }
+                : value
+            ),
+          }
+        : tagItem
+    );
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/',
+      body: tagsWithEmpty,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/device/',
+      body: tagsWithEmpty.find(({key}) => key === 'device'),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/device/values/',
+      body: emptyTagValues,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/`,
+      body: group,
+    });
+
+    render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('device'),
+    });
+
+    expect(await screen.findByText('(empty)')).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('(empty)'));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Tag Value Actions Menu'})
+    );
+
+    const viewEventsMenuItem = screen.getByRole('menuitemradio', {
+      name: 'View other events with this tag value',
+    });
+    const viewEventsUrl = new URL(
+      viewEventsMenuItem.getAttribute('href') ?? '',
+      'http://localhost'
+    );
+    expect(viewEventsUrl.pathname).toBe('/organizations/org-slug/issues/1/events/');
+    expect(viewEventsUrl.searchParams.get('query')).toBe('!has:device');
+    expect(viewEventsUrl.searchParams.get('referrer')).toBe('tag-details-drawer');
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Copy tag value to clipboard'})
+    ).not.toBeInTheDocument();
+  });
 });
 
 function VariableTagFixture(topValues: number[], totalValues: number): TagWithTopValues {

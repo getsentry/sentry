@@ -220,6 +220,7 @@ function TagDetailsValue({
 }) {
   const theme = useTheme();
   const userValues = getUserTagValue(tagValue);
+  const value = tagValue.value === '' ? t('(empty)') : tagValue.value;
   const valueComponent =
     tagKey === 'user' ? (
       <UserValue>
@@ -236,7 +237,7 @@ function TagDetailsValue({
         {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
       </UserValue>
     ) : (
-      <DeviceName value={tagValue.value} />
+      <DeviceName value={value} />
     );
 
   return (
@@ -320,6 +321,7 @@ function TagValueActionsMenu({
           label: t('Copy tag value to clipboard'),
           onAction: () =>
             copy(tagValue.value, {successMessage: t('Copied tag value to clipboard')}),
+          hidden: tagValue.value === '',
         },
       ]}
     />

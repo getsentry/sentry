@@ -90,6 +90,8 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
       name = formatVersion(value.name);
     } else if (tag.key === 'device') {
       name = <DeviceName value={value.name} />;
+    } else if (value.name === '') {
+      name = t('(empty)');
     }
 
     return {
