@@ -55,8 +55,10 @@ export function ProcessingErrorItem({error, checkinTooltip}: Props) {
         {checkinTooltip}
       );
     case ProcessingErrorType.MONITOR_DISABLED_NO_QUOTA:
+      // TODO: this should really be a gsApp hook so we have subscription context, but
+      // for now we'll just default to "pay-as-you-go" since it's the modern term
       return tct(
-        'A [checkinTooltip:check-in] upsert was sent, but due to insufficient quota a new monitor could not be enabled. Increase your Crons on-demand budget in your [link: subscription settings], and then enable this monitor.',
+        'A [checkinTooltip:check-in] upsert was sent, but due to insufficient quota a new monitor could not be enabled. Increase your Crons pay-as-you-go budget in your [link: subscription settings], and then enable this monitor.',
         {checkinTooltip, link: <Link to="/settings/billing/overview/" />}
       );
     case ProcessingErrorType.MONITOR_INVALID_CONFIG:

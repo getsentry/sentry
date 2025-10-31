@@ -74,7 +74,7 @@ function BillingCycleSelectCard({
     ? tct('[budgetTerm] usage billed monthly, discount does not apply', {
         budgetTerm:
           plan.budgetTerm === 'pay-as-you-go'
-            ? 'PAYG'
+            ? displayBudgetName(plan, {abbreviated: true})
             : displayBudgetName(plan, {title: true}),
       })
     : t('Cancel anytime');

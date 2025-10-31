@@ -114,7 +114,7 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
           <EditOnDemandButton organization={organization} subscription={subscription} />
         )}
       </PanelHeader>
-      {/* AM3 doesn't have on-demand-budgets, but we want them to see the newer ui  */}
+      {/* AM3 doesn't have PAYG budget modes, but we want them to see the newer ui  */}
       {hasOndemandBudgets || subscription.planTier === PlanTier.AM3 ? (
         <OnDemandBudgets
           onDemandEnabled={onDemandEnabled}

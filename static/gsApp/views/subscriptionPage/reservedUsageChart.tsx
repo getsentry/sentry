@@ -397,7 +397,7 @@ export function mapReservedBudgetStatsToChart({
             }
             // when cumulative, onDemand is the running total for the category
             // otherwise, onDemand is the amount used for the category for this date
-            // either way we need to add them together to get the on-demand amount across the categories
+            // either way we need to add them together to get the on-demand/PAYG amount across the categories
             onDemandForDate += onDemand;
           }
         });

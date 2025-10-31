@@ -352,7 +352,7 @@ function Overview({location, subscription, promotionData}: Props) {
    *   - Receipts
    *   - Credit card on file
    *   - Previous usage history
-   *   - On-demand information
+   *   - On-demand/PAYG information
    */
   function contentWithBillingPerms(usageData: CustomerUsage, planDetails: Plan) {
     return (

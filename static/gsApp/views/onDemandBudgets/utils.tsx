@@ -131,8 +131,8 @@ export function hasOnDemandBudgetsFeature(
   organization: undefined | Organization,
   subscription: undefined | Subscription
 ) {
-  // This function determines if the org can access the on-demand budgets UI.
-  // Only orgs on the AM plan can access the on-demand budgets UI.
+  // This function determines if the org can access the PAYG budgets UI.
+  // Only orgs on the AM plan can access the PAYG budgets UI.
   return (
     subscription?.planDetails?.hasOnDemandModes &&
     organization?.features.includes('ondemand-budgets')
@@ -154,7 +154,7 @@ export function exceedsInvoicedBudgetLimit(
     return false;
   }
 
-  // no limit for invoiced customers with CC-charged on-demand
+  // no limit for invoiced customers with CC-charged PAYG
   if (subscription.onDemandInvoiced && !subscription.onDemandInvoicedManual) {
     return false;
   }

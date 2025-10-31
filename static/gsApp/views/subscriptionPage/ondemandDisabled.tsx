@@ -31,8 +31,8 @@ import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {tct} from 'sentry/locale';
 
-import {PlanTier, type Subscription} from 'getsentry/types';
-import {isAmPlan} from 'getsentry/utils/billing';
+import {type Subscription} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 
 interface Props {
   subscription: Subscription;
@@ -44,28 +44,14 @@ function OnDemandDisabled({subscription}: Props) {
     return null;
   }
 
-  // Determine the appropriate terminology based on plan tier
-  const preAM3Tiers = [PlanTier.AM1, PlanTier.AM2];
-  const isPreAM3Tier = preAM3Tiers.includes(subscription.planTier as PlanTier);
-
-  const isAMTier = isAmPlan(subscription.planTier as PlanTier);
-
-  // Set display name based on plan tier:
-  // - "Pay-as-you-go" for AM3+ plans
-  // - "On-demand" for all other plans (including legacy AM1/AM2)
-  let name = 'On-demand';
-  if (isAMTier && !isPreAM3Tier) {
-    name = 'Pay-as-you-go';
-  }
-
   return (
     <Alert type="error" data-test-id="ondemand-disabled-alert" showIcon={false}>
       <span>
         {tct(
-          "[Name] billing is disabled for your organization due to an unpaid [lowercase_name] invoice. This may impact your organization's ability to accept data into Sentry. [docs_link:Learn more about this process].",
+          "[budgetTerm] billing is disabled for your organization due to an unpaid [lowerCaseBudgetTerm] invoice. This may impact your organization's ability to accept data into Sentry. [docs_link:Learn more about this process].",
           {
-            Name: name,
-            lowercase_name: name.toLowerCase(),
+            budgetTerm: displayBudgetName(subscription.planDetails, {title: true}),
+            lowerCaseBudgetTerm: displayBudgetName(subscription.planDetails),
             docs_link: (
               <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/23622477256987-We-can-t-pay-our-on-demand-pay-as-you-go-invoice-and-have-an-annual-contract-What-happens" />
             ),
@@ -74,9 +60,9 @@ function OnDemandDisabled({subscription}: Props) {
       </span>{' '}
       <span>
         {tct(
-          'Please contact [contact_link:support@sentry.io] to pay [receipts_link:closed/outstanding invoices] to re-enable [lowercase_name] billing.',
+          'Please contact [contact_link:support@sentry.io] to pay [receipts_link:closed/outstanding invoices] to re-enable [budgetTerm] billing.',
           {
-            lowercase_name: name.toLowerCase(),
+            budgetTerm: displayBudgetName(subscription.planDetails),
             receipts_link: <NavLink to="/settings/billing/receipts/" />,
             contact_link: <a href="mailto:support@sentry.io" />,
           }

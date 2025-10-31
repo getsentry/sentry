@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {PlanTier} from 'getsentry/types';
-import {isAmPlan} from 'getsentry/utils/billing';
+import {displayBudgetName, isAmPlan} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import VolumeSliders from 'getsentry/views/amCheckout/steps/volumeSliders';
@@ -83,7 +83,8 @@ function AddDataVolume({
     <StepFooter isLegacy={isLegacy} data-test-id={`${testId}-footer`}>
       {isLegacy && (
         <div>
-          {tct('Need more data? Add On-Demand Budget, or [link:Contact Sales]', {
+          {tct('Need more data? Add [budgetTerm], or [link:Contact Sales]', {
+            budgetTerm: displayBudgetName(activePlan, {title: true, withBudget: true}),
             link: <a href="mailto:sales@sentry.io" />,
           })}
         </div>

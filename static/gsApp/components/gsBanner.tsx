@@ -722,7 +722,7 @@ class GSBanner extends Component<Props, State> {
 
   get overageWarningActive(): Record<EventType, boolean> {
     const {subscription} = this.props;
-    // disable warnings if org has on-demand
+    // disable warnings if org has PAYG
     if (
       subscription.hasOverageNotificationsDisabled ||
       subscription.onDemandMaxSpend > 0
