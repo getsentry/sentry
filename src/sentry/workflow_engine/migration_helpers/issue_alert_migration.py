@@ -56,14 +56,12 @@ class IssueAlertMigrator:
         self.organization = self.project.organization
 
     def run(self) -> Workflow:
-        default_detectors = self._create_detector_lookups()
         conditions, filters = split_conditions_and_filters(self.data["conditions"])
         action_match = self.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         workflow = self._create_workflow_and_lookup(
             conditions=conditions,
             filters=filters,
             action_match=action_match,
-            default_detectors=default_detectors,
         )
         filter_match = self.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
         if_dcg = self._create_if_dcg(
@@ -110,6 +108,12 @@ class IssueAlertMigrator:
             )
 
         return error_detector, issue_stream_detector
+
+    def _connect_default_detectors(self, workflow: Workflow) -> None:
+        default_detectors = self._create_detector_lookups()
+        for detector in default_detectors:
+            if detector:
+                DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
 
     def _bulk_create_data_conditions(
         self,
@@ -191,7 +195,6 @@ class IssueAlertMigrator:
         conditions: list[dict[str, Any]],
         filters: list[dict[str, Any]],
         action_match: str,
-        default_detectors: tuple[Detector | None, Detector | None],
     ) -> Workflow:
         when_dcg = self._create_when_dcg(action_match=action_match)
         data_conditions = self._bulk_create_data_conditions(
@@ -245,9 +248,8 @@ class IssueAlertMigrator:
         else:
             workflow = Workflow.objects.create(**kwargs)
             workflow.update(date_added=self.rule.date_added)
-            for detector in default_detectors:
-                if detector:
-                    DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
+            if not self.rule.source == RuleSource.CRON_MONITOR:
+                self._connect_default_detectors(workflow=workflow)
             AlertRuleWorkflow.objects.create(rule_id=self.rule.id, workflow=workflow)
 
         return workflow
