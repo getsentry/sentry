@@ -4,7 +4,7 @@ import {parseAsString, useQueryState} from 'nuqs';
 
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -59,9 +59,6 @@ import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/componen
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {ModuleName} from 'sentry/views/insights/types';
-
-const TableControl = SegmentedControl<TableType>;
-const TableControlItem = SegmentedControl.Item<TableType>;
 
 function useShowOnboarding() {
   const {projects} = useProjects();
@@ -220,26 +217,29 @@ function AgentsOverviewPage() {
                       </WidgetGrid.Position3>
                     </WidgetGrid>
                     <Container paddingTop="xl" paddingBottom="xl">
-                      <TableControl
-                        value={activeTable}
-                        onChange={handleTableSwitch}
-                        size="sm"
-                      >
-                        <TableControlItem key={TableType.TRACES}>
-                          {t('Traces')}
-                        </TableControlItem>
-                        <TableControlItem key={TableType.MODELS}>
-                          {t('Models')}
-                        </TableControlItem>
-                        <TableControlItem key={TableType.TOOLS}>
-                          {t('Tools')}
-                        </TableControlItem>
-                      </TableControl>
+                      <Tabs value={activeTable} onChange={handleTableSwitch}>
+                        <TabList variant="floating">
+                          <TabList.Item key={TableType.TRACES}>
+                            {t('Traces')}
+                          </TabList.Item>
+                          <TabList.Item key={TableType.MODELS}>
+                            {t('Models')}
+                          </TabList.Item>
+                          <TabList.Item key={TableType.TOOLS}>{t('Tools')}</TabList.Item>
+                        </TabList>
+                        <TabPanels>
+                          <TabPanels.Item key={TableType.TRACES}>
+                            <TracesView />
+                          </TabPanels.Item>
+                          <TabPanels.Item key={TableType.MODELS}>
+                            <ModelsView />
+                          </TabPanels.Item>
+                          <TabPanels.Item key={TableType.TOOLS}>
+                            <ToolsView />
+                          </TabPanels.Item>
+                        </TabPanels>
+                      </Tabs>
                     </Container>
-
-                    {activeTable === TableType.TRACES && <TracesView />}
-                    {activeTable === TableType.MODELS && <ModelsView />}
-                    {activeTable === TableType.TOOLS && <ToolsView />}
                   </Fragment>
                 )}
               </ModuleLayout.Full>
