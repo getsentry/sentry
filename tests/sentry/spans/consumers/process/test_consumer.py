@@ -81,9 +81,9 @@ def test_basic(kafka_slice_id: int | None) -> None:
                 "spans": [
                     {
                         "attributes": {
-                            "sentry.is_segment": {"type": "boolean", "value": True},
                             "sentry.segment.id": {"type": "string", "value": "aaaaaaaaaaaaaaaa"},
                         },
+                        "is_segment": True,
                         "project_id": 12,
                         "span_id": "aaaaaaaaaaaaaaaa",
                         "trace_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -135,7 +135,7 @@ def test_schema_validator_rejects_none_fields(field_to_set_none: str) -> None:
             "received": 1699999999.0,
             "name": "test-span",
             "status": "ok",
-            "is_remote": False,
+            "is_segment": False,
         }
         # Set the field to None
         span_data[field_to_set_none] = None
@@ -202,7 +202,7 @@ def test_schema_validator_rejects_string_timestamps() -> None:
             "received": 1699999999.0,
             "name": "test-span",
             "status": "ok",
-            "is_remote": False,
+            "is_segment": False,
         }
 
         step.submit(
