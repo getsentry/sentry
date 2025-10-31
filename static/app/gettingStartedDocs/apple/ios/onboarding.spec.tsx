@@ -2,7 +2,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs from './ios';
+import docs from '.';
 
 describe('apple-ios onboarding docs', () => {
   it('renders docs correctly', async () => {
