@@ -16,7 +16,6 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
 from sentry.users.services.user.service import user_service
@@ -108,7 +107,6 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     @responses.activate
     @patch("sentry.analytics.record")
-    @override_options({"workflow_engine.sentry-app-actions-outbox": True})
     def test_delete_install(self, record: MagicMock) -> None:
         responses.add(url="https://example.com/webhook", method=responses.POST, body=b"")
         self.login_as(user=self.user)
