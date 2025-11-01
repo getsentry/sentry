@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from typing import Any
 
 import orjson
@@ -30,8 +30,8 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.integrations.slack.views.link_identity import build_linking_url
-from sentry.models.organization import Organization
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
 
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
@@ -164,11 +164,11 @@ class SlackEventEndpoint(SlackDMEndpoint):
         self,
         request: Request,
         slack_request: SlackDMRequest,
-        data: Mapping[str, Any],
-        organization: Organization,
-        logger_params: Mapping[str, Any],
-    ) -> list[UnfurlableUrl]:
-        matches: MutableMapping[LinkType, list[UnfurlableUrl]] = defaultdict(list)
+        data: dict[str, Any],
+        organization: RpcOrganization | None,
+        logger_params: dict[str, Any],
+    ) -> dict[LinkType, list[UnfurlableUrl]]:
+        matches: dict[LinkType, list[UnfurlableUrl]] = defaultdict(list)
         links_seen = set()
 
         for item in data.get("links", []):
@@ -209,7 +209,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
                     self.prompt_link(slack_request)
                     lifecycle.record_halt("Discover link requires identity", extra={"url": url})
-                    return True
+                    return {}
 
                 # Don't unfurl the same thing multiple times
                 seen_marker = hash(orjson.dumps((link_type, list(args))).decode())
@@ -219,10 +219,12 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 links_seen.add(seen_marker)
                 matches[link_type].append(UnfurlableUrl(url=url, args=args))
 
+        return matches
+
     def _unfurl_links(
-        self, slack_request: SlackDMRequest, matches: MutableMapping[LinkType, list[UnfurlableUrl]]
-    ) -> MutableMapping[str, Any]:
-        results: MutableMapping[str, Any] = {}
+        self, slack_request: SlackDMRequest, matches: dict[LinkType, list[UnfurlableUrl]]
+    ) -> dict[str, Any]:
+        results: dict[str, Any] = {}
         for link_type, unfurl_data in matches.items():
             results.update(
                 link_handlers[link_type].fn(
