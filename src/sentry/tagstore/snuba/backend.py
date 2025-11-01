@@ -74,6 +74,9 @@ FUZZY_NUMERIC_KEYS = frozenset(
 )
 FUZZY_NUMERIC_DISTANCE = 50
 
+# Limit keys for empty-value stats to avoid generating overly large ClickHouse queries
+MAX_EMPTY_VALUE_STATS_KEYS = 150
+
 # Since all event types are currently stored together, we need to manually exclude transactions
 # when querying the events dataset. This condition can be dropped once we cut over to the errors
 # storage in Snuba.
@@ -813,8 +816,13 @@ class SnubaTagStorage(TagStorage):
         start,
         end,
     ) -> dict[str, dict[str, Any]]:
+        stats_map: dict[str, dict[str, Any]] = {}
         if not keys_to_check:
-            return {}
+            return stats_map
+
+        # If too many keys are requested, truncate to a safe maximum to avoid huge queries.
+        if len(keys_to_check) > MAX_EMPTY_VALUE_STATS_KEYS:
+            return stats_map
 
         empty_alias_map: dict[str, dict[str, str]] = {}
         selected_columns_empty: list[list] = []
@@ -848,7 +856,7 @@ class SnubaTagStorage(TagStorage):
             referrer="tagstore._get_tag_keys_and_top_values_empty_counts",
             tenant_ids=tenant_ids,
         )
-        stats_map: dict[str, dict[str, Any]] = {}
+
         for k in keys_to_check:
             aliases = empty_alias_map[k]
             stats_map[k] = {
