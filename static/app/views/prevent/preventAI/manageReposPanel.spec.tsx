@@ -1,10 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PreventAIConfigFixture} from 'sentry-fixture/prevent';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {RepositoryStatus} from 'sentry/types/integrations';
 import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
-import type {PreventAIOrgConfig} from 'sentry/types/prevent';
+import type {PreventAIConfig} from 'sentry/types/prevent';
 import ManageReposPanel, {
   getRepoConfig,
   type ManageReposPanelProps,
@@ -69,41 +70,35 @@ describe('ManageReposPanel', () => {
     isEditingOrgDefaults: false,
   };
 
+  const mockOrganization = OrganizationFixture({slug: 'test-org'});
+
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUpdatePreventAIFeatureReturn = {};
+    mockUpdatePreventAIFeatureReturn = {
+      enableFeature: jest.fn(),
+      isLoading: false,
+      error: undefined,
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
+      body: {
+        schema_version: 'v1',
+        default_org_config: PreventAIConfigFixture(),
+        organization: {
+          'org-1': PreventAIConfigFixture(),
+        },
+      },
+    });
   });
 
-  const mockOrganization = OrganizationFixture({
-    preventAiConfigGithub: {
-      schema_version: 'v1',
-      github_organizations: {},
-      default_org_config: {
-        org_defaults: {
-          bug_prediction: {
-            enabled: true,
-            triggers: {on_command_phrase: true, on_ready_for_review: false},
-            sensitivity: 'medium',
-          },
-          test_generation: {
-            enabled: false,
-            triggers: {on_command_phrase: false, on_ready_for_review: false},
-          },
-          vanilla: {
-            enabled: true,
-            triggers: {on_command_phrase: false, on_ready_for_review: false},
-            sensitivity: 'medium',
-          },
-        },
-        repo_overrides: {},
-      },
-    },
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
   });
 
   it('calls onClose when the close button is clicked', async () => {
     render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
-    const closeButton = await screen.findByLabelText(/Close Settings/i);
-    await userEvent.click(closeButton);
+    await userEvent.click(await screen.findByLabelText(/Close Settings/i));
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
@@ -112,53 +107,61 @@ describe('ManageReposPanel', () => {
     expect(
       await screen.findByText('AI Code Review Repository Settings')
     ).toBeInTheDocument();
-    expect(
-      await screen.findByText(/These settings apply to the selected/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/These settings apply to the selected/i)).toBeInTheDocument();
     const repoLink = await screen.findByRole('link', {name: /repo-1/i});
     expect(repoLink).toHaveAttribute('href', 'https://github.com/org-1/repo-1');
   });
 
   it('renders the panel header and description with org defaults when "All Repos" is selected', async () => {
-    const props = {...defaultProps};
-    props.repo = null;
-    props.isEditingOrgDefaults = true;
-    render(<ManageReposPanel {...props} />, {organization: mockOrganization});
+    render(<ManageReposPanel {...defaultProps} repo={null} isEditingOrgDefaults />, {
+      organization: mockOrganization,
+    });
     expect(
       await screen.findByText('AI Code Review Default Settings')
     ).toBeInTheDocument();
     expect(
-      await screen.findByText(/These settings apply to all repositories by default/i)
+      screen.getByText(/These settings apply to all repositories by default/i)
     ).toBeInTheDocument();
   });
 
   it('renders [none] when no repos have overrides when editing org defaults', async () => {
-    const props = {...defaultProps};
-    props.repo = null;
-    props.isEditingOrgDefaults = true;
-    const mockOrgNoOverrides = structuredClone(mockOrganization);
-    mockOrgNoOverrides.preventAiConfigGithub!.default_org_config.repo_overrides = {};
-    render(<ManageReposPanel {...props} />, {organization: mockOrgNoOverrides});
+    render(<ManageReposPanel {...defaultProps} repo={null} isEditingOrgDefaults />, {
+      organization: mockOrganization,
+    });
     expect(await screen.findByText(/\[none\]/i)).toBeInTheDocument();
   });
 
   it('shows feature toggles with correct initial state when repo has overrides', async () => {
-    const defaultOrgConfig = mockOrganization.preventAiConfigGithub!.default_org_config;
-    const orgWithOverride = OrganizationFixture({
-      preventAiConfigGithub: {
+    const configWithOverride = PreventAIConfigFixture();
+    configWithOverride.repo_overrides['repo-1'] = {
+      vanilla: {
+        enabled: true,
+        triggers: {on_command_phrase: false, on_ready_for_review: true},
+        sensitivity: 'low',
+      },
+      test_generation: {
+        enabled: false,
+        triggers: {on_command_phrase: false, on_ready_for_review: false},
+      },
+      bug_prediction: {
+        enabled: true,
+        triggers: {on_command_phrase: true, on_ready_for_review: false},
+        sensitivity: 'medium',
+      },
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
+      body: {
         schema_version: 'v1',
-        default_org_config: defaultOrgConfig,
-        github_organizations: {
-          'org-1': {
-            org_defaults: defaultOrgConfig.org_defaults,
-            repo_overrides: {
-              'repo-1': defaultOrgConfig.org_defaults,
-            },
-          },
+        default_org_config: PreventAIConfigFixture(),
+        organization: {
+          'org-1': configWithOverride,
         },
       },
     });
-    render(<ManageReposPanel {...defaultProps} />, {organization: orgWithOverride});
+
+    render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     expect(await screen.findByLabelText(/Enable PR Review/i)).toBeChecked();
     expect(await screen.findByLabelText(/Enable Test Generation/i)).not.toBeChecked();
     expect(await screen.findByLabelText(/Enable Error Prediction/i)).toBeChecked();
@@ -173,22 +176,22 @@ describe('ManageReposPanel', () => {
       ...mockUpdatePreventAIFeatureReturn,
       isLoading: true,
     };
-    const defaultOrgConfig = mockOrganization.preventAiConfigGithub!.default_org_config;
-    const orgWithOverride = OrganizationFixture({
-      preventAiConfigGithub: {
+
+    const configWithOverride = PreventAIConfigFixture();
+    configWithOverride.repo_overrides['repo-1'] = PreventAIConfigFixture().org_defaults;
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
+      body: {
         schema_version: 'v1',
-        default_org_config: defaultOrgConfig,
-        github_organizations: {
-          'org-1': {
-            org_defaults: defaultOrgConfig.org_defaults,
-            repo_overrides: {
-              'repo-1': defaultOrgConfig.org_defaults,
-            },
-          },
+        default_org_config: PreventAIConfigFixture(),
+        organization: {
+          'org-1': configWithOverride,
         },
       },
     });
-    render(<ManageReposPanel {...defaultProps} />, {organization: orgWithOverride});
+
+    render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     expect(await screen.findByLabelText(/Enable PR Review/i)).toBeDisabled();
     expect(await screen.findByLabelText(/Enable Test Generation/i)).toBeDisabled();
     expect(await screen.findByLabelText(/Enable Error Prediction/i)).toBeDisabled();
@@ -196,45 +199,42 @@ describe('ManageReposPanel', () => {
 
   it('hides all feature toggles when using org defaults', () => {
     render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
-    // Repo is using org defaults, so all feature toggles should be hidden
     expect(screen.queryByLabelText(/Enable PR Review/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Enable Test Generation/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Enable Error Prediction/i)).not.toBeInTheDocument();
   });
 
   it('shows feature toggles when repo has overrides', async () => {
-    const defaultOrgConfig = mockOrganization.preventAiConfigGithub!.default_org_config;
-    const orgWithOverride = OrganizationFixture({
-      preventAiConfigGithub: {
+    const configWithOverride = PreventAIConfigFixture();
+    configWithOverride.repo_overrides['repo-1'] = {
+      bug_prediction: {
+        enabled: true,
+        triggers: {on_command_phrase: true, on_ready_for_review: false},
+        sensitivity: 'high',
+      },
+      test_generation: {
+        enabled: false,
+        triggers: {on_command_phrase: false, on_ready_for_review: false},
+      },
+      vanilla: {
+        enabled: true,
+        triggers: {on_command_phrase: false, on_ready_for_review: false},
+        sensitivity: 'medium',
+      },
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
+      body: {
         schema_version: 'v1',
-        default_org_config: defaultOrgConfig,
-        github_organizations: {
-          'org-1': {
-            org_defaults: defaultOrgConfig.org_defaults,
-            repo_overrides: {
-              'repo-1': {
-                bug_prediction: {
-                  enabled: true,
-                  triggers: {on_command_phrase: true, on_ready_for_review: false},
-                  sensitivity: 'high',
-                },
-                test_generation: {
-                  enabled: false,
-                  triggers: {on_command_phrase: false, on_ready_for_review: false},
-                },
-                vanilla: {
-                  enabled: true,
-                  triggers: {on_command_phrase: false, on_ready_for_review: false},
-                  sensitivity: 'medium',
-                },
-              },
-            },
-          },
+        default_org_config: PreventAIConfigFixture(),
+        organization: {
+          'org-1': configWithOverride,
         },
       },
     });
-    render(<ManageReposPanel {...defaultProps} />, {organization: orgWithOverride});
-    // Repo has overrides, so feature toggles should be enabled
+
+    render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     expect(await screen.findByLabelText(/Enable PR Review/i)).toBeEnabled();
     expect(await screen.findByLabelText(/Enable Test Generation/i)).toBeEnabled();
     expect(await screen.findByLabelText(/Enable Error Prediction/i)).toBeEnabled();
@@ -251,49 +251,43 @@ describe('ManageReposPanel', () => {
   });
 
   it('shows sensitivity options when feature is enabled and repo has overrides', async () => {
-    const defaultOrgConfig = mockOrganization.preventAiConfigGithub!.default_org_config;
-    const repoOverride = {...defaultOrgConfig.org_defaults};
+    const configWithOverride = PreventAIConfigFixture();
+    const repoOverride = {...PreventAIConfigFixture().org_defaults};
+    // Enable the features
+    repoOverride.vanilla.enabled = true;
+    repoOverride.bug_prediction.enabled = true;
     repoOverride.bug_prediction.sensitivity = 'high';
+    configWithOverride.repo_overrides['repo-1'] = repoOverride;
 
-    const orgWithOverride = OrganizationFixture({
-      preventAiConfigGithub: {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
+      body: {
         schema_version: 'v1',
-        default_org_config: defaultOrgConfig,
-        github_organizations: {
-          'org-1': {
-            org_defaults: defaultOrgConfig.org_defaults,
-            repo_overrides: {
-              'repo-1': repoOverride,
-            },
-          },
+        default_org_config: PreventAIConfigFixture(),
+        organization: {
+          'org-1': configWithOverride,
         },
       },
     });
-    render(<ManageReposPanel {...defaultProps} />, {organization: orgWithOverride});
-    const prReviewCheckbox = await screen.findByLabelText(/Enable PR Review/i);
-    const errorPredictionCheckbox = await screen.findByLabelText(
-      /Enable Error Prediction/i
-    );
-    expect(prReviewCheckbox).toBeChecked();
-    expect(errorPredictionCheckbox).toBeChecked();
+
+    render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
+    expect(await screen.findByLabelText(/Enable PR Review/i)).toBeChecked();
+    expect(await screen.findByLabelText(/Enable Error Prediction/i)).toBeChecked();
     expect(
       await screen.findByTestId(/pr-review-sensitivity-dropdown/i)
     ).toBeInTheDocument();
-    expect(
-      await screen.findByTestId(/error-prediction-sensitivity-dropdown/i)
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByTestId(/error-prediction-sensitivity-dropdown/i)
-    ).toHaveTextContent(/High/i);
+    const predictionSens = await screen.findByTestId(
+      /error-prediction-sensitivity-dropdown/i
+    );
+    expect(predictionSens).toBeInTheDocument();
+    expect(predictionSens).toHaveTextContent(/High/i);
   });
 
   it('shows toggle for overriding organization defaults', async () => {
     render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
     expect(await screen.findByText('Override Organization Defaults')).toBeInTheDocument();
     expect(
-      await screen.findByText(
-        /When enabled, you can customize settings for this repository/i
-      )
+      screen.getByText(/When enabled, you can customize settings for this repository/i)
     ).toBeInTheDocument();
     const toggle = await screen.findByLabelText('Override Organization Defaults');
     expect(toggle).toBeInTheDocument();
@@ -314,7 +308,8 @@ describe('ManageReposPanel', () => {
     expect(mockEnableFeature).toHaveBeenCalledWith({
       feature: 'use_org_defaults',
       enabled: false,
-      orgId: 'org-1',
+      gitOrgName: 'org-1',
+      originalConfig: PreventAIConfigFixture(),
       repoId: 'repo-1',
     });
   });
@@ -332,43 +327,43 @@ describe('ManageReposPanel', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('toggle is checked when repo has custom overrides', () => {
-    const defaultOrgConfig = mockOrganization.preventAiConfigGithub!.default_org_config;
-    const orgWithOverride = OrganizationFixture({
-      preventAiConfigGithub: {
+  it('toggle is checked when repo has custom overrides', async () => {
+    const configWithOverride = PreventAIConfigFixture();
+    configWithOverride.repo_overrides['repo-1'] = {
+      bug_prediction: {
+        enabled: false,
+        triggers: {on_command_phrase: false, on_ready_for_review: false},
+      },
+      test_generation: {
+        enabled: true,
+        triggers: {on_command_phrase: false, on_ready_for_review: false},
+      },
+      vanilla: {
+        enabled: false,
+        triggers: {on_command_phrase: false, on_ready_for_review: false},
+      },
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
+      body: {
         schema_version: 'v1',
-        default_org_config: defaultOrgConfig,
-        github_organizations: {
-          'org-1': {
-            org_defaults: defaultOrgConfig.org_defaults,
-            repo_overrides: {
-              'repo-1': {
-                bug_prediction: {
-                  enabled: false,
-                  triggers: {on_command_phrase: false, on_ready_for_review: false},
-                },
-                test_generation: {
-                  enabled: true,
-                  triggers: {on_command_phrase: false, on_ready_for_review: false},
-                },
-                vanilla: {
-                  enabled: false,
-                  triggers: {on_command_phrase: false, on_ready_for_review: false},
-                },
-              },
-            },
-          },
+        default_org_config: PreventAIConfigFixture(),
+        organization: {
+          'org-1': configWithOverride,
         },
       },
     });
-    render(<ManageReposPanel {...defaultProps} />, {organization: orgWithOverride});
-    const toggle = screen.getByLabelText('Override Organization Defaults');
+
+    render(<ManageReposPanel {...defaultProps} />, {organization: mockOrganization});
+    const toggle = await screen.findByLabelText('Override Organization Defaults');
     expect(toggle).toBeChecked();
   });
 
   describe('getRepoConfig', () => {
     it('returns org defaults when repoName is null', () => {
-      const orgConfig: PreventAIOrgConfig = {
+      const orgConfig: PreventAIConfig = {
+        schema_version: 'v1',
         org_defaults: {
           bug_prediction: {
             enabled: true,
@@ -400,15 +395,15 @@ describe('ManageReposPanel', () => {
           },
         },
       };
-      const result = getRepoConfig(orgConfig, '');
-      expect(result).toEqual({
+      expect(getRepoConfig(orgConfig, '')).toEqual({
         doesUseOrgDefaults: true,
         repoConfig: orgConfig.org_defaults,
       });
     });
 
     it('returns repo override config when present', () => {
-      const orgConfig: PreventAIOrgConfig = {
+      const orgConfig: PreventAIConfig = {
+        schema_version: 'v1',
         org_defaults: {
           bug_prediction: {
             enabled: true,
@@ -440,8 +435,7 @@ describe('ManageReposPanel', () => {
           },
         },
       };
-      const result = getRepoConfig(orgConfig, 'repo-1');
-      expect(result).toEqual({
+      expect(getRepoConfig(orgConfig, 'repo-1')).toEqual({
         doesUseOrgDefaults: false,
         repoConfig: {
           bug_prediction: {
@@ -461,7 +455,8 @@ describe('ManageReposPanel', () => {
     });
 
     it('returns org defaults when repo override is not present', () => {
-      const orgConfig: PreventAIOrgConfig = {
+      const orgConfig: PreventAIConfig = {
+        schema_version: 'v1',
         org_defaults: {
           bug_prediction: {
             enabled: true,
@@ -478,8 +473,7 @@ describe('ManageReposPanel', () => {
         },
         repo_overrides: {},
       };
-      const result = getRepoConfig(orgConfig, 'repo-2');
-      expect(result).toEqual({
+      expect(getRepoConfig(orgConfig, 'repo-2')).toEqual({
         doesUseOrgDefaults: true,
         repoConfig: orgConfig.org_defaults,
       });
