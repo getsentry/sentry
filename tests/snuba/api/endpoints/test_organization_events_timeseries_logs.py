@@ -3,9 +3,7 @@ from datetime import timedelta
 from django.urls import reverse
 
 from sentry.testutils.helpers.datetime import before_now
-from tests.snuba.api.endpoints.test_organization_events import (
-    OrganizationEventsEndpointTestBase,
-)
+from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 from tests.snuba.api.endpoints.test_organization_events_timeseries_spans import (
     AnyConfidence,
     build_expected_timeseries,
@@ -14,9 +12,7 @@ from tests.snuba.api.endpoints.test_organization_events_timeseries_spans import 
 any_confidence = AnyConfidence()
 
 
-class OrganizationEventsStatsOurlogsMetricsEndpointTest(
-    OrganizationEventsEndpointTestBase
-):
+class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     endpoint = "sentry-api-0-organization-events-timeseries"
 
     def setUp(self) -> None:
@@ -38,9 +34,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(
             features = {"organizations:ourlogs": True}
         features.update(self.features)
         with self.feature(features):
-            return self.client.get(
-                self.url if url is None else url, data=data, format="json"
-            )
+            return self.client.get(self.url if url is None else url, data=data, format="json")
 
     def test_count(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
