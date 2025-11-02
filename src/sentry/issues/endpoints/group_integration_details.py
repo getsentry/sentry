@@ -75,10 +75,10 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PUBLIC,
     }
 
     def get(self, request: Request, group, integration_id) -> Response:
