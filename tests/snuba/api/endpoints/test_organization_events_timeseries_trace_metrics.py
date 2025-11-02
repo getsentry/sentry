@@ -79,3 +79,94 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
             "valueUnit": None,
             "interval": 3_600_000,
         }
+
+    def test_top_events(self) -> None:
+        self.store_trace_metrics(
+            [
+                self.create_trace_metric(
+                    "foo",
+                    1,
+                    "counter",
+                    timestamp=self.start + timedelta(minutes=1),
+                    attributes={"environment": {"string_value": "prod"}},
+                ),
+                self.create_trace_metric(
+                    "foo",
+                    1,
+                    "counter",
+                    timestamp=self.start + timedelta(minutes=1),
+                    attributes={"environment": {"string_value": "dev"}},
+                ),
+                self.create_trace_metric(
+                    "foo",
+                    1,
+                    "counter",
+                    timestamp=self.start + timedelta(minutes=1),
+                    attributes={"environment": {"string_value": "prod"}},
+                ),
+                self.create_trace_metric(
+                    "foo",
+                    1,
+                    "counter",
+                    timestamp=self.start + timedelta(minutes=1),
+                    attributes={"environment": {"string_value": "dev"}},
+                ),
+            ]
+        )
+
+        self.end = self.start + timedelta(minutes=6)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "sum(value)",
+                "groupBy": ["environment"],
+                "project": self.project.id,
+                "dataset": "tracemetrics",
+                "excludeOther": 0,
+                "topEvents": 2,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        assert response.data["meta"] == {
+            "dataset": "tracemetrics",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeSeries"]) == 2
+
+        timeseries = response.data["timeSeries"][0]
+        assert len(timeseries["values"]) == 6
+        assert timeseries["yAxis"] == "sum(value)"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [0, 2, 0, 0, 0, 0], ignore_accuracy=True
+        )
+        assert timeseries["groupBy"] == [{"key": "environment", "value": "prod"}]
+        assert timeseries["meta"] == {
+            "dataScanned": "full",
+            "valueType": "number",
+            "valueUnit": None,
+            "interval": 60_000,
+            "isOther": False,
+            "order": 0,
+        }
+
+        timeseries = response.data["timeSeries"][1]
+        assert len(timeseries["values"]) == 6
+        assert timeseries["yAxis"] == "sum(value)"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [0, 2, 0, 0, 0, 0], ignore_accuracy=True
+        )
+        assert timeseries["groupBy"] == [{"key": "environment", "value": "dev"}]
+        assert timeseries["meta"] == {
+            "dataScanned": "full",
+            "valueType": "number",
+            "valueUnit": None,
+            "interval": 60_000,
+            "isOther": False,
+            "order": 1,
+        }
