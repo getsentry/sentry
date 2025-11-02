@@ -282,7 +282,7 @@ const Title = styled('div')`
 
 const TitleType = styled('div')`
   flex: none;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.md};
   margin-right: ${space(1)};
@@ -292,7 +292,7 @@ const TitleType = styled('div')`
 const TitleDescription = styled('div')`
   ${p => p.theme.overflowEllipsis};
   display: flex;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.tokens.content.primary};
   text-align: right;
   font-size: ${p => p.theme.fontSize.md};
   ${p => p.theme.overflowEllipsis};
