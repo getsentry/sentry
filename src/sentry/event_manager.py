@@ -65,7 +65,10 @@ from sentry.grouping.ingest.hashing import (
     run_primary_grouping,
 )
 from sentry.grouping.ingest.metrics import record_hash_calculation_metrics, record_new_group_metrics
-from sentry.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
+from sentry.grouping.ingest.seer import (
+    maybe_check_seer_for_matching_grouphash,
+    maybe_send_seer_for_new_model_training,
+)
 from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
     check_for_group_creation_load_shed,
@@ -1287,6 +1290,8 @@ def assign_event_to_group(
     if primary.existing_grouphash:
         group_info = handle_existing_grouphash(job, primary.existing_grouphash, primary.grouphashes)
         result = "found_primary"
+        # Send new model embedding request if needed for rollout
+        maybe_send_seer_for_new_model_training(event, primary.existing_grouphash, primary.variants)
     # If we haven't, try again using the secondary config. (If there is no secondary config, or
     # we're out of the transition period, we'll get back the empty `NULL_GROUPHASH_INFO`.)
     else:
@@ -1298,6 +1303,10 @@ def assign_event_to_group(
                 job, secondary.existing_grouphash, all_grouphashes
             )
             result = "found_secondary"
+            # Send new model embedding request if needed for rollout
+            maybe_send_seer_for_new_model_training(
+                event, secondary.existing_grouphash, primary.variants
+            )
 
         # If we still haven't found a group, ask Seer for a match (if enabled for the event's platform)
         else:

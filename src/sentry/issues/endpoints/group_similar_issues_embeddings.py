@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features, options
+from sentry import analytics, options
 from sentry.api.analytics import GroupSimilarIssuesEmbeddingsCountEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -16,12 +16,9 @@ from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.seer.similarity.config import get_grouping_model_version
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
-from sentry.seer.similarity.types import (
-    GroupingVersion,
-    SeerSimilarIssueData,
-    SimilarIssuesEmbeddingsRequest,
-)
+from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
     ReferrerOptions,
     event_content_has_stacktrace,
@@ -104,10 +101,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         if not stacktrace_string or not latest_event:
             return Response([])  # No exception, stacktrace or in-app frames, or event
 
-        # Get model configuration from feature flags
-        use_v2_model = features.has("projects:similarity-grouping-v2-model", group.project)
-        model_version = GroupingVersion.V2 if use_v2_model else GroupingVersion.V1
-        training_mode = False  # TODO: currently hardcoded, follow up PR will add the logic
+        model_version = get_grouping_model_version(group.project)
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
             "event_id": latest_event.event_id,
@@ -119,7 +113,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "referrer": "similar_issues",
             "use_reranking": options.get("seer.similarity.similar_issues.use_reranking"),
             "model": model_version,
-            "training_mode": training_mode,
+            "training_mode": False,
         }
         # Add optional parameters
         if request.GET.get("k"):

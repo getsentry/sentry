@@ -11,12 +11,13 @@ from django.db.models import Q
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
-from sentry import features, nodestore, options
+from sentry import nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
+from sentry.seer.similarity.config import get_grouping_model_version
 from sentry.seer.similarity.grouping_records import (
     BulkCreateGroupingRecordsResponse,
     CreateGroupingRecordData,
@@ -25,7 +26,6 @@ from sentry.seer.similarity.grouping_records import (
     post_bulk_grouping_records,
 )
 from sentry.seer.similarity.types import (
-    GroupingVersion,
     IncompleteSeerDataError,
     SeerSimilarIssueData,
     SimilarHashMissingGroupError,
@@ -492,11 +492,9 @@ def send_group_and_stacktrace_to_seer(
         f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
     ):
-        # Get model configuration from feature flags
         project = Project.objects.get_from_cache(id=project_id)
-        use_v2_model = features.has("projects:similarity-grouping-v2-model", project)
-        model_version = GroupingVersion.V2 if use_v2_model else GroupingVersion.V1
-        training_mode = False  # TODO: currently hardcoded, follow up PR will add the logic
+        model_version = get_grouping_model_version(project)
+        training_mode = False  # Backfill always uses production mode
 
         return _make_seer_call(
             CreateGroupingRecordsRequest(
@@ -517,11 +515,9 @@ def send_group_and_stacktrace_to_seer_multithreaded(
     nodestore_results,
     project_id,
 ):
-    # Get model configuration from feature flags
     project = Project.objects.get_from_cache(id=project_id)
-    use_v2_model = features.has("projects:similarity-grouping-v2-model", project)
-    model_version = GroupingVersion.V2 if use_v2_model else GroupingVersion.V1
-    training_mode = False  # TODO: currently hardcoded, follow up PR will add the logic
+    model_version = get_grouping_model_version(project)
+    training_mode = False  # Backfill always uses production mode
 
     def process_chunk(chunk_data, chunk_stacktrace):
         return _make_seer_call(
