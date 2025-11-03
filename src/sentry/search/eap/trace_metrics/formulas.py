@@ -8,12 +8,14 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     Function,
 )
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import (
     FormulaDefinition,
     ResolvedArguments,
     ResolverSettings,
     ValueArgumentDefinition,
 )
+from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
 
 
 def _rate_internal(
@@ -22,6 +24,10 @@ def _rate_internal(
     """
     Calculate rate per X for trace metrics using the value attribute.
     """
+    search_config = settings["search_config"]
+    if not isinstance(search_config, TraceMetricsSearchResolverConfig):
+        raise InvalidSearchQuery("unexpected search config")
+
     extrapolation_mode = settings["extrapolation_mode"]
     is_timeseries_request = settings["snuba_params"].is_timeseries_request
 
@@ -30,6 +36,8 @@ def _rate_internal(
         if is_timeseries_request
         else settings["snuba_params"].interval
     )
+
+    metric_type = search_config.metric_type if search_config.metric_type else metric_type
 
     if metric_type == "counter":
         aggregate_func = Function.FUNCTION_SUM
@@ -55,7 +63,6 @@ def per_second(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bi
     """
     Calculate rate per second for trace metrics using the value attribute.
     """
-
     metric_type = cast(str, args[1]) if len(args) > 1 else "counter"
     return _rate_internal(1, metric_type, settings)
 
