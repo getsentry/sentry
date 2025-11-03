@@ -72,7 +72,7 @@ def get_trace_by_web_vital_measurement(
     )
 
     data = traces_result.get("data")
-    if not data:
+    if not data or len(data) == 0 or not data[0].get("trace"):
         return None
     trace_id = data[0].get("trace")
 
