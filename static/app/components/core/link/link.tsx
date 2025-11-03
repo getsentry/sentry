@@ -70,10 +70,24 @@ const Anchor = styled('a', {
   ${getLinkStyles}
 `;
 
+// Allow route configuration to be injected for testing
+let routeConfigProvider: (() => Promise<any>) | null = null;
+
+export const setRouteConfigProvider = (provider: (() => Promise<any>) | null) => {
+  routeConfigProvider = provider;
+};
+
 const preload = async (to: To) => {
+  // Skip preloading in test environment unless explicitly configured
+  if (process.env.NODE_ENV === 'test' && !routeConfigProvider) {
+    return;
+  }
+
   // Try to match the route and preload if it has a preload method
   try {
-    const routeConfig = (await import('sentry/routes')).routes();
+    const getRoutes =
+      routeConfigProvider || (() => import('sentry/routes').then(m => m.routes()));
+    const routeConfig = await getRoutes();
     const matches = matchRoutes(routeConfig, to);
 
     if (matches && matches.length > 0) {
