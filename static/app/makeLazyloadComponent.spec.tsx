@@ -25,6 +25,8 @@ const createMockComponentPromise =
 
 describe('makeLazyloadComponent', () => {
   beforeEach(() => {
+    // Use fake timers for predictable async behavior
+    jest.useFakeTimers();
     // Reset route config provider before each test
     setRouteConfigProvider(null);
   });
@@ -32,6 +34,8 @@ describe('makeLazyloadComponent', () => {
   afterEach(() => {
     // Clean up route config provider after each test
     setRouteConfigProvider(null);
+    // Restore real timers
+    jest.useRealTimers();
   });
 
   describe('lazy loading functionality', () => {
@@ -114,6 +118,9 @@ describe('makeLazyloadComponent', () => {
       const preloadPromise = LazyComponent[PRELOAD_HANDLE]();
       expect(preloadPromise).toBeInstanceOf(Promise);
 
+      // Fast-forward timers to resolve the promise
+      jest.runAllTimers();
+
       const result = await preloadPromise;
       expect(result).toHaveProperty('default');
       expect(result.default).toBe(MockComponent);
@@ -125,9 +132,12 @@ describe('makeLazyloadComponent', () => {
       );
 
       // Preload the component
-      await act(async () => {
-        await LazyComponent[PRELOAD_HANDLE]();
-      });
+      const preloadPromise = LazyComponent[PRELOAD_HANDLE]();
+
+      // Fast-forward timers to resolve preload
+      jest.advanceTimersByTime(50);
+
+      await preloadPromise;
 
       // Render should be immediate without loading state
       render(<LazyComponent title="Preloaded Component" />);
@@ -199,6 +209,9 @@ describe('makeLazyloadComponent', () => {
       expect(promise1).toBe(promise2);
       expect(promise2).toBe(promise3);
 
+      // Fast-forward timers to resolve the promise
+      jest.runAllTimers();
+
       const result = await promise1;
       expect(result.default).toBe(MockComponent);
     });
@@ -213,9 +226,16 @@ describe('makeLazyloadComponent', () => {
       const LazyComponent = makeLazyloadComponent(resolver);
 
       // Call preload multiple times
-      await LazyComponent[PRELOAD_HANDLE]();
-      await LazyComponent[PRELOAD_HANDLE]();
-      await LazyComponent[PRELOAD_HANDLE]();
+      const promises = [
+        LazyComponent[PRELOAD_HANDLE](),
+        LazyComponent[PRELOAD_HANDLE](),
+        LazyComponent[PRELOAD_HANDLE](),
+      ];
+
+      // Fast-forward timers to resolve promises
+      jest.runAllTimers();
+
+      await Promise.all(promises);
 
       // Resolver should only be called once
       expect(callCount).toBe(1);
@@ -261,7 +281,12 @@ describe('makeLazyloadComponent', () => {
       // Hover over link to trigger preload
       await userEvent.hover(link);
 
-      // Wait a bit for preload to complete
+      // Fast-forward timers to resolve preload (50ms delay)
+      await act(async () => {
+        jest.advanceTimersByTime(50);
+      });
+
+      // Wait for component to load after preload
       await waitFor(() => {
         expect(screen.getByTestId('mock-component')).toBeInTheDocument();
       });
