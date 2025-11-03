@@ -132,6 +132,10 @@ class DatasetSourcesTypes(Enum):
     Dataset modified by the transaction -> span migration version 3
     """
     SPAN_MIGRATION_VERSION_3 = 9
+    """
+    Dataset modified by the transaction -> span migration version 4 (fixing boolean bug)
+    """
+    SPAN_MIGRATION_VERSION_4 = 10
 
     @classmethod
     def as_choices(cls):
