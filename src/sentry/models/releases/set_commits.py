@@ -11,6 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
 from sentry.models.activity import Activity
+from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -34,7 +35,6 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.plugins.providers.repository import RepositoryProvider
-from sentry.releases.commits import bulk_create_commit_file_changes, get_or_create_commit
 
 
 class _CommitDataKwargs(TypedDict, total=False):
@@ -123,15 +123,11 @@ def set_commit(idx, data, release):
     if "timestamp" in data:
         commit_data["date_added"] = data["timestamp"]
 
-    commit, new_commit, created = get_or_create_commit(
-        organization=release.organization,
-        repo_id=repo.id,
+    commit, created = Commit.objects.get_or_create(
+        organization_id=release.organization_id,
+        repository_id=repo.id,
         key=data["id"],
-        message=commit_data.get("message"),
-        author=commit_data.get("author"),
-        # XXX: This code was in place before and passes either a string or datetime, but
-        # works ok. Just skipping the type checking
-        date_added=commit_data.get("date_added"),  # type: ignore[arg-type]
+        defaults=commit_data,
     )
     if not created and any(getattr(commit, key) != value for key, value in commit_data.items()):
         commit.update(**commit_data)
@@ -142,17 +138,19 @@ def set_commit(idx, data, release):
     # Guard against patch_set being None
     patch_set = data.get("patch_set") or []
     if patch_set:
-        file_changes = [
-            CommitFileChange(
-                organization_id=release.organization.id,
-                commit_id=commit.id,
-                filename=patched_file["path"],
-                type=patched_file["type"],
-            )
-            for patched_file in patch_set
-        ]
-        bulk_create_commit_file_changes(file_changes)
-
+        CommitFileChange.objects.bulk_create(
+            [
+                CommitFileChange(
+                    organization_id=release.organization.id,
+                    commit_id=commit.id,
+                    filename=patched_file["path"],
+                    type=patched_file["type"],
+                )
+                for patched_file in patch_set
+            ],
+            ignore_conflicts=True,
+            batch_size=100,
+        )
     try:
         with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
             ReleaseCommit.objects.create(

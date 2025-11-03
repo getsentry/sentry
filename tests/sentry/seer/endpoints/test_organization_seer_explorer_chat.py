@@ -189,7 +189,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 
         assert response.status_code == 403
         assert response.data == {"detail": "Seer has not been acknowledged by the organization."}
-        mock_get_seer_org_acknowledgement.assert_called_once_with(self.organization.id)
+        mock_get_seer_org_acknowledgement.assert_called_once_with(self.organization)
 
     def test_post_without_open_team_membership_returns_403(self) -> None:
         self.organization.flags.allow_joinleave = False

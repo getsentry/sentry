@@ -439,8 +439,8 @@ table.table.key-value {
 }
 
 .theme-dark .loading .loading-indicator {
-  // theme.surface200
-  background: #1A141F;
+  // theme.tokens.background.primary
+  background: #241D2A;
 }
 
 @-webkit-keyframes loading {
@@ -522,6 +522,18 @@ table.table.key-value {
     border: 0;
     overflow: hidden;
     border-radius: 50%;
+  }
+
+  @media (max-width: 500px) {
+    width: 90vw;
+    margin-left: -45vw;
+
+    .loading-message {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      padding: 0 1rem;
+      box-sizing: border-box;
+    }
   }
 }
 

@@ -23,8 +23,37 @@ describe('AppSizeInsights', () => {
     expect(screen.getByText('View insight details')).toBeInTheDocument();
   });
 
-  it('displays only top 3 insights in the main view', () => {
+  it('displays only top 5 insights in the main view', () => {
     const manyInsights = AppleInsightResultsFixture({
+      image_optimization: {
+        total_savings: 600000,
+        optimizable_files: [
+          {
+            file_path: 'icon.png',
+            current_size: 800000,
+            minify_savings: 300000,
+            minified_size: 500000,
+            conversion_savings: 300000,
+            heic_size: 500000,
+            colorspace: null,
+            idiom: null,
+          },
+        ],
+      },
+      strip_binary: {
+        total_savings: 400000,
+        total_debug_sections_savings: 250000,
+        total_symbol_table_savings: 150000,
+        files: [
+          {
+            file_path: 'app.binary',
+            total_savings: 400000,
+            debug_sections_savings: 250000,
+            symbol_table_savings: 150000,
+          },
+        ],
+      },
+      // These should be outside the top 5 (6th and 7th)
       unnecessary_files: {
         total_savings: 128000,
         files: [{file_path: 'temp.log', total_savings: 128000}],
@@ -40,14 +69,15 @@ describe('AppSizeInsights', () => {
       <AppSizeInsights processedInsights={processInsights(manyInsights, totalSize)} />
     );
 
-    // Should show top 3 insights in main view
-    expect(screen.getByText('Remove duplicate files')).toBeInTheDocument();
-    expect(screen.getByText('Compress large images')).toBeInTheDocument();
-    expect(screen.getByText('Compress large videos')).toBeInTheDocument();
+    expect(screen.getByText('Duplicate Files')).toBeInTheDocument();
+    expect(screen.getByText('Image Optimization')).toBeInTheDocument();
+    expect(screen.getByText('Large Images')).toBeInTheDocument();
+    expect(screen.getByText('Strip Binary Symbols')).toBeInTheDocument();
+    expect(screen.getByText('Large Videos')).toBeInTheDocument();
 
-    // Should NOT show lower priority insights in main view
-    expect(screen.queryByText('Unnecessary files')).not.toBeInTheDocument();
-    expect(screen.queryByText('Small files')).not.toBeInTheDocument();
+    // Should NOT show lower priority insights in main view (6th and 7th)
+    expect(screen.queryByText('Unnecessary Files')).not.toBeInTheDocument();
+    expect(screen.queryByText('Small Files')).not.toBeInTheDocument();
   });
 
   it('formats file sizes and percentages correctly', () => {

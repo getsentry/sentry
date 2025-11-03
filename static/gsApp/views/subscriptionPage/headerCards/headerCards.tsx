@@ -29,7 +29,12 @@ function getCards(organization: Organization, subscription: Subscription) {
   const cards: React.ReactNode[] = [];
   const isTrialOrFreePlan =
     isTrialPlan(subscription.plan) || isDeveloperPlan(subscription.planDetails);
+
+  // the organization can use PAYG
   const canUsePayg = supportsPayg(subscription);
+
+  // the user can update the PAYG budget
+  const canUpdatePayg = canUsePayg && hasBillingPerms;
 
   if (subscription.canSelfServe && !isTrialOrFreePlan && hasBillingPerms) {
     cards.push(
@@ -41,9 +46,7 @@ function getCards(organization: Organization, subscription: Subscription) {
     );
   }
 
-  const canUpdatePayg = canUsePayg && hasBillingPerms;
-
-  if (canUpdatePayg) {
+  if (canUsePayg) {
     cards.push(
       <PaygCard key="payg" subscription={subscription} organization={organization} />
     );

@@ -92,6 +92,7 @@ export function CustomerStatsFilters({
 
   const {start, end, period, utc} = pageDateTime;
 
+  // TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods?
   const onDemandLabel = (
     <Fragment>
       On-Demand (
