@@ -20,6 +20,7 @@ from sentry.sentry_metrics.consumers.indexer.slicing_router import (
     _validate_slicing_config,
     _validate_slicing_consumer_config,
 )
+from sentry.testutils.helpers.options import override_options
 
 KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 
@@ -78,6 +79,7 @@ def setup_slicing() -> Generator[None]:
 
 
 @pytest.mark.parametrize("org_id", [1, 127, 128, 256, 257])
+@override_options({"arroyo.producer.confluent-producer-rollout": {}})
 def test_with_slicing(metrics_message, setup_slicing) -> None:
     """
     With partitioning settings, the SlicingRouter should route to the correct topic
@@ -94,6 +96,7 @@ def test_with_slicing(metrics_message, setup_slicing) -> None:
         assert False, "unexpected org_id"
 
 
+@override_options({"arroyo.producer.confluent-producer-rollout": {}})
 def test_with_no_org_in_routing_header(setup_slicing) -> None:
     """
     With partitioning settings, the SlicingRouter should route to the correct topic

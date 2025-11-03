@@ -343,6 +343,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "deletions.group-history.use-bulk-deletion",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "cleanup.abort_execution",
@@ -620,6 +626,15 @@ register(
     "relay.kafka.span-v2.sample-rate",
     type=Float,
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout configuration for Arroyo ConfluentProducer
+# Controls the rollout of individual Kafka producers by name
+register(
+    "arroyo.producer.confluent-producer-rollout",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3583,9 +3598,9 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Allow list for projects with LLM issue detection enabled
+# The allowlist of organization IDs for which deletion from EAP is enabled.
 register(
-    "issue-detection.llm-detection.projects-allowlist",
+    "eventstream.eap.deletion_enabled.organization_allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -3623,5 +3638,13 @@ register(
     "github.webhook-type-routing.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Sets the sample rate for profiles collected via the JoinProfiler arroyo strategy
+register(
+    "consumer.join.profiling.rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
