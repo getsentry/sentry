@@ -14,6 +14,7 @@ import type {Permissions} from 'sentry/types/integrations';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -32,8 +33,16 @@ export default function ApiNewToken() {
     Alerts: 'no-access',
   });
   const navigate = useNavigate();
+  const organization = useOrganization({allowNull: true});
   const [hasNewToken, setHasnewToken] = useState(false);
   const [preview, setPreview] = useState<string>('');
+
+  const hasPreprodFeature =
+    organization?.features.includes('organizations:preprod-frontend-routes') ?? false;
+
+  const displayedPermissions = SENTRY_APP_PERMISSIONS.filter(
+    o => o.resource !== 'Distribution' || hasPreprodFeature
+  );
 
   const getPreview = () => {
     let previewString = '';
@@ -108,9 +117,7 @@ export default function ApiNewToken() {
                   setPermissions(p);
                   setPreview(getPreview());
                 }}
-                displayedPermissions={SENTRY_APP_PERMISSIONS.filter(
-                  o => o.resource !== 'Distribution'
-                )}
+                displayedPermissions={displayedPermissions}
               />
             </PanelBody>
             <TextareaField
