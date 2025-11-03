@@ -2,6 +2,7 @@ import type {PropsWithChildren} from 'react';
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import performanceWaitingForSpan from 'sentry-images/spot/performance-waiting-for-span.svg';
 import heroImg from 'sentry-images/stories/landing/robopigeon.png';
@@ -13,6 +14,8 @@ import {Link} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
 import {Acronym} from 'sentry/stories/view/landing/acronym';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {Colors, Icons, Typography} from './figures';
 
@@ -43,6 +46,8 @@ const frontmatter = {
 };
 
 export function StoryLanding() {
+  const organization = useOrganization();
+
   return (
     <Fragment>
       <StoryDarkModeProvider>
@@ -86,25 +91,46 @@ export function StoryLanding() {
             </p>
           </Flex>
           <CardGrid>
-            <Card href="/stories?name=app/styles/colors.mdx" title="Color">
+            <Card
+              to={{
+                pathname: normalizeUrl(`/organizations/${organization.slug}/stories/`),
+                query: {name: 'app/styles/colors.mdx'},
+              }}
+              title="Color"
+            >
               <CardFigure>
                 <Colors />
               </CardFigure>
             </Card>
-            <Card href="/stories/?name=app%2Ficons%2Ficons.stories.tsx" title="Icons">
+            <Card
+              to={{
+                pathname: normalizeUrl(`/organizations/${organization.slug}/stories/`),
+                query: {name: 'app/icons/icons.stories.tsx'},
+              }}
+              title="Icons"
+            >
               <CardFigure>
                 <Icons />
               </CardFigure>
             </Card>
             <Card
-              href="/stories/?name=app%2Fstyles%2Ftypography.stories.tsx"
+              to={{
+                pathname: normalizeUrl(`/organizations/${organization.slug}/stories/`),
+                query: {name: 'app/styles/typography.stories.tsx'},
+              }}
               title="Typography"
             >
               <CardFigure>
                 <Typography />
               </CardFigure>
             </Card>
-            <Card href="/stories/?name=app%2Fstyles%2Fimages.stories.tsx" title="Images">
+            <Card
+              to={{
+                pathname: normalizeUrl(`/organizations/${organization.slug}/stories/`),
+                query: {name: 'app/styles/images.stories.tsx'},
+              }}
+              title="Images"
+            >
               <CardFigure>
                 <img src={performanceWaitingForSpan} />
               </CardFigure>
@@ -192,12 +218,13 @@ const CardGrid = styled('div')`
 
 interface CardProps {
   children: React.ReactNode;
-  href: string;
   title: string;
+  to: LocationDescriptor;
 }
+
 function Card(props: CardProps) {
   return (
-    <CardLink to={props.href}>
+    <CardLink to={props.to}>
       {props.children}
       <CardTitle>{props.title}</CardTitle>
     </CardLink>

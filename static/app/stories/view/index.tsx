@@ -39,8 +39,10 @@ function StoryDetail() {
   useStoryRedirect();
 
   const location = useLocation<{name: string; query?: string}>();
+
+  const file = location.state?.storyPath ?? location.query.name;
   const story = useStoriesLoader({
-    files: [location.state?.storyPath ?? location.query.name],
+    files: file ? [file] : [],
   });
 
   return (

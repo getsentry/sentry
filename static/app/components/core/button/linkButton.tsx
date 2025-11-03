@@ -93,6 +93,7 @@ const StyledLinkButton = styled(
       prop === 'external' ||
       prop === 'replace' ||
       prop === 'preventScrollReset' ||
+      prop === 'state' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<LinkButtonProps>`

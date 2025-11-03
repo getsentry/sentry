@@ -7,7 +7,9 @@ import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {IconChevron} from 'sentry/icons';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export class StoryTreeNode {
   public name: string;
@@ -574,6 +576,7 @@ function Folder(props: {node: StoryTreeNode}) {
 
 function File(props: {node: StoryTreeNode}) {
   const location = useLocation();
+  const organization = useOrganization();
   const {state, ...to} = props.node.location;
   const active =
     props.node.filesystemPath === (location.state?.storyPath ?? location.query.name);
@@ -581,7 +584,10 @@ function File(props: {node: StoryTreeNode}) {
   return (
     <li>
       <FolderLink
-        to={to}
+        to={{
+          ...to,
+          pathname: normalizeUrl(`/organizations/${organization.slug}${to.pathname}`),
+        }}
         state={state}
         aria-current={active ? 'page' : undefined}
         active={active}

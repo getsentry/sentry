@@ -2,6 +2,7 @@ import React, {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -37,8 +38,13 @@ export function StoryExports(props: {story: StoryDescriptor}) {
 
 function StoryLayout() {
   const {story} = useStory();
+  const [tab, setTab] = useQueryState(
+    'tab',
+    parseAsString.withOptions({history: 'push'})
+  );
+
   return (
-    <Tabs>
+    <Tabs value={tab ?? 'usage'} onChange={setTab}>
       {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
         <StoryContainer>
@@ -123,6 +129,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
 
 function StoryTabList() {
   const {story} = useStory();
+
   if (!isMDXStory(story)) return null;
   if (story.exports.frontmatter?.layout === 'document') return null;
 
@@ -222,8 +229,15 @@ function StoryUsage() {
 
 function StoryAPI() {
   const {story} = useStory();
-  if (!story.exports.documentation && typeof story.exports.documentation !== 'object')
+
+  if (!story.exports.documentation && typeof story.exports.documentation !== 'object') {
     return null;
+  }
+
+  if (!Object.keys(story.exports.documentation as TypeLoader.TypeLoaderResult).length) {
+    return null;
+  }
+
   return (
     <Fragment>
       {Object.entries(

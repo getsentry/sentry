@@ -4,6 +4,8 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconArrow} from 'sentry/icons';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {useStoryBookFilesByCategory} from './storySidebar';
 import type {StoryTreeNode} from './storyTree';
@@ -14,11 +16,24 @@ export function StoryFooter() {
   const {story} = useStory();
   const stories = useStoryBookFilesByCategory();
   const pagination = findPreviousAndNextStory(story, stories);
+  const organization = useOrganization();
+
+  const {state: prevState, ...prevTo} = pagination?.prev?.location ?? {};
+  const {state: nextState, ...nextTo} = pagination?.next?.location ?? {};
 
   return (
     <Flex align="center" justify="between" gap="xl">
       {pagination?.prev && (
-        <Card to={pagination.prev.location} icon={<IconArrow direction="left" />}>
+        <Card
+          to={{
+            ...prevTo,
+            pathname: normalizeUrl(
+              `/organizations/${organization.slug}${pagination.prev.location.pathname}`
+            ),
+          }}
+          state={prevState}
+          icon={<IconArrow direction="left" />}
+        >
           <Text variant="muted" as="div">
             Previous
           </Text>
@@ -30,7 +45,13 @@ export function StoryFooter() {
       {pagination?.next && (
         <Card
           data-flip
-          to={pagination.next.location}
+          to={{
+            ...nextTo,
+            pathname: normalizeUrl(
+              `/organizations/${organization.slug}${nextTo.pathname}`
+            ),
+          }}
+          state={nextState}
           icon={<IconArrow direction="right" />}
         >
           <Text variant="muted" as="div" align="right">
