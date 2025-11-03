@@ -70,12 +70,12 @@ class TestSentrySDKMetricsBackend:
             attributes={"x": "y", "instance": "web"},
         )
 
-    @mock.patch("sentry_sdk.metrics.gauge")
-    def test_timing(self, mock_gauge, backend):
+    @mock.patch("sentry_sdk.metrics.distribution")
+    def test_timing(self, mock_distribution, backend):
         with mock.patch.object(backend, "_should_send", return_value=True):
             backend.timing("foo", 42.0, tags={"x": "y"})
 
-        mock_gauge.assert_called_once_with(
+        mock_distribution.assert_called_once_with(
             "test.foo",
             42.0,
             unit="millisecond",
@@ -149,15 +149,15 @@ class TestSentrySDKMetricsBackend:
             attributes={"x": "y", "sentry.client_sample_rate": 0.1},
         )
 
-    @mock.patch("sentry_sdk.metrics.gauge")
-    def test_timing_with_sample_rate(self, mock_gauge, backend):
+    @mock.patch("sentry_sdk.metrics.distribution")
+    def test_timing_with_sample_rate(self, mock_distribution, backend):
         with (
             mock.patch.object(backend, "_should_send", return_value=True),
             mock.patch.object(backend, "_should_sample", return_value=True),
         ):
             backend.timing("foo", 42.0, tags={"x": "y"}, sample_rate=0.75)
 
-        mock_gauge.assert_called_once_with(
+        mock_distribution.assert_called_once_with(
             "test.foo",
             42.0,
             unit="millisecond",

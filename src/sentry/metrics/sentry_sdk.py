@@ -83,10 +83,10 @@ class SentrySDKMetricsBackend(MetricsBackend):
 
         metric_attributes["is_timing"] = True
 
-        metrics.gauge(
+        metrics.distribution(
             full_key,
             value,
-            unit="millisecond",  # MetricUnit
+            unit="millisecond",
             attributes=metric_attributes,
         )
 
