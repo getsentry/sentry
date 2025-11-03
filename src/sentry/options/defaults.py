@@ -342,6 +342,12 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "deletions.group-hashes.delete-seer-matched-hashes",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "deletions.group-history.use-bulk-deletion",
