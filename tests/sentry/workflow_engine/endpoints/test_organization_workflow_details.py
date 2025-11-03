@@ -96,6 +96,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         workflow = validator.create(validator.validated_data)
 
         # Verify the condition was created
+        assert workflow.when_condition_group is not None
         assert workflow.when_condition_group.conditions.count() == 1
 
         # Now update with empty conditions list
@@ -113,6 +114,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         # Verify all conditions were removed
         workflow.refresh_from_db()
+        assert workflow.when_condition_group is not None
         assert workflow.when_condition_group.conditions.count() == 0
 
     def test_update_detectors_add_detector(self) -> None:
