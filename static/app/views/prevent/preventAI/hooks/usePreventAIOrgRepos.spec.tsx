@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
-import {PreventAIConfigFixture} from 'sentry-fixture/prevent';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -9,9 +8,7 @@ import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {usePreventAIOrgs} from './usePreventAIOrgRepos';
 
 describe('usePreventAIOrgRepos', () => {
-  const mockOrg = OrganizationFixture({
-    preventAiConfigGithub: PreventAIConfigFixture(),
-  });
+  const mockOrg = OrganizationFixture();
 
   const mockResponse: OrganizationIntegration[] = [
     OrganizationIntegrationsFixture({
