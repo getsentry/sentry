@@ -2526,6 +2526,12 @@ function buildRoutes(): RouteObject[] {
     deprecatedRouteProps: true,
   };
 
+  const conduitRoutes: SentryRouteObject = {
+    path: '/conduit/demo/',
+    component: make(() => import('sentry/views/conduit/index')),
+    withOrgPath: true,
+  };
+
   const feedbackV2Children: SentryRouteObject[] = [
     {
       index: true,
@@ -2905,6 +2911,7 @@ function buildRoutes(): RouteObject[] {
       adminManageRoutes,
       legacyOrganizationRootRoutes,
       legacyOrgRedirects,
+      conduitRoutes,
     ],
   };
 
