@@ -155,12 +155,15 @@ function Dashboard({
     );
   }, [api, organization.slug, selection.projects]);
 
+  useEffect(() => {
+    // Always load organization tags on dashboards
+    loadOrganizationTags(api, organization.slug, selection);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selection]);
+
   // The operations in this effect should only run on mount/unmount
   useEffect(() => {
     window.addEventListener('resize', debouncedHandleResize);
-
-    // Always load organization tags on dashboards
-    loadOrganizationTags(api, organization.slug, selection);
 
     // Get member list data for issue widgets
     fetchMemberList();
@@ -179,7 +182,7 @@ function Dashboard({
       GroupStore.reset();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selection]);
+  }, []);
 
   // Handle newWidget parsed from Add to Dashboard flows
   useEffect(() => {
