@@ -17,7 +17,11 @@ UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
 def get_trace_by_web_vital_measurement(
-    transaction_name: str, project_id: int, vital: WebVitalIssueDetectionType, min_value: float
+    transaction_name: str,
+    project_id: int,
+    vital: WebVitalIssueDetectionType,
+    min_value: float,
+    start_time_delta: dict[str, int],
 ) -> TraceData | None:
     """
     Get a sample trace for a given transaction with a web vital measurement greater than or equal to the minimum value provided.
@@ -36,7 +40,7 @@ def get_trace_by_web_vital_measurement(
         return None
 
     end_time = datetime.now(UTC)
-    start_time = end_time - timedelta(hours=24)
+    start_time = end_time - timedelta(**start_time_delta)
 
     snuba_params = SnubaParams(
         start=start_time,

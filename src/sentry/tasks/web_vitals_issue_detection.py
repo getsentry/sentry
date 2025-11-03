@@ -79,6 +79,7 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
             project_id,
             web_vital_issue_group["vital"],
             p75_vital_value,
+            start_time_delta=DEFAULT_START_TIME_DELTA,
         )
         if trace:
             send_web_vitals_issue_to_platform(web_vital_issue_group, trace_id=trace.trace_id)
