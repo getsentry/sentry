@@ -68,6 +68,10 @@ class DashboardWidgetTypes(TypesClass):
     These represent the logs trace item type on the EAP dataset.
     """
     LOGS = 103
+    """
+    These represent the tracemetrics item type on the EAP dataset.
+    """
+    TRACEMETRICS = 104
 
     TYPES = [
         (DISCOVER, "discover"),
@@ -80,6 +84,7 @@ class DashboardWidgetTypes(TypesClass):
         (TRANSACTION_LIKE, "transaction-like"),
         (SPANS, "spans"),
         (LOGS, "logs"),
+        (TRACEMETRICS, "tracemetrics"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
