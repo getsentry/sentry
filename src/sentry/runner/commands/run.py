@@ -544,6 +544,12 @@ def taskbroker_send_tasks(
     default=False,
     help="A potential workaround for Broker Handle Destroyed during shutdown (see arroyo option).",
 )
+@click.option(
+    "--profile-consumer-join",
+    is_flag=True,
+    default=False,
+    help="Adds a ProcessingStrategy to the start of a consumer that records a transaction of the consumer's join() method.",
+)
 @configuration
 def basic_consumer(
     consumer_name: str,
@@ -633,6 +639,7 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
             stale_threshold_sec=None,
             healthcheck_file_path=None,
             enforce_schema=True,
+            profile_consumer_join=False,
         )
         for consumer_name in consumer_names
     ]

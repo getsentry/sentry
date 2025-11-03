@@ -204,6 +204,7 @@ def traces_sampler(sampling_context):
 
 def profiles_sampler(sampling_context):
     PROFILES_SAMPLING_RATE = {
+        "consumer.join": options.get("consumer.join.profiling.rate"),
         "spans.process.process_message": options.get("spans.process-spans.profiling.rate"),
     }
     if "transaction_context" in sampling_context:
