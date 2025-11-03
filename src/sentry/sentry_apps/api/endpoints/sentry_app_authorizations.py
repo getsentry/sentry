@@ -106,7 +106,9 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 # we've already validated the JWT in the authentication class so we can use the payload
                 payload = getattr(request, "jwt_payload", None)
                 if not payload:
-                    raise SentryAppIntegratorError(message="JWT payload not found", status_code=400)
+                    raise SentryAppIntegratorError(
+                        message="JWT credentials are missing or invalid", status_code=403
+                    )
 
                 user = promote_request_api_user(request)
                 token = ManualTokenRefresher(
@@ -153,3 +155,5 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
             return "sentry-app-token-refreshed"
         elif request.data.get("grant_type") == GrantTypes.CLIENT_SECRET_JWT:
             return "sentry-app-token-manual-refresh"
+        else:
+            return "sentry-app-token-invalid-grant-type"
