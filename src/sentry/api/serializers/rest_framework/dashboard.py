@@ -1031,7 +1031,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         ):
             widget.changed_reason = None
 
-        if widget.widget_type not in [
+        elif widget.widget_type not in [
             DashboardWidgetTypes.DISCOVER,
             DashboardWidgetTypes.TRANSACTION_LIKE,
             DashboardWidgetTypes.ERROR_EVENTS,
