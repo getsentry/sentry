@@ -21,39 +21,30 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
   let sharedPromise: Promise<{default: C}> | null = null;
   let loadedComponent: C | null = null;
 
-  const getSharedPromise = () => {
+  const getSharedPromise = async () => {
     if (!sharedPromise) {
-      sharedPromise = retryableImport(resolve).then(result => {
-        loadedComponent = result.default;
-        return result;
-      });
+      sharedPromise = retryableImport(resolve);
+      loadedComponent = (await sharedPromise).default;
     }
     return sharedPromise;
   };
 
-  const LazyComponent = lazy<C>(() => getSharedPromise());
+  const LazyComponent = lazy(getSharedPromise);
 
   // XXX: Assign the component to a variable so it has a displayname
   function RouteLazyLoad(props: React.ComponentProps<C>) {
-    // If the component is already loaded, render it directly to avoid Suspense
-    if (loadedComponent) {
-      return React.createElement(loadedComponent, props);
-    }
-
-    // Otherwise fall back to lazy loading with Suspense
     return (
       <SafeLazyLoad
         {...props}
-        LazyComponent={LazyComponent}
+        // If the component is already loaded, render it directly to avoid Suspense
+        LazyComponent={loadedComponent ?? LazyComponent}
         loadingFallback={loadingFallback}
       />
     );
   }
 
   // Add preload method that triggers the same shared promise as lazy()
-  RouteLazyLoad.preload = () => {
-    return getSharedPromise();
-  };
+  RouteLazyLoad.preload = getSharedPromise;
 
   return RouteLazyLoad;
 }

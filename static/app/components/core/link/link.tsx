@@ -82,7 +82,9 @@ const preload = async (to: To) => {
 
         // Check if the handle has a preload method
         if (routeHandle && typeof routeHandle === 'object' && 'preload' in routeHandle) {
-          routeHandle.preload?.();
+          routeHandle.preload?.().catch(() => {
+            // Ignore preload errors
+          });
         }
       }
     }
@@ -110,15 +112,11 @@ export const Link = styled(
         to={normalizedTo}
         onMouseEnter={e => {
           onMouseEnter?.(e);
-          preload(normalizedTo).catch(() => {
-            // Ignore preload errors
-          });
+          void preload(normalizedTo);
         }}
         onFocus={e => {
           onFocus?.(e);
-          preload(normalizedTo).catch(() => {
-            // Ignore preload errors
-          });
+          void preload(normalizedTo);
         }}
         {...props}
       />
