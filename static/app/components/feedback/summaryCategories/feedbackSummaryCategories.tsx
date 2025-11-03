@@ -75,7 +75,7 @@ export default function FeedbackSummaryCategories() {
           }
         >
           <Flex gap="xs" align="center">
-            {t('Summary')} <FeatureBadge type="beta" />
+            {t('Summary')} <FeatureBadge type="new" />
           </Flex>
         </Disclosure.Title>
         <Disclosure.Content>
