@@ -158,8 +158,7 @@ function Dashboard({
   useEffect(() => {
     // Always load organization tags on dashboards
     loadOrganizationTags(api, organization.slug, selection);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selection]);
+  }, [api, organization.slug, selection]);
 
   // The operations in this effect should only run on mount/unmount
   useEffect(() => {
