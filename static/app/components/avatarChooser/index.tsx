@@ -1,9 +1,10 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';

@@ -22,21 +22,9 @@ import {SentryAppAvatar} from './sentryAppAvatar';
 import {TeamAvatar} from './teamAvatar';
 import {UserAvatar} from './userAvatar';
 
-import ProjectAvatarDocumentation from '!!type-loader!@sentry/scraps/avatar/projectAvatar';
-import UserAvatarDocumentation from '!!type-loader!@sentry/scraps/avatar/userAvatar';
+import AvatarDocumentation from '!!type-loader!@sentry/scraps/avatar';
 
-export const documentation = {
-  ...UserAvatarDocumentation,
-  ...ProjectAvatarDocumentation,
-  props: {
-    ...ProjectAvatarDocumentation.props,
-    ...UserAvatarDocumentation.props,
-  },
-  exports: {
-    ...ProjectAvatarDocumentation.exports,
-    ...UserAvatarDocumentation.exports,
-  },
-};
+export const documentation = AvatarDocumentation;
 
 export const PREVIEW_SIZE = 40;
 
