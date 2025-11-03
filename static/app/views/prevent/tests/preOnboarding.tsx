@@ -27,7 +27,7 @@ const INSTRUCTIONS_TEXT = {
     "You need to install the Sentry App on your GitHub organization as an admin. If you're not an admin, you will need to make sure your GitHub organization admins approve the installation of the Sentry App on GitHub."
   ),
   mainCTA: t('Add installation'),
-  mainCTALink: 'https://github.com/apps/sentry-io',
+  mainCTALink: 'https://github.com/apps/sentry',
 } as const;
 
 export default function TestsPreOnboardingPage() {
