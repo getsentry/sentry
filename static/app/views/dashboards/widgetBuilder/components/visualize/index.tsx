@@ -289,7 +289,11 @@ function Visualize({error, setError}: VisualizeProps) {
   // fieldOptions filtering and logic used for showing options for
   // chart types.
   let traceItemColumnOptions: Array<SelectValue<string> & {label: string; value: string}>;
-  if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
+  if (
+    state.dataset === WidgetType.SPANS ||
+    state.dataset === WidgetType.LOGS ||
+    state.dataset === WidgetType.TRACEMETRICS
+  ) {
     const columns =
       state.fields
         ?.filter(field => field.kind === FieldValueKind.FIELD)
@@ -339,7 +343,11 @@ function Visualize({error, setError}: VisualizeProps) {
   const fieldOptions = useMemo(() => {
     // Explicitly merge numeric and string tags to ensure filtering
     // compatibility for timeseries chart types.
-    if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
+    if (
+      state.dataset === WidgetType.SPANS ||
+      state.dataset === WidgetType.LOGS ||
+      state.dataset === WidgetType.TRACEMETRICS
+    ) {
       return datasetConfig.getTableFieldOptions(
         organization,
         {...numericSpanTags, ...stringSpanTags},
@@ -457,7 +465,8 @@ function Visualize({error, setError}: VisualizeProps) {
                     : datasetConfig.filterTableOptions;
                 const columnOptions =
                   (state.dataset === WidgetType.SPANS ||
-                    state.dataset === WidgetType.LOGS) &&
+                    state.dataset === WidgetType.LOGS ||
+                    state.dataset === WidgetType.TRACEMETRICS) &&
                   field.kind !== FieldValueKind.FUNCTION
                     ? traceItemColumnOptions
                     : getColumnOptions(
@@ -494,7 +503,8 @@ function Visualize({error, setError}: VisualizeProps) {
                     aggregateOptions = baseOptions;
                   } else if (
                     state.dataset === WidgetType.SPANS ||
-                    state.dataset === WidgetType.LOGS
+                    state.dataset === WidgetType.LOGS ||
+                    state.dataset === WidgetType.TRACEMETRICS
                   ) {
                     // Add span column options for Spans dataset
                     aggregateOptions = [...baseOptions, ...traceItemColumnOptions];
@@ -614,7 +624,8 @@ function Visualize({error, setError}: VisualizeProps) {
                           )}
                         <FieldBar data-testid="field-bar">
                           {field.kind === FieldValueKind.EQUATION ? (
-                            state.dataset === WidgetType.SPANS ? (
+                            state.dataset === WidgetType.SPANS ||
+                            state.dataset === WidgetType.TRACEMETRICS ? (
                               <ExploreArithmeticBuilder
                                 equation={field.field}
                                 onUpdate={value => {
@@ -930,8 +941,12 @@ function Visualize({error, setError}: VisualizeProps) {
               : t('+ Add Column')}
         </AddButton>
         {datasetConfig.enableEquations &&
-          (state.dataset !== WidgetType.SPANS ||
-            (state.dataset === WidgetType.SPANS && hasExploreEquations)) && (
+          // TODO
+          ((state.dataset !== WidgetType.SPANS &&
+            state.dataset !== WidgetType.TRACEMETRICS) ||
+            ((state.dataset === WidgetType.SPANS ||
+              state.dataset === WidgetType.TRACEMETRICS) &&
+              hasExploreEquations)) && (
             <AddButton
               priority="link"
               disabled={disableTransactionWidget}

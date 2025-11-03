@@ -15,6 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -33,6 +34,7 @@ function WidgetBuilderDatasetSelector() {
   const {cacheBuilderState, restoreOrSetBuilderState} = useCacheBuilderState();
   const {setSegmentSpanBuilderState} = useSegmentSpanWidgetState();
   const disabledChoices: RadioGroupProps<WidgetType>['disabledChoices'] = [];
+  const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
 
   const datasetChoices: Array<RadioOption<WidgetType>> = [];
   datasetChoices.push([WidgetType.ERRORS, t('Errors')]);
@@ -74,6 +76,18 @@ function WidgetBuilderDatasetSelector() {
       WidgetType.LOGS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Logs')} key="dataset-choice-logs">
         {t('Logs')}
+      </FeatureBadgeAlignmentWrapper>,
+    ]);
+  }
+  if (organization.features.includes('tracemetrics-dashboards')) {
+    datasetChoices.push([
+      WidgetType.TRACEMETRICS,
+      <FeatureBadgeAlignmentWrapper
+        aria-label={t('Metrics')}
+        key="dataset-choice-trace-metrics"
+      >
+        {t('Metrics')}
+        <FeatureBadge type="alpha" />
       </FeatureBadgeAlignmentWrapper>,
     ]);
   }
