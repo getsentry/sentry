@@ -35,6 +35,7 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
     setSearchParams(newParams);
   }, [searchParams, setSearchParams]);
 
+  const hasInsights = processedInsights.length > 0;
   // Only show top 5 insights, show the rest in the sidebar
   const topInsights = processedInsights.slice(0, 5);
 
@@ -50,9 +51,11 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
         <Heading as="h2" size="lg">
           {t('Top insights')}
         </Heading>
-        <Button size="sm" icon={<IconSettings />} onClick={openSidebar}>
-          {t('View insight details')}
-        </Button>
+        {hasInsights && (
+          <Button size="sm" icon={<IconSettings />} onClick={openSidebar}>
+            {t('View insight details')}
+          </Button>
+        )}
       </Flex>
       <Flex
         direction="column"
@@ -91,6 +94,19 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
             </Flex>
           </Flex>
         ))}
+        {!hasInsights && (
+          <Flex
+            padding="lg"
+            radius="md"
+            background="primary"
+            align="center"
+            justify="center"
+          >
+            <Text size="sm" bold>
+              {t('Your app looks good! No insights were found.')}
+            </Text>
+          </Flex>
+        )}
       </Flex>
 
       <AppSizeInsightsSidebar
