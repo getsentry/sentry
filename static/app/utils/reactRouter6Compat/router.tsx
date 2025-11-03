@@ -10,6 +10,7 @@ import * as Sentry from '@sentry/react';
 
 import type {SentryRouteObject} from 'sentry/components/route';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import {PRELOAD_HANDLE} from 'sentry/constants/routes';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
@@ -142,8 +143,8 @@ export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
   //   remove usages of useRoutes we can remove this value from the handle.
   const handle: Record<string, unknown> = {...tree.handle, name, path};
 
-  if (component && 'preload' in component) {
-    handle.preload = component.preload;
+  if (component && PRELOAD_HANDLE in component) {
+    handle[PRELOAD_HANDLE] = component[PRELOAD_HANDLE];
   }
 
   if (tree.index) {

@@ -1,6 +1,7 @@
 import React, {lazy} from 'react';
 
 import LazyLoad from 'sentry/components/lazyLoad';
+import {PRELOAD_HANDLE} from 'sentry/constants/routes';
 import errorHandler from 'sentry/utils/errorHandler';
 import retryableImport from 'sentry/utils/retryableImport';
 
@@ -44,7 +45,7 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
   }
 
   // Add preload method that triggers the same shared promise as lazy()
-  RouteLazyLoad.preload = getSharedPromise;
+  RouteLazyLoad[PRELOAD_HANDLE] = getSharedPromise;
 
   return RouteLazyLoad;
 }
