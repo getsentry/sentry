@@ -54,6 +54,9 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.utils.open_period import open_period_start_for_group
+from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
+    DetectorSerializerResponse,
+)
 from sentry.workflow_engine.models.action import Action
 
 _logger = logging.getLogger(__name__)
@@ -193,6 +196,7 @@ def _build_notification_payload(
     open_period_context: OpenPeriodContext,
     alert_rule_serialized_response: AlertRuleSerializerResponse | None,
     incident_serialized_response: DetailedIncidentSerializerResponse | None,
+    detector_serialized_response: DetectorSerializerResponse | None,
     notification_uuid: str | None,
 ) -> tuple[str, str]:
     chart_url = None
@@ -210,6 +214,7 @@ def _build_notification_payload(
                 open_period_context=open_period_context,
                 selected_incident_serialized=incident_serialized_response,
                 subscription=metric_issue_context.subscription,
+                detector_serialized_response=detector_serialized_response,
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -410,6 +415,7 @@ def send_incident_alert_notification(
     open_period_context: OpenPeriodContext,
     alert_rule_serialized_response: AlertRuleSerializerResponse | None,
     incident_serialized_response: DetailedIncidentSerializerResponse | None,
+    detector_serialized_response: DetectorSerializerResponse | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     # Make sure organization integration is still active:
@@ -435,6 +441,7 @@ def send_incident_alert_notification(
         alert_rule_serialized_response=alert_rule_serialized_response,
         incident_serialized_response=incident_serialized_response,
         notification_uuid=notification_uuid,
+        detector_serialized_response=detector_serialized_response,
     )
 
     # TODO(iamrajjoshi): This will need to be updated once we plan out Metric Alerts rollout

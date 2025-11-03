@@ -16,6 +16,7 @@ from sentry.notifications.notification_action.metric_alert_registry import Disco
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
     get_alert_rule_serializer,
     get_detailed_incident_serializer,
+    get_detector_serializer,
 )
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -81,6 +82,7 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
             open_period_context=open_period_context,
             alert_rule_serialized_response=get_alert_rule_serializer(self.detector),
             incident_serialized_response=get_detailed_incident_serializer(self.open_period),
+            detector_serialized_response=get_detector_serializer(self.detector),
             notification_uuid=notification_uuid,
         )
 
