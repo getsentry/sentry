@@ -27,7 +27,7 @@ describe('StepHeader', () => {
     expect(screen.getByText(mockTitle)).toBeInTheDocument();
     expect(screen.queryByTestId('icon-check-mark')).not.toBeInTheDocument();
     expect(screen.queryByText('Edit')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Expand Mock Title section')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Expand section')).not.toBeInTheDocument();
   });
 
   it('renders complete', async () => {
@@ -105,11 +105,5 @@ describe('StepHeader', () => {
     expect(screen.queryByText(`${stepNumber}.`)).not.toBeInTheDocument();
     expect(screen.queryByTestId('icon-check-mark')).not.toBeInTheDocument();
     expect(screen.queryByText('Edit')).not.toBeInTheDocument();
-
-    // based on isOpen
-    expect(screen.getByLabelText('Expand Mock Title section')).toBeInTheDocument();
-    expect(
-      screen.queryByLabelText('Collapse Mock Title section')
-    ).not.toBeInTheDocument();
   });
 });

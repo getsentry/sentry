@@ -1,9 +1,7 @@
-import {cloneElement, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {OnDemandBudgetMode} from 'getsentry/types';
@@ -38,7 +36,6 @@ function PlanSelectCard({
   price,
   badge,
   shouldShowDefaultPayAsYouGo,
-  planIcon,
 }: PlanSelectCardProps) {
   const billingInterval = getShortInterval(plan.billingInterval);
   const {description} = planContent;
@@ -57,10 +54,6 @@ function PlanSelectCard({
     onUpdate(data);
   };
 
-  const adjustedPlanIcon = isValidElement(planIcon)
-    ? cloneElement(planIcon, {size: 'md'} as SVGIconProps)
-    : planIcon;
-
   return (
     <CheckoutOption
       dataTestId={`plan-option-${plan.id}`}
@@ -70,7 +63,7 @@ function PlanSelectCard({
       ariaRole="radio"
     >
       <Flex align="start" justify="between" gap="md" padding="xl">
-        <Container paddingTop="sm">
+        <Container paddingTop="2xs">
           <RadioMarker isSelected={isSelected} />
         </Container>
 
@@ -82,15 +75,19 @@ function PlanSelectCard({
               </Heading>
               {badge}
             </Flex>
-            <IconContainer isSelected={isSelected}>{adjustedPlanIcon}</IconContainer>
+
+            <Flex>
+              <Text size="lg" bold>
+                {`$${price}`}
+              </Text>
+              <Text size="lg" variant="muted">
+                {`/${billingInterval}`}
+              </Text>
+            </Flex>
           </Flex>
-          <Text size="md" variant="muted">
+          <Text size="md" variant="muted" textWrap="balance">
             {description}
           </Text>
-          <Container>
-            <Price>{`$${price}`}</Price>
-            <BillingInterval>{`/${billingInterval}`}</BillingInterval>
-          </Container>
         </Flex>
       </Flex>
     </CheckoutOption>
@@ -98,25 +95,6 @@ function PlanSelectCard({
 }
 
 export default PlanSelectCard;
-
-const Price = styled('span')`
-  font-size: ${p => p.theme.fontSize['2xl']};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const BillingInterval = styled('span')`
-  font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const IconContainer = styled('div')<{isSelected?: boolean}>`
-  display: flex;
-  background: ${p =>
-    p.isSelected ? p.theme.tokens.graphics.accent : p.theme.background};
-  border: 1px solid ${p => (p.isSelected ? p.theme.tokens.border.accent : p.theme.border)};
-  border-radius: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.xs};
-  color: ${p => (p.isSelected ? p.theme.background : p.theme.textColor)};
-`;
 
 const RadioMarker = styled('div')<{isSelected?: boolean}>`
   width: ${p => p.theme.space.xl};

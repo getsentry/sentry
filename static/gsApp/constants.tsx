@@ -95,6 +95,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
       'Transactions are sent when your service receives a request and sends a response.'
     ),
     hasPerCategory: true,
+    shortenedUnitName: t('unit'),
   },
   [DataCategoryExact.ATTACHMENT]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT],

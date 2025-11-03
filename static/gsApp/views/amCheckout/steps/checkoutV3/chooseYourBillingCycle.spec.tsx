@@ -83,16 +83,16 @@ describe('ChooseYourBillingCycle', () => {
 
     const monthlyOption = screen.getByTestId('billing-cycle-option-monthly');
     expect(within(monthlyOption).getByText('Monthly')).toBeInTheDocument();
-    expect(within(monthlyOption).queryByText('save 10%')).not.toBeInTheDocument();
+    expect(within(monthlyOption).queryByText(/save 10%/)).not.toBeInTheDocument();
     expect(within(monthlyOption).getByText(monthlyInfo)).toBeInTheDocument();
-    expect(within(monthlyOption).getByText('Cancel anytime')).toBeInTheDocument();
+    expect(within(monthlyOption).getByText(/Cancel anytime/)).toBeInTheDocument();
 
     const yearlyOption = screen.getByTestId('billing-cycle-option-annual');
     expect(within(yearlyOption).getByText('Yearly')).toBeInTheDocument();
-    expect(within(yearlyOption).getByText('save 10%')).toBeInTheDocument();
+    expect(within(yearlyOption).getByText(/save 10%/)).toBeInTheDocument();
     expect(within(yearlyOption).getByText(yearlyInfo)).toBeInTheDocument();
     expect(
-      within(yearlyOption).getByText('PAYG usage billed monthly, discount does not apply')
+      within(yearlyOption).getByText(/PAYG usage billed monthly, discount does not apply/)
     ).toBeInTheDocument();
   }
 
