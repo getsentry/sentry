@@ -50,21 +50,16 @@ export function renderResolutionReason({
   );
 
   // Resolved in next release has current_release_version (semver only)
-  if (
-    (statusDetails.inNextRelease || statusDetails.inRelease) &&
-    relevantActivity &&
-    'current_release_version' in relevantActivity.data
-  ) {
+  if (relevantActivity && 'current_release_version' in relevantActivity.data) {
+    const releaseVersion =
+      statusDetails.inRelease ?? relevantActivity.data.current_release_version;
     const version = (
       <VersionHoverCard
         organization={organization}
         projectSlug={project.slug}
-        releaseVersion={relevantActivity.data.current_release_version}
+        releaseVersion={releaseVersion}
       >
-        <VersionComponent
-          version={relevantActivity.data.current_release_version}
-          projectId={project.id}
-        />
+        <VersionComponent version={releaseVersion} projectId={project.id} />
       </VersionHoverCard>
     );
     return statusDetails.actor
