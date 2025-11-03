@@ -32,7 +32,7 @@ class SentryMetricsBackend(MetricsBackend):
         tags: Tags | None = None,
         unit: str | None = None,
     ) -> None:
-        metrics.distribution(name, value, tags=tags)
+        metrics.distribution(name, value, tags=tags, unit=unit)
 
 
 def get_attachments_client() -> ClientBuilder:
