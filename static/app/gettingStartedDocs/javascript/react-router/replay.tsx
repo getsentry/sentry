@@ -8,9 +8,8 @@ import {
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 
-import {getClientSetupSnippet} from './utils';
 import {onboarding} from './onboarding';
-
+import {getClientSetupSnippet} from './utils';
 
 export const replay: OnboardingConfig = {
   install: (params: DocsParams) => onboarding.install(params),

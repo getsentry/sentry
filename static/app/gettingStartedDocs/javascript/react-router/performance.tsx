@@ -6,9 +6,8 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-import {getClientSetupSnippet} from './utils';
 import {onboarding} from './onboarding';
-
+import {getClientSetupSnippet} from './utils';
 
 export const performance: OnboardingConfig = {
   introduction: () =>

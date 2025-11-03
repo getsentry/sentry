@@ -9,7 +9,6 @@ import {
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 
-
 export const crashReport: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
   install: (params: DocsParams) => getCrashReportJavaScriptInstallSteps(params),

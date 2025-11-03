@@ -5,9 +5,8 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getFeedbackConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 
-import {getClientSetupSnippet} from './utils';
 import {onboarding} from './onboarding';
-
+import {getClientSetupSnippet} from './utils';
 
 export const feedback: OnboardingConfig = {
   install: (params: DocsParams) => onboarding.install(params),
