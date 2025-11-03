@@ -81,11 +81,13 @@ export default function ReplayDetails() {
 
   const nextReplay = useMemo(
     () =>
-      currentReplayIndex < replays.length - 1 ? replays[currentReplayIndex + 1] : null,
+      currentReplayIndex < replays.length - 1
+        ? replays[currentReplayIndex + 1]
+        : undefined,
     [replays, currentReplayIndex]
   );
   const previousReplay = useMemo(
-    () => (currentReplayIndex > 0 ? replays[currentReplayIndex - 1] : null),
+    () => (currentReplayIndex > 0 ? replays[currentReplayIndex - 1] : undefined),
     [replays, currentReplayIndex]
   );
 
@@ -106,13 +108,13 @@ export default function ReplayDetails() {
   const content = (
     <Fragment>
       <Header>
-        <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-        <ReplayDetailsHeaderActions readerResult={readerResult} />
-        <ReplayDetailsUserBadge
+        <ReplayDetailsPageBreadcrumbs
           readerResult={readerResult}
           nextReplay={nextReplay}
           previousReplay={previousReplay}
         />
+        <ReplayDetailsHeaderActions readerResult={readerResult} />
+        <ReplayDetailsUserBadge readerResult={readerResult} />
         <ReplayDetailsMetadata readerResult={readerResult} />
       </Header>
       <ReplayDetailsPage readerResult={readerResult} />

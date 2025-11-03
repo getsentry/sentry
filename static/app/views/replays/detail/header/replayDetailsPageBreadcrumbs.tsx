@@ -1,14 +1,14 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconCopy} from 'sentry/icons';
+import {IconChevron, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
@@ -19,18 +19,24 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
+  nextReplay: ReplayListRecord | undefined;
+  previousReplay: ReplayListRecord | undefined;
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
-export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
+export default function ReplayDetailsPageBreadcrumbs({
+  readerResult,
+  nextReplay,
+  previousReplay,
+}: Props) {
   const replayRecord = readerResult.replayRecord;
   const organization = useOrganization();
   const location = useLocation();
   const eventView = EventView.fromLocation(location);
   const project = useProjectFromId({project_id: replayRecord?.project_id ?? undefined});
-  const [isHovered, setIsHovered] = useState(false);
   const {currentTime} = useReplayContext();
 
   // Create URL with current timestamp for copying
@@ -74,12 +80,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
 
   const replayCrumb = {
     label: replayRecord ? (
-      <Flex
-        align="center"
-        gap="xs"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
+      <Flex align="center" gap="xs">
         <div
           onClick={() =>
             copy(replayUrlWithTimestamp, {
@@ -89,21 +90,43 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
         >
           {getShortEventId(replayRecord?.id)}
         </div>
-        {isHovered && (
-          <Tooltip title={t('Copy link to replay at current timestamp')}>
-            <Button
-              aria-label={t('Copy link to replay at current timestamp')}
-              onClick={() =>
-                copy(replayUrlWithTimestamp, {
-                  successMessage: t('Copied replay link to clipboard'),
-                })
-              }
-              size="zero"
-              borderless
-              icon={<IconCopy size="xs" color="subText" />}
-            />
-          </Tooltip>
-        )}
+        <Tooltip title={t('Copy link to replay at current timestamp')}>
+          <Button
+            aria-label={t('Copy link to replay at current timestamp')}
+            onClick={() =>
+              copy(replayUrlWithTimestamp, {
+                successMessage: t('Copied replay link to clipboard'),
+              })
+            }
+            size="zero"
+            borderless
+            icon={<IconCopy size="xs" color="subText" />}
+          />
+        </Tooltip>
+        <Flex>
+          <LinkButton
+            size="xs"
+            icon={<IconChevron direction="left" />}
+            disabled={!previousReplay}
+            to={{
+              pathname: previousReplay
+                ? `/explore/replays/${previousReplay.id}/`
+                : undefined,
+              query: {...location.query},
+            }}
+            borderless
+          />
+          <LinkButton
+            size="xs"
+            icon={<IconChevron direction="right" />}
+            borderless
+            disabled={!nextReplay}
+            to={{
+              pathname: nextReplay ? `/explore/replays/${nextReplay.id}/` : undefined,
+              query: {...location.query},
+            }}
+          />
+        </Flex>
       </Flex>
     ) : (
       <Placeholder width="100%" height="16px" />
