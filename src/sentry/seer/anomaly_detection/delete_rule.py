@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import TYPE_CHECKING
 
@@ -23,7 +25,7 @@ if TYPE_CHECKING:
     from sentry.workflow_engine.models.detector import Detector
 
 
-def delete_data_in_seer_for_detector(detector: "Detector"):
+def delete_data_in_seer_for_detector(detector: Detector):
     from sentry.incidents.models.alert_rule import AlertRuleDetectionType
     from sentry.workflow_engine.models import DataSourceDetector
 
@@ -117,7 +119,7 @@ def delete_rule_in_seer(source_id: int, organization: Organization) -> bool:
     return True
 
 
-def delete_rule_in_seer_legacy(alert_rule: "AlertRule") -> bool:
+def delete_rule_in_seer_legacy(alert_rule: AlertRule) -> bool:
     """
     Send a request to delete an alert rule from Seer. Returns True if the request was successful.
     """

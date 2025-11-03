@@ -211,9 +211,6 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         if detector.type == MetricIssue.slug:
             schedule_update_project_config(detector)
 
-        RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
-        detector.update(status=ObjectStatus.PENDING_DELETION)
-
         create_audit_entry(
             request=request,
             organization=detector.project.organization,
