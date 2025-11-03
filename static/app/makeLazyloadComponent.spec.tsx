@@ -152,7 +152,7 @@ describe('makeLazyloadComponent', () => {
       // Render component (which should use the same promise)
       render(<LazyComponent title="Shared Promise Test" />);
 
-      await preloadPromise;
+      await act(() => preloadPromise);
       await waitFor(() => {
         expect(screen.getByTestId('mock-component')).toBeInTheDocument();
       });
@@ -173,7 +173,11 @@ describe('makeLazyloadComponent', () => {
       const LazyComponent = makeLazyloadComponent(conditionalResolver);
 
       // Preload should fail
-      await expect(LazyComponent[PRELOAD_HANDLE]()).rejects.toThrow('Preload failed');
+      await waitFor(async () => {
+        await expect(act(() => LazyComponent[PRELOAD_HANDLE]())).rejects.toThrow(
+          'Preload failed'
+        );
+      });
 
       // But subsequent rendering attempts should still work
       shouldError = false;

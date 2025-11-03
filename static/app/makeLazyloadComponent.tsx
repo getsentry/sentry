@@ -24,10 +24,15 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
 
   const getSharedPromise = () => {
     if (!sharedPromise) {
-      sharedPromise = retryableImport(resolve).then(result => {
-        loadedComponent = result.default;
-        return result;
-      });
+      sharedPromise = retryableImport(resolve)
+        .then(result => {
+          loadedComponent = result.default;
+          return result;
+        })
+        .catch(e => {
+          sharedPromise = null;
+          throw e;
+        });
     }
     return sharedPromise;
   };
