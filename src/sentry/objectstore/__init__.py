@@ -23,7 +23,7 @@ class SentryMetricsBackend(MetricsBackend):
         """
         Sets a gauge metric to the given value.
         """
-        metrics.gauge(name, int(value), tags=tags)
+        metrics.gauge(name, value, tags=tags)
 
     def distribution(
         self,
