@@ -1055,11 +1055,11 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         SnubaTagStorage.get_group_tag_value_iter,
         "__defaults__",
         (
-            (),
-            "-first_seen",
-            1,
-            0,
-            None,
+            "-first_seen",  # orderby default (unchanged)
+            1,  # limit default (set to 1 for test)
+            0,  # offset default (unchanged)
+            None,  # tenant_ids default (unchanged)
+            False,  # include_empty_values default (unchanged)
         ),
     )
     def test_get_group_tag_value_paginator_sort_by_last_seen(self) -> None:

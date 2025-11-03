@@ -157,6 +157,7 @@ function ReleaseHeader({
               size="zero"
               text={version}
               title={version}
+              aria-label={t('Copy release version to clipboard')}
             />
           </IconWrapper>
           {!!url && (

@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {AvatarList} from '@sentry/scraps/avatar';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import AvatarList from 'sentry/components/core/avatar/avatarList';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -207,7 +208,12 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
       {t('Release:')}
       <VersionWrapper>
         <StyledVersion version={releaseVersion} truncate anchor={false} />
-        <CopyToClipboardButton borderless size="zero" text={releaseVersion} />
+        <CopyToClipboardButton
+          borderless
+          size="zero"
+          text={releaseVersion}
+          aria-label={t('Copy release version to clipboard')}
+        />
       </VersionWrapper>
     </Flex>
   );

@@ -101,7 +101,7 @@ const SummaryContainer = styled('div')`
 `;
 
 const SummaryIconContainer = styled('div')`
-  padding: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
