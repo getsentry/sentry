@@ -90,7 +90,9 @@ const INSIGHT_CONFIGS: InsightConfig[] = [
   {
     key: 'large_audio',
     name: t('Large Audio'),
-    description: t('Large audio files can be removed or compressed to reduce size.'),
+    description: t(
+      'Size Analysis flags audio files over 5 MB. These files can often be compressed further, converted to a more efficient format, or excluded from the app bundle and instead downloaded dynamically as the user requires them.'
+    ),
   },
   {
     key: 'unnecessary_files',
