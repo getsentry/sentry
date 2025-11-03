@@ -205,12 +205,17 @@ function InnerContent({
       <ToggleExceptionButton
         {...{hiddenExceptions, toggleRelatedExceptions, values, exception}}
       />
-      <Flex direction="row" justify="between">
-        {exception.mechanism && (
-          <Mechanism data={exception.mechanism} meta={meta?.[exceptionIdx]?.mechanism} />
-        )}
-        {hasCoverageData ? <LineCoverageLegend /> : null}
-      </Flex>
+      {exception.mechanism || hasCoverageData ? (
+        <RowWrapper direction="row" justify="between">
+          {exception.mechanism && (
+            <Mechanism
+              data={exception.mechanism}
+              meta={meta?.[exceptionIdx]?.mechanism}
+            />
+          )}
+          {hasCoverageData ? <LineCoverageLegend /> : null}
+        </RowWrapper>
+      ) : null}
       <RelatedExceptions
         mechanism={exception.mechanism}
         allExceptions={values}
@@ -405,4 +410,8 @@ const StyledFoldSection = styled(FoldSection)`
     margin-left: ${p => p.theme.space.xl};
     margin-right: ${p => p.theme.space.xl};
   }
+`;
+
+const RowWrapper = styled(Flex)`
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.xs} 0;
 `;

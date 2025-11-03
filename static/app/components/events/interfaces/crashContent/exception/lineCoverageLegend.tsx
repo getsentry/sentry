@@ -6,7 +6,7 @@ import {Coverage} from 'sentry/types/integrations';
 
 export function LineCoverageLegend() {
   return (
-    <Flex gap="2xl" align="center" direction="row">
+    <Flex gap="2xl" align="center" direction="row" paddingBottom="md">
       <CoveredLine>{COVERAGE_TEXT[Coverage.COVERED]}</CoveredLine>
       <UncoveredLine>{COVERAGE_TEXT[Coverage.NOT_COVERED]}</UncoveredLine>
       <PartiallyCoveredLine>{COVERAGE_TEXT[Coverage.PARTIAL]}</PartiallyCoveredLine>
