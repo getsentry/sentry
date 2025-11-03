@@ -342,6 +342,12 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "deletions.group-hashes.better-deletion",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "deletions.group-history.use-bulk-deletion",

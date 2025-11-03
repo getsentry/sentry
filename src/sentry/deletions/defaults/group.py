@@ -234,6 +234,41 @@ def delete_group_hashes(
     group_ids: Sequence[int],
     seer_deletion: bool = False,
 ) -> None:
+    if options.get("deletions.group-hashes.better-deletion"):
+        for group_id in group_ids:
+            _delete_group_hashes(project_id, group_id, seer_deletion)
+        return
+
+    _delete_group_hashes_old(project_id, group_ids, seer_deletion)
+
+
+def _delete_group_hashes(project_id: int, group_id: int) -> None:
+    hashes = GroupHash.objects.filter(project_id=project_id, group_id=group_id).values("id", "hash")
+    if not hashes:
+        return
+    hash_values = [hash.hash for hash in hashes]
+    try:
+        may_schedule_task_to_delete_hashes_from_seer(project_id, hash_values)
+    except Exception:
+        logger.warning("Error scheduling task to delete hashes from seer")
+
+    hash_batch_size = max(1, options.get("deletions.group-hashes-batch-size"))
+
+    hash_ids = [hash["id"] for hash in hashes]
+
+    # We first that all metadata rows are gone before deleting the hashes
+    for i in range(0, len(hash_ids), hash_batch_size):
+        GroupHashMetadata.objects.filter(
+            grouphash_id__in=hash_ids[i : i + hash_batch_size]
+        ).delete()
+
+    for i in range(0, len(hash_ids), hash_batch_size):
+        GroupHash.objects.filter(id__in=hash_ids[i : i + hash_batch_size]).delete()
+
+
+def _delete_group_hashes_old(
+    project_id: int, group_ids: Sequence[int], seer_deletion: bool = False
+) -> None:
     # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
     hashes_batch_size = max(1, options.get("deletions.group-hashes-batch-size"))
 
