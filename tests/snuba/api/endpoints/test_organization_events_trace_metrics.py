@@ -40,6 +40,54 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             "metricType": ErrorDetail('"bar" is not a valid choice.', code="invalid_choice"),
         }
 
+    def test_simple_deprecated(self) -> None:
+        trace_metrics = [
+            self.create_trace_metric("foo", 1, "counter"),
+            self.create_trace_metric("bar", 2, "counter"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["metric.name", "value"],
+                "query": "metric.name:foo metric.type:counter",
+                "orderby": "value",
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "metric.name": "foo",
+                "value": 1,
+            },
+        ]
+
+    def test_simple_aggregation_deprecated(self) -> None:
+        trace_metrics = [
+            self.create_trace_metric("foo", 1, "counter"),
+            self.create_trace_metric("bar", 2, "counter"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["metric.name", "sum(value)"],
+                "query": "metric.name:foo metric.type:counter",
+                "orderby": "sum(value)",
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "metric.name": "foo",
+                "sum(value)": 1,
+            },
+        ]
+
     def test_simple(self) -> None:
         trace_metrics = [
             self.create_trace_metric("foo", 1, "counter"),
