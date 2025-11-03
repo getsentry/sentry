@@ -297,6 +297,12 @@ export const AutoRefreshLabel = styled('label')`
   margin-bottom: 0;
 `;
 
+export const AutoRefreshText = styled('span')`
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    display: none;
+  }
+`;
+
 export function getLogColors(level: SeverityLevel, theme: Theme) {
   switch (level) {
     case SeverityLevel.DEFAULT:

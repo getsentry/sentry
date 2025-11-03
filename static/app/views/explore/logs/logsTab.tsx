@@ -381,17 +381,7 @@ export function LogsTabContent({
             </Tabs>
             {tableTab === 'logs' && (
               <TableActionsContainer>
-                <TableActionButton
-                  mobile={
-                    <AutorefreshToggle
-                      averageLogsPerSecond={averageLogsPerSecond}
-                      hideText
-                    />
-                  }
-                  desktop={
-                    <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
-                  }
-                />
+                <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
                 <Button
                   size="sm"
                   icon={<IconRefresh />}

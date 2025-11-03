@@ -17,7 +17,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {AutoRefreshLabel} from 'sentry/views/explore/logs/styles';
+import {AutoRefreshLabel, AutoRefreshText} from 'sentry/views/explore/logs/styles';
 import {useLogsAutoRefreshInterval} from 'sentry/views/explore/logs/useLogsAutoRefreshInterval';
 import {checkSortIsTimeBasedDescending} from 'sentry/views/explore/logs/utils';
 import {
@@ -42,7 +42,6 @@ type PreFlightDisableReason =
 
 interface AutorefreshToggleProps {
   averageLogsPerSecond?: number | null;
-  hideText?: boolean;
 }
 
 /**
@@ -55,10 +54,7 @@ interface AutorefreshToggleProps {
  * Preflight conditions don't disable autorefresh when values change (eg. sort changes), it's assumed all preflight conditions
  * should be handled via logs page params resetting autorefresh state meaning future values will be checked again before the toggle can be re-enabled.
  */
-export function AutorefreshToggle({
-  averageLogsPerSecond = 0,
-  hideText = false,
-}: AutorefreshToggleProps) {
+export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleProps) {
   const organization = useOrganization();
   const analyticsPageSource = useLogsAnalyticsPageSource();
   const {autoRefresh} = useLogsAutoRefresh();
@@ -139,7 +135,7 @@ export function AutorefreshToggle({
             }}
           />
         </Tooltip>
-        {!hideText && t('Auto-refresh')}
+        <AutoRefreshText>{t('Auto-refresh')}</AutoRefreshText>
       </AutoRefreshLabel>
     </Fragment>
   );
