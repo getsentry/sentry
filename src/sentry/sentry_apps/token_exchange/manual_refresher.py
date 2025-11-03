@@ -27,7 +27,8 @@ logger = logging.getLogger("sentry.token-exchange")
 @dataclass
 class ManualTokenRefresher:
     """
-    Refreshes an installation's token after validation
+    Refreshes an installation's token after validation (i.e client_secret_jwt or client_credentials)
+    Currently meant for 3rd party integrations to manually refresh their tokens.
     """
 
     install: SentryAppInstallation

@@ -12,7 +12,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.auth.services.auth.impl import promote_request_api_user
 from sentry.organizations.services.organization.service import organization_service
-from sentry.security.utils import capture_security_activity
+from sentry.security.utils import capture_security_app_activity
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppAuthorizationsBaseEndpoint
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
@@ -111,20 +111,19 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     user=user,
                 ).run()
 
-                capture_security_activity(
-                    account=user,
-                    type="sentry-app-token-refreshed",
-                    actor=user,
+                capture_security_app_activity(
+                    organization=context.organization,
+                    sentry_app=installation.sentry_app,
+                    activity_type="sentry-app-token-manual-refresh",
                     ip_address=request.META["REMOTE_ADDR"],
                     context={
-                        "installation_uuid": installation.uuid,
-                        "sentry_app_id": installation.sentry_app.id,
+                        "installation_id": installation.id,
                     },
-                    send_email=False,
                 )
 
             else:
                 raise SentryAppIntegratorError(message="Invalid grant_type", status_code=403)
+
         except SentryAppIntegratorError as e:
             logger.info(
                 "sentry-app-authorizations.error-context",
