@@ -6,7 +6,6 @@ import type {
 import {getFeedbackConfigOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getReplayConfigOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 
-
 const getDynamicParts = (params: DocsParams): string[] => {
   const dynamicParts: string[] = [];
 
