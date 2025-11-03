@@ -181,4 +181,4 @@ class MsTeamsIntegrationSendNotificationTest(TestCase):
         with pytest.raises(ApiError):
             self.installation.send_notification(target=self.target, payload=payload)
 
-        assert_count_of_metric(mock_record, EventLifecycleOutcome.HALTED, 1)
+        assert_count_of_metric(mock_record, EventLifecycleOutcome.FAILURE, 1)
