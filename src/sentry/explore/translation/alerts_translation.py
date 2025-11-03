@@ -41,7 +41,16 @@ def snapshot_snuba_query(snuba_query: SnubaQuery):
     return snuba_query
 
 
-def translate_alert_rule_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
+def _get_old_query_info(snuba_query: SnubaQuery):
+    old_query_type = SnubaQuery.Type(snuba_query.type)
+    old_dataset = Dataset(snuba_query.dataset)
+    old_query = snuba_query.query
+    old_aggregate = snuba_query.aggregate
+
+    return old_query_type, old_dataset, old_query, old_aggregate
+
+
+def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
     data_source: DataSource = DataSource.objects.get(
         source_id=snuba_query.id, type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
     )
@@ -58,10 +67,7 @@ def translate_alert_rule_and_update_subscription_in_snuba(snuba_query: SnubaQuer
     if not snapshot:
         return
 
-    old_query_type = SnubaQuery.Type(snuba_query.type)
-    old_dataset = Dataset(snuba_query.dataset)
-    old_aggregate = snuba_query.aggregate
-    old_query = snuba_query.query
+    old_query_type, old_dataset, old_query, old_aggregate = _get_old_query_info(snuba_query)
 
     eap_query_parts, dropped_fields = translate_mep_to_eap(
         QueryParts(
@@ -134,7 +140,7 @@ def translate_alert_rule_and_update_subscription_in_snuba(snuba_query: SnubaQuer
     return
 
 
-def rollback_alert_rule_query_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
+def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
     data_source: DataSource = DataSource.objects.get(
         source_id=snuba_query.id, type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
     )
@@ -151,10 +157,7 @@ def rollback_alert_rule_query_and_update_subscription_in_snuba(snuba_query: Snub
 
     detectors = data_source.detectors.all()
 
-    old_query_type = SnubaQuery.Type(snuba_query.type)
-    old_dataset = Dataset(snuba_query.dataset)
-    old_query = snuba_query.query
-    old_aggregate = snuba_query.aggregate
+    old_query_type, old_dataset, old_query, old_aggregate = _get_old_query_info(snuba_query)
     with atomic_transaction(
         using=(
             router.db_for_write(SnubaQuery),

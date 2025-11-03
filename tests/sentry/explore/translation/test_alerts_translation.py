@@ -11,9 +11,9 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 from urllib3.response import HTTPResponse
 
 from sentry.explore.translation.alerts_translation import (
-    rollback_alert_rule_query_and_update_subscription_in_snuba,
+    rollback_detector_query_and_update_subscription_in_snuba,
     snapshot_snuba_query,
-    translate_alert_rule_and_update_subscription_in_snuba,
+    translate_detector_and_update_subscription_in_snuba,
 )
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
@@ -140,7 +140,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         assert snuba_query.dataset == Dataset.PerformanceMetrics.value
 
-        translate_alert_rule_and_update_subscription_in_snuba(snuba_query)
+        translate_detector_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.query_snapshot is not None
@@ -237,7 +237,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         assert snuba_query.dataset == Dataset.Transactions.value
 
-        translate_alert_rule_and_update_subscription_in_snuba(snuba_query)
+        translate_detector_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
@@ -296,7 +296,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         data_source.detectors.add(detector)
 
-        translate_alert_rule_and_update_subscription_in_snuba(snuba_query)
+        translate_detector_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
@@ -346,7 +346,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         data_source.detectors.add(detector)
 
-        translate_alert_rule_and_update_subscription_in_snuba(snuba_query)
+        translate_detector_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
@@ -408,7 +408,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         original_aggregate = snuba_query.aggregate
         original_time_window = snuba_query.time_window
 
-        translate_alert_rule_and_update_subscription_in_snuba(snuba_query)
+        translate_detector_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
@@ -416,7 +416,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         assert mock_create_rpc.called
         assert mock_create_rpc.call_count == 1
 
-        rollback_alert_rule_query_and_update_subscription_in_snuba(snuba_query)
+        rollback_detector_query_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.type == original_type
@@ -484,7 +484,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         original_dataset = snuba_query.dataset
 
-        rollback_alert_rule_query_and_update_subscription_in_snuba(snuba_query)
+        rollback_detector_query_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == original_dataset
@@ -548,7 +548,7 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         data_source.detectors.add(detector)
 
-        translate_alert_rule_and_update_subscription_in_snuba(snuba_query)
+        translate_detector_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
@@ -644,13 +644,13 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         original_dataset = snuba_query.dataset
 
-        translate_alert_rule_and_update_subscription_in_snuba(snuba_query)
+        translate_detector_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
         assert mock_seer.call_count == 1
 
-        rollback_alert_rule_query_and_update_subscription_in_snuba(snuba_query)
+        rollback_detector_query_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == original_dataset
