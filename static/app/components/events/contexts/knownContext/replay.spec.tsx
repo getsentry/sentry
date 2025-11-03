@@ -19,6 +19,7 @@ const MOCK_REDACTION = {
     '': {
       rem: [['organization:0', 's', 0, 0]],
       len: 5,
+      extra: 42,
     },
   },
 };
