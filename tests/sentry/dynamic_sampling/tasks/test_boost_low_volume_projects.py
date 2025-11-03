@@ -287,9 +287,11 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 class TestPartitionByMeasure(TestCase):
     def test_partition_by_measure_with_spans_feature(self) -> None:
         org = self.create_organization("test-org1")
-        with (
-            self.options({"dynamic-sampling.check_span_feature_flag": True}),
-            self.feature({"organizations:dynamic-sampling-spans": True}),
+        with self.options(
+            {
+                "dynamic-sampling.check_span_feature_flag": True,
+                "dynamic-sampling.measure.spans": [org.id],
+            }
         ):
             result = partition_by_measure([org.id])
             assert SamplingMeasure.SPANS in result
@@ -299,9 +301,11 @@ class TestPartitionByMeasure(TestCase):
 
     def test_partition_by_measure_without_spans_feature(self) -> None:
         org = self.create_organization("test-org1")
-        with (
-            self.options({"dynamic-sampling.check_span_feature_flag": True}),
-            self.feature({"organizations:dynamic-sampling-spans": False}),
+        with self.options(
+            {
+                "dynamic-sampling.check_span_feature_flag": True,
+                "dynamic-sampling.measure.spans": [],
+            }
         ):
             result = partition_by_measure([org.id])
             assert SamplingMeasure.SPANS in result
@@ -311,9 +315,11 @@ class TestPartitionByMeasure(TestCase):
 
     def test_partition_by_measure_with_span_feature_flag_disabled(self) -> None:
         org = self.create_organization("test-org1")
-        with (
-            self.options({"dynamic-sampling.check_span_feature_flag": False}),
-            self.feature({"organizations:dynamic-sampling-spans": True}),
+        with self.options(
+            {
+                "dynamic-sampling.check_span_feature_flag": False,
+                "dynamic-sampling.measure.spans": [org.id],
+            }
         ):
             result = partition_by_measure([org.id])
             assert SamplingMeasure.TRANSACTIONS in result
