@@ -495,17 +495,6 @@ class DashboardDetail extends Component<Props, State> {
 
   handleChangeFilter = (activeFilters: DashboardFilters) => {
     const {dashboard, location} = this.props;
-    const {modifiedDashboard} = this.state;
-    const newModifiedDashboard = modifiedDashboard || dashboard;
-
-    if (
-      Object.keys(activeFilters).every(
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        key => !newModifiedDashboard.filters?.[key] && activeFilters[key].length === 0
-      )
-    ) {
-      return;
-    }
 
     const filterParams: Record<string, string[]> = {};
     filterParams[DashboardFilterKeys.RELEASE] = activeFilters[DashboardFilterKeys.RELEASE]
@@ -965,6 +954,7 @@ class DashboardDetail extends Component<Props, State> {
                   filters={{}} // Default Dashboards don't have filters set
                   location={location}
                   hasUnsavedChanges={false}
+                  hasTemporaryFilters={false}
                   isEditingDashboard={false}
                   isPreview={false}
                   onDashboardFilterChange={this.handleChangeFilter}
@@ -1045,6 +1035,10 @@ class DashboardDetail extends Component<Props, State> {
       dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
+
+    const hasTemporaryFilters = defined(
+      location.query?.[DashboardFilterKeys.TEMPORARY_FILTERS]
+    );
 
     const eventView = generatePerformanceEventView(location, projects, {}, organization);
 
@@ -1178,6 +1172,7 @@ class DashboardDetail extends Component<Props, State> {
                                 dashboardCreator={dashboard.createdBy}
                                 location={location}
                                 hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
+                                hasTemporaryFilters={hasTemporaryFilters}
                                 isEditingDashboard={
                                   dashboardState !== DashboardState.CREATE &&
                                   this.isEditingDashboard

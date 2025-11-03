@@ -1,6 +1,9 @@
+from unittest.mock import MagicMock, patch
+
 from django.test.utils import override_settings
 
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.utils.test_jwt import RS256_KEY
 
@@ -14,11 +17,12 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
         self.login_as(user=self.user)
 
     @override_settings(
-        CONDUIT_PRIVATE_KEY=RS256_KEY,
-        CONDUIT_JWT_ISSUER="sentry",
-        CONDUIT_JWT_AUDIENCE="conduit",
+        CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY,
+        CONDUIT_GATEWAY_JWT_ISSUER="sentry",
+        CONDUIT_GATEWAY_JWT_AUDIENCE="conduit",
         CONDUIT_GATEWAY_URL="https://conduit.example.com",
     )
+    @with_feature("organizations:conduit-demo")
     def test_post_generate_credentials(self) -> None:
         """Test that POST generates valid credentials."""
 
@@ -34,6 +38,7 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
         assert "url" in response.data["conduit"]
         assert str(self.organization.id) in response.data["conduit"]["url"]
 
+    @with_feature("organizations:conduit-demo")
     def test_post_without_org_access(self) -> None:
         """Test that users without org access cannot generate credentials."""
         other_org = self.create_organization()
@@ -44,6 +49,7 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
             status_code=403,
         )
 
+    @with_feature("organizations:conduit-demo")
     def test_post_missing_conduit_config(self) -> None:
         """Test graceful failure when CONDUIT_PRIVATE_KEY is not configured."""
         response = self.get_error_response(
@@ -55,11 +61,12 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
         assert response.data == {"error": "Conduit is not configured properly"}
 
     @override_settings(
-        CONDUIT_PRIVATE_KEY=RS256_KEY,
-        CONDUIT_JWT_ISSUER="sentry",
-        CONDUIT_JWT_AUDIENCE="conduit",
+        CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY,
+        CONDUIT_GATEWAY_JWT_ISSUER="sentry",
+        CONDUIT_GATEWAY_JWT_AUDIENCE="conduit",
         CONDUIT_GATEWAY_URL="https://conduit.example.com",
     )
+    @with_feature("organizations:conduit-demo")
     def test_credentials_are_unique(self) -> None:
         """Test that multiple calls generate different credentials."""
         response1 = self.get_success_response(
@@ -76,3 +83,26 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
 
         assert response1.data["conduit"]["token"] != response2.data["conduit"]["token"]
         assert response1.data["conduit"]["channel_id"] != response2.data["conduit"]["channel_id"]
+
+    @override_settings(
+        CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY,
+        CONDUIT_GATEWAY_JWT_ISSUER="sentry",
+        CONDUIT_GATEWAY_JWT_AUDIENCE="conduit",
+        CONDUIT_GATEWAY_URL="https://conduit.example.com",
+    )
+    @patch("sentry.conduit.endpoints.organization_conduit_demo.stream_demo_data")
+    @with_feature("organizations:conduit-demo")
+    def test_post_queues_task(self, mock_task: MagicMock):
+        self.get_success_response(
+            self.organization.slug,
+            method="POST",
+            status_code=201,
+        )
+        mock_task.delay.assert_called_once()
+
+    def test_post_without_feature_flag(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=404,
+        )

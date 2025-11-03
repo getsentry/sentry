@@ -16,6 +16,17 @@ export type MetricsAnalyticsEventParameters = {
     organization: Organization;
     platform: PlatformKey | 'unknown';
   };
+  'metrics.save_as': {
+    organization: Organization;
+    save_type: 'alert' | 'dashboard' | 'update_query';
+    ui_source: string;
+  };
+  'metrics.save_query_modal': {
+    action: 'open';
+    organization: Organization;
+    save_type: 'save_new_query';
+    ui_source: string;
+  };
 };
 
 type MetricsAnalyticsEventKey = keyof MetricsAnalyticsEventParameters;
@@ -25,4 +36,6 @@ export const metricsAnalyticsEventMap: Record<MetricsAnalyticsEventKey, string |
   'metrics.onboarding': 'Metrics Explore Empty State (Onboarding)',
   'metrics.onboarding_platform_docs_viewed':
     'Metrics Explore Empty State (Onboarding) - Platform Docs Viewed',
+  'metrics.save_as': 'Metrics Save As',
+  'metrics.save_query_modal': 'Metrics Save Query Modal',
 };
