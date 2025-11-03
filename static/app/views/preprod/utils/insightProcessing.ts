@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {
   AppleInsightResults,
   FileSavingsResult,
@@ -45,83 +46,88 @@ interface InsightConfig {
 const INSIGHT_CONFIGS: InsightConfig[] = [
   {
     key: 'image_optimization',
-    name: 'Image Optimization',
-    description:
-      'We determine how much size could be reduced if images were better optimized. In some cases you can convert to HEIC for better compression.',
+    name: t('Image Optimization'),
+    description: t(
+      'We determine how much size could be reduced if images were better optimized. In some cases you can convert to HEIC for better compression.'
+    ),
   },
   {
     key: 'duplicate_files',
-    name: 'Duplicate Files',
-    description:
-      'Multiple copies of the same file were found. Move these files to shared locations to reduce size.',
+    name: t('Duplicate Files'),
+    description: t(
+      'Multiple copies of the same file were found. Move these files to shared locations to reduce size.'
+    ),
   },
   {
     key: 'strip_binary',
-    name: 'Strip Binary Symbols',
-    description:
-      'Debug symbols and symbol tables can be removed from production binaries to reduce size.',
+    name: t('Strip Binary Symbols'),
+    description: t(
+      'Debug symbols and symbol tables can be removed from production binaries to reduce size.'
+    ),
   },
   {
     key: 'loose_images',
-    name: 'Loose Images',
-    description: 'Loose image files can be moved to asset catalogs to reduce size.',
+    name: t('Loose Images'),
+    description: t('Loose image files can be moved to asset catalogs to reduce size.'),
   },
   {
     key: 'main_binary_exported_symbols',
-    name: 'Main Binary Export Metadata',
-    description:
-      'Symbol metadata can be removed from entrypoint binaries to reduce size.',
+    name: t('Main Binary Export Metadata'),
+    description: t(
+      'Symbol metadata can be removed from entrypoint binaries to reduce size.'
+    ),
   },
   {
     key: 'large_images',
-    name: 'Large Images',
-    description: 'Large image files can be removed or compressed to reduce size.',
+    name: t('Large Images'),
+    description: t('Large image files can be removed or compressed to reduce size.'),
   },
   {
     key: 'large_videos',
-    name: 'Large Videos',
-    description: 'Large video files can be removed or compressed to reduce size.',
+    name: t('Large Videos'),
+    description: t('Large video files can be removed or compressed to reduce size.'),
   },
   {
     key: 'large_audio',
-    name: 'Large Audio',
-    description: 'Large audio files can be removed or compressed to reduce size.',
+    name: t('Large Audio'),
+    description: t('Large audio files can be removed or compressed to reduce size.'),
   },
   {
     key: 'unnecessary_files',
-    name: 'Unnecessary Files',
-    description: 'Files that are not needed can be removed to reduce size.',
+    name: t('Unnecessary Files'),
+    description: t('Files that are not needed can be removed to reduce size.'),
   },
   {
     key: 'localized_strings_minify',
-    name: 'Minify Localized Strings',
-    description: 'Localized string files can be minified to reduce size.',
+    name: t('Minify Localized Strings'),
+    description: t('Localized string files can be minified to reduce size.'),
   },
   {
     key: 'small_files',
-    name: 'Small Files',
-    description: 'Small files can be moved to asset catalogs to reduce size.',
+    name: t('Small Files'),
+    description: t('Small files can be moved to asset catalogs to reduce size.'),
   },
   {
     key: 'hermes_debug_info',
-    name: 'Hermes Debug Info',
-    description: 'Hermes debug information can be removed to reduce size.',
+    name: t('Hermes Debug Info'),
+    description: t('Hermes debug information can be removed to reduce size.'),
   },
   {
     key: 'audio_compression',
-    name: 'Audio Compression',
-    description: 'Audio files can be compressed to reduce size.',
+    name: t('Audio Compression'),
+    description: t('Audio files can be compressed to reduce size.'),
   },
   {
     key: 'video_compression',
-    name: 'Video Compression',
-    description: 'Video files can be compressed to reduce size.',
+    name: t('Video Compression'),
+    description: t('Video files can be compressed to reduce size.'),
   },
   {
     key: 'alternate_icons_optimization',
-    name: 'Alternate Icon Optimization',
-    description:
-      'Alternate icons don’t need full size quality because they are only shown downscaled in the homescreen.',
+    name: t('Alternate Icon Optimization'),
+    description: t(
+      "Alternate icons don't need full size quality because they are only shown downscaled in the homescreen."
+    ),
   },
 ];
 
