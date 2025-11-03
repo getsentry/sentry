@@ -1,7 +1,7 @@
 import pytest
 import zstandard
 
-from sentry.objectstore.service import ClientBuilder, ClientError
+from sentry.objectstore import ClientBuilder, ClientError
 from sentry.testutils.skips import requires_objectstore
 
 pytestmark = [requires_objectstore]

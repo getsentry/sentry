@@ -1,5 +1,5 @@
-from sentry.objectstore.service import Client, ClientBuilder
+from objectstore_client import Client, ClientBuilder, ClientError
 
-__all__ = ["attachments", "Client", "ClientBuilder"]
+__all__ = ["attachments", "Client", "ClientBuilder", "ClientError"]
 
 attachments = ClientBuilder("attachments")
