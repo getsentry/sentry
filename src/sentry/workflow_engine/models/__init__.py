@@ -15,6 +15,7 @@ __all__ = [
     "DetectorGroup",
     "DetectorState",
     "DetectorWorkflow",
+    "ErrorBackfillStatus",
     "IncidentGroupOpenPeriod",
     "Workflow",
     "WorkflowDataConditionGroup",
@@ -36,6 +37,7 @@ from .detector import Detector
 from .detector_group import DetectorGroup
 from .detector_state import DetectorState
 from .detector_workflow import DetectorWorkflow
+from .error_backfill_status import ErrorBackfillStatus
 from .incident_groupopenperiod import IncidentGroupOpenPeriod
 from .workflow import Workflow
 from .workflow_action_group_status import WorkflowActionGroupStatus
