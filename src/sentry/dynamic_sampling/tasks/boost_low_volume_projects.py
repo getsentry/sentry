@@ -133,14 +133,19 @@ def partition_by_measure(
 
     # Exclude orgs with project-mode sampling from the start. We know the
     # default is DynamicSamplingMode.ORGANIZATION.
-    org_ids = {org.id for org, mode in modes.items() if mode != DynamicSamplingMode.PROJECT}
+    filtered_org_ids = {
+        org.id for org, mode in modes.items() if mode != DynamicSamplingMode.PROJECT
+    }
 
     if not options.get("dynamic-sampling.check_span_feature_flag"):
-        metrics.incr("dynamic_sampling.partition_by_measure.transactions", amount=len(org_ids))
-        return {SamplingMeasure.TRANSACTIONS: list(org_ids)}
+        metrics.incr(
+            "dynamic_sampling.partition_by_measure.transactions", amount=len(filtered_org_ids)
+        )
+        return {SamplingMeasure.TRANSACTIONS: list(filtered_org_ids)}
 
-    span_org_ids = set(options.get("dynamic-sampling.measure.spans")) or set()
-    transactions_org_ids = org_ids - span_org_ids
+    span_org_ids = set(options.get("dynamic-sampling.measure.spans") or [])
+    span_org_ids = span_org_ids & filtered_org_ids
+    transactions_org_ids = filtered_org_ids - span_org_ids
 
     logger.info(
         "dynamic_sampling.partition_by_measure.options_check",
