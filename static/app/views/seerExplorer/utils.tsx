@@ -32,13 +32,26 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     return isLoading ? `Googling '${question}'...` : `Googled '${question}'`;
   },
 
-  trace_explorer_query: (args, isLoading) => {
-    const question = args.question || 'spans';
+  telemetry_live_search: (args, isLoading) => {
+    const question = args.question || 'data';
+    const dataset = args.dataset || 'spans';
+    const projectSlug = args.project_slug;
+
     const truncatedQuestion =
       question.length > 75 ? question.slice(0, 75) + '...' : question;
+
+    const projectInfo = projectSlug ? ` in ${projectSlug}` : '';
+
+    if (dataset === 'issues') {
+      return isLoading
+        ? `Searching for issues${projectInfo}: '${truncatedQuestion}'...`
+        : `Searched for issues${projectInfo}: '${truncatedQuestion}'`;
+    }
+
+    // Default to spans
     return isLoading
-      ? `Querying spans: '${truncatedQuestion}'`
-      : `Queried spans: '${truncatedQuestion}'`;
+      ? `Querying spans${projectInfo}: '${truncatedQuestion}'...`
+      : `Queried spans${projectInfo}: '${truncatedQuestion}'`;
   },
 
   get_trace_waterfall: (args, isLoading) => {
@@ -199,11 +212,36 @@ export function buildToolLinkUrl(
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
   switch (toolLink.kind) {
-    case 'trace_explorer_query': {
-      const {query, stats_period, y_axes, group_by, sort, mode, project_slug} =
-        toolLink.params;
+    case 'telemetry_live_search': {
+      const {dataset, query, stats_period, project_slug} = toolLink.params;
 
-      // Transform backend params to frontend format
+      if (dataset === 'issues') {
+        // Build URL for issues search
+        const queryParams: Record<string, any> = {
+          query: query || '',
+        };
+
+        // If project_slug is provided, look up the project ID
+        if (project_slug && projects) {
+          const project = projects.find(p => p.slug === project_slug);
+          if (project) {
+            queryParams.project = project.id;
+          }
+        }
+
+        if (stats_period) {
+          queryParams.statsPeriod = stats_period;
+        }
+
+        return {
+          pathname: `/organizations/${orgSlug}/issues/`,
+          query: queryParams,
+        };
+      }
+
+      // Default to spans (traces) search
+      const {y_axes, group_by, sort, mode} = toolLink.params;
+
       const queryParams: Record<string, any> = {
         query: query || '',
         project: null,
