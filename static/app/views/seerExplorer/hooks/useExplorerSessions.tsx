@@ -5,19 +5,27 @@ import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {ExplorerSession} from 'sentry/views/seerExplorer/types';
 
-interface SeerResponse {
+interface RunsResponse {
   data: ExplorerSession[];
 }
 
 export function useExplorerSessions({
+  perPage,
   enabled = true,
-  perPage = 20,
 }: {
+  perPage: number;
   enabled?: boolean;
-  perPage?: number;
 }) {
   const organization = useOrganization({allowNull: true});
-  const queryResult = useInfiniteApiQuery<SeerResponse>({
+  const {
+    data,
+    isFetching,
+    isError,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    refetch,
+  } = useInfiniteApiQuery<RunsResponse>({
     queryKey: [
       'infinite',
       `/organizations/${organization?.slug ?? ''}/seer/explorer-runs/`,
@@ -28,26 +36,21 @@ export function useExplorerSessions({
       },
     ],
     enabled: enabled && Boolean(organization),
-    staleTime: 30_000, // 30 seconds
   });
 
-  // Deduplicate sessions in case pages overlap
-  // Access result[0].data since response format is {"data": list[item]}
+  // Deduplicate sessions in case pages shift (new runs, order changes).
   const sessions = useMemo(
-    () =>
-      uniqBy(
-        queryResult.data?.pages.flatMap(result => result[0]?.data ?? []) ?? [],
-        'run_id'
-      ),
-    [queryResult.data?.pages]
+    () => uniqBy(data?.pages.flatMap(result => result[0]?.data ?? []) ?? [], 'run_id'),
+    [data]
   );
 
   return {
     sessions,
-    isFetching: queryResult.isFetching,
-    isError: queryResult.isError,
-    hasNextPage: queryResult.hasNextPage,
-    fetchNextPage: queryResult.fetchNextPage,
-    isFetchingNextPage: queryResult.isFetchingNextPage,
+    isFetching,
+    isError,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    refetch,
   };
 }

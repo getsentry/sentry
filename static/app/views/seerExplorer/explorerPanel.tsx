@@ -40,7 +40,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   // Custom hooks
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
-  const {sessions: allSessions} = useExplorerSessions({enabled: isVisible});
+  const sessionsResult = useExplorerSessions({perPage: 20, enabled: isVisible});
   const {
     sessionData,
     sendMessage,
@@ -56,7 +56,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   // Get active session title for display
   const activeSessionTitle = useMemo(() => {
-    const session = allSessions.find(s => s.run_id === runId);
+    const session = sessionsResult.sessions.find(s => s.run_id === runId);
     const title = session?.title ?? 'New Session';
 
     const createdDate = session?.created_at
@@ -64,7 +64,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       : moment(Date.now()).format('MM/DD h:mm A');
 
     return `${createdDate} - ${title}`.trim();
-  }, [runId, allSessions]);
+  }, [runId, sessionsResult.sessions]);
 
   useBlockNavigation({
     isOpen: isVisible,
@@ -168,7 +168,9 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (inputValue.trim() && !isPolling) {
-        sendMessage(inputValue.trim());
+        sendMessage(inputValue.trim(), undefined, () => {
+          sessionsResult.refetch();
+        });
         setInputValue('');
         // Reset textarea height
         if (textareaRef.current) {
@@ -237,8 +239,10 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
             {organization && (
               <SessionDropdown
                 organization={organization}
-                runId={runId}
+                activeRunId={runId}
+                startNewSession={startNewSession}
                 onSelectSession={setRunId}
+                useExplorerSessionsResult={sessionsResult}
               />
             )}
             <SessionTitle as="h2">{activeSessionTitle}</SessionTitle>

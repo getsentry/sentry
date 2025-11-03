@@ -3,22 +3,17 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconChevron} from 'sentry/icons';
+import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 import type {ExplorerSession} from 'sentry/views/seerExplorer/types';
-
-interface SessionDropdownProps {
-  onSelectSession: (runId: number | null) => void;
-  organization: Organization | null;
-  runId: number | null;
-}
 
 function getRelativeTime(dateString: string): string {
   const date = new Date(dateString);
@@ -57,12 +52,22 @@ function makeSelectOption(session: ExplorerSession): SelectOption<number> {
   };
 }
 
-export function SessionDropdown({runId, onSelectSession}: SessionDropdownProps) {
+interface SessionDropdownProps {
+  activeRunId: number | null;
+  onSelectSession: (runId: number | null) => void;
+  organization: Organization | null;
+  startNewSession: () => void;
+  useExplorerSessionsResult: ReturnType<typeof useExplorerSessions>;
+}
+
+export function SessionDropdown({
+  activeRunId,
+  useExplorerSessionsResult,
+  onSelectSession,
+  startNewSession,
+}: SessionDropdownProps) {
   const {sessions, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage} =
-    useExplorerSessions({
-      enabled: true,
-      perPage: 20,
-    });
+    useExplorerSessionsResult;
 
   const selectOptions = sessions.map(makeSelectOption);
 
@@ -94,13 +99,22 @@ export function SessionDropdown({runId, onSelectSession}: SessionDropdownProps) 
     </Fragment>
   );
 
+  const newSessionButton = activeRunId && (
+    <Button size="xs" onClick={startNewSession}>
+      <Flex gap="2xs" align="center">
+        <IconAdd size="xs" />
+        {t('New')}
+      </Flex>
+    </Button>
+  );
+
   return (
     <CompactSelect
-      key={runId ?? 'new-session'} // Force re-render when runId changes.
+      key={activeRunId ?? 'new-session'} // Force re-render when runId changes.
       searchable
       menuWidth={350}
       position="bottom-start"
-      value={runId ?? undefined}
+      value={activeRunId ?? undefined}
       menuTitle={
         isFetching && sessions.length === 0 ? t('Loading...') : t('Session History')
       }
@@ -113,6 +127,7 @@ export function SessionDropdown({runId, onSelectSession}: SessionDropdownProps) 
       trigger={makeTrigger}
       emptyMessage={isFetching ? t('Loading sessions...') : t('No sessions found.')}
       menuFooter={menuFooter}
+      menuHeaderTrailingItems={newSessionButton}
     />
   );
 }
@@ -154,6 +169,4 @@ const SessionMeta = styled(Text)`
 const FooterWrapper = styled('div')`
   display: flex;
   justify-content: center;
-  padding: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
 `;

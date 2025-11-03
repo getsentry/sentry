@@ -131,7 +131,7 @@ export function useSeerExplorer({
   );
 
   const sendMessage = useCallback(
-    async (query: string, insertIndex?: number) => {
+    async (query: string, insertIndex?: number, onNewSession?: () => void) => {
       if (!orgSlug) {
         return;
       }
@@ -191,6 +191,7 @@ export function useSeerExplorer({
         // Set run ID if this is a new session
         if (!runId) {
           setRunId(response.run_id);
+          onNewSession?.();
         }
 
         // Invalidate queries to fetch fresh data
@@ -340,6 +341,7 @@ export function useSeerExplorer({
     }
   }
 
+  /** Resets the hook state. The session isn't actually created until the user sends a message. */
   const startNewSession = useCallback(() => {
     if (!interruptRequested && isPolling(filteredSessionData, waitingForResponse)) {
       // Make interrupt request before resetting state.
@@ -373,6 +375,7 @@ export function useSeerExplorer({
     isPolling: isPolling(filteredSessionData, waitingForResponse),
     isPending,
     sendMessage,
+    /** Resets the hook state. The session isn't actually created until the user sends a message. */
     startNewSession,
     deleteFromIndex,
     deletedFromIndex,
