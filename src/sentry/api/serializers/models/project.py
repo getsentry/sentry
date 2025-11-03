@@ -63,6 +63,7 @@ STATUS_LABELS = {
 }
 
 STATS_PERIOD_CHOICES = {
+    "90d": StatsPeriod(90, timedelta(days=1)),
     "30d": StatsPeriod(30, timedelta(hours=24)),
     "14d": StatsPeriod(14, timedelta(hours=24)),
     "7d": StatsPeriod(7, timedelta(hours=24)),
