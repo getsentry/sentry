@@ -243,6 +243,9 @@ describe('makeLazyloadComponent', () => {
   });
 
   describe('route integration', () => {
+    beforeEach(() => {
+      jest.useRealTimers();
+    });
     it('works with Link component route preloading', async () => {
       // Create a lazy component
       const LazyComponent = makeLazyloadComponent(
@@ -280,11 +283,6 @@ describe('makeLazyloadComponent', () => {
 
       // Hover over link to trigger preload
       await userEvent.hover(link);
-
-      // Fast-forward timers to resolve preload (50ms delay)
-      await act(async () => {
-        jest.advanceTimersByTime(50);
-      });
 
       // Wait for component to load after preload
       await waitFor(() => {
