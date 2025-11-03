@@ -1,8 +1,5 @@
-import type {Location} from 'history';
-
 import type {Sort} from 'sentry/utils/discover/fields';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {decodeSorts} from 'sentry/utils/queryString';
 
 export function defaultSortBys(fields: string[]): Sort[] {
   if (fields.includes('timestamp')) {
@@ -24,18 +21,6 @@ export function defaultSortBys(fields: string[]): Sort[] {
   }
 
   return [];
-}
-
-export function getSortBysFromLocation(location: Location, fields: string[]): Sort[] {
-  const sortBys = decodeSorts(location.query.sort);
-
-  if (sortBys.length > 0) {
-    if (sortBys.every(sortBy => fields.includes(sortBy.field))) {
-      return sortBys;
-    }
-  }
-
-  return defaultSortBys(fields);
 }
 
 export function formatSort(sort: Sort): string {

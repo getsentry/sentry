@@ -255,7 +255,6 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                     ),
                 },
             )
-
             for detected_issue in response_data.issues:
                 try:
                     create_issue_occurrence_from_detection(
@@ -268,4 +267,5 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                 except Exception as e:
                     sentry_sdk.capture_exception(e)
         except LLMIssueDetectionError:
+            sentry_sdk.capture_exception(e)
             continue  # if one transaction encounters an error, don't block processing of the others
