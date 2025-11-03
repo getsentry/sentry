@@ -43,7 +43,7 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
                 data={"error": "You must be authenticated to use this endpoint"},
             )
 
-        if not get_seer_org_acknowledgement(org_id=group.organization.id):
+        if not get_seer_org_acknowledgement(group.organization):
             return Response(
                 status=403,
                 data={

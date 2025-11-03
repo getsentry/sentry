@@ -55,11 +55,11 @@ class OrganizationSeerSetupCheck(OrganizationEndpoint):
 
         # Check consent
         user_acknowledgement = get_seer_user_acknowledgement(
-            user_id=request.user.id, org_id=organization.id
+            user_id=request.user.id, organization=organization
         )
         org_acknowledgement = True
         if not user_acknowledgement:  # If the user has acknowledged, the org must have too.
-            org_acknowledgement = get_seer_org_acknowledgement(org_id=organization.id)
+            org_acknowledgement = get_seer_org_acknowledgement(organization)
 
         return Response(
             {

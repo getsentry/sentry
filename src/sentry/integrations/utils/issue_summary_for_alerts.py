@@ -31,7 +31,7 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
         return None
     if not group.organization.get_option("sentry:enable_seer_enhanced_alerts", default=True):
         return None
-    if not get_seer_org_acknowledgement(org_id=group.organization.id):
+    if not get_seer_org_acknowledgement(group.organization):
         return None
 
     from sentry import quotas
