@@ -1,5 +1,5 @@
-import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 import {tct} from 'sentry/locale';
+import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 export const profiling = getJavascriptFullStackOnboarding({
   packageName: '@sentry/nextjs',

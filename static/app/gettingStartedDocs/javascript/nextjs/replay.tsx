@@ -13,7 +13,6 @@ import {t, tct} from 'sentry/locale';
 
 import {getInstallSnippet} from './utils';
 
-
 export const replay: OnboardingConfig = {
   install: (params: DocsParams) => [
     {

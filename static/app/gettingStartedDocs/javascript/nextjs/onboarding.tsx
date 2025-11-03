@@ -1,5 +1,5 @@
-import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import {ExternalLink} from 'sentry/components/core/link';
+import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import type {
   DocsParams,
   OnboardingConfig,
@@ -9,7 +9,6 @@ import {getAIRulesForCodeEditorStep} from 'sentry/components/onboarding/gettingS
 import {t, tct} from 'sentry/locale';
 
 import {getInstallSnippet} from './utils';
-
 
 export const onboarding: OnboardingConfig = {
   install: (params: DocsParams) => [
