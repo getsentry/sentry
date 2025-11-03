@@ -3,7 +3,6 @@ import moment from 'moment-timezone';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
@@ -17,6 +16,7 @@ import {
   type NotificationTemplateRegistration,
 } from 'sentry/debug/notifications/types';
 import {IconCheckmark, IconCopy} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
@@ -31,22 +31,23 @@ export function TeamsPreview({
   const previewTime = moment(new Date()).format('h:mm A');
   const card = registration.previews[NotificationProviderKey.TEAMS];
 
-  const {onClick} = useCopyToClipboard({
-    text: JSON.stringify(card, null, 2),
-    onCopy: () => {
-      addSuccessMessage('Copied AdaptiveCard JSON');
-    },
-    onError: () => {
-      addErrorMessage('Failed to copy AdaptiveCard JSON');
-    },
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <DebugNotificationsPreview
       title="MS Teams"
       actions={
         <ButtonBar>
-          <Button size="xs" onClick={onClick} icon={<IconCopy />}>
+          <Button
+            size="xs"
+            onClick={() =>
+              copy(JSON.stringify(card, null, 2), {
+                successMessage: t('Copied AdaptiveCard JSON to clipboard'),
+                errorMessage: t('Failed to copy AdaptiveCard JSON to clipboard'),
+              })
+            }
+            icon={<IconCopy />}
+          >
             Copy JSON
           </Button>
           <LinkButton

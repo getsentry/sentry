@@ -596,6 +596,7 @@ export default function CustomerDetails() {
           {
             key: 'changeDates',
             name: 'Change Dates',
+            // TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods?
             help: 'Change the contract and on-demand period dates.',
             skipConfirmModal: true,
             visible: hasAdminTestFeatures,
