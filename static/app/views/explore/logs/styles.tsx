@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {HighlightComponent} from 'sentry/components/highlight';
-import {Body} from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
@@ -266,12 +265,6 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-left: ${space(1)};
 `;
 
-export const FilterBarContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
-`;
-
 export const TableActionsContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
@@ -376,72 +369,6 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       throw new Error(`Invalid log type, got ${level}`);
   }
 }
-
-export const TopSectionBody = styled(Body)`
-  padding-bottom: 0;
-  flex: 0 0 auto;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding-bottom: ${space(2)};
-  }
-`;
-
-export const BottomSectionBody = styled('div')<{sidebarOpen?: boolean}>`
-  flex: 1;
-  padding: ${space(1)} ${space(2)} ${space(3)} ${space(2)};
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-top: 1px solid ${p => p.theme.border};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    ${p =>
-      p.sidebarOpen
-        ? css`
-            padding: ${space(1)} ${space(4)} ${space(3)} ${space(1.5)};
-          `
-        : css`
-            padding: ${space(1)} ${space(4)} ${space(3)} ${space(4)};
-          `}
-  }
-`;
-
-export const ToolbarAndBodyContainer = styled('div')<{sidebarOpen: boolean}>`
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 0px;
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    display: flex;
-    flex-direction: row;
-    padding: 0px;
-    gap: 0px;
-  }
-`;
-
-export const ToolbarContainer = styled('div')<{sidebarOpen: boolean}>`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.background};
-  border-right: 1px solid ${p => p.theme.border};
-  border-top: 1px solid ${p => p.theme.border};
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    border-bottom: none;
-    ${p =>
-      p.sidebarOpen
-        ? css`
-            width: 343px; /* 300px for the toolbar + padding */
-            padding: ${p.theme.space.xl} ${p.theme.space.lg} ${p.theme.space.md}
-              ${p.theme.space['3xl']};
-            border-right: 1px solid ${p.theme.border};
-          `
-        : css`
-            overflow: hidden;
-            width: 0px;
-            padding: 0px;
-            border-right: none;
-          `}
-  }
-`;
 
 export const LogsSidebarCollapseButton = withChonk(
   styled(Button)<{sidebarOpen: boolean}>`
