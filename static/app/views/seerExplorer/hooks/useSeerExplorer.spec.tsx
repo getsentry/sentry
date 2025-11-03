@@ -16,13 +16,9 @@ describe('useSeerExplorer', () => {
 
   describe('Initial State', () => {
     it('returns initial state with no session data', () => {
-      const setRunId = jest.fn();
-      const {result} = renderHookWithProviders(
-        () => useSeerExplorer({runId: null, setRunId}),
-        {
-          organization,
-        }
-      );
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
 
       expect(result.current.sessionData).toBeNull();
       expect(result.current.isPolling).toBe(false);
@@ -79,13 +75,9 @@ describe('useSeerExplorer', () => {
         },
       });
 
-      const setRunId = jest.fn();
-      const {result} = renderHookWithProviders(
-        () => useSeerExplorer({runId: null, setRunId}),
-        {
-          organization,
-        }
-      );
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
 
       await act(async () => {
         await result.current.sendMessage('Test query');
@@ -118,13 +110,9 @@ describe('useSeerExplorer', () => {
         body: {detail: 'Server error'},
       });
 
-      const setRunId = jest.fn();
-      const {result} = renderHookWithProviders(
-        () => useSeerExplorer({runId: null, setRunId}),
-        {
-          organization,
-        }
-      );
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
 
       // Should handle error without throwing
       await act(async () => {
@@ -141,13 +129,9 @@ describe('useSeerExplorer', () => {
         body: {session: null},
       });
 
-      const setRunId = jest.fn();
-      const {result} = renderHookWithProviders(
-        () => useSeerExplorer({runId: null, setRunId}),
-        {
-          organization,
-        }
-      );
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
 
       act(() => {
         result.current.startNewSession();
@@ -165,13 +149,9 @@ describe('useSeerExplorer', () => {
         body: {session: null},
       });
 
-      const setRunId = jest.fn();
-      const {result} = renderHookWithProviders(
-        () => useSeerExplorer({runId: null, setRunId}),
-        {
-          organization,
-        }
-      );
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
 
       act(() => {
         result.current.deleteFromIndex(2);
@@ -181,13 +161,9 @@ describe('useSeerExplorer', () => {
     });
 
     it('filters messages based on deleted index', () => {
-      const setRunId = jest.fn();
-      const {result} = renderHookWithProviders(
-        () => useSeerExplorer({runId: null, setRunId}),
-        {
-          organization,
-        }
-      );
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
 
       act(() => {
         result.current.deleteFromIndex(1);
@@ -199,13 +175,9 @@ describe('useSeerExplorer', () => {
 
   describe('Polling Logic', () => {
     it('returns false for polling when no session exists', () => {
-      const setRunId = jest.fn();
-      const {result} = renderHookWithProviders(
-        () => useSeerExplorer({runId: null, setRunId}),
-        {
-          organization,
-        }
-      );
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
 
       expect(result.current.isPolling).toBe(false);
     });

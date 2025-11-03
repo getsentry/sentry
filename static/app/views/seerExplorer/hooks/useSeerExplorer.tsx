@@ -90,19 +90,14 @@ const isPolling = (sessionData: SeerExplorerResponse['session'], runStarted: boo
   );
 };
 
-export function useSeerExplorer({
-  runId,
-  setRunId,
-}: {
-  runId: number | null;
-  setRunId: (runId: number | null) => void;
-}) {
+export const useSeerExplorer = () => {
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
 
+  const [runId, setRunId] = useState<number | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
   const [interruptRequested, setInterruptRequested] = useState<boolean>(false);
@@ -375,6 +370,8 @@ export function useSeerExplorer({
     isPolling: isPolling(filteredSessionData, waitingForResponse),
     isPending,
     sendMessage,
+    runId,
+    setRunId,
     /** Resets the hook state. The session isn't actually created until the user sends a message. */
     startNewSession,
     deleteFromIndex,
@@ -382,4 +379,4 @@ export function useSeerExplorer({
     interruptRun,
     interruptRequested,
   };
-}
+};

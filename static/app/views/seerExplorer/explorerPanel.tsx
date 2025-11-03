@@ -28,7 +28,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
   const [isSlashCommandsVisible, setIsSlashCommandsVisible] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false); // state for slide-down
-  const [runId, setRunId] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -49,7 +48,9 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     isPolling,
     interruptRun,
     interruptRequested,
-  } = useSeerExplorer({runId, setRunId});
+    runId,
+    setRunId,
+  } = useSeerExplorer();
 
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);

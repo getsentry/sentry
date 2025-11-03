@@ -100,12 +100,12 @@ export function SessionDropdown({
   );
 
   const newSessionButton = activeRunId && (
-    <Button size="xs" onClick={startNewSession}>
+    <NewSessionButton size="xs" onClick={startNewSession}>
       <Flex gap="2xs" align="center">
         <IconAdd size="xs" />
         {t('New')}
       </Flex>
-    </Button>
+    </NewSessionButton>
   );
 
   return (
@@ -143,6 +143,13 @@ const TriggerButton = styled(Button)`
   &:hover {
     background: ${p => p.theme.hover};
   }
+`;
+
+const NewSessionButton = styled(Button)`
+  padding-top: 0;
+  padding-bottom: 0;
+  border: none;
+  background: transparent;
 `;
 
 const SessionOption = styled('div')`
