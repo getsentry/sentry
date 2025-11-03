@@ -11,13 +11,22 @@ interface SeerResponse {
 
 export function useExplorerSessions({
   enabled = true,
+  perPage = 20,
 }: {
   enabled?: boolean;
-} = {}) {
-  const organization = useOrganization();
-
+  perPage?: number;
+}) {
+  const organization = useOrganization({allowNull: true});
   const queryResult = useInfiniteApiQuery<SeerResponse>({
-    queryKey: ['infinite', `/organizations/${organization.slug}/seer/explorer-runs/`],
+    queryKey: [
+      'infinite',
+      `/organizations/${organization?.slug ?? ''}/seer/explorer-runs/`,
+      {
+        query: {
+          per_page: perPage,
+        },
+      },
+    ],
     enabled: enabled && Boolean(organization),
     staleTime: 30_000, // 30 seconds
   });
@@ -37,5 +46,8 @@ export function useExplorerSessions({
     sessions,
     isFetching: queryResult.isFetching,
     isError: queryResult.isError,
+    hasNextPage: queryResult.hasNextPage,
+    fetchNextPage: queryResult.fetchNextPage,
+    isFetchingNextPage: queryResult.isFetchingNextPage,
   };
 }

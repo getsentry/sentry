@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -5,55 +6,19 @@ import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
+import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 import type {ExplorerSession} from 'sentry/views/seerExplorer/types';
 
-interface SessionSelectorDropdownProps {
-  activeSessionId?: number;
+interface SessionDropdownProps {
+  organization: Organization | null;
   onSelectSession?: (runId: number) => void;
+  runId?: number;
 }
-
-// Mock data for now - will be replaced with actual hook later
-export const MOCK_SESSIONS: ExplorerSession[] = [
-  {
-    run_id: 1,
-    title: 'Debug authentication issue in user login flow',
-    created_at: '2025-01-15T10:30:00Z',
-    last_triggered_at: '2025-01-15T12:45:00Z',
-  },
-  {
-    run_id: 2,
-    title: 'Investigate performance regression',
-    created_at: '2025-01-15T09:15:00Z',
-    last_triggered_at: '2025-01-15T11:20:00Z',
-  },
-  {
-    run_id: 3,
-    title: 'API endpoint returning 500 errors',
-    created_at: '2025-01-14T16:45:00Z',
-    last_triggered_at: '2025-01-14T18:30:00Z',
-  },
-  {
-    run_id: 4,
-    title: 'Memory leak in background worker',
-    created_at: '2025-01-14T14:00:00Z',
-    last_triggered_at: '2025-01-14T15:30:00Z',
-  },
-  {
-    run_id: 5,
-    title: 'Frontend bundle size optimization',
-    created_at: '2025-01-13T11:20:00Z',
-    last_triggered_at: '2025-01-13T13:45:00Z',
-  },
-  {
-    run_id: 6,
-    title: 'Database query optimization',
-    created_at: '2025-01-12T15:30:00Z',
-    last_triggered_at: '2025-01-12T16:00:00Z',
-  },
-];
 
 function getRelativeTime(dateString: string): string {
   const date = new Date(dateString);
@@ -92,11 +57,14 @@ function makeSelectOption(session: ExplorerSession): SelectOption<number> {
   };
 }
 
-export function SessionSelectorDropdown({
-  activeSessionId,
-  onSelectSession,
-}: SessionSelectorDropdownProps) {
-  const selectOptions = MOCK_SESSIONS.map(makeSelectOption);
+export function SessionDropdown({runId, onSelectSession}: SessionDropdownProps) {
+  const {sessions, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage} =
+    useExplorerSessions({
+      enabled: true,
+      perPage: 20,
+    });
+
+  const selectOptions = sessions.map(makeSelectOption);
 
   const makeTrigger = (
     props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
@@ -109,13 +77,32 @@ export function SessionSelectorDropdown({
     );
   };
 
+  const menuFooter = (
+    <Fragment>
+      {hasNextPage && (
+        <FooterWrapper>
+          <Button
+            size="xs"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            aria-label={t('Load more sessions')}
+          >
+            {isFetchingNextPage ? <LoadingIndicator size={12} /> : t('Load More')}
+          </Button>
+        </FooterWrapper>
+      )}
+    </Fragment>
+  );
+
   return (
     <CompactSelect
       searchable
       menuWidth={350}
       position="bottom-start"
-      value={activeSessionId}
-      menuTitle={t('Sessions')}
+      value={runId}
+      menuTitle={
+        isFetching && sessions.length === 0 ? t('Loading...') : t('Session History')
+      }
       searchPlaceholder={t('Search sessions...')}
       size="sm"
       onChange={opt => {
@@ -125,7 +112,8 @@ export function SessionSelectorDropdown({
       }}
       options={selectOptions}
       trigger={makeTrigger}
-      emptyMessage={t('No previous sessions')}
+      emptyMessage={isFetching ? t('Loading sessions...') : t('No sessions found.')}
+      menuFooter={menuFooter}
     />
   );
 }
@@ -162,4 +150,11 @@ const SessionTitle = styled(Text)`
 const SessionMeta = styled(Text)`
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
+`;
+
+const FooterWrapper = styled('div')`
+  display: flex;
+  justify-content: center;
+  padding: ${space(1)};
+  border-top: 1px solid ${p => p.theme.border};
 `;

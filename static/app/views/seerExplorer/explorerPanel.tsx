@@ -10,13 +10,14 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {useBlockNavigation} from './hooks/useBlockNavigation';
+import {useExplorerSessions} from './hooks/useExplorerSessions';
 import {usePanelSizing} from './hooks/usePanelSizing';
 import {useSeerExplorer} from './hooks/useSeerExplorer';
 import BlockComponent from './blockComponents';
 import EmptyState from './emptyState';
 import InputSection from './inputSection';
 import PanelContainers, {BlocksContainer} from './panelContainers';
-import {MOCK_SESSIONS, SessionSelectorDropdown} from './sessionSelectorDropdown';
+import {SessionDropdown} from './sessionDropdown';
 import type {SlashCommand} from './slashCommands';
 import type {Block, ExplorerPanelProps} from './types';
 
@@ -39,6 +40,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   // Custom hooks
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
+  const {sessions: allSessions} = useExplorerSessions({enabled: isVisible});
   const {
     sessionData,
     sendMessage,
@@ -54,7 +56,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   // Get active session title for display
   const activeSessionTitle = useMemo(() => {
-    const session = MOCK_SESSIONS.find(s => s.run_id === activeSessionId);
+    const session = allSessions.find(s => s.run_id === activeSessionId);
     const title = session?.title ?? 'New Session';
 
     const createdDate = session?.created_at
@@ -62,7 +64,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       : moment(Date.now()).format('MM/DD h:mm A');
 
     return `${createdDate} - ${title}`.trim();
-  }, [activeSessionId]);
+  }, [activeSessionId, allSessions]);
 
   useBlockNavigation({
     isOpen: isVisible,
@@ -230,15 +232,18 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       onUnminimize={() => setIsMinimized(false)}
     >
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
-        <SessionDropdownHeader>
+        <SessionHeader>
           <Flex gap="xl" align="center">
-            <SessionSelectorDropdown
-              activeSessionId={activeSessionId}
-              onSelectSession={setActiveSessionId}
-            />
+            {organization && (
+              <SessionDropdown
+                organization={organization}
+                activeSessionId={activeSessionId}
+                onSelectSession={setActiveSessionId}
+              />
+            )}
             <SessionTitle as="h2">{activeSessionTitle}</SessionTitle>
           </Flex>
-        </SessionDropdownHeader>
+        </SessionHeader>
         {blocks.length === 0 ? (
           <EmptyState />
         ) : (
@@ -306,7 +311,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   return createPortal(panelContent, document.body);
 }
 
-const SessionDropdownHeader = styled('div')`
+const SessionHeader = styled('div')`
   padding: ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.background};
