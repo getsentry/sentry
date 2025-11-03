@@ -963,7 +963,11 @@ class JiraIntegration(IssueSyncIntegration):
         if not jira_project:
             raise IntegrationFormError({"project": ["Jira project is required"]})
 
-        meta = client.get_create_meta_for_project(jira_project)
+        try:
+            meta = client.get_create_meta_for_project(jira_project)
+        except ApiError as e:
+            self.raise_error(e)
+
         if not meta:
             raise IntegrationConfigurationError(
                 "Could not fetch issue create configuration from Jira."
