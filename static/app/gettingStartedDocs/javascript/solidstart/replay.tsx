@@ -12,7 +12,6 @@ import {tct} from 'sentry/locale';
 
 import {getSdkClientSetupSnippet, installSnippetBlock} from './utils';
 
-
 export const replay: OnboardingConfig = {
   install: () => [
     {
