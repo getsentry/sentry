@@ -8,7 +8,6 @@ import {t, tct} from 'sentry/locale';
 
 import {getConfigureStep, installSnippetBlock} from './utils';
 
-
 const getVerifySnippet = (params: DocsParams) => {
   const logsCode = params.isLogsSelected
     ? `// Send a log before throwing the error
