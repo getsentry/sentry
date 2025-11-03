@@ -788,5 +788,5 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         self.detector.refresh_from_db()
         assert self.detector.status == ObjectStatus.PENDING_DELETION
         mock_seer_request.assert_called_once_with(
-            source_id=self.data_source.id, organization=self.organization
+            source_id=int(self.data_source.source_id), organization=self.organization
         )
