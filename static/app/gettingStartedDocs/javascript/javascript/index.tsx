@@ -5,7 +5,7 @@ import {
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 
 import {crashReport} from './crashReport';
-import {featureFlag} from './featureFlags';
+import {featureFlag} from './featureFlag';
 import {feedback} from './feedback';
 import {logs} from './logs';
 import {onboarding} from './onboarding';
