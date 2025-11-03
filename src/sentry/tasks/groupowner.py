@@ -197,7 +197,7 @@ def process_suspect_commits(
     This is the task behind SuspectCommitStrategy.RELEASE_BASED
     """
     lock = locks.get(
-        f"process-suspect-commits:{group_id}", duration=10, name="process_suspect_commits"
+        f"process-suspect-commits:{group_id}", duration=90, name="process_suspect_commits"
     )
     try:
         with lock.acquire():
