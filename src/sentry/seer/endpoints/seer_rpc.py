@@ -299,7 +299,7 @@ def get_sentry_organization_ids(
 
 def get_organization_autofix_consent(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
-    seer_org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
+    seer_org_acknowledgement = get_seer_org_acknowledgement(org)
     github_extension_enabled = org_id in options.get("github-extension.enabled-orgs")
     return {
         "consent": seer_org_acknowledgement or github_extension_enabled,
