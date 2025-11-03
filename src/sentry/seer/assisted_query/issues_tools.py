@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 from sentry.api import client
@@ -280,25 +281,46 @@ def get_issue_filter_keys(
         "referrer": Referrer.SEER_RPC,
     }
 
-    # Get event tags
-    event_params = {**base_params, "dataset": Dataset.Events.value, "useCache": "1"}
-    event_resp = client.get(
-        auth=api_key,
-        user=None,
-        path=f"/organizations/{organization.slug}/tags/",
-        params=event_params,
-    )
-    event_tags = event_resp.data if event_resp.status_code == 200 else []
+    def _fetch_tags(params: dict[str, Any]) -> list[dict[str, Any]]:
+        """Helper function to fetch tags from the API."""
+        resp = client.get(
+            auth=api_key,
+            user=None,
+            path=f"/organizations/{organization.slug}/tags/",
+            params=params,
+        )
+        return resp.data if resp.status_code == 200 else []
 
-    # Get issue tags (search_issues dataset)
+    # Fetch from events dataset, search_issues dataset, and events dataset with flags backend (feature flags)
+    event_params = {**base_params, "dataset": Dataset.Events.value, "useCache": "1"}
     issue_params = {**base_params, "dataset": Dataset.IssuePlatform.value, "useCache": "1"}
-    issue_resp = client.get(
-        auth=api_key,
-        user=None,
-        path=f"/organizations/{organization.slug}/tags/",
-        params=issue_params,
-    )
-    issue_tags = issue_resp.data if issue_resp.status_code == 200 else []
+    flags_params = {
+        **base_params,
+        "dataset": Dataset.Events.value,
+        "useFlagsBackend": "1",
+        "useCache": "1",
+    }
+
+    # Execute all three API calls in parallel using a thread pool
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures = {
+            executor.submit(_fetch_tags, event_params): "event_tags",
+            executor.submit(_fetch_tags, issue_params): "issue_tags",
+            executor.submit(_fetch_tags, flags_params): "feature_flags",
+        }
+
+        event_tags = []
+        issue_tags = []
+        feature_flags = []
+
+        for future in as_completed(futures):
+            result = future.result()
+            if futures[future] == "event_tags":
+                event_tags = result
+            elif futures[future] == "issue_tags":
+                issue_tags = result
+            elif futures[future] == "feature_flags":
+                feature_flags = result
 
     # Merge event_tags and issue_tags
     # Use a dict to deduplicate by key
@@ -311,21 +333,6 @@ def get_issue_filter_keys(
         if tag.get("key") not in tags_dict:
             tags_dict[tag.get("key")] = tag
     tags = list(tags_dict.values())
-
-    # Get feature flags
-    flags_params = {
-        **base_params,
-        "dataset": Dataset.Events.value,
-        "useFlagsBackend": "1",
-        "useCache": "1",
-    }
-    flags_resp = client.get(
-        auth=api_key,
-        user=None,
-        path=f"/organizations/{organization.slug}/tags/",
-        params=flags_params,
-    )
-    feature_flags = flags_resp.data if flags_resp.status_code == 200 else []
 
     # Get built-in issue fields
     tag_keys = [tag.get("key") for tag in tags if tag.get("key")]
@@ -412,40 +419,33 @@ def get_filter_key_values(
     if substring:
         base_params["query"] = substring
 
-    all_results: list[dict[str, Any]] = []
+    def _fetch_tag_values(params: dict[str, Any]) -> list[dict[str, Any]]:
+        """Helper function to fetch tag values from the API."""
+        resp = client.get(
+            auth=api_key,
+            user=None,
+            path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
+            params=params,
+        )
+        if resp.status_code == 200 and resp.data:
+            return resp.data
+        return []
 
-    # 1. Try events dataset (regular tags)
+    # Fetch from events dataset (regular tags), search_issues dataset, and events dataset with flags backend (feature flags)
     events_params = {**base_params, "dataset": Dataset.Events.value}
-    events_resp = client.get(
-        auth=api_key,
-        user=None,
-        path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
-        params=events_params,
-    )
-    if events_resp.status_code == 200 and events_resp.data:
-        all_results.extend(events_resp.data)
-
-    # 2. Try search_issues dataset
     issues_params = {**base_params, "dataset": Dataset.IssuePlatform.value}
-    issues_resp = client.get(
-        auth=api_key,
-        user=None,
-        path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
-        params=issues_params,
-    )
-    if issues_resp.status_code == 200 and issues_resp.data:
-        all_results.extend(issues_resp.data)
-
-    # 3. Try events dataset with flags backend (feature flags)
     flags_params = {**base_params, "dataset": Dataset.Events.value, "useFlagsBackend": "1"}
-    flags_resp = client.get(
-        auth=api_key,
-        user=None,
-        path=f"/organizations/{organization.slug}/tags/{attribute_key}/values/",
-        params=flags_params,
-    )
-    if flags_resp.status_code == 200 and flags_resp.data:
-        all_results.extend(flags_resp.data)
+
+    all_results: list[dict[str, Any]] = []
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures = {
+            executor.submit(_fetch_tag_values, events_params): "events",
+            executor.submit(_fetch_tag_values, issues_params): "issues",
+            executor.submit(_fetch_tag_values, flags_params): "flags",
+        }
+        for future in as_completed(futures):
+            results = future.result()
+            all_results.extend(results)
 
     if not all_results:
         return []
