@@ -29,7 +29,7 @@ function OrgFooterMessage() {
                 'Installing the [githubAppLink:GitHub Application] will require admin approval.',
                 {
                   githubAppLink: (
-                    <ExternalLink openInNewTab href="https://github.com/apps/sentry-io" />
+                    <ExternalLink openInNewTab href="https://github.com/apps/sentry" />
                   ),
                 }
               )}
@@ -38,7 +38,7 @@ function OrgFooterMessage() {
         )}
       </Grid>
       <LinkButton
-        href="https://github.com/apps/sentry-io/installations/select_target"
+        href="https://github.com/apps/sentry/installations/select_target"
         size="xs"
         icon={<IconAdd />}
         external
