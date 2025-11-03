@@ -325,12 +325,10 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             onToggleCategory={handleToggleCategory}
           />
         )}
-        {processedInsights.length > 0 && (
-          <AppSizeInsights
-            processedInsights={processedInsights}
-            platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
-          />
-        )}
+        <AppSizeInsights
+          processedInsights={processedInsights}
+          platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
+        />
       </Stack>
     </Flex>
   );
