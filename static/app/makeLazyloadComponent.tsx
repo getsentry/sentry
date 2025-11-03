@@ -1,4 +1,4 @@
-import React, {lazy} from 'react';
+import {lazy} from 'react';
 
 import LazyLoad from 'sentry/components/lazyLoad';
 import {PRELOAD_HANDLE} from 'sentry/constants/routes';
