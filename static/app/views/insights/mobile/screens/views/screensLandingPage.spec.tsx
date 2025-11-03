@@ -241,23 +241,10 @@ describe('Screens Landing Page', () => {
       ).toBeInTheDocument();
     });
 
-    it('shows content if permission is there', async () => {
+    it('shows content if permission is present', async () => {
       organization.features = [MODULE_FEATURE];
-      render(<MobileLayout />, {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: '/mobile-vitals'},
-          route: '/',
-          children: [
-            {
-              path: 'mobile-vitals',
-              handle: {module: ModuleName.MOBILE_VITALS},
-              element: <ScreensLandingPage />,
-            },
-          ],
-        },
-      });
-      expect(await screen.findAllByText('Mobile Vitals')).toHaveLength(2);
+      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
+      expect(await screen.findAllByText('Avg. Cold App Start')).toHaveLength(1);
     });
   });
 });
