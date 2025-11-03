@@ -3633,7 +3633,6 @@ register(
 )
 
 # Sets the sample rate for profiles collected via the JoinProfiler arroyo strategy
-# TODO: add the JoinProfiler arroyo strategy
 register(
     "consumer.join.profiling.rate",
     type=Float,
