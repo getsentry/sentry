@@ -3,6 +3,7 @@
  * To update it run `python3 -m tools.api_urls_to_typescript`
  *
  * This file is the sibling to knownGetsentryApiUrls.ts.
+ * what about now?
  */
 
 export type KnownSentryApiUrls =
