@@ -922,6 +922,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
     "sentry.tasks.user_report",
+    "sentry.tasks.web_vitals_issue_detection",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
     "sentry.uptime.autodetect.tasks",
@@ -1117,6 +1118,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
         "schedule": task_crontab("0", "*", "*", "*", "*"),
+    },
+    "web-vitals-issue-detection": {
+        "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
+        "schedule": task_crontab("0", "0", "*", "1,15", "*"),
     },
 }
 
