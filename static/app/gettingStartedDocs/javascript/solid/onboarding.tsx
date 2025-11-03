@@ -11,7 +11,6 @@ import {t, tct} from 'sentry/locale';
 
 import {getSdkSetupSnippet, installSnippetBlock} from './utils';
 
-
 const getVerifySnippet = () => `
 <button
   type="button"
