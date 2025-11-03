@@ -103,7 +103,7 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
             justify="center"
           >
             <Text size="sm" bold>
-              {t('No insights found')}
+              {t('Your app looks good! No insights were found.')}
             </Text>
           </Flex>
         )}
