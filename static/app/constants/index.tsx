@@ -121,7 +121,7 @@ type PermissionChoice = {
   scopes: Scope[];
 };
 
-type PermissionObj = {
+export type PermissionObj = {
   choices: {
     'no-access': PermissionChoice;
     admin?: PermissionChoice;
@@ -169,7 +169,7 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
   },
   {
     resource: 'Distribution',
-    help: 'Distribution metadata for releases',
+    help: 'Pre-release app distribution for trusted testers.',
     choices: {
       'no-access': {label: 'No Access', scopes: []},
       read: {label: 'Read', scopes: ['project:distribution']},

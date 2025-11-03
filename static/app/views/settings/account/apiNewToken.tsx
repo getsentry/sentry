@@ -8,6 +8,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Permissions} from 'sentry/types/integrations';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
@@ -107,7 +108,9 @@ export default function ApiNewToken() {
                   setPermissions(p);
                   setPreview(getPreview());
                 }}
-                hiddenPermissions={['Distribution']}
+                displayedPermissions={SENTRY_APP_PERMISSIONS.filter(
+                  o => o.resource !== 'Distribution'
+                )}
               />
             </PanelBody>
             <TextareaField
