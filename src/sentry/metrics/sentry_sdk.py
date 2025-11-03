@@ -47,6 +47,9 @@ class SentrySDKMetricsBackend(MetricsBackend):
         if instance:
             metric_attributes["instance"] = instance
 
+        if sample_rate != 1.0:
+            metric_attributes["sentry.client_sample_rate"] = sample_rate
+
         metrics.count(
             full_key,
             amount,
@@ -63,7 +66,29 @@ class SentrySDKMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
         stacklevel: int = 0,
     ) -> None:
-        pass
+
+        full_key = self._get_key(key)
+        if not self._should_send(full_key):
+            return
+
+        if not self._should_sample(sample_rate):
+            return
+
+        metric_attributes = dict(tags) if tags else {}
+        if instance:
+            metric_attributes["instance"] = instance
+
+        if sample_rate != 1.0:
+            metric_attributes["sentry.client_sample_rate"] = sample_rate
+
+        metric_attributes["is_timing"] = True
+
+        metrics.distribution(
+            full_key,
+            value,
+            unit="millisecond",
+            attributes=metric_attributes,
+        )
 
     def gauge(
         self,
@@ -85,6 +110,9 @@ class SentrySDKMetricsBackend(MetricsBackend):
         metric_attributes = dict(tags) if tags else {}
         if instance:
             metric_attributes["instance"] = instance
+
+        if sample_rate != 1.0:
+            metric_attributes["sentry.client_sample_rate"] = sample_rate
 
         metrics.gauge(
             full_key,
@@ -113,6 +141,9 @@ class SentrySDKMetricsBackend(MetricsBackend):
         metric_attributes = dict(tags) if tags else {}
         if instance:
             metric_attributes["instance"] = instance
+
+        if sample_rate != 1.0:
+            metric_attributes["sentry.client_sample_rate"] = sample_rate
 
         metrics.distribution(
             full_key,
