@@ -76,7 +76,7 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
         data = request.data
         data["organization_id"] = organization.id
 
-        serializer = DataForwarderSerializer(data=data)
+        serializer = DataForwarderSerializer(data=data, context={"organization": organization})
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
