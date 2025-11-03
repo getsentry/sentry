@@ -5,6 +5,7 @@ import random
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import sentry_sdk
 from django.conf import settings
 from pydantic import BaseModel
 
@@ -265,13 +266,6 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                     )
 
                 except Exception as e:
-                    logger.exception(
-                        "Failed to create LLM detected issue occurrence",
-                        extra={
-                            "project_id": project_id,
-                            "trace_id": trace.trace_id,
-                            "error": str(e),
-                        },
-                    )
+                    sentry_sdk.capture_exception(e)
         except LLMIssueDetectionError:
             continue  # if one transaction encounters an error, don't block processing of the others
