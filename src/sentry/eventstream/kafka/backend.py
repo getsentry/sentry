@@ -20,6 +20,7 @@ from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtoco
 from sentry.eventstream.types import EventStreamEventType
 from sentry.killswitches import killswitch_matches_context
 from sentry.utils import json
+from sentry.utils.confluent_producer import get_confluent_producer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
@@ -48,7 +49,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             cluster_options = get_kafka_producer_cluster_options(cluster_name)
             cluster_options["client.id"] = "sentry.eventstream.kafka"
             # XXX(markus): We should use `sentry.utils.arroyo_producer.get_arroyo_producer`.
-            self.__producers[topic] = Producer(
+            self.__producers[topic] = get_confluent_producer(
                 build_kafka_producer_configuration(default_config=cluster_options)
             )
 
