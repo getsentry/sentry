@@ -74,9 +74,6 @@ FUZZY_NUMERIC_KEYS = frozenset(
 )
 FUZZY_NUMERIC_DISTANCE = 50
 
-# Limit keys for empty-value stats to avoid generating overly large ClickHouse queries
-MAX_EMPTY_VALUE_STATS_KEYS = 150
-
 # Since all event types are currently stored together, we need to manually exclude transactions
 # when querying the events dataset. This condition can be dropped once we cut over to the errors
 # storage in Snuba.
@@ -798,8 +795,10 @@ class SnubaTagStorage(TagStorage):
                     key=keyobj.key,
                     value=value,
                     times_seen=data["count"],
-                    first_seen=parse_datetime(data["first_seen"]),
-                    last_seen=parse_datetime(data["last_seen"]),
+                    first_seen=(
+                        parse_datetime(data["first_seen"]) if data.get("first_seen") else None
+                    ),
+                    last_seen=parse_datetime(data["last_seen"]) if data.get("last_seen") else None,
                 )
                 for value, data in values.items()
             )
@@ -820,22 +819,14 @@ class SnubaTagStorage(TagStorage):
         if not keys_to_check:
             return stats_map
 
-        # If too many keys are requested, truncate to a safe maximum to avoid huge queries.
-        if len(keys_to_check) > MAX_EMPTY_VALUE_STATS_KEYS:
-            return stats_map
-
         empty_alias_map: dict[str, dict[str, str]] = {}
         selected_columns_empty: list[list] = []
         for i, k in enumerate(keys_to_check):
-            cnt_alias = f"empty_cnt_{i}"
-            min_alias = f"empty_min_{i}"
-            max_alias = f"empty_max_{i}"
-            empty_alias_map[k] = {"count": cnt_alias, "first": min_alias, "last": max_alias}
+            cnt_alias = f"cnt_{i}"
+            empty_alias_map[k] = {"count": cnt_alias}
             tag_expr = self.format_string.format(k)
             empty_predicate = ["equals", [tag_expr, ""]]
             selected_columns_empty.append(["countIf", [empty_predicate], cnt_alias])
-            selected_columns_empty.append(["minIf", [SEEN_COLUMN, empty_predicate], min_alias])
-            selected_columns_empty.append(["maxIf", [SEEN_COLUMN, empty_predicate], max_alias])
 
         empty_filters = dict(filters)
         if self.key_column in empty_filters:
@@ -861,8 +852,6 @@ class SnubaTagStorage(TagStorage):
             aliases = empty_alias_map[k]
             stats_map[k] = {
                 "count": empty_results.get(aliases["count"], 0),
-                "first_seen": empty_results.get(aliases["first"]),
-                "last_seen": empty_results.get(aliases["last"]),
             }
         return stats_map
 
