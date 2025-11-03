@@ -224,24 +224,26 @@ function TagDetailsValue({
   const value =
     tagValue.value === '' ? <Text variant="muted">{t('(empty)')}</Text> : tagValue.value;
   let valueComponent: React.ReactNode = value;
-  if (tagKey === 'user') {
-    valueComponent = (
-      <UserValue>
-        {getContextIcon({
-          alias: 'user',
-          type: 'user',
-          value: tagValue,
-          contextIconProps: {
-            size: 'md',
-          },
-          theme,
-        })}
-        <div>{userValues.title}</div>
-        {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
-      </UserValue>
-    );
-  } else if (tagKey === 'device') {
-    valueComponent = <DeviceName value={tagValue.value} />;
+  if (tagValue.value !== '') {
+    if (tagKey === 'user') {
+      valueComponent = (
+        <UserValue>
+          {getContextIcon({
+            alias: 'user',
+            type: 'user',
+            value: tagValue,
+            contextIconProps: {
+              size: 'md',
+            },
+            theme,
+          })}
+          <div>{userValues.title}</div>
+          {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
+        </UserValue>
+      );
+    } else if (tagKey === 'device') {
+      valueComponent = <DeviceName value={tagValue.value} />;
+    }
   }
 
   return (

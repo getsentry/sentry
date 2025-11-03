@@ -108,15 +108,21 @@ export function GroupTagsTab() {
                   <UnstyledUnorderedList>
                     {tag.topValues.map((tagValue, tagValueIdx) => {
                       const tagName = tagValue.name === '' ? t('(empty)') : tagValue.name;
+                      const query = tagValue.query
+                        ? {
+                            ...location.query,
+                            query: tagValue.query,
+                          }
+                        : generateQueryWithTag(location.query, {
+                            key: tag.key,
+                            value: tagValue.value,
+                          });
                       return (
                         <li key={tagValueIdx} data-test-id={tag.key}>
                           <TagBarGlobalSelectionLink
                             to={{
                               pathname: `${baseUrl}events/`,
-                              query: generateQueryWithTag(location.query, {
-                                key: tag.key,
-                                value: tagValue.value,
-                              }),
+                              query,
                             }}
                           >
                             <TagBarBackground
