@@ -54,6 +54,10 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
             if constants.TIMESTAMP_PRECISE_ALIAS not in selected_columns:
                 selected_columns.append(constants.TIMESTAMP_PRECISE_ALIAS)
 
+        search_resolver = search_resolver or cls.get_resolver(params=params, config=config)
+
+        extra_conditions = config.extra_conditions(search_resolver)
+
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
                 query_string=query_string,
@@ -63,13 +67,10 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
                 limit=limit,
                 referrer=referrer,
                 sampling_mode=sampling_mode,
-                resolver=search_resolver
-                or cls.get_resolver(
-                    params=params,
-                    config=config,
-                ),
+                resolver=search_resolver,
                 page_token=page_token,
                 additional_queries=additional_queries,
+                extra_conditions=extra_conditions,
             ),
             debug=debug,
         )
@@ -89,6 +90,9 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
     ) -> SnubaTSResult:
         cls.validate_granularity(params)
         search_resolver = cls.get_resolver(params, config)
+
+        extra_conditions = config.extra_conditions(search_resolver)
+
         rpc_request, aggregates, groupbys = cls.get_timeseries_query(
             search_resolver=search_resolver,
             params=params,
@@ -97,6 +101,7 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
             groupby=[],
             referrer=referrer,
             sampling_mode=sampling_mode,
+            extra_conditions=extra_conditions,
         )
 
         """Run the query"""
