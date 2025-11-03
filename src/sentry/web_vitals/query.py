@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.sentry_data_models import TraceData
+from sentry.seer.sentry_data_models import Span, TraceData
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.web_vitals.types import WebVitalIssueDetectionType
@@ -67,12 +67,15 @@ def get_trace_by_web_vital_measurement(
         sampling_mode="NORMAL",
     )
 
-    trace_id = traces_result.get("data")[0].get("trace")
+    data = traces_result.get("data")
+    if not data:
+        return None
+    trace_id = data[0].get("trace")
 
     # TODO: This function only gets used in web_vitals_issue_detection at the moment, which only utilizes the trace_id.
     # We don't need to fetch the spans for now, so we use an empty list to satisfy the class. Consider just returning
     # the trace_id instead, or update this to fetch spans.
-    spans = []
+    spans: list[Span] = []
 
     return TraceData(
         trace_id=trace_id,
