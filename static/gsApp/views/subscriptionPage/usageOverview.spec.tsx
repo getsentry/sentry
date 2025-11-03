@@ -76,8 +76,12 @@ describe('UsageOverview', () => {
     expect(screen.getByRole('columnheader', {name: 'Product'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Total usage'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Reserved'})).toBeInTheDocument();
-    expect(screen.queryByText('Reserved spend')).not.toBeInTheDocument();
-    expect(screen.queryByText('Pay-as-you-go spend')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Reserved spend'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Pay-as-you-go spend'})
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'View usage history'})
     ).not.toBeInTheDocument();
@@ -90,6 +94,8 @@ describe('UsageOverview', () => {
   });
 
   it('renders table based on subscription state', () => {
+    subscription.onDemandPeriodStart = '2025-05-02';
+    subscription.onDemandPeriodEnd = '2025-06-01';
     subscription.onDemandMaxSpend = 100_00;
     subscription.productTrials = [
       {
@@ -137,6 +143,8 @@ describe('UsageOverview', () => {
         usageData={usageData}
       />
     );
+
+    expect(screen.getByText('May 2 - Jun 1, 2025')).toBeInTheDocument();
 
     // Continuous profile hours product trial available
     expect(

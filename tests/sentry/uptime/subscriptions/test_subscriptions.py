@@ -32,7 +32,6 @@ from sentry.uptime.subscriptions.subscriptions import (
     enable_uptime_detector,
     get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
-    remove_uptime_subscription_if_unused,
     update_uptime_detector,
     update_uptime_subscription,
 )
@@ -843,32 +842,6 @@ class DeleteUptimeDetectorTest(UptimeTestCase):
         with pytest.raises(UptimeSubscription.DoesNotExist):
             uptime_subscription.refresh_from_db()
         mock_remove_seat.assert_called_with(DataCategory.UPTIME, detector)
-
-
-class RemoveUptimeSubscriptionIfUnusedTest(UptimeTestCase):
-    def test_remove(self) -> None:
-        uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
-        with self.tasks():
-            remove_uptime_subscription_if_unused(uptime_sub)
-
-        with pytest.raises(UptimeSubscription.DoesNotExist):
-            uptime_sub.refresh_from_db()
-
-    def test_keep(self) -> None:
-        detector = create_uptime_detector(
-            self.project,
-            self.environment,
-            url="https://sentry.io",
-            interval_seconds=3600,
-            timeout_ms=1000,
-            mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
-        )
-        uptime_subscription = get_uptime_subscription(detector)
-
-        with self.tasks():
-            remove_uptime_subscription_if_unused(uptime_subscription)
-
-        assert UptimeSubscription.objects.filter(id=uptime_subscription.id).exists()
 
 
 class IsUrlMonitoredForProjectTest(UptimeTestCase):

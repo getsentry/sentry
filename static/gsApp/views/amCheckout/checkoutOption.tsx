@@ -1,6 +1,9 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+// TODO(isabella): Instead of requiring the code using this component to
+// render the radio/checkbox, we should just render the radio/checkbox directly
+// depending on ariaRole
 function CheckoutOption({
   children,
   isSelected,
@@ -18,12 +21,18 @@ function CheckoutOption({
 }) {
   return (
     <Option
+      tabIndex={0}
       role={ariaRole}
       aria-checked={isSelected}
       isSelected={isSelected}
       onClick={onClick}
       data-test-id={dataTestId}
       aria-label={ariaLabel}
+      onKeyDown={({key}) => {
+        if (key === 'Enter') {
+          onClick();
+        }
+      }}
     >
       {children}
     </Option>

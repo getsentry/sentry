@@ -203,6 +203,12 @@ type UpdateAggregateArgsAction = {
   focusOverride?: FocusOverride;
 };
 
+type UpdateBooleanOperatorAction = {
+  token: TokenResult<Token.LOGIC_BOOLEAN>;
+  type: 'UPDATE_BOOLEAN_OPERATOR';
+  value: string;
+};
+
 type ResetClearAskSeerFeedbackAction = {type: 'RESET_CLEAR_ASK_SEER_FEEDBACK'};
 
 type UpdateFreeTextActions =
@@ -238,7 +244,8 @@ export type QueryBuilderActions =
   | UpdateTokenValueAction
   | UpdateAggregateArgsAction
   | MultiSelectFilterValueAction
-  | ResetClearAskSeerFeedbackAction;
+  | ResetClearAskSeerFeedbackAction
+  | UpdateBooleanOperatorAction;
 
 function removeQueryTokensFromQuery(
   query: string,
@@ -269,7 +276,7 @@ function deleteQueryTokens(
   };
 }
 
-function modifyFilterOperatorQuery(
+export function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
   newOperator: TermOperator,
@@ -531,7 +538,7 @@ function replaceTokensWithText(
   };
 }
 
-function modifyFilterValue(
+export function modifyFilterValue(
   query: string,
   token: TokenResult<Token.FILTER>,
   newValue: string
@@ -720,7 +727,13 @@ export function replaceFreeTextTokens(
     }
 
     const value = escapeTagValue(token.text.trim());
-    replacedQuery.push(`${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`);
+    replacedQuery.push(
+      // We don't want to break user flows, so if they include an asterisk in their free
+      // text value, leave it as an `is` filter.
+      value.includes('*')
+        ? `${primarySearchKey}:${value}`
+        : `${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`
+    );
   }
 
   const finalQuery = replacedQuery.join(' ').trim();
@@ -774,11 +787,30 @@ function updateFreeTextAndReplaceText(
       : newState.focusOverride;
   }
 
+  // Only update the committed query if we aren't in the middle of creating a filter
+  const committedQuery = action.shouldCommitQuery ? query : state.committedQuery;
+
   return {
     ...newState,
     query,
-    committedQuery: query,
+    committedQuery,
     focusOverride,
+  };
+}
+
+function updateBooleanOperator(
+  state: QueryBuilderState,
+  action: UpdateBooleanOperatorAction
+): QueryBuilderState {
+  const newQuery = replaceQueryToken(state.query, action.token, action.value);
+  if (newQuery === state.query) {
+    return state;
+  }
+
+  return {
+    ...state,
+    query: newQuery,
+    committedQuery: newQuery,
   };
 }
 
@@ -963,6 +995,8 @@ export function useQueryBuilderState({
             ...state,
             query: modifyFilterValue(state.query, action.token, action.value),
           };
+        case 'UPDATE_BOOLEAN_OPERATOR':
+          return updateBooleanOperator(state, action);
         case 'UPDATE_AGGREGATE_ARGS':
           return updateAggregateArgs(state, action, {getFieldDefinition});
         case 'TOGGLE_FILTER_VALUE':

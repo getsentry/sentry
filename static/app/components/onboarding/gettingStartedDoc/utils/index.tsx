@@ -82,9 +82,13 @@ export function getUploadSourceMapsStep({
 }
 
 function CopyRulesButton({rules}: {rules: string}) {
-  const {onClick} = useCopyToClipboard({text: rules});
+  const {copy} = useCopyToClipboard();
   return (
-    <Button size="xs" icon={<IconCopy />} onClick={onClick}>
+    <Button
+      size="xs"
+      icon={<IconCopy />}
+      onClick={() => copy(rules, {successMessage: t('Rules copied to clipboard')})}
+    >
       {t('Copy Rules')}
     </Button>
   );
@@ -127,13 +131,16 @@ function CopyDsnButton({
   dsn: ProjectKey['dsn'];
   onCopyDsn?: () => void;
 }) {
-  const {onClick} = useCopyToClipboard({
-    text: dsn.public,
-    onCopy: onCopyDsn,
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
-    <Button size="xs" icon={<IconCopy />} onClick={onClick}>
+    <Button
+      size="xs"
+      icon={<IconCopy />}
+      onClick={() =>
+        copy(dsn.public, {successMessage: t('DSN copied to clipboard')}).then(onCopyDsn)
+      }
+    >
       {t('Copy DSN')}
     </Button>
   );

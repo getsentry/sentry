@@ -178,7 +178,7 @@ describe('Subscription > UsageHistory', () => {
 
     render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
-    expect(screen.queryByText('On-demand Spend')).not.toBeInTheDocument();
+    expect(screen.queryByText('On-Demand Spend')).not.toBeInTheDocument();
     expect(mockCall).toHaveBeenCalled();
   });
 
