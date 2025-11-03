@@ -114,9 +114,6 @@ class SlicingRouter(MessageRouter):
                 f"sentry.sentry_metrics.slicing_router.{current_sliceable}.{current_slice_id}"
             )
             producer = get_confluent_producer(producer_config)
-            # fallback to confluent_kafka Producer if not rolled out
-            if producer is None:
-                producer = Producer(producer_config)
             self.__slice_to_producer[current_slice_id] = MessageRoute(
                 producer=producer,
                 topic=Topic(configuration["topic"]),

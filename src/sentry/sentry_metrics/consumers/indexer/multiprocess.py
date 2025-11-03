@@ -10,7 +10,6 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, FilteredPayload, Message, Partition, Value
-from confluent_kafka import Producer
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.utils import kafka_config, metrics
@@ -30,9 +29,6 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         producer_config = kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"])
         producer_config["client.id"] = "sentry.sentry_metrics.multiprocess"
         self.__producer = get_confluent_producer(producer_config)
-        # fallback to confluent_kafka Producer if not rolled out
-        if self.__producer is None:
-            self.__producer = Producer(producer_config)
         self.__producer_topic = snuba_metrics["real_topic_name"]
 
         self.__commit = CommitOffsets(commit_function)

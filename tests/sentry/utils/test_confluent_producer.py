@@ -30,7 +30,8 @@ def test_get_confluent_producer_not_rolled_out() -> None:
     }
 
     producer = get_confluent_producer(configuration)
-    assert producer is None
+    assert isinstance(producer, Producer)
+    assert not isinstance(producer, ConfluentProducer)
 
 
 @override_options({"arroyo.producer.confluent-producer-rollout": {}})
@@ -40,4 +41,5 @@ def test_get_confluent_producer_no_client_id() -> None:
     }
 
     producer = get_confluent_producer(configuration)
-    assert producer is None
+    assert isinstance(producer, Producer)
+    assert not isinstance(producer, ConfluentProducer)

@@ -1,7 +1,6 @@
 from typing import Any
 
 from arroyo.backends.kafka import build_kafka_producer_configuration
-from confluent_kafka import Producer
 
 from sentry.utils.confluent_producer import get_confluent_producer
 
@@ -15,9 +14,6 @@ class KafkaPublisher:
         self.producer = get_confluent_producer(
             build_kafka_producer_configuration(default_config=connection)
         )
-        # fallback to confluent_kafka Producer if not rolled out
-        if self.producer is None:
-            self.producer = Producer(build_kafka_producer_configuration(default_config=connection))
         self.asynchronous = asynchronous
 
     def publish(self, channel: str, value: str, key: str | None = None) -> None:

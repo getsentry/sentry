@@ -52,11 +52,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
             self.__producers[topic] = get_confluent_producer(
                 build_kafka_producer_configuration(default_config=cluster_options)
             )
-            # fallback to confluent_kafka Producer if not rolled out
-            if self.__producers[topic] is None:
-                self.__producers[topic] = Producer(
-                    build_kafka_producer_configuration(default_config=cluster_options)
-                )
 
         return self.__producers[topic]
 

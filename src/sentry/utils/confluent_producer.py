@@ -30,4 +30,4 @@ def get_confluent_producer(
 
     if rollout_config.get(name, False):
         return ConfluentProducer(configuration)
-    return None
+    return Producer(configuration)
