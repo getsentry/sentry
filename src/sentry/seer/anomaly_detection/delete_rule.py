@@ -80,7 +80,7 @@ def delete_rule_in_seer(source_id: int, organization: Organization) -> bool:
         )
         return False
 
-    if response.status > 400:
+    if response.status >= 400:
         logger.error(
             "Error when hitting Seer delete rule data endpoint",
             extra={
