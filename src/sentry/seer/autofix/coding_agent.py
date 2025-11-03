@@ -206,21 +206,36 @@ def _launch_agents_for_repos(
 
     # Repos that were in the repos but not in the autofix state
     repos_not_found = repos - autofix_state_repos
-    logger.warning(
-        "coding_agent.post.repos_not_found",
-        extra={
-            "organization_id": organization.id,
-            "run_id": run_id,
-            "repos_not_found": repos_not_found,
-        },
-    )
+    if repos_not_found:
+        logger.warning(
+            "coding_agent.post.repos_not_found",
+            extra={
+                "organization_id": organization.id,
+                "run_id": run_id,
+                "repos_not_found": repos_not_found,
+            },
+        )
 
     validated_repos = repos - repos_not_found
 
     repos_to_launch = validated_repos or autofix_state_repos
 
     if not repos_to_launch:
-        raise NotFound("No repos to run agents")
+        logger.error(
+            "coding_agent.no_repos_available",
+            extra={
+                "organization_id": organization.id,
+                "run_id": run_id,
+                "trigger_source": trigger_source,
+                "has_autofix_state_repos": bool(autofix_state_repos),
+                "has_extracted_repos": bool(repos),
+            },
+        )
+        raise NotFound(
+            f"No repositories available to launch coding agents. "
+            f"Trigger source: {trigger_source}. "
+            f"Ensure the autofix run has accessible repositories configured."
+        )
 
     prompt = get_coding_agent_prompt(run_id, trigger_source)
 
