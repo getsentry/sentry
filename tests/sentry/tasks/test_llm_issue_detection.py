@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 from pydantic import ValidationError as PydanticValidationError
 from urllib3 import BaseHTTPResponse
 
+from sentry.seer.sentry_data_models import Span, TraceData, Transaction
 from sentry.tasks.llm_issue_detection import (
     IssueDetectionResponse,
     detect_llm_issues_for_project,
@@ -129,42 +130,59 @@ class LLMIssueDetectionTest(APITransactionTestCase, SnubaTestCase, SpanTestCase)
 
         mock_seer_api.assert_not_called()
 
+    @patch("sentry.tasks.llm_issue_detection.get_trace_for_transaction")
+    @patch("sentry.tasks.llm_issue_detection.get_transactions_for_project")
+    @patch("sentry.tasks.llm_issue_detection.sentry_sdk.capture_exception")
     @patch("sentry.tasks.llm_issue_detection.logger")
     def test_detect_llm_issues_multiple_transactions_partial_errors(
-        self, mock_logger, mock_seer_api
+        self,
+        mock_logger,
+        mock_capture_exception,
+        mock_get_transactions,
+        mock_get_trace,
+        mock_seer_api,
     ):
         """Test that errors in some transactions don't block processing of others."""
         transaction1_name = "transaction_1"
         trace_id_1 = uuid.uuid4().hex
-        spans1 = [
-            self.create_span(
-                {
-                    "description": "span-1",
-                    "sentry_tags": {"transaction": transaction1_name},
-                    "trace_id": trace_id_1,
-                    "parent_span_id": None,
-                    "is_segment": True,
-                },
-                start_ts=self.ten_mins_ago,
-            )
-        ]
-
         transaction2_name = "transaction_2"
         trace_id_2 = uuid.uuid4().hex
-        spans2 = [
-            self.create_span(
-                {
-                    "description": "span-2",
-                    "sentry_tags": {"transaction": transaction2_name},
-                    "trace_id": trace_id_2,
-                    "parent_span_id": None,
-                    "is_segment": True,
-                },
-                start_ts=self.ten_mins_ago,
-            )
+
+        mock_get_transactions.return_value = [
+            Transaction(name=transaction1_name, project_id=self.project.id),
+            Transaction(name=transaction2_name, project_id=self.project.id),
         ]
 
-        self.store_spans(spans1 + spans2, is_eap=True)
+        mock_get_trace.side_effect = [
+            TraceData(
+                trace_id=trace_id_1,
+                project_id=self.project.id,
+                transaction_name=transaction1_name,
+                total_spans=1,
+                spans=[
+                    Span(
+                        span_id="span1",
+                        parent_span_id=None,
+                        span_op="http",
+                        span_description="test",
+                    )
+                ],
+            ),
+            TraceData(
+                trace_id=trace_id_2,
+                project_id=self.project.id,
+                transaction_name=transaction2_name,
+                total_spans=1,
+                spans=[
+                    Span(
+                        span_id="span2",
+                        parent_span_id=None,
+                        span_op="http",
+                        span_description="test",
+                    )
+                ],
+            ),
+        ]
 
         error_response = Mock(spec=BaseHTTPResponse)
         error_response.status = 500
@@ -189,6 +207,13 @@ class LLMIssueDetectionTest(APITransactionTestCase, SnubaTestCase, SpanTestCase)
         detect_llm_issues_for_project(self.project.id)
 
         assert mock_seer_api.call_count == 2
+        assert mock_capture_exception.call_count == 1
+
+        captured_exception = mock_capture_exception.call_args[0][0]
+        assert captured_exception.project_id == self.project.id
+        assert captured_exception.trace_id == trace_id_1
+        assert captured_exception.status == 500
+
         success_log_calls = [
             call
             for call in mock_logger.info.call_args_list
