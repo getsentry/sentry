@@ -631,7 +631,12 @@ register(
 
 # Rollout configuration for Arroyo ConfluentProducer
 # Controls the rollout of individual Kafka producers by name
-register("arroyo.producer.confluent-producer-rollout", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "arroyo.producer.confluent-producer-rollout",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
