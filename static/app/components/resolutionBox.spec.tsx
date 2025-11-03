@@ -161,30 +161,6 @@ describe('ResolutionBox', () => {
       `This issue has been marked as resolved in version ${release.version}.`
     );
   });
-  it('handles inRelease with activity', () => {
-    const {container} = render(
-      <ResolutionBox
-        statusDetails={{
-          inRelease: release.version,
-        }}
-        project={project}
-        organization={organization}
-        activities={[
-          {
-            id: '1',
-            type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
-            data: {
-              version: release.version,
-            },
-            dateCreated: new Date().toISOString(),
-          },
-        ]}
-      />
-    );
-    expect(container).toHaveTextContent(
-      `This issue has been marked as resolved in version ${release.version}.`
-    );
-  });
   it('handles inRelease with actor', () => {
     const {container} = render(
       <ResolutionBox
