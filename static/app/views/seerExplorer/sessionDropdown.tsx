@@ -15,9 +15,9 @@ import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSe
 import type {ExplorerSession} from 'sentry/views/seerExplorer/types';
 
 interface SessionDropdownProps {
+  onSelectSession: (runId: number | null) => void;
   organization: Organization | null;
-  onSelectSession?: (runId: number) => void;
-  runId?: number;
+  runId: number | null;
 }
 
 function getRelativeTime(dateString: string): string {
@@ -53,7 +53,7 @@ function makeSelectOption(session: ExplorerSession): SelectOption<number> {
       </SessionOption>
     ),
     value: session.run_id,
-    textValue: session.title,
+    textValue: session.title, // Used for search.
   };
 }
 
@@ -96,19 +96,18 @@ export function SessionDropdown({runId, onSelectSession}: SessionDropdownProps) 
 
   return (
     <CompactSelect
+      key={runId ?? 'new-session'} // Force re-render when runId changes.
       searchable
       menuWidth={350}
       position="bottom-start"
-      value={runId}
+      value={runId ?? undefined}
       menuTitle={
         isFetching && sessions.length === 0 ? t('Loading...') : t('Session History')
       }
       searchPlaceholder={t('Search sessions...')}
       size="sm"
       onChange={opt => {
-        if (opt?.value) {
-          onSelectSession?.(opt.value);
-        }
+        onSelectSession(opt.value ?? null);
       }}
       options={selectOptions}
       trigger={makeTrigger}

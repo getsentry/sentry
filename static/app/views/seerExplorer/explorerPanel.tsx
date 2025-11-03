@@ -28,7 +28,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
   const [isSlashCommandsVisible, setIsSlashCommandsVisible] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false); // state for slide-down
-  const [activeSessionId, setActiveSessionId] = useState<number | undefined>(undefined);
+  const [runId, setRunId] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -49,14 +49,14 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     isPolling,
     interruptRun,
     interruptRequested,
-  } = useSeerExplorer();
+  } = useSeerExplorer({runId, setRunId});
 
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
 
   // Get active session title for display
   const activeSessionTitle = useMemo(() => {
-    const session = allSessions.find(s => s.run_id === activeSessionId);
+    const session = allSessions.find(s => s.run_id === runId);
     const title = session?.title ?? 'New Session';
 
     const createdDate = session?.created_at
@@ -64,7 +64,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       : moment(Date.now()).format('MM/DD h:mm A');
 
     return `${createdDate} - ${title}`.trim();
-  }, [activeSessionId, allSessions]);
+  }, [runId, allSessions]);
 
   useBlockNavigation({
     isOpen: isVisible,
@@ -162,7 +162,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   }, [isVisible, focusedBlockIndex]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Escape' && isPolling && !interruptRequested) {
+    if (e.key === 'Escape' && isPolling) {
       e.preventDefault();
       interruptRun();
     } else if (e.key === 'Enter' && !e.shiftKey) {
@@ -237,8 +237,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
             {organization && (
               <SessionDropdown
                 organization={organization}
-                activeSessionId={activeSessionId}
-                onSelectSession={setActiveSessionId}
+                runId={runId}
+                onSelectSession={setRunId}
               />
             )}
             <SessionTitle as="h2">{activeSessionTitle}</SessionTitle>
