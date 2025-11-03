@@ -15,7 +15,12 @@ import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import type {DisplayType, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {getNumEquations} from 'sentry/views/dashboards/utils';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
@@ -144,7 +149,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     field: string,
     meta: MetaType,
     widget?: Widget,
-    organization?: Organization
+    organization?: Organization,
+    dashboardFilters?: DashboardFilters
   ) => ReturnType<typeof getFieldRenderer>;
   /**
    * Generate field header used for mapping column

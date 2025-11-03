@@ -224,19 +224,14 @@ export const SpansConfig: DatasetConfig<
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
   filterAggregateParams,
-  getCustomFieldRenderer: (field, meta, widget, _organization) => {
+  getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
     if (field === 'id') {
       return renderEventInTraceView;
     }
     if (field === 'trace') {
       return renderTraceAsLinkable(widget);
     }
-    // Dashboard links are applicable to tables, which should only have one query hence the `queries[0]`
-    const dashboardLink = widget?.queries[0]?.linkedDashboards?.find(
-      linkedDashboard => linkedDashboard.field === field
-    );
-
-    return getFieldRenderer(field, meta, false, dashboardLink);
+    return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
 };
 
