@@ -1101,3 +1101,81 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"statuses": [True, True]}
+
+    def test_check_repository_integrations_status_unsupported_provider(self) -> None:
+        """Test that repositories with unsupported providers are not matched"""
+        integration = self.create_integration(
+            organization=self.organization, provider="gitlab", external_id="gitlab:1"
+        )
+
+        # Create repository with unsupported provider (GitLab)
+        Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:gitlab",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        # Try to find it - should return False because GitLab is not in SEER_SUPPORTED_SCM_PROVIDERS
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": integration.id,
+                    "external_id": "123",
+                }
+            ]
+        )
+
+        assert result == {"statuses": [False]}
+
+    def test_check_repository_integrations_status_mixed_supported_and_unsupported_providers(
+        self,
+    ) -> None:
+        """Test with a mix of supported and unsupported provider repositories"""
+        github_integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        gitlab_integration = self.create_integration(
+            organization=self.organization, provider="gitlab", external_id="gitlab:1"
+        )
+
+        # Create GitHub repository (supported)
+        Repository.objects.create(
+            name="test/repo-github",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="111",
+            status=ObjectStatus.ACTIVE,
+            integration_id=github_integration.id,
+        )
+
+        # Create GitLab repository (unsupported)
+        Repository.objects.create(
+            name="test/repo-gitlab",
+            organization_id=self.organization.id,
+            provider="integrations:gitlab",
+            external_id="222",
+            status=ObjectStatus.ACTIVE,
+            integration_id=gitlab_integration.id,
+        )
+
+        # Check both - GitHub should be found, GitLab should not
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": github_integration.id,
+                    "external_id": "111",
+                },  # GitHub - supported
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": gitlab_integration.id,
+                    "external_id": "222",
+                },  # GitLab - unsupported
+            ]
+        )
+
+        assert result == {"statuses": [True, False]}

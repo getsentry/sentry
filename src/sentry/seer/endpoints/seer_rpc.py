@@ -74,6 +74,7 @@ from sentry.seer.assisted_query.issues_tools import (
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
     rpc_get_profiles_for_trace,
@@ -1063,9 +1064,9 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
             external_id=item["external_id"],
         )
 
-    existing_repos = Repository.objects.filter(q_objects, status=ObjectStatus.ACTIVE).values_list(
-        "organization_id", "integration_id", "external_id"
-    )
+    existing_repos = Repository.objects.filter(
+        q_objects, status=ObjectStatus.ACTIVE, provider__in=SEER_SUPPORTED_SCM_PROVIDERS
+    ).values_list("organization_id", "integration_id", "external_id")
 
     existing_set = set(existing_repos)
 
