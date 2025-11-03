@@ -1,4 +1,4 @@
-import {lazy} from 'react';
+import React, {lazy} from 'react';
 
 import LazyLoad from 'sentry/components/lazyLoad';
 import errorHandler from 'sentry/utils/errorHandler';
@@ -17,11 +17,30 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
   resolve: () => Promise<{default: C}>,
   loadingFallback?: React.ReactNode
 ) {
-  const LazyComponent = lazy<C>(() => retryableImport(resolve));
+  // Create a shared promise that both lazy() and preload() will use
+  let sharedPromise: Promise<{default: C}> | null = null;
+  let loadedComponent: C | null = null;
+
+  const getSharedPromise = () => {
+    if (!sharedPromise) {
+      sharedPromise = retryableImport(resolve).then(result => {
+        loadedComponent = result.default;
+        return result;
+      });
+    }
+    return sharedPromise;
+  };
+
+  const LazyComponent = lazy<C>(() => getSharedPromise());
+
   // XXX: Assign the component to a variable so it has a displayname
   function RouteLazyLoad(props: React.ComponentProps<C>) {
-    // we can use this hook to set the organization as it's
-    // a child of the organization context
+    // If the component is already loaded, render it directly to avoid Suspense
+    if (loadedComponent) {
+      return React.createElement(loadedComponent, props);
+    }
+
+    // Otherwise fall back to lazy loading with Suspense
     return (
       <SafeLazyLoad
         {...props}
@@ -30,6 +49,11 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
       />
     );
   }
+
+  // Add preload method that triggers the same shared promise as lazy()
+  RouteLazyLoad.preload = () => {
+    return getSharedPromise();
+  };
 
   return RouteLazyLoad;
 }

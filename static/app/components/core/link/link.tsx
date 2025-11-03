@@ -1,6 +1,8 @@
 import {
+  matchRoutes,
   Link as RouterLink,
   type LinkProps as ReactRouterLinkProps,
+  type To,
 } from 'react-router-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, type Theme} from '@emotion/react';
@@ -67,21 +69,62 @@ const Anchor = styled('a', {
   ${getLinkStyles}
 `;
 
+const preload = async (to: To) => {
+  // Try to match the route and preload if it has a preload method
+  try {
+    const routeConfig = (await import('sentry/routes')).routes();
+    const matches = matchRoutes(routeConfig, to);
+
+    if (matches && matches.length > 0) {
+      // Preload all matching routes, not just the last one
+      for (const match of matches) {
+        const routeHandle = match.route.handle;
+
+        // Check if the handle has a preload method
+        if (routeHandle && typeof routeHandle === 'object' && 'preload' in routeHandle) {
+          routeHandle.preload?.();
+        }
+      }
+    }
+  } catch {
+    // Silently fail if route matching fails
+  }
+};
+
 /**
  * A context-aware version of Link (from react-router) that falls
  * back to <a> if there is no router present
  */
-export const Link = styled(({disabled, to, ...props}: LinkProps) => {
-  const location = useLocation();
+export const Link = styled(
+  ({disabled, to, onMouseEnter, onFocus, ...props}: LinkProps) => {
+    const location = useLocation();
 
-  if (disabled || !location) {
-    return <Anchor {...props} />;
+    if (disabled || !location) {
+      return <Anchor {...props} />;
+    }
+
+    const normalizedTo = locationDescriptorToTo(normalizeUrl(to, location));
+
+    return (
+      <RouterLink
+        to={normalizedTo}
+        onMouseEnter={e => {
+          onMouseEnter?.(e);
+          preload(normalizedTo).catch(() => {
+            // Ignore preload errors
+          });
+        }}
+        onFocus={e => {
+          onFocus?.(e);
+          preload(normalizedTo).catch(() => {
+            // Ignore preload errors
+          });
+        }}
+        {...props}
+      />
+    );
   }
-
-  return (
-    <RouterLink to={locationDescriptorToTo(normalizeUrl(to, location))} {...props} />
-  );
-})`
+)`
   ${getLinkStyles}
 `;
 
