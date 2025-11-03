@@ -240,7 +240,9 @@ const BodyCell = memo(function BodyCell({
         <span>
           <TraceIdButton
             priority="link"
-            onClick={() => openTraceViewDrawer(dataRow.traceId)}
+            onClick={() =>
+              openTraceViewDrawer(dataRow.traceId, undefined, dataRow.timestamp / 1000)
+            }
           >
             {dataRow.traceId.slice(0, 8)}
           </TraceIdButton>

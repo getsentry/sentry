@@ -1,6 +1,5 @@
 import {memo, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -16,7 +15,7 @@ import {useUrlTraceDrawer} from 'sentry/views/insights/agents/hooks/useUrlTraceD
 import {getDefaultSelectedNode} from 'sentry/views/insights/agents/utils/getDefaultSelectedNode';
 import {getNodeId} from 'sentry/views/insights/agents/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
-import {DrawerUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
+import {useTraceDrawerQueryState} from 'sentry/views/insights/agents/utils/urlParams';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -33,33 +32,28 @@ interface UseTraceViewDrawerProps {
 const TraceViewDrawer = memo(function TraceViewDrawer({
   traceSlug,
   closeDrawer,
+  timestamp,
 }: {
   closeDrawer: () => void;
   traceSlug: string;
+  timestamp?: number;
 }) {
   const organization = useOrganization();
-  const {nodes, isLoading, error} = useAITrace(traceSlug);
-  const [selectedNodeKey, setSelectedNodeKey] = useQueryState(
-    DrawerUrlParams.SELECTED_SPAN,
-    parseAsString.withOptions({history: 'replace'})
-  );
-
-  useEffect(() => {
-    return () => {
-      setSelectedNodeKey(null);
-    };
-  }, [setSelectedNodeKey]);
+  const {nodes, isLoading, error} = useAITrace(traceSlug, timestamp);
+  const [traceDrawerQueryState, setTraceDrawerQueryState] = useTraceDrawerQueryState();
+  const selectedNodeKey = traceDrawerQueryState.spanId;
 
   const handleSelectNode = useCallback(
     (node: AITraceSpanNode) => {
-      const uniqueKey = getNodeId(node);
-      setSelectedNodeKey(uniqueKey);
-
+      const id = getNodeId(node);
+      setTraceDrawerQueryState({
+        spanId: id,
+      });
       trackAnalytics('agent-monitoring.drawer.span-select', {
         organization,
       });
     },
-    [setSelectedNodeKey, organization]
+    [setTraceDrawerQueryState, organization]
   );
 
   const selectedNode =
@@ -110,13 +104,19 @@ export function useTraceViewDrawer({onClose}: UseTraceViewDrawerProps = {}) {
   const {openDrawer, isDrawerOpen, drawerUrlState, closeDrawer} = useUrlTraceDrawer();
 
   const openTraceViewDrawer = useCallback(
-    (traceSlug: string, spanId?: string) => {
+    (traceSlug: string, spanId?: string, timestamp?: number) => {
       trackAnalytics('agent-monitoring.drawer.open', {
         organization,
       });
 
       return openDrawer(
-        () => <TraceViewDrawer traceSlug={traceSlug} closeDrawer={closeDrawer} />,
+        () => (
+          <TraceViewDrawer
+            traceSlug={traceSlug}
+            timestamp={timestamp}
+            closeDrawer={closeDrawer}
+          />
+        ),
         {
           ariaLabel: t('Abbreviated Trace'),
           onClose,
@@ -124,6 +124,7 @@ export function useTraceViewDrawer({onClose}: UseTraceViewDrawerProps = {}) {
           drawerWidth: `${DRAWER_WIDTH}px`,
           resizable: true,
           traceSlug,
+          timestamp,
           spanId,
           drawerKey: 'abbreviated-trace-view-drawer',
         }
@@ -133,8 +134,12 @@ export function useTraceViewDrawer({onClose}: UseTraceViewDrawerProps = {}) {
   );
 
   useEffect(() => {
-    if (drawerUrlState.trace && !isDrawerOpen) {
-      openTraceViewDrawer(drawerUrlState.trace);
+    if (drawerUrlState.traceId && !isDrawerOpen) {
+      openTraceViewDrawer(
+        drawerUrlState.traceId,
+        drawerUrlState.spanId ?? undefined,
+        drawerUrlState.timestamp ?? undefined
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
