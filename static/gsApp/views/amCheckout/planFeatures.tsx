@@ -27,6 +27,8 @@ import {
 } from 'getsentry/utils/dataCategory';
 import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
+// TODO(isabella): Clean up repetitive code in this component
+
 type PlanType = 'developer' | 'team' | 'business';
 
 type FeatureKey =

@@ -144,6 +144,7 @@ function AdditionalProductsSubstep({
         <Flex paddingLeft="lg">
           <IconSeer variant="waiting" size="lg" />
         </Flex>
+        {/* TODO(isabella): The heading and icon should be pushed to the child component (ProductSelect) */}
         <Heading as="h2">{t('Detect and fix issues faster with our AI agent')}</Heading>
       </Flex>
       <Flex direction="column" gap="xl">

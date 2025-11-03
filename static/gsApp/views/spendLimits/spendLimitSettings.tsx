@@ -45,6 +45,8 @@ import {
 } from 'getsentry/views/amCheckout/utils';
 import {convertOnDemandBudget} from 'getsentry/views/onDemandBudgets/utils';
 
+const LARGE_INPUT_WIDTH = '300px';
+
 type PartialSpendLimitUpdate = Partial<Record<DataCategory, number>> & {
   sharedMaxBudget?: number;
 };
@@ -373,7 +375,7 @@ function InnerSpendLimitSettings({
   const getPerCategoryWarning = (productName: string) => {
     return (
       // hardcoded height to match the input height so that all rows have the same height
-      <Flex gap="xs" height="36px" align="start">
+      <Flex gap="xs" height="36px" align="center">
         <IconWarning size="sm" />
         <Text variant="muted" size="sm">
           {tct(
@@ -394,7 +396,7 @@ function InnerSpendLimitSettings({
       category => !addOnCategories.includes(category)
     );
     inputs = (
-      <Flex direction="column" gap="xl" padding="xl">
+      <Flex direction="column" gap="xl" padding="0 xl xl">
         <Container>
           {baseCategories.map((category, index) => {
             const reserved = currentReserved[category] ?? 0;
@@ -437,6 +439,7 @@ function InnerSpendLimitSettings({
                 gap={{xs: 'xs', sm: 'lg'}}
                 padding="lg 0"
                 borderBottom={isLastInList ? undefined : 'primary'}
+                wrap="wrap"
               >
                 <Flex
                   gap="xs"
@@ -520,6 +523,7 @@ function InnerSpendLimitSettings({
                 gap={{xs: 'xs', sm: 'lg'}}
                 padding="xl 0"
                 borderBottom={isLastInList ? undefined : 'primary'}
+                wrap="wrap"
               >
                 <Flex
                   gap="xs"
@@ -565,7 +569,7 @@ function InnerSpendLimitSettings({
             onUpdate={handleUpdate}
             reserved={null}
           />
-          <Container width={{xs: '100%', sm: '344px'}}>
+          <Container width={{xs: '100%', sm: LARGE_INPUT_WIDTH}}>
             <Text variant="muted" size="sm">
               {t(
                 'Charges are applied at the end of your usage cycle, and your limit can be adjusted at anytime.'
@@ -725,8 +729,8 @@ const StyledInput = styled(Input)`
   padding-left: ${p => p.theme.space['3xl']};
   width: 100px;
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    width: 344px;
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    width: ${LARGE_INPUT_WIDTH};
   }
 `;
 

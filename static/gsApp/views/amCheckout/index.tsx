@@ -989,7 +989,6 @@ class AMCheckout extends Component<Props, State> {
             <Flex width="100%" align="center" maxWidth="82rem" gap="lg" padding="lg 2xl">
               <LogoSentry height="20px" />
               <LinkButton
-                aria-label={t('Back to Subscription Overview')}
                 to={`/settings/${organization.slug}/billing/`}
                 icon={<IconChevron direction="left" />}
                 size="xs"

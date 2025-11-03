@@ -128,15 +128,28 @@ interface TotalSummaryProps extends BaseSummaryProps {
   subscription: Subscription;
 }
 
-function ItemFlex({children}: {children: React.ReactNode}) {
+function ItemFlex({
+  children,
+  'data-test-id': dataTestId,
+}: {
+  children: React.ReactNode;
+  'data-test-id'?: string;
+}) {
   return (
-    <Flex justify="between" align="center" gap={{xs: 'xl', sm: '3xl'}} height="18px">
+    <Flex
+      justify="between"
+      align="center"
+      gap="xl"
+      height="18px"
+      data-test-id={dataTestId}
+    >
       {children}
     </Flex>
   );
 }
 
 function ItemWithPrice({
+  'data-test-id': dataTestId,
   item,
   price,
   shouldBoldItem,
@@ -145,10 +158,11 @@ function ItemWithPrice({
   item: React.ReactNode;
   price: React.ReactNode;
   shouldBoldItem: boolean;
+  'data-test-id'?: string;
   isCredit?: boolean;
 }) {
   return (
-    <ItemFlex>
+    <ItemFlex data-test-id={dataTestId}>
       <Text bold={shouldBoldItem}>{item}</Text>
       <Text align="right" variant={isCredit ? 'success' : 'primary'}>
         {price}
@@ -171,7 +185,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
 
   return (
     <Stack gap="2xl" padding="xl" borderTop="primary">
-      <Stack gap="xs" data-test-id="summary-item-plan">
+      <Stack gap="md" data-test-id="summary-item-plan">
         <ItemWithPrice
           item={tct('[name] Plan', {name: activePlan.name})}
           price={`${utils.displayPrice({cents: activePlan.totalPrice})}/${shortInterval}`}
@@ -236,7 +250,15 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                     <Tag>{t('Available')}</Tag>
                   ) : (
                     <Tooltip
-                      title={t('This product is only available with a PAYG budget.')}
+                      title={tct('This product is only available with [budgetTerm].', {
+                        budgetTerm:
+                          (activePlan.budgetTerm === 'pay-as-you-go' ? t('a') : t('an')) +
+                          ' ' +
+                          displayBudgetName(activePlan, {
+                            abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
+                            withBudget: true,
+                          }),
+                      })}
                     >
                       <Tag icon={<IconLock locked size="xs" />}>
                         {(isChonk || activePlan.budgetTerm === 'pay-as-you-go') &&
@@ -287,7 +309,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
 
           return (
             <Stack
-              gap="xs"
+              gap="md"
               key={apiName}
               data-test-id={`summary-item-product-${apiName}`}
             >
@@ -342,7 +364,7 @@ function SubtotalSummary({
   );
 
   return (
-    <Stack borderTop="primary" background="primary" width="100%" padding="xl" gap="md">
+    <Stack borderTop="primary" background="primary" width="100%" padding="xl" gap="2xl">
       <Flex data-test-id="summary-item-plan-total" justify="between" align="center">
         <Text size="lg" bold>
           {t('Plan Total')}
@@ -392,23 +414,23 @@ function SubtotalSummary({
             </Flex>
           </Flex>
         )}
-      {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
-        Object.entries(formData.onDemandBudget?.budgets ?? {})
-          .filter(([_, budget]) => budget > 0)
-          .map(([category, budget]) => {
-            return (
-              <Flex
-                align="start"
-                key={category}
-                data-test-id={`summary-item-spend-limit-${category}`}
-              >
+      {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY && (
+        <Stack gap="md">
+          <Text bold>
+            {tct('Per-product [budgetTerm] spend limits', {
+              budgetTerm: displayBudgetName(activePlan),
+            })}
+          </Text>
+          {Object.entries(formData.onDemandBudget?.budgets ?? {})
+            .filter(([_, budget]) => budget > 0)
+            .map(([category, budget]) => {
+              return (
                 <ItemWithPrice
-                  item={tct('[categoryName] [budgetTerm] spend limit', {
-                    categoryName: getPlanCategoryName({
-                      plan: activePlan,
-                      category: category as DataCategory,
-                    }),
-                    budgetTerm: activePlan.budgetTerm,
+                  data-test-id={`summary-item-spend-limit-${category}`}
+                  key={category}
+                  item={getPlanCategoryName({
+                    plan: activePlan,
+                    category: category as DataCategory,
                   })}
                   price={tct('up to [pricePerMonth]', {
                     pricePerMonth: `${utils.displayPrice({
@@ -417,9 +439,10 @@ function SubtotalSummary({
                   })}
                   shouldBoldItem={false}
                 />
-              </Flex>
-            );
-          })}
+              );
+            })}
+        </Stack>
+      )}
     </Stack>
   );
 }
@@ -579,7 +602,7 @@ function TotalSummary({
               )}
               {!!creditApplied && (
                 <Flex
-                  data-test-id="summary-item-credit_applied-flex"
+                  data-test-id="summary-item-credit_applied"
                   justify="between"
                   align="center"
                   gap="xs"
