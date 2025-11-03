@@ -290,6 +290,12 @@ class OrganizationDetailsTest(APITestCase):
         assert response.data["id"] == str(org.id)
 ```
 
+Notes:
+
+- Tests should ALWAYS be procuderal with NO branching logic. It is very rare
+  that you will need an if statement as part of a Frontend Jest test or backend
+  pytest.
+
 ## Common Patterns
 
 ### Feature Flags
