@@ -1,26 +1,29 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Literal
 
 from sentry import eventstore
 from sentry.api import client
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer, IssueEventSerializerResponse
-from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupSerializer
+from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.sentry_data_models import EAPTrace
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import query_trace_data
+from sentry.utils.dates import parse_stats_period
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +35,7 @@ def execute_trace_query_chart(
     stats_period: str,
     y_axes: list[str],
     group_by: list[str] | None = None,
+    project_ids: list[int] | None = None,
 ) -> dict[str, Any] | None:
     """
     Execute a trace query to get chart/timeseries data by calling the events-stats endpoint.
@@ -42,11 +46,12 @@ def execute_trace_query_chart(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    # Get all project IDs for the organization
-    project_ids = list(organization.project_set.values_list("id", flat=True))
-    if not project_ids:
-        logger.warning("No projects found for organization", extra={"org_id": org_id})
-        return None
+    # Use provided project_ids or get all project IDs for the organization
+    if project_ids is None:
+        project_ids = list(organization.project_set.values_list("id", flat=True))
+        if not project_ids:
+            logger.warning("No projects found for organization", extra={"org_id": org_id})
+            return None
 
     params: dict[str, Any] = {
         "query": query,
@@ -104,6 +109,7 @@ def execute_trace_query_table(
     y_axes: list[str] | None = None,
     per_page: int = 50,
     mode: Literal["spans", "aggregates"] = "spans",
+    project_ids: list[int] | None = None,
 ) -> dict[str, Any] | None:
     """
     Execute a trace query to get table data by calling the events endpoint.
@@ -114,11 +120,12 @@ def execute_trace_query_table(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    # Get all project IDs for the organization
-    project_ids = list(organization.project_set.values_list("id", flat=True))
-    if not project_ids:
-        logger.warning("No projects found for organization", extra={"org_id": org_id})
-        return None
+    # Use provided project_ids or get all project IDs for the organization
+    if project_ids is None:
+        project_ids = list(organization.project_set.values_list("id", flat=True))
+        if not project_ids:
+            logger.warning("No projects found for organization", extra={"org_id": org_id})
+            return None
 
     # Determine fields based on mode
     if mode == "aggregates":
@@ -138,7 +145,6 @@ def execute_trace_query_table(
             "transaction",
             "timestamp",
             "project",
-            "project.name",
             "trace",
         ]
 
@@ -274,6 +280,115 @@ def rpc_get_trace_waterfall(trace_id: str, organization_id: int) -> dict[str, An
     return trace.dict() if trace else {}
 
 
+def get_repository_definition(*, organization_id: int, repo_full_name: str) -> dict | None:
+    """
+    Look up a repository by full name (owner/repo-name) that the org has access to.
+    Returns full RepoDefinition if found and accessible via code mappings, None otherwise.
+
+    Args:
+        organization_id: The ID of the organization
+        repo_full_name: Full repository name in format "owner/repo-name" (e.g., "getsentry/seer")
+
+    Returns:
+        dict with RepoDefinition fields if found, None otherwise
+    """
+    parts = repo_full_name.split("/")
+    if len(parts) != 2:
+        logger.warning(
+            "seer.rpc.invalid_repo_name_format",
+            extra={"repo_full_name": repo_full_name},
+        )
+        return None
+
+    owner, name = parts
+
+    repo = Repository.objects.filter(
+        organization_id=organization_id,
+        name=repo_full_name,
+        status=ObjectStatus.ACTIVE,
+        provider__in=SEER_SUPPORTED_SCM_PROVIDERS,
+    ).first()
+
+    if not repo:
+        logger.info(
+            "seer.rpc.repository_not_found",
+            extra={"organization_id": organization_id, "repo_full_name": repo_full_name},
+        )
+        return None
+
+    return {
+        "organization_id": organization_id,
+        "integration_id": str(repo.integration_id) if repo.integration_id else None,
+        "provider": repo.provider,
+        "owner": owner,
+        "name": name,
+        "external_id": repo.external_id,
+    }
+
+
+# Tuples of (total period, interval) (both in sentry stats period format).
+EVENT_TIMESERIES_RESOLUTIONS = (
+    ("6h", "15m"),  # 24 buckets
+    ("24h", "1h"),  # 24 buckets
+    ("3d", "3h"),  # 24 buckets
+    ("7d", "6h"),  # 28 buckets
+    ("14d", "12h"),  # 28 buckets
+    ("30d", "24h"),  # 30 buckets
+    ("90d", "3d"),  # 30 buckets
+)
+
+
+def _get_issue_event_timeseries(
+    *,
+    organization: Organization,
+    project_id: int,
+    issue_short_id: str,
+    first_seen_delta: timedelta,
+) -> tuple[dict[str, Any], str, str] | None:
+    """
+    Get event counts over time for an issue by calling the events-stats endpoint.
+    """
+
+    stats_period, interval = None, None
+    for p, i in EVENT_TIMESERIES_RESOLUTIONS:
+        delta = parse_stats_period(p)
+        if delta and first_seen_delta <= delta:
+            stats_period, interval = p, i
+            break
+    stats_period = stats_period or "90d"
+    interval = interval or "3d"
+
+    params: dict[str, Any] = {
+        "dataset": "issuePlatform",
+        "query": f"issue:{issue_short_id}",
+        "yAxis": "count()",
+        "partial": "1",
+        "statsPeriod": stats_period,
+        "interval": interval,
+        "project": project_id,
+        "referrer": Referrer.SEER_RPC,
+    }
+
+    resp = client.get(
+        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+        user=None,
+        path=f"/organizations/{organization.slug}/events-stats/",
+        params=params,
+    )
+    if resp.status_code != 200 or not (resp.data or {}).get("data"):
+        logger.warning(
+            "Failed to get event counts for issue",
+            extra={
+                "organization_slug": organization.slug,
+                "project_id": project_id,
+                "issue_id": issue_short_id,
+            },
+        )
+        return None
+
+    return {"count()": {"data": resp.data["data"]}}, stats_period, interval
+
+
 def get_issue_details(
     *,
     issue_id: str,
@@ -306,12 +421,12 @@ def get_issue_details(
         )
         return None
 
+    org_project_ids = Project.objects.filter(
+        organization=organization, status=ObjectStatus.ACTIVE
+    ).values_list("id", flat=True)
+
     try:
         if issue_id.isdigit():
-            org_project_ids = Project.objects.filter(
-                organization=organization, status=ObjectStatus.ACTIVE
-            ).values_list("id", flat=True)
-
             group = Group.objects.get(project_id__in=org_project_ids, id=int(issue_id))
         else:
             group = Group.objects.by_qualified_short_id(organization_id, issue_id)
@@ -323,9 +438,10 @@ def get_issue_details(
         )
         return None
 
-    serialized_group: BaseGroupSerializerResponse = serialize(
-        group, user=None, serializer=GroupSerializer()
-    )
+    serialized_group: dict = serialize(group, user=None, serializer=GroupSerializer())
+
+    # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
+    serialized_group["issueTypeDescription"] = group.issue_type.description
 
     event: Event | GroupEvent | None
     if selected_event == "oldest":
@@ -366,8 +482,24 @@ def get_issue_details(
         )
         tags_overview = None
 
+    ts_result = _get_issue_event_timeseries(
+        organization=organization,
+        project_id=group.project_id,
+        issue_short_id=group.qualified_short_id,
+        first_seen_delta=datetime.now(UTC) - group.first_seen,
+    )
+    if ts_result:
+        timeseries, stats_period, interval = ts_result
+    else:
+        timeseries = None
+        stats_period = None
+        interval = None
+
     return {
         "issue": serialized_group,
+        "event_timeseries": timeseries,
+        "timeseries_stats_period": stats_period,
+        "timeseries_interval": interval,
         "tags_overview": tags_overview,
         "event": serialized_event,
         "event_id": event.event_id,

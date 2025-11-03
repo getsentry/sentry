@@ -1,5 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
+
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -11,10 +13,8 @@ import {
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -25,9 +25,8 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
-import {useRemoveUrlCursorsOnSearch} from 'sentry/views/insights/agents/hooks/useRemoveUrlCursorsOnSearch';
-import {unsetQueryCursors} from 'sentry/views/insights/agents/utils/unsetQueryCursors';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
+import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -110,15 +109,17 @@ function McpOverviewPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const datePageFilterProps = limitMaxPickableDays(organization);
-  const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'query',
+    parseAsString.withOptions({history: 'replace'})
+  );
   const {view} = useLocationQuery({
     fields: {
       view: decodeViewType,
     },
   });
   const activeView = view ?? ViewType.TOOL;
-
-  useRemoveUrlCursorsOnSearch();
+  const {unsetCursor} = useTableCursor();
 
   useEffect(() => {
     trackAnalytics('mcp-monitoring.page-view', {
@@ -140,7 +141,7 @@ function McpOverviewPage() {
           query: {
             ...location.query,
             view: newTable,
-            ...unsetQueryCursors(location.query),
+            [TableUrlParams.CURSOR]: undefined,
           },
         },
         {replace: true}
@@ -163,6 +164,7 @@ function McpOverviewPage() {
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
         setSearchQuery(newQuery);
+        unsetCursor();
       },
       searchSource: 'mcp-monitoring',
       numberTags,
@@ -183,6 +185,7 @@ function McpOverviewPage() {
       setSearchQuery,
       stringSecondaryAliases,
       stringTags,
+      unsetCursor,
     ]
   );
 
@@ -199,7 +202,7 @@ function McpOverviewPage() {
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <ModuleFeature moduleName={ModuleName.MCP}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <ToolRibbon>
@@ -209,9 +212,9 @@ function McpOverviewPage() {
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (
-                    <QueryBuilderWrapper>
+                    <Flex flex={2}>
                       <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
-                    </QueryBuilderWrapper>
+                    </Flex>
                   )}
                 </ToolRibbon>
               </ModuleLayout.Full>
@@ -232,7 +235,7 @@ function McpOverviewPage() {
                         <McpTransportWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
-                    <ControlsWrapper>
+                    <Container paddingBottom="xl">
                       <TableControl
                         value={activeView}
                         onChange={handleTableSwitch}
@@ -248,7 +251,7 @@ function McpOverviewPage() {
                           {t('Prompts')}
                         </TableControlItem>
                       </TableControl>
-                    </ControlsWrapper>
+                    </Container>
                     <WidgetGrid>
                       <WidgetGrid.Position1>
                         <ViewTrafficWidget />
@@ -281,17 +284,5 @@ function PageWithProviders() {
     </ModulePageProviders>
   );
 }
-
-const QueryBuilderWrapper = styled('div')`
-  flex: 2;
-`;
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(1)};
-  padding-bottom: ${space(2)};
-`;
 
 export default PageWithProviders;

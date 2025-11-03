@@ -3,7 +3,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 import {TagValuesFixture} from 'sentry-fixture/tagvalues';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -14,19 +13,15 @@ describe('GroupTagValues', () => {
   const tags = TagsFixture();
   const project = ProjectFixture();
 
-  function init(tagKey: string, environment?: string[] | string) {
-    return initializeOrg({
-      router: {
-        location: {
-          query: {
-            environment,
-          },
-          pathname: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
-        },
-        params: {orgId: 'org-slug', groupId: group.id, tagKey},
+  const makeInitialRouterConfig = (tagKey: string, environment?: string[] | string) => ({
+    location: {
+      pathname: `/organizations/org-slug/issues/${group.id}/tags/${tagKey}/`,
+      query: {
+        ...(environment && {environment}),
       },
-    });
-  }
+    },
+    route: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
+  });
 
   beforeEach(() => {
     ProjectsStore.init();
@@ -46,15 +41,12 @@ describe('GroupTagValues', () => {
   });
 
   it('renders a list of tag values', async () => {
-    const {router} = init('user');
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
     });
     render(<GroupTagValues />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
     // Special case for user tag - column title changes to Affected Users
@@ -69,8 +61,6 @@ describe('GroupTagValues', () => {
   });
 
   it('can page through tag values', async () => {
-    const {router} = init('user');
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
@@ -80,9 +70,8 @@ describe('GroupTagValues', () => {
           '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
       },
     });
-    render(<GroupTagValues />, {
-      router,
-      deprecatedRouterMocks: true,
+    const {router} = render(<GroupTagValues />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
     expect(await screen.findByRole('button', {name: 'Previous'})).toBeDisabled();
@@ -91,22 +80,17 @@ describe('GroupTagValues', () => {
     // Clicking next button loads page with query param ?cursor=0:100:0
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
     await waitFor(() => {
-      expect(router.push).toHaveBeenCalledWith(
-        expect.objectContaining({query: expect.objectContaining({cursor: '0:100:0'})})
-      );
+      expect(router.location.query.cursor).toBe('0:100:0');
     });
   });
 
   it('navigates to issue details events tab with correct query params', async () => {
-    const {router} = init('user');
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
     });
-    render(<GroupTagValues />, {
-      router,
-      deprecatedRouterMocks: true,
+    const {router} = render(<GroupTagValues />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'More'}));
@@ -114,23 +98,20 @@ describe('GroupTagValues', () => {
       screen.getByRole('menuitemradio', {name: 'Search All Issues with Tag Value'})
     );
 
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/issues/',
-      query: {query: 'user.username:david'},
+    await waitFor(() => {
+      expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
     });
+    expect(router.location.query.query).toBe('user.username:david');
   });
 
   it('renders an error message if tag values request fails', async () => {
-    const {router} = init('user', 'staging');
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       statusCode: 500,
     });
 
     render(<GroupTagValues />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: makeInitialRouterConfig('user', 'staging'),
     });
 
     expect(
@@ -139,16 +120,13 @@ describe('GroupTagValues', () => {
   });
 
   it('renders an error message if no tag values are returned because of environment selection', async () => {
-    const {router} = init('user', 'staging');
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: [],
     });
 
     render(<GroupTagValues />, {
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: makeInitialRouterConfig('user', 'staging'),
     });
 
     expect(

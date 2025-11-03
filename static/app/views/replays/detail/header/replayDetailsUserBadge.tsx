@@ -1,23 +1,32 @@
-import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
+import {
+  getLiveDurationMs,
+  getReplayExpiresAtMs,
+  LIVE_TOOLTIP_MESSAGE,
+  LiveIndicator,
+} from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useIsLive from 'sentry/utils/replays/hooks/useIsLive';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
+import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface Props {
@@ -27,17 +36,12 @@ interface Props {
 export default function ReplayDetailsUserBadge({readerResult}: Props) {
   const organization = useOrganization();
   const replayRecord = readerResult.replayRecord;
-  const replayReader = readerResult.replay;
 
   const {slug: orgSlug} = organization;
   const replayId = readerResult.replayId;
-  const isLive = useIsLive({replayReader});
-  const replayUpdated = usePollReplayRecord({
-    isLive,
-    replayId,
-    orgSlug,
-    replayReader,
-  });
+
+  const queryClient = useQueryClient();
+
   // Generate search query based on available user data
   const getUserSearchQuery = () => {
     if (!replayRecord?.user) {
@@ -57,10 +61,46 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const searchQuery = getUserSearchQuery();
   const userDisplayName = replayRecord?.user.display_name || t('Anonymous User');
+  const projectSlug = useReplayProjectSlug({replayRecord});
 
-  const handleRefresh = () => {
-    window.location.reload();
+  const {startSummaryRequest} = useReplaySummaryContext();
+
+  const handleRefresh = async () => {
+    trackAnalytics('replay.details-refresh-clicked', {organization});
+    if (organization.features.includes('replay-refresh-background')) {
+      await queryClient.refetchQueries({
+        queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
+        exact: true,
+        type: 'all',
+      });
+      await queryClient.invalidateQueries({
+        queryKey: [
+          `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+        ],
+        type: 'all',
+      });
+      startSummaryRequest();
+    } else {
+      window.location.reload();
+    }
   };
+
+  const isReplayExpired =
+    Date.now() > getReplayExpiresAtMs(replayRecord?.started_at ?? null);
+
+  const polledReplayRecord = usePollReplayRecord({
+    enabled: !isReplayExpired,
+    replayId,
+    orgSlug,
+  });
+
+  const polledCountSegments = polledReplayRecord?.count_segments ?? 0;
+  const prevSegments = replayRecord?.count_segments ?? 0;
+
+  const showRefreshButton = polledCountSegments > prevSegments;
+
+  const showLiveIndicator =
+    !isReplayExpired && replayRecord && getLiveDurationMs(replayRecord.finished_at) > 0;
 
   const badge = replayRecord ? (
     <UserBadge
@@ -94,23 +134,29 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
                 isTooltipHoverable
                 unitStyle="regular"
               />
-              {isLive ? (
+              {showLiveIndicator ? (
                 <Tooltip
-                  showUnderline
+                  title={LIVE_TOOLTIP_MESSAGE}
                   underlineColor="success"
-                  title={t('This replay is still in progress.')}
+                  showUnderline
                 >
-                  <Live />
+                  <Flex align="center">
+                    <Text bold variant="success" data-test-id="live-badge">
+                      {t('LIVE')}
+                    </Text>
+                    <LiveIndicator />
+                  </Flex>
                 </Tooltip>
               ) : null}
-              <RefreshButton
+              <Button
                 title={t('Replay is outdated. Refresh for latest activity.')}
+                data-test-id="refresh-button"
                 size="xs"
                 onClick={handleRefresh}
-                replayUpdated={replayUpdated}
+                style={{visibility: showRefreshButton ? 'visible' : 'hidden'}}
               >
                 <IconRefresh />
-              </RefreshButton>
+              </Button>
             </TimeContainer>
           ) : null}
         </DisplayHeader>
@@ -155,61 +201,4 @@ const TimeContainer = styled('div')`
 const DisplayHeader = styled('div')`
   display: flex;
   flex-direction: column;
-`;
-
-function Live() {
-  return (
-    <Flex align="center">
-      <LiveText bold>{t('LIVE')}</LiveText>
-      <LiveIndicator />
-    </Flex>
-  );
-}
-
-const pulse = keyframes`
-  0% {
-    transform: scale(0.1);
-    opacity: 1
-  }
-
-  40%, 100% {
-    transform: scale(1);
-    opacity: 0;
-  }
-`;
-
-const LiveText = styled(Text)`
-  color: ${p => p.theme.success};
-`;
-
-const LiveIndicator = styled('div')`
-  background: ${p => p.theme.success};
-  height: 8px;
-  width: 8px;
-  position: relative;
-  border-radius: 50%;
-  margin-left: ${p => p.theme.space.sm};
-  margin-right: ${p => p.theme.space.sm};
-
-  @media (prefers-reduced-motion: reduce) {
-    &:before {
-      display: none;
-    }
-  }
-
-  &:before {
-    content: '';
-    animation: ${pulse} 3s ease-out infinite;
-    border: 6px solid ${p => p.theme.success};
-    position: absolute;
-    border-radius: 50%;
-    height: 20px;
-    width: 20px;
-    top: -6px;
-    left: -6px;
-  }
-`;
-
-const RefreshButton = styled(Button)<{replayUpdated: boolean}>`
-  visibility: ${p => (p.replayUpdated ? 'visible' : 'hidden')};
 `;

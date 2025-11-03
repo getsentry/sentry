@@ -1,4 +1,3 @@
-import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
@@ -13,14 +12,14 @@ function getInstallSnippet({
   params,
   packageManager,
   additionalPackages = [],
-  basePackage = '@sentry/node',
+  packageName = '@sentry/node',
 }: {
   packageManager: 'npm' | 'yarn' | 'pnpm';
   params: DocsParams;
-  additionalPackages?: string[];
-  basePackage?: string;
+  additionalPackages?: Array<`@sentry/${string}`>;
+  packageName?: `@sentry/${string}`;
 }) {
-  let packages = [basePackage];
+  let packages = [packageName];
   if (params.isProfilingSelected) {
     packages.push('@sentry/profiling-node');
   }
@@ -40,11 +39,11 @@ function getInstallSnippet({
 export function getInstallCodeBlock(
   params: DocsParams,
   {
-    basePackage = '@sentry/node',
+    packageName = '@sentry/node',
     additionalPackages,
   }: {
-    additionalPackages?: string[];
-    basePackage?: string;
+    additionalPackages?: Array<`@sentry/${string}`>;
+    packageName?: `@sentry/${string}`;
   } = {}
 ): ContentBlock {
   return {
@@ -57,7 +56,7 @@ export function getInstallCodeBlock(
           params,
           additionalPackages,
           packageManager: 'npm',
-          basePackage,
+          packageName,
         }),
       },
       {
@@ -67,7 +66,7 @@ export function getInstallCodeBlock(
           params,
           additionalPackages,
           packageManager: 'yarn',
-          basePackage,
+          packageName,
         }),
       },
       {
@@ -77,7 +76,7 @@ export function getInstallCodeBlock(
           params,
           additionalPackages,
           packageManager: 'pnpm',
-          basePackage,
+          packageName,
         }),
       },
     ],
@@ -85,17 +84,17 @@ export function getInstallCodeBlock(
 }
 
 function getImport(
-  sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless' | 'nestjs',
+  packageName: `@sentry/${string}`,
   defaultMode?: 'esm' | 'cjs'
 ): string[] {
   return defaultMode === 'esm'
     ? [
-        `// Import with \`const Sentry = require("@sentry/${sdkPackage}");\` if you are using CJS`,
-        `import * as Sentry from "@sentry/${sdkPackage}"`,
+        `// Import with \`const Sentry = require("${packageName}");\` if you are using CJS`,
+        `import * as Sentry from "${packageName}"`,
       ]
     : [
-        `// Import with \`import * as Sentry from "@sentry/${sdkPackage}"\` if you are using ESM`,
-        `const Sentry = require("@sentry/${sdkPackage}");`,
+        `// Import with \`import * as Sentry from "${packageName}"\` if you are using ESM`,
+        `const Sentry = require("${packageName}");`,
       ];
 }
 
@@ -109,10 +108,10 @@ function getProfilingImport(defaultMode?: 'esm' | 'cjs'): string {
  * Import Snippet for the Node and Serverless SDKs without other packages (like profiling).
  */
 export function getSentryImportSnippet(
-  sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless' | 'nestjs',
+  packageName: `@sentry/${string}`,
   defaultMode?: 'esm' | 'cjs'
 ): string {
-  return getImport(sdkPackage, defaultMode).join('\n');
+  return getImport(packageName, defaultMode).join('\n');
 }
 
 export function getImportInstrumentSnippet(
@@ -131,10 +130,10 @@ require("./${filename}");`;
 }
 
 const libraryMap = {
-  node: 'node',
-  aws: 'aws-serverless',
-  gpc: 'google-cloud-serverless',
-  nestjs: 'nestjs',
+  node: '@sentry/node',
+  aws: '@sentry/aws-serverless',
+  gpc: '@sentry/google-cloud-serverless',
+  nestjs: '@sentry/nestjs',
 } as const;
 
 function getDefaultNodeImports({
@@ -222,10 +221,10 @@ Sentry.startSpan({
   }`;
 
 export const getNodeProfilingOnboarding = ({
-  basePackage = '@sentry/node',
+  packageName = '@sentry/node',
   profilingLifecycle = 'trace',
 }: {
-  basePackage?: string;
+  packageName?: `@sentry/${string}`;
   profilingLifecycle?: 'trace' | 'manual';
 } = {}): OnboardingConfig => ({
   install: params => [
@@ -242,7 +241,7 @@ export const getNodeProfilingOnboarding = ({
           ),
         },
         getInstallCodeBlock(params, {
-          basePackage,
+          packageName,
         }),
       ],
     },
@@ -374,11 +373,11 @@ Sentry.profiler.stopProfiler();
 });
 
 export const getNodeAgentMonitoringOnboarding = ({
-  basePackage = 'node',
+  packageName = '@sentry/node',
   configFileName,
 }: {
-  basePackage?: string;
   configFileName?: string;
+  packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
   install: params => [
     {
@@ -394,7 +393,7 @@ export const getNodeAgentMonitoringOnboarding = ({
           ),
         },
         getInstallCodeBlock(params, {
-          basePackage: `@sentry/${basePackage}`,
+          packageName,
         }),
       ],
     },
@@ -419,7 +418,7 @@ export const getNodeAgentMonitoringOnboarding = ({
           {
             label: configFileName ? configFileName : 'JavaScript',
             language: 'javascript',
-            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+            code: `${getImport(packageName).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -486,7 +485,7 @@ const result = await generateText({
           {
             label: 'JavaScript',
             language: 'javascript',
-            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+            code: `${getImport(packageName).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -520,7 +519,7 @@ Sentry.init({
           {
             label: 'JavaScript',
             language: 'javascript',
-            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+            code: `${getImport(packageName).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -554,7 +553,7 @@ Sentry.init({
           {
             label: 'JavaScript',
             language: 'javascript',
-            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+            code: `${getImport(packageName).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -592,7 +591,7 @@ Sentry.init({
           {
             label: 'JavaScript',
             language: 'javascript',
-            code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+            code: `${getImport(packageName).join('\n')}
 
 // Create a span around your AI call
 await Sentry.startSpan({
@@ -713,22 +712,10 @@ const response = await ai.models.generateContent({
 });
 
 export const getNodeMcpOnboarding = ({
-  basePackage = 'node',
+  packageName = '@sentry/node',
 }: {
-  basePackage?: string;
+  packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
-  introduction: () => (
-    <Alert type="info" showIcon={false}>
-      {tct(
-        'MCP is currently in beta with support for [mcp:Model Context Protocol Typescript SDK].',
-        {
-          mcp: (
-            <ExternalLink href="https://www.npmjs.com/package/@modelcontextprotocol/sdk" />
-          ),
-        }
-      )}
-    </Alert>
-  ),
   install: params => [
     {
       type: StepType.INSTALL,
@@ -743,7 +730,7 @@ export const getNodeMcpOnboarding = ({
           ),
         },
         getInstallCodeBlock(params, {
-          basePackage: `@sentry/${basePackage}`,
+          packageName,
         }),
       ],
     },
@@ -765,7 +752,7 @@ export const getNodeMcpOnboarding = ({
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: `${getImport(basePackage === '@sentry/node' ? 'node' : (basePackage as any)).join('\n')}
+              code: `${getImport(packageName).join('\n')}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -822,13 +809,13 @@ const server = Sentry.wrapMcpServerWithSentry(new McpServer({
 
 function getNodeLogsConfigureSnippet(
   params: DocsParams,
-  sdkPackage: `@sentry/${string}`
+  packageName: `@sentry/${string}`
 ): ContentBlock {
   return {
     type: 'code',
     language: 'javascript',
     code: `
-import * as Sentry from "${sdkPackage}";
+import * as Sentry from "${packageName}";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -846,11 +833,11 @@ export const getNodeLogsOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 >({
   docsPlatform,
-  sdkPackage,
+  packageName,
   generateConfigureSnippet = getNodeLogsConfigureSnippet,
 }: {
   docsPlatform: string;
-  sdkPackage: `@sentry/${string}`;
+  packageName: `@sentry/${string}`;
   generateConfigureSnippet?: typeof getNodeLogsConfigureSnippet;
 }): OnboardingConfig<PlatformOptions> => ({
   install: (params: DocsParams) => [
@@ -860,16 +847,14 @@ export const getNodeLogsOnboarding = <
         {
           type: 'text',
           text: tct(
-            'Add the Sentry SDK as a dependency. The minimum version of [sdkPackage] that supports logs is [code:9.41.0].',
+            'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports logs is [code:9.41.0].',
             {
               code: <code />,
-              sdkPackage: <code>{sdkPackage}</code>,
+              packageName: <code>{packageName}</code>,
             }
           ),
         },
-        getInstallCodeBlock(params, {
-          basePackage: sdkPackage,
-        }),
+        getInstallCodeBlock(params, {packageName}),
         {
           type: 'text',
           text: tct(
@@ -897,7 +882,7 @@ export const getNodeLogsOnboarding = <
             {code: <code />}
           ),
         },
-        generateConfigureSnippet(params, sdkPackage),
+        generateConfigureSnippet(params, packageName),
         {
           type: 'text',
           text: tct('For more detailed information, see the [link:logs documentation].', {
@@ -922,7 +907,7 @@ export const getNodeLogsOnboarding = <
         {
           type: 'code',
           language: 'javascript',
-          code: `import * as Sentry from "${sdkPackage}";
+          code: `import * as Sentry from "${packageName}";
 
 Sentry.logger.info('User triggered test log', { action: 'test_log' })`,
         },

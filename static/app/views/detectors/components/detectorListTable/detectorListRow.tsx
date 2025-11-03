@@ -6,6 +6,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorListConnectedAutomations} from 'sentry/views/detectors/components/detectorListConnectedAutomations';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
@@ -15,9 +16,15 @@ interface DetectorListRowProps {
   detector: Detector;
   onSelect: (id: string) => void;
   selected: boolean;
+  renderVisualization?: (detector: Detector) => React.ReactNode;
 }
 
-export function DetectorListRow({detector, selected, onSelect}: DetectorListRowProps) {
+export function DetectorListRow({
+  detector,
+  selected,
+  onSelect,
+  renderVisualization,
+}: DetectorListRowProps) {
   return (
     <DetectorSimpleTableRow
       variant={detector.enabled ? 'default' : 'faded'}
@@ -48,6 +55,7 @@ export function DetectorListRow({detector, selected, onSelect}: DetectorListRowP
       <SimpleTable.RowCell data-column-name="connected-automations">
         <DetectorListConnectedAutomations automationIds={detector.workflowIds} />
       </SimpleTable.RowCell>
+      {defined(renderVisualization) && renderVisualization(detector)}
     </DetectorSimpleTableRow>
   );
 }

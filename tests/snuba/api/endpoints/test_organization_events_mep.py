@@ -3869,6 +3869,15 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         self._assert_on_demand_response(response, expected_on_demand_query=True)
         assert response.data["data"] == [{"count_unique(user)": 2}]
 
+    def test_on_demand_for_metrics_deprecation(self) -> None:
+        params = {"field": ["count()"], "query": "", "yAxis": "count()"}
+        specs = self._create_specs(params)
+        for spec in specs:
+            self.store_on_demand_metric(1, spec=spec)
+        with self.feature("organizations:on-demand-gen-metrics-deprecation-query-prefill"):
+            response = self._make_on_demand_request(params)
+        self._assert_on_demand_response(response)
+
     def test_split_decision_for_errors_widget(self) -> None:
         error_data = load_data("python", timestamp=before_now(minutes=1))
         self.store_event(

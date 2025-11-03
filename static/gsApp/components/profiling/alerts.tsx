@@ -310,29 +310,27 @@ function ContinuousProfilingBetaAlertBannerInner({
       }
     >
       {subscription.isFree
-        ? isAm2Plan(subscription.plan)
-          ? tct(
-              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a on-demand budget after this date. To avoid disruptions, upgrade to a paid plan.',
-              {bold: <b />}
-            )
-          : tct(
-              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date. To avoid disruptions, upgrade to a paid plan.',
-              {bold: <b />}
-            )
+        ? tct(
+            '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a [budgetTerm] after this date. To avoid disruptions, upgrade to a paid plan.',
+            {
+              bold: <b />,
+              budgetTerm: displayBudgetName(subscription.planDetails, {withBudget: true}),
+            }
+          )
         : isEnterprise(subscription.plan)
           ? tct(
               '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. To avoid disruptions, contact your account manager before then to add it to your plan.',
               {bold: <b />}
             )
-          : isAm2Plan(subscription.plan)
-            ? tct(
-                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require an on-demand budget after this date.',
-                {bold: <b />}
-              )
-            : tct(
-                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.',
-                {bold: <b />}
-              )}
+          : tct(
+              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a [budgetTerm] after this date.',
+              {
+                bold: <b />,
+                budgetTerm: displayBudgetName(subscription.planDetails, {
+                  withBudget: true,
+                }),
+              }
+            )}
     </Alert>
   );
 }

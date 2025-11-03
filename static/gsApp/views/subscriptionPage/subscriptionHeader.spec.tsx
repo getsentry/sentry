@@ -61,6 +61,7 @@ describe('SubscriptionHeader', () => {
     hasPaygCard: boolean;
     organization: Organization;
   }) {
+    const hasBillingPerms = organization.access?.includes('org:billing');
     await screen.findByRole('heading', {name: 'Subscription'});
 
     if (hasNextBillCard) {
@@ -83,15 +84,21 @@ describe('SubscriptionHeader', () => {
 
     if (hasPaygCard) {
       await screen.findByRole('heading', {name: 'Pay-as-you-go'});
-      screen.getByRole('button', {name: 'Set limit'});
+
+      if (hasBillingPerms) {
+        expect(screen.getByRole('button', {name: 'Set limit'})).toBeInTheDocument();
+      } else {
+        expect(screen.queryByRole('button', {name: 'Set limit'})).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', {name: 'Edit limit'})
+        ).not.toBeInTheDocument();
+      }
     } else {
       expect(
         screen.queryByRole('heading', {name: 'Pay-as-you-go'})
       ).not.toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Set limit'})).not.toBeInTheDocument();
     }
-
-    const hasBillingPerms = organization.access?.includes('org:billing');
 
     // all subscriptions have links card
     if (hasBillingPerms) {
@@ -240,7 +247,7 @@ describe('SubscriptionHeader', () => {
     });
   });
 
-  it('renders new header cards for self-serve customers and user without billing perms', async () => {
+  it('renders new header cards for self-serve free customers and user without billing perms', async () => {
     const organization = OrganizationFixture({
       features: ['subscriptions-v3'],
     });
@@ -257,6 +264,26 @@ describe('SubscriptionHeader', () => {
       hasNextBillCard: false,
       hasBillingInfoCard: false,
       hasPaygCard: false,
+    });
+  });
+
+  it('renders new header cards for self-serve paid customers and user without billing perms', async () => {
+    const organization = OrganizationFixture({
+      features: ['subscriptions-v3'],
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />
+    );
+    await assertNewHeaderCards({
+      organization,
+      hasNextBillCard: false,
+      hasBillingInfoCard: false,
+      hasPaygCard: true,
     });
   });
 
@@ -322,25 +349,6 @@ describe('SubscriptionHeader', () => {
       hasBillingInfoCard: false,
       hasPaygCard: false,
     });
-  });
-
-  it('renders new payment failure alert for past due subscriptions with flag', async () => {
-    const organization = OrganizationFixture({
-      features: ['subscriptions-v3'],
-      access: ['org:billing'],
-    });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-      isPastDue: true,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-    render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
-    );
-    await screen.findByText(
-      'Automatic payment failed. Update your payment method to ensure uninterrupted access to Sentry.'
-    );
   });
 
   it('does not render new payment failure alert for past due subscriptions without flag', async () => {

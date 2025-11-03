@@ -2,6 +2,8 @@ import {useCallback} from 'react';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Pagination from 'sentry/components/pagination';
@@ -13,6 +15,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -27,11 +30,41 @@ import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
-const DETECTOR_TYPE_TITLE_MAPPING: Record<DetectorType, string> = {
-  error: t('Error Monitors'),
-  metric_issue: t('Metric Monitors'),
-  monitor_check_in_failure: t('Cron Monitors'),
-  uptime_domain_failure: t('Uptime Monitors'),
+interface DetectorHeadingInfo {
+  description: string;
+  docsUrl: string;
+  title: string;
+}
+
+const DETECTOR_TYPE_HEADING_MAPPING: Record<DetectorType, DetectorHeadingInfo> = {
+  error: {
+    title: t('Error Monitors'),
+    description: t(
+      'Error monitors are created by default for each project based on issue grouping/fingerprint rules.'
+    ),
+    docsUrl: 'https://docs.sentry.io/product/monitors/',
+  },
+  metric_issue: {
+    title: t('Metric Monitors'),
+    description: t(
+      'Metric monitors track errors based on span attributes and custom metrics.'
+    ),
+    docsUrl: 'https://docs.sentry.io/product/monitors/',
+  },
+  monitor_check_in_failure: {
+    title: t('Cron Monitors'),
+    description: t(
+      'Cron monitors check in on recurring jobs and tell you if they’re running on schedule, failing, or succeeding.'
+    ),
+    docsUrl: 'https://docs.sentry.io/product/crons/',
+  },
+  uptime_domain_failure: {
+    title: t('Uptime Monitors'),
+    description: t(
+      'Uptime monitors continuously track configured URLs, delivering alerts and insights to quickly identify downtime and troubleshoot issues.'
+    ),
+    docsUrl: 'https://docs.sentry.io/product/alerts/uptime-monitoring/',
+  },
 };
 
 export default function DetectorsList() {
@@ -40,7 +73,8 @@ export default function DetectorsList() {
   const location = useLocation();
   const navigate = useNavigate();
   const {selection, isReady} = usePageFilters();
-  const {detectorFilter, assigneeFilter} = useMonitorViewContext();
+  const {detectorFilter, assigneeFilter, renderVisualization, emptyState} =
+    useMonitorViewContext();
 
   const {
     sort: sorts,
@@ -96,28 +130,60 @@ export default function DetectorsList() {
     return links && !links.previous!.results && !links.next!.results;
   }, [pageLinks]);
 
-  // Determine the page title based on active filters
-  const pageTitle = detectorFilter
-    ? DETECTOR_TYPE_TITLE_MAPPING[detectorFilter]
+  // Determine the page heading info based on active filters
+  const {
+    title: pageTitle,
+    description: pageDescription,
+    docsUrl,
+  } = detectorFilter
+    ? DETECTOR_TYPE_HEADING_MAPPING[detectorFilter]
     : assigneeFilter === 'me'
-      ? t('My Monitors')
-      : t('Monitors');
+      ? {
+          title: t('My Monitors'),
+          description: t(
+            'Monitors assigned to you or your team. Monitors are used to customize when to turn errors and performance problems into issues.'
+          ),
+          docsUrl: 'https://docs.sentry.io/product/monitors/',
+        }
+      : {
+          title: t('Monitors'),
+          description: t(
+            'Monitors are used to customize when to turn errors and performance problems into issues.'
+          ),
+          docsUrl: 'https://docs.sentry.io/product/monitors/',
+        };
 
   return (
     <SentryDocumentTitle title={pageTitle}>
       <PageFiltersContainer>
-        <ListLayout actions={<Actions />} title={pageTitle}>
+        <ListLayout
+          actions={<Actions />}
+          title={pageTitle}
+          description={pageDescription}
+          docsUrl={docsUrl}
+        >
           <TableHeader />
           <div>
-            <DetectorListTable
-              detectors={detectors ?? []}
-              isPending={isLoading}
-              isError={isError}
-              isSuccess={isSuccess}
-              sort={sort}
-              queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
-              allResultsVisible={allResultsVisible()}
-            />
+            <VisuallyCompleteWithData
+              hasData={(detectors?.length ?? 0) > 0}
+              id="MonitorsList-Table"
+              isLoading={isLoading}
+            >
+              {isSuccess && detectors?.length === 0 ? (
+                emptyState
+              ) : (
+                <DetectorListTable
+                  detectors={detectors ?? []}
+                  isPending={isLoading}
+                  isError={isError}
+                  isSuccess={isSuccess}
+                  sort={sort}
+                  queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
+                  allResultsVisible={allResultsVisible()}
+                  renderVisualization={renderVisualization}
+                />
+              )}
+            </VisuallyCompleteWithData>
             <Pagination
               pageLinks={pageLinks}
               onCursor={newCursor => {
@@ -137,7 +203,7 @@ export default function DetectorsList() {
 function TableHeader() {
   const location = useLocation();
   const navigate = useNavigate();
-  const {detectorFilter, assigneeFilter} = useMonitorViewContext();
+  const {detectorFilter, assigneeFilter, showTimeRangeSelector} = useMonitorViewContext();
   const query = typeof location.query.query === 'string' ? location.query.query : '';
 
   const onSearch = (searchQuery: string) => {
@@ -154,7 +220,10 @@ function TableHeader() {
 
   return (
     <Flex gap="xl">
-      <ProjectPageFilter />
+      <PageFilterBar condensed>
+        <ProjectPageFilter />
+        {showTimeRangeSelector && <DatePageFilter />}
+      </PageFilterBar>
       <div style={{flexGrow: 1}}>
         <DetectorSearch
           initialQuery={query}

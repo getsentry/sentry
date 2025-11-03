@@ -1,11 +1,14 @@
-import {Component} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {Alert} from 'sentry/components/core/alert';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -36,41 +39,34 @@ type Props = {
   subscription: Subscription;
 };
 
-class PendingChanges extends Component<Props> {
-  hasChange(pendingChangeKey: string, subscriptionKey: string | null = null) {
-    const {subscription} = this.props;
-    const {pendingChanges} = subscription;
+function PendingChanges({organization, subscription}: Props) {
+  const {pendingChanges} = subscription;
+  const [isExpanded, setIsExpanded] = useState(false);
 
-    if (!pendingChanges) {
-      return false;
-    }
+  if (!pendingChanges) {
+    return null;
+  }
 
+  const hasChange = (pendingChangeKey: string, subscriptionKey: string | null = null) => {
     subscriptionKey = subscriptionKey ?? pendingChangeKey;
-    const pendingChange = this.getNestedValue(pendingChanges, pendingChangeKey);
-    const currentValue = this.getNestedValue(subscription, subscriptionKey);
+    const pendingChange = getNestedValue(pendingChanges, pendingChangeKey);
+    const currentValue = getNestedValue(subscription, subscriptionKey);
 
     return pendingChange !== null && pendingChange !== currentValue;
-  }
+  };
 
-  getNestedValue<T = any>(object: Record<string, any>, keys: string): T | null {
+  const getNestedValue = <T,>(object: Record<string, any>, keys: string): T | null => {
     return keys.split('.').reduce((acc, key) => acc?.[key] ?? null, object) as T | null;
-  }
+  };
 
-  getOnDemandChanges() {
-    const {subscription, organization} = this.props;
-    const {pendingChanges} = subscription;
-
+  const getOnDemandChanges = () => {
     const results: React.ReactNode[] = [];
-
-    if (!pendingChanges) {
-      return results;
-    }
 
     if (
       hasOnDemandBudgetsFeature(organization, subscription) ||
       (pendingChanges.onDemandBudgets && subscription.partner?.isActive)
     ) {
-      const nextOnDemandBudgets = this.getNestedValue<PendingOnDemandBudgets>(
+      const nextOnDemandBudgets = getNestedValue<PendingOnDemandBudgets>(
         pendingChanges,
         'onDemandBudgets'
       );
@@ -101,11 +97,11 @@ class PendingChanges extends Component<Props> {
           );
         }
       }
-    } else if (this.hasChange('onDemandMaxSpend')) {
+    } else if (hasChange('onDemandMaxSpend')) {
       const nextOnDemandMaxSpend =
-        this.getNestedValue<number>(pendingChanges, 'onDemandMaxSpend') ?? 0;
+        getNestedValue<number>(pendingChanges, 'onDemandMaxSpend') ?? 0;
       const currentOnDemandMaxSpend =
-        this.getNestedValue<number>(subscription, 'onDemandMaxSpend') ?? 0;
+        getNestedValue<number>(subscription, 'onDemandMaxSpend') ?? 0;
       results.push(
         tct('[budgetType] spend change from [currentAmount] to [newAmount]', {
           budgetType: displayBudgetName(subscription.planDetails, {title: true}),
@@ -116,19 +112,16 @@ class PendingChanges extends Component<Props> {
     }
 
     return results;
-  }
+  };
 
-  getPlanChanges() {
-    const {subscription} = this.props;
-    const {pendingChanges} = subscription;
-
+  const getPlanChanges = () => {
     const results: React.ReactNode[] = [];
 
     if (!pendingChanges) {
       return results;
     }
 
-    if (this.hasChange('plan')) {
+    if (hasChange('plan')) {
       results.push(
         tct('Plan change to [name]', {
           name: pendingChanges.planDetails.name,
@@ -137,10 +130,10 @@ class PendingChanges extends Component<Props> {
     }
 
     if (hasPerformance(subscription.pendingChanges?.planDetails)) {
-      results.push(...this.getAMPlanChanges());
+      results.push(...getAMPlanChanges());
     }
 
-    if (this.hasChange('planDetails.contractInterval')) {
+    if (hasChange('planDetails.contractInterval')) {
       results.push(
         tct('Contract period change to [contractInterval]', {
           contractInterval: pendingChanges.planDetails.contractInterval,
@@ -148,7 +141,7 @@ class PendingChanges extends Component<Props> {
       );
     }
 
-    if (this.hasChange('planDetails.billingInterval')) {
+    if (hasChange('planDetails.billingInterval')) {
       results.push(
         tct('Billing period change to [billingInterval]', {
           billingInterval: pendingChanges.planDetails.billingInterval,
@@ -156,17 +149,14 @@ class PendingChanges extends Component<Props> {
       );
     }
 
-    if (this.hasReservedBudgetChange()) {
-      results.push(...this.getReservedBudgetChanges());
+    if (hasReservedBudgetChange()) {
+      results.push(...getReservedBudgetChanges());
     }
 
     return results;
-  }
+  };
 
-  getAMPlanChanges() {
-    const {subscription} = this.props;
-    const {pendingChanges} = subscription;
-
+  const getAMPlanChanges = () => {
     const results: React.ReactNode[] = [];
 
     if (!pendingChanges) {
@@ -179,7 +169,7 @@ class PendingChanges extends Component<Props> {
         const category = categoryInfo.plural as DataCategory;
         const pendingReserved = pendingChanges.reserved[category];
         if (
-          this.hasChange(`reserved.${category}`, `categories.${category}.reserved`) &&
+          hasChange(`reserved.${category}`, `categories.${category}.reserved`) &&
           pendingReserved !== RESERVED_BUDGET_QUOTA &&
           pendingReserved !== 0
         ) {
@@ -197,12 +187,9 @@ class PendingChanges extends Component<Props> {
       });
 
     return results;
-  }
+  };
 
-  hasReservedBudgetChange() {
-    const {subscription} = this.props;
-    const {pendingChanges} = subscription;
-
+  const hasReservedBudgetChange = () => {
     if (!pendingChanges) {
       return false;
     }
@@ -249,16 +236,10 @@ class PendingChanges extends Component<Props> {
     }
 
     return false;
-  }
+  };
 
-  getReservedBudgetChanges() {
-    const {subscription} = this.props;
-    const {pendingChanges} = subscription;
+  const getReservedBudgetChanges = () => {
     const results: React.ReactNode[] = [];
-
-    if (!pendingChanges) {
-      return results;
-    }
 
     const existingReservedBudgets = subscription.reservedBudgets ?? [];
     const pendingReservedBudgets = pendingChanges.reservedBudgets ?? [];
@@ -350,20 +331,13 @@ class PendingChanges extends Component<Props> {
     });
 
     return results;
-  }
+  };
 
-  getChanges() {
-    const {subscription} = this.props;
-    const {pendingChanges} = subscription;
-
+  const getChanges = () => {
     const results: Record<string, React.ReactNode[]> = {};
 
-    if (!pendingChanges) {
-      return results;
-    }
-
-    const onDemandChanges = this.getOnDemandChanges();
-    const planChanges = this.getPlanChanges();
+    const onDemandChanges = getOnDemandChanges();
+    const planChanges = getPlanChanges();
 
     // the on-demand effective date should always be before
     // or the same as the plan effective date
@@ -380,53 +354,112 @@ class PendingChanges extends Component<Props> {
     }
 
     return results;
+  };
+
+  const changes = getChanges();
+  const changeKeys = Object.keys(changes);
+
+  if (!changeKeys?.length) {
+    return null;
   }
 
-  render() {
-    const {subscription} = this.props;
-    const {pendingChanges} = subscription;
+  const firstChangeKey = changeKeys[0]!;
+  const firstChangeSet = changes[firstChangeKey];
 
-    if (!pendingChanges) {
-      return null;
-    }
+  // if there are only two changes total, show all the changes without an expand button
+  // otherwise, show the first two changes and the rest with an expand button
+  const totalChangeLength = Object.values(changes).flat().length;
+  const shouldShowAll = !firstChangeSet || totalChangeLength <= 2;
+  const initialChanges = shouldShowAll
+    ? changes
+    : {[firstChangeKey]: firstChangeSet.slice(0, 2)};
+  const remainingChangeLength =
+    totalChangeLength - Object.values(initialChanges).flat().length;
 
-    const changes = this.getChanges();
-
-    if (!Object.keys(changes)?.length) {
-      return null;
-    }
-
-    return (
-      <Alert type="info">
-        <PendingLists>
-          {Object.entries(changes).map(([effectiveDate, items]) => (
-            <div key={effectiveDate} data-test-id="pending-list">
+  return (
+    <StyledAlert
+      type="info"
+      trailingItems={
+        <LinkButton to="/settings/billing/activity-logs">
+          {t('View all activity')}
+        </LinkButton>
+      }
+      handleExpandChange={setIsExpanded}
+      expand={
+        shouldShowAll ? undefined : (
+          <Grid gap="lg" autoRows="auto">
+            {Object.entries(changes).map(([effectiveDate, items], index) => (
+              <div key={effectiveDate} data-test-id={`expanded-pending-list-${index}`}>
+                {effectiveDate !== firstChangeKey && (
+                  <Text>
+                    {tct('The following changes will take effect on [date]:', {
+                      date: <strong>{moment(effectiveDate).format('ll')}</strong>,
+                    })}
+                  </Text>
+                )}
+                <ItemList>
+                  {items
+                    .filter(
+                      item =>
+                        effectiveDate !== firstChangeKey ||
+                        !initialChanges[firstChangeKey]?.includes(item)
+                    )
+                    .map((item, itemIdx) => (
+                      <Item key={itemIdx} data-test-id="pending-item">
+                        <Text>{item}</Text>
+                      </Item>
+                    ))}
+                </ItemList>
+              </div>
+            ))}
+          </Grid>
+        )
+      }
+    >
+      <Grid gap="lg" autoRows="auto">
+        {Object.entries(initialChanges).map(([effectiveDate, items], index) => (
+          <div key={effectiveDate} data-test-id={`pending-list-${index}`}>
+            <Text>
               {tct('The following changes will take effect on [date]:', {
                 date: <strong>{moment(effectiveDate).format('ll')}</strong>,
               })}
-              <ItemList>
-                {items.map((item, itemIdx) => (
-                  <li key={itemIdx} data-test-id="pending-item">
+            </Text>
+            <ItemList>
+              {items.map((item, itemIdx) => (
+                <Item key={itemIdx} data-test-id="pending-item">
+                  <Text variant={shouldShowAll || isExpanded ? 'primary' : 'muted'}>
                     {item}
-                  </li>
-                ))}
-              </ItemList>
-            </div>
-          ))}
-        </PendingLists>
-      </Alert>
-    );
-  }
+                    {itemIdx === items.length - 1 &&
+                      remainingChangeLength > 0 &&
+                      !isExpanded &&
+                      tct(' and [remainingChangeLength] more [changeTerm]...', {
+                        remainingChangeLength,
+                        changeTerm: remainingChangeLength === 1 ? 'change' : 'changes',
+                      })}
+                  </Text>
+                </Item>
+              ))}
+            </ItemList>
+          </div>
+        ))}
+      </Grid>
+    </StyledAlert>
+  );
 }
-
-const PendingLists = styled('div')`
-  display: grid;
-  grid-auto-rows: auto;
-  gap: ${space(1.5)};
-`;
 
 const ItemList = styled('ul')`
   margin-bottom: 0;
+  padding: 0;
+`;
+
+const Item = styled('li')`
+  list-style-type: none;
+`;
+
+const StyledAlert = styled(Alert)`
+  > div:nth-child(2) {
+    padding: 0;
+  }
 `;
 
 export default PendingChanges;

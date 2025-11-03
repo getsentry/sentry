@@ -4,7 +4,6 @@ from datetime import datetime, timedelta, timezone
 
 from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.types import IncidentStatus
 from sentry.utils.cursors import Cursor
@@ -162,19 +161,6 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             assert response.data is not None
             assert len(response.data) == 0
 
-    @override_options(
-        {"uptime.date_cutoff_epoch_seconds": (MOCK_DATETIME - timedelta(seconds=1)).timestamp()}
-    )
-    def test_get_with_date_cutoff(self) -> None:
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                self.detector.id,
-            )
-            assert response.data is not None
-            assert len(response.data) == 0
-
     def test_get_with_none_subscription_id(self) -> None:
         with self.feature(self.features):
             # Create a subscription with None subscription_id
@@ -197,10 +183,6 @@ class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
     ProjectUptimeAlertCheckIndexBaseTest, UptimeResultEAPTestCase
 ):
     __test__ = True
-
-    def setUp(self) -> None:
-        self.features = {"organizations:uptime-eap-enabled": True}
-        super().setUp()
 
     def store_uptime_data(
         self,

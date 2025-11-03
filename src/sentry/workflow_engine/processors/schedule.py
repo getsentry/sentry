@@ -142,8 +142,7 @@ class ProjectChooser:
             last_run = cohort_updates.values.get(co)
             if last_run is None:
                 last_run = long_ago
-                # It's a bug if we don't know the last run outside of
-                # a few transitional periods.
+                # It's a bug if the cohort doesn't exist at this point.
                 metrics.incr(
                     "workflow_engine.schedule.cohort_not_found",
                     tags={"cohort": co},
@@ -173,6 +172,15 @@ class ProjectChooser:
                     elapsed.total_seconds(),
                     sample_rate=1.0,
                 )
+                metrics.incr(
+                    "workflow_engine.schedule.scheduled_cohort",
+                    tags={"cohort": cohort_id},
+                    sample_rate=1.0,
+                )
+        logger.info(
+            "schedule.selected_cohorts",
+            extra={"selected": sorted(must_process), "may_process": sorted(may_process)},
+        )
         return [
             project_id
             for project_id in all_project_ids
@@ -182,21 +190,14 @@ class ProjectChooser:
 
 @contextmanager
 def chosen_projects(
-    project_chooser: ProjectChooser | None,
+    project_chooser: ProjectChooser,
     fetch_time: float,
     all_project_ids: list[int],
 ) -> Generator[list[int]]:
     """
     Context manager that yields the project ids to be processed, and manages the
     cohort state after the processing is complete.
-
-    If project_chooser is None, all projects are yielded without cohort-based selection.
     """
-    if project_chooser is None:
-        # No cohort selection - process all projects
-        yield all_project_ids
-        return
-
     cohort_updates = project_chooser.client.fetch_updates()
     project_ids_to_process = project_chooser.project_ids_to_process(
         fetch_time, cohort_updates, all_project_ids
@@ -218,20 +219,14 @@ def process_buffered_workflows(buffer_client: DelayedWorkflowClient) -> None:
             max=fetch_time,
         )
 
-        # Check if cohort-based selection is enabled (defaults to True for safety)
-        use_cohort_selection = options.get("workflow_engine.use_cohort_selection", True)
-        project_chooser = (
-            ProjectChooser(
-                buffer_client,
-                num_cohorts=options.get("workflow_engine.num_cohorts", 1),
-                min_scheduling_age=timedelta(
-                    seconds=options.get(
-                        "workflow_engine.schedule.min_cohort_scheduling_age_seconds", 50
-                    )
-                ),
-            )
-            if use_cohort_selection
-            else None
+        project_chooser = ProjectChooser(
+            buffer_client,
+            num_cohorts=options.get("workflow_engine.num_cohorts", 1),
+            min_scheduling_age=timedelta(
+                seconds=options.get(
+                    "workflow_engine.schedule.min_cohort_scheduling_age_seconds", 50
+                )
+            ),
         )
 
         with chosen_projects(

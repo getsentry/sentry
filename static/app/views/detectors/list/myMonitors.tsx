@@ -11,7 +11,7 @@ export default function MyMonitorsList() {
     <MonitorViewContext.Provider
       value={{
         ...parentContext,
-        assigneeFilter: 'me',
+        assigneeFilter: '[me,my_teams]',
       }}
     >
       <DetectorsList />

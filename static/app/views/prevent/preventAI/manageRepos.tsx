@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import uniqBy from 'lodash/uniqBy';
 
 import preventPrCommentsDark from 'sentry-images/features/prevent-pr-comments-dark.svg';
 import preventPrCommentsLight from 'sentry-images/features/prevent-pr-comments-light.svg';
@@ -12,72 +13,59 @@ import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {PreventAIOrg} from 'sentry/types/prevent';
+import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
+import {useInfiniteRepositories} from 'sentry/views/prevent/preventAI/hooks/usePreventAIInfiniteRepositories';
 import ManageReposPanel from 'sentry/views/prevent/preventAI/manageReposPanel';
-import ManageReposToolbar, {
-  ALL_REPOS_VALUE,
-} from 'sentry/views/prevent/preventAI/manageReposToolbar';
+import ManageReposToolbar from 'sentry/views/prevent/preventAI/manageReposToolbar';
 
 import {FeatureOverview} from './onboarding';
 
-function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
+function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegration[]}) {
   const theme = useTheme();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
 
-  const [selectedOrgName, setSelectedOrgName] = useState(
-    () => installedOrgs[0]?.name ?? ''
+  const [selectedOrgId, setSelectedOrgId] = useState<string>(
+    () => integratedOrgs[0]?.id ?? ''
   );
-  const [selectedRepoName, setSelectedRepoName] = useState(() => ALL_REPOS_VALUE);
+  const [selectedRepo, setSelectedRepo] = useState<Repository | null>(() => null);
+
+  const queryResult = useInfiniteRepositories({
+    integrationId: selectedOrgId,
+    searchTerm: undefined,
+  });
+  const reposData = useMemo(
+    () => uniqBy(queryResult.data?.pages.flatMap(result => result[0]) ?? [], 'id'),
+    [queryResult.data?.pages]
+  );
 
   // If the selected org is not present in the list of orgs, use the first org
   const selectedOrg = useMemo(() => {
-    const found = installedOrgs.find(org => org.name === selectedOrgName);
-    return found ?? installedOrgs[0];
-  }, [installedOrgs, selectedOrgName]);
+    const found = integratedOrgs.find(org => org.id === selectedOrgId);
+    return found ?? integratedOrgs[0];
+  }, [integratedOrgs, selectedOrgId]);
 
-  // Ditto for repos
-  const selectedRepo = useMemo(() => {
-    if (selectedRepoName === ALL_REPOS_VALUE) {
-      return null;
-    }
-    const found = selectedOrg?.repos?.find(repo => repo.name === selectedRepoName);
-    return found ?? selectedOrg?.repos?.[0];
-  }, [selectedOrg, selectedRepoName]);
-
-  // When the org changes, if the selected repo is not present in the new org,
-  // reset to "All Repos"
-  const setSelectedOrgNameWithCascadeRepoName = useCallback(
-    (orgName: string) => {
-      setSelectedOrgName(orgName);
-      const newSelectedOrgData = installedOrgs.find(org => org.name === orgName);
-      if (
-        newSelectedOrgData &&
-        selectedRepoName !== ALL_REPOS_VALUE &&
-        !newSelectedOrgData.repos.some(repo => repo.name === selectedRepoName)
-      ) {
-        setSelectedRepoName(ALL_REPOS_VALUE);
-      }
-    },
-    [installedOrgs, selectedRepoName]
-  );
+  // When the org changes, reset to "All Repos"
+  const setSelectedOrgIdWithCascadeRepoId = useCallback((orgId: string) => {
+    setSelectedOrgId(orgId);
+    setSelectedRepo(null);
+  }, []);
 
   const isOrgSelected = !!selectedOrg;
-  const isRepoSelected = selectedRepoName === ALL_REPOS_VALUE || !!selectedRepo;
 
   return (
     <Flex direction="column" maxWidth="1000px" gap="xl">
       <Flex align="center" justify="between">
         <ManageReposToolbar
-          installedOrgs={installedOrgs}
-          selectedOrg={selectedOrgName}
-          selectedRepo={selectedRepoName}
-          onOrgChange={setSelectedOrgNameWithCascadeRepoName}
-          onRepoChange={setSelectedRepoName}
+          integratedOrgs={integratedOrgs}
+          selectedOrg={selectedOrgId}
+          selectedRepo={selectedRepo}
+          onOrgChange={setSelectedOrgIdWithCascadeRepoId}
+          onRepoChange={setSelectedRepo}
         />
         <Flex style={{transform: 'translateY(-70px)'}}>
           <Tooltip
             title="Select an organization and repository to configure settings"
-            disabled={isOrgSelected && isRepoSelected}
+            disabled={isOrgSelected}
             position="left"
           >
             <Button
@@ -85,8 +73,8 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
               icon={<IconSettings size="md" />}
               aria-label="Settings"
               onClick={() => setIsPanelOpen(true)}
-              disabled={!isOrgSelected || !isRepoSelected}
-              tabIndex={!isOrgSelected || !isRepoSelected ? -1 : 0}
+              disabled={!isOrgSelected}
+              tabIndex={isOrgSelected ? 0 : -1}
               data-test-id="manage-repos-settings-button"
             />
           </Tooltip>
@@ -140,15 +128,17 @@ function ManageReposPage({installedOrgs}: {installedOrgs: PreventAIOrg[]}) {
         />
       </Flex>
 
-      <ManageReposPanel
-        key={`${selectedOrgName || 'no-org'}-${selectedRepoName || 'no-repo'}`}
-        collapsed={!isPanelOpen}
-        onClose={() => setIsPanelOpen(false)}
-        orgName={selectedOrg?.name ?? ''}
-        repoName={selectedRepo?.name ?? ''}
-        allRepos={selectedOrg?.repos ?? []}
-        isEditingOrgDefaults={selectedRepoName === ALL_REPOS_VALUE}
-      />
+      {selectedOrg && (
+        <ManageReposPanel
+          key={`${selectedOrgId || 'no-org'}-${selectedRepo?.externalId || 'all-repos'}`}
+          collapsed={!isPanelOpen}
+          onClose={() => setIsPanelOpen(false)}
+          org={selectedOrg}
+          repo={selectedRepo}
+          allRepos={reposData}
+          isEditingOrgDefaults={selectedRepo === null}
+        />
+      )}
     </Flex>
   );
 }

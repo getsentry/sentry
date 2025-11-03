@@ -34,13 +34,17 @@ export function useQueryBuilderGrid({
   gridProps: DOMAttributes<HTMLDivElement>;
 } {
   // The default behavior uses vertical naviation, but we want horizontal navigation
-  const delegate = new ListKeyboardDelegate({
-    collection: state.collection,
-    disabledKeys: state.disabledKeys,
-    ref,
-    orientation: 'horizontal',
-    direction: 'ltr',
-  });
+  const delegate = useMemo(
+    () =>
+      new ListKeyboardDelegate({
+        collection: state.collection,
+        disabledKeys: state.disabledKeys,
+        ref,
+        orientation: 'horizontal',
+        direction: 'ltr',
+      }),
+    [state.collection, state.disabledKeys, ref]
+  );
 
   const {gridProps: originalGridProps} = useGridList(
     {

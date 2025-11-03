@@ -84,7 +84,7 @@ export function GroupTagsTab() {
   const alphabeticalTags = data.toSorted((a, b) => a.key.localeCompare(b.key));
   return (
     <Layout.Body>
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         <Alert.Container>
           <Alert type="info" showIcon={false}>
             {tct(

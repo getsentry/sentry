@@ -16,6 +16,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import type {BillingConfig, Plan, Promotion, Subscription} from 'getsentry/types';
 import {
+  displayBudgetName,
   formatReservedWithUnits,
   getReservedBudgetCategoryForAddOn,
   isBizPlanFamily,
@@ -83,7 +84,12 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
         <Subtitle>{t('Additional Coverage')}</Subtitle>
         <SpaceBetweenRow style={{alignItems: 'start'}}>
           <Column>
-            <Title>{t('Pay-as-you-go (PAYG) Budget')}</Title>
+            <Title>
+              {tct('[budgetTerm] ([abbreviation]) Budget', {
+                budgetTerm: displayBudgetName(activePlan, {title: true}),
+                abbreviation: displayBudgetName(activePlan, {abbreviated: true}),
+              })}
+            </Title>
             <Description>
               {t('Charges are applied at the end of your monthly usage cycle.')}
             </Description>
@@ -259,11 +265,12 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                       <QuestionTooltip
                         size="xs"
                         title={t(
-                          "%s use your pay-as-you-go budget. You'll only be charged for actual usage.",
+                          "%s use your %s. You'll only be charged for actual usage.",
                           getPlanCategoryName({
                             plan: activePlan,
                             category,
-                          })
+                          }),
+                          displayBudgetName(activePlan, {withBudget: true})
                         )}
                       />
                     ) : null}
@@ -330,7 +337,8 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
                     <QuestionTooltip
                       size="xs"
                       title={t(
-                        "This is your pay-as-you-go budget, which ensures continued monitoring after you've used up your reserved event volume. We'll only charge you for actual usage, so this is your maximum charge for overage."
+                        "This is your %s, which ensures continued monitoring after you've used up your reserved event volume. We'll only charge you for actual usage, so this is your maximum charge for overage.",
+                        displayBudgetName(activePlan, {withBudget: true})
                       )}
                     />
                   </AdditionalMonthlyCharge>

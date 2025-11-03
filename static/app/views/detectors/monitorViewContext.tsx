@@ -1,19 +1,24 @@
 import {createContext, useContext} from 'react';
 
-import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
+import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
 
-interface MonitorViewContextValue {
+export interface MonitorViewContextValue {
   automationsLinkPrefix: string;
   monitorsLinkPrefix: string;
   assigneeFilter?: string;
   detectorFilter?: DetectorType;
+  emptyState?: React.ReactNode;
+  renderVisualization?: (detector: Detector) => React.ReactNode;
+  showTimeRangeSelector?: boolean;
 }
 
 const DEFAULT_MONITOR_VIEW_CONTEXT: MonitorViewContextValue = {
-  monitorsLinkPrefix: 'issues/monitors',
-  automationsLinkPrefix: 'issues/automations',
+  monitorsLinkPrefix: 'monitors',
+  automationsLinkPrefix: 'monitors/alerts',
   assigneeFilter: undefined,
   detectorFilter: undefined,
+  showTimeRangeSelector: false,
+  emptyState: null,
 };
 
 export const MonitorViewContext = createContext<MonitorViewContextValue>(

@@ -219,6 +219,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     platformKey: project.platform || 'other',
     project,
     isLogsSelected: true,
+    isMetricsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: false,
     isProfilingSelected: false,
@@ -383,7 +384,7 @@ export function LogsTabOnboarding({
 }: LogsTabOnboardingProps) {
   return (
     <TopSectionBody noRowGap>
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         <FilterBarContainer>
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
