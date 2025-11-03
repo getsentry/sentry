@@ -19,7 +19,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.models.rule import Rule
-from sentry.snuba.models import SnubaQueryEventType
+from sentry.snuba.models import ExtrapolationMode, SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.types.actor import Actor
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
@@ -83,6 +83,14 @@ class BaseAlertRuleSerializerTest:
             assert result["comparisonDelta"] == alert_rule.comparison_delta / 60
         else:
             assert result["comparisonDelta"] is None
+
+        if alert_rule.snuba_query.extrapolation_mode is not None:
+            assert (
+                result["extrapolationMode"]
+                == ExtrapolationMode(alert_rule.snuba_query.extrapolation_mode).name.lower()
+            )
+        else:
+            assert result.get("extrapolationMode") is None
 
     def create_issue_alert_rule(self, data: dict[str, Any]) -> Rule:
         """data format
@@ -205,6 +213,11 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result, resolve_threshold=10)
+
+    def test_extrapolation_mode(self) -> None:
+        alert_rule = self.create_alert_rule()
+        result = serialize(alert_rule)
+        self.assert_alert_rule_serialized(alert_rule, result)
 
 
 class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):

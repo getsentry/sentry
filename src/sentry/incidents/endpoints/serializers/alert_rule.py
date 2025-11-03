@@ -28,7 +28,7 @@ from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_compone
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import SnubaQueryEventType
+from sentry.snuba.models import ExtrapolationMode, SnubaQueryEventType
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
 from sentry.users.models.user import User
@@ -57,6 +57,7 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     errors: list[str] | None
     sensitivity: str | None
     seasonality: str | None
+    extrapolationMode: str | None
 
 
 @extend_schema_serializer(
@@ -276,6 +277,8 @@ class AlertRuleSerializer(Serializer):
         if aggregate == "upsampled_count()":
             aggregate = "count()"
 
+        extrapolation_mode = obj.snuba_query.extrapolation_mode
+
         data: AlertRuleSerializerResponse = {
             "id": str(obj.id),
             "name": obj.name,
@@ -316,6 +319,9 @@ class AlertRuleSerializer(Serializer):
             data["latestIncident"] = attrs.get("latestIncident", None)
         if "errors" in attrs:
             data["errors"] = attrs["errors"]
+
+        if extrapolation_mode is not None:
+            data["extrapolationMode"] = ExtrapolationMode(extrapolation_mode).name.lower()
 
         return data
 
