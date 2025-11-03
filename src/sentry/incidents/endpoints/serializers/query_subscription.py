@@ -5,7 +5,7 @@ from typing import Any
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.models import ExtrapolationMode, QuerySubscription, SnubaQuery
 
 
 @register(SnubaQuery)
@@ -27,6 +27,11 @@ class SnubaQuerySerializer(Serializer):
             "timeWindow": obj.time_window,
             "environment": obj.environment.name if obj.environment else None,
             "eventTypes": [event_type.name.lower() for event_type in obj.event_types],
+            "extrapolationMode": (
+                ExtrapolationMode(obj.extrapolation_mode).name.lower()
+                if obj.extrapolation_mode is not None
+                else None
+            ),
         }
 
 
