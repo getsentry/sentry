@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, SupportsInt, cast
+from typing import Any, Protocol, SupportsInt, cast
 
 import sentry_sdk
 from django.urls import reverse
@@ -149,7 +149,9 @@ def _webhook_event_data(
     return event_context
 
 
-class WebhookGroupResponse(BaseGroupSerializerResponse):
+# inherits from BaseGroupSerializerResponse
+# we use protocol instead of TypedDict inheritance to avoid mypy crash in SCC
+class WebhookGroupResponse(Protocol):
     web_url: str
     project_url: str
     url: str
@@ -158,14 +160,13 @@ class WebhookGroupResponse(BaseGroupSerializerResponse):
 def _webhook_issue_data(
     group: Group, serialized_group: BaseGroupSerializerResponse
 ) -> WebhookGroupResponse:
-
-    webhook_payload = WebhookGroupResponse(
-        url=group.get_absolute_api_url(),
-        web_url=group.get_absolute_url(),
-        project_url=group.project.get_absolute_url(),
+    webhook_payload = {
+        "url": group.get_absolute_api_url(),
+        "web_url": group.get_absolute_url(),
+        "project_url": group.project.get_absolute_url(),
         **serialized_group,
-    )
-    return webhook_payload
+    }
+    return cast(WebhookGroupResponse, webhook_payload)
 
 
 @instrumented_task(
