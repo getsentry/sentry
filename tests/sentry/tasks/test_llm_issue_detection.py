@@ -8,6 +8,7 @@ from sentry.tasks.llm_issue_detection import (
     run_llm_issue_detection,
 )
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 
 
 class LLMIssueDetectionTest(TestCase):
@@ -149,3 +150,81 @@ class LLMIssueDetectionTest(TestCase):
 
         evidence_names = {e.name for e in occurrence.evidence_display}
         assert evidence_names == {"Explanation", "Impact", "Evidence"}
+
+    @patch("sentry.tasks.llm_issue_detection.produce_occurrence_to_kafka")
+    @patch("sentry.tasks.llm_issue_detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.get_trace_for_transaction")
+    @patch("sentry.tasks.llm_issue_detection.get_transactions_for_project")
+    @patch("sentry.tasks.llm_issue_detection.random.sample")
+    def test_detect_llm_issues_full_flow(
+        self,
+        mock_sample,
+        mock_get_transactions,
+        mock_get_trace,
+        mock_seer_request,
+        mock_produce_occurrence,
+    ):
+        """Test the full detect_llm_issues_for_project flow with Seer API interaction."""
+        mock_transaction = Mock()
+        mock_transaction.name = "api/users/list"
+        mock_transaction.project_id = self.project.id
+        mock_get_transactions.return_value = [mock_transaction]
+        mock_sample.side_effect = lambda x, n: x
+
+        mock_trace = Mock()
+        mock_trace.trace_id = "trace-abc-123"
+        mock_trace.dict.return_value = {
+            "trace_id": "trace-abc-123",
+            "spans": [{"op": "db.query", "duration": 1.5}],
+        }
+        mock_get_trace.return_value = mock_trace
+
+        seer_response_data = {
+            "issues": [
+                {
+                    "title": "N+1 Query Detected",
+                    "explanation": "Multiple sequential database queries detected in loop",
+                    "impact": "High - causes performance degradation",
+                    "evidence": "15 queries executed sequentially",
+                    "missing_telemetry": "Database query attribution",
+                },
+                {
+                    "title": "Memory Leak Risk",
+                    "explanation": "Large object allocations without cleanup",
+                    "impact": "Medium - may cause OOM",
+                    "evidence": "Objects not released after use",
+                    "missing_telemetry": None,
+                },
+            ]
+        }
+
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.json.return_value = seer_response_data
+        mock_seer_request.return_value = mock_response
+
+        detect_llm_issues_for_project(self.project.id)
+
+        assert mock_seer_request.called
+        seer_call_kwargs = mock_seer_request.call_args.kwargs
+        assert seer_call_kwargs["path"] == "/v1/automation/issue-detection/analyze"
+
+        request_body = json.loads(seer_call_kwargs["body"].decode("utf-8"))
+        assert request_body["project_id"] == self.project.id
+        assert request_body["organization_id"] == self.project.organization_id
+        assert len(request_body["telemetry"]) == 1
+        assert request_body["telemetry"][0]["kind"] == "trace"
+        assert request_body["telemetry"][0]["trace_id"] == "trace-abc-123"
+
+        assert mock_produce_occurrence.call_count == 2
+
+        first_occurrence = mock_produce_occurrence.call_args_list[0].kwargs["occurrence"]
+        assert first_occurrence.type == LLMDetectedExperimentalGroupType
+        assert first_occurrence.issue_title == "N+1 Query Detected"
+        assert first_occurrence.culprit == "api/users/list"
+        assert first_occurrence.project_id == self.project.id
+        assert len(first_occurrence.evidence_display) == 4
+
+        second_occurrence = mock_produce_occurrence.call_args_list[1].kwargs["occurrence"]
+        assert second_occurrence.issue_title == "Memory Leak Risk"
+        assert len(second_occurrence.evidence_display) == 3
