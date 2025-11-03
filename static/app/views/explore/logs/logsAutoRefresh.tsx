@@ -42,6 +42,7 @@ type PreFlightDisableReason =
 
 interface AutorefreshToggleProps {
   averageLogsPerSecond?: number | null;
+  hideText?: boolean;
 }
 
 /**
@@ -54,7 +55,10 @@ interface AutorefreshToggleProps {
  * Preflight conditions don't disable autorefresh when values change (eg. sort changes), it's assumed all preflight conditions
  * should be handled via logs page params resetting autorefresh state meaning future values will be checked again before the toggle can be re-enabled.
  */
-export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleProps) {
+export function AutorefreshToggle({
+  averageLogsPerSecond = 0,
+  hideText = false,
+}: AutorefreshToggleProps) {
   const organization = useOrganization();
   const analyticsPageSource = useLogsAnalyticsPageSource();
   const {autoRefresh} = useLogsAutoRefresh();
@@ -135,7 +139,7 @@ export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleP
             }}
           />
         </Tooltip>
-        {t('Auto-refresh')}
+        {!hideText && t('Auto-refresh')}
       </AutoRefreshLabel>
     </Fragment>
   );

@@ -297,10 +297,6 @@ export const LogsGraphContainer = styled(LogsItemContainer)`
   gap: ${p => p.theme.space.md};
 `;
 
-export const StyledPageFilterBar = styled(PageFilterBar)`
-  width: auto;
-`;
-
 export const AutoRefreshLabel = styled('label')`
   display: flex;
   align-items: center;
@@ -537,4 +533,17 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   justify-content: center;
   height: ${p => p.height}px;
   ${p => (p.position === 'top' ? 'top: 0px;' : 'bottom: 0px;')}
+`;
+
+export const StyledPageFilterBar = styled(PageFilterBar)`
+  width: auto;
+`;
+
+export const LogsFilterSection = styled('div')`
+  display: grid;
+  gap: ${p => p.theme.space.md};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: minmax(300px, auto) 1fr min-content;
+  }
 `;
