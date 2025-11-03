@@ -1612,7 +1612,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if lock.locked():
         return
 
-    seer_enabled = get_seer_org_acknowledgement(group.organization.id)
+    seer_enabled = get_seer_org_acknowledgement(group.organization)
     if not seer_enabled:
         return
 

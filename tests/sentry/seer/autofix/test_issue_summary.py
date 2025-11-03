@@ -66,7 +66,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert status_code == 200
         assert summary_data == convert_dict_key_case(existing_summary, snake_to_camel_case)
         mock_call_seer.assert_not_called()
-        mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
+        mock_get_acknowledgement.assert_called_once_with(self.group.organization)
 
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
     @patch("sentry.seer.autofix.issue_summary._get_event")
@@ -81,7 +81,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert status_code == 400
         assert summary_data == {"detail": "Could not find an event for the issue"}
         assert cache.get(f"ai-group-summary-v2:{self.group.id}") is None
-        mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
+        mock_get_acknowledgement.assert_called_once_with(self.group.organization)
 
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
     @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
@@ -123,7 +123,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_event.assert_called_once_with(self.group, self.user, provided_event_id=None)
         mock_get_trace_tree.assert_called_once()
         mock_call_seer.assert_called_once_with(self.group, serialized_event, {"trace": "tree"})
-        mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
+        mock_get_acknowledgement.assert_called_once_with(self.group.organization)
 
         # Check if the cache was set correctly
         cached_summary = cache.get(f"ai-group-summary-v2:{self.group.id}")
@@ -141,7 +141,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             assert summary_data == {
                 "detail": "AI Autofix has not been acknowledged by the organization."
             }
-            mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
+            mock_get_acknowledgement.assert_called_once_with(self.group.organization)
 
     @patch("sentry.seer.autofix.issue_summary.requests.post")
     @patch("sentry.seer.autofix.issue_summary._get_event")
@@ -185,7 +185,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_post.assert_called_once()
         payload = orjson.loads(mock_post.call_args_list[0].kwargs["data"])
         assert payload["trace_tree"] is None
-        mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
+        mock_get_acknowledgement.assert_called_once_with(self.group.organization)
 
         assert cache.get(f"ai-group-summary-v2:{self.group.id}") == expected_response_summary
 
@@ -242,7 +242,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             # Verify that _get_event and _call_seer were not called due to cache hit
             mock_get_event.assert_not_called()
             mock_call_seer.assert_not_called()
-            mock_get_acknowledgement.assert_called_with(self.group.organization.id)
+            mock_get_acknowledgement.assert_called_with(self.group.organization)
 
     @patch("sentry.seer.autofix.issue_summary._generate_summary")
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
@@ -338,7 +338,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         # Ensure generation was called directly
         mock_generate_summary.assert_called_once()
-        mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
+        mock_get_acknowledgement.assert_called_once_with(self.group.organization)
 
     @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})
     @patch("sentry.seer.autofix.issue_summary.requests.post")
@@ -406,7 +406,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_generate_summary_core.assert_not_called()
         # Ensure cache was checked three times (once initially, once after lock failure, and once for hideAiFeatures check)
         assert mock_cache_get.call_count == 3
-        mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
+        mock_get_acknowledgement.assert_called_once_with(self.group.organization)
 
     @patch("sentry.seer.autofix.issue_summary.eventstore.backend.get_event_by_id")
     @patch("sentry.seer.autofix.issue_summary.serialize")
