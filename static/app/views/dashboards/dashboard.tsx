@@ -179,7 +179,7 @@ function Dashboard({
       GroupStore.reset();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selection]);
 
   // Handle newWidget parsed from Add to Dashboard flows
   useEffect(() => {
