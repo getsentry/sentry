@@ -22,6 +22,11 @@ def get_confluent_producer(
     """
     rollout_config = options.get("arroyo.producer.confluent-producer-rollout", {})
     name = configuration.get("client.id")
+
+    # f"sentry.sentry_metrics.slicing_router.{current_sliceable}.{current_slice_id}"
+    if name.startswith("sentry.sentry_metrics.slicing_router"):
+        name = "sentry.sentry_metrics.slicing_router"
+
     if rollout_config.get(name, False):
         return ConfluentProducer(configuration)
     return None
