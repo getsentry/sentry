@@ -22,10 +22,12 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
   let sharedPromise: Promise<{default: C}> | null = null;
   let loadedComponent: C | null = null;
 
-  const getSharedPromise = async () => {
+  const getSharedPromise = () => {
     if (!sharedPromise) {
-      sharedPromise = retryableImport(resolve);
-      loadedComponent = (await sharedPromise).default;
+      sharedPromise = retryableImport(resolve).then(result => {
+        loadedComponent = result.default;
+        return result;
+      });
     }
     return sharedPromise;
   };

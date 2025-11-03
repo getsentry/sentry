@@ -1,6 +1,6 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {setRouteConfigProvider} from 'sentry/components/core/link/link';
+import {Link, setRouteConfigProvider} from 'sentry/components/core/link/link';
 import {PRELOAD_HANDLE} from 'sentry/constants/routes';
 
 import {makeLazyloadComponent} from './makeLazyloadComponent';
@@ -84,13 +84,19 @@ describe('makeLazyloadComponent', () => {
     });
 
     it('handles loading errors gracefully', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const errorResolver = () => Promise.reject(new Error('Load failed'));
       const LazyComponent = makeLazyloadComponent(errorResolver);
 
       // Should not throw when rendering
-      expect(() => {
-        render(<LazyComponent title="Test Title" />);
-      }).not.toThrow();
+      render(<LazyComponent title="Test Title" />);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('There was an error loading a component.')
+        ).toBeInTheDocument();
+      });
+      expect(consoleSpy).toHaveBeenCalledWith(new Error('Load failed'));
     });
   });
 
@@ -214,8 +220,6 @@ describe('makeLazyloadComponent', () => {
 
   describe('route integration', () => {
     it('works with Link component route preloading', async () => {
-      const {Link} = await import('sentry/components/core/link/link');
-
       // Create a lazy component
       const LazyComponent = makeLazyloadComponent(
         createMockComponentPromise(MockComponent, 50)
@@ -262,8 +266,6 @@ describe('makeLazyloadComponent', () => {
     });
 
     it('handles multiple routes with different preload handles', async () => {
-      const {Link} = await import('sentry/components/core/link/link');
-
       // Create multiple lazy components
       const LazyComponent1 = makeLazyloadComponent(() =>
         Promise.resolve({
@@ -326,8 +328,6 @@ describe('makeLazyloadComponent', () => {
     });
 
     it('gracefully handles routes without preload handles', async () => {
-      const {Link} = await import('sentry/components/core/link/link');
-
       const LazyComponent = makeLazyloadComponent(createMockComponentPromise());
 
       // Mock routes without preload handles
@@ -362,8 +362,6 @@ describe('makeLazyloadComponent', () => {
     });
 
     it('handles route config provider errors gracefully', async () => {
-      const {Link} = await import('sentry/components/core/link/link');
-
       const LazyComponent = makeLazyloadComponent(createMockComponentPromise());
 
       // Set up a failing route config provider
