@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/core/button';
+import {Button, ButtonBar} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconChevron, IconCopy} from 'sentry/icons';
+import {IconCopy, IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
@@ -38,7 +38,6 @@ export default function ReplayDetailsPageBreadcrumbs({
   const eventView = EventView.fromLocation(location);
   const project = useProjectFromId({project_id: replayRecord?.project_id ?? undefined});
   const {currentTime} = useReplayContext();
-
   // Create URL with current timestamp for copying
   const replayUrlWithTimestamp = replayRecord
     ? (() => {
@@ -104,28 +103,28 @@ export default function ReplayDetailsPageBreadcrumbs({
           />
         </Tooltip>
         <Flex>
-          <LinkButton
-            size="xs"
-            icon={<IconChevron direction="left" />}
-            disabled={!previousReplay}
-            to={{
-              pathname: previousReplay
-                ? `/explore/replays/${previousReplay.id}/`
-                : undefined,
-              query: {...location.query},
-            }}
-            borderless
-          />
-          <LinkButton
-            size="xs"
-            icon={<IconChevron direction="right" />}
-            borderless
-            disabled={!nextReplay}
-            to={{
-              pathname: nextReplay ? `/explore/replays/${nextReplay.id}/` : undefined,
-              query: {...location.query},
-            }}
-          />
+          <ButtonBar merged gap="0">
+            <LinkButton
+              size="xs"
+              icon={<IconPrevious />}
+              disabled={!previousReplay}
+              to={{
+                pathname: previousReplay
+                  ? `/explore/replays/${previousReplay.id}/`
+                  : undefined,
+                query: {...location.query},
+              }}
+            />
+            <LinkButton
+              size="xs"
+              icon={<IconNext />}
+              disabled={!nextReplay}
+              to={{
+                pathname: nextReplay ? `/explore/replays/${nextReplay.id}/` : undefined,
+                query: {...location.query},
+              }}
+            />
+          </ButtonBar>
         </Flex>
       </Flex>
     ) : (
