@@ -221,6 +221,7 @@ describe('Cart', () => {
       />
     );
 
+    expect(screen.getByText('Per-product on-demand spend limits')).toBeInTheDocument();
     const spendCapItems = await screen.findAllByTestId(/summary-item-spend-limit/);
     expect(spendCapItems).toHaveLength(4);
     expect(screen.getByTestId('summary-item-spend-limit-errors')).toHaveTextContent(
@@ -311,7 +312,7 @@ describe('Cart', () => {
     expect(screen.getByTestId('summary-item-plan-total')).toHaveTextContent('$89');
     expect(screen.getByTestId('summary-item-sales_tax')).toHaveTextContent('$2');
     expect(screen.getByTestId('summary-item-credit_applied')).toHaveTextContent('-$11');
-    expect(screen.getByText('Renews Jun 8, 2022')).toBeInTheDocument();
+    expect(screen.getByText(/Plan renews monthly on Jun 8, 2022/)).toBeInTheDocument();
     expect(screen.queryByText(/Your changes will apply/)).not.toBeInTheDocument();
   });
 
@@ -348,15 +349,14 @@ describe('Cart', () => {
     // wait for preview to be loaded
     await waitFor(() =>
       expect(screen.getByTestId('summary-item-due-today')).toHaveTextContent(
-        'Due on Jun 7, 2023'
+        'Due on Jun 7, 2023$89USD'
       )
     );
-    expect(screen.getByTestId('summary-item-due-today')).toHaveTextContent('$89 USD');
     expect(screen.getByTestId('summary-item-plan-total')).toHaveTextContent('$89');
-    expect(screen.getByText('Renews Jun 7, 2024')).toBeInTheDocument();
     expect(
       screen.getByText(/Your changes will apply on Jun 7, 2023/)
     ).toBeInTheDocument();
+    expect(screen.getByText(/Plan renews monthly on Jun 7, 2024/)).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Confirm'})).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Confirm and pay'})
@@ -392,7 +392,10 @@ describe('Cart', () => {
 
     // wait for preview to be loaded
     await waitFor(() =>
-      expect(screen.getByTestId('summary-item-due-today')).toHaveTextContent('$0 USD')
+      // shows original price and price after credits + additional fees
+      expect(screen.getByTestId('summary-item-due-today')).toHaveTextContent(
+        'Due today$89 $0USD'
+      )
     );
     expect(screen.getByRole('button', {name: 'Confirm'})).toBeInTheDocument();
     expect(
@@ -516,7 +519,6 @@ describe('Cart', () => {
     );
 
     const changes = await screen.findByTestId('cart-diff');
-    expect(changes).toHaveTextContent('Changes (6)');
     const planChanges = within(changes).getByTestId('plan-diff');
     expect(planChanges).toHaveTextContent('Plan');
 

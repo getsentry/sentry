@@ -1,6 +1,9 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+// TODO(isabella): Instead of requiring the code using this component to
+// render the radio/checkbox, we should just render the radio/checkbox directly
+// depending on ariaRole
 function CheckoutOption({
   children,
   isSelected,
