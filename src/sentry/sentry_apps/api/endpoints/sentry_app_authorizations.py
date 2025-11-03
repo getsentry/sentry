@@ -49,10 +49,17 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
 
     def post(self, request: Request, installation: SentryAppInstallation) -> Response:
         scope = sentry_sdk.get_isolation_scope()
-
         scope.set_tag("organization", installation.organization_id)
         scope.set_tag("sentry_app_id", installation.sentry_app.id)
         scope.set_tag("sentry_app_slug", installation.sentry_app.slug)
+
+        context = organization_service.get_organization_by_id(
+            id=installation.organization_id, include_projects=False, include_teams=False
+        )
+        if context is None:
+            return Response(
+                status=500, data={"detail": "Organization not found, please try again later"}
+            )
 
         try:
             if request.data.get("grant_type") == GrantTypes.AUTHORIZATION:
@@ -82,10 +89,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     user=promote_request_api_user(request),
                 ).run()
             elif request.data.get("grant_type") == GrantTypes.CLIENT_SECRET_JWT:
-                context = organization_service.get_organization_by_id(
-                    id=installation.organization_id, include_projects=False, include_teams=False
-                )
-                if context is None or not features.has(
+                if not features.has(
                     "organizations:sentry-app-manual-token-refresh",
                     context.organization,
                     actor=request.user,
@@ -111,16 +115,6 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     user=user,
                 ).run()
 
-                capture_security_app_activity(
-                    organization=context.organization,
-                    sentry_app=installation.sentry_app,
-                    activity_type="sentry-app-token-manual-refresh",
-                    ip_address=request.META["REMOTE_ADDR"],
-                    context={
-                        "installation_id": installation.id,
-                    },
-                )
-
             else:
                 raise SentryAppIntegratorError(message="Invalid grant_type", status_code=403)
 
@@ -137,8 +131,25 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
             )
             raise
 
+        capture_security_app_activity(
+            organization=context.organization,
+            sentry_app=installation.sentry_app,
+            activity_type=self._get_activity_type(request),
+            ip_address=request.META["REMOTE_ADDR"],
+            context={
+                "installation_id": installation.id,
+            },
+        )
         attrs = {"state": request.data.get("state"), "application": None}
 
         body = ApiTokenSerializer().serialize(token, attrs, promote_request_api_user(request))
 
         return Response(body, status=201)
+
+    def _get_activity_type(self, request: Request) -> str:
+        if request.data.get("grant_type") == GrantTypes.AUTHORIZATION:
+            return "sentry-app-token-authorizations"
+        elif request.data.get("grant_type") == GrantTypes.REFRESH:
+            return "sentry-app-token-refreshed"
+        elif request.data.get("grant_type") == GrantTypes.CLIENT_SECRET_JWT:
+            return "sentry-app-token-manual-refresh"
