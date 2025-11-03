@@ -8,6 +8,7 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
@@ -220,9 +221,11 @@ function TagDetailsValue({
 }) {
   const theme = useTheme();
   const userValues = getUserTagValue(tagValue);
-  const value = tagValue.value === '' ? t('(empty)') : tagValue.value;
-  const valueComponent =
-    tagKey === 'user' ? (
+  const value =
+    tagValue.value === '' ? <Text variant="muted">{t('(empty)')}</Text> : tagValue.value;
+  let valueComponent: React.ReactNode = value;
+  if (tagKey === 'user') {
+    valueComponent = (
       <UserValue>
         {getContextIcon({
           alias: 'user',
@@ -236,9 +239,10 @@ function TagDetailsValue({
         <div>{userValues.title}</div>
         {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
       </UserValue>
-    ) : (
-      <DeviceName value={value} />
     );
+  } else if (tagKey === 'device') {
+    valueComponent = <DeviceName value={tagValue.value} />;
+  }
 
   return (
     <Flex gap="xs" align="center">
