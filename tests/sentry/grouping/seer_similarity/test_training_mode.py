@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from sentry.grouping.ingest.seer import maybe_send_seer_for_new_model_training
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.seer.similarity.config import SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
@@ -46,9 +47,9 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
             self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
         ):
             # Set the metadata to indicate already sent to v2
-            metadata = self.grouphash.metadata or {}
-            metadata.update(seer_model="v2")
-            self.grouphash.metadata = metadata
+            metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
+            metadata.seer_model = "v2"
+            metadata.save()
 
             maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
             mock_get_seer_similar_issues.assert_not_called()
@@ -64,9 +65,9 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
             self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
         ):
             # Clear the seer_model to simulate never sent to Seer
-            metadata = self.grouphash.metadata or {}
-            metadata.update(seer_model=None)
-            self.grouphash.metadata = metadata
+            metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
+            metadata.seer_model = None
+            metadata.save()
 
             maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
 
@@ -90,9 +91,9 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
                 mock_get_seer_similar_issues.reset_mock()
 
                 # Set metadata to old version
-                metadata = self.grouphash.metadata or {}
-                metadata.update(seer_model=old_version)
-                self.grouphash.metadata = metadata
+                metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
+                metadata.seer_model = old_version
+                metadata.save()
 
                 maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
 
@@ -111,9 +112,9 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
             self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
         ):
             # Clear seer_model to make should_send_new_model_embeddings return True
-            metadata = self.grouphash.metadata or {}
-            metadata.update(seer_model=None)
-            self.grouphash.metadata = metadata
+            metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
+            metadata.seer_model = None
+            metadata.save()
 
             maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
 
