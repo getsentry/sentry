@@ -24,8 +24,9 @@ def get_confluent_producer(
     name = configuration.get("client.id")
 
     # f"sentry.sentry_metrics.slicing_router.{current_sliceable}.{current_slice_id}"
-    if name.startswith("sentry.sentry_metrics.slicing_router"):
-        name = "sentry.sentry_metrics.slicing_router"
+    if name is not None and isinstance(name, str):
+        if name.startswith("sentry.sentry_metrics.slicing_router"):
+            name = "sentry.sentry_metrics.slicing_router"
 
     if rollout_config.get(name, False):
         return ConfluentProducer(configuration)
