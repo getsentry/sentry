@@ -492,7 +492,7 @@ def enable_uptime_detector(
     are no available seats the monitor will be disabled and a
     `UptimeMonitorNoSeatAvailable` will be raised.
 
-    By default if the monitor is already marked as ACTIVE this function is a
+    By default if the detector is already marked as enabled this function is a
     no-op. Pass `ensure_assignment=True` to force seat assignment.
     """
     if not ensure_assignment and detector.enabled:
