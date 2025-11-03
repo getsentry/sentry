@@ -73,7 +73,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         preferred_source = request.headers.get("X-Preferred-Data-Source")
         preferred_source = cast(PREFERRED_SOURCE, preferred_source)
 
-        headers = {}
+        headers = {"scary": "boo"}
 
         def data_fn(offset: int, limit: int):
             try:
