@@ -25,6 +25,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
+from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardWidgetDatasetSourcesTypes
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
@@ -1771,7 +1772,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             dashboard=new_dashboard,
             title="Spans widget",
             widget_type=DashboardWidgetTypes.SPANS,
-            dataset_source=DatasetSourcesTypes.UNKNOWN.value,
+            dataset_source=DashboardWidgetDatasetSourcesTypes.SPAN_MIGRATION_VERSION_1.value,
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             changed_reason=[
                 {
@@ -1793,6 +1794,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "widgetType": "spans",
                     "datasetSource": "user",
                     "displayType": "line",
+                    "changedReason": spans_widget.changed_reason,
                     "queries": [
                         {
                             "name": "Errors",
@@ -1811,6 +1813,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["widgets"][0]["changedReason"] is None
         spans_widget.refresh_from_db()
         assert spans_widget.changed_reason is None
+        assert spans_widget.dataset_source == DashboardWidgetDatasetSourcesTypes.USER.value
 
     def test_remove_widgets(self) -> None:
         data = {
