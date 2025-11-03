@@ -266,6 +266,6 @@ def detect_llm_issues_for_project(project_id: int) -> None:
 
                 except Exception as e:
                     sentry_sdk.capture_exception(e)
-        except LLMIssueDetectionError:
+        except LLMIssueDetectionError as e:
             sentry_sdk.capture_exception(e)
             continue  # if one transaction encounters an error, don't block processing of the others
