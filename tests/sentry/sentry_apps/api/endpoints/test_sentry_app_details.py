@@ -850,7 +850,6 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
 
         self.get_error_response(self.internal_integration.slug, status_code=403)
 
-    @override_options({"workflow_engine.sentry-app-actions-outbox": True})
     def test_disables_actions(self) -> None:
         action = self.create_action(
             type=Action.Type.SENTRY_APP,
