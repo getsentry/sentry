@@ -23,10 +23,10 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.card_builder.block import AdaptiveCard
+from sentry.integrations.msteams.metrics import record_lifecycle_termination_level
 from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.notifications.platform.provider import IntegrationNotificationClient
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -86,11 +86,6 @@ metadata = IntegrationMetadata(
 )
 
 
-def record_msteams_lifecycle_termination_level(lifecycle: EventLifecycle, error: ApiError) -> None:
-    """Stub function for MS Teams lifecycle termination"""
-    lifecycle.record_halt(halt_reason=str(error))
-
-
 class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient):
     def get_client(self) -> MsTeamsClient:
         return MsTeamsClient(self.model)
@@ -114,7 +109,7 @@ class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient)
                         "conversation_id": target.resource_id,
                     }
                 )
-                record_msteams_lifecycle_termination_level(lifecycle, e)
+                record_lifecycle_termination_level(lifecycle, e)
                 raise
 
 

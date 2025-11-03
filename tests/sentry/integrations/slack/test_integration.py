@@ -542,8 +542,8 @@ class SlackIntegrationSendNotificationTest(TestCase):
 
         mock_chat_post.assert_called_once_with(
             channel="C1234567890",
-            blocks=[{"type": "section", "text": {"type": "mrkdwn", "text": "Test"}}],
-            text="Test",
+            blocks=payload.get("blocks", []),
+            text="Mock Notification",
         )
         assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 1)
 

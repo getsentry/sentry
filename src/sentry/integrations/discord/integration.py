@@ -22,6 +22,7 @@ from sentry.integrations.base import (
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.spec import DiscordMessagingSpec
 from sentry.integrations.discord.types import DiscordPermissions
+from sentry.integrations.discord.utils.metrics import record_lifecycle_termination_level
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -29,7 +30,6 @@ from sentry.integrations.messaging.metrics import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.notifications.platform.discord.provider import DiscordRenderable
 from sentry.notifications.platform.provider import IntegrationNotificationClient
 from sentry.notifications.platform.target import IntegrationNotificationTarget
@@ -86,11 +86,6 @@ metadata = IntegrationMetadata(
 )
 
 
-def record_discord_lifecycle_termination_level(lifecycle: EventLifecycle, error: ApiError) -> None:
-    """Stub function for Discord lifecycle termination"""
-    lifecycle.record_halt(halt_reason=str(error))
-
-
 class DiscordIntegration(IntegrationInstallation, IntegrationNotificationClient):
     def get_client(self) -> DiscordClient:
         return DiscordClient()
@@ -114,7 +109,7 @@ class DiscordIntegration(IntegrationInstallation, IntegrationNotificationClient)
                         "channel_id": target.resource_id,
                     }
                 )
-                record_discord_lifecycle_termination_level(lifecycle, e)
+                record_lifecycle_termination_level(lifecycle, e)
                 raise
 
     def uninstall(self) -> None:
