@@ -11,8 +11,8 @@ import {Text} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 
 type Motion = Theme['motion'];
-type Duration = keyof Motion['enter'];
-type Easing = keyof Motion;
+type Duration = keyof Motion['framer']['smooth'];
+type Easing = keyof Motion['framer'];
 
 const animations = ['x', 'y', 'scale', 'rotate'] as const;
 
@@ -44,14 +44,20 @@ export function MotionPlayground() {
         <Grid columns="160px 192px" gap="lg" align="center" justify="center">
           <Control label="Easing">
             <CompactSelect
-              options={extractTokens(tokens).map(value => ({value, label: value}))}
+              options={(['smooth', 'snap', 'enter', 'exit'] as const).map(value => ({
+                value,
+                label: value,
+              }))}
               value={easing}
               onChange={opt => setEasing(opt.value)}
             />
           </Control>
           <Control label="Duration">
             <CompactSelect
-              options={extractTokens(tokens.enter).map(value => ({value, label: value}))}
+              options={(['fast', 'moderate', 'slow'] as const).map(value => ({
+                value,
+                label: value,
+              }))}
               value={duration}
               onChange={opt => setDuration(opt.value)}
             />
@@ -103,15 +109,16 @@ interface CreateAnimationOptions {
   property: (typeof animations)[number];
   tokens: Motion;
 }
+
 function createAnimation({
   property,
-  duration: durationKey,
+  duration,
   easing,
   tokens,
 }: CreateAnimationOptions): HTMLMotionProps<'div'> {
   const delay = 1;
   const defaultState = {x: 0, y: 0, opacity: 1, scale: 1, rotate: 0};
-  const {duration, ease} = extractDurationAndEase(tokens[easing][durationKey]);
+  const transition = tokens.framer[easing][duration];
 
   return {
     initial: {
@@ -123,8 +130,7 @@ function createAnimation({
       ...makeTargetState({property, state: 'end', easing}),
     },
     transition: {
-      ease,
-      duration,
+      ...transition,
       delay,
       repeat: Infinity,
       repeatDelay: delay,
@@ -176,52 +182,10 @@ const TARGET_CONFIGS: Record<string, TargetConfig> = {
   y: TARGET_AXIS,
 };
 
-function extractDurationAndEase(css: string): {
-  duration: number;
-  ease: [number, number, number, number];
-} {
-  const re =
-    /^\s*(\d*\.?\d+)(ms|s)\s+cubic-bezier\(\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*\)\s*$/i;
-  const match = css.match(re);
-
-  if (!match) {
-    throw new Error(`Invalid timing string: ${css}`);
-  }
-
-  const [, value, unit, x1, y1, x2, y2] = match as [
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-  ];
-
-  // framer-motion expects duration in seconds
-  const duration =
-    unit.toLowerCase() === 'ms'
-      ? Number.parseFloat(value) / 1000
-      : Number.parseFloat(value);
-
-  const ease: [number, number, number, number] = [
-    Number.parseFloat(x1),
-    Number.parseFloat(y1),
-    Number.parseFloat(x2),
-    Number.parseFloat(y2),
-  ];
-
-  return {duration, ease};
-}
-
 function makeTargetState({property, state, easing}: TargetStateOptions) {
   const config = TARGET_CONFIGS[property as keyof typeof TARGET_CONFIGS] ?? TARGET_AXIS;
   return {
     [property]: config[easing][state],
     opacity: TARGET_OPACITY[easing][state],
   };
-}
-
-function extractTokens<T extends Record<string, any>>(obj: T) {
-  return Object.keys(obj) as Array<keyof T>;
 }

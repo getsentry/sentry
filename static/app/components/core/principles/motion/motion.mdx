@@ -50,13 +50,33 @@ On an otherwise static page, any motion will draw user attention. For this reaso
 
 # Token Reference
 
-Motion tokens for CSS are exposed under the `theme.motion` namespace as pairs of easing and duration values.
+Motion tokens are exposed under the `theme.motion` namespace and support both CSS and Framer Motion usage patterns.
 
 ```js
 const theme = useTheme();
-
 // motion[easing][duration]
 theme.motion.smooth.moderate;
+```
+
+## Framer Motion
+
+For Framer Motion animations, use the `framer` namespace which provides transition objects ready to use with Framer Motion components:
+
+```tsx
+import {useTheme} from '@emotion/react';
+import {motion} from 'framer-motion';
+
+function AnimatedComponent() {
+  const theme = useTheme();
+
+  return (
+    <motion.div
+      initial={{opacity: 0, y: -16}}
+      animate={{opacity: 1, y: 0}}
+      transition={theme.motion.framer.enter.fast}
+    />
+  );
+}
 ```
 
 ## Easing
