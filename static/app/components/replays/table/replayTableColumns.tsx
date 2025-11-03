@@ -53,9 +53,11 @@ interface HeaderProps {
 
 interface CellProps {
   columnIndex: number;
+  end: string;
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
+  start: string;
 }
 
 export interface ReplayTableColumn {
@@ -505,7 +507,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
-  Component: ({replay}) => {
+  Component: ({replay, start, end}) => {
     const routes = useRoutes();
     const location = useLocation();
     const organization = useOrganization();
@@ -527,13 +529,17 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       organization,
     });
 
-    const detailsTab = () => ({
-      pathname: replayDetailsPathname,
-      query: {
-        referrer,
-        ...eventView.generateQueryStringObject(),
-      },
-    });
+    const detailsTab = () => {
+      return {
+        pathname: replayDetailsPathname,
+        query: {
+          referrer,
+          ...eventView.generateQueryStringObject(),
+          start,
+          end,
+        },
+      };
+    };
     const trackNavigationEvent = () =>
       trackAnalytics('replay.list-navigate-to-details', {
         project_id: project?.id,

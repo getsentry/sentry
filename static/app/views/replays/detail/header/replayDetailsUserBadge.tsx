@@ -5,6 +5,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -17,7 +18,7 @@ import {
   LiveIndicator,
 } from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconRefresh} from 'sentry/icons';
+import {IconCalendar, IconChevron, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -25,15 +26,23 @@ import {useQueryClient} from 'sentry/utils/queryClient';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
+  nextReplay: ReplayListRecord | null;
+  previousReplay: ReplayListRecord | null;
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
-export default function ReplayDetailsUserBadge({readerResult}: Props) {
+export default function ReplayDetailsUserBadge({
+  readerResult,
+  nextReplay,
+  previousReplay,
+}: Props) {
   const organization = useOrganization();
   const replayRecord = readerResult.replayRecord;
 
@@ -87,6 +96,7 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
 
   const isReplayExpired =
     Date.now() > getReplayExpiresAtMs(replayRecord?.started_at ?? null);
+  const location = useLocation();
 
   const polledReplayRecord = usePollReplayRecord({
     enabled: !isReplayExpired,
@@ -159,6 +169,30 @@ export default function ReplayDetailsUserBadge({readerResult}: Props) {
               </Button>
             </TimeContainer>
           ) : null}
+          <Flex>
+            <LinkButton
+              size="xs"
+              icon={<IconChevron direction="left" />}
+              disabled={!previousReplay}
+              to={{
+                pathname: previousReplay
+                  ? `/explore/replays/${previousReplay.id}/`
+                  : undefined,
+                query: {...location.query},
+              }}
+              borderless
+            />
+            <LinkButton
+              size="xs"
+              icon={<IconChevron direction="right" />}
+              borderless
+              disabled={!nextReplay}
+              to={{
+                pathname: nextReplay ? `/explore/replays/${nextReplay.id}/` : undefined,
+                query: {...location.query},
+              }}
+            />
+          </Flex>
         </DisplayHeader>
       }
       user={{
