@@ -207,14 +207,9 @@ function FileRow({file}: {file: ProcessedInsightFile}) {
       <Text size="sm" ellipsis style={{flex: 1}}>
         {file.path}
       </Text>
-      <Flex align="center" gap="sm">
-        <Text variant="primary" bold size="sm" tabular>
-          -{formatBytesBase10(file.savings)}
-        </Text>
-        <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-          ({formatUpside(file.percentage / 100)})
-        </Text>
-      </Flex>
+      <Text variant="primary" bold size="sm" tabular>
+        -{formatBytesBase10(file.savings)}
+      </Text>
     </Flex>
   );
 }
@@ -242,14 +237,9 @@ function DuplicateGroupFileRow({
         <Text size="sm" ellipsis style={{flex: 1}} bold>
           {group.name}
         </Text>
-        <Flex align="center" gap="sm">
-          <Text variant="primary" bold size="sm" tabular>
-            -{formatBytesBase10(file.savings)}
-          </Text>
-          <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-            ({formatUpside(file.percentage / 100)})
-          </Text>
-        </Flex>
+        <Text variant="primary" bold size="sm" tabular>
+          -{formatBytesBase10(file.savings)}
+        </Text>
       </Flex>
       <Flex direction="column" gap="xs" padding="xs sm">
         {group.files.map((duplicateFile, index) => (
@@ -350,9 +340,6 @@ function OptimizableImageFileRow({
           <Text variant="primary" bold size="sm" tabular>
             -{formatBytesBase10(maxSavings)}
           </Text>
-          <Text variant="muted" size="sm" tabular align="right" style={{width: '64px'}}>
-            ({formatUpside(file.percentage / 100)})
-          </Text>
         </Flex>
       </Flex>
       <Flex direction="column" gap="xs" padding="xs sm">
@@ -370,15 +357,6 @@ function OptimizableImageFileRow({
             >
               -{formatBytesBase10(originalFile.minify_savings)}
             </Text>
-            <Text
-              size="xs"
-              variant="muted"
-              tabular
-              align="right"
-              style={{minWidth: '64px'}}
-            >
-              ({formatUpside(file.data.minifyPercentage / 100)})
-            </Text>
           </Flex>
         )}
         {hasHeicSavings && (
@@ -394,15 +372,6 @@ function OptimizableImageFileRow({
               style={{minWidth: '80px'}}
             >
               -{formatBytesBase10(originalFile.conversion_savings)}
-            </Text>
-            <Text
-              size="xs"
-              variant="muted"
-              tabular
-              align="right"
-              style={{minWidth: '64px'}}
-            >
-              ({formatUpside(file.data.conversionPercentage / 100)})
             </Text>
           </Flex>
         )}
