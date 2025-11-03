@@ -22,6 +22,7 @@ import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
 import GenericFilterSelector from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {globalFilterKeysAreEqual} from 'sentry/views/dashboards/globalFilter/utils';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
+import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 
@@ -32,6 +33,7 @@ import {DashboardFilterKeys} from './types';
 
 type FiltersBarProps = {
   filters: DashboardFilters;
+  hasTemporaryFilters: boolean;
   hasUnsavedChanges: boolean;
   isEditingDashboard: boolean;
   isPreview: boolean;
@@ -46,6 +48,7 @@ type FiltersBarProps = {
 
 export default function FiltersBar({
   filters,
+  hasTemporaryFilters,
   dashboardPermissions,
   dashboardCreator,
   hasUnsavedChanges,
@@ -62,6 +65,7 @@ export default function FiltersBar({
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const getSearchBarData = useDatasetSearchBarData();
+  const hasDrillDownFlowsFeature = useHasDrillDownFlows();
 
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,
@@ -80,11 +84,19 @@ export default function FiltersBar({
     [];
 
   const [activeGlobalFilters, setActiveGlobalFilters] = useState<GlobalFilter[]>(() => {
-    return (
+    const globalFilters =
       dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER] ??
       filters?.[DashboardFilterKeys.GLOBAL_FILTER] ??
-      []
-    );
+      [];
+
+    if (hasDrillDownFlowsFeature) {
+      return [
+        ...globalFilters,
+        ...(dashboardFiltersFromURL?.[DashboardFilterKeys.TEMPORARY_FILTERS] ?? []),
+      ];
+    }
+
+    return globalFilters;
   });
 
   const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
@@ -126,7 +138,6 @@ export default function FiltersBar({
           }}
         />
       </PageFilterBar>
-
       <ReleasesProvider organization={organization} selection={selection}>
         <ReleasesSelectControl
           handleChangeFilter={activeFilters => {
@@ -143,7 +154,6 @@ export default function FiltersBar({
           isDisabled={isEditingDashboard}
         />
       </ReleasesProvider>
-
       {organization.features.includes('dashboards-global-filters') && (
         <Fragment>
           {activeGlobalFilters.map(filter => (
@@ -182,8 +192,7 @@ export default function FiltersBar({
           />
         </Fragment>
       )}
-
-      {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
+      {!hasTemporaryFilters && hasUnsavedChanges && !isEditingDashboard && !isPreview && (
         <ButtonBar>
           <Button
             title={

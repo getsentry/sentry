@@ -9,7 +9,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.authentication import ClientIdSecretAuthentication
+from sentry.api.authentication import ClientIdSecretAuthentication, JWTClientSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth.staff import is_active_staff
@@ -451,7 +451,7 @@ class SentryAppAuthorizationsPermission(SentryPermission):
 
 
 class SentryAppAuthorizationsBaseEndpoint(SentryAppInstallationBaseEndpoint):
-    authentication_classes = (ClientIdSecretAuthentication,)
+    authentication_classes = (JWTClientSecretAuthentication, ClientIdSecretAuthentication)
     permission_classes = (SentryAppAuthorizationsPermission,)
 
 
