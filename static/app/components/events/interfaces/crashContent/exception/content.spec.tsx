@@ -544,21 +544,18 @@ describe('Exception Content', () => {
         }
       );
 
-      // The frame should be expandable. Try to expand it if it's not already expanded
+      // The frame should be expanded
       const toggleButton = screen.queryByRole('button', {name: 'Toggle Context'});
-      if (toggleButton) {
-        const isCollapsed =
-          toggleButton.getAttribute('data-test-id') === 'toggle-button-collapsed';
-        if (isCollapsed) {
-          await userEvent.click(toggleButton);
-        }
-      }
+      expect(toggleButton).toBeInTheDocument();
+      expect(toggleButton).toHaveAttribute('data-test-id', 'toggle-button-expanded');
 
-      await screen.findByText('def func4():');
-
+      // The frame context and line coverage legend should be visible
+      expect(await screen.findByText('def func4():')).toBeInTheDocument();
       expect(await screen.findByText('Line covered by tests')).toBeInTheDocument();
-      expect(screen.getByText('Line uncovered by tests')).toBeInTheDocument();
-      expect(screen.getByText('Line partially covered by tests')).toBeInTheDocument();
+      expect(await screen.findByText('Line uncovered by tests')).toBeInTheDocument();
+      expect(
+        await screen.findByText('Line partially covered by tests')
+      ).toBeInTheDocument();
     });
   });
 });
