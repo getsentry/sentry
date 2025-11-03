@@ -9,7 +9,6 @@ import {tct} from 'sentry/locale';
 
 import {getSdkSetupSnippet, installSnippetBlock} from './utils';
 
-
 export const feedback: OnboardingConfig = {
   install: () => [
     {
