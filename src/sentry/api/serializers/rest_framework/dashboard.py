@@ -1025,12 +1025,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget.dataset_source = new_dataset_source
         widget.detail = {"layout": data.get("layout", prev_layout)}
 
-        if (
-            new_dataset_source == DatasetSourcesTypes.USER.value
-            and widget.widget_type == DashboardWidgetTypes.SPANS
-        ):
-            widget.changed_reason = None
-
+        if widget.widget_type == DashboardWidgetTypes.SPANS:
+            if new_dataset_source == DatasetSourcesTypes.USER.value:
+                widget.changed_reason = None
+        # we don't want to reset dataset source for spans widgets in case they are part of the migration
         elif widget.widget_type not in [
             DashboardWidgetTypes.DISCOVER,
             DashboardWidgetTypes.TRANSACTION_LIKE,
