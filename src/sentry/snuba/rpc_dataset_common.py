@@ -217,10 +217,7 @@ class RPCBase:
         where, having, query_contexts = resolver.resolve_query(query.query_string)
 
         # if there are additional conditions to be added, make sure to merge them with the
-        if where is None:
-            where = query.extra_conditions
-        elif query.extra_conditions is not None:
-            where = TraceItemFilter(and_filter=AndFilter(filters=[query.extra_conditions, where]))
+        where = and_trace_item_filters(where, query.extra_conditions)
 
         cross_trace_queries = cls.get_cross_trace_queries(query)
 
@@ -589,10 +586,7 @@ class RPCBase:
                 col = search_resolver.map_context_to_original_column(context)
                 groupbys[i] = col
 
-        if query is None:
-            query = extra_conditions
-        elif extra_conditions is not None:
-            query = TraceItemFilter(and_filter=AndFilter(filters=[query, extra_conditions]))
+        query = and_trace_item_filters(query, extra_conditions)
 
         if timeseries_filter is not None:
             if query is not None:
@@ -712,6 +706,8 @@ class RPCBase:
         table_query_params.granularity_secs = None
         table_search_resolver = cls.get_resolver(table_query_params, config)
 
+        extra_conditions = config.extra_conditions(table_search_resolver)
+
         # Make a table query first to get what we need to filter by
         _, non_equation_axes = arithmetic.categorize_columns(y_axes)
         top_events = cls._run_table_query(
@@ -725,6 +721,7 @@ class RPCBase:
                 sampling_mode=sampling_mode,
                 resolver=table_search_resolver,
                 equations=equations,
+                extra_conditions=extra_conditions,
             )
         )
         # There aren't any top events, just return an empty dict and save a query
@@ -741,6 +738,8 @@ class RPCBase:
         top_conditions, other_conditions = cls.build_top_event_conditions(
             search_resolver, top_events, groupby_columns_without_project
         )
+        extra_conditions = config.extra_conditions(search_resolver)
+
         """Make the queries"""
         rpc_request, aggregates, groupbys = cls.get_timeseries_query(
             search_resolver=search_resolver,
@@ -750,7 +749,7 @@ class RPCBase:
             groupby=groupby_columns_without_project,
             referrer=f"{referrer}.topn",
             sampling_mode=sampling_mode,
-            extra_conditions=top_conditions,
+            extra_conditions=and_trace_item_filters(top_conditions, extra_conditions),
         )
         requests = [rpc_request]
         if include_other:
@@ -762,7 +761,7 @@ class RPCBase:
                 groupby=[],  # in the other series, we want eveything in a single group, so the group by is empty
                 referrer=f"{referrer}.query-other",
                 sampling_mode=sampling_mode,
-                extra_conditions=other_conditions,
+                extra_conditions=and_trace_item_filters(other_conditions, extra_conditions),
             )
             requests.append(other_request)
 
@@ -967,3 +966,19 @@ def transform_column_to_expression(column: Column) -> Expression:
         label=column.label,
         literal=column.literal,
     )
+
+
+def and_trace_item_filters(
+    *trace_item_filters: TraceItemFilter | None,
+) -> TraceItemFilter | None:
+    trace_item_filter: TraceItemFilter | None = None
+
+    for f in trace_item_filters:
+        if trace_item_filter is None:
+            trace_item_filter = f
+        elif f is not None:
+            trace_item_filter = TraceItemFilter(
+                and_filter=AndFilter(filters=[trace_item_filter, f])
+            )
+
+    return trace_item_filter

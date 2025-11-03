@@ -20,9 +20,7 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
     metric_name: str
     metric_type: MetricType
 
-    def get_metric_trace_item_filter(
-        self, search_resolver: SearchResolver
-    ) -> TraceItemFilter | None:
+    def extra_conditions(self, search_resolver: SearchResolver) -> TraceItemFilter | None:
         if not self.metric_name or not self.metric_type:
             return None
 
