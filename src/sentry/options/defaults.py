@@ -3625,3 +3625,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Sets the sample rate for profiles collected via the JoinProfiler arroyo strategy
+# TODO: add the JoinProfiler arroyo strategy
+register(
+    "consumer.join.profiling.rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
