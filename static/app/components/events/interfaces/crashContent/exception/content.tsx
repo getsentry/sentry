@@ -2,9 +2,11 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
+import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {
   prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebuggerData,
@@ -26,6 +28,7 @@ import {
 } from 'sentry/views/issueDetails/streamline/foldSection';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
+import {LineCoverageLegend} from './lineCoverageLegend';
 import {Mechanism} from './mechanism';
 import {RelatedExceptions} from './relatedExceptions';
 import StackTrace from './stackTrace';
@@ -186,6 +189,7 @@ function InnerContent({
     ? exceptionIdx === values.length - 1
     : exceptionIdx === 0;
 
+  const {hasCoverageData} = useLineCoverageContext();
   return (
     <Fragment>
       <StyledPre>
@@ -201,9 +205,17 @@ function InnerContent({
       <ToggleExceptionButton
         {...{hiddenExceptions, toggleRelatedExceptions, values, exception}}
       />
-      {exception.mechanism && (
-        <Mechanism data={exception.mechanism} meta={meta?.[exceptionIdx]?.mechanism} />
-      )}
+      {exception.mechanism || hasCoverageData ? (
+        <RowWrapper direction="row" justify="between">
+          {exception.mechanism && (
+            <Mechanism
+              data={exception.mechanism}
+              meta={meta?.[exceptionIdx]?.mechanism}
+            />
+          )}
+          {hasCoverageData ? <LineCoverageLegend /> : null}
+        </RowWrapper>
+      ) : null}
       <RelatedExceptions
         mechanism={exception.mechanism}
         allExceptions={values}
@@ -261,9 +273,8 @@ export function Content({
     num_exceptions: values?.length ?? 0,
   });
 
-  // Organization context may be unavailable for the shared event view, so we
-  // avoid using the `useOrganization` hook here and directly useContext
-  // instead.
+  // Organization context may be unavailable for the shared event view, so we need
+  // to account for this possibility if we rely on the `useOrganization` hook.
   if (!values) {
     return null;
   }
@@ -399,4 +410,8 @@ const StyledFoldSection = styled(FoldSection)`
     margin-left: ${p => p.theme.space.xl};
     margin-right: ${p => p.theme.space.xl};
   }
+`;
+
+const RowWrapper = styled(Flex)`
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.xs} 0;
 `;
