@@ -153,13 +153,12 @@ export function getMetricsUrlFromSavedQueryUrl({
 
     return {
       ...defaultQuery,
-      queryParams: {
-        ...defaultQuery.queryParams,
+      queryParams: defaultQuery.queryParams.replace({
         mode: queryItem.mode,
         query: queryItem.query,
         aggregateFields,
         aggregateSortBys: decodeSorts(queryItem.orderby) || [],
-      },
+      }),
     };
   });
 
