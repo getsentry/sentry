@@ -1,3 +1,4 @@
+from sentry import options
 from sentry.deletions.base import ModelDeletionTask
 from sentry.models.grouphistory import GroupHistory
 
@@ -22,6 +23,10 @@ class GroupHistoryDeletionTask(ModelDeletionTask[GroupHistory]):
             return super().chunk()
 
         for group_id in group_ids:
+            if options.get("deletions.group-history.delete-all-at-once"):
+                self.model.objects.filter(group_id=group_id).delete()
+                continue
+
             # Delete history records for a single group in chunks of 100
             queryset = self.model.objects.filter(group_id=group_id)
             while True:
