@@ -20,10 +20,7 @@ export default Storybook.story('Conduit Demo', story => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isEnabled, setIsEnabled] = useState(false);
 
-    const streamUrl = useMemo(
-      () => `/api/0/organizations/${organization.slug}/conduit-demo/`,
-      [organization.slug]
-    );
+    const streamUrl = `/api/0/organizations/${organization.slug}/conduit-demo/`;
 
     const streamHeaders = useMemo(
       () => ({
