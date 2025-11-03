@@ -98,6 +98,8 @@ const appSizeQuery: UseApiQueryResult<ResponseType, RequestError> = useApiQuery<
 - Use [core components](./app/components/core/) whenever possible. Use Emotion (styled components) only in edge cases.
 - Use Text, Heading, Flex, Grid, Stack, Container and other core typography/layout components whenever possible.
 - Add stories whenever possible (\*.stories.tsx).
+- Icons should be part of our icon set at static/app/icons and never inlined
+- Images should be placed inside static/app/images and imported via loader
 
 ### Core components
 
@@ -405,6 +407,54 @@ function Component() {
       )}
     </div>
   );
+}
+```
+
+### Images and Icons
+
+Place all icons in the static/app/icons folder. Never inline SVGs or add them to any other folder. Optimize SVGs using svgo or svgomg
+
+```tsx
+// ❌ Never inline SVGs
+function Component(){
+  return (
+    <Button icon={
+      <svg viewbox="0 0 16 16>"}>
+        // ❌ paths have excessive precision, optimize them with SVGO
+        <circle cx="8.00134" cy="8.4314" r="5.751412" />
+        <circle cx="8.00134" cy="8.4314" r="12.751412" />
+        <line x1="8.41334" y1="5.255361" x2="8" y2="8.255421" />
+      </svg>
+    </Button>
+  )
+}
+
+// ❌ Never place SVGs outside of icons folder.
+import {CustomIcon} from "./customIcon"
+
+// ✅ Import icon from our icon set
+import {IconExclamation} from "sentry/icons"
+```
+
+```tsx
+// ❌ All images belong inside static/app/images
+
+// ✅ Images are imported from sentry-images alias
+import image from 'sentry-images/example.png';
+
+import image from './image.png';
+
+function Component() {
+  return <Image src={image} />;
+}
+
+// ❌ All images need to be imported usign the webpack loader!
+function Component() {
+  return <Image src="/path/to/image.png" />;
+}
+
+function Component() {
+  return <Image src={image} />;
 }
 ```
 
