@@ -12,7 +12,6 @@ import {tct} from 'sentry/locale';
 
 import {getConfigStep} from './utils';
 
-
 export const feedback: OnboardingConfig = {
   install: (params: DocsParams) => [
     {
