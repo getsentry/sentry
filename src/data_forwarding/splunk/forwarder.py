@@ -3,18 +3,16 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from data_forwarding.base import DataForwardingPlugin
-from sentry import tagstore
+from data_forwarding.base import BaseDataForwarder
+from sentry import http, tagstore
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.services.eventstore.models import Event
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
 from sentry.utils.hashlib import md5_text
 from sentry_plugins.anonymizeip import anonymize_ip
-from sentry_plugins.splunk.client import SplunkApiClient
 
 logger = logging.getLogger(__name__)
-
 
 DESCRIPTION = """
 Send Sentry events to Splunk.
@@ -25,15 +23,13 @@ Splunk is a platform for searching, monitoring, and analyzing machine-generated 
 """
 
 
-class SplunkDataForwarder(DataForwardingPlugin):
+class SplunkForwarder(BaseDataForwarder):
     provider = DataForwarderProviderSlug.SPLUNK
-    name = "Splunk"
+    rate_limit = (1000, 1)
     description = DESCRIPTION
 
-    def get_rate_limit(self) -> tuple[int, int]:
-        return (1000, 1)
-
-    def get_host_for_splunk(self, event: Event) -> str | None:
+    @classmethod
+    def get_host_for_splunk(cls, event: Event) -> str | None:
         host = event.get_tag("server_name")
         if host:
             return host
@@ -46,7 +42,8 @@ class SplunkDataForwarder(DataForwardingPlugin):
 
         return None
 
-    def get_event_payload_properties(self, event: Event) -> dict[str, Any]:
+    @classmethod
+    def get_event_payload_properties(cls, event: Event) -> dict[str, Any]:
         props = {
             "event_id": event.event_id,
             "issue_id": event.group_id,
@@ -96,39 +93,48 @@ class SplunkDataForwarder(DataForwardingPlugin):
                     props.update(user_payload)
         return props
 
-    def get_event_payload(self, event: Event) -> dict[str, Any]:
+    @classmethod
+    def get_event_payload(
+        cls, event: Event, data_forwarder_project: DataForwarderProject
+    ) -> dict[str, Any]:
+        config = data_forwarder_project.get_config()
         return {
             "time": int(event.datetime.strftime("%s")),
-            "source": "sentry",
-            "event": self.get_event_payload_properties(event),
+            "source": config.get("source", "sentry"),
+            "index": config["index"],
+            "event": cls.get_event_payload_properties(event),
         }
 
+    @classmethod
     def send_payload(
-        self,
+        cls,
         payload: dict[str, Any],
         config: dict[str, Any],
         event: Event,
         data_forwarder_project: DataForwarderProject,
     ) -> bool:
         instance_url = config["instance_url"]
-        index = config["index"]
-        source = config.get("source", "sentry")
         token = config["token"]
 
         if instance_url and not instance_url.endswith("/services/collector"):
             instance_url = instance_url.rstrip("/") + "/services/collector"
 
-        payload["index"] = index
-        payload["source"] = source
-
-        host = self.get_host_for_splunk(event)
+        host = cls.get_host_for_splunk(event)
         if host:
             payload["host"] = host
 
-        client = SplunkApiClient(instance_url, token)
+        headers = {"Authorization": f"Splunk {token}"}
 
         try:
-            client.request(payload)
+            with http.build_session() as session:
+                response = session.post(
+                    instance_url,
+                    json=payload,
+                    headers=headers,
+                    timeout=5,
+                    verify=False,
+                )
+                response.raise_for_status()
         except Exception as exc:
             logger.info(
                 "splunk.send_payload.error",
@@ -142,9 +148,15 @@ class SplunkDataForwarder(DataForwardingPlugin):
 
             if isinstance(exc, ApiError) and (
                 isinstance(exc, (ApiHostError, ApiTimeoutError))
-                or (exc.code is not None and (401 <= exc.code <= 405) or exc.code in (502, 504))
+                or (exc.code is not None and ((401 <= exc.code <= 405) or exc.code in (502, 504)))
             ):
                 return False
             raise
 
         return True
+
+    @classmethod
+    def forward_event(cls, event: Event, data_forwarder_project: DataForwarderProject) -> bool:
+        payload = cls.get_event_payload(event, data_forwarder_project)
+        config = data_forwarder_project.get_config()
+        return cls.send_payload(payload, config, event, data_forwarder_project)

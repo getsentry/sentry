@@ -1,7 +1,7 @@
 import orjson
 import responses
 
-from data_forwarding.segment.forwarder import SegmentDataForwarder
+from data_forwarding.segment.forwarder import SegmentForwarder
 from sentry import VERSION
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -12,7 +12,6 @@ from sentry.testutils.cases import TestCase
 class SegmentDataForwarderTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.forwarder = SegmentDataForwarder()
         self.data_forwarder = DataForwarder.objects.create(
             organization=self.organization,
             provider=DataForwarderProviderSlug.SEGMENT,
@@ -40,7 +39,7 @@ class SegmentDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = self.forwarder.forward_event(event, self.data_forwarder_project)
+        result = SegmentForwarder.forward_event(event, self.data_forwarder_project)
 
         assert result is True
         assert len(responses.calls) == 1
@@ -76,5 +75,5 @@ class SegmentDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = self.forwarder.forward_event(event, self.data_forwarder_project)
+        result = SegmentForwarder.forward_event(event, self.data_forwarder_project)
         assert result is False

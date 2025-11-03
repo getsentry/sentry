@@ -8,7 +8,7 @@ import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError, ParamValidationError
 
-from data_forwarding.base import DataForwardingPlugin
+from data_forwarding.base import BaseDataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.services.eventstore.models import Event
@@ -25,23 +25,21 @@ Amazon SQS is a fully managed message queuing service that enables you to decoup
 """
 
 
-class AmazonSQSDataForwarder(DataForwardingPlugin):
+class AmazonSQSForwarder(BaseDataForwarder):
     provider = DataForwarderProviderSlug.SQS
-    name = "Amazon SQS"
+    rate_limit = None
     description = DESCRIPTION
 
-    def get_rate_limit(self) -> tuple[int, int]:
-        return (0, 0)
-
-    def get_event_payload(self, event: Event) -> dict[str, Any]:
+    @classmethod
+    def get_event_payload(cls, event: Event) -> dict[str, Any]:
         return dict(event.data)
 
+    @classmethod
     def send_payload(
-        self,
+        cls,
         payload: dict[str, Any],
         config: dict[str, Any],
         event: Event,
-        data_forwarder_project: DataForwarderProject,
     ) -> bool:
         queue_url = config["queue_url"]
         region = config["region"]
@@ -105,3 +103,9 @@ class AmazonSQSDataForwarder(DataForwardingPlugin):
         except ParamValidationError:
             return False
         return True
+
+    @classmethod
+    def forward_event(cls, event: Event, data_forwarder_project: DataForwarderProject) -> bool:
+        config = data_forwarder_project.get_config()
+        payload = cls.get_event_payload(event)
+        return cls.send_payload(payload, config, event)

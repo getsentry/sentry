@@ -3,7 +3,7 @@ from unittest.mock import patch
 import orjson
 from botocore.exceptions import ClientError
 
-from data_forwarding.amazon_sqs.forwarder import AmazonSQSDataForwarder
+from data_forwarding.amazon_sqs.forwarder import AmazonSQSForwarder
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
@@ -13,7 +13,6 @@ from sentry.testutils.cases import TestCase
 class AmazonSQSDataForwarderTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.forwarder = AmazonSQSDataForwarder()
         self.data_forwarder = DataForwarder.objects.create(
             organization=self.organization,
             provider=DataForwarderProviderSlug.SQS,
@@ -43,7 +42,7 @@ class AmazonSQSDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = self.forwarder.forward_event(event, self.data_forwarder_project)
+        result = AmazonSQSForwarder.forward_event(event, self.data_forwarder_project)
 
         assert result is True
         mock_client.assert_called_once_with(
@@ -69,7 +68,7 @@ class AmazonSQSDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = self.forwarder.forward_event(event, self.data_forwarder_project)
+        result = AmazonSQSForwarder.forward_event(event, self.data_forwarder_project)
         assert result is False
 
     @patch("boto3.client")
@@ -89,7 +88,7 @@ class AmazonSQSDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = self.forwarder.forward_event(event, self.data_forwarder_project)
+        result = AmazonSQSForwarder.forward_event(event, self.data_forwarder_project)
         assert result is False
 
     @patch("boto3.client")
@@ -105,7 +104,7 @@ class AmazonSQSDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = self.forwarder.forward_event(event, self.data_forwarder_project)
+        result = AmazonSQSForwarder.forward_event(event, self.data_forwarder_project)
 
         assert result is True
         call_args = mock_client.return_value.send_message.call_args[1]
@@ -125,7 +124,7 @@ class AmazonSQSDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = self.forwarder.forward_event(event, self.data_forwarder_project)
+        result = AmazonSQSForwarder.forward_event(event, self.data_forwarder_project)
 
         assert result is True
         mock_client.return_value.put_object.assert_called_once()

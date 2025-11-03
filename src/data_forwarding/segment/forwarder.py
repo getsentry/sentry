@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, ClassVar
 
-from data_forwarding.base import DataForwardingPlugin
+from data_forwarding.base import BaseDataForwarder
 from sentry import VERSION, http
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
@@ -20,16 +20,14 @@ Segment is a customer data platform (CDP) that helps you collect, clean, and con
 """
 
 
-class SegmentDataForwarder(DataForwardingPlugin):
+class SegmentForwarder(BaseDataForwarder):
     provider = DataForwarderProviderSlug.SEGMENT
-    name = "Segment"
+    rate_limit = (200, 1)
     description = DESCRIPTION
-    endpoint = "https://api.segment.io/v1/track"
+    endpoint: ClassVar[str] = "https://api.segment.io/v1/track"
 
-    def get_rate_limit(self) -> tuple[int, int]:
-        return (200, 1)
-
-    def is_enabled_for_event(self, event: Event) -> bool:
+    @classmethod
+    def validate_event(cls, event: Event) -> bool:
         if event.get_event_type() != "error":
             return False
 
@@ -43,8 +41,8 @@ class SegmentDataForwarder(DataForwardingPlugin):
 
         return True
 
-    # https://segment.com/docs/spec/track/
-    def get_event_payload(self, event: Event) -> dict[str, Any]:
+    @classmethod
+    def get_event_payload(cls, event: Event) -> dict[str, Any]:
         context = {"library": {"name": "sentry", "version": VERSION}}
 
         props = {
@@ -94,13 +92,9 @@ class SegmentDataForwarder(DataForwardingPlugin):
             "timestamp": event.datetime.isoformat() + "Z",
         }
 
-    def forward_event(self, event: Event, data_forwarder_project: DataForwarderProject) -> bool:
-        if not self.is_enabled_for_event(event):
-            return False
-        return super().forward_event(event, data_forwarder_project)
-
+    @classmethod
     def send_payload(
-        self,
+        cls,
         payload: dict[str, Any],
         config: dict[str, Any],
         event: Event,
@@ -111,7 +105,7 @@ class SegmentDataForwarder(DataForwardingPlugin):
         try:
             with http.build_session() as session:
                 response = session.post(
-                    self.endpoint,
+                    cls.endpoint,
                     json=payload,
                     auth=(write_key, ""),
                     timeout=10,
@@ -129,3 +123,12 @@ class SegmentDataForwarder(DataForwardingPlugin):
                 },
             )
             return False
+
+    @classmethod
+    def forward_event(cls, event: Event, data_forwarder_project: DataForwarderProject) -> bool:
+        if not cls.validate_event(event):
+            return False
+
+        config = data_forwarder_project.get_config()
+        payload = cls.get_event_payload(event)
+        return cls.send_payload(payload, config, event, data_forwarder_project)
