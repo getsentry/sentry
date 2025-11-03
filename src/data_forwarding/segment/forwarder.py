@@ -31,12 +31,11 @@ class SegmentForwarder(BaseDataForwarder):
         if event.get_event_type() != "error":
             return False
 
-        user_interface = event.data.get("user")
+        user_interface = event.interfaces.get("user")
         if not user_interface:
             return False
 
-        user_id = user_interface.get("id")
-        if not user_id:
+        if not user_interface.id:
             return False
 
         return True

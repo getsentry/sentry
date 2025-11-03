@@ -53,9 +53,7 @@ class SplunkForwarder(BaseDataForwarder):
             "environment": event.get_tag("environment") or "",
             "type": event.get_event_type(),
         }
-        props["tags"] = [
-            [k.format(tagstore.backend.get_standardized_key(k)), v] for k, v in event.tags
-        ]
+        props["tags"] = [[tagstore.backend.get_standardized_key(k), v] for k, v in event.tags]
         for key, value in event.interfaces.items():
             if key == "request":
                 headers = value.headers
