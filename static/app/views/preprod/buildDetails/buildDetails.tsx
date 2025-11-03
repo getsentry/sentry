@@ -120,7 +120,7 @@ export default function BuildDetails() {
             message={
               typeof buildDetailsQuery.error?.responseJSON?.error === 'string'
                 ? buildDetailsQuery.error?.responseJSON.error
-                : 'Unable to load build details for this artifact' // TODO(preprod): translate once we have a final design
+                : t('Unable to load build details for this artifact')
             }
           />
         </Layout.Page>
