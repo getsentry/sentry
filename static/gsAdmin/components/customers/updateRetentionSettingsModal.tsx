@@ -135,6 +135,7 @@ function UpdateRetentionSettingsModal({
                 label="Transactions Standard"
                 defaultValue={transactionsStandard}
                 onChange={setTransactionsStandard}
+                required
               />
               <NumberField
                 name="transactionsDownsampled"
