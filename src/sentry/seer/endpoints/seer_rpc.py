@@ -1036,11 +1036,53 @@ def trigger_coding_agent_launch(
         return {"success": False}
 
 
+def check_repository_integrations_status(*, repository_integrations: list[dict[str, Any]]) -> dict:
+    """
+    Check whether repository integrations exist and are active.
+
+    Args:
+        repository_integrations: List of dicts, each containing:
+            - organization_id: Organization ID
+            - integration_id: Integration ID
+            - external_id: External repository ID
+
+    Returns:
+        dict: {"statuses": list of booleans indicating if each repository exists and is active}
+              e.g., {"statuses": [True, False, True]}
+    """
+    from django.db.models import Q
+
+    if not repository_integrations:
+        return {"statuses": []}
+
+    q_objects = Q()
+    for item in repository_integrations:
+        q_objects |= Q(
+            organization_id=item["organization_id"],
+            integration_id=item["integration_id"],
+            external_id=item["external_id"],
+        )
+
+    existing_repos = Repository.objects.filter(q_objects, status=ObjectStatus.ACTIVE).values_list(
+        "organization_id", "integration_id", "external_id"
+    )
+
+    existing_set = set(existing_repos)
+
+    statuses = []
+    for item in repository_integrations:
+        repo_tuple = (item["organization_id"], item["integration_id"], item["external_id"])
+        statuses.append(repo_tuple in existing_set)
+
+    return {"statuses": statuses}
+
+
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     # Common to Seer features
     "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
     "get_github_enterprise_integration_config": get_github_enterprise_integration_config,
     "get_organization_project_ids": get_organization_project_ids,
+    "check_repository_integrations_status": check_repository_integrations_status,
     #
     # Autofix
     "get_organization_slug": get_organization_slug,
