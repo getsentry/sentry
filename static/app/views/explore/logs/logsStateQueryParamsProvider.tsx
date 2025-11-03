@@ -13,12 +13,15 @@ import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
 import {defaultGroupBys} from 'sentry/views/explore/queryParams/groupBy';
 import {defaultMode} from 'sentry/views/explore/queryParams/mode';
 import {defaultQuery} from 'sentry/views/explore/queryParams/query';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {
+  ReadableQueryParams,
+  type ReadableQueryParamsOptions,
+} from 'sentry/views/explore/queryParams/readableQueryParams';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 interface LogsStateQueryParamsProviderProps {
   children: ReactNode;
-  frozenParams?: Partial<ReadableQueryParams>;
+  frozenParams?: Partial<ReadableQueryParamsOptions>;
 }
 
 export function LogsStateQueryParamsProvider({
@@ -65,7 +68,7 @@ export function LogsStateQueryParamsProvider({
 
   const readableQueryParams = useMemo(
     () =>
-      frozenParams ? {..._readableQueryParams, ...frozenParams} : _readableQueryParams,
+      frozenParams ? _readableQueryParams.replace(frozenParams) : _readableQueryParams,
     [_readableQueryParams, frozenParams]
   );
 
