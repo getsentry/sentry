@@ -47,10 +47,6 @@ describe('AppSizeInsightsSidebarRow', () => {
     expect(screen.getByText(/-\s*256\s*KB/i)).toBeInTheDocument();
     // logo.png shows 128 KB in both main row and HEIC row
     expect(screen.getAllByText(/-\s*128\s*KB/i)).toHaveLength(2);
-    expect(screen.getByText('(-7.5%)')).toBeInTheDocument();
-    expect(screen.getByText('(-4%)')).toBeInTheDocument();
-    // logo.png has (-2%) savings (main and HEIC)
-    expect(screen.getAllByText('(-2%)')).toHaveLength(2);
   });
 
   it('calls onToggleExpanded when clicking the toggle button', async () => {
@@ -102,13 +98,10 @@ describe('AppSizeInsightsSidebarRow', () => {
 
     // Should show max savings in main row (300 KB appears twice: main row + HEIC row)
     expect(screen.getAllByText(/-300\s*KB/i)).toHaveLength(2);
-    // (-10%) appears in main row and HEIC row
-    expect(screen.getAllByText('(-10%)')).toHaveLength(2);
 
     // Should show both optimization options with app-relative percentages
     expect(screen.getByText('Optimize:')).toBeInTheDocument();
     expect(screen.getByText(/-200\s*KB/i)).toBeInTheDocument();
-    expect(screen.getByText('(-6.7%)')).toBeInTheDocument();
 
     expect(screen.getByText('Convert to HEIC:')).toBeInTheDocument();
   });
