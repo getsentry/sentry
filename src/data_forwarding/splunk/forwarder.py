@@ -92,12 +92,9 @@ class SplunkForwarder(BaseDataForwarder):
         return props
 
     @classmethod
-    def get_event_payload(
-        cls, event: Event, data_forwarder_project: DataForwarderProject
-    ) -> dict[str, Any]:
-        config = data_forwarder_project.get_config()
+    def get_event_payload(cls, event: Event, config: dict[str, Any]) -> dict[str, Any]:
         return {
-            "time": int(event.datetime.strftime("%s")),
+            "time": int(event.datetime.timestamp()),
             "source": config.get("source", "sentry"),
             "index": config["index"],
             "event": cls.get_event_payload_properties(event),
@@ -132,7 +129,8 @@ class SplunkForwarder(BaseDataForwarder):
                     timeout=5,
                     verify=False,
                 )
-                response.raise_for_status()
+                if not response.ok:
+                    raise ApiError.from_response(response, url=instance_url)
         except Exception as exc:
             logger.info(
                 "splunk.send_payload.error",
@@ -155,6 +153,6 @@ class SplunkForwarder(BaseDataForwarder):
 
     @classmethod
     def forward_event(cls, event: Event, data_forwarder_project: DataForwarderProject) -> bool:
-        payload = cls.get_event_payload(event, data_forwarder_project)
         config = data_forwarder_project.get_config()
+        payload = cls.get_event_payload(event, config)
         return cls.send_payload(payload, config, event, data_forwarder_project)

@@ -90,7 +90,8 @@ class SplunkDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = SplunkForwarder.get_event_payload(event, self.data_forwarder_project)
+        config = self.data_forwarder_project.get_config()
+        result = SplunkForwarder.get_event_payload(event, config)
         assert result["event"]["request_url"] == "http://example.com/"
         assert result["event"]["request_method"] == "POST"
         assert result["event"]["request_referer"] == "http://example.com/foo"
@@ -104,7 +105,8 @@ class SplunkDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = SplunkForwarder.get_event_payload(event, self.data_forwarder_project)
+        config = self.data_forwarder_project.get_config()
+        result = SplunkForwarder.get_event_payload(event, config)
         assert result["event"]["type"] == "error"
         assert result["event"]["exception_type"] == "ValueError"
         assert result["event"]["exception_value"] == "foo bar"
@@ -123,7 +125,8 @@ class SplunkDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = SplunkForwarder.get_event_payload(event, self.data_forwarder_project)
+        config = self.data_forwarder_project.get_config()
+        result = SplunkForwarder.get_event_payload(event, config)
         assert result["event"]["type"] == "csp"
         assert result["event"]["csp_document_uri"] == "http://example.com/"
         assert result["event"]["csp_violated_directive"] == "style-src cdn.example.com"
@@ -136,7 +139,8 @@ class SplunkDataForwarderTest(TestCase):
             project_id=self.project.id,
         )
 
-        result = SplunkForwarder.get_event_payload(event, self.data_forwarder_project)
+        config = self.data_forwarder_project.get_config()
+        result = SplunkForwarder.get_event_payload(event, config)
         assert result["event"]["user_id"] == "1"
         assert result["event"]["user_email_hash"] == "b48def645758b95537d4424c84d1a9ff"
         assert result["event"]["user_ip_trunc"] == "127.0.0.0"

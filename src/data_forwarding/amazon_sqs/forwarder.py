@@ -5,6 +5,7 @@ from typing import Any
 from uuid import uuid4
 
 import boto3
+import orjson
 from botocore.client import Config
 from botocore.exceptions import ClientError, ParamValidationError
 
@@ -12,7 +13,6 @@ from data_forwarding.base import BaseDataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.services.eventstore.models import Event
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -72,12 +72,16 @@ class AmazonSQSForwarder(BaseDataForwarder):
             if s3_bucket:
                 date = event.datetime.strftime("%Y-%m-%d")
                 key = f"{event.project.slug}/{date}/{event.event_id}"
-                s3_put_object(Bucket=s3_bucket, Body=json.dumps(payload), Key=key)
+                s3_put_object(
+                    Bucket=s3_bucket,
+                    Body=orjson.dumps(payload, option=orjson.OPT_UTC_Z).decode(),
+                    Key=key,
+                )
 
                 url = f"https://{s3_bucket}.s3-{region}.amazonaws.com/{key}"
                 payload = {"s3Url": url, "eventID": event.event_id}
 
-            message = json.dumps(payload)
+            message = orjson.dumps(payload, option=orjson.OPT_UTC_Z).decode()
 
             if len(message) > 256 * 1024:
                 return False
