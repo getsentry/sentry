@@ -128,6 +128,7 @@ class SentryAppEventType(StrEnum):
     # authorizations
     GRANT_EXCHANGER = "grant_exchanger"
     REFRESHER = "refresher"
+    MANUAL_REFRESHER = "manual_refresher"
 
     # management
     APP_CREATE = "app_create"
