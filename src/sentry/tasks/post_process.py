@@ -1297,13 +1297,9 @@ def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
     if group_category != GroupCategory.ERROR and not has_expanded_sentry_apps_webhooks:
         return False
 
-    # Only support ERROR, FEEDBACK, UPTIME and CRON issues for initial test
     supported_group_categories = [
-        GroupCategory.ERROR,
-        GroupCategory.FEEDBACK,
-        GroupCategory.OUTAGE,
-        GroupCategory.UPTIME,
-        GroupCategory.CRON,
+        GroupCategory(category)
+        for category in options.get("sentry-apps.expanded-webhook-categories")
     ]
     if group_category not in supported_group_categories:
         return False
