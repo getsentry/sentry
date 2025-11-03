@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
@@ -33,13 +33,26 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
     config.theme === 'dark' ? darkTheme : lightTheme;
 
   if (
-    (organization?.features?.includes('chonk-ui') ||
-      organization?.features?.includes('chonk-ui-enforce')) &&
-    user?.options?.prefersChonkUI
+    (organization?.features?.includes('chonk-ui') && user?.options?.prefersChonkUI) ||
+    (organization?.features?.includes('chonk-ui-enforce') &&
+      (user?.options?.prefersChonkUI === undefined ||
+        user?.options?.prefersChonkUI === true))
   ) {
     theme =
       config.theme === 'dark' ? DO_NOT_USE_darkChonkTheme : DO_NOT_USE_lightChonkTheme;
   }
+
+  // If the enforce flag is set, and the user has not indicated a preference,
+  // then their prefence should be set to chonk-ui by default. If they opt out
+  useEffect(() => {
+    if (
+      organization?.features?.includes('chonk-ui-enforce') &&
+      user &&
+      user.options.prefersChonkUI === undefined
+    ) {
+      mutateUserOptions({prefersChonkUI: true});
+    }
+  }, [organization, user, mutateUserOptions]);
 
   // Hotkey definition for toggling the current theme
   const themeToggleHotkey = useMemo(

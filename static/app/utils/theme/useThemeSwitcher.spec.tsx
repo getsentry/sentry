@@ -2,7 +2,7 @@ import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -104,30 +104,96 @@ describe('useChonkTheme', () => {
   });
 
   describe('enforce states', () => {
-    it('returns light chonk theme if the organization has chonk-ui-enforce feature and user prefers chonk theme', () => {
+    it('does not return chonk theme if user is undefined', () => {
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: undefined,
+        })
+      );
+      OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui']}));
+      const {result} = renderHookWithProviders(useThemeSwitcher);
+      expect(result.current).toBe(lightTheme);
+    });
+    it('does not return chonk theme if organization is undefined', () => {
+      OrganizationStore.onUpdate(OrganizationFixture({features: []}));
+      const {result} = renderHookWithProviders(useThemeSwitcher);
+      expect(result.current).toBe(lightTheme);
+    });
+    it('does not return chonk theme if user and organization is undefined', () => {
+      OrganizationStore.reset();
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: undefined,
+        })
+      );
+      const {result} = renderHookWithProviders(useThemeSwitcher);
+      expect(result.current).toBe(lightTheme);
+    });
+    it('returns chonk theme if the organization has chonk-ui-enforce feature and user has not indicated a preference', async () => {
+      const optionsSpy = MockApiClient.addMockResponse({
+        url: '/users/me/',
+        method: 'PUT',
+      });
+
       ConfigStore.loadInitialData(
         ConfigFixture({
           user: UserFixture({
-            options: {...UserFixture().options, prefersChonkUI: true, theme: 'light'},
+            options: {...UserFixture().options, theme: 'light'},
           }),
         })
       );
       OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui-enforce']}));
       const {result} = renderHookWithProviders(useThemeSwitcher);
+
+      // A user with no preference will get opted into chonk-ui
+      await waitFor(() => {
+        expect(optionsSpy).toHaveBeenCalledWith(
+          '/users/me/',
+          expect.objectContaining({
+            method: 'PUT',
+            data: expect.objectContaining({
+              options: expect.objectContaining({
+                prefersChonkUI: true,
+              }),
+            }),
+          })
+        );
+      });
       expect(result.current).toBe(DO_NOT_USE_lightChonkTheme);
     });
 
-    it('returns dark chonk theme if the organization has chonk-ui-enforce feature and user prefers chonk theme', () => {
+    it('returnso old theme if the organization has chonk-ui-enforce feature and user has opted out', () => {
+      const optionsSpy = MockApiClient.addMockResponse({
+        url: '/users/me/',
+        method: 'PUT',
+      });
+
       ConfigStore.loadInitialData(
         ConfigFixture({
           user: UserFixture({
-            options: {...UserFixture().options, prefersChonkUI: true, theme: 'dark'},
+            options: {...UserFixture().options, prefersChonkUI: false, theme: 'light'},
           }),
         })
       );
       OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui-enforce']}));
       const {result} = renderHookWithProviders(useThemeSwitcher);
-      expect(result.current).toBe(DO_NOT_USE_darkChonkTheme);
+
+      expect(result.current).toBe(lightTheme);
+      // This will fail with act warning if the option is mutated
+      expect(optionsSpy).not.toHaveBeenCalled();
+    });
+
+    it('returns old theme if the organization has chonk-ui-enforce feature and user has opted out', () => {
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: UserFixture({
+            options: {...UserFixture().options, prefersChonkUI: false, theme: 'light'},
+          }),
+        })
+      );
+      OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui-enforce']}));
+      const {result} = renderHookWithProviders(useThemeSwitcher);
+      expect(result.current).toBe(lightTheme);
     });
 
     it.each(['light', 'dark', 'system'] as const)(
