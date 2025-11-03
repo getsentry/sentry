@@ -97,3 +97,15 @@ class U2FInterfaceTest(TestCase):
         _, kwargs = mock_state.call_args
         assert kwargs.get("state") == "state"
         assert "webauthn_authentication_state" not in self.request.session
+
+    def test_validate_response_missing_session_state(self) -> None:
+        self.test_try_enroll_webauthn()
+        mock_state = Mock()
+        self.u2f.webauthn_authentication_server.authenticate_complete = mock_state
+
+        # Session state is missing (e.g., session expired)
+        assert "webauthn_authentication_state" not in self.request.session
+
+        # Should return False without calling authenticate_complete
+        assert not self.u2f.validate_response(self.request, None, self.response)
+        mock_state.assert_not_called()
