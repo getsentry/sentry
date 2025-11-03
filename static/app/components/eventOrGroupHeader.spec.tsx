@@ -1,12 +1,14 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {EventOrGroupType} from 'sentry/types/event';
+
+const organization = OrganizationFixture();
 
 const group = GroupFixture({
   level: 'error',
@@ -34,18 +36,16 @@ const event = EventFixture({
   },
 });
 
+const baseIssuesPath = `/organizations/${organization.slug}/issues/`;
+
 describe('EventOrGroupHeader', () => {
   beforeEach(() => {
     jest.useRealTimers();
   });
 
-  const {router} = initializeOrg();
-
   describe('Group', () => {
     it('renders with `type = error`', () => {
-      render(<EventOrGroupHeader data={group} {...router} />, {
-        deprecatedRouterMocks: true,
-      });
+      render(<EventOrGroupHeader data={group} />);
     });
 
     it('renders with `type = csp`', () => {
@@ -55,11 +55,7 @@ describe('EventOrGroupHeader', () => {
             ...group,
             type: EventOrGroupType.CSP,
           }}
-          {...router}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
     });
 
@@ -74,11 +70,7 @@ describe('EventOrGroupHeader', () => {
               title: 'metadata title',
             },
           }}
-          {...router}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
     });
 
@@ -89,11 +81,7 @@ describe('EventOrGroupHeader', () => {
             ...group,
             type: EventOrGroupType.ERROR,
           }}
-          {...router}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
 
       expect(screen.getByText('metadata value')).toBeInTheDocument();
@@ -102,13 +90,11 @@ describe('EventOrGroupHeader', () => {
     it('preloads group on hover', async () => {
       jest.useFakeTimers();
       const mockFetchGroup = MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/issues/${group.id}/`,
+        url: `/organizations/${organization.slug}/issues/${group.id}/`,
         body: group,
       });
 
-      render(<EventOrGroupHeader data={group} {...router} />, {
-        deprecatedRouterMocks: true,
-      });
+      render(<EventOrGroupHeader data={group} />);
 
       const groupLink = screen.getByRole('link');
 
@@ -130,11 +116,7 @@ describe('EventOrGroupHeader', () => {
             ...event,
             type: EventOrGroupType.ERROR,
           })}
-          {...router}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
     });
 
@@ -145,11 +127,7 @@ describe('EventOrGroupHeader', () => {
             ...event,
             type: EventOrGroupType.CSP,
           }}
-          {...router}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
     });
 
@@ -164,11 +142,7 @@ describe('EventOrGroupHeader', () => {
               title: 'metadata title',
             },
           }}
-          {...router}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
     });
 
@@ -184,68 +158,55 @@ describe('EventOrGroupHeader', () => {
               title: 'metadata title',
             },
           }}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
     });
 
     it('keeps sort in link when query has sort', () => {
-      render(
-        <EventOrGroupHeader
-          data={{
-            ...event,
-            type: EventOrGroupType.DEFAULT,
-          }}
-        />,
-        {
-          router: {
-            ...router,
-            location: {
-              ...router.location,
-              query: {
-                ...router.location.query,
-                sort: 'freq',
-              },
-            },
+      const eventWithSort = EventFixture({
+        ...event,
+        type: EventOrGroupType.DEFAULT,
+      });
+
+      render(<EventOrGroupHeader data={eventWithSort} />, {
+        initialRouterConfig: {
+          location: {
+            pathname: baseIssuesPath,
+            query: {sort: 'freq'},
           },
+        },
+      });
 
-          deprecatedRouterMocks: true,
-        }
-      );
+      const href = screen.getByRole('link').getAttribute('href');
+      expect(href).toBeTruthy();
 
-      expect(screen.getByRole('link')).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1&referrer=event-or-group-header&sort=freq'
+      const url = new URL(`https://example${href}`);
+      expect(url.pathname).toBe(
+        `${baseIssuesPath}${eventWithSort.groupID}/events/${eventWithSort.eventID}/`
       );
+      expect(url.searchParams.get('sort')).toBe('freq');
+      expect(url.searchParams.get('_allp')).toBe('1');
+      expect(url.searchParams.get('referrer')).toBe('event-or-group-header');
     });
 
     it('lack of project adds all parameter', () => {
-      render(
-        <EventOrGroupHeader
-          data={{
-            ...event,
-            type: EventOrGroupType.DEFAULT,
-          }}
-        />,
-        {
-          router: {
-            ...router,
-            location: {
-              ...router.location,
-              query: {},
-            },
-          },
+      const eventDefault = EventFixture({
+        ...event,
+        type: EventOrGroupType.DEFAULT,
+      });
 
-          deprecatedRouterMocks: true,
-        }
-      );
+      render(<EventOrGroupHeader data={eventDefault} />);
 
-      expect(screen.getByRole('link')).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1&referrer=event-or-group-header'
+      const href = screen.getByRole('link').getAttribute('href');
+      expect(href).toBeTruthy();
+
+      const url = new URL(`https://example${href}`);
+      expect(url.pathname).toBe(
+        `${baseIssuesPath}${eventDefault.groupID}/events/${eventDefault.eventID}/`
       );
+      expect(url.searchParams.get('_allp')).toBe('1');
+      expect(url.searchParams.has('project')).toBe(false);
+      expect(url.searchParams.get('referrer')).toBe('event-or-group-header');
     });
   });
 
@@ -269,11 +230,7 @@ describe('EventOrGroupHeader', () => {
           isTombstone: true,
           dateAdded: '2025-06-25T00:00:00Z',
         }}
-        {...router}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
