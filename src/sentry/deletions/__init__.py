@@ -67,9 +67,9 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.GroupHash, defaults.GroupHashDeletionTask)
     manager.register(models.GroupHashMetadata, BulkModelDeletionTask)
     if options.get("deletions.group-history.use-bulk-deletion"):
-        manager.register(models.GroupHistory, defaults.GroupHistoryDeletionTask)
-    else:
         manager.register(models.GroupHistory, BulkModelDeletionTask)
+    else:
+        manager.register(models.GroupHistory, defaults.GroupHistoryDeletionTask)
     manager.register(models.GroupLink, BulkModelDeletionTask)
     manager.register(models.GroupMeta, BulkModelDeletionTask)
     manager.register(models.GroupRedirect, BulkModelDeletionTask)
