@@ -135,7 +135,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
     }
 
     .loading .loading-indicator {
-      background: ${theme.tokens.background.primary};
+      background: transparent;
     }
 
     color: ${theme.textColor};
@@ -157,7 +157,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
     }
     /*this updates styles set by shared-components.less to match our theme*/
     .theme-dark .loading .loading-indicator {
-      background: ${theme.tokens.background.primary};
+      background: transparent;
     }
     .theme-dark .loading.triangle .loading-indicator {
       background: #fff;
