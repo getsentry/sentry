@@ -2,6 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT} from 'sentry/types/prevent';
+
 import {usePreventAIGitHubConfig} from './usePreventAIConfig';
 
 describe('usePreventAIGitHubConfig', () => {
@@ -27,7 +29,7 @@ describe('usePreventAIGitHubConfig', () => {
             bug_prediction: {enabled: false, sensitivity: 'medium'},
           },
         },
-        schema_version: 'v1',
+        schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
       },
       organization: {
         'octo-corp': {
@@ -37,10 +39,10 @@ describe('usePreventAIGitHubConfig', () => {
             bug_prediction: {enabled: true, sensitivity: 'high'},
           },
           repo_overrides: {},
-          schema_version: 'v1',
+          schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         },
       },
-      schema_version: 'v1',
+      schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
     };
 
     MockApiClient.addMockResponse({

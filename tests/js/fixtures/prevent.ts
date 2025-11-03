@@ -1,8 +1,9 @@
 import type {PreventAIConfig, Sensitivity} from 'sentry/types/prevent';
+import {PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT} from 'sentry/types/prevent';
 
 export function PreventAIConfigFixture(): PreventAIConfig {
   return {
-    schema_version: 'v1',
+    schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
     org_defaults: {
       bug_prediction: {
         enabled: false,

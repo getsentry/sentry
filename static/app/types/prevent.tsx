@@ -22,3 +22,5 @@ export interface PreventAIConfig {
   repo_overrides: Record<string, PreventAIFeatureConfigsByName>;
   schema_version: string;
 }
+
+export const PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT = 'v1';

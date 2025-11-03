@@ -3,6 +3,7 @@ import type {
   PreventAIFeatureTriggers,
   Sensitivity,
 } from 'sentry/types/prevent';
+import {PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT} from 'sentry/types/prevent';
 import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -24,7 +25,7 @@ export function useUpdatePreventAIFeature() {
 
   const {mutateAsync, isPending, error} = useMutation({
     mutationFn: async (params: UpdatePreventAIFeatureParams) => {
-      const newOrgConfig = makePreventAIConfig(params.originalConfig, params);
+      const newConfig = makePreventAIConfig(params.originalConfig, params);
 
       return fetchMutation<{
         default_org_config: PreventAIConfig;
@@ -32,7 +33,7 @@ export function useUpdatePreventAIFeature() {
       }>({
         method: 'PUT',
         url: `/organizations/${organization.slug}/prevent/ai/github/config/${params.gitOrgName}/`,
-        data: newOrgConfig as unknown as Record<string, PreventAIConfig>,
+        data: newConfig as unknown as Record<string, PreventAIConfig>,
       });
     },
     onSuccess: (_data, variables) => {
@@ -52,15 +53,15 @@ export function useUpdatePreventAIFeature() {
 }
 
 /**
- * Makes a new PreventAIOrgConfig object with feature settings applied for the specified repo or org defaults
+ * Makes a new PreventAIConfig object with feature settings applied for the specified repo or org defaults
  * 1. Deep clones the original config to prevent mutation
  * 2. If editing repo, get the repo override for the specified repo or create it from org_defaults template if not exists
  * 3. Modifies the specified feature's settings, preserves any unspecified settings.
  * 4. Special case: 'use_org_defaults' feature type will remove the entire repo override
  *
- * @param originalConfig Original PreventAIOrgConfig object (will not be mutated)
+ * @param originalConfig Original PreventAIConfig object (will not be mutated)
  * @param params Parameters to update
- * @returns New (copy of) PreventAIOrgConfig object with updates applied
+ * @returns New (copy of) PreventAIConfig object with updates applied
  */
 export function makePreventAIConfig(
   originalConfig: PreventAIConfig,
@@ -68,7 +69,7 @@ export function makePreventAIConfig(
 ): PreventAIConfig {
   const updatedConfig = structuredClone(originalConfig);
   if (!updatedConfig.schema_version) {
-    updatedConfig.schema_version = 'v1';
+    updatedConfig.schema_version = PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT;
   }
 
   if (!updatedConfig.repo_overrides) {

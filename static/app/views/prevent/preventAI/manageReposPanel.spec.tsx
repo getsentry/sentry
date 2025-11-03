@@ -6,6 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
 import type {PreventAIConfig} from 'sentry/types/prevent';
+import {PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT} from 'sentry/types/prevent';
 import ManageReposPanel, {
   getRepoConfig,
   type ManageReposPanelProps,
@@ -83,7 +84,7 @@ describe('ManageReposPanel', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
       body: {
-        schema_version: 'v1',
+        schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         default_org_config: PreventAIConfigFixture(),
         organization: {
           'org-1': PreventAIConfigFixture(),
@@ -153,7 +154,7 @@ describe('ManageReposPanel', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
       body: {
-        schema_version: 'v1',
+        schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         default_org_config: PreventAIConfigFixture(),
         organization: {
           'org-1': configWithOverride,
@@ -183,7 +184,7 @@ describe('ManageReposPanel', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
       body: {
-        schema_version: 'v1',
+        schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         default_org_config: PreventAIConfigFixture(),
         organization: {
           'org-1': configWithOverride,
@@ -226,7 +227,7 @@ describe('ManageReposPanel', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
       body: {
-        schema_version: 'v1',
+        schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         default_org_config: PreventAIConfigFixture(),
         organization: {
           'org-1': configWithOverride,
@@ -262,7 +263,7 @@ describe('ManageReposPanel', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
       body: {
-        schema_version: 'v1',
+        schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         default_org_config: PreventAIConfigFixture(),
         organization: {
           'org-1': configWithOverride,
@@ -347,7 +348,7 @@ describe('ManageReposPanel', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
       body: {
-        schema_version: 'v1',
+        schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         default_org_config: PreventAIConfigFixture(),
         organization: {
           'org-1': configWithOverride,
@@ -363,7 +364,7 @@ describe('ManageReposPanel', () => {
   describe('getRepoConfig', () => {
     it('returns org defaults when repoName is null', () => {
       const orgConfig: PreventAIConfig = {
-        schema_version: 'v1',
+        schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         org_defaults: {
           bug_prediction: {
             enabled: true,
@@ -403,7 +404,7 @@ describe('ManageReposPanel', () => {
 
     it('returns repo override config when present', () => {
       const orgConfig: PreventAIConfig = {
-        schema_version: 'v1',
+        schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         org_defaults: {
           bug_prediction: {
             enabled: true,
@@ -456,7 +457,7 @@ describe('ManageReposPanel', () => {
 
     it('returns org defaults when repo override is not present', () => {
       const orgConfig: PreventAIConfig = {
-        schema_version: 'v1',
+        schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         org_defaults: {
           bug_prediction: {
             enabled: true,

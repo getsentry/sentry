@@ -19,10 +19,6 @@ describe('useUpdatePreventAIFeature', () => {
     jest.resetAllMocks();
   });
 
-  afterEach(() => {
-    jest.resetAllMocks();
-  });
-
   it('enables a feature successfully via API', async () => {
     const mockResp = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prevent/ai/github/config/org-1/`,
