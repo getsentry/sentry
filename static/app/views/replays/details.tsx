@@ -52,7 +52,6 @@ export default function ReplayDetails() {
   const query = useLocationQuery({
     fields: {
       cursor: decodeScalar,
-      end: decodeScalar,
       environment: decodeList,
       project: decodeList,
       query: decodeScalar,

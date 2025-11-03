@@ -43,28 +43,15 @@ export default function ReplayTable({
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
 
-  const {start, end} = useMemo(() => {
+  const start = useMemo(() => {
     const earliestReplayStartedAt = replays.reduce(
       (acc: number, replay) => Math.min(replay.started_at?.getTime() ?? 0, acc),
       Infinity
     );
 
-    const latestReplayStartedAt = replays.reduce(
-      (acc: number, replay) => Math.max(replay.started_at?.getTime() ?? 0, acc),
-      0
-    );
-
-    const result =
-      replays.length > 0
-        ? {
-            start: new Date(earliestReplayStartedAt).toISOString(),
-            end: new Date(latestReplayStartedAt).toISOString(),
-          }
-        : {
-            start: undefined,
-            end: undefined,
-          };
-    return result;
+    return replays.length > 0
+      ? new Date(earliestReplayStartedAt).toISOString()
+      : undefined;
   }, [replays]);
 
   if (isPending) {
@@ -138,7 +125,6 @@ export default function ReplayTable({
                 columnIndex={columnIndex}
                 replay={replay}
                 start={start ?? ''}
-                end={end ?? ''}
                 rowIndex={rowIndex}
                 showDropdownFilters={showDropdownFilters}
               />

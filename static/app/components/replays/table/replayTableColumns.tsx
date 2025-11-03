@@ -53,7 +53,6 @@ interface HeaderProps {
 
 interface CellProps {
   columnIndex: number;
-  end: string;
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
@@ -507,7 +506,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
-  Component: ({replay, start, end}) => {
+  Component: ({replay, start}) => {
     const routes = useRoutes();
     const location = useLocation();
     const organization = useOrganization();
@@ -536,7 +535,6 @@ export const ReplaySessionColumn: ReplayTableColumn = {
           referrer,
           ...eventView.generateQueryStringObject(),
           start,
-          end,
         },
       };
     };
