@@ -59,4 +59,20 @@ export class ReadableQueryParams {
     this.id = options.id;
     this.title = options.title;
   }
+
+  replace(options: Partial<ReadableQueryParamsOptions>) {
+    return new ReadableQueryParams({
+      aggregateCursor: options.aggregateCursor ?? this.aggregateCursor,
+      aggregateFields: options.aggregateFields ?? this.aggregateFields,
+      aggregateSortBys: options.aggregateSortBys ?? this.aggregateSortBys,
+      cursor: options.cursor ?? this.cursor,
+      extrapolate: options.extrapolate ?? this.extrapolate,
+      fields: options.fields ?? this.fields,
+      mode: options.mode ?? this.mode,
+      query: options.query ?? this.query,
+      sortBys: options.sortBys ?? this.sortBys,
+      id: options.id ?? this.id,
+      title: options.title ?? this.title,
+    });
+  }
 }
