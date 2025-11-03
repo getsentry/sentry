@@ -66,7 +66,7 @@ export function SessionDropdown({
   onSelectSession,
   startNewSession,
 }: SessionDropdownProps) {
-  const {sessions, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage} =
+  const {sessions, isFetching, isError, hasNextPage, fetchNextPage, isFetchingNextPage} =
     useExplorerSessionsResult;
 
   const selectOptions = sessions.map(makeSelectOption);
@@ -115,9 +115,7 @@ export function SessionDropdown({
       menuWidth={350}
       position="bottom-start"
       value={activeRunId ?? undefined}
-      menuTitle={
-        isFetching && sessions.length === 0 ? t('Loading...') : t('Session History')
-      }
+      menuTitle={t('Session History')}
       searchPlaceholder={t('Search sessions...')}
       size="sm"
       onChange={opt => {
@@ -125,7 +123,13 @@ export function SessionDropdown({
       }}
       options={selectOptions}
       trigger={makeTrigger}
-      emptyMessage={isFetching ? t('Loading sessions...') : t('No sessions found.')}
+      emptyMessage={
+        isError
+          ? t('Error loading sessions')
+          : isFetching
+            ? t('Loading sessions...')
+            : t('No sessions found.')
+      }
       menuFooter={menuFooter}
       menuHeaderTrailingItems={newSessionButton}
     />
