@@ -10,6 +10,7 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import TimeSince from 'sentry/components/timeSince';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {getShortEventId} from 'sentry/utils/events';
 import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
 import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
@@ -96,7 +97,11 @@ export function GenerationsTable() {
             <Button
               priority="link"
               onClick={() => {
-                openTraceViewDrawer(dataRow.trace, dataRow.span_id);
+                openTraceViewDrawer(
+                  dataRow.trace,
+                  dataRow.span_id,
+                  getTimeStampFromTableDateField(dataRow.timestamp)
+                );
               }}
             >
               {getShortEventId(dataRow.span_id)}

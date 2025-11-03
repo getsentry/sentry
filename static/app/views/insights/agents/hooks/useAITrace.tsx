@@ -15,7 +15,6 @@ import {
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 interface UseAITraceResult {
   error: boolean;
@@ -23,18 +22,17 @@ interface UseAITraceResult {
   nodes: AITraceSpanNode[];
 }
 
-export function useAITrace(traceSlug: string): UseAITraceResult {
+export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceResult {
   const [nodes, setNodes] = useState<AITraceSpanNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
 
   const api = useApi();
   const organization = useOrganization();
-  const queryParams = useTraceQueryParams();
 
   const trace = useTrace({
     traceSlug,
-    timestamp: queryParams.timestamp,
+    timestamp,
     additionalAttributes: [
       SpanFields.GEN_AI_AGENT_NAME,
       SpanFields.GEN_AI_FUNCTION_ID,
