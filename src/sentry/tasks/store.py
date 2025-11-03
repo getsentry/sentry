@@ -560,15 +560,15 @@ def _do_save_event(
             )
             return
 
+        all_attachments = []
+        attachments = []
+        project = None
         try:
             if cache_key and has_attachments:
                 all_attachments = list(get_attachments_for_event(data))
                 # we won’t be needing the transient attachments after this anymore
                 data.pop("_attachments", None)
                 attachments = [a for a in all_attachments if not a.rate_limited]
-            else:
-                all_attachments = []
-                attachments = []
             project = resolve_project(project_id)
 
             if killswitch_matches_context(
@@ -626,7 +626,7 @@ def _do_save_event(
                     )
 
             reprocessing2.mark_event_reprocessed(data)
-            if all_attachments:
+            if all_attachments and project:
                 delete_ratelimited_attachments(project, data, all_attachments)
 
             if start_time:
