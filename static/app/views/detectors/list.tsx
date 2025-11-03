@@ -73,8 +73,7 @@ export default function DetectorsList() {
   const location = useLocation();
   const navigate = useNavigate();
   const {selection, isReady} = usePageFilters();
-  const {detectorFilter, assigneeFilter, renderVisualization, emptyState} =
-    useMonitorViewContext();
+  const {detectorFilter, assigneeFilter, emptyState} = useMonitorViewContext();
 
   const {
     sort: sorts,
@@ -180,7 +179,6 @@ export default function DetectorsList() {
                   sort={sort}
                   queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
                   allResultsVisible={allResultsVisible()}
-                  renderVisualization={renderVisualization}
                 />
               )}
             </VisuallyCompleteWithData>

@@ -7,7 +7,7 @@ import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlace
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import type {Detector, UptimeDetector} from 'sentry/types/workflowEngine/detectors';
+import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import DetectorsList from 'sentry/views/detectors/list';
@@ -15,6 +15,7 @@ import {
   MonitorViewContext,
   useMonitorViewContext,
   type MonitorViewContextValue,
+  type RenderVisualizationParams,
 } from 'sentry/views/detectors/monitorViewContext';
 import {
   checkStatusPrecedent,
@@ -63,7 +64,19 @@ function VisualizationCell({detector}: {detector: UptimeDetector}) {
 export default function UptimeDetectorsList() {
   const parentContext = useMonitorViewContext();
 
-  const renderVisualization = useCallback((detector: Detector) => {
+  const renderVisualization = useCallback(({detector}: RenderVisualizationParams) => {
+    if (!detector) {
+      return (
+        <Cell
+          data-column-name="visualization"
+          padding="lg 0"
+          borderLeft="muted"
+          height="100%"
+        >
+          <CheckInPlaceholder />
+        </Cell>
+      );
+    }
     if (detector.type === 'uptime_domain_failure') {
       return <VisualizationCell detector={detector} />;
     }
