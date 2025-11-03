@@ -19,7 +19,6 @@ import {
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
-import {NuqsTestingAdapter} from 'nuqs/adapters/testing';
 import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
@@ -37,14 +36,13 @@ import {
 } from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {TestRouteContext} from 'sentry/views/routeContext';
 
 import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
 import {initializeOrg} from './initializeOrg';
+import {SentryNuqsTestingAdapter} from './nuqsTestingAdapter';
 
 interface ProviderOptions {
   /**
@@ -65,7 +63,6 @@ interface ProviderOptions {
    * Sets the OrganizationContext. You may pass null to provide no organization
    */
   organization?: Partial<Organization> | null;
-  query?: string;
   /**
    * Sets the RouterContext.
    */
@@ -176,31 +173,6 @@ function patchBrowserHistoryMocksEnabled(history: MemoryHistory, router: Injecte
   });
 }
 
-function NuqsTestingAdapterWithNavigate({
-  children,
-  query,
-}: {
-  children: React.ReactNode;
-  query: string;
-}) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  return (
-    <NuqsTestingAdapter
-      searchParams={new URLSearchParams(query)}
-      defaultOptions={{shallow: false}}
-      onUrlUpdate={({queryString, options: nuqsOptions}) => {
-        // Pass navigation events to the test router
-        const newParams = qs.parse(queryString);
-        const newLocation = {...location, query: newParams};
-        navigate(newLocation, {replace: nuqsOptions.history === 'replace'});
-      }}
-    >
-      {children}
-    </NuqsTestingAdapter>
-  );
-}
-
 function makeAllTheProviders(options: ProviderOptions) {
   const enableRouterMocks = options.deprecatedRouterMocks ?? false;
   const {organization, router} = initializeOrg({
@@ -245,11 +217,11 @@ function makeAllTheProviders(options: ProviderOptions) {
     return (
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
-          <NuqsTestingAdapterWithNavigate query={options.query ?? ''}>
+          <SentryNuqsTestingAdapter defaultOptions={{shallow: false}}>
             <CommandPaletteProvider>
               <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
             </CommandPaletteProvider>
-          </NuqsTestingAdapterWithNavigate>
+          </SentryNuqsTestingAdapter>
         </QueryClientProvider>
       </CacheProvider>
     );
@@ -441,7 +413,6 @@ function render<T extends boolean = false>(
     router: legacyRouterConfig,
     deprecatedRouterMocks: options.deprecatedRouterMocks,
     history,
-    query: parseQueryString(config?.location?.query),
   });
 
   const memoryRouter = makeRouter({
@@ -499,7 +470,6 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
     router: legacyRouterConfig,
     deprecatedRouterMocks: false,
     history,
-    query: parseQueryString(config?.location?.query),
   });
 
   let memoryRouter: Router | null = null;

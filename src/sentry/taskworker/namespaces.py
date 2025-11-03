@@ -26,6 +26,11 @@ buffer_tasks = app.taskregistry.create_namespace(
     app_feature="errors",
 )
 
+conduit_tasks = app.taskregistry.create_namespace(
+    "conduit",
+    app_feature="conduit",
+)
+
 crons_tasks = app.taskregistry.create_namespace(
     "crons",
     app_feature="crons",

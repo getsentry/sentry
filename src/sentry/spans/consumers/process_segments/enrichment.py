@@ -60,7 +60,7 @@ def _find_segment_span(spans: list[SpanEvent]) -> SpanEvent | None:
 
     # Iterate backwards since we usually expect the segment span to be at the end.
     for span in reversed(spans):
-        if attribute_value(span, "sentry.is_segment"):
+        if span.get("is_segment"):
             return span
 
     return None
