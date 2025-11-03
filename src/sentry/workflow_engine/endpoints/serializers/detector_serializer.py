@@ -1,6 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from datetime import datetime
+from typing import Any, TypedDict
 
 from django.db.models import Count
 
@@ -20,6 +21,29 @@ from sentry.workflow_engine.models import (
     DetectorGroup,
     DetectorWorkflow,
 )
+
+
+class DetectorSerializerResponseOptional(TypedDict, total=False):
+    owner: str | None
+    createdById: str | None
+    alertRuleId: int | None
+    ruleId: int | None
+    latestGroup: dict | None
+
+
+class DetectorSerializerResponse(DetectorSerializerResponseOptional):
+    id: str
+    projectId: str
+    name: str
+    type: str
+    workflowIds: list[str]
+    dateCreated: datetime
+    dateUpdated: datetime
+    dataSources: list[dict]
+    conditionGroup: dict
+    config: dict
+    enabled: bool
+    openIssues: int
 
 
 @register(Detector)
