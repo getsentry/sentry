@@ -12,10 +12,10 @@ export interface SlashCommand {
 
 interface SlashCommandsProps {
   inputValue: string;
-  onClear: () => void;
   onCommandSelect: (command: SlashCommand) => void;
   onMaxSize: () => void;
   onMedSize: () => void;
+  onNew: () => void;
   onVisibilityChange?: (isVisible: boolean) => void;
 }
 
@@ -24,7 +24,7 @@ function SlashCommands({
   onCommandSelect,
   onMaxSize,
   onMedSize,
-  onClear,
+  onNew,
   onVisibilityChange,
 }: SlashCommandsProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -34,9 +34,9 @@ function SlashCommands({
   const DEFAULT_COMMANDS = useMemo(
     (): SlashCommand[] => [
       {
-        command: '/clear',
-        description: 'Clear conversation and start a new session',
-        handler: onClear,
+        command: '/new',
+        description: 'Start a new session',
+        handler: onNew,
       },
       {
         command: '/max-size',
@@ -65,7 +65,7 @@ function SlashCommands({
           ]
         : []),
     ],
-    [onClear, onMaxSize, onMedSize, openFeedbackForm]
+    [onNew, onMaxSize, onMedSize, openFeedbackForm]
   );
 
   // Filter commands based on current input

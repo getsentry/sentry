@@ -16,13 +16,16 @@ describe('useSeerExplorer', () => {
 
   describe('Initial State', () => {
     it('returns initial state with no session data', () => {
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization,
-      });
+      const setRunId = jest.fn();
+      const {result} = renderHookWithProviders(
+        () => useSeerExplorer({runId: null, setRunId}),
+        {
+          organization,
+        }
+      );
 
       expect(result.current.sessionData).toBeNull();
       expect(result.current.isPolling).toBe(false);
-      expect(result.current.runId).toBeNull();
       expect(result.current.deletedFromIndex).toBeNull();
     });
   });
@@ -76,9 +79,13 @@ describe('useSeerExplorer', () => {
         },
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization,
-      });
+      const setRunId = jest.fn();
+      const {result} = renderHookWithProviders(
+        () => useSeerExplorer({runId: null, setRunId}),
+        {
+          organization,
+        }
+      );
 
       await act(async () => {
         await result.current.sendMessage('Test query');
@@ -111,9 +118,13 @@ describe('useSeerExplorer', () => {
         body: {detail: 'Server error'},
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization,
-      });
+      const setRunId = jest.fn();
+      const {result} = renderHookWithProviders(
+        () => useSeerExplorer({runId: null, setRunId}),
+        {
+          organization,
+        }
+      );
 
       // Should handle error without throwing
       await act(async () => {
@@ -130,15 +141,18 @@ describe('useSeerExplorer', () => {
         body: {session: null},
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization,
-      });
+      const setRunId = jest.fn();
+      const {result} = renderHookWithProviders(
+        () => useSeerExplorer({runId: null, setRunId}),
+        {
+          organization,
+        }
+      );
 
       act(() => {
         result.current.startNewSession();
       });
 
-      expect(result.current.runId).toBeNull();
       expect(result.current.deletedFromIndex).toBeNull();
     });
   });
@@ -151,9 +165,13 @@ describe('useSeerExplorer', () => {
         body: {session: null},
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization,
-      });
+      const setRunId = jest.fn();
+      const {result} = renderHookWithProviders(
+        () => useSeerExplorer({runId: null, setRunId}),
+        {
+          organization,
+        }
+      );
 
       act(() => {
         result.current.deleteFromIndex(2);
@@ -163,9 +181,13 @@ describe('useSeerExplorer', () => {
     });
 
     it('filters messages based on deleted index', () => {
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization,
-      });
+      const setRunId = jest.fn();
+      const {result} = renderHookWithProviders(
+        () => useSeerExplorer({runId: null, setRunId}),
+        {
+          organization,
+        }
+      );
 
       act(() => {
         result.current.deleteFromIndex(1);
@@ -177,9 +199,13 @@ describe('useSeerExplorer', () => {
 
   describe('Polling Logic', () => {
     it('returns false for polling when no session exists', () => {
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization,
-      });
+      const setRunId = jest.fn();
+      const {result} = renderHookWithProviders(
+        () => useSeerExplorer({runId: null, setRunId}),
+        {
+          organization,
+        }
+      );
 
       expect(result.current.isPolling).toBe(false);
     });

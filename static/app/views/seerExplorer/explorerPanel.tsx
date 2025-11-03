@@ -298,7 +298,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         onSlashCommandsVisibilityChange={setIsSlashCommandsVisible}
         onMaxSize={handleMaxSize}
         onMedSize={handleMedSize}
-        onClear={startNewSession}
+        onNew={startNewSession}
       />
     </PanelContainers>
   );

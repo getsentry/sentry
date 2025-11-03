@@ -10,13 +10,13 @@ interface InputSectionProps {
   inputValue: string;
   interruptRequested: boolean;
   isPolling: boolean;
-  onClear: () => void;
   onCommandSelect: (command: SlashCommand) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onInputClick: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onMaxSize: () => void;
   onMedSize: () => void;
+  onNew: () => void;
   onSlashCommandsVisibilityChange: (isVisible: boolean) => void;
   ref?: React.RefObject<HTMLTextAreaElement | null>;
 }
@@ -26,7 +26,7 @@ function InputSection({
   focusedBlockIndex,
   isPolling,
   interruptRequested,
-  onClear,
+  onNew,
   onInputChange,
   onKeyDown,
   onInputClick,
@@ -58,7 +58,7 @@ function InputSection({
           onVisibilityChange={onSlashCommandsVisibilityChange}
           onMaxSize={onMaxSize}
           onMedSize={onMedSize}
-          onClear={onClear}
+          onNew={onNew}
         />
         <InputRow>
           <ChevronIcon direction="right" size="sm" />
@@ -69,6 +69,7 @@ function InputSection({
             onKeyDown={onKeyDown}
             placeholder={getPlaceholder()}
             rows={1}
+            data-test-id="seer-explorer-input"
           />
         </InputRow>
         {focusedBlockIndex === -1 && <FocusIndicator />}
