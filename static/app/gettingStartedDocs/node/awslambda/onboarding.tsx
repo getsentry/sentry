@@ -1,51 +1,13 @@
 import {ExternalLink} from 'sentry/components/core/link';
-import type {
-  BasePlatformOptions,
-  Docs,
-  DocsParams,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {
-  getCrashReportJavaScriptInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {AwsLambdaArn} from 'sentry/gettingStartedDocs/node/awslambdaArnSelector';
+import {AwsLambdaArn} from 'sentry/gettingStartedDocs/node/awslambda/awslambdaArnSelector';
+import {InstallationMethod} from 'sentry/gettingStartedDocs/node/awslambda/utils';
 import {t, tct} from 'sentry/locale';
-import {
-  getInstallCodeBlock,
-  getNodeAgentMonitoringOnboarding,
-  getNodeLogsOnboarding,
-  getNodeMcpOnboarding,
-  getNodeProfilingOnboarding,
-} from 'sentry/utils/gettingStartedDocs/node';
+import {getInstallCodeBlock} from 'sentry/utils/gettingStartedDocs/node';
 
-export enum InstallationMethod {
-  LAMBDA_LAYER = 'lambdaLayer',
-  NPM_PACKAGE = 'npmPackage',
-}
-
-export const platformOptions = {
-  installationMethod: {
-    label: t('Installation Method'),
-    items: [
-      {
-        label: t('Lambda Layer'),
-        value: InstallationMethod.LAMBDA_LAYER,
-      },
-      {
-        label: t('NPM Package'),
-        value: InstallationMethod.NPM_PACKAGE,
-      },
-    ],
-    defaultValue: InstallationMethod.LAMBDA_LAYER,
-  },
-} satisfies BasePlatformOptions;
-
-type PlatformOptions = typeof platformOptions;
-type Params = DocsParams<PlatformOptions>;
+import type {Params, PlatformOptions} from './utils';
 
 const getEnvSetupSnippet = (params: Params) => `
 NODE_OPTIONS="--import @sentry/aws-serverless/awslambda-auto"
@@ -176,7 +138,7 @@ const installationMethodOnboarding: Record<
   },
 };
 
-const onboarding: OnboardingConfig<PlatformOptions> = {
+export const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: (params: Params) =>
     installationMethodOnboarding[
       params.platformOptions.installationMethod
@@ -194,43 +156,3 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       params
     ),
 };
-
-const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/aws-lambda/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-};
-
-const docs: Docs<PlatformOptions> = {
-  onboarding,
-  crashReportOnboarding,
-  profilingOnboarding: getNodeProfilingOnboarding({
-    packageName: '@sentry/aws-serverless',
-  }),
-  logsOnboarding: getNodeLogsOnboarding({
-    docsPlatform: 'aws-lambda',
-    packageName: '@sentry/aws-serverless',
-  }),
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    packageName: '@sentry/aws-serverless',
-  }),
-  mcpOnboarding: getNodeMcpOnboarding({
-    packageName: '@sentry/aws-serverless',
-  }),
-  platformOptions,
-};
-
-export default docs;
