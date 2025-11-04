@@ -63,9 +63,6 @@ class InvalidOrganizationProvisioningException(Exception):
     pass
 
 
-REDIS_KEY_PREFIX = "control_org"
-
-
 class DatabaseBackedControlOrganizationProvisioningService(
     ControlOrganizationProvisioningRpcService
 ):
@@ -95,8 +92,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
 
     @staticmethod
     def _generate_org_snowflake_id(region_name: str) -> int:
-        redis_key = f"{REDIS_KEY_PREFIX}_{region_name}"
-        return generate_snowflake_id(redis_key)
+        return generate_snowflake_id()
 
     @staticmethod
     def _generate_org_slug(region_name: str, slug: str) -> str:
