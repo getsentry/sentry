@@ -896,7 +896,12 @@ def test_generate_rules_trace_health_checks_feature_enabled(
     default_old_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
+            {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": False},
             {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
+            {"id": RuleType.BOOST_LATEST_RELEASES_RULE.value, "active": False},
+            {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": False},
+            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ],
     )
 

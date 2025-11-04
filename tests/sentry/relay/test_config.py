@@ -556,7 +556,12 @@ def test_project_config_with_trace_health_checks_enabled(
     default_project.update_option(
         "sentry:dynamic_sampling_biases",
         [
+            {"id": "boostEnvironments", "active": False},
             {"id": "ignoreHealthChecks", "active": True},
+            {"id": "boostLatestRelease", "active": False},
+            {"id": "boostKeyTransactions", "active": False},
+            {"id": "boostLowVolumeTransactions", "active": False},
+            {"id": "boostReplayId", "active": False},
         ],
     )
     default_project.add_team(default_team)
