@@ -4,8 +4,18 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import pc from 'picocolors';
 import * as ts from 'typescript';
+
+// Terminal color codes
+const colors = {
+  red: (text: string) => `\x1b[31m${text}\x1b[0m`,
+  green: (text: string) => `\x1b[32m${text}\x1b[0m`,
+  yellow: (text: string) => `\x1b[33m${text}\x1b[0m`,
+  cyan: (text: string) => `\x1b[36m${text}\x1b[0m`,
+  magenta: (text: string) => `\x1b[35m${text}\x1b[0m`,
+  bold: (text: string) => `\x1b[1m${text}\x1b[0m`,
+  dim: (text: string) => `\x1b[2m${text}\x1b[0m`,
+};
 
 type Options = {
   tsconfigPath: string;
@@ -456,7 +466,7 @@ function main() {
   const tsconfigPath = path.resolve(opts.tsconfigPath);
 
   if (!fs.existsSync(tsconfigPath)) {
-    console.error(pc.red(`tsconfig.json not found at: ${tsconfigPath}`));
+    console.error(colors.red(`tsconfig.json not found at: ${tsconfigPath}`));
     process.exit(1);
   }
 
@@ -471,7 +481,7 @@ function main() {
 
   if (configFile.error) {
     console.error(
-      pc.red('Error reading tsconfig:'),
+      colors.red('Error reading tsconfig:'),
       ts.formatDiagnostic(configFile.error, {
         getCurrentDirectory: () => process.cwd(),
         getCanonicalFileName: fileName => fileName,
@@ -501,7 +511,7 @@ function main() {
   );
 
   if (parsedConfig.errors.length > 0) {
-    console.error(pc.red('Error parsing tsconfig:'));
+    console.error(colors.red('Error parsing tsconfig:'));
     for (const error of parsedConfig.errors) {
       console.error(
         ts.formatDiagnostic(error, {
@@ -538,7 +548,7 @@ function main() {
   }
 
   if (files.length === 0) {
-    console.error(pc.yellow('No files found in tsconfig include/exclude settings.'));
+    console.error(colors.yellow('No files found in tsconfig include/exclude settings.'));
     process.exit(2);
   }
 
@@ -604,9 +614,9 @@ function main() {
   } else if (opts.listAny || opts.listNonNull || opts.listTypeAssertions) {
     if (opts.listAny) {
       if (anyHits.length === 0) {
-        console.log(pc.green('No any-typed symbols found.'));
+        console.log(colors.green('No any-typed symbols found.'));
       } else {
-        console.log(pc.bold(`Found ${anyHits.length} any-typed symbol(s)`));
+        console.log(colors.bold(`Found ${anyHits.length} any-typed symbol(s)`));
         if (opts.detail) {
           console.log();
           // Sort hits by file path first, then by line number
@@ -616,7 +626,7 @@ function main() {
           });
           for (const hit of sortedHits) {
             console.log(
-              `${hit.file}:${hit.line}:${hit.column}  ${pc.red(hit.kind.padEnd(13))}  ${pc.dim(hit.name)}`
+              `${hit.file}:${hit.line}:${hit.column}  ${colors.red(hit.kind.padEnd(13))}  ${colors.dim(hit.name)}`
             );
           }
           console.log();
@@ -626,9 +636,9 @@ function main() {
 
     if (opts.listNonNull) {
       if (nonNullHits.length === 0) {
-        console.log(pc.green('No non-null assertions found.'));
+        console.log(colors.green('No non-null assertions found.'));
       } else {
-        console.log(pc.bold(`Found ${nonNullHits.length} non-null assertion(s)`));
+        console.log(colors.bold(`Found ${nonNullHits.length} non-null assertion(s)`));
         if (opts.detail) {
           console.log();
           // Sort hits by file path first, then by line number
@@ -638,7 +648,7 @@ function main() {
           });
           for (const hit of sortedHits) {
             console.log(
-              `${hit.file}:${hit.line}:${hit.column}  ${pc.yellow(hit.kind.padEnd(16))}  ${pc.dim(hit.code)}`
+              `${hit.file}:${hit.line}:${hit.column}  ${colors.yellow(hit.kind.padEnd(16))}  ${colors.dim(hit.code)}`
             );
           }
           console.log();
@@ -648,9 +658,9 @@ function main() {
 
     if (opts.listTypeAssertions) {
       if (typeAssertionHits.length === 0) {
-        console.log(pc.green('No type assertions found.'));
+        console.log(colors.green('No type assertions found.'));
       } else {
-        console.log(pc.bold(`Found ${typeAssertionHits.length} type assertion(s)`));
+        console.log(colors.bold(`Found ${typeAssertionHits.length} type assertion(s)`));
         if (opts.detail) {
           console.log();
           // Sort hits by file path first, then by line number
@@ -660,7 +670,7 @@ function main() {
           });
           for (const hit of sortedHits) {
             console.log(
-              `${hit.file}:${hit.line}:${hit.column}  ${pc.cyan(hit.kind.padEnd(12))}  ${pc.magenta(hit.targetType.padEnd(20))}  ${pc.dim(hit.code)}`
+              `${hit.file}:${hit.line}:${hit.column}  ${colors.cyan(hit.kind.padEnd(12))}  ${colors.magenta(hit.targetType.padEnd(20))}  ${colors.dim(hit.code)}`
             );
           }
           console.log();
@@ -668,17 +678,17 @@ function main() {
       }
     }
 
-    console.log(pc.bold('Summary'));
+    console.log(colors.bold('Summary'));
     console.log(`Files scanned: ${files.length}`);
     console.log(`Items total : ${totals.total}`);
     console.log(`Items typed : ${totals.typed}`);
-    console.log(`Coverage    : ${pc.green(pct.toFixed(2) + '%')}\n`);
+    console.log(`Coverage    : ${colors.green(pct.toFixed(2) + '%')}\n`);
   } else {
-    console.log(pc.bold('\nType Coverage Report (tsconfig-aware)'));
+    console.log(colors.bold('\nType Coverage Report (tsconfig-aware)'));
     console.log(`Files scanned: ${files.length}`);
     console.log(`Items total : ${totals.total}`);
     console.log(`Items typed : ${totals.typed}`);
-    console.log(`Coverage    : ${pc.green(pct.toFixed(2) + '%')}\n`);
+    console.log(`Coverage    : ${colors.green(pct.toFixed(2) + '%')}\n`);
 
     const worst = Object.entries(perFile)
       .map(([file, c]) => ({
@@ -689,15 +699,15 @@ function main() {
       .slice(0, 10);
 
     if (worst.length) {
-      console.log(pc.bold('Lowest coverage files:'));
-      for (const w of worst) console.log(`  ${pc.dim(w.file)}  ${w.pct.toFixed(2)}%`);
+      console.log(colors.bold('Lowest coverage files:'));
+      for (const w of worst) console.log(`  ${colors.dim(w.file)}  ${w.pct.toFixed(2)}%`);
       console.log();
     }
   }
 
   if (opts.failBelow && pct < opts.failBelow) {
     console.error(
-      pc.red(`Coverage ${pct.toFixed(2)}% is below threshold ${opts.failBelow}%`)
+      colors.red(`Coverage ${pct.toFixed(2)}% is below threshold ${opts.failBelow}%`)
     );
     process.exit(1);
   }
@@ -706,6 +716,6 @@ function main() {
 try {
   main();
 } catch (err) {
-  console.error(pc.red(String(err)));
+  console.error(colors.red(String(err)));
   process.exit(1);
 }
