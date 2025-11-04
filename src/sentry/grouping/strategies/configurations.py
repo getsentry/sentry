@@ -55,12 +55,10 @@ register_grouping_config(
     id="newstyle:2023-01-11",
     # There's no `base` argument here because this config is based on `BASE_STRATEGY`. To base a
     # config on a previous config, include its `id` value as the value for `base` here.
-    #
-    # There's nothing in the initial context because this config uses all the default values. If we
-    # change grouping behavior in a future config, it should be gated by a config feature, that
-    # feature should be defaulted to False in the base config, and then the `initial_context` in the
-    # new config is where we'd flip it to True.
-    initial_context={},
+    initial_context={
+        # Shim to preserve hash values, since they're order-dependent
+        "use_legacy_exception_subcomponent_order": True,
+    },
     enhancements_base="all-platforms:2023-01-11",
     fingerprinting_bases=["javascript@2024-02-02"],
 )
