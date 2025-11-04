@@ -1263,6 +1263,9 @@ def process_service_hooks(job: PostProcessJob) -> None:
 
 
 def process_resource_change_bounds(job: PostProcessJob) -> None:
+    if not should_process_resource_change_bounds(job):
+        return
+
     if job["is_reprocessed"]:
         return
 
@@ -1282,6 +1285,26 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
         process_resource_change_bound.delay(
             action="created", sender="Group", instance_id=event.group_id
         )
+
+
+def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
+    # Feature flag check for expanded sentry apps webhooks
+    has_expanded_sentry_apps_webhooks = features.has(
+        "organizations:expanded-sentry-apps-webhooks", job["event"].project.organization
+    )
+    group_category = job["event"].group.issue_category
+
+    if group_category != GroupCategory.ERROR and not has_expanded_sentry_apps_webhooks:
+        return False
+
+    supported_group_categories = [
+        GroupCategory(category)
+        for category in options.get("sentry-apps.expanded-webhook-categories")
+    ]
+    if group_category not in supported_group_categories:
+        return False
+
+    return True
 
 
 def process_plugins(job: PostProcessJob) -> None:
@@ -1662,6 +1685,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         feedback_filter_decorator(process_snoozes),
         feedback_filter_decorator(process_inbox_adds),
         feedback_filter_decorator(process_rules),
+        feedback_filter_decorator(process_resource_change_bounds),
     ],
     GroupCategory.METRIC_ALERT: [
         process_workflow_engine_metric_issues,
@@ -1673,4 +1697,5 @@ GENERIC_POST_PROCESS_PIPELINE = [
     process_inbox_adds,
     kick_off_seer_automation,
     process_rules,
+    process_resource_change_bounds,
 ]
