@@ -69,16 +69,19 @@ class FingerprintRule:
         for matcher in self.matchers:
             if isinstance(matcher, (CallerMatcher, CalleeMatcher)):
                 has_sibling_matchers = True
-            matchers_by_match_type.setdefault(matcher.match_type, []).append(matcher)
+                # Only add frame-related matchers to the dict for sibling matching
+                matchers_by_match_type.setdefault("frames", []).append(matcher)
+            else:
+                matchers_by_match_type.setdefault(matcher.match_type, []).append(matcher)
 
         # If we have sibling matchers, we need to match against frame sequences
         if has_sibling_matchers:
             return self._test_with_frame_context(event_datastore, matchers_by_match_type)
 
-        # Original logic for simple matchers
+        # Original logic for simple matchers (no CallerMatcher/CalleeMatcher here)
         for match_type, matchers in matchers_by_match_type.items():
             for event_values in event_datastore.get_values(match_type):
-                if all(matcher.matches(event_values) for matcher in matchers):
+                if all(matcher.matches(event_values) for matcher in matchers):  # type: ignore[call-arg]
                     break
             else:
                 return None
@@ -94,7 +97,12 @@ class FingerprintRule:
         for match_type, matchers in matchers_by_match_type.items():
             if match_type != "frames":
                 for event_values in event_datastore.get_values(match_type):
-                    if all(matcher.matches(event_values) for matcher in matchers):
+                    # These are all FingerprintMatcher instances
+                    if all(
+                        m.matches(event_values)
+                        for m in matchers
+                        if isinstance(m, FingerprintMatcher)
+                    ):
                         break
                 else:
                     return None

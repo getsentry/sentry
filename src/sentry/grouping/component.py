@@ -469,6 +469,7 @@ class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent
     id: str = "threads"
     key: str = "thread_stacktrace"
     frame_counts: Counter[str]
+    metadata: list[BaseGroupingComponent[str]]
 
     def __init__(
         self,
@@ -476,9 +477,20 @@ class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent
         hint: str | None = None,
         contributes: bool | None = None,
         frame_counts: Counter[str] | None = None,
+        metadata: list[BaseGroupingComponent[str]] | None = None,
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.frame_counts = frame_counts or Counter()
+        self.metadata = metadata or []
+
+    def get_hash_values(self) -> list[str]:
+        """Include both stacktrace values and metadata in hash calculation."""
+        hash_values = super().get_hash_values()
+        # Add metadata component hashes if they contribute
+        for meta in self.metadata:
+            if meta.contributes:
+                hash_values.extend(meta.get_hash_values())
+        return hash_values
 
 
 class CSPGroupingComponent(

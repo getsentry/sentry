@@ -22,6 +22,8 @@ from sentry.grouping.component import (
     NSErrorDomainGroupingComponent,
     NSErrorGroupingComponent,
     StacktraceGroupingComponent,
+    ThreadIdGroupingComponent,
+    ThreadNameGroupingComponent,
     ThreadsGroupingComponent,
 )
 from sentry.grouping.strategies.base import (
@@ -891,84 +893,49 @@ def _get_thread_components(
     thread = threads[0]
     stacktrace = thread.get("stacktrace")
 
-    # Collect optional thread metadata components
-    # These allow grouping by thread properties when enabled
-    from sentry.grouping.component import (
-        BaseGroupingComponent,
-        ThreadIdGroupingComponent,
-        ThreadNameGroupingComponent,
-    )
-
-    thread_metadata_components: list[BaseGroupingComponent[str]] = []
-
     # Check if config enables thread metadata in grouping via initial_context
     include_thread_name = context.get("include_thread_name_in_grouping", False)
     include_thread_id = context.get("include_thread_id_in_grouping", False)
 
+    # Collect thread metadata components
+    thread_metadata = []
     if include_thread_name and thread.get("name"):
-        thread_metadata_components.append(
+        thread_metadata.append(
             ThreadNameGroupingComponent(
-                values=[thread["name"]], contributes=True, hint="thread name included in grouping"
+                values=[thread["name"]],
+                contributes=True,
+                hint="thread name included in grouping",
             )
         )
 
     if include_thread_id and thread.get("id"):
-        thread_metadata_components.append(
+        thread_metadata.append(
             ThreadIdGroupingComponent(
-                values=[str(thread["id"])], contributes=True, hint="thread id included in grouping"
+                values=[str(thread["id"])],
+                contributes=True,
+                hint="thread id included in grouping",
             )
         )
 
-    # If no stacktrace, check if we can group by thread metadata alone
+    # If no stacktrace, return early (thread metadata can't group without frames)
     if not stacktrace:
-        if thread_metadata_components:
-            from sentry.grouping.component import StacktraceGroupingComponent
-
-            # Group by thread metadata when stacktrace is unavailable
-            # Wrap metadata in a StacktraceGroupingComponent for type compatibility
-            metadata_stacktrace = StacktraceGroupingComponent(
-                values=thread_metadata_components,
-                contributes=True,
-                hint="no stacktrace available, using thread metadata",
-            )
-            return {
-                "app": ThreadsGroupingComponent(
-                    values=[metadata_stacktrace],
-                    contributes=True,
-                    hint="no stacktrace available, grouping by thread metadata",
-                )
-            }
-        # No stacktrace and no metadata = can't group
         return {
             "app": ThreadsGroupingComponent(
                 contributes=False, hint="ignored because thread has no stacktrace"
             )
         }
 
-    # Build components with stacktrace + optional thread metadata
+    # Build stacktrace components for each variant with thread metadata
     thread_components_by_variant = {}
 
     for variant_name, stacktrace_component in context.get_grouping_components_by_variant(
         stacktrace, event=event, **kwargs
     ).items():
-        # If we have thread metadata, wrap the stacktrace component to include it
-        if thread_metadata_components:
-            from sentry.grouping.component import StacktraceGroupingComponent
-
-            # Create a new stacktrace component that includes thread metadata
-            enhanced_stacktrace = StacktraceGroupingComponent(
-                values=list(stacktrace_component.values) + thread_metadata_components,
-                contributes=stacktrace_component.contributes,
-                hint=stacktrace_component.hint,
-            )
-            thread_components_by_variant[variant_name] = ThreadsGroupingComponent(
-                values=[enhanced_stacktrace], frame_counts=stacktrace_component.frame_counts
-            )
-        else:
-            # No thread metadata, just use the stacktrace as-is
-            thread_components_by_variant[variant_name] = ThreadsGroupingComponent(
-                values=[stacktrace_component], frame_counts=stacktrace_component.frame_counts
-            )
+        thread_components_by_variant[variant_name] = ThreadsGroupingComponent(
+            values=[stacktrace_component],
+            frame_counts=stacktrace_component.frame_counts,
+            metadata=thread_metadata,
+        )
 
     return thread_components_by_variant
 
