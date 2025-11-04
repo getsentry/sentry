@@ -11,8 +11,9 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
-  useQueryParamsSearch,
+  useQueryParamsQuery,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {
@@ -27,7 +28,7 @@ interface UseMetricSamplesTableOptions {
   enabled: boolean;
   fields: string[];
   limit: number;
-  metricName: string;
+  traceMetric: TraceMetric;
   ingestionDelaySeconds?: number;
   queryExtras?: RPCQueryExtras;
 }
@@ -41,7 +42,7 @@ interface MetricSamplesTableResult {
 export function useMetricSamplesTable({
   enabled,
   limit,
-  metricName,
+  traceMetric,
   fields,
   ingestionDelaySeconds,
   queryExtras,
@@ -60,10 +61,13 @@ export function useMetricSamplesTable({
     queryHookArgs: {
       enabled,
       limit,
-      metricName,
+      traceMetric,
       fields,
       ingestionDelaySeconds,
-      queryExtras,
+      queryExtras: {
+        ...queryExtras,
+        traceMetric,
+      },
     },
     queryOptions: {
       canTriggerHighAccuracy,
@@ -74,22 +78,14 @@ export function useMetricSamplesTable({
 function useMetricSamplesTableImpl({
   enabled,
   limit,
-  metricName,
+  traceMetric,
   fields,
   ingestionDelaySeconds = INGESTION_DELAY,
   queryExtras,
 }: UseMetricSamplesTableOptions): MetricSamplesTableResult {
   const {selection} = usePageFilters();
-  const searchQuery = useQueryParamsSearch();
+  const query = useQueryParamsQuery();
   const sortBys = useQueryParamsSortBys();
-
-  const query = useMemo(() => {
-    const baseQuery = `metric.name:${metricName}`;
-    if (!searchQuery.isEmpty()) {
-      return `${baseQuery} (${searchQuery.formatString()})`;
-    }
-    return baseQuery;
-  }, [metricName, searchQuery]);
 
   // Calculate adjusted datetime values with ingestion delay applied
   // This is memoized separately to prevent recalculating on every render
@@ -133,7 +129,7 @@ function useMetricSamplesTableImpl({
   }, [fields, query, selection, adjustedDatetime, sortBys]);
 
   const result = useSpansQuery({
-    enabled: enabled && Boolean(metricName),
+    enabled: enabled && Boolean(traceMetric.name),
     eventView,
     initialData: [],
     limit,

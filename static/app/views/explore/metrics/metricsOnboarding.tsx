@@ -35,10 +35,10 @@ import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {ExploreBodySearch} from 'sentry/views/explore/components/styles';
 import {
   FilterBarContainer,
   StyledPageFilterBar,
-  TopSectionBody,
 } from 'sentry/views/explore/metrics/styles';
 import type {PickableDays} from 'sentry/views/explore/utils';
 
@@ -396,7 +396,7 @@ export function MetricsTabOnboarding({
   relativeOptions,
 }: MetricsTabOnboardingProps) {
   return (
-    <TopSectionBody noRowGap>
+    <ExploreBodySearch>
       <Layout.Main width="full">
         <FilterBarContainer>
           <StyledPageFilterBar condensed>
@@ -411,6 +411,6 @@ export function MetricsTabOnboarding({
         </FilterBarContainer>
         <Onboarding project={project} organization={organization} />
       </Layout.Main>
-    </TopSectionBody>
+    </ExploreBodySearch>
   );
 }

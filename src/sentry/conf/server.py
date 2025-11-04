@@ -11,7 +11,7 @@ import socket
 import sys
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, Union, overload
+from typing import Any, Final, Literal, Union, cast, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -900,7 +900,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
-    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.groupowner",
     "sentry.tasks.llm_issue_detection",
     "sentry.tasks.merge",
@@ -922,6 +921,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
     "sentry.tasks.user_report",
+    "sentry.tasks.web_vitals_issue_detection",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
     "sentry.uptime.autodetect.tasks",
@@ -1117,6 +1117,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
         "schedule": task_crontab("0", "*", "*", "*", "*"),
+    },
+    "web-vitals-issue-detection": {
+        "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
+        "schedule": task_crontab("0", "0", "*", "1,15", "*"),
     },
 }
 
@@ -3116,6 +3120,11 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 # of Codecov.
 # Stage: "https://stage-api.codecov.dev/"
 CODECOV_API_BASE_URL = "https://api.codecov.io"
+
+OVERWATCH_REGION_URLS: dict[str, str] = cast(
+    dict[str, str], env("OVERWATCH_REGION_URLS", {}, type=env_types.Dict)
+)
+OVERWATCH_WEBHOOK_SECRET: str | None = os.getenv("OVERWATCH_WEBHOOK_SECRET")
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
