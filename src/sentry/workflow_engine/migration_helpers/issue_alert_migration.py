@@ -36,7 +36,6 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 logger = logging.getLogger(__name__)
 
 SKIPPED_CONDITIONS = [Condition.EVERY_EVENT]
-VALID_DEFAULT_DETECTOR_TYPES = [ErrorGroupType.slug, IssueStreamGroupType.slug]
 
 
 class IssueAlertMigrator:
@@ -75,7 +74,7 @@ class IssueAlertMigrator:
 
         return workflow
 
-    def _create_detector_lookups(self) -> tuple[Detector | None, Detector | None]:
+    def _create_detector_lookups(self) -> list[Detector | None]:
         if self.rule.source == RuleSource.CRON_MONITOR:
             return None, None
 

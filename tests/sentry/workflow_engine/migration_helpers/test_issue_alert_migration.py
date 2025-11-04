@@ -176,8 +176,8 @@ class IssueAlertMigratorTest(TestCase):
         assert workflow.date_added == issue_alert.date_added
         assert workflow.enabled == is_enabled
 
-        error_detector = self.assert_error_detector_migrated(issue_alert, workflow)
-        self.assert_issue_stream_detector_migrated(error_detector.project_id, workflow)
+        self.assert_error_detector_migrated(issue_alert, workflow)
+        self.assert_issue_stream_detector_migrated(self.project.id, workflow)
 
         assert workflow.when_condition_group
         assert workflow.when_condition_group.logic_type == logic_type
@@ -362,8 +362,8 @@ class IssueAlertMigratorTest(TestCase):
 
         # does not create a new error detector
 
-        detector = Detector.objects.get(project_id=self.project.id, type=ErrorGroupType.slug)
-        assert detector.id == project_detector.id
+        error_detector = Detector.objects.get(project_id=self.project.id, type=ErrorGroupType.slug)
+        assert error_detector.id == project_detector.id
 
         issue_stream_detector = Detector.objects.get(
             project_id=self.project.id, type=IssueStreamGroupType.slug
