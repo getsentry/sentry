@@ -14,7 +14,6 @@ describe('PlanFeatures', () => {
 
     expect(screen.getByText('MONITORING & DATA')).toBeInTheDocument();
     expect(screen.getByText('EXPANSION PACK')).toBeInTheDocument();
-    expect(screen.getByText(/Excess usage for/)).toBeInTheDocument();
     expect(screen.getAllByText(/on Business only/).length).toBeGreaterThan(0);
   });
 
@@ -23,7 +22,6 @@ describe('PlanFeatures', () => {
 
     expect(screen.getByText('MONITORING & DATA')).toBeInTheDocument();
     expect(screen.getByText('EXPANSION PACK')).toBeInTheDocument();
-    expect(screen.getByText(/Excess usage for/)).toBeInTheDocument();
     expect(screen.queryByText(/on Business only/)).not.toBeInTheDocument();
   });
 });
