@@ -665,14 +665,14 @@ def test_thread_matchers_negation() -> None:
     assert match is not None
     assert match.fingerprint == ["not-crashed"]
 
-    # Event without MainThread
+    # Event without MainThread but with crashed=True to avoid matching the first rule
     event_not_main = {
         "threads": {
             "values": [
                 {
                     "id": "2",
                     "name": "BackgroundThread",
-                    "crashed": False,
+                    "crashed": True,  # Must be crashed to not match first rule
                     "current": False,
                 }
             ]
