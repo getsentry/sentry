@@ -41,7 +41,7 @@ DEBOUNCE_PR_COMMENT_CACHE_KEY = lambda pullrequest_id: f"pr-comment-{pullrequest
 DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pullrequest_id}"
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
-
+TASK_DURATION_S = 90
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.process_commit_context",
     namespace=issues_tasks,
-    processing_deadline_duration=90,
+    processing_deadline_duration=TASK_DURATION_S,
     retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
 )
@@ -72,7 +72,9 @@ def process_commit_context(
     Will check if the suspect commit author can be auto-assigned.
     """
     lock = locks.get(
-        f"process-commit-context:{group_id}", duration=90, name="process_commit_context"
+        f"process-commit-context:{group_id}",
+        duration=TASK_DURATION_S,
+        name="process_commit_context",
     )
     try:
         with lock.acquire():
