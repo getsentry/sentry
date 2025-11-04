@@ -1,18 +1,15 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
-import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getVerifySnippet} from 'sentry/gettingStartedDocs/native/native/utils';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getConfigureSnippet = (params: Params) => `
+const getConfigureSnippet = (params: DocsParams) => `
 #include <sentry.h>
 
 int main(void) {
@@ -31,14 +28,7 @@ int main(void) {
   sentry_close();
 }`;
 
-const getVerifySnippet = () => `
-sentry_capture_event(sentry_value_new_message_event(
-  /*   level */ SENTRY_LEVEL_INFO,
-  /*  logger */ "custom",
-  /* message */ "It works!"
-));`;
-
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -119,10 +109,3 @@ const onboarding: OnboardingConfig = {
     ...([getConsoleExtensions(params)].filter(Boolean) as OnboardingStep[]),
   ],
 };
-
-const docs: Docs = {
-  onboarding,
-  crashReportOnboarding: CrashReportWebApiOnboarding,
-};
-
-export default docs;
