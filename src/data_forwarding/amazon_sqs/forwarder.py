@@ -121,7 +121,7 @@ class AmazonSQSForwarder(BaseDataForwarder):
                     Key=key,
                 )
 
-                url = f"https://{s3_bucket}.s3-{region}.amazonaws.com/{key}"
+                url = f"https://{s3_bucket}.s3.{region}.amazonaws.com/{key}"
                 payload = {"s3Url": url, "eventID": event.event_id}
 
             except ClientError as e:

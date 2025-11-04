@@ -139,3 +139,8 @@ class AmazonSQSDataForwarderTest(TestCase):
         message_body = orjson.loads(send_message_call["MessageBody"])
         assert "s3Url" in message_body
         assert message_body["eventID"] == event.event_id
+
+        # Verify S3 URL uses correct format with s3.{region} not s3-{region}
+        expected_url = f"https://my_bucket.s3.us-east-1.amazonaws.com/{expected_key}"
+        assert message_body["s3Url"] == expected_url
+        assert "s3-" not in message_body["s3Url"]
