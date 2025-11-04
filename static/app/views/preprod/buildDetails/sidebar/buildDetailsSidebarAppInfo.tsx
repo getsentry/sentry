@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import Feature from 'sentry/components/acl/feature';
 import {CodeBlock} from 'sentry/components/core/code';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
@@ -161,24 +162,28 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             </Text>
           </Flex>
         </Tooltip>
-        <Flex gap="2xs" align="center">
-          <InfoIcon>
-            <IconLink />
-          </InfoIcon>
-          <Text>
-            {props.projectId && props.appInfo.is_installable ? (
-              <InstallableLink
-                onClick={() => {
-                  openInstallModal(props.projectId!, props.artifactId);
-                }}
-              >
-                Installable
-              </InstallableLink>
-            ) : (
-              <Tooltip title={labels.installUnavailableTooltip}>Not Installable</Tooltip>
-            )}
-          </Text>
-        </Flex>
+        <Feature features="organizations:preprod-build-distribution">
+          <Flex gap="2xs" align="center">
+            <InfoIcon>
+              <IconLink />
+            </InfoIcon>
+            <Text>
+              {props.projectId && props.appInfo.is_installable ? (
+                <InstallableLink
+                  onClick={() => {
+                    openInstallModal(props.projectId!, props.artifactId);
+                  }}
+                >
+                  Installable
+                </InstallableLink>
+              ) : (
+                <Tooltip title={labels.installUnavailableTooltip}>
+                  Not Installable
+                </Tooltip>
+              )}
+            </Text>
+          </Flex>
+        </Feature>
         {props.appInfo.build_configuration && (
           <Tooltip title={labels.buildConfiguration}>
             <Flex gap="2xs" align="center">
