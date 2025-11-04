@@ -1,15 +1,10 @@
-import {
-  Link as RouterLink,
-  type LinkProps as ReactRouterLinkProps,
-} from 'react-router-dom';
+import {type LinkProps as ReactRouterLinkProps} from 'react-router-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
+import {useLinkBehavior} from './linkBehaviorContext';
 
 export interface LinkProps
   extends React.RefAttributes<HTMLAnchorElement>,
@@ -61,26 +56,19 @@ const getLinkStyles = ({
 `;
 
 const Anchor = styled('a', {
-  shouldForwardProp: prop =>
-    typeof prop === 'string' && isPropValid(prop) && prop !== 'disabled',
+  shouldForwardProp: prop => isPropValid(prop) && prop !== 'disabled',
 })<{disabled?: LinkProps['disabled']}>`
   ${getLinkStyles}
 `;
 
-/**
- * A context-aware version of Link (from react-router) that falls
- * back to <a> if there is no router present
- */
-export const Link = styled(({disabled, to, ...props}: LinkProps) => {
-  const location = useLocation();
+export const Link = styled((props: LinkProps) => {
+  const {Component, behavior} = useLinkBehavior(props);
 
-  if (disabled || !location) {
+  if (props.disabled || Component === 'a') {
     return <Anchor {...props} />;
   }
 
-  return (
-    <RouterLink to={locationDescriptorToTo(normalizeUrl(to, location))} {...props} />
-  );
+  return <Component {...behavior()} />;
 })`
   ${getLinkStyles}
 `;
