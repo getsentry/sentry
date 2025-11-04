@@ -30,8 +30,10 @@ line = _ (comment / rule / empty) newline?
 
 rule = _ matchers _ follow _ fingerprint
 
-matchers       = matcher+
-matcher        = _ negation? matcher_type sep argument
+matchers       = caller_matcher? frame_matcher+ callee_matcher?
+frame_matcher  = _ negation? matcher_type sep argument
+caller_matcher = _ "[" _ frame_matcher _ "]" _ "|"
+callee_matcher = _ "|" _ "[" _ frame_matcher _ "]"
 matcher_type   = key / quoted_key
 argument       = quoted / unquoted
 
@@ -93,10 +95,48 @@ class FingerprintingVisitor(NodeVisitor[list[FingerprintRule]]):
             object, list[FingerprintMatcher], object, object, object, FingerprintWithAttributes
         ],
     ) -> FingerprintRule:
-        _, matcher, _, _, _, (fingerprint, attributes) = children
-        return FingerprintRule(matcher, fingerprint, attributes)
+        _, matchers, _, _, _, (fingerprint, attributes) = children
+        return FingerprintRule(matchers, fingerprint, attributes)
 
-    def visit_matcher(
+    def visit_matchers(
+        self,
+        _: object,
+        children: tuple[
+            list[FingerprintMatcher] | None,
+            list[FingerprintMatcher],
+            list[FingerprintMatcher] | None,
+        ],
+    ) -> list[FingerprintMatcher]:
+        caller_matcher, frame_matchers, callee_matcher = children
+        result = []
+        if caller_matcher:
+            result.extend(caller_matcher)
+        result.extend(frame_matchers)
+        if callee_matcher:
+            result.extend(callee_matcher)
+        return result
+
+    def visit_caller_matcher(
+        self,
+        _: object,
+        children: tuple[object, object, object, FingerprintMatcher, object, object, object, object],
+    ) -> list[FingerprintMatcher]:
+        from sentry.grouping.fingerprinting.matchers import CallerMatcher
+
+        _, _, _, frame_matcher, _, _, _, _ = children
+        return [CallerMatcher(frame_matcher)]
+
+    def visit_callee_matcher(
+        self,
+        _: object,
+        children: tuple[object, object, object, object, object, FingerprintMatcher, object, object],
+    ) -> list[FingerprintMatcher]:
+        from sentry.grouping.fingerprinting.matchers import CalleeMatcher
+
+        _, _, _, _, _, frame_matcher, _, _ = children
+        return [CalleeMatcher(frame_matcher)]
+
+    def visit_frame_matcher(
         self, _: object, children: tuple[object, list[str], str, object, str]
     ) -> FingerprintMatcher:
         _, negation, key, _, pattern = children
