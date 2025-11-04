@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import orjson
-from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,13 +13,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
-from sentry.net.http import connection_from_url
+from sentry.seer.explorer.client import get_seer_runs
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 logger = logging.getLogger(__name__)
-
-autofix_connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
 
 
 class OrganizationSeerExplorerRunsPermission(OrganizationPermission):
@@ -59,22 +54,14 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
             )
 
         def make_seer_runs_request(offset: int, limit: int) -> dict[str, Any]:
-            path = "/v1/automation/explorer/runs"
-            body = orjson.dumps(
-                {
-                    "organization_id": organization.id,
-                    "user_id": request.user.id,
-                    "offset": offset,
-                    "limit": limit,
-                },
-                option=orjson.OPT_NON_STR_KEYS,
+            runs = get_seer_runs(
+                organization=organization,
+                user=request.user,
+                offset=offset,
+                limit=limit,
             )
 
-            response = make_signed_seer_api_request(autofix_connection_pool, path, body)
-            if response.status < 200 or response.status >= 300:
-                raise Exception(f"Seer explorer runs endpoint failed with status {response.status}")
-
-            return response.json()
+            return {"data": [run.dict() for run in runs]}
 
         return self.paginate(
             request=request,
