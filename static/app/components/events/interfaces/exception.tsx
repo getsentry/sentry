@@ -66,6 +66,7 @@ export function Exception({
         title={t('Stack Trace')}
         type={EntryType.EXCEPTION}
         projectSlug={projectSlug}
+        event={event}
         eventId={event.id}
         platform={event.platform ?? 'other'}
         hasMinified={!!data.values?.some(value => value.rawStacktrace)}
