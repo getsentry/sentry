@@ -6,7 +6,7 @@ from typing import Any
 import orjson
 import requests
 from django.conf import settings
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -17,9 +17,41 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
+from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 
 logger = logging.getLogger(__name__)
+
+
+class SearchAgentTranslateSerializer(serializers.Serializer):
+    project_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=True,
+        allow_empty=False,
+        help_text="List of project IDs to search in.",
+    )
+    natural_language_query = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        help_text="Natural language query to translate.",
+    )
+    strategy = serializers.CharField(
+        required=False,
+        default="Traces",
+        help_text="Search strategy to use.",
+    )
+    options = serializers.DictField(
+        required=False,
+        allow_null=True,
+        help_text="Optional configuration options.",
+    )
+
+    def validate_options(self, value: dict[str, Any] | None) -> dict[str, Any] | None:
+        if value is None:
+            return None
+        if "model_name" in value and not isinstance(value["model_name"], str):
+            raise serializers.ValidationError("model_name must be a string")
+        return value
 
 
 def send_translate_agentic_request(
@@ -79,36 +111,31 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         """
         Request to translate a natural language query using the agentic search API.
         """
-        raw_project_ids = request.data.get("project_ids", [])
-        natural_language_query = request.data.get("natural_language_query")
-        strategy = request.data.get("strategy", "Traces")
-        model_name = request.data.get("options", {}).get("model_name")
+        serializer = SearchAgentTranslateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        if len(raw_project_ids) == 0 or not natural_language_query:
-            return Response(
-                {
-                    "detail": "Missing one or more required parameters: project_ids, natural_language_query"
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        validated_data = serializer.validated_data
+        raw_project_ids = validated_data["project_ids"]
+        natural_language_query = validated_data["natural_language_query"]
+        strategy = validated_data.get("strategy", "Traces")
+        options = validated_data.get("options") or {}
+        model_name = options.get("model_name")
 
         project_ids_set = {int(x) for x in raw_project_ids}
         projects = self.get_projects(request, organization, project_ids=project_ids_set)
         project_ids = [project.id for project in projects]
 
-        if organization.get_option("sentry:hide_ai_features", False):
+        if not features.has("organizations:seer-explorer", organization, actor=request.user):
             return Response(
-                {"detail": "AI features are disabled for this organization."},
+                {"detail": "Feature flag not enabled"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if not features.has(
-            "organizations:seer-explorer", organization=organization, actor=request.user
-        ) or not features.has(
-            "organizations:gen-ai-features", organization=organization, actor=request.user
-        ):
+        has_seer_access, detail = has_seer_access_with_detail(organization, actor=request.user)
+        if not has_seer_access:
             return Response(
-                {"detail": "Organization does not have access to this feature"},
+                {"detail": detail},
                 status=status.HTTP_403_FORBIDDEN,
             )
 

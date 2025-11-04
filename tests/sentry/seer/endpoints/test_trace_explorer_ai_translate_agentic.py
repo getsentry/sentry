@@ -54,4 +54,5 @@ class SearchAgentTranslateEndpointTest(APITestCase):
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "Missing one or more required parameters" in response.data["detail"]
+        assert "project_ids" in response.data
+        assert "natural_language_query" in response.data
