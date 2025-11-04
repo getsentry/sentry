@@ -19,6 +19,7 @@ import {
 import {
   formattedDownloadSize,
   formattedInstallSize,
+  getLabels,
   getPlatformIconFromPlatform,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
@@ -32,7 +33,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   const {buildDetails, projectId} = props;
   const organization = useOrganization();
   const theme = useTheme();
-
+  const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
       to: '#',
@@ -95,18 +96,18 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
             </Tooltip>
           )}
           {isSizeInfoCompleted(buildDetails.size_info) && (
-            <Tooltip title={t('Install size')}>
+            <Tooltip title={labels.installSizeDescription}>
               <Flex gap="sm" align="center">
                 <IconCode size="sm" color="gray300" />
-                <Text>{formattedInstallSize(buildDetails)}</Text>
+                <Text underline="dotted">{formattedInstallSize(buildDetails)}</Text>
               </Flex>
             </Tooltip>
           )}
           {isSizeInfoCompleted(buildDetails.size_info) && (
-            <Tooltip title={t('Download size')}>
+            <Tooltip title={labels.downloadSizeDescription}>
               <Flex gap="sm" align="center">
                 <IconDownload size="sm" color="gray300" />
-                <Text>{formattedDownloadSize(buildDetails)}</Text>
+                <Text underline="dotted">{formattedDownloadSize(buildDetails)}</Text>
               </Flex>
             </Tooltip>
           )}
