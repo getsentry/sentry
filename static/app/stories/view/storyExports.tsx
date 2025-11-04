@@ -40,11 +40,11 @@ function StoryLayout() {
   const {story} = useStory();
   const [tab, setTab] = useQueryState(
     'tab',
-    parseAsString.withOptions({history: 'push'})
+    parseAsString.withOptions({history: 'push'}).withDefault('usage')
   );
 
   return (
-    <Tabs value={tab ?? 'usage'} onChange={setTab}>
+    <Tabs value={tab} onChange={setTab}>
       {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
         <StoryContainer>
