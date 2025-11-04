@@ -23,6 +23,8 @@ import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
+
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
@@ -41,8 +43,6 @@ import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
 import {initializeOrg} from './initializeOrg';
 import {SentryNuqsTestingAdapter} from './nuqsTestingAdapter';
-import {makeTestQueryClient} from './queryClient';
-import {ScrapsTestingProviders} from './scrapsTestingProviders';
 
 interface ProviderOptions {
   /**
@@ -218,11 +218,9 @@ function makeAllTheProviders(options: ProviderOptions) {
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
           <SentryNuqsTestingAdapter defaultOptions={{shallow: false}}>
-            <ScrapsTestingProviders>
-              <CommandPaletteProvider>
-                <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
-              </CommandPaletteProvider>
-            </ScrapsTestingProviders>
+            <CommandPaletteProvider>
+              <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
+            </CommandPaletteProvider>
           </SentryNuqsTestingAdapter>
         </QueryClientProvider>
       </CacheProvider>
