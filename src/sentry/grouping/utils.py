@@ -150,6 +150,43 @@ def resolve_fingerprint_variable(
             if tag_name == requested_tag and tag_value is not None:
                 return tag_value
         return "<no-value-for-tag-%s>" % requested_tag
+
+    elif variable_key in ("thread.name", "thread_name"):
+        # Get the crashed or current thread's name
+        threads = get_path(event_data, "threads", "values")
+        if threads:
+            # Prefer crashed thread, then current thread, then first thread
+            thread = next(
+                (t for t in threads if t.get("crashed")),
+                next((t for t in threads if t.get("current")), threads[0] if threads else None),
+            )
+            if thread and thread.get("name"):
+                return thread["name"]
+        return "<no-thread-name>"
+
+    elif variable_key in ("thread.id", "thread_id"):
+        # Get the crashed or current thread's id
+        threads = get_path(event_data, "threads", "values")
+        if threads:
+            thread = next(
+                (t for t in threads if t.get("crashed")),
+                next((t for t in threads if t.get("current")), threads[0] if threads else None),
+            )
+            if thread and thread.get("id"):
+                return str(thread["id"])
+        return "<no-thread-id>"
+
+    elif variable_key in ("thread.state", "thread_state"):
+        threads = get_path(event_data, "threads", "values")
+        if threads:
+            thread = next(
+                (t for t in threads if t.get("crashed")),
+                next((t for t in threads if t.get("current")), threads[0] if threads else None),
+            )
+            if thread and thread.get("state"):
+                return thread["state"]
+        return "<no-thread-state>"
+
     else:
         return None
 

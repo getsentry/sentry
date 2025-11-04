@@ -72,3 +72,17 @@ register_grouping_config(
     },
     enhancements_base="all-platforms:2025-11-21",
 )
+
+# Experimental config with thread-aware grouping
+THREAD_GROUPING_CONFIG = "newstyle:2025-with-threads"
+register_grouping_config(
+    id=THREAD_GROUPING_CONFIG,
+    base=FALL_2025_GROUPING_CONFIG,
+    initial_context={
+        # Enable thread metadata in automatic grouping
+        # When enabled, errors in different threads will create separate issues
+        "include_thread_name_in_grouping": True,
+        "include_thread_id_in_grouping": False,  # Usually name is more useful than id
+    },
+    enhancements_base="all-platforms:2025-11-21",
+)
