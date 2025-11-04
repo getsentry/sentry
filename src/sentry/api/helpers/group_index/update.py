@@ -207,11 +207,11 @@ def update_groups(
     res_type = None
     if "priority" in result:
         if any(
-            not get_group_type_by_type_id(group.type).enable_user_priority_changes
+            not get_group_type_by_type_id(group.type).enable_user_status_and_priority_changes
             for group in groups
         ):
             return Response(
-                {"detail": "Cannot manually set priority of a metric issue."},
+                {"detail": "Cannot manually set priority of one or more issues."},
                 status=HTTPStatus.BAD_REQUEST,
             )
 
@@ -448,7 +448,7 @@ def handle_resolve_in_release(
             continue
 
         # Users should only be able to manually resolve error issues
-        if not get_group_type_by_type_id(group.type).enable_user_priority_changes:
+        if not get_group_type_by_type_id(group.type).enable_user_status_and_priority_changes:
             continue
 
         with transaction.atomic(router.db_for_write(Group)):
