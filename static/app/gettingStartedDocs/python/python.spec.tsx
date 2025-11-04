@@ -111,4 +111,26 @@ describe('python onboarding docs', () => {
       screen.queryByText(textWithMarkupMatcher(/enable_logs=True,/))
     ).not.toBeInTheDocument();
   });
+
+  it('renders metrics configuration when metrics are selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.METRICS],
+    });
+
+    // Renders metrics verification steps
+    expect(
+      screen.getByText('You can send metrics to Sentry using the Sentry metrics APIs:')
+    ).toBeInTheDocument();
+  });
+
+  it('renders without metrics configuration when metrics are not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    // Does not render metrics verification steps
+    expect(
+      screen.queryByText('You can send metrics to Sentry using the Sentry metrics APIs:')
+    ).not.toBeInTheDocument();
+  });
 });

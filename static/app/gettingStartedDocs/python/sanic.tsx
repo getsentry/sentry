@@ -22,6 +22,7 @@ import {
   getPythonLogsOnboarding,
   getPythonMetricsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyMetricsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -109,6 +110,7 @@ async def hello_world(request):
     return text("Hello, world.")
         `,
         },
+        getVerifyMetricsContent(params),
         {
           type: 'text',
           text: tct(

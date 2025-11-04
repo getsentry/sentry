@@ -98,7 +98,7 @@ describe('serverless onboarding docs', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders with metrics', () => {
+  it('renders metrics configuration when metrics are selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.METRICS],
     });
@@ -109,7 +109,7 @@ describe('serverless onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders without metrics', () => {
+  it('renders without metrics configuration when metrics are not selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [],
     });

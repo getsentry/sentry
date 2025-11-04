@@ -16,6 +16,7 @@ import {
   getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
   getPythonMetricsOnboarding,
+  getVerifyMetricsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -144,7 +145,12 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: (params: Params) => [
+    {
+      type: StepType.VERIFY,
+      content: [getVerifyMetricsContent(params)],
+    },
+  ],
 };
 
 const logsOnboarding = getPythonLogsOnboarding();

@@ -22,6 +22,7 @@ import {
   getPythonLogsOnboarding,
   getPythonMetricsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyMetricsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -140,6 +141,7 @@ app = Starlette(routes=[
 ])
 `,
         },
+        getVerifyMetricsContent(params),
         {
           type: 'text',
           text: [

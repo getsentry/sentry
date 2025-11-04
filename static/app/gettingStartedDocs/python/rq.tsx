@@ -16,6 +16,7 @@ import {
   getPythonLogsOnboarding,
   getPythonMetricsOnboarding,
   getPythonProfilingOnboarding,
+  getVerifyMetricsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -223,6 +224,7 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        getVerifyMetricsContent(params),
         {
           type: 'text',
           text: [

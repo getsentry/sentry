@@ -4,6 +4,8 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs from './tornado';
 
 describe('tornado onboarding docs', () => {
@@ -80,5 +82,27 @@ describe('tornado onboarding docs', () => {
     );
     expect(lifecycleMatches.length).toBeGreaterThan(0);
     lifecycleMatches.forEach(match => expect(match).toBeInTheDocument());
+  });
+
+  it('renders metrics configuration when metrics are selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.METRICS],
+    });
+
+    // Renders metrics verification steps
+    expect(
+      screen.getByText('You can send metrics to Sentry using the Sentry metrics APIs:')
+    ).toBeInTheDocument();
+  });
+
+  it('renders without metrics configuration when metrics are not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    // Does not render metrics verification steps
+    expect(
+      screen.queryByText('You can send metrics to Sentry using the Sentry metrics APIs:')
+    ).not.toBeInTheDocument();
   });
 });
