@@ -1,5 +1,7 @@
 from collections.abc import Sequence
 
+from django.db import router, transaction
+
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.organizations.services.organization_actions.impl import (
@@ -67,6 +69,19 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         relations.append(ModelRelation(Workflow, {"organization_id": instance.id}))
 
         return relations
+
+    def delete_instance(self, instance: Organization) -> None:
+        from sentry.deletions.tasks.overwatch import notify_overwatch_organization_deleted
+
+        org_id = instance.id
+        org_slug = instance.slug
+
+        transaction.on_commit(
+            lambda: notify_overwatch_organization_deleted.delay(org_id, org_slug),
+            using=router.db_for_write(Organization),
+        )
+
+        super().delete_instance(instance)
 
     def mark_deletion_in_progress(self, instance_list: Sequence[Organization]) -> None:
         from sentry.models.organization import OrganizationStatus
