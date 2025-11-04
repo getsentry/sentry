@@ -41,7 +41,7 @@ export function OurlogsSection({
       source="state"
       freeze={traceId ? {traceId} : undefined}
     >
-      <LogsPageDataProvider>
+      <LogsPageDataProvider disabled={!traceId}>
         <OurlogsSectionContent event={event} group={group} project={project} />
       </LogsPageDataProvider>
     </LogsQueryParamsProvider>
@@ -80,7 +80,7 @@ function OurlogsSectionContent({
             source="state"
             freeze={traceId ? {traceId} : undefined}
           >
-            <LogsPageDataProvider>
+            <LogsPageDataProvider disabled={!traceId}>
               <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
                 <OurlogsDrawer
                   group={group}

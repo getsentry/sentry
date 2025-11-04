@@ -81,7 +81,7 @@ export default function LogsContent() {
           <Layout.Page>
             <LogsHeader />
             <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-              <LogsPageDataProvider>
+              <LogsPageDataProvider allowHighFidelity>
                 {defined(onboardingProject) ? (
                   <LogsTabOnboarding
                     organization={organization}
