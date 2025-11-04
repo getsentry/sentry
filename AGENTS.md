@@ -464,6 +464,50 @@ def my_function():
 4. Sanitize data before rendering
 5. Follow OWASP guidelines
 
+## Secure Code Practices
+
+### Preventing Indirect Object References (IDOR)
+
+**Indirect Object Reference** vulnerabilities occur when an attacker can access resources they shouldn't by manipulating IDs passed in requests. This is one of the most critical security issues in multi-tenant applications like Sentry.
+
+#### Core Principle: Always Scope Queries by Organization/Project
+
+When querying resources, ALWAYS include `organization_id` and/or `project_id` in your query filters. Never trust user-supplied IDs alone.
+
+```python
+# WRONG: Vulnerable to IDOR - user can access any resource by guessing IDs
+resource = Resource.objects.get(id=request.data["resource_id"])
+
+# RIGHT: Properly scoped to organization
+resource = Resource.objects.get(
+    id=request.data["resource_id"],
+    organization_id=organization.id
+)
+
+# RIGHT: Properly scoped to project
+resource = Resource.objects.get(
+    id=request.data["resource_id"],
+    project_id=project.id
+)
+```
+
+#### Project ID Handling: Use `self.get_projects()`
+
+When project IDs are passed in the request (query string or body), NEVER directly access or trust `request.data["project_id"]` or `request.GET["project_id"]`. Instead, use the endpoint's `self.get_projects()` method which performs proper permission checks.
+
+```python
+# WRONG: Direct access bypasses permission checks
+project_ids = request.data.get("project_id")
+projects = Project.objects.filter(id__in=project_ids)
+
+# RIGHT: Use self.get_projects() which validates permissions
+projects = self.get_projects(
+    request=request,
+    organization=organization,
+    project_ids=request.data.get("project_id")
+)
+```
+
 ## Debugging Tips
 
 1. Use `devservices serve` for full stack debugging
