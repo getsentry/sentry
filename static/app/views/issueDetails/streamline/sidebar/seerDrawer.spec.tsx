@@ -176,6 +176,48 @@ describe('SeerDrawer', () => {
     expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
   });
 
+  it('renders issue summary if consent flow is removed and there is no autofix quota', async () => {
+    const orgWithConsentFlowRemoved = OrganizationFixture({
+      hideAiFeatures: false,
+      features: ['seer-billing', 'gen-ai-features', 'gen-ai-consent-flow-removal'],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        integration: {ok: false, reason: null},
+        githubWriteIntegration: {ok: false, repos: []},
+        billing: {hasAutofixQuota: false},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization: orgWithConsentFlowRemoved,
+    });
+
+    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    // Issue summary fields are rendered
+    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(screen.getByText('Test trace')).toBeInTheDocument();
+    expect(screen.getByText('Test possible cause')).toBeInTheDocument();
+    expect(screen.getByText('Test headline')).toBeInTheDocument();
+
+    // Should display the seer purchase flow
+    expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
+  });
+
   it('renders initial state with Start Root Cause Analysis button', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
