@@ -158,7 +158,7 @@ def main() -> int:
             differences[i] = f"{COLOR_GREEN}{line}{COLOR_RESET}"
 
     if differences:
-        analyze_differences(differences)
+        return analyze_differences(differences)
     else:
         return 0
 
