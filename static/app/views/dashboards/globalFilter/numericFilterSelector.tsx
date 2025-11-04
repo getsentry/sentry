@@ -1,55 +1,74 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import {TermOperator} from 'sentry/components/searchSyntax/parser';
+import {
+  TermOperator,
+  Token,
+  type TokenResult,
+} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import type {GenericFilterSelectorProps} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
-import NumericFilterSelectorTrigger from 'sentry/views/dashboards/globalFilter/numericFilterSelectorTrigger';
+import {
+  BetweenFilterSelectorTrigger,
+  NumericFilterSelectorTrigger,
+} from 'sentry/views/dashboards/globalFilter/numericFilterSelectorTrigger';
 import {
   getFieldDefinitionForDataset,
   isValidNumericFilterValue,
   newNumericFilterQuery,
   parseFilterValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
+import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
-function NumericFilterSelector({
-  globalFilter,
-  onRemoveFilter,
-  onUpdateFilter,
-}: GenericFilterSelectorProps) {
-  // Parse global filter condition to retrieve initial state
-  const globalFilterTokens = useMemo(
-    () => parseFilterValue(globalFilter.value, globalFilter),
-    [globalFilter]
-  );
+type BetweenOperator = 'between';
+export type Operator = TermOperator | BetweenOperator;
 
-  const globalFilterToken = globalFilterTokens ? globalFilterTokens[0] : null;
+function getOperatorLabel(operator: Operator) {
+  if (operator === 'between') {
+    return t('between');
+  }
+  return OP_LABELS[operator];
+}
 
+interface NumericFilterState {
+  buildFilterQuery: () => string;
+  hasStagedChanges: boolean;
+  isValidValue: boolean;
+  operatorOptions: Array<SelectOption<Operator>>;
+  renderInputField: () => React.ReactNode;
+  renderSelectorTrigger: () => React.ReactNode;
+  resetValues: () => void;
+  setStagedOperator: (operator: TermOperator) => void;
+  setStagedValue: (value: string) => void;
+  stagedOperator: Operator;
+  stagedValue: string;
+}
+
+function useNativeOperatorFilter(
+  globalFilterToken: TokenResult<Token.FILTER>,
+  globalFilter: GlobalFilter
+): NumericFilterState {
   const {operator: globalFilterOperator, options} = useMemo(
     () =>
-      globalFilterToken
-        ? getOperatorInfo({
-            filterToken: globalFilterToken,
-            hasWildcardOperators: false,
-            fieldDefinition: getFieldDefinitionForDataset(
-              globalFilter.tag,
-              globalFilter.dataset
-            ),
-          })
-        : {
-            operator: TermOperator.EQUAL,
-            options: [],
-          },
+      getOperatorInfo({
+        filterToken: globalFilterToken,
+        hasWildcardOperators: false,
+        fieldDefinition: getFieldDefinitionForDataset(
+          globalFilter.tag,
+          globalFilter.dataset
+        ),
+      }),
     [globalFilterToken, globalFilter.tag, globalFilter.dataset]
   );
 
@@ -59,9 +78,188 @@ function NumericFilterSelector({
     globalFilterToken?.value?.text || ''
   );
 
+  const currentFilterToken = useMemo(() => {
+    const reconstructedQuery = `${globalFilter.tag.key}:${stagedFilterOperator}${stagedFilterValue}`;
+    const parsed = parseFilterValue(reconstructedQuery, globalFilter);
+    return parsed[0] || globalFilterToken;
+  }, [stagedFilterOperator, stagedFilterValue, globalFilter, globalFilterToken]);
+
   const hasStagedChanges =
     stagedFilterOperator !== globalFilterOperator ||
     stagedFilterValue !== globalFilterToken?.value?.text;
+
+  const renderInputField = () => {
+    return (
+      <Input
+        aria-label="Filter value"
+        value={stagedFilterValue}
+        onChange={e => {
+          setStagedFilterValue(e.target.value);
+        }}
+      />
+    );
+  };
+
+  const renderSelectorTrigger = () => {
+    return (
+      <NumericFilterSelectorTrigger
+        globalFilter={globalFilter}
+        globalFilterOperator={stagedFilterOperator}
+        globalFilterValue={stagedFilterValue}
+      />
+    );
+  };
+
+  const isValidValue = isValidNumericFilterValue(
+    stagedFilterValue,
+    currentFilterToken,
+    globalFilter
+  );
+
+  const buildFilterQuery = () => {
+    return newNumericFilterQuery(
+      stagedFilterValue,
+      stagedFilterOperator,
+      currentFilterToken,
+      globalFilter
+    );
+  };
+
+  const resetValues = () => {
+    setStagedFilterOperator(globalFilterOperator);
+    setStagedFilterValue(globalFilterToken?.value?.text || '');
+  };
+
+  return {
+    operatorOptions: options as Array<SelectOption<Operator>>,
+    stagedOperator: stagedFilterOperator,
+    setStagedOperator: setStagedFilterOperator,
+    stagedValue: stagedFilterValue,
+    setStagedValue: setStagedFilterValue,
+    resetValues,
+    hasStagedChanges,
+    renderInputField,
+    renderSelectorTrigger,
+    isValidValue,
+    buildFilterQuery,
+  };
+}
+
+function useBetweenOperatorFilter(
+  globalFilterTokens: [TokenResult<Token.FILTER>, TokenResult<Token.FILTER>],
+  globalFilter: GlobalFilter
+): NumericFilterState {
+  const lowerBound = useNativeOperatorFilter(globalFilterTokens[0], globalFilter);
+  const upperBound = useNativeOperatorFilter(globalFilterTokens[1], globalFilter);
+
+  const renderInputField = () => {
+    return (
+      <Flex gap="sm" align="center">
+        {lowerBound.renderInputField()}
+        <Text>{t('and')}</Text>
+        {upperBound.renderInputField()}
+      </Flex>
+    );
+  };
+
+  const renderSelectorTrigger = () => {
+    return (
+      <BetweenFilterSelectorTrigger
+        globalFilter={globalFilter}
+        lowerBound={lowerBound.stagedValue}
+        upperBound={upperBound.stagedValue}
+      />
+    );
+  };
+
+  const isValidValue = lowerBound.isValidValue && upperBound.isValidValue;
+
+  const resetValues = () => {
+    lowerBound.resetValues();
+    upperBound.resetValues();
+  };
+
+  return {
+    operatorOptions: [] as Array<SelectOption<Operator>>,
+    stagedOperator: 'between' as Operator,
+    setStagedOperator: () => {},
+    stagedValue: '',
+    setStagedValue: () => {},
+    resetValues,
+    hasStagedChanges: lowerBound.hasStagedChanges || upperBound.hasStagedChanges,
+    renderInputField,
+    renderSelectorTrigger,
+    isValidValue,
+    buildFilterQuery: () =>
+      lowerBound.buildFilterQuery() + ' ' + upperBound.buildFilterQuery(),
+  };
+}
+
+function NumericFilterSelector({
+  globalFilter,
+  onRemoveFilter,
+  onUpdateFilter,
+}: GenericFilterSelectorProps) {
+  const globalFilterTokens = useMemo(
+    () => parseFilterValue(globalFilter.value, globalFilter),
+    [globalFilter]
+  );
+
+  const isNativeOperator = globalFilterTokens.length === 1;
+  const [stagedIsNativeOperator, setStagedIsNativeOperator] = useState(isNativeOperator);
+
+  const nativeFilterToken = useMemo(() => {
+    if (isNativeOperator) {
+      return globalFilterTokens[0]!;
+    }
+    const tokens = parseFilterValue(`${globalFilter.tag.key}:<=100`, globalFilter);
+    return tokens[0]!;
+  }, [globalFilter, globalFilterTokens, isNativeOperator]);
+
+  const betweenFilterTokens = useMemo(() => {
+    if (!isNativeOperator) {
+      return globalFilterTokens;
+    }
+
+    return parseFilterValue(
+      `${globalFilter.tag.key}:>=0 ${globalFilter.tag.key}:<=100`,
+      globalFilter
+    );
+  }, [globalFilter, globalFilterTokens, isNativeOperator]);
+
+  const nativeFilter = useNativeOperatorFilter(nativeFilterToken, globalFilter);
+  const betweenFilter = useBetweenOperatorFilter(
+    betweenFilterTokens as [TokenResult<Token.FILTER>, TokenResult<Token.FILTER>],
+    globalFilter
+  );
+
+  const filter = stagedIsNativeOperator ? nativeFilter : betweenFilter;
+  const hasStagedChanges =
+    filter.hasStagedChanges || stagedIsNativeOperator !== isNativeOperator;
+
+  const operatorOptions = [
+    ...nativeFilter.operatorOptions,
+    {
+      textValue: 'between',
+      label: t('between'),
+      value: 'between' as Operator,
+    },
+  ];
+
+  const operatorItems = operatorOptions.map(option => ({
+    ...option,
+    key: option.value,
+    label: getOperatorLabel(option.value),
+    textValue: getOperatorLabel(option.value),
+    onClick: () => {
+      if (option.value === 'between') {
+        setStagedIsNativeOperator(false);
+      } else {
+        setStagedIsNativeOperator(true);
+        nativeFilter.setStagedOperator(option.value);
+      }
+    },
+  }));
 
   return (
     <CompactSelect
@@ -71,8 +269,8 @@ function NumericFilterSelector({
       hideOptions
       onChange={() => {}}
       onClose={() => {
-        setStagedFilterOperator(globalFilterOperator);
-        setStagedFilterValue(globalFilterToken?.value?.text || '');
+        filter.resetValues();
+        setStagedIsNativeOperator(isNativeOperator);
       }}
       menuTitle={t('%s Filter', getDatasetLabel(globalFilter.dataset))}
       menuHeaderTrailingItems={() => (
@@ -86,41 +284,22 @@ function NumericFilterSelector({
       )}
       menuBody={
         <MenuBodyWrap>
-          <Flex gap="xs">
+          <Flex gap="xs" direction="column">
             <DropdownMenu
               usePortal
               trigger={triggerProps => (
                 <StyledOperatorButton {...triggerProps}>
-                  {OP_LABELS[stagedFilterOperator]}
+                  {getOperatorLabel(filter.stagedOperator)}
                 </StyledOperatorButton>
               )}
-              items={options.map(option => ({
-                textValue: option.textValue,
-                label: option.label,
-                key: option.value,
-                onClick: () => {
-                  setStagedFilterOperator(option.value);
-                },
-              }))}
+              items={operatorItems}
             />
-            <Input
-              aria-label={t('Filter value')}
-              value={stagedFilterValue}
-              onChange={e => {
-                setStagedFilterValue(e.target.value);
-              }}
-            />
+            {filter.renderInputField()}
           </Flex>
         </MenuBodyWrap>
       }
       triggerProps={{
-        children: (
-          <NumericFilterSelectorTrigger
-            globalFilter={globalFilter}
-            globalFilterOperator={globalFilterOperator}
-            globalFilterValue={globalFilterToken?.value?.text || ''}
-          />
-        ),
+        children: filter.renderSelectorTrigger(),
       }}
       menuFooter={
         hasStagedChanges
@@ -133,25 +312,11 @@ function NumericFilterSelector({
                   <Button
                     size="xs"
                     priority="primary"
-                    disabled={
-                      !globalFilterToken ||
-                      !isValidNumericFilterValue(
-                        stagedFilterValue,
-                        globalFilterToken,
-                        globalFilter
-                      )
-                    }
+                    disabled={!filter.isValidValue}
                     onClick={() => {
-                      if (!globalFilterToken) return;
-                      const newFilterQuery = newNumericFilterQuery(
-                        stagedFilterValue,
-                        stagedFilterOperator,
-                        globalFilterToken,
-                        globalFilter
-                      );
                       onUpdateFilter({
                         ...globalFilter,
-                        value: newFilterQuery,
+                        value: filter.buildFilterQuery(),
                       });
                       closeOverlay();
                     }}
@@ -197,7 +362,8 @@ const FooterInnerWrap = styled('div')`
 `;
 
 const StyledOperatorButton = styled(Button)`
-  width: 40%;
+  width: 100%;
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const StyledButton = styled(Button)`
