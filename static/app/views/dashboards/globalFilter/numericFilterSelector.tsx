@@ -31,11 +31,13 @@ import {
 } from 'sentry/views/dashboards/globalFilter/utils';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
-type BetweenOperator = 'between';
-export type Operator = TermOperator | BetweenOperator;
+enum CustomOperator {
+  BETWEEN = 'between',
+}
+export type Operator = TermOperator | CustomOperator;
 
 function getOperatorLabel(operator: Operator) {
-  if (operator === 'between') {
+  if (operator === CustomOperator.BETWEEN) {
     return t('between');
   }
   return OP_LABELS[operator];
@@ -181,7 +183,7 @@ function useBetweenOperatorFilter(
 
   return {
     operatorOptions: [] as Array<SelectOption<Operator>>,
-    stagedOperator: 'between' as Operator,
+    stagedOperator: CustomOperator.BETWEEN,
     setStagedOperator: () => {},
     stagedValue: '',
     setStagedValue: () => {},
@@ -240,9 +242,7 @@ function NumericFilterSelector({
   const operatorOptions = [
     ...nativeFilter.operatorOptions,
     {
-      textValue: 'between',
-      label: t('between'),
-      value: 'between' as Operator,
+      value: CustomOperator.BETWEEN,
     },
   ];
 
@@ -252,7 +252,7 @@ function NumericFilterSelector({
     label: getOperatorLabel(option.value),
     textValue: getOperatorLabel(option.value),
     onClick: () => {
-      if (option.value === 'between') {
+      if (option.value === CustomOperator.BETWEEN) {
         setStagedIsNativeOperator(false);
       } else {
         setStagedIsNativeOperator(true);
