@@ -85,7 +85,7 @@ OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, Dec
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     namespace=telemetry_experience_tasks,
-    processing_deadline_duration=15 * 60 + 5,
+    processing_deadline_duration=20 * 60 + 5,
     retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
 )
@@ -142,12 +142,22 @@ def partition_by_measure(
     spans = []
     transactions = []
 
+    # Use batch feature flag check to avoid N+1 queries.
+    feature_results = features.batch_has_for_organizations(
+        "organizations:dynamic-sampling-spans", orgs
+    )
+    if feature_results is None:
+        metrics.incr("dynamic_sampling.partition_by_measure.transactions", amount=len(orgs))
+        logger.error("dynamic_sampling.partition_by_measure.features_none", extra={"orgs": orgs})
+        return {SamplingMeasure.TRANSACTIONS: [org.id for org in orgs]}
+
+    logger.info(
+        "dynamic_sampling.partition_by_measure.batched_feature_check",
+        extra={"feature_results": feature_results},
+    )
+
     for org in orgs:
-        # This is an N+1 query that fetches getsentry database models
-        # internally, but we cannot abstract over batches of feature flag
-        # handlers yet. Hence, we must fetch organizations and do individual
-        # feature checks per org.
-        if features.has("organizations:dynamic-sampling-spans", org):
+        if feature_results.get(f"organization:{org.id}"):
             spans.append(org.id)
         else:
             transactions.append(org.id)

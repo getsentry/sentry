@@ -17,6 +17,7 @@ import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
 import {AddIntegrationButton} from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
@@ -114,6 +115,9 @@ export default class InstalledIntegration extends Component<Props> {
     return (
       <Access access={['org:integrations']}>
         {({hasAccess}) => {
+          const superuser = isActiveSuperuser();
+          const canConfigure =
+            (hasAccess || superuser) && this.integrationStatus === 'active';
           const disableAction = !(hasAccess && this.integrationStatus === 'active');
           return (
             <Fragment>
@@ -122,7 +126,7 @@ export default class InstalledIntegration extends Component<Props> {
               </IntegrationItemBox>
               <div>
                 <Tooltip
-                  disabled={allowMemberConfiguration || hasAccess}
+                  disabled={allowMemberConfiguration || hasAccess || superuser}
                   position="left"
                   title={t(
                     'You must be an organization owner, manager or admin to configure'
@@ -148,7 +152,7 @@ export default class InstalledIntegration extends Component<Props> {
                   <StyledLinkButton
                     borderless
                     icon={<IconSettings />}
-                    disabled={!allowMemberConfiguration && disableAction}
+                    disabled={!allowMemberConfiguration && !canConfigure}
                     to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
                     data-test-id="integration-configure-button"
                   >

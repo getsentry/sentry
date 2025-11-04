@@ -1917,6 +1917,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     desc: t('The detector that triggered the issue'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.ERROR_HANDLED]: {
     desc: t('Determines handling status of the error'),
@@ -2086,6 +2087,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     desc: t('Status of the issue'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.TIMES_SEEN]: {
     desc: t('Total number of events'),
@@ -2143,6 +2145,7 @@ const DEVICE_FIELD_DEFINITION: Record<DeviceFieldKey, FieldDefinition> = {
     desc: t('The estimated performance level of the device, graded low, medium, or high'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [FieldKey.DEVICE_FAMILY]: {
     desc: t('Model name across generations'),
@@ -2487,6 +2490,10 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
 
 const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   ...LOG_AGGREGATION_FIELDS,
+};
+
+const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
+  // TODO: Add field definitions for tracemetric fields
 };
 
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
@@ -3302,6 +3309,24 @@ export const getFieldDefinition = (
       if (LOG_FIELD_DEFINITIONS.hasOwnProperty(key)) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return LOG_FIELD_DEFINITIONS[key];
+      }
+
+      // In EAP we have numeric tags that can be passed as parameters to
+      // aggregate functions. We assign value type based on kind, so that we can filter
+      // on them when suggesting function parameters.
+      if (kind === FieldKind.MEASUREMENT) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
+      }
+
+      if (kind === FieldKind.TAG) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
+      }
+      return null;
+
+    case 'tracemetric':
+      if (TRACEMETRIC_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        return TRACEMETRIC_FIELD_DEFINITIONS[key];
       }
 
       // In EAP we have numeric tags that can be passed as parameters to

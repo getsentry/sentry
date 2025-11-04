@@ -40,6 +40,7 @@ def _collect_user_org_context(request: Request, organization: Organization) -> d
     if isinstance(user, AnonymousUser):
         return {
             "org_slug": organization.slug,
+            "user_id": None,
             "user_name": None,
             "user_email": None,
             "user_teams": [],
@@ -62,6 +63,7 @@ def _collect_user_org_context(request: Request, organization: Organization) -> d
 
     return {
         "org_slug": organization.slug,
+        "user_id": user.id,
         "user_name": user.name,
         "user_email": user.email,
         "user_teams": user_teams,
@@ -201,7 +203,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             return Response(
                 {"detail": "AI features are disabled for this organization."}, status=403
             )
-        if not get_seer_org_acknowledgement(organization.id):
+        if not get_seer_org_acknowledgement(organization):
             return Response(
                 {"detail": "Seer has not been acknowledged by the organization."}, status=403
             )
@@ -242,7 +244,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             return Response(
                 {"detail": "AI features are disabled for this organization."}, status=403
             )
-        if not get_seer_org_acknowledgement(organization.id):
+        if not get_seer_org_acknowledgement(organization):
             return Response(
                 {"detail": "Seer has not been acknowledged by the organization."}, status=403
             )

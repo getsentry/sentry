@@ -15,16 +15,15 @@ import type {
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  DocsPageLocation,
-  ProductSolution,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
-import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
+import {mcpMonitoringPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -48,7 +47,7 @@ function useOnboardingProject() {
     projects
   );
   const mcpMonitoringProjects = selectedProject.filter(p =>
-    agentMonitoringPlatforms.has(p.platform as PlatformKey)
+    mcpMonitoringPlatforms.has(p.platform as PlatformKey)
   );
 
   if (mcpMonitoringProjects.length > 0) {
@@ -211,6 +210,23 @@ export function Onboarding() {
     projSlug: project?.slug,
   });
 
+  // Local integration options for MCP monitoring only
+  const isPythonPlatform = (project?.platform ?? '').startsWith('python');
+  const integrationOptions = {
+    integration: {
+      label: t('Integration'),
+      items: isPythonPlatform
+        ? [
+            {label: 'FastMCP', value: 'mcp_fastmcp'},
+            {label: 'Low-level', value: 'mcp_lowlevel'},
+            {label: 'Manual', value: 'manual'},
+          ]
+        : [{label: 'MCP SDK', value: 'mcp_sdk'}],
+    },
+  };
+
+  const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
+
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
@@ -218,7 +234,7 @@ export function Onboarding() {
     return <div>{t('No project found')}</div>;
   }
 
-  if (!agentMonitoringPlatforms.has(project.platform as PlatformKey)) {
+  if (!mcpMonitoringPlatforms.has(project.platform as PlatformKey)) {
     return (
       <OnboardingPanel project={project}>
         <DescriptionWrapper>
@@ -275,6 +291,7 @@ export function Onboarding() {
     project,
     isLogsSelected: false,
     isFeedbackSelected: false,
+    isMetricsSelected: false,
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,
@@ -282,7 +299,7 @@ export function Onboarding() {
       isLoading: isLoadingRegistry,
       data: registryData,
     },
-    platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
+    platformOptions: selectedPlatformOptions,
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     newOrg: false,
     urlPrefix,
@@ -300,6 +317,9 @@ export function Onboarding() {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
+      <OptionsWrapper>
+        <PlatformOptionDropdown platformOptions={integrationOptions} />
+      </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <GuidedSteps>
         {steps
@@ -327,17 +347,17 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   display: flex;
   align-items: center;
   position: relative;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   z-index: 10;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-grow: 1;
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.pink400};
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
 `;
 
 const PulseSpacer = styled('div')`
-  height: ${space(4)};
+  height: ${p => p.theme.space['3xl']};
 `;
 
 const PulsingIndicator = styled('div')`
@@ -346,7 +366,7 @@ const PulsingIndicator = styled('div')`
 `;
 
 const SubTitle = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Title = styled('div')`
@@ -357,19 +377,19 @@ const Title = styled('div')`
 const BulletList = styled('ul')`
   list-style-type: disc;
   padding-left: 20px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   li {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: $${p => p.theme.space['2xl']};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const HeaderText = styled('div')`
@@ -381,7 +401,7 @@ const HeaderText = styled('div')`
 `;
 
 const Setup = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')`
@@ -398,7 +418,7 @@ const Body = styled('div')`
 const BodyTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Image = styled('img')`
@@ -422,13 +442,13 @@ const Divider = styled('hr')`
 `;
 
 const Preview = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
   height: 522px;
   border: 0;
 `;
@@ -458,4 +478,12 @@ const DescriptionWrapper = styled('div')`
       margin-bottom: ${CONTENT_SPACING};
     }
   }
+`;
+
+const OptionsWrapper = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.md};
+  align-items: center;
+  flex-wrap: wrap;
+  padding-bottom: ${p => p.theme.space.md};
 `;

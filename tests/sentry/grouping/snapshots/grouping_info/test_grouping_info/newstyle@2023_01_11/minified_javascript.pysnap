@@ -1,10 +1,10 @@
 ---
-created: '2025-10-07T22:42:56.578006+00:00'
+created: '2025-10-30T17:09:44.932547+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app_exception_type": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because system exception takes precedence",
@@ -17,6 +17,22 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "NS_ERROR_NOT_INITIALIZED"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": null,
+              "id": "value",
+              "name": null,
+              "values": []
+            },
             {
               "contributes": false,
               "hint": "ignored because it contains no in-app frames",
@@ -992,22 +1008,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "NS_ERROR_NOT_INITIALIZED"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": []
             }
           ]
         }
@@ -1034,10 +1034,10 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "exception type",
+    "description": "exception stacktrace — in-app frames",
     "hash": null,
     "hint": "ignored because system exception takes precedence",
-    "key": "app_exception_type",
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
   "system_exception_stacktrace": {
@@ -1053,6 +1053,22 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "NS_ERROR_NOT_INITIALIZED"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": null,
+              "id": "value",
+              "name": null,
+              "values": []
+            },
             {
               "contributes": true,
               "hint": null,
@@ -2028,22 +2044,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "NS_ERROR_NOT_INITIALIZED"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": []
             }
           ]
         }

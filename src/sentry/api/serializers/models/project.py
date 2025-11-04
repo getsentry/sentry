@@ -63,6 +63,7 @@ STATUS_LABELS = {
 }
 
 STATS_PERIOD_CHOICES = {
+    "90d": StatsPeriod(90, timedelta(days=1)),
     "30d": StatsPeriod(30, timedelta(hours=24)),
     "14d": StatsPeriod(14, timedelta(hours=24)),
     "7d": StatsPeriod(7, timedelta(hours=24)),
@@ -257,6 +258,14 @@ def get_has_logs(project: Project) -> bool:
     return True
 
 
+# Determines hasTraceMetrics based on SENTRY_MODE for SAAS use flags, otherwise (single tenant and self hosted) skip onboarding
+# This is because has_trace_metrics is currently set via the outcomes consumer, which doesn't run in all envs.
+def get_has_trace_metrics(project: Project) -> bool:
+    if settings.SENTRY_MODE == SentryMode.SAAS:
+        return bool(project.flags.has_trace_metrics)
+    return True
+
+
 class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
     stats: Any
     transactionStats: Any
@@ -296,6 +305,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasInsightsAgentMonitoring: bool
     hasInsightsMCP: bool
     hasLogs: bool
+    hasTraceMetrics: bool
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
@@ -566,6 +576,7 @@ class ProjectSerializer(Serializer):
             "hasInsightsAgentMonitoring": bool(obj.flags.has_insights_agent_monitoring),
             "hasInsightsMCP": bool(obj.flags.has_insights_mcp),
             "hasLogs": get_has_logs(obj),
+            "hasTraceMetrics": get_has_trace_metrics(obj),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
             # Projects don't have avatar uploads, but we need to maintain the payload shape for
@@ -803,6 +814,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasInsightsAgentMonitoring=bool(obj.flags.has_insights_agent_monitoring),
             hasInsightsMCP=bool(obj.flags.has_insights_mcp),
             hasLogs=get_has_logs(obj),
+            hasTraceMetrics=get_has_trace_metrics(obj),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
@@ -1142,6 +1154,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
             f"filters:{FilterTypes.LOG_MESSAGES}": "\n".join(
                 options.get(f"sentry:{FilterTypes.LOG_MESSAGES}", [])
+            ),
+            f"filters:{FilterTypes.TRACE_METRIC_NAMES}": "\n".join(
+                options.get(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}", [])
             ),
             "feedback:branding": options.get("feedback:branding", "1") == "1",
             "sentry:feedback_user_report_notifications": bool(

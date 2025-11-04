@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -35,8 +35,8 @@ export function AppSizeInsightsSidebar({
     size: width,
   } = useResizableDrawer({
     direction: 'right',
-    initialSize: 502,
-    min: 502,
+    initialSize: 700,
+    min: 700,
     onResize: () => {},
     sizeStorageKey: 'app-size-insights-sidebar-width',
   });
@@ -53,6 +53,18 @@ export function AppSizeInsightsSidebar({
 
   // Constrain width to viewport (leave 50px margin from screen edge)
   const constrainedWidth = Math.min(width, window.innerWidth - 50);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, false);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, false);
+    };
+  }, [onClose]);
 
   return (
     <Fragment>
@@ -99,15 +111,20 @@ export function AppSizeInsightsSidebar({
 
             <Flex flex={1} overflowY="auto" padding="xl">
               <Flex direction="column" gap="xl" width="100%">
-                {processedInsights.map(insight => (
-                  <AppSizeInsightsSidebarRow
-                    key={insight.key}
-                    insight={insight}
-                    isExpanded={expandedInsights.has(insight.key)}
-                    onToggleExpanded={() => toggleExpanded(insight.key)}
-                    platform={platform}
-                  />
-                ))}
+                {processedInsights.map(insight => {
+                  const isGroupedInsight =
+                    insight.key === 'duplicate_files' || insight.key === 'loose_images';
+                  return (
+                    <AppSizeInsightsSidebarRow
+                      key={insight.key}
+                      insight={insight}
+                      isExpanded={expandedInsights.has(insight.key)}
+                      onToggleExpanded={() => toggleExpanded(insight.key)}
+                      platform={platform}
+                      itemsPerPage={isGroupedInsight ? 10 : undefined}
+                    />
+                  );
+                })}
               </Flex>
             </Flex>
           </Flex>

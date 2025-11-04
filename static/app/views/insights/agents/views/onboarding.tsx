@@ -220,6 +220,7 @@ export function Onboarding() {
             {label: 'LangChain', value: 'langchain'},
             {label: 'LangGraph', value: 'langgraph'},
             {label: 'LiteLLM', value: 'litellm'},
+            {label: 'Pydantic AI', value: 'pydantic_ai'},
             {label: 'Manual', value: 'manual'},
           ]
         : [
@@ -292,6 +293,7 @@ export function Onboarding() {
     project,
     isLogsSelected: false,
     isFeedbackSelected: false,
+    isMetricsSelected: false,
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,

@@ -1,10 +1,10 @@
 ---
-created: '2025-10-07T22:42:53.925077+00:00'
+created: '2025-10-30T17:09:42.550837+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app_exception_message": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because built-in fingerprint takes precedence",
@@ -17,6 +17,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "ChunkLoadError"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "value",
+              "name": null,
+              "values": [
+                "ChunkLoadError: something something..."
+              ]
+            },
             {
               "contributes": false,
               "hint": "ignored because it contains no in-app frames",
@@ -59,24 +77,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "ChunkLoadError"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": [
-                "ChunkLoadError: something something..."
-              ]
             }
           ]
         }
@@ -103,10 +103,10 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "exception message",
+    "description": "exception stacktrace — in-app frames",
     "hash": null,
     "hint": "ignored because built-in fingerprint takes precedence",
-    "key": "app_exception_message",
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
   "built_in_fingerprint": {
@@ -134,6 +134,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "ChunkLoadError"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "ChunkLoadError: something something..."
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -175,24 +193,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "ChunkLoadError"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "ChunkLoadError: something something..."
               ]
             }
           ]

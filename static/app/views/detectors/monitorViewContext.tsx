@@ -1,19 +1,43 @@
 import {createContext, useContext} from 'react';
 
-import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
+import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
 
-interface MonitorViewContextValue {
+export interface MonitorListAdditionalColumn {
+  id: string;
+  renderCell: (detector: Detector) => React.ReactNode;
+  renderHeaderCell: () => React.ReactNode;
+  /** Width of the column, defaults to auto */
+  columnWidth?: string;
+  renderPendingCell?: () => React.ReactNode;
+}
+
+export interface RenderVisualizationParams {
+  detector: Detector | null;
+}
+
+export interface MonitorViewContextValue {
   automationsLinkPrefix: string;
   monitorsLinkPrefix: string;
+  /**
+   * Additional columns to render after the default columns and before the visualization column.
+   * These appear to the right of the default columns and to the left of the visualization.
+   */
+  additionalColumns?: MonitorListAdditionalColumn[];
   assigneeFilter?: string;
   detectorFilter?: DetectorType;
+  emptyState?: React.ReactNode;
+  renderVisualization?: (params: RenderVisualizationParams) => React.ReactNode;
+  showTimeRangeSelector?: boolean;
 }
 
 const DEFAULT_MONITOR_VIEW_CONTEXT: MonitorViewContextValue = {
-  monitorsLinkPrefix: 'issues/monitors',
-  automationsLinkPrefix: 'issues/automations',
+  monitorsLinkPrefix: 'monitors',
+  automationsLinkPrefix: 'monitors/alerts',
   assigneeFilter: undefined,
   detectorFilter: undefined,
+  showTimeRangeSelector: false,
+  emptyState: null,
+  additionalColumns: [],
 };
 
 export const MonitorViewContext = createContext<MonitorViewContextValue>(

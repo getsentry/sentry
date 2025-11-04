@@ -126,10 +126,10 @@ describe('DetectorsList', () => {
 
     render(<DetectorsList />, {organization});
     const row = await screen.findByTestId('detector-list-row');
-    expect(within(row).getByText('1 automation')).toBeInTheDocument();
+    expect(within(row).getByText('1 alert')).toBeInTheDocument();
 
     // Tooltip should fetch and display the automation name/action
-    await userEvent.hover(within(row).getByText('1 automation'));
+    await userEvent.hover(within(row).getByText('1 alert'));
     expect(await screen.findByText('Automation 1')).toBeInTheDocument();
     expect(await screen.findByText('Slack')).toBeInTheDocument();
   });

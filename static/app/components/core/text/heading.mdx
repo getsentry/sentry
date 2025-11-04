@@ -18,9 +18,9 @@ import {Container} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
 import * as Storybook from 'sentry/stories';
 
-import types from '!!type-loader!sentry/components/core/text/heading';
+import documentation from '!!type-loader!@sentry/scraps/text/heading';
 
-export {types};
+export {documentation};
 
 The `<Heading>` component creates semantic heading elements with appropriate default sizes and styling. It ensures proper heading hierarchy while providing visual consistency.
 
@@ -143,7 +143,7 @@ Headings support various color variants: `primary` (default), `muted`, `accent`,
 
 ## Typography Features
 
-Headings support various typography options including italic, underline, strikethrough, and uppercase.
+Headings support various typography options including italic, underline and strikethrough.
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
@@ -155,9 +155,6 @@ Headings support various typography options including italic, underline, striket
     </Heading>
     <Heading as="h3" strikethrough>
       Strikethrough heading
-    </Heading>
-    <Heading as="h3" uppercase>
-      Uppercase heading
     </Heading>
     <Heading as="h3" italic underline>
       Italic underlined heading
@@ -173,9 +170,6 @@ Headings support various typography options including italic, underline, striket
 </Heading>
 <Heading as="h3" strikethrough>
   Strikethrough heading
-</Heading>
-<Heading as="h3" uppercase>
-  Uppercase heading
 </Heading>
 <Heading as="h3" italic underline>
   Italic underlined heading

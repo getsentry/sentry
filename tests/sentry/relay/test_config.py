@@ -271,10 +271,12 @@ def test_project_config_uses_filter_features(
     default_project, has_custom_filters, has_blacklisted_ips
 ):
     log_messages = ["some log"]
+    trace_metric_names = ["some metric"]
     error_messages = ["some_error"]
     releases = ["1.2.3", "4.5.6"]
     blacklisted_ips = ["112.69.248.54"]
     default_project.update_option("sentry:log_messages", log_messages)
+    default_project.update_option("sentry:trace_metric_names", trace_metric_names)
     default_project.update_option("sentry:error_messages", error_messages)
     default_project.update_option("sentry:releases", releases)
     default_project.update_option("filters:react-hydration-errors", "0")
@@ -287,6 +289,7 @@ def test_project_config_uses_filter_features(
         {
             "projects:custom-inbound-filters": has_custom_filters,
             "organizations:ourlogs-ingestion": True,
+            "organizations:tracemetrics-ingestion": True,
         }
     ):
         project_cfg = get_project_config(default_project)
@@ -308,6 +311,15 @@ def test_project_config_uses_filter_features(
                 "op": "glob",
                 "name": "log.body",
                 "value": ["some log"],
+            },
+        } in cfg_generic
+        assert {
+            "id": "trace-metric-name",
+            "isEnabled": True,
+            "condition": {
+                "op": "glob",
+                "name": "trace_metric.name",
+                "value": ["some metric"],
             },
         } in cfg_generic
     else:
@@ -459,12 +471,6 @@ def test_project_config_with_all_biases_enabled(
                 "samplingValue": {"type": "sampleRate", "value": 1.0},
                 "type": "trace",
             },
-            # {
-            #     "condition": {"inner": [], "op": "and"},
-            #     "id": 1004,
-            #     "samplingValue": {"type": "factor", "value": default_factor},
-            #     "type": "trace",
-            # },
             {
                 "samplingValue": {"type": "sampleRate", "value": 1.0},
                 "type": "trace",
@@ -479,6 +485,12 @@ def test_project_config_with_all_biases_enabled(
                     ],
                 },
                 "id": 1001,
+            },
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1004,
+                "samplingValue": {"type": "factor", "value": default_factor},
+                "type": "trace",
             },
             {
                 "samplingValue": {"type": "factor", "value": 1.5},
