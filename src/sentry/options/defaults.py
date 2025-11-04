@@ -3593,6 +3593,14 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Allow list for projects with LLM issue detection enabled
+register(
+    "issue-detection.llm-detection.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # The allowlist of organization IDs for which deletion from EAP is enabled.
 register(
     "eventstream.eap.deletion_enabled.organization_allowlist",
