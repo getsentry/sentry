@@ -11,9 +11,9 @@ import {
   getVerifyJavaSnippet,
   PackageManager,
   packageManagerName,
+  YesNo,
   type Params,
   type PlatformOptions,
-  YesNo,
 } from './utils';
 
 const getSentryPropertiesSnippet = (params: Params) => `
