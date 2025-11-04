@@ -96,6 +96,10 @@ export function isWebpackChunkLoadingError(error: Error): boolean {
  * If a tag conflicts with a reserved keyword, change it to `tags[key]:value`
  */
 export function escapeIssueTagKey(key: string) {
+  if (key === '') {
+    return '""';
+  }
+
   // Environment and project should be handled by the page filter
   if (key === 'environment' || key === 'project') {
     return key;
@@ -127,6 +131,11 @@ export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
       break;
     default:
       query.query = appendTagCondition(query.query, tag.key, tag.value);
+  }
+
+  // Checking for the absence of a tag value.
+  if (tag.value === '') {
+    query.query = `!has:${tag.key}`;
   }
 
   return query;
