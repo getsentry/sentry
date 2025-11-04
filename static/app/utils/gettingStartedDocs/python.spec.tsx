@@ -107,13 +107,7 @@ describe('getPythonLogsOnboarding', () => {
 });
 
 describe('getPythonMetricsOnboarding', () => {
-  const mockParams = {
-    dsn: {
-      public: 'https://test@example.com/123',
-    },
-  };
-
-  it('generates logs onboarding config with default parameters', () => {
+  it('generates metrics onboarding config with default parameters', () => {
     const result = getPythonMetricsOnboarding();
 
     // Test install step
@@ -122,13 +116,6 @@ describe('getPythonMetricsOnboarding', () => {
     expect(installSteps[0].type).toBe('install');
     expect(installSteps[0].content).toHaveLength(2);
 
-    // Test configure step
-    const configureSteps = result.configure(mockParams);
-    expect(configureSteps).toHaveLength(1);
-    expect(configureSteps[0].type).toBe('configure');
-    expect(configureSteps[0].content[1].code).toContain('enable_logs=True');
-    expect(configureSteps[0].content[1].code).toContain(mockParams.dsn.public);
-
     // Test verify step
     const verifySteps = result.verify({isLogsSelected: true});
     expect(verifySteps).toHaveLength(1);
@@ -136,8 +123,7 @@ describe('getPythonMetricsOnboarding', () => {
     expect(verifySteps[0].content).toHaveLength(1);
     expect(verifySteps[0].content[0].type).toBe('conditional');
     const conditionalContent = verifySteps[0].content[0].content;
-    expect(conditionalContent[1].code).toContain('sentry_sdk.logger.info');
-    expect(conditionalContent[3].code).toContain('import logging');
+    expect(conditionalContent[1].code).toContain('metrics.count');
   });
 
   it('generates logs onboarding config with custom parameters', () => {
