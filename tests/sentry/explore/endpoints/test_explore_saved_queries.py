@@ -1249,4 +1249,24 @@ class ExploreSavedQueriesTest(APITestCase):
                 },
             )
         assert response.status_code == 400, response.content
-        assert "Metric field is only allowed for metrics dataset" in str(response.content)
+        assert "Metric field is only allowed for metrics dataset" in str(response.data)
+
+    def test_post_metrics_dataset_requires_metric_field(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Metrics query without metric field",
+                    "projects": self.project_ids,
+                    "dataset": "metrics",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert "Metric field is required for metrics dataset" in str(response.data)

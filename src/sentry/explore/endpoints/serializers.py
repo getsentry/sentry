@@ -213,6 +213,10 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
                     raise serializers.ValidationError(
                         "Metric field is only allowed for metrics dataset"
                     )
+                if data["dataset"] == "metrics" and "metric" not in q:
+                    raise serializers.ValidationError(
+                        "Metric field is required for metrics dataset"
+                    )
                 inner_query = {}
                 for key in inner_query_keys:
                     if key in q:
