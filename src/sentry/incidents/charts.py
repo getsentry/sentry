@@ -177,8 +177,10 @@ def fetch_metric_issue_open_periods(
                     **time_period,
                 },
             )
-        # TODO (mifu67): temporary log that I'm going to remove after debugging. Get the data for old and new
-        if organization.slug == "mf-test-n7":
+        if features.has(
+            "organizations:workflow-engine-metric-alert-dual-processing-logs",
+            organization,
+        ):
             logger.info(
                 "fetching metric issue open periods",
                 extra={
@@ -257,7 +259,7 @@ def build_metric_alert_chart(
         # But we don't need it to render the chart, so it's fine for now.
         chart_data_detector = {
             "detector": detector_serialized_response,
-            "open_periods": fetch_metric_issue_open_periods(
+            "openPeriods": fetch_metric_issue_open_periods(
                 organization,
                 alert_context.action_identifier_id,
                 time_period,
@@ -352,7 +354,10 @@ def build_metric_alert_chart(
             chart_data.update(chart_data_detector)
         else:
             chart_data.update(chart_data_alert_rule)
-        if organization.slug == "mf-test-n7":
+        if features.has(
+            "organizations:workflow-engine-metric-alert-dual-processing-logs",
+            organization,
+        ):
             logger.info(
                 "passed chart data",
                 extra={
