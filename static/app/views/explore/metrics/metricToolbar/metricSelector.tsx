@@ -24,7 +24,22 @@ export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
   const setTraceMetric = useSetTraceMetric();
 
   const metricOptions = useMemo((): MetricSelectOption[] => {
+    const shouldInsertTraceMetricAsOption =
+      traceMetric.name &&
+      !metricOptionsData?.data?.find(
+        option => option['metric.name'] === traceMetric.name
+      );
     return [
+      ...(shouldInsertTraceMetricAsOption
+        ? [
+            {
+              label: traceMetric.name,
+              value: traceMetric.name,
+              type: traceMetric.type,
+              trailingItems: <TypeBadge kind={traceMetric.type} />,
+            },
+          ]
+        : []),
       ...(metricOptionsData?.data?.map(option => ({
         label: `${option['metric.name']}`,
         value: option['metric.name'],
@@ -32,7 +47,7 @@ export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
         trailingItems: <TypeBadge kind={option['metric.type']} />,
       })) ?? []),
     ];
-  }, [metricOptionsData]);
+  }, [traceMetric, metricOptionsData]);
 
   useEffect(() => {
     if (metricOptions.length && !traceMetric.name) {
