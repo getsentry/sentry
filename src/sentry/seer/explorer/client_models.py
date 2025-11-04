@@ -1,5 +1,5 @@
 """
-Pydantic models for Seer Explorer SDK.
+Pydantic models for Seer Explorer client.
 """
 
 from __future__ import annotations

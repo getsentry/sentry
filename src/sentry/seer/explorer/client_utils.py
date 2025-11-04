@@ -1,8 +1,8 @@
 """
-Internal helpers for Seer Explorer SDK.
+Internal helpers for Seer Explorer client.
 
 This module contains implementation details that should not be imported directly.
-Use the public SDK functions from sdk.py instead.
+Use the public client functions from client.py instead.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
-from sentry.seer.explorer.sdk_models import SeerRunState
+from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.users.models.user import User as SentryUser

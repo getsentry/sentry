@@ -12,7 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.explorer.sdk import continue_seer_run, get_seer_run, start_seer_run
+from sentry.seer.explorer.client import continue_seer_run, get_seer_run, start_seer_run
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         insert_index = validated_data.get("insert_index")
         on_page_context = validated_data.get("on_page_context")
 
-        # Use SDK to start or continue run
+        # Use client to start or continue run
         if run_id:
             # Continue existing conversation
             result_run_id = continue_seer_run(

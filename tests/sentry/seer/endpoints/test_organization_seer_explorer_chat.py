@@ -2,7 +2,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.models.organizationmember import OrganizationMember
-from sentry.seer.explorer.sdk_utils import collect_user_org_context
+from sentry.seer.explorer.client_utils import collect_user_org_context
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -23,10 +23,10 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.data == {"session": None}
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_run")
-    def test_get_with_run_id_calls_sdk(self, mock_get_seer_run: MagicMock) -> None:
-        from sentry.seer.explorer.sdk_models import SeerRunState
+    def test_get_with_run_id_calls_client(self, mock_get_seer_run: MagicMock) -> None:
+        from sentry.seer.explorer.client_models import SeerRunState
 
-        # Mock SDK response
+        # Mock client response
         mock_state = SeerRunState(
             run_id=123,
             blocks=[],
@@ -55,7 +55,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 400
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.start_seer_run")
-    def test_post_new_conversation_calls_sdk(self, mock_start_seer_run: MagicMock):
+    def test_post_new_conversation_calls_client(self, mock_start_seer_run: MagicMock):
         mock_start_seer_run.return_value = 456
 
         data = {"query": "What is this error about?"}
@@ -64,7 +64,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"run_id": 456}
 
-        # Verify SDK was called
+        # Verify client was called
         assert mock_start_seer_run.call_count == 1
         call_kwargs = mock_start_seer_run.call_args[1]
         assert call_kwargs["organization"] == self.organization
@@ -72,7 +72,9 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert call_kwargs["on_page_context"] is None
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.continue_seer_run")
-    def test_post_continue_conversation_calls_sdk(self, mock_continue_seer_run: MagicMock) -> None:
+    def test_post_continue_conversation_calls_client(
+        self, mock_continue_seer_run: MagicMock
+    ) -> None:
         mock_continue_seer_run.return_value = 789
 
         data = {
@@ -84,7 +86,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"run_id": 789}
 
-        # Verify SDK was called
+        # Verify client was called
         assert mock_continue_seer_run.call_count == 1
         call_kwargs = mock_continue_seer_run.call_args[1]
         assert call_kwargs["organization"] == self.organization
