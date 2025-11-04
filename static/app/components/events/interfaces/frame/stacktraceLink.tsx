@@ -411,7 +411,7 @@ function CopyFrameLink({event, frame}: CopyFrameLinkProps) {
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    copy(filePath, {
+    copy(filePath.replace(/^(\.\/)?(\.\.\/)*/g, ''), {
       successMessage: t('File path copied to clipboard'),
       errorMessage: t('Failed to copy file path'),
     });
