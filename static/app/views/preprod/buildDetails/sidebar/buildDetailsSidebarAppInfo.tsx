@@ -10,58 +10,19 @@ import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons'
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
-import {unreachable} from 'sentry/utils/unreachable';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
 import {
   BuildDetailsSizeAnalysisState,
   type BuildDetailsAppInfo,
   type BuildDetailsSizeInfo,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
-import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {
+  getLabels,
   getPlatformIconFromPlatform,
   getReadableArtifactTypeLabel,
   getReadableArtifactTypeTooltip,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
-
-interface Labels {
-  appId: string;
-  buildConfiguration: string;
-  downloadSize: string;
-  installSize: string;
-  installSizeText: string;
-  installUnavailableTooltip: string;
-}
-
-function getLabels(platform: Platform | undefined): Labels {
-  switch (platform) {
-    case 'android':
-      return {
-        installSizeText: t('Uncompressed Size'),
-        appId: t('Package name'),
-        installSize: t('Size on disk not including AOT DEX'),
-        downloadSize: t('Bytes transferred over the network'),
-        buildConfiguration: t('Build configuration'),
-        installUnavailableTooltip: t('This app cannot be installed.'),
-      };
-    case 'ios':
-    case 'macos':
-    case undefined:
-      return {
-        installSizeText: t('Install Size'),
-        appId: t('Bundle identifier'),
-        installSize: t('Unencrypted install size'),
-        downloadSize: t('Bytes transferred over the network'),
-        buildConfiguration: t('Build configuration'),
-        installUnavailableTooltip: t(
-          'Code signature must be valid for this app to be installed.'
-        ),
-      };
-    default:
-      return unreachable(platform);
-  }
-}
 
 interface BuildDetailsSidebarAppInfoProps {
   appInfo: BuildDetailsAppInfo;
@@ -91,16 +52,16 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         props.sizeInfo.state === BuildDetailsSizeAnalysisState.COMPLETED && (
           <Flex gap="sm">
             <Flex direction="column" gap="xs" flex={1}>
-              <Tooltip title={labels.installSize} position="left">
-                <Heading as="h4">{labels.installSizeText}</Heading>
+              <Tooltip title={labels.installSizeDescription} position="left">
+                <Heading as="h4">{labels.installSizeLabel}</Heading>
               </Tooltip>
               <Text size="md">
                 {formatBytesBase10(props.sizeInfo.install_size_bytes)}
               </Text>
             </Flex>
             <Flex direction="column" gap="xs" flex={1}>
-              <Tooltip title={labels.downloadSize} position="left">
-                <Heading as="h4">{t('Download Size')}</Heading>
+              <Tooltip title={labels.downloadSizeDescription} position="left">
+                <Heading as="h4">{labels.downloadSizeLabel}</Heading>
               </Tooltip>
               <Text size="md">
                 {formatBytesBase10(props.sizeInfo.download_size_bytes)}
