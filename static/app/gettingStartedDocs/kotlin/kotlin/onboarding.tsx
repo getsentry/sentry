@@ -1,46 +1,20 @@
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
-  BasePlatformOptions,
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportApiIntroduction,
-  getCrashReportInstallDescription,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-export enum PackageManager {
-  GRADLE = 'gradle',
-  MAVEN = 'maven',
-}
+import {PackageManager, type PlatformOptions} from './utils';
+
+type Params = DocsParams<PlatformOptions>;
 
 const packageManagerName: Record<PackageManager, string> = {
   [PackageManager.GRADLE]: 'Gradle',
   [PackageManager.MAVEN]: 'Maven',
 };
-
-const platformOptions = {
-  packageManager: {
-    label: t('Package Manager'),
-    items: [
-      {
-        label: t('Gradle'),
-        value: PackageManager.GRADLE,
-      },
-      {
-        label: t('Maven'),
-        value: PackageManager.MAVEN,
-      },
-    ],
-  },
-} satisfies BasePlatformOptions;
-
-type PlatformOptions = typeof platformOptions;
-type Params = DocsParams<PlatformOptions>;
 
 const getGradleInstallSnippet = (params: Params) => `
 buildscript {
@@ -133,7 +107,7 @@ try {
   Sentry.captureException(e)
 }`;
 
-const onboarding: OnboardingConfig<PlatformOptions> = {
+export const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
       "Sentry supports Kotlin for both JVM and Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
@@ -289,45 +263,3 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     },
   ],
 };
-
-const feedbackOnboardingCrashApi: OnboardingConfig = {
-  introduction: () => getCrashReportApiIntroduction(),
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportInstallDescription(),
-        },
-        {
-          type: 'code',
-          language: 'kotlin',
-          code: `import io.sentry.kotlin.multiplatform.Sentry
-import io.sentry.kotlin.multiplatform.protocol.UserFeedback
-
-val sentryId = Sentry.captureMessage("My message")
-
-val userFeedback = UserFeedback(sentryId).apply {
-  comments = "It broke."
-  email = "john.doe@example.com"
-  name = "John Doe"
-}
-Sentry.captureUserFeedback(userFeedback)`,
-        },
-      ],
-    },
-  ],
-  configure: () => [],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs<PlatformOptions> = {
-  platformOptions,
-  feedbackOnboardingCrashApi,
-  crashReportOnboarding: feedbackOnboardingCrashApi,
-  onboarding,
-};
-
-export default docs;
