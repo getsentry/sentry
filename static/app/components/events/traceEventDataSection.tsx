@@ -249,19 +249,21 @@ export function TraceEventDataSection({
 
     const rawStacktraces = stacktraceEntries.map(entry => {
       if (entry.type === EntryType.EXCEPTION) {
-        return entry.data.values
-          ?.map(exception =>
-            displayRawContent({
-              data: exception.stacktrace,
-              platform: exception.stacktrace?.frames?.[0]?.platform ?? platform,
-              exception,
-              hasSimilarityEmbeddingsFeature: false,
-              includeLocation: true,
-              rawTrace: true,
-            })
-          )
-          .filter(Boolean)
-          .join('\n\n');
+        return (
+          entry.data.values
+            ?.map(exception =>
+              displayRawContent({
+                data: exception.stacktrace,
+                platform: exception.stacktrace?.frames?.[0]?.platform ?? platform,
+                exception,
+                hasSimilarityEmbeddingsFeature: false,
+                includeLocation: true,
+                rawTrace: true,
+              })
+            )
+            .filter(Boolean)
+            .join('\n\n') ?? ''
+        );
       }
       if (entry.type === EntryType.STACKTRACE) {
         return displayRawContent({
