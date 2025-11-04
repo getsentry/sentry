@@ -75,23 +75,26 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
 
     permission_classes = (OrganizationTraceExplorerAIPermission,)
 
-    @staticmethod
-    def post(request: Request, organization: Organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Request to translate a natural language query using the agentic search API.
         """
-        project_ids = [int(x) for x in request.data.get("project_ids", [])]
+        raw_project_ids = request.data.get("project_ids", [])
         natural_language_query = request.data.get("natural_language_query")
         strategy = request.data.get("strategy", "Traces")
         model_name = request.data.get("options", {}).get("model_name")
 
-        if len(project_ids) == 0 or not natural_language_query:
+        if len(raw_project_ids) == 0 or not natural_language_query:
             return Response(
                 {
                     "detail": "Missing one or more required parameters: project_ids, natural_language_query"
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        project_ids_set = {int(x) for x in raw_project_ids}
+        projects = self.get_projects(request, organization, project_ids=project_ids_set)
+        project_ids = [project.id for project in projects]
 
         if organization.get_option("sentry:hide_ai_features", False):
             return Response(
@@ -125,8 +128,9 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
                 model_name=model_name,
             )
             return Response(data)
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:
+            logger.exception("Failed to call Seer API for translate agentic request")
             return Response(
-                {"detail": f"Failed to call Seer API: {str(e)}"},
+                {"detail": "An error occurred while processing your request."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
