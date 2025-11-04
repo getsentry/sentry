@@ -1303,7 +1303,7 @@ def assign_event_to_group(
             )
             result = "found_secondary"
             maybe_send_seer_for_new_model_training(
-                event, secondary.existing_grouphash, primary.variants
+                event, secondary.existing_grouphash, secondary.variants
             )
 
         # If we still haven't found a group, ask Seer for a match (if enabled for the event's platform)
