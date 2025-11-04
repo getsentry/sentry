@@ -92,7 +92,12 @@ class FingerprintingVisitor(NodeVisitor[list[FingerprintRule]]):
         self,
         _: object,
         children: tuple[
-            object, list[FingerprintMatcher], object, object, object, FingerprintWithAttributes
+            object,
+            list[FingerprintMatcher | CallerMatcher | CalleeMatcher],
+            object,
+            object,
+            object,
+            FingerprintWithAttributes,
         ],
     ) -> FingerprintRule:
         _, matchers, _, _, _, (fingerprint, attributes) = children
@@ -109,11 +114,22 @@ class FingerprintingVisitor(NodeVisitor[list[FingerprintRule]]):
     ) -> list[FingerprintMatcher | CallerMatcher | CalleeMatcher]:
         caller_matcher, frame_matchers, callee_matcher = children
         result: list[FingerprintMatcher | CallerMatcher | CalleeMatcher] = []
-        if caller_matcher:
+
+        # Parsimonious wraps optional matches (? quantifier) in an extra list
+        # Flatten caller_matcher if it's a nested list
+        if caller_matcher and len(caller_matcher) > 0 and isinstance(caller_matcher[0], list):
+            result.extend(caller_matcher[0])
+        elif caller_matcher:
             result.extend(caller_matcher)
+
         result.extend(frame_matchers)
-        if callee_matcher:
+
+        # Flatten callee_matcher if it's a nested list
+        if callee_matcher and len(callee_matcher) > 0 and isinstance(callee_matcher[0], list):
+            result.extend(callee_matcher[0])
+        elif callee_matcher:
             result.extend(callee_matcher)
+
         return result
 
     def visit_caller_matcher(

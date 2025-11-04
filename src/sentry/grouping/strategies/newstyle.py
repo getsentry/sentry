@@ -8,6 +8,7 @@ from collections.abc import Generator
 from typing import TYPE_CHECKING, Any
 
 from sentry.grouping.component import (
+    BaseGroupingComponent,
     ChainedExceptionGroupingComponent,
     ContextLineGroupingComponent,
     ErrorTypeGroupingComponent,
@@ -898,7 +899,7 @@ def _get_thread_components(
     include_thread_id = context.get("include_thread_id_in_grouping", False)
 
     # Collect thread metadata components
-    thread_metadata = []
+    thread_metadata: list[BaseGroupingComponent[str]] = []
     if include_thread_name and thread.get("name"):
         thread_metadata.append(
             ThreadNameGroupingComponent(
