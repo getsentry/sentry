@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import React, {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -17,6 +17,7 @@ import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDeta
 import {
   formattedDownloadSize,
   formattedInstallSize,
+  getLabels,
   getPlatformIconFromPlatform,
 } from 'sentry/views/preprod/utils/labelUtils';
 
@@ -39,12 +40,16 @@ export function PreprodBuildsTable({
   projectSlug,
   hasSearchQuery,
 }: PreprodBuildsTableProps) {
+  const labels = useMemo(
+    () => getLabels(builds[0]?.app_info?.platform ?? undefined),
+    [builds]
+  );
   const header = (
     <SimpleTable.Header>
       <SimpleTable.HeaderCell>{t('App')}</SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell>{t('Build')}</SimpleTable.HeaderCell>
-      <SimpleTable.HeaderCell>{t('Install Size')}</SimpleTable.HeaderCell>
-      <SimpleTable.HeaderCell>{t('Download Size')}</SimpleTable.HeaderCell>
+      <SimpleTable.HeaderCell>{labels.installSizeLabel}</SimpleTable.HeaderCell>
+      <SimpleTable.HeaderCell>{labels.downloadSizeLabel}</SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
     </SimpleTable.Header>
   );

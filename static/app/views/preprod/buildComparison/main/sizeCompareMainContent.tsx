@@ -38,6 +38,7 @@ import type {
   SizeAnalysisComparisonResults,
   SizeComparisonApiResponse,
 } from 'sentry/views/preprod/types/appSizeTypes';
+import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
 
 export function SizeCompareMainContent() {
   const organization = useOrganization();
@@ -122,10 +123,14 @@ export function SizeCompareMainContent() {
       installSizeDiff / size_metric_diff_item.base_install_size;
     const downloadSizePercentage =
       downloadSizeDiff / size_metric_diff_item.base_download_size;
+
+    const labels = getLabels(
+      sizeComparisonQuery.data?.head_build_details.app_info?.platform ?? undefined
+    );
     // Calculate metrics
     const metrics = [
       {
-        title: t('Install Size'),
+        title: labels.installSizeLabel,
         head: size_metric_diff_item.head_install_size,
         base: size_metric_diff_item.base_install_size,
         diff:
@@ -135,7 +140,7 @@ export function SizeCompareMainContent() {
         icon: IconCode,
       },
       {
-        title: t('Download Size'),
+        title: labels.downloadSizeLabel,
         head: size_metric_diff_item.head_download_size,
         base: size_metric_diff_item.base_download_size,
         diff:
@@ -147,7 +152,7 @@ export function SizeCompareMainContent() {
     ];
 
     return metrics;
-  }, [comparisonDataQuery.data]);
+  }, [comparisonDataQuery.data, sizeComparisonQuery.data]);
 
   // Filter diff items based on the toggle and search query
   const filteredDiffItems = useMemo(() => {
