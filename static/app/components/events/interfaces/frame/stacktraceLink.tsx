@@ -413,7 +413,7 @@ function CopyFrameLink({event, frame}: CopyFrameLinkProps) {
     e.stopPropagation();
 
     // Strip away relative path segments to make it easier for editors to actually find the file (like VSCode cmd+p)
-    const cleanedFilepath = filePath.replace(/^(\.\/)?(\.\.\/)*/g, '')
+    const cleanedFilepath = filePath.replace(/^(\.\/)?(\.\.\/)*/g, '');
 
     copy(cleanedFilepath, {
       successMessage: t('File path copied to clipboard'),
