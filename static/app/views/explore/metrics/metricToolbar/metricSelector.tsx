@@ -5,7 +5,6 @@ import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {useSetTraceMetric} from 'sentry/views/explore/metrics/metricsQueryParams';
 
 interface MetricSelectOption extends SelectOption<string> {
   type: string;
@@ -19,9 +18,14 @@ function TypeBadge({kind}: {kind: string}) {
   return <Tag>{kind}</Tag>;
 }
 
-export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
+export function MetricSelector({
+  traceMetric,
+  onChange,
+}: {
+  onChange: (traceMetric: TraceMetric) => void;
+  traceMetric: TraceMetric;
+}) {
   const {data: metricOptionsData} = useMetricOptions();
-  const setTraceMetric = useSetTraceMetric();
 
   const metricOptions = useMemo((): MetricSelectOption[] => {
     return [
@@ -36,12 +40,12 @@ export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
 
   useEffect(() => {
     if (metricOptions.length && !traceMetric.name) {
-      setTraceMetric({
+      onChange({
         name: metricOptions[0]?.value ?? '',
         type: metricOptions[0]?.type ?? '',
       });
     }
-  }, [metricOptions, setTraceMetric, traceMetric.name]);
+  }, [metricOptions, onChange, traceMetric.name]);
 
   return (
     <CompactSelect
@@ -51,7 +55,7 @@ export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
       onChange={option => {
         if ('type' in option) {
           const typedOption = option as MetricSelectOption;
-          setTraceMetric({
+          onChange({
             name: typedOption.value,
             type: typedOption.type,
           });
