@@ -14,7 +14,10 @@ import type {
   SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
+import type {
+  BaseMetricQuery,
+  TraceMetric,
+} from 'sentry/views/explore/metrics/metricQuery';
 import {
   defaultMetricQuery,
   encodeMetricQueryParams,
@@ -38,12 +41,11 @@ export function makeMetricsPathname({
  * This filter is used to narrow down attribute keys to only those that co-occur
  * with the specified metric.
  */
-export function createMetricNameFilter(
-  metricName: string | undefined
-): string | undefined {
-  return metricName
+export function createTraceMetricFilter(traceMetric: TraceMetric): string | undefined {
+  return traceMetric.name
     ? MutableSearch.fromQueryObject({
-        [`sentry._internal.cooccuring.name.${metricName}`]: ['true'],
+        [`sentry._internal.cooccuring.name.${traceMetric.name}`]: ['true'],
+        [`sentry._internal.cooccuring.type.${traceMetric.type}`]: ['true'],
       }).formatString()
     : undefined;
 }

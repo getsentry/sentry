@@ -41,7 +41,7 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
       />
       <MetricSelector traceMetric={traceMetric} />
       <AggregateDropdown traceMetric={traceMetric} />
-      <GroupBySelector metricName={traceMetric.name} />
+      <GroupBySelector traceMetric={traceMetric} />
       <Filter traceMetric={traceMetric} />
       {metricQueries.length > 1 && <DeleteMetricButton />}
     </Grid>

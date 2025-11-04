@@ -35,6 +35,7 @@ import {
   WrappingText,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab/metricDetails';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -58,14 +59,14 @@ const ICON_HEADERS = {
 };
 
 interface SamplesTabProps {
-  metricName: string;
+  traceMetric: TraceMetric;
 }
 
-export function SamplesTab({metricName}: SamplesTabProps) {
+export function SamplesTab({traceMetric}: SamplesTabProps) {
   const {result, eventView, fields} = useMetricSamplesTable({
-    enabled: Boolean(metricName),
+    enabled: Boolean(traceMetric.name),
     limit: RESULT_LIMIT,
-    metricName,
+    traceMetric,
     fields: ['timestamp', 'trace', 'value', 'id', 'project.id'],
     ingestionDelaySeconds: TWO_MINUTE_DELAY,
   });
@@ -80,7 +81,7 @@ export function SamplesTab({metricName}: SamplesTabProps) {
 
   // Fetch telemetry data for traces
   const {data: telemetryData, isLoading: isTelemetryLoading} = useTraceTelemetry({
-    enabled: Boolean(metricName) && traceIds.length > 0,
+    enabled: Boolean(traceMetric.name) && traceIds.length > 0,
     traceIds,
   });
 

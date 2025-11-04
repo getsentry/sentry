@@ -61,10 +61,10 @@ export default function MetricInfoTabs({
         <BodyContainer>
           <StyledTabPanels>
             <TabPanels.Item key={Mode.AGGREGATE}>
-              <AggregatesTab metricName={traceMetric.name} />
+              <AggregatesTab traceMetric={traceMetric} />
             </TabPanels.Item>
             <TabPanels.Item key={Mode.SAMPLES}>
-              <SamplesTab metricName={traceMetric.name} />
+              <SamplesTab traceMetric={traceMetric} />
             </TabPanels.Item>
           </StyledTabPanels>
         </BodyContainer>
