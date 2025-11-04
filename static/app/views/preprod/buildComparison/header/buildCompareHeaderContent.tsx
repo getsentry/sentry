@@ -99,9 +99,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
             <Tooltip title={labels.installSizeDescription}>
               <Flex gap="sm" align="center">
                 <IconCode size="sm" color="gray300" />
-                <Text style={{textDecoration: 'underline dotted'}}>
-                  {formattedInstallSize(buildDetails)}
-                </Text>
+                <Text underline="dotted">{formattedInstallSize(buildDetails)}</Text>
               </Flex>
             </Tooltip>
           )}
@@ -109,9 +107,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
             <Tooltip title={labels.downloadSizeDescription}>
               <Flex gap="sm" align="center">
                 <IconDownload size="sm" color="gray300" />
-                <Text style={{textDecoration: 'underline dotted'}}>
-                  {formattedDownloadSize(buildDetails)}
-                </Text>
+                <Text underline="dotted">{formattedDownloadSize(buildDetails)}</Text>
               </Flex>
             </Tooltip>
           )}
