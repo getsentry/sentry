@@ -909,14 +909,20 @@ def test_generate_rules_trace_health_checks_feature_enabled(
     assert len(rules) == 2
     assert rules[0]["id"] == 1002
     assert rules[0]["type"] == "transaction"
+    assert rules[0]["condition"]["op"] == "or"
+    assert rules[0]["condition"]["inner"][0]["op"] == "glob"
     assert rules[0]["condition"]["inner"][0]["name"] == "event.transaction"
+    assert rules[0]["condition"]["inner"][0]["value"] == HEALTH_CHECK_GLOBS
 
     with Feature({"organizations:ds-health-checks-trace-based": True}):
         rules = generate_rules(default_old_project)
         assert len(rules) == 2
         assert rules[0]["id"] == 1002
         assert rules[0]["type"] == "trace"
+        assert rules[0]["condition"]["op"] == "or"
+        assert rules[0]["condition"]["inner"][0]["op"] == "glob"
         assert rules[0]["condition"]["inner"][0]["name"] == "trace.transaction"
+        assert rules[0]["condition"]["inner"][0]["value"] == HEALTH_CHECK_GLOBS
 
     _validate_rules(default_old_project)
 
