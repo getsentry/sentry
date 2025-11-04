@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -80,6 +81,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             state = get_seer_run(run_id=int(run_id), organization=organization, user=request.user)
             return Response({"session": state.dict()})
         except ValueError:
+            sentry_sdk.capture_exception()
             return Response({"session": None}, status=404)
 
     def post(
