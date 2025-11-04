@@ -234,8 +234,6 @@ class Organization(ReplicatedRegionModel):
     def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
-    snowflake_redis_key = "organization_snowflake_key"
-
     def save(self, *args, **kwargs):
         slugify_target = None
         if not self.slug:
@@ -254,7 +252,6 @@ class Organization(ReplicatedRegionModel):
         if settings.SENTRY_USE_SNOWFLAKE:
             save_with_snowflake_id(
                 instance=self,
-                snowflake_redis_key=self.snowflake_redis_key,
                 save_callback=lambda: super(Organization, self).save(*args, **kwargs),
             )
         else:
@@ -262,7 +259,7 @@ class Organization(ReplicatedRegionModel):
 
     @classmethod
     def reserve_snowflake_id(cls):
-        return generate_snowflake_id(cls.snowflake_redis_key)
+        return generate_snowflake_id()
 
     def delete(self, *args, **kwargs):
         if self.is_default:
