@@ -455,7 +455,7 @@ class ThreadGroupingTest(TestCase):
         app_variant = variants["app"]
         # Type assertion for mypy - we know it's a ComponentVariant
         assert hasattr(app_variant, "contributing_component")
-        threads_component = app_variant.contributing_component  # type: ignore[attr-defined]
+        threads_component = app_variant.contributing_component
 
         # The contributing component should be a ThreadsGroupingComponent
         assert isinstance(threads_component, ThreadsGroupingComponent)
