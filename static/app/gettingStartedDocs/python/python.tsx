@@ -20,6 +20,7 @@ import {
   getPythonMetricsOnboarding,
   getPythonProfilingOnboarding,
   getVerifyLogsContent,
+  getVerifyMetricsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -258,6 +259,7 @@ const onboarding: OnboardingConfig = {
           code: 'division_by_zero = 1 / 0',
         },
         getVerifyLogsContent(params),
+        getVerifyMetricsContent(params),
       ],
     },
   ],

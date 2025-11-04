@@ -24,6 +24,7 @@ import {
   getPythonMetricsOnboarding,
   getPythonProfilingOnboarding,
   getVerifyLogsContent,
+  getVerifyMetricsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -155,6 +156,7 @@ asyncio.run(main())
 `,
         },
         getVerifyLogsContent(params),
+        getVerifyMetricsContent(params),
         {
           type: 'text',
           text: [

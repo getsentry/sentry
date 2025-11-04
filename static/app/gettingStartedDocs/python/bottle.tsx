@@ -23,6 +23,7 @@ import {
   getPythonMetricsOnboarding,
   getPythonProfilingOnboarding,
   getVerifyLogsContent,
+  getVerifyMetricsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -137,6 +138,7 @@ run(app, host='localhost', port=8000)
 `,
         },
         getVerifyLogsContent(params),
+        getVerifyMetricsContent(params),
         {
           type: 'text',
           text: [

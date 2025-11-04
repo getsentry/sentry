@@ -33,6 +33,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   const hasPerformance = organization.features.includes('performance-view');
   const hasProfiling = organization.features.includes('profiling-view');
   const hasLogs = organization.features.includes('ourlogs-enabled');
+  const hasMetrics = organization.features.includes('tracemetrics-enabled');
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   let reason = t('This feature is not enabled on your Sentry installation.');
@@ -74,6 +75,12 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
     disabledProducts[ProductSolution.LOGS] = {
       reason,
       onClick: createClickHandler('organizations:ourlogs-enabled', 'Logs'),
+    };
+  }
+  if (!hasMetrics) {
+    disabledProducts[ProductSolution.METRICS] = {
+      reason,
+      onClick: createClickHandler('organizations:tracemetrics-enabled', 'Metrics'),
     };
   }
   return disabledProducts;
@@ -547,6 +554,18 @@ export function ProductSelection({
           onClick={() => handleClickProduct(ProductSolution.LOGS)}
           disabled={disabledProducts[ProductSolution.LOGS]}
           checked={urlProducts.includes(ProductSolution.LOGS)}
+        />
+      )}
+      {products.includes(ProductSolution.METRICS) && (
+        <Product
+          label={t('Metrics')}
+          description={t(
+            'Structured application metrics for debugging and troubleshooting. Automatically gets associated with errors and traces.'
+          )}
+          docLink="https://docs.sentry.io/product/explore/metrics/"
+          onClick={() => handleClickProduct(ProductSolution.METRICS)}
+          disabled={disabledProducts[ProductSolution.METRICS]}
+          checked={urlProducts.includes(ProductSolution.METRICS)}
         />
       )}
       {products.includes(ProductSolution.SESSION_REPLAY) && (
