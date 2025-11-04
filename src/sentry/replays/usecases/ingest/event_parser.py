@@ -346,7 +346,11 @@ def parse_trace_item(
             logger.warning(
                 "[EVENT PARSE FAIL] Could not transform breadcrumb to trace-item",
                 exc_info=e,
-                extra={"event": event},
+                extra={
+                    "organization_id": context["organization_id"],
+                    "project_id": context["project_id"],
+                    "event": event,
+                },
             )
         return None
 
