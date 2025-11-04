@@ -1,7 +1,7 @@
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-import docs from './electron';
+import docs from '.';
 
 describe('electron onboarding docs', () => {
   it('renders docs correctly', () => {
