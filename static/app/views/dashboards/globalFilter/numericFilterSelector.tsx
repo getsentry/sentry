@@ -83,12 +83,6 @@ function useNativeOperatorFilter(
     globalFilterToken?.value?.text || ''
   );
 
-  const currentFilterToken = useMemo(() => {
-    const reconstructedQuery = `${globalFilter.tag.key}:${stagedFilterOperator}${stagedFilterValue}`;
-    const parsed = parseFilterValue(reconstructedQuery, globalFilter);
-    return parsed[0] || globalFilterToken;
-  }, [stagedFilterOperator, stagedFilterValue, globalFilter, globalFilterToken]);
-
   const hasStagedChanges =
     stagedFilterOperator !== globalFilterOperator ||
     stagedFilterValue !== globalFilterToken?.value?.text;
@@ -117,7 +111,7 @@ function useNativeOperatorFilter(
 
   const isValidValue = isValidNumericFilterValue(
     stagedFilterValue,
-    currentFilterToken,
+    globalFilterToken,
     globalFilter
   );
 
@@ -125,7 +119,7 @@ function useNativeOperatorFilter(
     return newNumericFilterQuery(
       stagedFilterValue,
       stagedFilterOperator,
-      currentFilterToken,
+      globalFilterToken,
       globalFilter
     );
   };
