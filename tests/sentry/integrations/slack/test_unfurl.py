@@ -224,7 +224,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
 
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
@@ -253,7 +253,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
 
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
@@ -278,7 +278,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
         assert unfurls[links[0].url]["blocks"][1]["text"]["text"] == "```" + escape_text + "```"
 
     def test_unfurl_metric_alert(self) -> None:
@@ -306,7 +306,7 @@ class UnfurlTest(TestCase):
                 },
             ),
         ]
-        unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+        unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
         assert (
             links[0].url
             == f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{incident.alert_rule.id}/?alert={incident.identifier}"
@@ -355,7 +355,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         assert (
             unfurls[links[0].url]
@@ -407,7 +407,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         assert (
             unfurls[links[0].url]
@@ -465,7 +465,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         assert (
             unfurls[links[0].url]
@@ -525,7 +525,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
         assert dataset == Spans
@@ -574,7 +574,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
         assert dataset == OurLogs
@@ -613,7 +613,7 @@ class UnfurlTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
 
         assert (
             unfurls[links[0].url]
@@ -648,7 +648,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -687,7 +687,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -735,7 +735,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -773,7 +773,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -839,7 +839,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -905,7 +905,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -957,7 +957,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1025,7 +1025,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1086,7 +1086,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1130,7 +1130,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1188,7 +1188,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1222,7 +1222,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1259,7 +1259,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1312,7 +1312,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1367,7 +1367,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1406,7 +1406,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert (
             unfurls[url]
