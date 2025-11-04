@@ -38,6 +38,10 @@ export default function Ai() {
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const analyticsArea = useAnalyticsArea();
 
+  const replayTooLongMessage = t(
+    'While in beta phase, we only summarize a small portion of the replay.'
+  );
+
   const {
     summaryData,
     isPending: isSummaryPending,
@@ -219,13 +223,7 @@ export default function Ai() {
       <StyledTabItemContainer>
         <OverflowBody>
           <ChapterList timeRanges={summaryData.data.time_ranges} />
-          {segmentCount > 100 && (
-            <Subtext>
-              {t(
-                `Note: this replay is very long, so we might not be summarizing all of it.`
-              )}
-            </Subtext>
-          )}
+          {segmentCount > 100 && <Subtext>{replayTooLongMessage}</Subtext>}
         </OverflowBody>
       </StyledTabItemContainer>
     </Wrapper>
