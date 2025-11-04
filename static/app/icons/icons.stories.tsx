@@ -763,10 +763,10 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'slow',
+        id: 'bot',
         groups: ['status'],
-        keywords: ['frame', 'mobile', 'snail', 'performance', 'lag'],
-        name: 'Slow',
+        keywords: ['bot', 'ai'],
+        name: 'Bot',
         defaultProps: {},
       },
     ],

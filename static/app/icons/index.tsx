@@ -6,6 +6,7 @@ export {IconAsana} from './iconAsana';
 export {IconAttachment} from './iconAttachment';
 export {IconBitbucket} from './iconBitbucket';
 export {IconBookmark} from './iconBookmark';
+export {IconBot} from './iconBot';
 export {IconBranch} from './iconBranch';
 export {IconBroadcast} from './iconBroadcast';
 export {IconBuilding} from './iconBuilding';
