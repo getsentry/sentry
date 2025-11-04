@@ -77,6 +77,15 @@ function StartDurationWidget({additionalFilters}: Props) {
     releaseA.groupBy?.[0]?.value === primaryRelease ? -1 : 1
   );
 
+  // If multiple releases are present, we need to set the yAxis to the release name,
+  // otherwise all will show "Avg. Duration" in the legend
+  timeSeries.forEach(release => {
+    const releaseName = release.groupBy?.find(entry => entry.key === 'release')?.value;
+    if (releaseName && typeof releaseName === 'string') {
+      release.yAxis = releaseName;
+    }
+  });
+
   return (
     <InsightsLineChartWidget
       title={
