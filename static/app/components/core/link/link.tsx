@@ -7,6 +7,7 @@ import {
 import isPropValid from '@emotion/is-prop-valid';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {LocationDescriptor} from 'history';
 
 import {PRELOAD_HANDLE} from 'sentry/constants/routes';
@@ -101,14 +102,37 @@ const preload = async (to: To) => {
           typeof routeHandle === 'object' &&
           PRELOAD_HANDLE in routeHandle
         ) {
-          routeHandle[PRELOAD_HANDLE]?.().catch(() => {
-            // Ignore preload errors
+          routeHandle[PRELOAD_HANDLE]?.().catch((error: unknown) => {
+            Sentry.withScope(scope => {
+              scope.setLevel('warning');
+              Sentry.captureException(error, {
+                tags: {
+                  component: 'Link',
+                  operation: 'preload',
+                },
+                extra: {
+                  to,
+                  route: match.route.path,
+                },
+              });
+            });
           });
         }
       }
     }
-  } catch {
-    // Silently fail if route matching fails
+  } catch (error) {
+    Sentry.withScope(scope => {
+      scope.setLevel('warning');
+      Sentry.captureException(error, {
+        tags: {
+          component: 'Link',
+          operation: 'route_matching',
+        },
+        extra: {
+          to,
+        },
+      });
+    });
   }
 };
 
