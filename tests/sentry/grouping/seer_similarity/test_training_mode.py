@@ -120,3 +120,34 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
 
             # Should not be called because should_call_seer_for_grouping returned False
             mock_get_seer_similar_issues.assert_not_called()
+
+    def test_captures_exception_without_failing(self) -> None:
+        """Should capture exceptions from Seer calls without failing the process"""
+        test_exception = Exception("Seer service unavailable")
+
+        with (
+            patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
+            patch(
+                "sentry.grouping.ingest.seer.get_seer_similar_issues",
+                side_effect=test_exception,
+            ),
+            patch("sentry.grouping.ingest.seer.sentry_sdk.capture_exception") as mock_capture,
+            self.feature(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE),
+        ):
+            # Clear seer_model to trigger sending to new model
+            metadata, _ = GroupHashMetadata.objects.get_or_create(grouphash=self.grouphash)
+            metadata.seer_model = None
+            metadata.save()
+
+            # Should not raise, exception is caught and handled
+            maybe_send_seer_for_new_model_training(self.event, self.grouphash, self.variants)
+
+            # Should capture the exception with proper tags
+            mock_capture.assert_called_once_with(
+                test_exception,
+                tags={
+                    "event": self.event.event_id,
+                    "project": self.event.project.id,
+                    "grouphash": self.grouphash.hash,
+                },
+            )

@@ -16,7 +16,10 @@ from sentry.grouping.utils import get_fingerprint_type
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
-from sentry.seer.similarity.config import get_grouping_model_version
+from sentry.seer.similarity.config import (
+    get_grouping_model_version,
+    should_send_new_model_embeddings,
+)
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
@@ -573,7 +576,6 @@ def maybe_send_seer_for_new_model_training(
         existing_grouphash: The grouphash that was found for this event
         variants: Grouping variants for the event
     """
-    from sentry.seer.similarity.config import should_send_new_model_embeddings
 
     # Check if we should send embeddings for the new model
     gh_metadata = existing_grouphash.metadata
