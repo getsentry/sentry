@@ -10,6 +10,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import (
+    AttributeArgumentDefinition,
     FormulaDefinition,
     ResolvedArguments,
     ResolverSettings,
@@ -80,8 +81,13 @@ TRACE_METRICS_FORMULA_DEFINITIONS = {
     "per_second": FormulaDefinition(
         default_search_type="rate",
         arguments=[
-            ValueArgumentDefinition(
-                argument_types={"string"},
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "number",
+                    "integer",
+                },
+                default_arg="value",
             ),
             ValueArgumentDefinition(
                 argument_types={"string"},
@@ -94,8 +100,13 @@ TRACE_METRICS_FORMULA_DEFINITIONS = {
     "per_minute": FormulaDefinition(
         default_search_type="rate",
         arguments=[
-            ValueArgumentDefinition(
-                argument_types={"string"},
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "number",
+                    "integer",
+                },
+                default_arg="value",
             ),
             ValueArgumentDefinition(
                 argument_types={"string"},
