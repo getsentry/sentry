@@ -174,16 +174,6 @@ web.run_app(app)
         link: 'https://docs.sentry.io/platforms/python/logs/#integrations',
       });
     }
-
-    if (params.isMetricsSelected) {
-      steps.push({
-        id: 'metrics',
-        name: t('Metrics'),
-        description: t('Capture metrics from your application.'),
-        link: 'https://docs.sentry.io/platforms/python/metrics/',
-      });
-    }
-
     return steps;
   },
 };
