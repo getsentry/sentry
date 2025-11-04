@@ -16,7 +16,7 @@ SEER_GROUPING_STABLE_VERSION = GroupingVersion.V1
 # - Rolled-out projects: Use this for ALL requests (both grouping and embeddings)
 # - Non-rolled-out projects: Never use this (use stable version for everything)
 # Set to None to disable rollout entirely
-SEER_GROUPING_NEW_VERSION = GroupingVersion.V2
+SEER_GROUPING_NEW_VERSION: GroupingVersion | None = GroupingVersion.V2
 
 # Feature flag name (version-agnostic)
 SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE = "projects:similarity-grouping-model-upgrade"
@@ -30,7 +30,12 @@ def get_grouping_model_version(project: Project) -> GroupingVersion:
         - New version if rollout is enabled for this project
         - Stable version otherwise
     """
-    if is_new_model_rolled_out(project):
+    # Early return if no new version configured
+    if SEER_GROUPING_NEW_VERSION is None:
+        return SEER_GROUPING_STABLE_VERSION
+
+    # Type is narrowed to GroupingVersion here
+    if features.has(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE, project):
         return SEER_GROUPING_NEW_VERSION
     return SEER_GROUPING_STABLE_VERSION
 
