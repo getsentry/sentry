@@ -4,8 +4,11 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getInstallCodeBlock,
+  getSdkInitSnippet,
+} from 'sentry/gettingStartedDocs/node/node/utils';
 import {t, tct} from 'sentry/locale';
-import {getInstallCodeBlock, getSdkInitSnippet} from 'sentry/gettingStartedDocs/node/node/utils';
 
 const getSdkSetupSnippet = (params: DocsParams) => `
 // IMPORTANT: Make sure to import and initialize Sentry at the top of your file.
