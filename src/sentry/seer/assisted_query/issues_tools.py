@@ -556,6 +556,9 @@ def get_issues_stats(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    if not issue_ids:
+        return []
+
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
     params: dict[str, Any] = {
