@@ -81,6 +81,36 @@ describe('TagDistribution', () => {
     expect(screen.getByText('>99%')).toBeInTheDocument(); // Other should show >99%, not 100%
     expect(screen.queryByText('100%')).not.toBeInTheDocument(); // Should never show 100%
   });
+
+  it('renders empty tag value as "(empty)"', () => {
+    const tag: GroupTag = {
+      topValues: [
+        {
+          count: 100,
+          name: '',
+          value: '',
+          lastSeen: '2018-11-16T22:52:24Z',
+          firstSeen: '2018-05-06T03:48:28.855Z',
+        },
+        {
+          count: 100,
+          name: 'example_value',
+          value: 'example_value',
+          lastSeen: '2018-11-16T22:52:24Z',
+          firstSeen: '2018-05-06T03:48:28.855Z',
+        },
+      ],
+      name: 'example_tag',
+      key: 'example_tag',
+      totalValues: 100,
+    };
+
+    render(<TagDistribution tag={tag} />);
+
+    expect(screen.getByText('example_tag')).toBeInTheDocument();
+    expect(screen.getByText('(empty)')).toBeInTheDocument();
+    expect(screen.getByText('example_value')).toBeInTheDocument();
+  });
 });
 
 function TagFixture(topValues: number[], totalValues: number): GroupTag {
