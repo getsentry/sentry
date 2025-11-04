@@ -1112,3 +1112,161 @@ class ExploreSavedQueriesTest(APITestCase):
 
         assert response_without_flag.status_code == 200, response_without_flag.content
         assert len(response_without_flag.data) == 5
+
+    def test_post_metrics_dataset_with_metric_field(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Metrics query with metric field",
+                    "projects": self.project_ids,
+                    "dataset": "metrics",
+                    "query": [
+                        {
+                            "fields": ["count()"],
+                            "mode": "aggregate",
+                            "metric": {
+                                "name": "sentry.alert_endpoint.executed",
+                                "type": "counter",
+                            },
+                        }
+                    ],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["dataset"] == "metrics"
+        assert data["query"] == [
+            {
+                "fields": ["count()"],
+                "mode": "aggregate",
+                "metric": {
+                    "name": "sentry.alert_endpoint.executed",
+                    "type": "counter",
+                },
+            }
+        ]
+
+    def test_post_metrics_dataset_with_metric_field_and_unit(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Metrics query with unit",
+                    "projects": self.project_ids,
+                    "dataset": "metrics",
+                    "query": [
+                        {
+                            "fields": ["avg()"],
+                            "mode": "aggregate",
+                            "metric": {
+                                "name": "sentry.response_time",
+                                "type": "gauge",
+                                "unit": "millisecond",
+                            },
+                        }
+                    ],
+                    "range": "1h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["dataset"] == "metrics"
+        assert data["query"] == [
+            {
+                "fields": ["avg()"],
+                "mode": "aggregate",
+                "metric": {
+                    "name": "sentry.response_time",
+                    "type": "gauge",
+                    "unit": "millisecond",
+                },
+            }
+        ]
+
+    def test_get_metrics_dataset_with_metric_field(self) -> None:
+        query = {
+            "range": "24h",
+            "query": [
+                {
+                    "fields": ["count()"],
+                    "mode": "aggregate",
+                    "metric": {
+                        "name": "sentry.alert_endpoint.executed",
+                        "type": "counter",
+                    },
+                }
+            ],
+        }
+
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Test metrics query",
+            query=query,
+            dataset=ExploreSavedQueryDataset.METRICS,
+        )
+        model.set_projects(self.project_ids)
+
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200, response.content
+
+        test_query = None
+        for item in response.data:
+            if item["name"] == "Test metrics query":
+                test_query = item
+                break
+
+        assert test_query is not None
+        assert test_query["dataset"] == "metrics"
+        assert test_query["query"][0]["metric"] == {
+            "name": "sentry.alert_endpoint.executed",
+            "type": "counter",
+        }
+
+    def test_post_non_metrics_dataset_rejects_metric_field(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Spans query with invalid metric",
+                    "projects": self.project_ids,
+                    "dataset": "spans",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                            "metric": {
+                                "name": "sentry.alert_endpoint.executed",
+                                "type": "counter",
+                            },
+                        }
+                    ],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert "Metric field is only allowed for metrics dataset" in str(response.data)
+
+    def test_post_metrics_dataset_requires_metric_field(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Metrics query without metric field",
+                    "projects": self.project_ids,
+                    "dataset": "metrics",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert "Metric field is required for metrics dataset" in str(response.data)
