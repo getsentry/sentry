@@ -20,7 +20,7 @@ const DEFAULT_ORG_LABEL = 'Select Integrated Org';
 function AddIntegratedOrgButton() {
   return (
     <LinkButton
-      href="https://github.com/apps/sentry-io/installations/select_target"
+      href="https://github.com/apps/sentry/installations/select_target"
       size="sm"
       icon={<IconAdd size="sm" />}
       priority="default"
@@ -41,7 +41,7 @@ function OrgFooterMessage() {
         <div>
           <FooterInfoHeading>
             To access{' '}
-            <ExternalLink href="https://github.com/apps/sentry-io">
+            <ExternalLink href="https://github.com/apps/sentry">
               Integrated Organization
             </ExternalLink>
           </FooterInfoHeading>
