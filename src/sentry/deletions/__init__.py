@@ -3,6 +3,8 @@ from __future__ import annotations
 import functools
 from typing import TYPE_CHECKING, Any
 
+from sentry import options
+
 if TYPE_CHECKING:
     from sentry.db.models.base import Model
     from sentry.deletions.base import BaseDeletionTask
@@ -64,7 +66,10 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.GroupEnvironment, BulkModelDeletionTask)
     manager.register(models.GroupHash, defaults.GroupHashDeletionTask)
     manager.register(models.GroupHashMetadata, BulkModelDeletionTask)
-    manager.register(models.GroupHistory, defaults.GroupHistoryDeletionTask)
+    if options.get("deletions.group-history.use-bulk-deletion"):
+        manager.register(models.GroupHistory, BulkModelDeletionTask)
+    else:
+        manager.register(models.GroupHistory, defaults.GroupHistoryDeletionTask)
     manager.register(models.GroupLink, BulkModelDeletionTask)
     manager.register(models.GroupMeta, BulkModelDeletionTask)
     manager.register(models.GroupRedirect, BulkModelDeletionTask)

@@ -60,16 +60,16 @@ function useMetricTimeseriesImpl({
   const sortBys = useQueryParamsAggregateSortBys();
 
   const search = useMemo(() => {
-    const currentSearch = new MutableSearch(`metric.name:${traceMetric.name}`);
+    const baseQuery = `metric.name:${traceMetric.name}`;
     if (!searchQuery.isEmpty()) {
-      currentSearch.addStringFilter(searchQuery.formatString());
+      return `${baseQuery} (${searchQuery.formatString()})`;
     }
-    return currentSearch;
+    return baseQuery;
   }, [traceMetric.name, searchQuery]);
 
   const timeseriesResult = useSortedTimeSeries(
     {
-      search,
+      search: new MutableSearch(search),
       yAxis: [visualize.yAxis],
       interval,
       fields: [...groupBys, visualize.yAxis],

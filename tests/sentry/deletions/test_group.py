@@ -135,7 +135,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         history_two = self.create_group_history(
             group=group,
             status=GroupHistoryStatus.RESOLVED,
-            prev_history=history_one,
+            prev_history_date=history_one.date_added,
         )
         other_history_one = self.create_group_history(
             group=other_group, status=GroupHistoryStatus.ONGOING
@@ -143,7 +143,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         other_history_two = self.create_group_history(
             group=other_group,
             status=GroupHistoryStatus.RESOLVED,
-            prev_history=other_history_one,
+            prev_history_date=other_history_one.date_added,
         )
         with self.tasks():
             delete_groups_for_project(
