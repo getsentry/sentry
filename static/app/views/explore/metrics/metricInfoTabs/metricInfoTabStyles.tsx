@@ -51,15 +51,22 @@ export const WrappingText = styled('div')`
   align-items: center;
 `;
 
-export const ExpandedRowContainer = styled('div')`
+export const ExpandedRowContainer = styled('div')<{embedded?: boolean}>`
   grid-column: 1 / -1;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+
+  ${p =>
+    p.embedded &&
+    css`
+      padding: ${p.theme.space.xs} ${p.theme.space.sm};
+    `}
 `;
 
 export const StyledSimpleTableRowCell = styled(SimpleTable.RowCell)<{
+  embedded?: boolean;
   hasPadding?: boolean;
 }>`
-  padding: ${p => (p.hasPadding ? p.theme.space.xs : 0)};
+  padding: ${p => p.theme.space['2xs']};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

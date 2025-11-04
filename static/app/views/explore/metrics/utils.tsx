@@ -14,6 +14,7 @@ import type {
   SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {TraceSamplesTableStatColumns} from 'sentry/views/explore/metrics/constants';
 import type {
   BaseMetricQuery,
   TraceMetric,
@@ -22,6 +23,11 @@ import {
   defaultMetricQuery,
   encodeMetricQueryParams,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {
+  TraceMetricKnownFieldKey,
+  VirtualTableSampleColumnKey,
+  type SampleTableColumnKey,
+} from 'sentry/views/explore/metrics/types';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import type {PickableDays} from 'sentry/views/explore/utils';
@@ -97,11 +103,13 @@ type BaseGetMetricsUrlParams = {
   title?: string;
 };
 
-function getMetricsUrl(
+export function getMetricsUrl(
   params: BaseGetMetricsUrlParams & {organization: Organization}
 ): string;
-function getMetricsUrl(params: BaseGetMetricsUrlParams & {organization: string}): string;
-function getMetricsUrl({
+export function getMetricsUrl(
+  params: BaseGetMetricsUrlParams & {organization: string}
+): string;
+export function getMetricsUrl({
   organization,
   selection,
   metricQueries,
@@ -181,4 +189,34 @@ export function getMetricsUrlFromSavedQueryUrl({
       projects: savedQuery.projects ? [...savedQuery.projects] : [],
     },
   });
+}
+
+export function getVisibleColumns(
+  columns: SampleTableColumnKey[]
+): TraceMetricKnownFieldKey[] {
+  return columns.filter(
+    c =>
+      Object.values(TraceMetricKnownFieldKey).includes(c as TraceMetricKnownFieldKey) &&
+      c !== TraceMetricKnownFieldKey.METRIC_VALUE
+  ) as TraceMetricKnownFieldKey[];
+}
+
+export function getVisibleStatColumns(
+  columns: SampleTableColumnKey[]
+): VirtualTableSampleColumnKey[] {
+  return columns.filter(c =>
+    Object.values(VirtualTableSampleColumnKey).includes(c as VirtualTableSampleColumnKey)
+  ) as VirtualTableSampleColumnKey[];
+}
+
+export function getMetricTableColumnType(
+  column: SampleTableColumnKey
+): 'value' | 'stat' | 'metric_value' {
+  if (TraceSamplesTableStatColumns.includes(column as VirtualTableSampleColumnKey)) {
+    return 'stat';
+  }
+  if (column === TraceMetricKnownFieldKey.METRIC_VALUE) {
+    return 'metric_value'; // Special cased for headers and rendering usually.
+  }
+  return 'value';
 }
