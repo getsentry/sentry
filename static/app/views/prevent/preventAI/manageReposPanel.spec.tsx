@@ -86,9 +86,7 @@ describe('ManageReposPanel', () => {
       body: {
         schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         default_org_config: PreventAIConfigFixture(),
-        organization: {
-          'org-1': PreventAIConfigFixture(),
-        },
+        organization: PreventAIConfigFixture(),
       },
     });
   });
@@ -156,9 +154,7 @@ describe('ManageReposPanel', () => {
       body: {
         schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         default_org_config: PreventAIConfigFixture(),
-        organization: {
-          'org-1': configWithOverride,
-        },
+        organization: configWithOverride,
       },
     });
 
@@ -186,9 +182,7 @@ describe('ManageReposPanel', () => {
       body: {
         schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         default_org_config: PreventAIConfigFixture(),
-        organization: {
-          'org-1': configWithOverride,
-        },
+        organization: configWithOverride,
       },
     });
 
@@ -229,9 +223,7 @@ describe('ManageReposPanel', () => {
       body: {
         schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         default_org_config: PreventAIConfigFixture(),
-        organization: {
-          'org-1': configWithOverride,
-        },
+        organization: configWithOverride,
       },
     });
 
@@ -265,9 +257,7 @@ describe('ManageReposPanel', () => {
       body: {
         schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         default_org_config: PreventAIConfigFixture(),
-        organization: {
-          'org-1': configWithOverride,
-        },
+        organization: configWithOverride,
       },
     });
 
@@ -350,9 +340,7 @@ describe('ManageReposPanel', () => {
       body: {
         schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
         default_org_config: PreventAIConfigFixture(),
-        organization: {
-          'org-1': configWithOverride,
-        },
+        organization: configWithOverride,
       },
     });
 
