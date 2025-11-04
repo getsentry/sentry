@@ -434,9 +434,7 @@ export function TraceEventDataSection({
                 icon={<IconCopy />}
                 onClick={handleCopyRawStacktrace}
                 aria-label={t('Copy Raw Stacktrace')}
-              >
-                {t('Copy Raw Stacktrace')}
-              </Button>
+              />
             </Tooltip>
             {displayOptions.includes('raw-stack-trace') && nativePlatform && (
               <LinkButton
