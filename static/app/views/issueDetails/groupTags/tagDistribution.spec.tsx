@@ -107,7 +107,9 @@ describe('TagDistribution', () => {
 
     render(<TagDistribution tag={tag} />);
 
+    expect(screen.getByText('example_tag')).toBeInTheDocument();
     expect(screen.getByText('(empty)')).toBeInTheDocument();
+    expect(screen.getByText('example_value')).toBeInTheDocument();
   });
 });
 
