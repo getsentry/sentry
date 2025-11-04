@@ -12,6 +12,7 @@ from cryptography.fernet import Fernet
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from rest_framework.exceptions import (
@@ -1051,7 +1052,6 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
         dict: {"statuses": list of booleans indicating if each repository exists and is active}
               e.g., {"statuses": [True, False, True]}
     """
-    from django.db.models import Q
 
     if not repository_integrations:
         return {"statuses": []}
