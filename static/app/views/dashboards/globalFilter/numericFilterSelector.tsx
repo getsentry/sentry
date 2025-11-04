@@ -9,7 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
-import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {OP_LABELS as NATIVE_OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
   TermOperator,
   Token,
@@ -36,11 +36,14 @@ enum CustomOperator {
 }
 export type Operator = TermOperator | CustomOperator;
 
-function getOperatorLabel(operator: Operator) {
-  if (operator === CustomOperator.BETWEEN) {
-    return t('between');
-  }
-  return OP_LABELS[operator];
+const OPERATOR_LABELS: Partial<Record<Operator, string>> = {
+  [CustomOperator.BETWEEN]: t('between'),
+  [TermOperator.GREATER_THAN_EQUAL]: '\u2265',
+  [TermOperator.LESS_THAN_EQUAL]: '\u2264',
+};
+
+export function getOperatorLabel(operator: Operator): string {
+  return OPERATOR_LABELS[operator] ?? NATIVE_OP_LABELS[operator as TermOperator];
 }
 
 interface NumericFilterState {

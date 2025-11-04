@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import type {TermOperator} from 'sentry/components/searchSyntax/parser';
+import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import TextOverflow from 'sentry/components/textOverflow';
 import {prettifyTagKey} from 'sentry/utils/fields';
+import {getOperatorLabel} from 'sentry/views/dashboards/globalFilter/numericFilterSelector';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 type NumericFilterSelectorTriggerProps = {
@@ -22,14 +22,12 @@ function NumericFilterSelectorTrigger({
   return (
     <ButtonLabelWrapper>
       <TextOverflow>
-        {prettifyTagKey(tag.key)} {OP_LABELS[globalFilterOperator]}{' '}
+        {prettifyTagKey(tag.key)} {getOperatorLabel(globalFilterOperator)}{' '}
         <FilterValueWrapper>{globalFilterValue}</FilterValueWrapper>
       </TextOverflow>
     </ButtonLabelWrapper>
   );
 }
-
-const LESS_THAN_EQUAL = '\u2264';
 
 type BetweenFilterSelectorTriggerProps = {
   globalFilter: GlobalFilter;
@@ -43,12 +41,13 @@ function BetweenFilterSelectorTrigger({
   upperBound,
 }: BetweenFilterSelectorTriggerProps) {
   const {tag} = globalFilter;
+  const operatorLabel = getOperatorLabel(TermOperator.LESS_THAN_EQUAL);
 
   return (
     <ButtonLabelWrapper>
       <TextOverflow>
-        <FilterValueWrapper>{lowerBound}</FilterValueWrapper> {LESS_THAN_EQUAL}{' '}
-        {prettifyTagKey(tag.key)} {LESS_THAN_EQUAL}{' '}
+        <FilterValueWrapper>{lowerBound}</FilterValueWrapper> {operatorLabel}{' '}
+        {prettifyTagKey(tag.key)} {operatorLabel}{' '}
         <FilterValueWrapper>{upperBound}</FilterValueWrapper>
       </TextOverflow>
     </ButtonLabelWrapper>
