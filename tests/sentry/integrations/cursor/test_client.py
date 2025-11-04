@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
-from requests.adapters import Retry
+from requests.adapters import HTTPAdapter, Retry
 
 from sentry.integrations.cursor.client import CursorAgentClient
 from sentry.shared_integrations.exceptions import ApiError
@@ -25,6 +25,7 @@ class CursorClientTest(TestCase):
 
         # Get the adapter from the session
         adapter = session.get_adapter("https://api.cursor.com")
+        assert isinstance(adapter, HTTPAdapter)
 
         # Verify retry configuration
         assert adapter.max_retries is not None
@@ -32,6 +33,7 @@ class CursorClientTest(TestCase):
         assert adapter.max_retries.total == 3
         assert adapter.max_retries.backoff_factor == 0.5
         assert adapter.max_retries.status_forcelist == [500, 502, 503, 504]
+        assert adapter.max_retries.allowed_methods is not None
         assert "POST" in adapter.max_retries.allowed_methods
 
     @patch("sentry.integrations.cursor.client.CursorAgentClient.post")
