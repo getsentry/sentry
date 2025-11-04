@@ -24,7 +24,10 @@ logger = logging.getLogger(__name__)
 
 
 class SemverVersion(
-    namedtuple("SemverVersion", "major minor patch revision prerelease_case prerelease")
+    namedtuple(
+        "SemverVersion",
+        "major minor patch revision prerelease_case prerelease build_number_case build_number",
+    )
 ):
     pass
 
@@ -47,6 +50,19 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         return self.annotate(
             prerelease_case=Case(
                 When(prerelease="", then=1), default=0, output_field=models.IntegerField()
+            )
+        )
+
+    def annotate_build_number_column(self):
+        """
+        Adds a `build_number` column to the queryset which is used to properly sort
+        by build number. We treat a null build number as higher than any other value.
+        """
+        return self.annotate(
+            build_number_case=Case(
+                When(build_number__isnull=True, then=1),
+                default=0,
+                output_field=models.IntegerField(),
             )
         )
 
@@ -107,7 +123,11 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
 
         Typically we build a `SemverFilter` via `sentry.search.events.filter.parse_semver`
         """
-        qs = self.filter(organization_id=organization_id).annotate_prerelease_column()
+        qs = (
+            self.filter(organization_id=organization_id)
+            .annotate_prerelease_column()
+            .annotate_build_number_column()
+        )
         query_func = "exclude" if semver_filter.negated else "filter"
 
         if semver_filter.package:
