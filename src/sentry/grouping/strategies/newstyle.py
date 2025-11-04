@@ -23,7 +23,6 @@ from sentry.grouping.component import (
     NSErrorDomainGroupingComponent,
     NSErrorGroupingComponent,
     StacktraceGroupingComponent,
-    ThreadIdGroupingComponent,
     ThreadNameGroupingComponent,
     ThreadsGroupingComponent,
 )
@@ -894,11 +893,10 @@ def _get_thread_components(
     thread = threads[0]
     stacktrace = thread.get("stacktrace")
 
-    # Check if config enables thread metadata in grouping via initial_context
+    # Check if config enables thread name in grouping via initial_context
     include_thread_name = context.get("include_thread_name_in_grouping", False)
-    include_thread_id = context.get("include_thread_id_in_grouping", False)
 
-    # Collect thread metadata components
+    # Collect thread metadata components (only thread name, as IDs are random)
     thread_metadata: list[BaseGroupingComponent[str]] = []
     if include_thread_name and thread.get("name"):
         thread_metadata.append(
@@ -906,15 +904,6 @@ def _get_thread_components(
                 values=[thread["name"]],
                 contributes=True,
                 hint="thread name included in grouping",
-            )
-        )
-
-    if include_thread_id and thread.get("id"):
-        thread_metadata.append(
-            ThreadIdGroupingComponent(
-                values=[str(thread["id"])],
-                contributes=True,
-                hint="thread id included in grouping",
             )
         )
 
