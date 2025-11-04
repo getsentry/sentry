@@ -70,4 +70,5 @@ register_grouping_config(
     id=FALL_2025_GROUPING_CONFIG,
     base="newstyle:2023-01-11",
     initial_context={},
+    enhancements_base="all-platforms:2025-11-21",
 )
