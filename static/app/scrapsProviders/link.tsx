@@ -15,8 +15,7 @@ export function SentryLinkBehaviorProvider({children}: {children: React.ReactNod
     <LinkBehaviorContextProvider
       value={useMemo(
         () => ({
-          // fall back to <a> if there is no router present
-          component: location ? RouterLink : 'a',
+          component: RouterLink,
           behavior: ({to, ...props}: LinkProps) => {
             const normalizedTo = locationDescriptorToTo(normalizeUrl(to, location));
 
