@@ -100,9 +100,11 @@ export function SizeCompareMainContent() {
       );
     },
     onError: error => {
-      addErrorMessage(
-        error?.message || t('Failed to trigger comparison. Please try again.')
-      );
+      const errorMessage =
+        (typeof error?.responseJSON?.error === 'string'
+          ? error?.responseJSON.error
+          : null) ?? t('Failed to trigger comparison. Please try again.');
+      addErrorMessage(errorMessage);
     },
   });
 
