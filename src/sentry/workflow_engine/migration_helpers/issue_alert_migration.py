@@ -76,7 +76,7 @@ class IssueAlertMigrator:
 
     def _create_detector_lookups(self) -> list[Detector | None]:
         if self.rule.source == RuleSource.CRON_MONITOR:
-            return None, None
+            return [None, None]
 
         if self.is_dry_run:
             error_detector = Detector.objects.filter(
@@ -106,7 +106,7 @@ class IssueAlertMigrator:
                 defaults={"config": {}, "name": ISSUE_STREAM_DETECTOR_NAME},
             )
 
-        return error_detector, issue_stream_detector
+        return [error_detector, issue_stream_detector]
 
     def _connect_default_detectors(self, workflow: Workflow) -> None:
         default_detectors = self._create_detector_lookups()
