@@ -200,7 +200,9 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
             for bucket, data_point in zip(timeseries.buckets, timeseries.data_points):
                 value = int(data_point.data) if data_point.data_present else 0
-                formatted_data[subscription_id][bucket.seconds][status] = value
+                # Add to existing value instead of overwriting, since multiple timeseries
+                # may contribute to the same status (e.g., success with different incident_status values)
+                formatted_data[subscription_id][bucket.seconds][status] += value
 
         final_data: dict[str, list[tuple[int, dict[str, int]]]] = {}
         for subscription_id, timestamps in formatted_data.items():

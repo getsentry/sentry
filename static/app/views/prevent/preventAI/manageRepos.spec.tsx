@@ -11,22 +11,20 @@ describe('PreventAIManageRepos', () => {
     OrganizationIntegrationsFixture({
       id: 'integration-1',
       organizationId: 'org-1',
-      name: 'Org One',
+      name: 'org-1',
       externalId: 'ext-1',
       domainName: 'github.com/org-one',
     }),
     OrganizationIntegrationsFixture({
       id: 'integration-2',
       organizationId: 'org-2',
-      name: 'Org Two',
+      name: 'org-2',
       externalId: 'ext-2',
       domainName: 'github.com/org-two',
     }),
   ];
 
-  const organization = OrganizationFixture({
-    preventAiConfigGithub: PreventAIConfigFixture(),
-  });
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -46,6 +44,11 @@ describe('PreventAIManageRepos', () => {
           name: 'org-two/repo-three',
         },
       ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prevent/ai/github/config/org-1/`,
+      method: 'GET',
+      body: {default_org_config: PreventAIConfigFixture()},
     });
   });
 
