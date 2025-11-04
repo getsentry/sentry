@@ -97,8 +97,7 @@ function ManageReposPanel({
     );
   }
 
-  const orgConfig =
-    githubConfigData.organization?.[org.name] ?? githubConfigData.default_org_config;
+  const orgConfig = githubConfigData.organization ?? githubConfigData.default_org_config;
 
   const {doesUseOrgDefaults, repoConfig} = isEditingOrgDefaults
     ? {doesUseOrgDefaults: true, repoConfig: orgConfig.org_defaults}

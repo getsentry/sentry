@@ -2,7 +2,7 @@ import Feature from 'sentry/components/acl/feature';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import PreventAIManageRepos from 'sentry/views/prevent/preventAI/manageRepos';
+import PreventAIManageRepos from 'sentry/views/prevent/preventAI/manageReposPage';
 import PreventAIOnboarding from 'sentry/views/prevent/preventAI/onboarding';
 
 import {usePreventAIOrgs} from './hooks/usePreventAIOrgRepos';

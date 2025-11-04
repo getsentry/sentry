@@ -4,7 +4,7 @@ import {PreventAIConfigFixture} from 'sentry-fixture/prevent';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ManageReposPage from './manageRepos';
+import ManageReposPage from './manageReposPage';
 
 describe('PreventAIManageRepos', () => {
   const integratedOrgs = [
