@@ -118,19 +118,12 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        try:
-            data = send_translate_agentic_request(
-                organization.id,
-                organization.slug,
-                project_ids,
-                natural_language_query,
-                strategy=strategy,
-                model_name=model_name,
-            )
-            return Response(data)
-        except requests.exceptions.RequestException:
-            logger.exception("Failed to call Seer API for translate agentic request")
-            return Response(
-                {"detail": "An error occurred while processing your request."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        data = send_translate_agentic_request(
+            organization.id,
+            organization.slug,
+            project_ids,
+            natural_language_query,
+            strategy=strategy,
+            model_name=model_name,
+        )
+        return Response(data)
