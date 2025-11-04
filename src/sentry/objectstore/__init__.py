@@ -3,7 +3,7 @@ from datetime import timedelta
 from objectstore_client import Client, ClientBuilder, ClientError, MetricsBackend, TimeToLive
 from objectstore_client.metrics import Tags
 
-from sentry.utils import metrics
+from sentry.utils import metrics as sentry_metrics
 
 __all__ = ["get_attachments_client", "Client", "ClientBuilder", "ClientError"]
 
@@ -17,13 +17,13 @@ class SentryMetricsBackend(MetricsBackend):
         value: int | float = 1,
         tags: Tags | None = None,
     ) -> None:
-        metrics.incr(name, int(value), tags=tags)
+        sentry_metrics.incr(name, int(value), tags=tags)
 
     def gauge(self, name: str, value: int | float, tags: Tags | None = None) -> None:
         """
         Sets a gauge metric to the given value.
         """
-        metrics.gauge(name, value, tags=tags)
+        sentry_metrics.gauge(name, value, tags=tags)
 
     def distribution(
         self,
@@ -32,7 +32,7 @@ class SentryMetricsBackend(MetricsBackend):
         tags: Tags | None = None,
         unit: str | None = None,
     ) -> None:
-        metrics.distribution(name, value, tags=tags, unit=unit)
+        sentry_metrics.distribution(name, value, tags=tags, unit=unit)
 
 
 def get_attachments_client() -> ClientBuilder:
