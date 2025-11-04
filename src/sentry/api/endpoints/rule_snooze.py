@@ -28,6 +28,10 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.receivers.rule_snooze import _update_workflow_engine_models
+from sentry.workflow_engine.utils.legacy_metric_tracking import (
+    report_used_legacy_models,
+    track_alert_endpoint_execution,
+)
 
 
 def can_edit_alert_rule(organization, request):
@@ -275,6 +279,18 @@ class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
         "POST": ApiPublishStatus.PRIVATE,
     }
     rule_field = "alert_rule"
+
+    @track_alert_endpoint_execution("POST", "sentry-api-0-metric-rule-snooze")
+    def post(self, request: Request, project: Project, rule: AlertRule) -> Response:
+        # Mark that we're using legacy AlertRule models
+        report_used_legacy_models()
+        return super().post(request, project, rule)
+
+    @track_alert_endpoint_execution("DELETE", "sentry-api-0-metric-rule-snooze")
+    def delete(self, request: Request, project: Project, rule: AlertRule) -> Response:
+        # Mark that we're using legacy AlertRule models
+        report_used_legacy_models()
+        return super().delete(request, project, rule)
 
     def fetch_rule_list(self, project: Project) -> BaseQuerySet[AlertRule]:
         queryset = AlertRule.objects.fetch_for_project(project=project)
