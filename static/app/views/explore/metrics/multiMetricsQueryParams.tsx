@@ -96,13 +96,8 @@ export function MultiMetricsQueryParamsProvider({
                 // the currently selected aggregation isn't supported on the new metric
                 const defaultAggregation =
                   DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'per_second';
-                const args =
-                  defaultAggregation === 'per_second' ||
-                  defaultAggregation === 'per_minute'
-                    ? `value,${newTraceMetric.type}`
-                    : 'value';
                 aggregateFields = [
-                  new VisualizeFunction(`${defaultAggregation}(${args})`),
+                  new VisualizeFunction(`${defaultAggregation}(value)`),
                   ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
                 ];
               } else if (
@@ -114,9 +109,7 @@ export function MultiMetricsQueryParamsProvider({
 
                 // the currently selected aggregation changed types
                 aggregateFields = [
-                  new VisualizeFunction(
-                    `${selectedAggregation}(value,${newTraceMetric.type})`
-                  ),
+                  new VisualizeFunction(`${selectedAggregation}(value)`),
                   ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
                 ];
               }
