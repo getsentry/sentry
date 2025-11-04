@@ -105,8 +105,9 @@ function ReleaseSelector({
     <StyledCompactSelect
       triggerProps={{
         icon: <IconReleases />,
-        title: triggerLabel,
+        title: selectorValue,
         prefix: triggerLabelPrefix,
+        children: triggerLabel,
       }}
       menuTitle={t('Filter Release')}
       loading={isLoading}
