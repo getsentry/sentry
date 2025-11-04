@@ -28,7 +28,9 @@ from sentry.models.team import Team
 from sentry.search.utils import tokenize_query
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 
-ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
+ERR_INVALID_STATS_PERIOD = (
+    "Invalid stats_period. Valid choices are '', '1h', '24h', '7d', '14d', '30d', and '90d'"
+)
 
 DATASETS = {
     "": discover,  # in case they pass an empty query string fall back on default
@@ -72,7 +74,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         """
         stats_period = request.GET.get("statsPeriod")
         collapse = request.GET.getlist("collapse", [])
-        if stats_period not in (None, "", "1h", "24h", "7d", "14d", "30d"):
+        if stats_period not in (None, "", "1h", "24h", "7d", "14d", "30d", "90d"):
             return Response(
                 {"error": {"params": {"stats_period": {"message": ERR_INVALID_STATS_PERIOD}}}},
                 status=400,
