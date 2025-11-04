@@ -79,10 +79,9 @@ register_grouping_config(
     id=THREAD_GROUPING_CONFIG,
     base=FALL_2025_GROUPING_CONFIG,
     initial_context={
-        # Enable thread metadata in automatic grouping
-        # When enabled, errors in different threads will create separate issues
-        "include_thread_name_in_grouping": True,
-        "include_thread_id_in_grouping": False,  # Usually name is more useful than id
+        # Enable thread name in automatic grouping
+        # When enabled, errors in different threads (by name) will create separate issues
+        "include_thread_name_in_grouping": True
     },
     enhancements_base="all-platforms:2025-11-21",
 )

@@ -273,10 +273,6 @@ class NSErrorGroupingComponent(
     id: str = "ns_error"
 
 
-class ThreadIdGroupingComponent(BaseGroupingComponent[str]):
-    id: str = "thread_id"
-
-
 class ThreadNameGroupingComponent(BaseGroupingComponent[str]):
     id: str = "thread_name"
 
