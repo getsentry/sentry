@@ -1,6 +1,8 @@
 from unittest.mock import patch
 from uuid import uuid4
 
+import pytest
+
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
@@ -72,6 +74,7 @@ class DeleteGroupHashTest(TestCase):
         assert not GroupHashMetadata.objects.filter(grouphash_id=existing_grouphash.id).exists()
         assert not GroupHashMetadata.objects.filter(grouphash_id=new_grouphash.id).exists()
 
+    @pytest.mark.django_db
     def test_deleting_grouphash_matched_by_seer_after_unmerge(self) -> None:
         """
         Ensure that `seer_matched_grouphash` references aren't left dangling (and causing integrity
@@ -144,3 +147,12 @@ class DeleteGroupHashTest(TestCase):
         new_grouphash = GroupHash.objects.filter(hash=new_event.get_primary_hash()).first()
         assert new_grouphash and new_grouphash.metadata
         assert new_grouphash.metadata.seer_matched_grouphash is None
+
+    @pytest.mark.django_db
+    def test_deleting_grouphash_matched_by_seer_after_unmerge_with_update_seer_matched_grouphash_ids_disabled(
+        self,
+    ) -> None:
+        with self.options(
+            {"deletions.group-hashes-metadata.update-seer-matched-grouphash-ids": True}
+        ):
+            self.test_deleting_grouphash_matched_by_seer_after_unmerge()

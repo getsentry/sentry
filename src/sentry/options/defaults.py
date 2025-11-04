@@ -343,8 +343,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "deletions.group-hashes.delete-seer-matched-hashes",
-    default=True,
+    "deletions.group-hashes-metadata.update-seer-matched-grouphash-ids",
+    default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
