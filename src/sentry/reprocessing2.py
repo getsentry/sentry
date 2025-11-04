@@ -94,7 +94,8 @@ from django.db import router
 from sentry import models, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
-from sentry.models.eventattachment import V2_PREFIX, EventAttachment
+from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
+from sentry.models.files.utils import get_storage
 from sentry.models.project import Project
 from sentry.objectstore import get_attachments_client
 from sentry.options.rollout import in_random_rollout
@@ -418,6 +419,15 @@ def _maybe_copy_attachment_into_cache(
                     .for_project(project.organization_id, project.id)
                     .put(fp)
                 )
+            # but we then also make that storage permanent, as otherwise
+            # the codepaths won’t be cleaning up this stored file.
+            # essentially this means we are moving the file from the previous storage
+            # into objectstore at this point.
+            attachment.blob_path = V2_PREFIX + stored_id
+            attachment.save()
+            if blob_path.startswith(V1_PREFIX):
+                storage = get_storage()
+                storage.delete(blob_path)
 
     else:
         # when not using objectstore, store chunks in the attachment cache
