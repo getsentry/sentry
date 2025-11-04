@@ -470,8 +470,8 @@ describe('DetectorEdit', () => {
 
       // Set % change value to 10%
       const newThresholdValue = '22';
-      await userEvent.clear(screen.getByLabelText('Initial threshold'));
-      await userEvent.type(screen.getByLabelText('Initial threshold'), newThresholdValue);
+      await userEvent.clear(screen.getByLabelText('High threshold'));
+      await userEvent.type(screen.getByLabelText('High threshold'), newThresholdValue);
 
       // Wait for the events-stats request to be made with comparisonDelta
       // Default comparisonDelta is 1 hour (3600 seconds)

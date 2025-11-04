@@ -53,9 +53,10 @@ export function useAutoMetricDetectorName() {
           form,
           METRIC_DETECTOR_FORM_FIELDS.conditionType
         );
-        const conditionValue = getFormFieldValue<
-          MetricDetectorFormData['conditionValue']
-        >(form, METRIC_DETECTOR_FORM_FIELDS.conditionValue);
+        const conditionValue = getFormFieldValue<MetricDetectorFormData['highThreshold']>(
+          form,
+          METRIC_DETECTOR_FORM_FIELDS.highThreshold
+        );
 
         if (!conditionType || !conditionValue) {
           return null;
@@ -81,9 +82,10 @@ export function useAutoMetricDetectorName() {
           form,
           METRIC_DETECTOR_FORM_FIELDS.conditionType
         );
-        const conditionValue = getFormFieldValue<
-          MetricDetectorFormData['conditionValue']
-        >(form, METRIC_DETECTOR_FORM_FIELDS.conditionValue);
+        const conditionValue = getFormFieldValue<MetricDetectorFormData['highThreshold']>(
+          form,
+          METRIC_DETECTOR_FORM_FIELDS.highThreshold
+        );
 
         if (!conditionType || !conditionValue) {
           return null;
