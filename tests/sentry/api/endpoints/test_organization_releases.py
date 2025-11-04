@@ -249,12 +249,12 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
     def test_release_list_order_by_semver(self) -> None:
         self.login_as(user=self.user)
         release_1 = self.create_release(version="test@2.2")
-        release_2 = self.create_release(version="test@10.0+122")
+        release_7 = self.create_release(version="test@10.0+123")
         release_3 = self.create_release(version="test@2.2-alpha")
         release_4 = self.create_release(version="test@2.2.3")
         release_5 = self.create_release(version="test@2.20.3")
         release_6 = self.create_release(version="test@2.20.3.3")
-        release_7 = self.create_release(version="test@10.0+123")
+        release_2 = self.create_release(version="test@10.0+122")
         release_8 = self.create_release(version="test@some_thing")
         release_9 = self.create_release(version="random_junk")
 
