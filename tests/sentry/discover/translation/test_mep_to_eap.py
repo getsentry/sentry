@@ -15,6 +15,22 @@ from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_
             "(avg(span.duration):<10 OR span.duration:11) AND is_transaction:1",
         ),
         pytest.param(
+            "foo:10 OR transaction.duration:11",
+            "(tags[foo,number]:10 OR span.duration:11) AND is_transaction:1",
+        ),
+        pytest.param(
+            "foo:1 OR transaction.duration:11",
+            "(tags[foo,number]:1 OR span.duration:11) AND is_transaction:1",
+        ),
+        pytest.param(
+            "!foo:true OR transaction.duration:11",
+            "(!foo:true OR span.duration:11) AND is_transaction:1",
+        ),
+        pytest.param(
+            "foo:true OR transaction.duration:11",
+            "((tags[foo,number]:1 OR foo:true) OR span.duration:11) AND is_transaction:1",
+        ),
+        pytest.param(
             "has:transaction.duration OR has:measurements.lcp",
             "(has:span.duration OR has:measurements.lcp) AND is_transaction:1",
         ),

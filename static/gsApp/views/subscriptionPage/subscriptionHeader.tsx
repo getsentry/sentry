@@ -26,7 +26,6 @@ import {
   hasPartnerMigrationFeature,
 } from 'getsentry/utils/billing';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
-import PaymentFailureAlert from 'getsentry/views/subscriptionPage/components/paymentFailureAlert';
 import PartnershipNote from 'getsentry/views/subscriptionPage/partnershipNote';
 
 import HeaderCards from './headerCards/headerCards';
@@ -268,7 +267,6 @@ function BodyWithBillingPerms({
       {subscription.pendingChanges ? (
         <DecidePendingChanges subscription={subscription} organization={organization} />
       ) : null}
-      <PaymentFailureAlert subscription={subscription} organization={organization} />
       <TrialAlert subscription={subscription} organization={organization} />
       {hasPartnerMigrationFeature(organization) && (
         <PartnerPlanEndingBanner

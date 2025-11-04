@@ -1,5 +1,5 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
+import {feedback} from 'sentry/gettingStartedDocs/java/java/feedback';
 
 import {logs} from './logs';
 import {onboarding} from './onboarding';
@@ -8,8 +8,8 @@ import {sessionReplay} from './sessionReplay';
 
 const docs: Docs = {
   onboarding,
-  feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
-  crashReportOnboarding: feedbackOnboardingCrashApiJava,
+  feedbackOnboardingCrashApi: feedback,
+  crashReportOnboarding: feedback,
   profilingOnboarding: profiling,
   replayOnboarding: sessionReplay,
   logsOnboarding: logs,

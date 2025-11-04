@@ -13,6 +13,7 @@ export function useUpdateProjectSeerPreferences(project: Project) {
       const payload: ProjectSeerPreferences = {
         repositories: data.repositories,
         automated_run_stopping_point: data.automated_run_stopping_point ?? 'root_cause',
+        automation_handoff: data.automation_handoff,
       };
       return api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/seer/preferences/`,

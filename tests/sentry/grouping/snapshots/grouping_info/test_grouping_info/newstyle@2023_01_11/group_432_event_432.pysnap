@@ -1,10 +1,10 @@
 ---
-created: '2025-10-07T22:42:55.867121+00:00'
+created: '2025-10-30T17:09:44.199844+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app_exception_message": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because system exception takes precedence",
@@ -17,6 +17,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": false,
+              "hint": "ignored because exception is synthetic",
+              "id": "type",
+              "name": null,
+              "values": [
+                "0x40000015 / 0x00000001"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": "stripped event-specific values",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Fatal Error: <hex> / <hex>"
+              ]
+            },
             {
               "contributes": false,
               "hint": "ignored because it contains no in-app frames",
@@ -1090,24 +1108,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "0x40000015 / 0x00000001"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": "stripped event-specific values",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Fatal Error: <hex> / <hex>"
-              ]
             }
           ]
         }
@@ -1134,10 +1134,10 @@ source: tests/sentry/grouping/test_grouping_info.py
       ]
     },
     "contributes": false,
-    "description": "exception message",
+    "description": "exception stacktrace — in-app frames",
     "hash": null,
     "hint": "ignored because system exception takes precedence",
-    "key": "app_exception_message",
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
   "system_exception_stacktrace": {
@@ -1153,6 +1153,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": false,
+              "hint": "ignored because exception is synthetic",
+              "id": "type",
+              "name": null,
+              "values": [
+                "0x40000015 / 0x00000001"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Fatal Error: <hex> / <hex>"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -2225,24 +2243,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "0x40000015 / 0x00000001"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Fatal Error: <hex> / <hex>"
               ]
             }
           ]

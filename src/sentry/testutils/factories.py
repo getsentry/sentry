@@ -1203,6 +1203,15 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_forwarder_project(data_forwarder, project, **kwargs):
+        from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+
+        return DataForwarderProject.objects.create(
+            data_forwarder=data_forwarder, project=project, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_file_from_path(path, name=None, **kwargs):
         if name is None:
             name = os.path.basename(path)
@@ -1954,13 +1963,9 @@ class Factories:
         release: Release | None = None,
         user_id: int | None = None,
         team_id: int | None = None,
-        prev_history: GroupHistory | None = None,
+        prev_history_date: datetime | None = None,
         date_added: datetime | None = None,
     ) -> GroupHistory:
-        prev_history_date = None
-        if prev_history:
-            prev_history_date = prev_history.date_added
-
         kwargs = {}
         if date_added:
             kwargs["date_added"] = date_added
@@ -1972,7 +1977,6 @@ class Factories:
             user_id=user_id,
             team_id=team_id,
             status=status,
-            prev_history=prev_history,
             prev_history_date=prev_history_date,
             **kwargs,
         )
