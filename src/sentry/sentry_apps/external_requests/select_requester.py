@@ -135,7 +135,7 @@ class SelectRequester:
 
     def _build_url(self) -> str:
         webhook_url = self.sentry_app.webhook_url
-        
+
         # Validate that webhook_url is not empty and has a valid scheme
         if not webhook_url:
             raise SentryAppIntegratorError(
@@ -152,9 +152,9 @@ class SelectRequester:
                 },
                 status_code=400,
             )
-        
+
         urlparts: list[str] = [url_part for url_part in urlparse(webhook_url)]
-        
+
         # Check if the webhook_url has a valid scheme
         if not urlparts[0]:  # urlparts[0] is the scheme
             raise SentryAppIntegratorError(
@@ -171,7 +171,7 @@ class SelectRequester:
                 },
                 status_code=400,
             )
-        
+
         urlparts[2] = self.uri
 
         query = {"installationId": self.install.uuid}

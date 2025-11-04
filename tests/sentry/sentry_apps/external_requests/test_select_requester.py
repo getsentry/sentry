@@ -352,7 +352,9 @@ class TestSelectRequester(TestCase):
         install_empty_webhook = self.create_sentry_app_installation(
             slug="empty_webhook_app", organization=self.org, user=self.user
         )
-        rpc_install = app_service.get_many(filter=dict(installation_ids=[install_empty_webhook.id]))[0]
+        rpc_install = app_service.get_many(
+            filter=dict(installation_ids=[install_empty_webhook.id])
+        )[0]
 
         uri = "/get-issues"
         with pytest.raises(SentryAppIntegratorError) as exception_info:
