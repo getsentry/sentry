@@ -7,6 +7,10 @@ import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
+  DEFAULT_YAXIS_BY_TYPE,
+  OPTIONS_BY_TYPE,
+} from 'sentry/views/explore/metrics/constants';
+import {
   decodeMetricsQueryParams,
   defaultMetricQuery,
   encodeMetricQueryParams,
@@ -14,7 +18,12 @@ import {
   type MetricQuery,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {
+  isVisualizeFunction,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 interface MultiMetricsQueryParamsContextValue {
   metricQueries: MetricQuery[];
@@ -72,7 +81,51 @@ export function MultiMetricsQueryParamsProvider({
             if (i !== j) {
               return metricQuery;
             }
-            return {...metricQuery, metric: newTraceMetric};
+
+            // when changing trace metrics, we need to look at the currently selected
+            // aggregation and make necessary adjustments
+            const visualize = metricQuery.queryParams.visualizes[0];
+            let aggregateFields = undefined;
+            if (visualize && isVisualizeFunction(visualize)) {
+              const selectedAggregation = visualize.parsedFunction?.name;
+              const allowedAggregations = OPTIONS_BY_TYPE[newTraceMetric.type];
+
+              if (
+                !allowedAggregations?.find(option => option.value === selectedAggregation)
+              ) {
+                // the currently selected aggregation isn't supported on the new metric
+                const defaultAggregation =
+                  DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'per_second';
+                const args =
+                  defaultAggregation === 'per_second' ||
+                  defaultAggregation === 'per_minute'
+                    ? `value,${newTraceMetric.type}`
+                    : 'value';
+                aggregateFields = [
+                  new VisualizeFunction(`${defaultAggregation}(${args})`),
+                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
+                ];
+              } else if (
+                selectedAggregation === 'per_second' ||
+                selectedAggregation === 'per_minute'
+              ) {
+                // TODO: this else if branch can go away once the metric type is lifted
+                // to the top level
+
+                // the currently selected aggregation changed types
+                aggregateFields = [
+                  new VisualizeFunction(
+                    `${selectedAggregation}(value,${newTraceMetric.type})`
+                  ),
+                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
+                ];
+              }
+            }
+
+            return {
+              queryParams: metricQuery.queryParams.replace({aggregateFields}),
+              metric: newTraceMetric,
+            };
           })
           .map((metric: BaseMetricQuery) => encodeMetricQueryParams(metric))
           .filter(defined)

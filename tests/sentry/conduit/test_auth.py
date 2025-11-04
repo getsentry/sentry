@@ -86,9 +86,9 @@ def test_generate_conduit_token_uses_settings():
     channel_id = "ad342057-d66b-4ed4-ab01-3415dd2cb1ce"
 
     with patch("sentry.conduit.auth.settings") as mock_settings:
-        mock_settings.CONDUIT_PRIVATE_KEY = RS256_KEY
-        mock_settings.CONDUIT_JWT_ISSUER = "test-issuer"
-        mock_settings.CONDUIT_JWT_AUDIENCE = "test-audience"
+        mock_settings.CONDUIT_GATEWAY_PRIVATE_KEY = RS256_KEY
+        mock_settings.CONDUIT_GATEWAY_JWT_ISSUER = "test-issuer"
+        mock_settings.CONDUIT_GATEWAY_JWT_AUDIENCE = "test-audience"
 
         token = generate_conduit_token(
             org_id,
@@ -111,7 +111,7 @@ def test_generate_conduit_token_raises_when_missing():
     """Should raise an error if the private key is not configured."""
     org_id = 123
     channel_id = "ad342057-d66b-4ed4-ab01-3415dd2cb1ce"
-    with pytest.raises(ValueError, match="CONDUIT_PRIVATE_KEY not configured"):
+    with pytest.raises(ValueError, match="CONDUIT_GATEWAY_PRIVATE_KEY not configured"):
         generate_conduit_token(
             org_id,
             channel_id,
@@ -122,9 +122,9 @@ def test_get_conduit_credentials_returns_all_credentials():
     """Should return a url, token, and channel_id."""
     gateway_url = "https://conduit.example.com"
     with patch("sentry.conduit.auth.settings") as mock_settings:
-        mock_settings.CONDUIT_PRIVATE_KEY = RS256_KEY
-        mock_settings.CONDUIT_JWT_ISSUER = "sentry"
-        mock_settings.CONDUIT_JWT_AUDIENCE = "conduit"
+        mock_settings.CONDUIT_GATEWAY_PRIVATE_KEY = RS256_KEY
+        mock_settings.CONDUIT_GATEWAY_JWT_ISSUER = "sentry"
+        mock_settings.CONDUIT_GATEWAY_JWT_AUDIENCE = "conduit"
         mock_settings.CONDUIT_GATEWAY_URL = gateway_url
 
         org_id = 123
@@ -142,9 +142,9 @@ def test_get_conduit_credentials_uses_custom_url():
     """Should use provided gateway_url instead of settings."""
     gateway_url = "https://custom.conduit.io"
     with patch("sentry.conduit.auth.settings") as mock_settings:
-        mock_settings.CONDUIT_PRIVATE_KEY = RS256_KEY
-        mock_settings.CONDUIT_JWT_ISSUER = "sentry"
-        mock_settings.CONDUIT_JWT_AUDIENCE = "conduit"
+        mock_settings.CONDUIT_GATEWAY_PRIVATE_KEY = RS256_KEY
+        mock_settings.CONDUIT_GATEWAY_JWT_ISSUER = "sentry"
+        mock_settings.CONDUIT_GATEWAY_JWT_AUDIENCE = "conduit"
 
         org_id = 123
         result = get_conduit_credentials(org_id, gateway_url)
@@ -161,9 +161,9 @@ def test_get_conduit_credentials_token_is_valid():
     """Generated token should be decodable with correct claims."""
     gateway_url = "https://conduit.example.com"
     with patch("sentry.conduit.auth.settings") as mock_settings:
-        mock_settings.CONDUIT_PRIVATE_KEY = RS256_KEY
-        mock_settings.CONDUIT_JWT_ISSUER = "sentry"
-        mock_settings.CONDUIT_JWT_AUDIENCE = "conduit"
+        mock_settings.CONDUIT_GATEWAY_PRIVATE_KEY = RS256_KEY
+        mock_settings.CONDUIT_GATEWAY_JWT_ISSUER = "sentry"
+        mock_settings.CONDUIT_GATEWAY_JWT_AUDIENCE = "conduit"
         mock_settings.CONDUIT_GATEWAY_URL = gateway_url
 
         org_id = 123

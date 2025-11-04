@@ -343,6 +343,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "deletions.group-history.use-bulk-deletion",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "cleanup.abort_execution",
@@ -620,6 +626,15 @@ register(
     "relay.kafka.span-v2.sample-rate",
     type=Float,
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout configuration for Arroyo ConfluentProducer
+# Controls the rollout of individual Kafka producers by name
+register(
+    "arroyo.producer.confluent-producer-rollout",
+    type=Dict,
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2821,6 +2836,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# This is here in case we want to roll out a new config gradually. Can also be used as a killswitch
+# for config upgrades if one is ever needed.
+register(
+    "grouping.config_transition.config_upgrade_sample_rate",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Sample rate for double writing to experimental dsn
 register(
@@ -3162,13 +3186,6 @@ register(
     "workflow_engine.issue_alert.group.type_id.ga",
     type=Sequence,
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "workflow_engine.sentry-app-actions-outbox",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3574,9 +3591,9 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Allow list for projects with LLM issue detection enabled
+# The allowlist of organization IDs for which deletion from EAP is enabled.
 register(
-    "issue-detection.llm-detection.projects-allowlist",
+    "eventstream.eap.deletion_enabled.organization_allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -3593,10 +3610,34 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for web vital issue detection
+register(
+    "issue-detection.web-vitals-detection.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Allow list for projects with web vital issue detection enabled
+register(
+    "issue-detection.web-vitals-detection.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enables or disables Github webhook routing based on the type of webhook
 register(
     "github.webhook-type-routing.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Sets the sample rate for profiles collected via the JoinProfiler arroyo strategy
+register(
+    "consumer.join.profiling.rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

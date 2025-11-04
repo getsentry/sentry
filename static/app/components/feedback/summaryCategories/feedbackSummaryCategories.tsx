@@ -75,7 +75,7 @@ export default function FeedbackSummaryCategories() {
           }
         >
           <Flex gap="xs" align="center">
-            {t('Summary')} <FeatureBadge type="beta" />
+            {t('Summary')} <FeatureBadge type="new" />
           </Flex>
         </Disclosure.Title>
         <Disclosure.Content>
@@ -101,7 +101,7 @@ const SummaryContainer = styled('div')`
 `;
 
 const SummaryIconContainer = styled('div')`
-  padding: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
