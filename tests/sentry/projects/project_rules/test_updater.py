@@ -5,11 +5,9 @@ from sentry.models.rule import Rule
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.conditions.event_frequency import EventFrequencyCondition
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
@@ -55,9 +53,10 @@ class TestUpdater(TestCase):
         assert self.rule.owner_user_id is None
 
     def test_update_environment(self) -> None:
-        self.updater.environment = 3
+        environment = self.create_environment(project=self.project)
+        self.updater.environment = environment.id
         self.updater.run()
-        assert self.rule.environment_id == 3
+        assert self.rule.environment_id == environment.id
 
     def test_update_environment_when_none(self) -> None:
         self.rule.environment_id = 3
@@ -120,10 +119,8 @@ class TestUpdater(TestCase):
         self.updater.run()
         assert self.rule.data["frequency"] == 5
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_dual_create_workflow_engine(self) -> None:
-        IssueAlertMigrator(self.rule, user_id=self.user.id).run()
-
+        # The rule is already migrated on creation (dual write is always enabled)
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -189,10 +186,8 @@ class TestUpdater(TestCase):
         action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
         assert action.type == Action.Type.PLUGIN
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_dual_create_workflow_engine__errors_on_invalid_conditions(self) -> None:
-        IssueAlertMigrator(self.rule, user_id=self.user.id).run()
-
+        # The rule is already migrated on creation (dual write is always enabled)
         conditions = [
             {
                 "interval": "1h",

@@ -5,17 +5,16 @@ from sentry.locks import locks
 from sentry.models.rule import Rule, RuleSource
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.actor import Actor
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
     AlertRuleWorkflow,
     DataConditionGroupAction,
+    Detector,
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.processors.detector import UnableToAcquireLockApiError
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
@@ -79,10 +78,10 @@ class TestProjectRuleCreator(TestCase):
             "frequency": 5,
         }
 
-        assert not AlertRuleDetector.objects.filter(rule_id=rule.id).exists()
-        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
+        # We always dual write, so workflow should be created
+        assert AlertRuleDetector.objects.filter(rule_id=rule.id).exists()
+        assert AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_dual_create_workflow_engine(self) -> None:
         conditions = [
             {
@@ -150,8 +149,10 @@ class TestProjectRuleCreator(TestCase):
         action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
         assert action.type == Action.Type.PLUGIN
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_dual_create_workflow_engine__cant_acquire_lock(self) -> None:
+        # Delete the existing detector first so we can test lock acquisition
+        Detector.objects.filter(project=self.project).delete()
+
         lock = locks.get(
             f"workflow-engine-project-error-detector:{self.project.id}",
             duration=10,

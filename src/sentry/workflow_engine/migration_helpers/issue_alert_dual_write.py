@@ -112,7 +112,7 @@ def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
         type=WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
         conditions=conditions,
         filters=filters,
-        match=data["action_match"],
+        match=data.get("action_match"),
     )
 
     try:
@@ -130,7 +130,7 @@ def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
             workflow=workflow,
             conditions=conditions,
             filters=filters,
-            filter_match=data["filter_match"],
+            filter_match=data.get("filter_match"),
         )
         WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=if_dcg)
 
@@ -138,7 +138,7 @@ def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
         dcg=if_dcg,
         type=WorkflowDataConditionGroupType.ACTION_FILTER,
         conditions=conditions,
-        match=data["filter_match"],
+        match=data.get("filter_match"),
         filters=filters,
     )
 
@@ -146,7 +146,7 @@ def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
     create_workflow_actions(if_dcg=if_dcg, actions=data["actions"])  # action(s) must exist
 
     workflow.environment_id = rule.environment_id
-    if frequency := data["frequency"]:
+    if frequency := data.get("frequency"):
         workflow.config["frequency"] = frequency
 
     workflow.owner_user_id = rule.owner_user_id
