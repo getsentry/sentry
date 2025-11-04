@@ -14,6 +14,7 @@ import {
   alternativeProfilingConfiguration,
   getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
+  getPythonMetricsOnboarding,
   getPythonProfilingOnboarding,
   getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
@@ -209,6 +210,7 @@ hello.delay()
 const logsOnboarding = getPythonLogsOnboarding({
   packageName: 'sentry-sdk[celery]',
 });
+const metricsOnboarding = getPythonMetricsOnboarding();
 
 const docs: Docs = {
   onboarding,
@@ -216,6 +218,7 @@ const docs: Docs = {
   crashReportOnboarding: crashReportOnboardingPython,
   agentMonitoringOnboarding,
   logsOnboarding,
+  metricsOnboarding,
 };
 
 export default docs;

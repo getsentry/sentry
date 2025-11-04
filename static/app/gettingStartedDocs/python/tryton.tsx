@@ -15,6 +15,7 @@ import {
   alternativeProfilingConfiguration,
   getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
+  getPythonMetricsOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
@@ -147,6 +148,7 @@ const onboarding: OnboardingConfig = {
 };
 
 const logsOnboarding = getPythonLogsOnboarding();
+const metricsOnboarding = getPythonMetricsOnboarding();
 
 const profilingOnboarding: OnboardingConfig = {
   install: onboarding.install,
@@ -173,6 +175,7 @@ const docs: Docs = {
   agentMonitoringOnboarding,
   mcpOnboarding,
   logsOnboarding,
+  metricsOnboarding,
 };
 
 export default docs;

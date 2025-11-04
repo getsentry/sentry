@@ -18,6 +18,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
+  getPythonMetricsOnboarding,
   getPythonProfilingOnboarding,
   getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
@@ -145,6 +146,7 @@ if __name__ == '__main__':
 };
 
 const logsOnboarding = getPythonLogsOnboarding();
+const metricsOnboarding = getPythonMetricsOnboarding();
 
 const docs: Docs = {
   onboarding,
@@ -155,6 +157,7 @@ const docs: Docs = {
   profilingOnboarding: getPythonProfilingOnboarding(),
   agentMonitoringOnboarding,
   logsOnboarding,
+  metricsOnboarding,
 };
 
 export default docs;

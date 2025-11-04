@@ -20,6 +20,7 @@ import {
   alternativeProfilingConfiguration,
   getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
+  getPythonMetricsOnboarding,
   getPythonProfilingOnboarding,
   getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
@@ -246,6 +247,7 @@ sentry_sdk.init(
 const logsOnboarding = getPythonLogsOnboarding({
   packageName: 'sentry-sdk[django]',
 });
+const metricsOnboarding = getPythonMetricsOnboarding();
 
 const docs: Docs = {
   onboarding,
@@ -259,6 +261,7 @@ const docs: Docs = {
   mcpOnboarding,
 
   logsOnboarding,
+  metricsOnboarding,
 };
 
 export default docs;

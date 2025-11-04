@@ -21,6 +21,7 @@ import {
   getPythonAiocontextvarsCodeBlocks,
   getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
+  getPythonMetricsOnboarding,
   getPythonProfilingOnboarding,
   getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
@@ -191,6 +192,7 @@ asyncio.run(main())
 const logsOnboarding = getPythonLogsOnboarding({
   packageName: 'sentry-sdk[tornado]',
 });
+const metricsOnboarding = getPythonMetricsOnboarding();
 
 const docs: Docs = {
   onboarding,
@@ -202,6 +204,7 @@ const docs: Docs = {
   agentMonitoringOnboarding,
   mcpOnboarding,
   logsOnboarding,
+  metricsOnboarding,
 };
 
 export default docs;

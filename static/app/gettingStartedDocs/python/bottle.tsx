@@ -20,6 +20,7 @@ import {
   alternativeProfilingConfiguration,
   getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
+  getPythonMetricsOnboarding,
   getPythonProfilingOnboarding,
   getVerifyLogsContent,
 } from 'sentry/utils/gettingStartedDocs/python';
@@ -173,6 +174,7 @@ run(app, host='localhost', port=8000)
 const logsOnboarding = getPythonLogsOnboarding({
   packageName: 'sentry-sdk[bottle]',
 });
+const metricsOnboarding = getPythonMetricsOnboarding();
 
 const docs: Docs = {
   onboarding,
@@ -184,6 +186,7 @@ const docs: Docs = {
   agentMonitoringOnboarding,
   mcpOnboarding,
   logsOnboarding,
+  metricsOnboarding,
 };
 
 export default docs;

@@ -20,6 +20,7 @@ import {
   getPythonAiocontextvarsCodeBlocks,
   getPythonInstallCodeBlock,
   getPythonLogsOnboarding,
+  getPythonMetricsOnboarding,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -139,6 +140,7 @@ async def hello_world(request):
 const logsOnboarding = getPythonLogsOnboarding({
   packageName: 'sentry-sdk[sanic]',
 });
+const metricsOnboarding = getPythonMetricsOnboarding();
 
 const docs: Docs = {
   onboarding,
@@ -150,6 +152,7 @@ const docs: Docs = {
   agentMonitoringOnboarding,
   mcpOnboarding,
   logsOnboarding,
+  metricsOnboarding,
 };
 
 export default docs;
