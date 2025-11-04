@@ -1,17 +1,20 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {feedback} from 'sentry/gettingStartedDocs/java/java/feedback';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 
 import {logs} from './logs';
 import {onboarding} from './onboarding';
-import {profiling} from './profiling';
-import {sessionReplay} from './sessionReplay';
+import {platformOptions, type PlatformOptions} from './utils';
 
-const docs: Docs = {
+const docs: Docs<PlatformOptions> = {
   onboarding,
-  feedbackOnboardingCrashApi: feedback,
+  platformOptions,
   crashReportOnboarding: feedback,
-  profilingOnboarding: profiling,
-  replayOnboarding: sessionReplay,
+  replayOnboardingJsLoader,
+  feedbackOnboardingJsLoader,
   logsOnboarding: logs,
 };
 

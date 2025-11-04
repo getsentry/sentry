@@ -2,9 +2,11 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs, {PackageManager} from './log4j2';
+import {PackageManager} from 'sentry/gettingStartedDocs/java/java/utils';
 
-describe('getting started with log4j2', () => {
+import docs from '.';
+
+describe('java-spring-boot onboarding docs', () => {
   it('renders gradle docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {

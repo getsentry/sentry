@@ -1,104 +1,17 @@
 import {ExternalLink, Link} from 'sentry/components/core/link';
-import type {
-  BasePlatformOptions,
-  Docs,
-  DocsParams,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+  getGradleInstallSnippet,
+  getVerifyJavaSnippet,
+  getVerifyKotlinSnippet,
+  PackageManager,
+  YesNo,
+} from 'sentry/gettingStartedDocs/java/java/utils';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-export enum SpringVersion {
-  V5 = 'v5',
-  V6 = 'v6',
-}
-
-export enum PackageManager {
-  GRADLE = 'gradle',
-  MAVEN = 'maven',
-}
-
-export enum YesNo {
-  YES = 'yes',
-  NO = 'no',
-}
-
-const platformOptions = {
-  springVersion: {
-    label: t('Spring Version'),
-    items: [
-      {
-        label: t('Spring 6'),
-        value: SpringVersion.V6,
-      },
-      {
-        label: t('Spring 5'),
-        value: SpringVersion.V5,
-      },
-    ],
-  },
-  packageManager: {
-    label: t('Package Manager'),
-    items: [
-      {
-        label: t('Gradle'),
-        value: PackageManager.GRADLE,
-      },
-      {
-        label: t('Maven'),
-        value: PackageManager.MAVEN,
-      },
-    ],
-  },
-  opentelemetry: {
-    label: t('OpenTelemetry'),
-    items: [
-      {
-        label: t('With OpenTelemetry'),
-        value: YesNo.YES,
-      },
-      {
-        label: t('Without OpenTelemetry'),
-        value: YesNo.NO,
-      },
-    ],
-  },
-} satisfies BasePlatformOptions;
-
-type PlatformOptions = typeof platformOptions;
-type Params = DocsParams<PlatformOptions>;
-
-const getGradleInstallSnippet = (params: Params) => `
-buildscript {
-  repositories {
-    mavenCentral()
-  }
-}
-
-plugins {
-  id "io.sentry.jvm.gradle" version "${getPackageVersion(
-    params,
-    'sentry.java.android.gradle-plugin',
-    '3.12.0'
-  )}"
-}
-
-sentry {
-  // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
-  // This enables source context, allowing you to see your source
-  // code as part of your stack traces in Sentry.
-  includeSourceContext = true
-
-  org = "${params.organization.slug}"
-  projectName = "${params.project.slug}"
-  authToken = System.getenv("SENTRY_AUTH_TOKEN")
-}`;
+import {SpringVersion, type Params, type PlatformOptions} from './utils';
 
 const getMavenInstallSnippet = (params: Params) => `
 <build>
@@ -181,26 +94,6 @@ import org.springframework.core.Ordered
   exceptionResolverOrder = Ordered.LOWEST_PRECEDENCE
 )`;
 
-const getJavaVerifySnippet = () => `
-import java.lang.Exception;
-import io.sentry.Sentry;
-
-try {
-  throw new Exception("This is a test.");
-} catch (Exception e) {
-  Sentry.captureException(e);
-}`;
-
-const getKotlinVerifySnippet = () => `
-import java.lang.Exception
-import io.sentry.Sentry
-
-try {
-  throw Exception("This is a test.")
-} catch (e: Exception) {
-  Sentry.captureException(e)
-}`;
-
 const getSentryPropertiesSnippet = (params: Params) =>
   `${
     params.isLogsSelected
@@ -217,7 +110,7 @@ traces-sample-rate=1.0`
       : ''
   }`;
 
-const onboarding: OnboardingConfig<PlatformOptions> = {
+export const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
       "Sentry's integration with Spring supports Spring Framework 5.1.2 and above. If you're on an older version, use [legacyIntegrationLink:our legacy integration].",
@@ -434,12 +327,12 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             {
               label: 'Java',
               language: 'java',
-              code: getJavaVerifySnippet(),
+              code: getVerifyJavaSnippet(),
             },
             {
               label: 'Kotlin',
               language: 'kotlin',
-              code: getKotlinVerifySnippet(),
+              code: getVerifyKotlinSnippet(),
             },
           ],
         },
@@ -467,109 +360,3 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     },
   ],
 };
-
-const logsOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            "To start using logs, make sure your application uses Sentry Java SDK version [code:8.12.0] or higher. If you're on an older major version of the SDK, follow our [link:migration guide] to upgrade.",
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/java/migration/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'To enable logging, you need to initialize the SDK with the [code:logs.enabled] option set to [code:true].',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'Java',
-              language: 'java',
-              code: `import io.sentry.Sentry;
-
-Sentry.init(options -> {
-  options.setDsn("${params.dsn.public}");
-  options.getLogs().setEnabled(true);
-});`,
-            },
-            {
-              label: 'Kotlin',
-              language: 'kotlin',
-              code: `import io.sentry.Sentry
-
-Sentry.init { options ->
-  options.dsn = "${params.dsn.public}"
-  options.logs.enabled = true
-}`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'Java',
-              language: 'java',
-              code: `import io.sentry.Sentry;
-
-Sentry.logger().info("A simple log message");
-Sentry.logger().error("A %s log message", "formatted");`,
-            },
-            {
-              label: 'Kotlin',
-              language: 'kotlin',
-              code: `import io.sentry.Sentry
-
-Sentry.logger().info("A simple log message")
-Sentry.logger().error("A %s log message", "formatted")`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-};
-
-const docs: Docs<PlatformOptions> = {
-  onboarding,
-  platformOptions,
-  crashReportOnboarding: feedbackOnboardingCrashApiJava,
-  replayOnboardingJsLoader,
-  feedbackOnboardingJsLoader,
-  logsOnboarding,
-};
-
-export default docs;
