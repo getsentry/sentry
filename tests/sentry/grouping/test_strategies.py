@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from sentry.grouping.api import load_grouping_config
+from sentry.grouping.api import _get_default_base64_enhancements, load_grouping_config
 from sentry.grouping.component import (
     StacktraceGroupingComponent,
     ThreadNameGroupingComponent,
@@ -356,8 +356,9 @@ class ThreadGroupingTest(TestCase):
         )
 
         # With thread name grouping enabled
+        config_id = "newstyle:2025-with-threads"
         config_with_threads = load_grouping_config(
-            {"id": "newstyle:2025-with-threads", "enhancements": None}
+            {"id": config_id, "enhancements": _get_default_base64_enhancements(config_id)}
         )
 
         variants_main = event_main_thread.get_grouping_variants(force_config=config_with_threads)
@@ -417,7 +418,10 @@ class ThreadGroupingTest(TestCase):
         )
 
         # Default config without thread grouping
-        config_default = load_grouping_config({"id": "newstyle:2023-01-11", "enhancements": None})
+        config_id = "newstyle:2023-01-11"
+        config_default = load_grouping_config(
+            {"id": config_id, "enhancements": _get_default_base64_enhancements(config_id)}
+        )
 
         variants_main = event_main_thread.get_grouping_variants(force_config=config_default)
         variants_worker = event_worker_thread.get_grouping_variants(force_config=config_default)
@@ -442,10 +446,16 @@ class ThreadGroupingTest(TestCase):
             self.project,
         )
 
-        config = load_grouping_config({"id": "newstyle:2025-with-threads", "enhancements": None})
+        config_id = "newstyle:2025-with-threads"
+        config = load_grouping_config(
+            {"id": config_id, "enhancements": _get_default_base64_enhancements(config_id)}
+        )
 
         variants = event.get_grouping_variants(force_config=config)
-        threads_component = variants["app"].contributing_component
+        app_variant = variants["app"]
+        # Type assertion for mypy - we know it's a ComponentVariant
+        assert hasattr(app_variant, "contributing_component")
+        threads_component = app_variant.contributing_component  # type: ignore[attr-defined]
 
         # The contributing component should be a ThreadsGroupingComponent
         assert isinstance(threads_component, ThreadsGroupingComponent)
