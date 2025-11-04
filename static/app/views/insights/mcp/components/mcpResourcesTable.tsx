@@ -55,7 +55,6 @@ export function McpResourcesTable() {
       AVG_DURATION,
       P95_DURATION,
     ],
-    cursorParamName: 'tableCursor',
     referrer: MCPReferrer.MCP_RESOURCE_TABLE,
   });
 
@@ -78,7 +77,6 @@ export function McpResourcesTable() {
           sortKey={column.key}
           align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
           forceCellGrow={column.key === SpanFields.MCP_RESOURCE_URI}
-          cursorParamName="tableCursor"
           onClick={handleSort}
         >
           {column.name}
@@ -131,7 +129,6 @@ export function McpResourcesTable() {
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="tableCursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />

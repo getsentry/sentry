@@ -85,7 +85,7 @@ OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, Dec
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     namespace=telemetry_experience_tasks,
-    processing_deadline_duration=15 * 60 + 5,
+    processing_deadline_duration=20 * 60 + 5,
     retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
 )
@@ -150,6 +150,11 @@ def partition_by_measure(
         metrics.incr("dynamic_sampling.partition_by_measure.transactions", amount=len(orgs))
         logger.error("dynamic_sampling.partition_by_measure.features_none", extra={"orgs": orgs})
         return {SamplingMeasure.TRANSACTIONS: [org.id for org in orgs]}
+
+    logger.info(
+        "dynamic_sampling.partition_by_measure.batched_feature_check",
+        extra={"feature_results": feature_results},
+    )
 
     for org in orgs:
         if feature_results.get(f"organization:{org.id}"):

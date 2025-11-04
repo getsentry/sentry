@@ -1,70 +1,72 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef, useState, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
-
+import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import LoadingMask from 'sentry/components/loadingMask';
-import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
-import {GridBodyCell, GridHeadCell} from 'sentry/components/tables/gridEditable/styles';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron, IconFire, IconSpan, IconTerminal} from 'sentry/icons';
-import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
-import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeadCellContent,
-  TableRow,
-  TableStatus,
-  useTableStyles,
-} from 'sentry/views/explore/components/table';
-import {LogAttributesRendererMap} from 'sentry/views/explore/logs/fieldRenderers';
-import {
-  FirstTableHeadCell,
-  getLogColors,
-  LogFirstCellContent,
-  LogsTableBodyFirstCell,
-  StyledChevronButton,
-} from 'sentry/views/explore/logs/styles';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {TimestampRenderer} from 'sentry/views/explore/logs/fieldRenderers';
+import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useTraceTelemetry} from 'sentry/views/explore/metrics/hooks/useTraceTelemetry';
-import {TraceDetails} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab/traceDetails';
 import {
-  useQueryParamsSortBys,
-  useSetQueryParamsSortBys,
-} from 'sentry/views/explore/queryParams/context';
+  ExpandedRowContainer,
+  NumericSimpleTableHeaderCell,
+  NumericSimpleTableRowCell,
+  StickyTableRow,
+  StyledSimpleTable,
+  StyledSimpleTableBody,
+  StyledSimpleTableHeader,
+  StyledSimpleTableHeaderCell,
+  StyledSimpleTableRowCell,
+  TransparentLoadingMask,
+  WrappingText,
+} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
+import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab/metricDetails';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
 import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
+const MAX_TELEMETRY_WIDTH = 40;
+const VALUE_COLUMN_MIN_WIDTH = '50px';
 
-const METRIC_SAMPLE_COLUMNS = ['timestamp', 'value', 'trace'];
+// The width of all of the columns in the samples table, accounting for
+// the expand button (36px), timestamp (121px), trace ID (66px), and value columns (72px)
+export const SAMPLES_PANEL_MIN_WIDTH = 305;
+
+const METRIC_SAMPLE_COLUMNS = ['timestamp', 'trace'];
+const METRIC_SAMPLE_STAT_COLUMNS = ['logs', 'spans', 'errors'];
+const ICON_HEADERS = {
+  logs: <IconTerminal color="gray400" />,
+  spans: <IconSpan color="purple400" />,
+  errors: <IconFire color="red300" />,
+};
 
 interface SamplesTabProps {
-  metricName: string;
+  traceMetric: TraceMetric;
 }
 
-export function SamplesTab({metricName}: SamplesTabProps) {
+export function SamplesTab({traceMetric}: SamplesTabProps) {
   const {result, eventView, fields} = useMetricSamplesTable({
-    enabled: Boolean(metricName),
+    enabled: Boolean(traceMetric.name),
     limit: RESULT_LIMIT,
-    metricName,
+    traceMetric,
     fields: ['timestamp', 'trace', 'value', 'id', 'project.id'],
     ingestionDelaySeconds: TWO_MINUTE_DELAY,
   });
@@ -79,103 +81,91 @@ export function SamplesTab({metricName}: SamplesTabProps) {
 
   // Fetch telemetry data for traces
   const {data: telemetryData, isLoading: isTelemetryLoading} = useTraceTelemetry({
-    enabled: Boolean(metricName) && traceIds.length > 0,
+    enabled: Boolean(traceMetric.name) && traceIds.length > 0,
     traceIds,
   });
 
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
   const sorts = useQueryParamsSortBys();
-  const setSorts = useSetQueryParamsSortBys();
-
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(METRIC_SAMPLE_COLUMNS, tableRef, {
-    minimumColumnWidth: 50,
-    prefixColumnWidth: 'min-content',
-  });
 
   const meta = result.meta ?? {};
 
-  const fieldLabels: Record<string, string> = {
+  const fieldLabels: Record<string, ReactNode> = {
     trace: t('Trace'),
     value: t('Value'),
     timestamp: t('Timestamp'),
+    logs: t('Logs'),
+    spans: t('Spans'),
+    errors: t('Errors'),
   };
 
   return (
-    <TableContainer>
+    <SimpleTableWithHiddenColumns numColumns={Object.keys(fieldLabels).length}>
       {(result.isPending || isTelemetryLoading) && <TransparentLoadingMask />}
-      <StyledTable ref={tableRef} style={initialTableStyles}>
-        <TableHead>
-          <TableRow>
-            <StyledFirstTableHeadCell isFirst align="left">
-              <TableHeadCellContent isFrozen />
-            </StyledFirstTableHeadCell>
-            {METRIC_SAMPLE_COLUMNS.map((field, i) => {
-              const label = fieldLabels[field] ?? field;
-              const fieldType = meta.fields?.[field];
-              const align = fieldAlignment(field, fieldType);
 
-              const direction = sorts.find(s => s.field === field)?.kind;
+      <StyledSimpleTableHeader>
+        <StyledSimpleTableHeaderCell divider={false} style={{width: '5px'}} />
+        {METRIC_SAMPLE_COLUMNS.map((field, i) => {
+          const label = fieldLabels[field] ?? field;
+          const direction = sorts.find(s => s.field === field)?.kind;
 
-              function updateSort() {
-                const kind = direction === 'desc' ? 'asc' : 'desc';
-                setSorts([{field, kind}]);
-              }
+          return (
+            <StyledSimpleTableHeaderCell key={i} sort={direction}>
+              <Tooltip showOnlyOnOverflow title={label}>
+                {label}
+              </Tooltip>
+            </StyledSimpleTableHeaderCell>
+          );
+        })}
+        {METRIC_SAMPLE_STAT_COLUMNS.map((field, i) => (
+          <NumericSimpleTableHeaderCell
+            key={`stat-${i}`}
+            divider={false}
+            style={{width: '32px', padding: '0px'}}
+            data-column-name={field}
+          >
+            <Tooltip title={fieldLabels[field]} skipWrapper>
+              {ICON_HEADERS[field as keyof typeof ICON_HEADERS]}
+            </Tooltip>
+          </NumericSimpleTableHeaderCell>
+        ))}
 
-              return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent onClick={updateSort}>
-                    <Tooltip showOnlyOnOverflow title={label}>
-                      {label}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
-                      />
-                    )}
-                  </TableHeadCellContent>
-                </TableHeadCell>
-              );
-            })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {result.isError ? (
-            <TableStatus>
-              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
-            </TableStatus>
-          ) : result.data?.length ? (
-            result.data.map((row, i) => (
-              <SampleTableRow
-                key={i}
-                row={row}
-                telemetryData={telemetryData}
-                fields={fields}
-                columns={columns}
-                meta={meta}
-              />
-            ))
-          ) : result.isPending ? (
-            <TableStatus>
-              <LoadingIndicator />
-            </TableStatus>
-          ) : (
-            <TableStatus>
-              <EmptyStateWarning>
-                <p>{t('No samples found')}</p>
-              </EmptyStateWarning>
-            </TableStatus>
-          )}
-        </TableBody>
-      </StyledTable>
-    </TableContainer>
+        <NumericSimpleTableHeaderCell sort={sorts.find(s => s.field === 'value')?.kind}>
+          <Tooltip showOnlyOnOverflow title={fieldLabels.value ?? 'value'}>
+            {fieldLabels.value ?? 'value'}
+          </Tooltip>
+        </NumericSimpleTableHeaderCell>
+      </StyledSimpleTableHeader>
+
+      <StyledSimpleTableBody>
+        {result.isError ? (
+          <SimpleTable.Empty>
+            <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+          </SimpleTable.Empty>
+        ) : result.data?.length ? (
+          result.data.map((row, i) => (
+            <SampleTableRow
+              key={i}
+              row={row}
+              telemetryData={telemetryData}
+              fields={fields}
+              columns={columns}
+              meta={meta}
+            />
+          ))
+        ) : result.isPending ? (
+          <SimpleTable.Empty>
+            <LoadingIndicator />
+          </SimpleTable.Empty>
+        ) : (
+          <SimpleTable.Empty>
+            <EmptyStateWarning>
+              <p>{t('No samples found')}</p>
+            </EmptyStateWarning>
+          </SimpleTable.Empty>
+        )}
+      </StyledSimpleTableBody>
+    </SimpleTableWithHiddenColumns>
   );
 }
 
@@ -196,8 +186,8 @@ function SampleTableRow({
   const {selection} = usePageFilters();
   const location = useLocation();
   const theme = useTheme();
-  const measureRef = useRef<HTMLTableRowElement>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const measureRef = useRef<HTMLTableRowElement>(null);
 
   const traceId = row.trace as string;
   const telemetry = telemetryData.get(traceId);
@@ -218,55 +208,78 @@ function SampleTableRow({
     });
 
     return (
-      <Flex gap="xs" display="inline-flex">
+      <WrappingText>
         <Link to={target} style={{minWidth: '66px'}}>
           {getShortEventId(traceId)}
         </Link>
-        <Flex gap="xs" style={{color: theme.red300}}>
-          <IconFire />
-          {telemetry?.errorsCount ?? 0}
-        </Flex>
-        <Flex gap="xs" style={{color: theme.purple400}}>
-          <IconTerminal />
-          {telemetry?.logsCount ?? 0}
-        </Flex>
-        <Flex gap="xs" style={{color: theme.gray300}}>
-          <IconSpan color="gray300" />
-          {telemetry?.spansCount ?? 0}
-        </Flex>
-      </Flex>
+      </WrappingText>
     );
   };
 
-  const renderTimestampCell = (field: string, originalFieldIndex: number) => {
-    const customRenderer = LogAttributesRendererMap[OurLogKnownFieldKey.TIMESTAMP];
+  const renderLogsCell = () => {
+    return (
+      <WrappingText
+        style={{
+          maxWidth: MAX_TELEMETRY_WIDTH,
+          color: theme.gray400,
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+        }}
+      >
+        <Count value={telemetry?.logsCount ?? 0} />
+      </WrappingText>
+    );
+  };
 
-    if (!customRenderer) {
-      return (
-        <FieldRenderer
-          column={columns[originalFieldIndex]}
-          data={row}
-          unit={meta?.units?.[field]}
-          meta={meta}
-        />
-      );
-    }
+  const renderSpansCell = () => {
+    return (
+      <WrappingText
+        style={{
+          maxWidth: MAX_TELEMETRY_WIDTH,
+          color: theme.purple400,
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+        }}
+      >
+        <Count value={telemetry?.spansCount ?? 0} />
+      </WrappingText>
+    );
+  };
 
-    return customRenderer({
-      item: {
-        fieldKey: field,
-        value: row[field],
-      },
-      extra: {
-        attributes: row,
-        attributeTypes: meta.fields ?? {},
-        highlightTerms: [],
-        logColors: getLogColors(SeverityLevel.INFO, theme),
-        location,
-        organization,
-        theme,
-      },
-    });
+  const renderErrorsCell = () => {
+    return (
+      <WrappingText
+        style={{
+          maxWidth: MAX_TELEMETRY_WIDTH,
+          color: theme.red300,
+          alignItems: 'center',
+        }}
+      >
+        <Count value={telemetry?.errorsCount ?? 0} />
+      </WrappingText>
+    );
+  };
+
+  const renderTimestampCell = (field: string) => {
+    return (
+      <div style={{whiteSpace: 'nowrap'}}>
+        {TimestampRenderer({
+          item: {
+            fieldKey: field,
+            value: row[field],
+          },
+          extra: {
+            attributes: row,
+            attributeTypes: meta.fields ?? {},
+            highlightTerms: [],
+            logColors: getLogColors(SeverityLevel.INFO, theme),
+            location,
+            organization,
+            theme,
+          },
+        })}
+      </div>
+    );
   };
 
   const renderDefaultCell = (field: string, originalFieldIndex: number) => {
@@ -282,7 +295,7 @@ function SampleTableRow({
 
   const renderFieldCell = (field: string) => {
     const originalFieldIndex = fields.indexOf(field);
-    if (originalFieldIndex === -1) {
+    if (originalFieldIndex === -1 && !METRIC_SAMPLE_STAT_COLUMNS.includes(field)) {
       return null;
     }
 
@@ -290,7 +303,13 @@ function SampleTableRow({
       case 'trace':
         return renderTraceCell();
       case 'timestamp':
-        return renderTimestampCell(field, originalFieldIndex);
+        return renderTimestampCell(field);
+      case 'logs':
+        return renderLogsCell();
+      case 'spans':
+        return renderSpansCell();
+      case 'errors':
+        return renderErrorsCell();
       default:
         return renderDefaultCell(field, originalFieldIndex);
     }
@@ -298,60 +317,71 @@ function SampleTableRow({
 
   return (
     <Fragment>
-      <TableRow>
-        <LogsTableBodyFirstCell key="first">
-          <LogFirstCellContent>
-            <StyledChevronButton
-              icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
-              aria-label={t('Toggle trace details')}
-              aria-expanded={isExpanded}
-              size="zero"
-              borderless
-              onClick={() => setIsExpanded(!isExpanded)}
-            />
-          </LogFirstCellContent>
-        </LogsTableBodyFirstCell>
+      <StickyTableRow isSticky={isExpanded}>
+        <StyledSimpleTableRowCell>
+          <Button
+            icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
+            aria-label={t('Toggle trace details')}
+            aria-expanded={isExpanded}
+            size="sm"
+            borderless
+            onClick={() => setIsExpanded(!isExpanded)}
+          />
+        </StyledSimpleTableRowCell>
         {METRIC_SAMPLE_COLUMNS.map((field, i) => (
-          <StyledTableBodyCell key={i} isFirst={i === 0}>
+          <StyledSimpleTableRowCell key={i} hasPadding>
             {renderFieldCell(field)}
-          </StyledTableBodyCell>
+          </StyledSimpleTableRowCell>
         ))}
-      </TableRow>
-      {isExpanded && <TraceDetails dataRow={row} ref={measureRef} />}
+        {METRIC_SAMPLE_STAT_COLUMNS.map((field, i) => (
+          <NumericSimpleTableRowCell
+            key={`stat-${i}`}
+            data-column-name={field}
+            hasPadding
+            style={{justifyContent: 'flex-end'}}
+          >
+            {renderFieldCell(field)}
+          </NumericSimpleTableRowCell>
+        ))}
+        <NumericSimpleTableRowCell hasPadding style={{minWidth: VALUE_COLUMN_MIN_WIDTH}}>
+          <Tooltip showOnlyOnOverflow title={row.value}>
+            {renderFieldCell('value')}
+          </Tooltip>
+        </NumericSimpleTableRowCell>
+      </StickyTableRow>
+      {isExpanded && (
+        <ExpandedRowContainer>
+          <MetricDetails dataRow={row} ref={measureRef} />
+        </ExpandedRowContainer>
+      )}
     </Fragment>
   );
 }
 
-const StyledTable = styled(Table)`
-  height: 100%;
-  overflow: auto;
-`;
+const SimpleTableWithHiddenColumns = styled(StyledSimpleTable)<{numColumns: number}>`
+  grid-template-columns: repeat(${p => p.numColumns}, min-content) 1fr;
 
-const TableContainer = styled('div')`
-  height: 100%;
-  position: relative;
-`;
+  @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 3}px) {
+    grid-template-columns: repeat(${p => p.numColumns - 1}, min-content) 1fr;
 
-const StyledTableBodyCell = styled(GridBodyCell)<{align?: Alignments; isFirst?: boolean}>`
-  font-size: ${p => p.theme.fontSize.sm};
-  min-height: 12px;
-  ${p => p.align && `justify-content: ${p.align};`}
-  ${p => p.isFirst && `padding-left: 0;`}
-`;
+    [data-column-name='errors'] {
+      display: none;
+    }
+  }
 
-const TableHeadCell = styled(GridHeadCell)<{align?: Alignments; isFirst?: boolean}>`
-  ${p => p.align && `justify-content: ${p.align};`}
-  font-size: ${p => p.theme.fontSize.sm};
-  height: 33px;
-  ${p => p.isFirst && `padding-left: 0;`}
-`;
+  @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 2}px) {
+    grid-template-columns: repeat(${p => p.numColumns - 2}, min-content) 1fr;
 
-const TransparentLoadingMask = styled(LoadingMask)`
-  opacity: 0.4;
-  z-index: 1;
-`;
+    [data-column-name='spans'] {
+      display: none;
+    }
+  }
 
-const StyledFirstTableHeadCell = styled(FirstTableHeadCell)`
-  height: 100%;
-  border-right: none;
+  @container (max-width: ${SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 1}px) {
+    grid-template-columns: repeat(${p => p.numColumns - 3}, min-content) 1fr;
+
+    [data-column-name='logs'] {
+      display: none;
+    }
+  }
 `;

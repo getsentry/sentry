@@ -53,7 +53,8 @@ def get_similarity_data_from_seer(
     logger_extra = {
         k: v
         for k, v in similar_issues_request.items()
-        if k in {"event_id", "project_id", "hash", "referrer", "use_reranking"}
+        if k
+        in {"event_id", "project_id", "hash", "referrer", "use_reranking", "model", "training_mode"}
     }
     logger.info(
         "get_seer_similar_issues.request",

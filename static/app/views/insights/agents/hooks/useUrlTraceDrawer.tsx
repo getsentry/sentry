@@ -1,9 +1,10 @@
 import {useCallback} from 'react';
 
 import useDrawer from 'sentry/components/globalDrawer';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
-import {DrawerUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
+import {
+  DrawerUrlParams,
+  useTraceDrawerQueryState,
+} from 'sentry/views/insights/agents/utils/urlParams';
 
 export function useUrlTraceDrawer() {
   const {
@@ -13,14 +14,11 @@ export function useUrlTraceDrawer() {
     panelRef,
   } = useDrawer();
 
-  const [selectedTrace, setSelectedTrace, removeTraceParam] = useLocationSyncedState(
-    DrawerUrlParams.SELECTED_TRACE,
-    decodeScalar
-  );
+  const [traceDrawerQueryState, setTraceDrawerQueryState] = useTraceDrawerQueryState();
 
   const removeQueryParams = useCallback(() => {
-    removeTraceParam();
-  }, [removeTraceParam]);
+    setTraceDrawerQueryState(null);
+  }, [setTraceDrawerQueryState]);
 
   const closeDrawer = useCallback(() => {
     removeQueryParams();
@@ -30,13 +28,26 @@ export function useUrlTraceDrawer() {
   const openDrawer = useCallback(
     (
       renderer: Parameters<typeof baseOpenDrawer>[0],
-      options?: Parameters<typeof baseOpenDrawer>[1] & {traceSlug?: string}
-    ) => {
-      const {traceSlug: optionsTraceSlug, onClose, ariaLabel, ...rest} = options || {};
-
-      if (optionsTraceSlug) {
-        setSelectedTrace(optionsTraceSlug);
+      options?: Parameters<typeof baseOpenDrawer>[1] & {
+        spanId?: string;
+        timestamp?: number;
+        traceSlug?: string;
       }
+    ) => {
+      const {
+        traceSlug: optionsTraceSlug,
+        spanId: optionsSpanId,
+        timestamp: optionsTimestamp,
+        onClose,
+        ariaLabel,
+        ...rest
+      } = options || {};
+
+      setTraceDrawerQueryState({
+        traceId: optionsTraceSlug,
+        spanId: optionsSpanId,
+        timestamp: optionsTimestamp,
+      });
 
       return baseOpenDrawer(renderer, {
         ...rest,
@@ -50,7 +61,7 @@ export function useUrlTraceDrawer() {
         },
       });
     },
-    [baseOpenDrawer, setSelectedTrace, removeQueryParams]
+    [baseOpenDrawer, setTraceDrawerQueryState, removeQueryParams]
   );
 
   return {
@@ -58,6 +69,6 @@ export function useUrlTraceDrawer() {
     closeDrawer,
     isDrawerOpen,
     panelRef,
-    drawerUrlState: {trace: selectedTrace},
+    drawerUrlState: traceDrawerQueryState,
   };
 }

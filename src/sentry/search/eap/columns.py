@@ -22,7 +22,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
-from sentry.search.eap.types import EAPResponse
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 
 ResolvedArgument: TypeAlias = AttributeKey | str | int | float
@@ -33,6 +33,7 @@ class ResolverSettings(TypedDict):
     extrapolation_mode: ExtrapolationMode.ValueType
     snuba_params: SnubaParams
     query_result_cache: dict[str, EAPResponse]
+    search_config: SearchResolverConfig
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -298,7 +299,7 @@ class FunctionDefinition:
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
-        extrapolation_override: bool = False,
+        search_config: SearchResolverConfig,
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
@@ -319,7 +320,7 @@ class AggregateDefinition(FunctionDefinition):
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
-        extrapolation_override: bool = False,
+        search_config: SearchResolverConfig,
     ) -> ResolvedAggregate:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
@@ -341,7 +342,9 @@ class AggregateDefinition(FunctionDefinition):
             search_type=search_type,
             internal_type=self.internal_type,
             processor=self.processor,
-            extrapolation=self.extrapolation if not extrapolation_override else False,
+            extrapolation=(
+                self.extrapolation if not search_config.disable_aggregate_extrapolation else False
+            ),
             argument=resolved_attribute,
         )
 
@@ -367,7 +370,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
-        extrapolation_override: bool = False,
+        search_config: SearchResolverConfig,
     ) -> ResolvedConditionalAggregate:
         key, aggregate_filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
@@ -378,7 +381,9 @@ class ConditionalAggregateDefinition(FunctionDefinition):
             filter=aggregate_filter,
             key=key,
             processor=self.processor,
-            extrapolation=self.extrapolation if not extrapolation_override else False,
+            extrapolation=(
+                self.extrapolation if not search_config.disable_aggregate_extrapolation else False
+            ),
         )
 
 
@@ -401,16 +406,17 @@ class FormulaDefinition(FunctionDefinition):
         resolved_arguments: list[AttributeKey | Any],
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
-        extrapolation_override: bool = False,
+        search_config: SearchResolverConfig,
     ) -> ResolvedFormula:
         resolver_settings = ResolverSettings(
             extrapolation_mode=(
                 ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-                if self.extrapolation and not extrapolation_override
+                if self.extrapolation and not search_config.disable_aggregate_extrapolation
                 else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
             ),
             snuba_params=snuba_params,
             query_result_cache=query_result_cache,
+            search_config=search_config,
         )
 
         return ResolvedFormula(
@@ -505,3 +511,33 @@ class ColumnDefinitions:
     filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter], list[SearchFilter]]]
     alias_to_column: Callable[[str], str | None] | None
     column_to_alias: Callable[[str], str | None] | None
+
+
+def attribute_key_to_tuple(attribute_key: AttributeKey) -> tuple[str, AttributeKey.Type.ValueType]:
+    return (attribute_key.name, attribute_key.type)
+
+
+def count_argument_resolver_optimized(
+    always_present_attributes: list[AttributeKey],
+) -> Callable[[ResolvedArguments], AttributeKey]:
+    always_present_attributes_set = {
+        attribute_key_to_tuple(attribute) for attribute in always_present_attributes
+    }
+
+    def count_argument_resolver(resolved_arguments: ResolvedArguments) -> AttributeKey:
+        if len(resolved_arguments) != 1:
+            raise InvalidSearchQuery(
+                f"Aggregates expects exactly 1 argument, got {len(resolved_arguments)}"
+            )
+
+        if not isinstance(resolved_arguments[0], AttributeKey):
+            raise InvalidSearchQuery("Aggregates accept attribute keys only")
+
+        resolved_attribute: AttributeKey = resolved_arguments[0]
+
+        if attribute_key_to_tuple(resolved_attribute) in always_present_attributes_set:
+            return AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT)
+
+        return resolved_attribute
+
+    return count_argument_resolver

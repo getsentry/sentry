@@ -104,6 +104,7 @@ function Step({
                   runId={runId}
                   causes={step.causes}
                   rootCauseSelection={step.selection}
+                  status={step.status}
                   terminationReason={step.termination_reason}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
                   previousDefaultStepIndex={previousDefaultStepIndex}
@@ -119,6 +120,7 @@ function Step({
                   solution={step.solution}
                   description={step.description}
                   solutionSelected={step.solution_selected}
+                  status={step.status}
                   customSolution={step.custom_solution}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}

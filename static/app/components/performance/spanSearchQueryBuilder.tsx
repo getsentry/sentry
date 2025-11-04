@@ -81,7 +81,7 @@ export function useEAPSpanSearchQueryBuilderProps(props: EAPSpanSearchQueryBuild
 
   const numberAttributes = numberTags;
   const stringAttributes = useMemo(() => {
-    if (stringTags.hasOwnProperty(SpanFields.RELEASE)) {
+    if (SpanFields.RELEASE in stringTags) {
       return {
         ...stringTags,
         ...STATIC_SEMVER_TAGS,

@@ -56,7 +56,7 @@ export function PreprodBuildsTable({
       <SimpleTable.Row key={build.id}>
         <FullRowLink to={linkUrl}>
           <InteractionStateLayer />
-          <SimpleTable.RowCell justify="flex-start">
+          <SimpleTable.RowCell justify="start">
             {build.app_info?.name || build.app_info?.app_id ? (
               <Flex direction="column" gap="xs">
                 <Flex align="center" gap="sm">
@@ -90,7 +90,7 @@ export function PreprodBuildsTable({
             ) : null}
           </SimpleTable.RowCell>
 
-          <SimpleTable.RowCell justify="flex-start">
+          <SimpleTable.RowCell justify="start">
             <Flex direction="column" gap="xs">
               <Flex align="center" gap="xs">
                 {build.app_info?.version !== null && (
@@ -110,6 +110,13 @@ export function PreprodBuildsTable({
                 <Text size="sm" variant="muted" monospace>
                   {(build.vcs_info?.head_sha?.slice(0, 7) || '--').toUpperCase()}
                 </Text>
+                {build.vcs_info?.pr_number && (
+                  <React.Fragment>
+                    <Text size="sm" variant="muted">
+                      #{build.vcs_info?.pr_number}
+                    </Text>
+                  </React.Fragment>
+                )}
                 {build.vcs_info?.head_ref !== null && (
                   <React.Fragment>
                     <Text size="sm" variant="muted">

@@ -32,7 +32,10 @@ import {
   Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
-import {TransactionsDatasetWarning} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
+import {
+  TRANSACTIONS_DATASET_DEPRECATION_MESSAGE,
+  TransactionsDatasetWarning,
+} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
@@ -46,6 +49,7 @@ import {
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
 import {ResolveSection} from 'sentry/views/detectors/components/forms/metric/resolveSection';
+import {useAutoMetricDetectorName} from 'sentry/views/detectors/components/forms/metric/useAutoMetricDetectorName';
 import {useInitialMetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/useInitialMetricDetectorFormData';
 import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric/useIntervalChoices';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
@@ -57,6 +61,8 @@ import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/met
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 function MetricDetectorForm() {
+  useAutoMetricDetectorName();
+
   return (
     <FormStack>
       <TransactionsDatasetWarningListener />
@@ -212,6 +218,7 @@ function IntervalPicker() {
       }
       name={METRIC_DETECTOR_FORM_FIELDS.interval}
       choices={intervalChoices}
+      disabled={dataset === DetectorDataset.TRANSACTIONS}
     />
   );
 }
@@ -270,6 +277,8 @@ function DetectSection() {
   const aggregate = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const isTransactionsDataset = dataset === DetectorDataset.TRANSACTIONS;
 
   return (
     <Container>
@@ -310,9 +319,26 @@ function DetectSection() {
               }
             }}
           />
-          <IntervalPicker />
+          <Tooltip
+            title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
+            isHoverable
+            disabled={!isTransactionsDataset}
+          >
+            <DisabledSection disabled={isTransactionsDataset}>
+              <IntervalPicker />
+            </DisabledSection>
+          </Tooltip>
         </DatasetRow>
-        <Visualize />
+        <Tooltip
+          title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
+          isHoverable
+          disabled={!isTransactionsDataset}
+        >
+          <DisabledSection disabled={isTransactionsDataset}>
+            <Visualize />
+          </DisabledSection>
+        </Tooltip>
+
         <DetectionType />
         <Flex direction="column">
           {(!detectionType || detectionType === 'static') && (
@@ -538,4 +564,8 @@ const IntervalField = styled(SelectField)`
   padding: 0;
   margin-left: 0;
   border-bottom: none;
+`;
+
+const DisabledSection = styled('div')<{disabled: boolean}>`
+  ${p => (p.disabled ? `opacity: 0.6;` : '')}
 `;

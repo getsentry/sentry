@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import Feature from 'sentry/components/acl/feature';
 import {CodeBlock} from 'sentry/components/core/code';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
@@ -8,7 +9,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
 import {unreachable} from 'sentry/utils/unreachable';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
 import {
@@ -71,6 +72,11 @@ interface BuildDetailsSidebarAppInfoProps {
 
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
   const labels = getLabels(props.appInfo.platform ?? undefined);
+
+  const datetimeFormat = getFormat({
+    seconds: true,
+    timeZone: true,
+  });
 
   return (
     <Flex direction="column" gap="xl">
@@ -135,7 +141,11 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
                 <IconClock />
               </InfoIcon>
               <Text>
-                {getFormattedDate(props.appInfo.date_added, 'MM/DD/YYYY [at] hh:mm A')}
+                {getFormattedDate(
+                  getUtcToSystem(props.appInfo.date_added),
+                  datetimeFormat,
+                  {local: true}
+                )}
               </Text>
             </Flex>
           </Tooltip>
@@ -152,24 +162,28 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             </Text>
           </Flex>
         </Tooltip>
-        <Flex gap="2xs" align="center">
-          <InfoIcon>
-            <IconLink />
-          </InfoIcon>
-          <Text>
-            {props.projectId && props.appInfo.is_installable ? (
-              <InstallableLink
-                onClick={() => {
-                  openInstallModal(props.projectId!, props.artifactId);
-                }}
-              >
-                Installable
-              </InstallableLink>
-            ) : (
-              <Tooltip title={labels.installUnavailableTooltip}>Not Installable</Tooltip>
-            )}
-          </Text>
-        </Flex>
+        <Feature features="organizations:preprod-build-distribution">
+          <Flex gap="2xs" align="center">
+            <InfoIcon>
+              <IconLink />
+            </InfoIcon>
+            <Text>
+              {props.projectId && props.appInfo.is_installable ? (
+                <InstallableLink
+                  onClick={() => {
+                    openInstallModal(props.projectId!, props.artifactId);
+                  }}
+                >
+                  Installable
+                </InstallableLink>
+              ) : (
+                <Tooltip title={labels.installUnavailableTooltip}>
+                  Not Installable
+                </Tooltip>
+              )}
+            </Text>
+          </Flex>
+        </Feature>
         {props.appInfo.build_configuration && (
           <Tooltip title={labels.buildConfiguration}>
             <Flex gap="2xs" align="center">

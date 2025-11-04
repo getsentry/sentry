@@ -10,6 +10,7 @@ from sentry.incidents.endpoints.serializers.alert_rule_trigger_action import (
     get_input_channel_id,
     human_desc,
 )
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler import (
     MetricAlertRegistryHandler,
@@ -49,13 +50,19 @@ class WorkflowEngineActionSerializer(Serializer):
                 ).values("workflow")
             )
         ).values("detector__workflow_condition_group")
-        detector_trigger = DataCondition.objects.filter(
+        detector_trigger = DataCondition.objects.get(
             condition_result__in=Subquery(action_filter_data_condition.values("comparison")),
             condition_group__in=detector_dcg,
         )
-        return DataConditionAlertRuleTrigger.objects.values_list(
-            "alert_rule_trigger_id", flat=True
-        ).get(data_condition__in=detector_trigger)
+        try:
+            alert_rule_trigger_id = DataConditionAlertRuleTrigger.objects.values_list(
+                "alert_rule_trigger_id", flat=True
+            ).get(data_condition=detector_trigger)
+            return alert_rule_trigger_id
+        except DataConditionAlertRuleTrigger.DoesNotExist:
+            # this data condition does not have an analog in the old system,
+            # but we need to return *something*
+            return get_fake_id_from_object_id(detector_trigger.id)
 
     def serialize(
         self, obj: Action, attrs: Mapping[str, Any], user: User | RpcUser | AnonymousUser, **kwargs
@@ -65,7 +72,10 @@ class WorkflowEngineActionSerializer(Serializer):
         """
         from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 
-        aarta = ActionAlertRuleTriggerAction.objects.get(action=obj.id)
+        try:
+            aarta = ActionAlertRuleTriggerAction.objects.get(action=obj.id)
+        except ActionAlertRuleTriggerAction.DoesNotExist:
+            aarta = None
         priority = obj.data.get("priority")
         type_value = ActionService.get_value(obj.type)
         target = MetricAlertRegistryHandler.target(obj)
@@ -81,8 +91,12 @@ class WorkflowEngineActionSerializer(Serializer):
             sentry_app_config = obj.data.get("settings")
 
         result = {
-            "id": str(aarta.alert_rule_trigger_action_id),
-            "alertRuleTriggerId": str(self.get_alert_rule_trigger_id(aarta.action)),
+            "id": (
+                str(aarta.alert_rule_trigger_action_id)
+                if aarta is not None
+                else str(get_fake_id_from_object_id(obj.id))
+            ),
+            "alertRuleTriggerId": str(self.get_alert_rule_trigger_id(obj)),
             "type": obj.type,
             "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)],
             "targetIdentifier": get_identifier_from_action(

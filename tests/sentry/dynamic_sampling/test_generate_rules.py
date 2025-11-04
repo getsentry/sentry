@@ -115,19 +115,18 @@ def test_generate_rules_return_only_always_allowed_rules_if_sample_rate_is_100_a
         0.5,
     )
 
-    with Feature("organizations:ds-org-recalibration"):
-        assert generate_rules(default_old_project) == [
-            {
-                "condition": {"inner": [], "op": "and"},
-                "id": 1000,
-                "samplingValue": {"type": "sampleRate", "value": 1.0},
-                "type": "trace",
-            },
-        ]
-        get_blended_sample_rate.assert_called_with(
-            organization_id=default_old_project.organization.id, project=default_old_project
-        )
-        _validate_rules(default_old_project)
+    assert generate_rules(default_old_project) == [
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "samplingValue": {"type": "sampleRate", "value": 1.0},
+            "type": "trace",
+        },
+    ]
+    get_blended_sample_rate.assert_called_with(
+        organization_id=default_old_project.organization.id, project=default_old_project
+    )
+    _validate_rules(default_old_project)
 
 
 @django_db_all
@@ -647,22 +646,21 @@ def test_generate_rules_return_uniform_rules_and_recalibrate_orgs_rule(
         default_factor,
     )
 
-    with Feature("organizations:ds-org-recalibration"):
-        assert generate_rules(default_old_project) == [
-            {
-                "condition": {"inner": [], "op": "and"},
-                "id": 1004,
-                "samplingValue": {"type": "factor", "value": default_factor},
-                "type": "trace",
-            },
-            {
-                "condition": {"inner": [], "op": "and"},
-                "id": 1000,
-                "samplingValue": {"type": "sampleRate", "value": 0.1},
-                "type": "trace",
-            },
-        ]
-        _validate_rules(default_project)
+    assert generate_rules(default_old_project) == [
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": 1004,
+            "samplingValue": {"type": "factor", "value": default_factor},
+            "type": "trace",
+        },
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "samplingValue": {"type": "sampleRate", "value": 0.1},
+            "type": "trace",
+        },
+    ]
+    _validate_rules(default_project)
 
 
 @django_db_all
@@ -997,9 +995,7 @@ def test_generate_rules_project_mode(
     )
     default_old_project.update_option("sentry:target_sample_rate", 0.2)
 
-    with Feature(
-        {"organizations:ds-org-recalibration": True, "organizations:dynamic-sampling-custom": True}
-    ):
+    with Feature({"organizations:dynamic-sampling-custom": True}):
         assert generate_rules(default_old_project) == [
             {
                 "condition": {"inner": [], "op": "and"},

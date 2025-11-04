@@ -75,7 +75,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
-from sentry.uptime.autodetect.ranking import _get_cluster, get_organization_bucket_key
+from sentry.uptime.autodetect.ranking import get_organization_bucket_key
+from sentry.uptime.utils import get_cluster
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -2314,7 +2315,7 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
 class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
     def assert_organization_key(self, organization: Organization, exists: bool) -> None:
         key = get_organization_bucket_key(organization)
-        cluster = _get_cluster()
+        cluster = get_cluster()
         assert exists == cluster.sismember(key, str(organization.id))
 
     def test_uptime_detection_feature_url(self) -> None:
@@ -3664,3 +3665,50 @@ class PostProcessGroupFeedbackTest(
     @pytest.mark.skip(reason="regression is disabled for feedback issues")
     def test_group_last_seen_buffer(self) -> None:
         pass
+
+    @with_feature("organizations:expanded-sentry-apps-webhooks")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    def test_feedback_sends_webhook_with_feature_flag(self, mock_delay: MagicMock) -> None:
+        sentry_app = self.create_sentry_app(
+            organization=self.organization, events=["issue.created"]
+        )
+        self.create_sentry_app_installation(organization=self.organization, slug=sentry_app.slug)
+
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        mock_delay.assert_called_once_with(
+            action="created", sender="Group", instance_id=event.group.id
+        )
+
+    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    def test_feedback_no_webhook_without_feature_flag(self, mock_delay: MagicMock) -> None:
+        sentry_app = self.create_sentry_app(
+            organization=self.organization, events=["issue.created"]
+        )
+        self.create_sentry_app_installation(organization=self.organization, slug=sentry_app.slug)
+
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assert not mock_delay.called

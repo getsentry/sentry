@@ -50,6 +50,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
+    IntegrationProviderError,
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
@@ -811,13 +812,9 @@ class JiraIntegration(IssueSyncIntegration):
         project_id = params.get("project", defaults.get("project"))
         client = self.get_client()
         try:
-            jira_projects = (
-                client.get_projects_paginated({"maxResults": MAX_PER_PROJECT_QUERIES})["values"]
-                if features.has(
-                    "organizations:jira-paginated-projects", self.organization, actor=user
-                )
-                else client.get_projects_list()
-            )
+            jira_projects = client.get_projects_paginated({"maxResults": MAX_PER_PROJECT_QUERIES})[
+                "values"
+            ]
         except ApiError as e:
             logger.info(
                 "jira.get-create-issue-config.no-projects",
@@ -859,11 +856,10 @@ class JiraIntegration(IssueSyncIntegration):
             "updatesForm": True,
             "required": True,
         }
-        if features.has("organizations:jira-paginated-projects", self.organization, actor=user):
-            paginated_projects_url = reverse(
-                "sentry-extensions-jira-search", args=[self.organization.slug, self.model.id]
-            )
-            projects_form_field["url"] = paginated_projects_url
+        paginated_projects_url = reverse(
+            "sentry-extensions-jira-search", args=[self.organization.slug, self.model.id]
+        )
+        projects_form_field["url"] = paginated_projects_url
 
         fields = [
             projects_form_field,
@@ -967,7 +963,11 @@ class JiraIntegration(IssueSyncIntegration):
         if not jira_project:
             raise IntegrationFormError({"project": ["Jira project is required"]})
 
-        meta = client.get_create_meta_for_project(jira_project)
+        try:
+            meta = client.get_create_meta_for_project(jira_project)
+        except ApiError as e:
+            self.raise_error(e)
+
         if not meta:
             raise IntegrationConfigurationError(
                 "Could not fetch issue create configuration from Jira."
@@ -1013,6 +1013,12 @@ class JiraIntegration(IssueSyncIntegration):
                 },
             )
             raise IntegrationConfigurationError(exc.text) from exc
+        elif isinstance(exc, ApiError):
+            if "Product Unavailable" in exc.text or "Page Unavailable" in exc.text:
+                raise IntegrationProviderError(
+                    "Something went wrong while communicating with Jira"
+                ) from exc
+
         super().raise_error(exc, identity=identity)
 
     def sync_assignee_outbound(

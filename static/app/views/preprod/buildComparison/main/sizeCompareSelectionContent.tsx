@@ -23,6 +23,7 @@ import {
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -90,6 +91,10 @@ export function SizeCompareSelectionContent({
     );
 
   const pageLinks = buildsQuery.getResponseHeader?.('Link') || null;
+
+  const parsedLinks = pageLinks ? parseLinkHeader(pageLinks) : {};
+  const hasPagination =
+    parsedLinks.previous?.results === true || parsedLinks.next?.results === true;
 
   const {mutate: triggerComparison, isPending: isComparing} = useMutation<
     void,
@@ -175,7 +180,7 @@ export function SizeCompareSelectionContent({
             );
           })}
 
-          <Pagination pageLinks={pageLinks} />
+          {hasPagination && <Pagination pageLinks={pageLinks} />}
         </Stack>
       )}
     </Stack>
@@ -195,6 +200,8 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
   const dateAdded = build.app_info?.date_added;
   const sizeInfo = build.size_info;
 
+  const hasGitInfo = prNumber || branchName || commitHash;
+
   return (
     <BuildItemContainer
       onClick={onSelect}
@@ -203,23 +210,26 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
       gap="md"
     >
       <Flex direction="column" gap="sm" flex={1}>
-        <Flex align="center" gap="md">
-          {(prNumber || branchName) && <IconBranch size="xs" color="gray300" />}
-          {prNumber && (
-            <Flex align="center" gap="sm">
-              <Text>#{prNumber}</Text>
-            </Flex>
-          )}
-          {branchName && (
-            <BuildItemBranchTag>{build.vcs_info?.head_ref}</BuildItemBranchTag>
-          )}
-          {commitHash && (
-            <Flex align="center" gap="sm">
-              <IconCommit size="xs" color="gray300" />
-              <Text>{commitHash}</Text>
-            </Flex>
-          )}
-        </Flex>
+        {hasGitInfo && (
+          <Flex align="center" gap="md">
+            {(prNumber || branchName) && <IconBranch size="xs" color="gray300" />}
+            {prNumber && (
+              <Flex align="center" gap="sm">
+                <Text>#{prNumber}</Text>
+              </Flex>
+            )}
+            {branchName && (
+              <BuildItemBranchTag>{build.vcs_info?.head_ref}</BuildItemBranchTag>
+            )}
+            {commitHash && (
+              <Flex align="center" gap="sm">
+                <IconCommit size="xs" color="gray300" />
+                <Text>{commitHash}</Text>
+              </Flex>
+            )}
+          </Flex>
+        )}
+
         <Flex align="center" gap="md">
           {dateAdded && (
             <Flex align="center" gap="sm">
@@ -237,14 +247,14 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
           )}
           {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
-              <IconDownload size="xs" color="gray300" />
-              <Text>{formatBytesBase10(sizeInfo.download_size_bytes)}</Text>
+              <IconCode size="xs" color="gray300" />
+              <Text>{formatBytesBase10(sizeInfo.install_size_bytes)}</Text>
             </Flex>
           )}
           {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
-              <IconCode size="xs" color="gray300" />
-              <Text>{formatBytesBase10(sizeInfo.install_size_bytes)}</Text>
+              <IconDownload size="xs" color="gray300" />
+              <Text>{formatBytesBase10(sizeInfo.download_size_bytes)}</Text>
             </Flex>
           )}
         </Flex>

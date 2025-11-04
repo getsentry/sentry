@@ -1,5 +1,5 @@
 ---
-created: '2025-10-06T21:57:34.521625+00:00'
+created: '2025-10-27T23:46:02.507419+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -22,6 +22,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "SoftTimeLimitExceeded"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "SoftTimeLimitExceeded()"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -776,24 +794,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "SoftTimeLimitExceeded"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "SoftTimeLimitExceeded()"
               ]
             }
           ]
@@ -853,6 +853,24 @@ source: tests/sentry/grouping/test_grouping_info.py
             {
               "contributes": true,
               "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "SoftTimeLimitExceeded"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "SoftTimeLimitExceeded()"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
               "id": "stacktrace",
               "name": "stacktrace",
               "values": [
@@ -1604,24 +1622,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                     }
                   ]
                 }
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "SoftTimeLimitExceeded"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "SoftTimeLimitExceeded()"
               ]
             }
           ]

@@ -1,4 +1,7 @@
+from unittest.mock import patch
 from uuid import uuid4
+
+import responses
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
@@ -394,3 +397,23 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert not DataConditionGroup.objects.filter(id=dcg.id).exists()
         assert not DataCondition.objects.filter(id=dc.id).exists()
         assert not Workflow.objects.filter(id=workflow.id).exists()
+
+    @responses.activate
+    @patch("sentry.deletions.tasks.overwatch.notify_overwatch_organization_deleted")
+    def test_overwatch_notification_on_deletion(
+        self, mock_notify_overwatch_organization_deleted
+    ) -> None:
+        """Test that Overwatch is notified when an organization is deleted"""
+        org = self.create_organization(name="test")
+        org_slug = org.slug
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Organization.objects.filter(id=org.id).exists()
+
+        # Verify the Overwatch notification task was called with org id and slug
+        mock_notify_overwatch_organization_deleted.delay.assert_called_once_with(org.id, org_slug)

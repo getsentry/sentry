@@ -1,23 +1,29 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import type {NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {
+  useProgressiveQuery,
+  type RPCQueryExtras,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
-  useQueryParamsSearch,
+  useQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseMetricAggregatesTableOptions {
   enabled: boolean;
   limit: number;
-  metricName: string;
+  traceMetric: TraceMetric;
+  queryExtras?: RPCQueryExtras;
 }
 
 interface MetricAggregatesTableResult {
@@ -29,20 +35,44 @@ interface MetricAggregatesTableResult {
 export function useMetricAggregatesTable({
   enabled,
   limit,
-  metricName,
+  traceMetric,
+  queryExtras,
 }: UseMetricAggregatesTableOptions) {
-  return useMetricAggregatesTableImp({enabled, limit, metricName});
+  const canTriggerHighAccuracy = useCallback(
+    (result: ReturnType<typeof useMetricAggregatesTableImp>['result']) => {
+      const canGoToHigherAccuracyTier = result.meta?.dataScanned === 'partial';
+      const hasData = defined(result.data) && result.data.length > 0;
+      return !hasData && canGoToHigherAccuracyTier;
+    },
+    []
+  );
+  return useProgressiveQuery<typeof useMetricAggregatesTableImp>({
+    queryHookImplementation: useMetricAggregatesTableImp,
+    queryHookArgs: {
+      enabled,
+      limit,
+      traceMetric,
+      queryExtras: {
+        ...queryExtras,
+        traceMetric,
+      },
+    },
+    queryOptions: {
+      canTriggerHighAccuracy,
+    },
+  });
 }
 
 function useMetricAggregatesTableImp({
   enabled,
   limit,
-  metricName,
+  traceMetric,
+  queryExtras,
 }: UseMetricAggregatesTableOptions): MetricAggregatesTableResult {
   const {selection} = usePageFilters();
   const visualize = useMetricVisualize();
   const groupBys = useQueryParamsGroupBys();
-  const searchQuery = useQueryParamsSearch();
+  const query = useQueryParamsQuery();
   const sortBys = useQueryParamsAggregateSortBys();
 
   const fields = useMemo(() => {
@@ -63,14 +93,6 @@ function useMetricAggregatesTableImp({
     return allFields.filter(Boolean);
   }, [groupBys, visualize.yAxis]);
 
-  const query = useMemo(() => {
-    const currentSearch = new MutableSearch(`metric.name:${metricName}`);
-    if (!searchQuery.isEmpty()) {
-      currentSearch.addStringFilter(searchQuery.formatString());
-    }
-    return currentSearch.formatString();
-  }, [metricName, searchQuery]);
-
   const eventView = useMemo(() => {
     const discoverQuery: NewQuery = {
       id: undefined,
@@ -86,12 +108,13 @@ function useMetricAggregatesTableImp({
   }, [fields, query, selection, sortBys]);
 
   const result = useSpansQuery({
-    enabled: enabled && Boolean(metricName) && fields.length > 0,
+    enabled: enabled && Boolean(traceMetric.name) && fields.length > 0,
     eventView,
     initialData: [],
     limit,
     referrer: 'api.explore.metric-aggregates-table',
     trackResponseAnalytics: false,
+    queryExtras,
   });
 
   return useMemo(() => {

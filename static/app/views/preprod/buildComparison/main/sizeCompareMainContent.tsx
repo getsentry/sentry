@@ -15,7 +15,6 @@ import {
   IconChevron,
   IconCode,
   IconDownload,
-  IconFile,
   IconRefresh,
   IconSearch,
 } from 'sentry/icons';
@@ -112,7 +111,7 @@ export function SizeCompareMainContent() {
       return [];
     }
 
-    const {diff_items, size_metric_diff_item} = comparisonDataQuery.data;
+    const {size_metric_diff_item} = comparisonDataQuery.data;
 
     // Calculate summary data
     const installSizeDiff =
@@ -123,11 +122,6 @@ export function SizeCompareMainContent() {
       installSizeDiff / size_metric_diff_item.base_install_size;
     const downloadSizePercentage =
       downloadSizeDiff / size_metric_diff_item.base_download_size;
-
-    const largestChange = diff_items.sort(
-      (a, b) => Math.abs(b.size_diff) - Math.abs(a.size_diff)
-    )[0];
-
     // Calculate metrics
     const metrics = [
       {
@@ -149,13 +143,6 @@ export function SizeCompareMainContent() {
           size_metric_diff_item.base_download_size,
         percentageChange: downloadSizePercentage,
         icon: IconDownload,
-      },
-      {
-        title: t('Largest change'),
-        head: largestChange ? largestChange?.head_size || 0 : 0,
-        base: largestChange ? largestChange?.base_size || 0 : 0,
-        diff: largestChange ? largestChange?.size_diff || 0 : 0,
-        icon: IconFile,
       },
     ];
 
@@ -360,9 +347,8 @@ export function SizeCompareMainContent() {
         <Flex direction="column" gap="0">
           <Flex align="center" justify="between" padding="xl">
             <Flex align="center" gap="sm">
-              <Heading as="h2">{t('Items Changed:')}</Heading>
-              <Heading as="h2" variant="muted">
-                {filteredDiffItems.length}
+              <Heading as="h2">
+                {t('Items Changed: %s', comparisonDataQuery.data?.diff_items.length)}
               </Heading>
             </Flex>
             <Flex align="center" gap="sm">
@@ -403,7 +389,7 @@ export function SizeCompareMainContent() {
                   />
                 </InputGroup>
                 <Flex align="center" gap="lg" wrap="nowrap">
-                  <Text wrap="nowrap">{t('Hide small changes (< 500B)')}</Text>
+                  <Text wrap="nowrap">{t('Hide changes < 500B')}</Text>
                   <Switch
                     checked={hideSmallChanges}
                     size="sm"
@@ -415,7 +401,11 @@ export function SizeCompareMainContent() {
                   />
                 </Flex>
               </Flex>
-              <SizeCompareItemDiffTable diffItems={filteredDiffItems} />
+              <SizeCompareItemDiffTable
+                diffItems={filteredDiffItems}
+                originalItemCount={comparisonDataQuery.data?.diff_items.length ?? 0}
+                disableHideSmallChanges={() => setHideSmallChanges(!hideSmallChanges)}
+              />
             </Stack>
           )}
         </Flex>

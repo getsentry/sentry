@@ -95,7 +95,12 @@ export default function ProjectToolbarSettings({project}: Props) {
                 'To enable the Dev Toolbar, copy and paste your domain into the Allowed Origins text box below: [domain] ',
                 {domain: <strong>{domain}</strong>}
               )}
-              <CopyToClipboardButton borderless size="zero" text={domain} />
+              <CopyToClipboardButton
+                borderless
+                size="zero"
+                text={domain}
+                aria-label={t('Copy domain to clipboard')}
+              />
             </Alert>
           </Alert.Container>
         )}

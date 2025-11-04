@@ -14,7 +14,6 @@ from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import uptime_tasks
 from sentry.uptime.autodetect.ranking import (
-    _get_cluster,
     delete_candidate_projects_for_org,
     delete_candidate_urls_for_project,
     delete_organization_bucket,
@@ -31,6 +30,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     is_url_auto_monitored_for_project,
 )
 from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.utils import get_cluster
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.locking import UnableToAcquireLock
@@ -67,7 +67,7 @@ def schedule_autodetections():
     )
     try:
         with lock.acquire():
-            cluster = _get_cluster()
+            cluster = get_cluster()
             last_processed = cluster.get(LAST_PROCESSED_KEY)
             if last_processed is None:
                 last_processed = timezone.now().replace(second=0, microsecond=0)
@@ -260,7 +260,7 @@ def monitor_url_for_project(project: Project, url: str) -> Detector:
 
 def is_failed_url(url: str) -> bool:
     key = get_failed_url_key(url)
-    return _get_cluster().exists(key) == 1
+    return get_cluster().exists(key) == 1
 
 
 def set_failed_url(url: str) -> None:
@@ -269,7 +269,7 @@ def set_failed_url(url: str) -> None:
     """
     key = get_failed_url_key(url)
     # TODO: Jitter the expiry here, so we don't retry all at the same time.
-    _get_cluster().set(key, 1, ex=FAILED_URL_RETRY_FREQ)
+    get_cluster().set(key, 1, ex=FAILED_URL_RETRY_FREQ)
 
 
 def get_failed_url_key(url: str) -> str:

@@ -25,6 +25,10 @@ GITHUB_EVENTS_TO_FORWARD_OVERWATCH = {
 }
 
 
+GITHUB_INSTALLATION_TARGET_ID_HEADER = "X-GitHub-Hook-Installation-Target-ID"
+DJANGO_HTTP_GITHUB_INSTALLATION_TARGET_ID_HEADER = "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID"
+
+
 @dataclass(frozen=True)
 class OverwatchOrganizationContext:
     organization_integration: OrganizationIntegration
@@ -90,12 +94,23 @@ class OverwatchGithubWebhookForwarder:
                 if region_name not in enabled_regions:
                     continue
 
+                raw_app_id = headers.get(
+                    GITHUB_INSTALLATION_TARGET_ID_HEADER,
+                ) or headers.get(DJANGO_HTTP_GITHUB_INSTALLATION_TARGET_ID_HEADER)
+                app_id: int | None = None
+                if raw_app_id is not None:
+                    try:
+                        app_id = int(raw_app_id)
+                    except (TypeError, ValueError):
+                        app_id = None
+
                 webhook_detail = WebhookDetails(
                     organizations=org_summaries,
                     webhook_body=dict(event),
                     webhook_headers=headers,
                     integration_provider=self.integration.provider,
                     region=region_name,
+                    app_id=app_id,
                 )
 
                 publisher = OverwatchWebhookPublisher(

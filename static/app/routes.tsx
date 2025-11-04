@@ -2124,6 +2124,18 @@ function buildRoutes(): RouteObject[] {
             },
           ],
         },
+        {
+          path: `${MODULE_BASE_URLS[ModuleName.AI_GENERATIONS]}/`,
+          children: [
+            {
+              index: true,
+              handle: {module: ModuleName.AI_GENERATIONS},
+              component: make(
+                () => import('sentry/views/insights/aiGenerations/views/overview')
+              ),
+            },
+          ],
+        },
       ],
     },
     {
@@ -2661,8 +2673,6 @@ function buildRoutes(): RouteObject[] {
       deprecatedRouteProps: true,
     },
     traceView,
-    automationRoutes,
-    detectorRoutes,
   ];
   const issueRoutes: SentryRouteObject = {
     path: '/issues/',
@@ -2858,83 +2868,6 @@ function buildRoutes(): RouteObject[] {
       component: errorHandler(
         redirectDeprecatedProjectRoute(
           ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'issues/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId}) => `/organizations/${orgId}/issues/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'dashboard/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId}) =>
-            `/organizations/${orgId}/dashboards/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'user-feedback/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId}) => `/organizations/${orgId}/feedback/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'releases/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId}) => `/organizations/${orgId}/releases/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'releases/:version/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId, router}) =>
-            `/organizations/${orgId}/releases/${router.params.version}/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'releases/:version/new-events/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId, router}) =>
-            `/organizations/${orgId}/releases/${router.params.version}/new-events/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'releases/:version/all-events/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId, router}) =>
-            `/organizations/${orgId}/releases/${router.params.version}/all-events/?project=${projectId}`
-        )
-      ),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: 'releases/:version/commits/',
-      component: errorHandler(
-        redirectDeprecatedProjectRoute(
-          ({orgId, projectId, router}) =>
-            `/organizations/${orgId}/releases/${router.params.version}/commits/?project=${projectId}`
         )
       ),
       deprecatedRouteProps: true,
