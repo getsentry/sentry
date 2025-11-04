@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Literal, cast
 
+from rest_framework.exceptions import ErrorDetail, ValidationError
 from rest_framework.request import Request
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
@@ -9,6 +10,8 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry import features
+from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 
@@ -55,33 +58,36 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
 ALLOWED_METRIC_TYPES: list[MetricType] = ["counter", "gauge", "distribution"]
 
 
-def get_trace_metric_info(
+def get_trace_metric_from_request(
     request: Request,
+    organization: Organization,
 ) -> tuple[str, MetricType]:
     metric_name = request.GET.get("metricName")
     metric_type = request.GET.get("metricType")
 
-    # TODO: remove this when these args are not optional anymore
-    if not metric_name:
-        metric_name = ""
-    if not metric_type:
-        metric_type = ""
+    if not features.has(
+        "organizations:tracemetrics-top-level-params", organization=organization, actor=request.user
+    ):
+        if not metric_name:
+            metric_name = ""
+        if not metric_type:
+            metric_type = ""
+    else:
+        errors = {}
 
-    # errors = {}
+        if not metric_name:
+            errors["metricName"] = ErrorDetail("This field is required.", code="required")
 
-    # if not metric_name:
-    #     errors["metricName"] = ErrorDetail("This field is required.", code="required")
+        if not metric_type:
+            errors["metricType"] = ErrorDetail("This field is required.", code="required")
+        elif metric_type not in ALLOWED_METRIC_TYPES:
+            errors["metricType"] = ErrorDetail(
+                string=f'"{metric_type}" is not a valid choice.', code="invalid_choice"
+            )
 
-    # if not metric_type:
-    #     errors["metricType"] = ErrorDetail("This field is required.", code="required")
-    # elif metric_type not in ALLOWED_METRIC_TYPES:
-    #     errors["metricType"] = ErrorDetail(
-    #         string=f'"{metric_type}" is not a valid choice.', code="invalid_choice"
-    #     )
+        if errors:
+            raise ValidationError(errors)
 
-    # if errors:
-    #     raise ValidationError(errors)
-
-    # assert metric_name
+        assert metric_name
 
     return metric_name, cast(MetricType, metric_type)

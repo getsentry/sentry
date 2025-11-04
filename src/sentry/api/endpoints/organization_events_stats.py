@@ -21,7 +21,7 @@ from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
-    get_trace_metric_info,
+    get_trace_metric_from_request,
 )
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -243,7 +243,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
                 if scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
-                    metric_name, metric_type = get_trace_metric_info(request)
+                    metric_name, metric_type = get_trace_metric_from_request(request, organization)
 
                     return TraceMetricsSearchResolverConfig(
                         metric_name=metric_name,
