@@ -121,7 +121,9 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         options = validated_data.get("options") or {}
         model_name = options.get("model_name")
 
-        projects = self.get_projects(request, organization)
+        projects = self.get_projects(
+            request, organization, project_ids=set(validated_data["project_ids"])
+        )
         project_ids = [project.id for project in projects]
 
         if not features.has("organizations:seer-explorer", organization, actor=request.user):
