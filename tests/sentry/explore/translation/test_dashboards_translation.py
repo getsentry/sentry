@@ -96,7 +96,7 @@ class DashboardTranslationTestCase(TestCase):
         # Assert widget type and dataset source are set correctly
         assert transaction_widget.widget_type == DashboardWidgetTypes.SPANS
         assert (
-            transaction_widget.dataset_source == DatasetSourcesTypes.SPAN_MIGRATION_VERSION_4.value
+            transaction_widget.dataset_source == DatasetSourcesTypes.SPAN_MIGRATION_VERSION_5.value
         )
 
         assert not DashboardWidgetQuery.objects.filter(id=query.id).exists()
@@ -741,7 +741,7 @@ class DashboardRestoreTransactionWidgetTestCase(TestCase):
         # Verify translation occurred
         assert transaction_widget.widget_type == DashboardWidgetTypes.SPANS
         assert (
-            transaction_widget.dataset_source == DatasetSourcesTypes.SPAN_MIGRATION_VERSION_4.value
+            transaction_widget.dataset_source == DatasetSourcesTypes.SPAN_MIGRATION_VERSION_5.value
         )
         assert transaction_widget.widget_snapshot is not None
 

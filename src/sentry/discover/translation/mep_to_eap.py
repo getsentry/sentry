@@ -239,9 +239,9 @@ class TranslationVisitor(NodeVisitor):
 
             flattened_parsed_val_num = None
             if negation == "":
-                if flattened_parsed_val_str == "true":
+                if flattened_parsed_val_str.lower() == "true":
                     flattened_parsed_val_num = "1"
-                elif flattened_parsed_val_str == "false":
+                elif flattened_parsed_val_str.lower() == "false":
                     flattened_parsed_val_num = "0"
                 return f"(tags[{flattened_parsed_key_str},number]:{flattened_parsed_val_num if flattened_parsed_val_num is not None else flattened_parsed_val_str} OR {flattened_parsed_key_str}:{flattened_parsed_val_str})"
 
