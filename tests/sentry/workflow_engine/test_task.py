@@ -66,31 +66,6 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
             workflow_status_update_handler(group, message, activity)
             mock_incr.assert_called_with("workflow_engine.tasks.error.no_detector_id")
 
-    def test__feature_flag(self) -> None:
-        detector = self.create_detector(project=self.project)
-        group = self.create_group(project=self.project)
-        activity = Activity(
-            project=self.project,
-            group=group,
-            type=ActivityType.SET_RESOLVED.value,
-            data={"fingerprint": ["test_fingerprint"]},
-        )
-        message = StatusChangeMessageData(
-            id="test_message_id",
-            project_id=self.project.id,
-            new_status=GroupStatus.RESOLVED,
-            new_substatus=None,
-            fingerprint=["test_fingerprint"],
-            detector_id=detector.id,
-            activity_data={"test": "test"},
-        )
-
-        with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay"
-        ) as mock_delay:
-            workflow_status_update_handler(group, message, activity)
-            mock_delay.assert_not_called()
-
     def test_single_processing(self) -> None:
         detector = self.create_detector(project=self.project)
         group = self.create_group(project=self.project, type=MetricIssue.type_id)

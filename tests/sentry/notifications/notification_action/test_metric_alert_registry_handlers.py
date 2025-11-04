@@ -471,32 +471,6 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             )
 
     @mock.patch.object(TestHandler, "send_alert")
-    def test_invoke_legacy_registry_with_activity_ff_not_enabled(
-        self, mock_send_alert: mock.MagicMock
-    ) -> None:
-        # Create an Activity instance with evidence data and priority
-        activity_data = asdict(self.evidence_data)
-
-        activity = Activity(
-            project=self.project,
-            group=self.group,
-            type=ActivityType.SET_RESOLVED.value,
-            data=activity_data,
-        )
-        activity.save()
-
-        # Create event data with Activity instead of GroupEvent
-        event_data_with_activity = WorkflowEventData(
-            event=activity,
-            workflow_env=self.workflow.environment,
-            group=self.group,
-        )
-
-        self.handler.invoke_legacy_registry(event_data_with_activity, self.action, self.detector)
-
-        assert mock_send_alert.call_count == 0
-
-    @mock.patch.object(TestHandler, "send_alert")
     def test_invoke_legacy_registry_with_activity(self, mock_send_alert: mock.MagicMock) -> None:
         # Create an Activity instance with evidence data and priority
         activity_data = asdict(self.evidence_data)
