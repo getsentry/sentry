@@ -20,6 +20,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import ensure_aware
+from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 from .utils import parse_team_params
 
@@ -32,6 +33,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
     }
     permission_classes = (IncidentPermission,)
 
+    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-incident-index")
     def get(self, request: Request, organization: Organization) -> Response:
         """
         List Incidents that a User can access within an Organization

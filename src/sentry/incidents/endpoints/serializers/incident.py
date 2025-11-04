@@ -13,6 +13,7 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
 from sentry.incidents.models.incident import Incident, IncidentActivity, IncidentProject
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import SnubaQuery
+from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 
 class IncidentSerializerResponse(TypedDict):
@@ -76,6 +77,9 @@ class IncidentSerializer(Serializer):
         return results
 
     def serialize(self, obj, attrs, user, **kwargs) -> IncidentSerializerResponse:
+        # Mark that we're using legacy Incident models (which depend on AlertRule)
+        report_used_legacy_models()
+
         date_closed = obj.date_closed.replace(second=0, microsecond=0) if obj.date_closed else None
         return {
             "id": str(obj.id),

@@ -11,6 +11,7 @@ from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSeri
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.models.organization import Organization
+from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 
 class IncidentSerializer(serializers.Serializer):
@@ -38,6 +39,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
     }
     permission_classes = (IncidentPermission,)
 
+    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-incident-details")
     def get(self, request: Request, organization, incident) -> Response:
         """
         Fetch an Incident.
@@ -48,6 +50,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
 
         return Response(data)
 
+    @track_alert_endpoint_execution("PUT", "sentry-api-0-organization-incident-details")
     def put(self, request: Request, organization: Organization, incident) -> Response:
         serializer = IncidentSerializer(data=request.data)
         if serializer.is_valid():
