@@ -13,10 +13,10 @@ const IOS_IMAGEMIN_SCRIPT = `# Install imagemin-cli
 npm install -g imagemin-cli
 
 # Optimize PNG with quality 85
-imagemin input.png --plugin=pngquant --plugin.quality=[0.85,0.85] > output.png
+npx imagemin input.png --plugin=pngquant --pngquant.quality=0.85-0.85 > output.png
 
 # Optimize JPEG with quality 85
-imagemin input.jpg --plugin=mozjpeg --plugin.quality=85 > output.jpg`;
+npx imagemin input.jpg --plugin=mozjpeg --plugin.mozjpeg.quality=85 > output.jpg`;
 
 const ANDROID_CWEBP_SCRIPT = `# Install cwebp (on Mac)
 brew install webp
