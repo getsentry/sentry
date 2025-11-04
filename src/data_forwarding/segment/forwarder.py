@@ -28,13 +28,17 @@ class SegmentForwarder(BaseDataForwarder):
 
     @classmethod
     def validate_event(cls, event: Event) -> bool:
+        # we currently only support errors
         if event.get_event_type() != "error":
             return False
 
+        # we avoid instantiating interfaces here as they're only going to be
+        # used if there's a User present
         user_interface = event.interfaces.get("user")
         if not user_interface:
             return False
 
+        # if the user id is not present, we can't forward the event
         if not user_interface.id:
             return False
 

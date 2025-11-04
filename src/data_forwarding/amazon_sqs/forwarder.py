@@ -16,6 +16,9 @@ from sentry.services.eventstore.models import Event
 
 logger = logging.getLogger(__name__)
 
+# AWS SQS maximum message size limit
+AWS_SQS_MAX_MESSAGE_SIZE = 256 * 1024  # 256 KB
+
 DESCRIPTION = """
 Send Sentry events to Amazon SQS.
 
@@ -32,7 +35,40 @@ class AmazonSQSForwarder(BaseDataForwarder):
 
     @classmethod
     def get_event_payload(cls, event: Event) -> dict[str, Any]:
-        return dict(event.data)
+        return event.as_dict()
+
+    @classmethod
+    def is_unrecoverable_client_error(cls, error: ClientError) -> bool:
+        error_str = str(error)
+
+        # Invalid or missing AWS credentials
+        if error_str.startswith(
+            (
+                "An error occurred (InvalidClientTokenId)",
+                "An error occurred (AccessDenied)",
+                "An error occurred (InvalidAccessKeyId)",
+            )
+        ):
+            return True
+
+        # Missing MessageGroupId for FIFO queue
+        if error_str.endswith("must contain the parameter MessageGroupId."):
+            return True
+
+        # S3 bucket errors
+        if error_str.startswith(
+            (
+                "An error occurred (NoSuchBucket)",
+                "An error occurred (IllegalLocationConstraintException)",
+            )
+        ):
+            return True
+
+        # Non-existent SQS queue
+        if "AWS.SimpleQueueService.NonExistentQueue" in error_str:
+            return True
+
+        return False
 
     @classmethod
     def send_payload(
@@ -63,13 +99,20 @@ class AmazonSQSForwarder(BaseDataForwarder):
         def sqs_send_message(message):
             client = boto3.client(service_name="sqs", **boto3_args)
             send_message_args = {"QueueUrl": queue_url, "MessageBody": message}
+
+            # need a MessageGroupId for FIFO queues
+            # note that if MessageGroupId is specified for non-FIFO, this will fail
             if message_group_id:
                 send_message_args["MessageGroupId"] = message_group_id
+
+                # if content based de-duplication is not enabled, we need to provide a
+                # MessageDeduplicationId
                 send_message_args["MessageDeduplicationId"] = uuid4().hex
             return client.send_message(**send_message_args)
 
-        try:
-            if s3_bucket:
+        # Upload to S3 if configured (for large payloads)
+        if s3_bucket:
+            try:
                 date = event.datetime.strftime("%Y-%m-%d")
                 key = f"{event.project.slug}/{date}/{event.event_id}"
                 s3_put_object(
@@ -81,31 +124,27 @@ class AmazonSQSForwarder(BaseDataForwarder):
                 url = f"https://{s3_bucket}.s3-{region}.amazonaws.com/{key}"
                 payload = {"s3Url": url, "eventID": event.event_id}
 
-            message = orjson.dumps(payload, option=orjson.OPT_UTC_Z).decode()
-
-            if len(message) > 256 * 1024:
+            except ClientError as e:
+                if cls.is_unrecoverable_client_error(e):
+                    return False
+                raise
+            except ParamValidationError:
+                # Invalid bucket name
                 return False
 
+        message = orjson.dumps(payload, option=orjson.OPT_UTC_Z).decode()
+
+        if len(message) > AWS_SQS_MAX_MESSAGE_SIZE:
+            return False
+
+        # Send message to SQS
+        try:
             sqs_send_message(message)
-
         except ClientError as e:
-            if (
-                str(e).startswith("An error occurred (InvalidClientTokenId)")
-                or str(e).startswith("An error occurred (AccessDenied)")
-                or str(e).startswith("An error occurred (InvalidAccessKeyId)")
-            ):
-                return False
-            elif str(e).endswith("must contain the parameter MessageGroupId."):
-                return False
-            elif str(e).startswith("An error occurred (NoSuchBucket)") or str(e).startswith(
-                "An error occurred (IllegalLocationConstraintException)"
-            ):
-                return False
-            elif "AWS.SimpleQueueService.NonExistentQueue" in str(e):
+            if cls.is_unrecoverable_client_error(e):
                 return False
             raise
-        except ParamValidationError:
-            return False
+
         return True
 
     @classmethod

@@ -25,7 +25,7 @@ Splunk is a platform for searching, monitoring, and analyzing machine-generated 
 
 class SplunkForwarder(BaseDataForwarder):
     provider = DataForwarderProviderSlug.SPLUNK
-    rate_limit = (1000, 1)
+    rate_limit = (1000, 1)  # 1000 requests per second
     description = DESCRIPTION
 
     @classmethod
@@ -143,7 +143,9 @@ class SplunkForwarder(BaseDataForwarder):
             )
 
             if isinstance(exc, ApiError) and (
+                # These two are already handled by the API client, Just log and return.
                 isinstance(exc, (ApiHostError, ApiTimeoutError))
+                # Most 4xxs are not errors or actionable for us do not re-raise.
                 or (exc.code is not None and ((401 <= exc.code <= 405) or exc.code in (502, 504)))
             ):
                 return False
