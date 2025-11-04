@@ -28,6 +28,30 @@ type Props = {
   modalParams?: Record<string, string>;
 };
 
+export function computeCenteredWindow(width: number, height: number) {
+  // Taken from: https://stackoverflow.com/questions/4068373/center-a-popup-window-on-screen
+  const screenLeft = window.screenLeft === undefined ? window.screenX : window.screenLeft;
+
+  const screenTop = window.screenTop === undefined ? window.screenY : window.screenTop;
+
+  const innerWidth = window.innerWidth
+    ? window.innerWidth
+    : document.documentElement.clientWidth
+      ? document.documentElement.clientWidth
+      : screen.width;
+
+  const innerHeight = window.innerHeight
+    ? window.innerHeight
+    : document.documentElement.clientHeight
+      ? document.documentElement.clientHeight
+      : screen.height;
+
+  const left = innerWidth / 2 - width / 2 + screenLeft;
+  const top = innerHeight / 2 - height / 2 + screenTop;
+
+  return {left, top};
+}
+
 export default class AddIntegration extends Component<Props> {
   componentDidMount() {
     window.addEventListener('message', this.didReceiveMessage);
@@ -40,31 +64,6 @@ export default class AddIntegration extends Component<Props> {
 
   dialog: Window | null = null;
 
-  computeCenteredWindow(width: number, height: number) {
-    // Taken from: https://stackoverflow.com/questions/4068373/center-a-popup-window-on-screen
-    const screenLeft =
-      window.screenLeft === undefined ? window.screenX : window.screenLeft;
-
-    const screenTop = window.screenTop === undefined ? window.screenY : window.screenTop;
-
-    const innerWidth = window.innerWidth
-      ? window.innerWidth
-      : document.documentElement.clientWidth
-        ? document.documentElement.clientWidth
-        : screen.width;
-
-    const innerHeight = window.innerHeight
-      ? window.innerHeight
-      : document.documentElement.clientHeight
-        ? document.documentElement.clientHeight
-        : screen.height;
-
-    const left = innerWidth / 2 - width / 2 + screenLeft;
-    const top = innerHeight / 2 - height / 2 + screenTop;
-
-    return {left, top};
-  }
-
   openDialog = (urlParams?: Record<string, string>) => {
     const {account, analyticsParams, modalParams, organization, provider} = this.props;
 
@@ -76,7 +75,7 @@ export default class AddIntegration extends Component<Props> {
     });
     const name = 'sentryAddIntegration';
     const {url, width, height} = provider.setupDialog;
-    const {left, top} = this.computeCenteredWindow(width, height);
+    const {left, top} = computeCenteredWindow(width, height);
 
     let query: Record<string, string> = {...urlParams};
 

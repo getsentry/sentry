@@ -16,6 +16,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Integration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
@@ -33,7 +34,8 @@ const INSTRUCTIONS_TEXT = {
 export default function TestsPreOnboardingPage() {
   const organization = useOrganization();
   const regionData = getRegionDataFromOrganization(organization);
-  const isUSStorage = regionData?.name?.toLowerCase() === 'us';
+  const isUSStorage =
+    regionData?.name?.toLowerCase() === 'us' || regionData?.name === '--monolith--';
 
   const config = useLegacyStore(ConfigStore);
   const isDarkMode = config.theme === 'dark';
@@ -56,8 +58,9 @@ export default function TestsPreOnboardingPage() {
 
   const provider = integrationInfo?.providers[0];
 
+  const navigate = useNavigate();
   const handleAddIntegration = (_integration: Integration) => {
-    window.location.reload();
+    navigate(`/${organization.slug}/tests`);
   };
 
   return (

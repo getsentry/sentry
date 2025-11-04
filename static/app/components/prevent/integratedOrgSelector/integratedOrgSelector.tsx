@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -8,16 +9,72 @@ import {Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import DropdownButton from 'sentry/components/dropdownButton';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
 import {IconAdd, IconBuilding, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {Integration} from 'sentry/types/integrations';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
+import {computeCenteredWindow} from 'sentry/views/settings/organizationIntegrations/addIntegration';
+import type {IntegrationInformation} from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
 const DEFAULT_ORG_LABEL = 'Select GitHub Org';
 
 function OrgFooterMessage() {
+  const organization = useOrganization();
+  const navigate = useNavigate();
+
+  const handleAddIntegration = (_integration: Integration) => {
+    navigate(`/${organization.slug}/tests`);
+  };
+
+  const openGitHubOAuthFlow = () => {
+    if (!provider) {
+      return;
+    }
+
+    // Open GitHub OAuth flow in a popup window
+    const {url, width, height} = provider.setupDialog;
+    const {left, top} = computeCenteredWindow(width, height);
+    const opts = `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`;
+
+    const dialog = window.open(url, 'sentryAddIntegration', opts);
+    dialog?.focus();
+
+    // Listen for the postMessage from the OAuth callback
+    const handleMessage = (message: MessageEvent) => {
+      if (message.source === dialog && message.data?.success) {
+        window.removeEventListener('message', handleMessage);
+        if (message.data.data) {
+          handleAddIntegration(message.data.data);
+        }
+      }
+    };
+    window.addEventListener('message', handleMessage);
+  };
+
+  const {data: integrationInfo, isPending: isIntegrationInfoPending} =
+    useApiQuery<IntegrationInformation>(
+      [
+        `/organizations/${organization.slug}/config/integrations/`,
+        {
+          query: {
+            provider_key: 'github',
+          },
+        },
+      ],
+      {
+        staleTime: Infinity,
+        retry: false,
+      }
+    );
+
+  const provider = integrationInfo?.providers[0];
+
   return (
     <Flex gap="sm" direction="column" align="start">
       <Grid columns="max-content 1fr" gap="sm">
@@ -37,14 +94,27 @@ function OrgFooterMessage() {
           </Text>
         )}
       </Grid>
-      <LinkButton
-        href="https://github.com/apps/sentry/installations/select_target"
-        size="xs"
-        icon={<IconAdd />}
-        external
-      >
-        {t('GitHub Organization')}
-      </LinkButton>
+      {isIntegrationInfoPending ? (
+        <LoadingIndicator />
+      ) : provider ? (
+        <Button
+          size="xs"
+          icon={<IconAdd />}
+          priority="default"
+          onClick={openGitHubOAuthFlow}
+        >
+          {t('GitHub Organization')}
+        </Button>
+      ) : (
+        <LinkButton
+          href="https://github.com/apps/sentry/installations/select_target"
+          size="xs"
+          icon={<IconAdd />}
+          external
+        >
+          {t('GitHub Organization')}
+        </LinkButton>
+      )}
     </Flex>
   );
 }
