@@ -428,14 +428,13 @@ export function TraceEventDataSection({
                 </SegmentedControl>
               </Tooltip>
             )}
-            <Tooltip title={t('Copy raw stacktrace to clipboard')}>
-              <Button
-                size="xs"
-                icon={<IconCopy />}
-                onClick={handleCopyRawStacktrace}
-                aria-label={t('Copy Raw Stacktrace')}
-              />
-            </Tooltip>
+            <Button
+              size="xs"
+              icon={<IconCopy />}
+              onClick={handleCopyRawStacktrace}
+              aria-label={t('Copy Raw Stacktrace')}
+              title={t('Copy raw stacktrace to clipboard')}
+            />
             {displayOptions.includes('raw-stack-trace') && nativePlatform && (
               <LinkButton
                 size="xs"
