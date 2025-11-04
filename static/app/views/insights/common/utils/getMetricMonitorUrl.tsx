@@ -8,7 +8,6 @@ import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 type Params = {
   aggregate: string;
   dataset: Dataset;
-  linkPrefix: string;
   organization: Organization;
   project: Project | undefined;
   environment?: string | string[];
