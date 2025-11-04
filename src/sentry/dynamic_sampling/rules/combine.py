@@ -31,12 +31,12 @@ def get_relay_biases_combinator(organization: Organization) -> BiasesCombinator:
     default_combinator.add_if(
         RuleType.IGNORE_HEALTH_CHECKS_RULE,
         IgnoreHealthChecksTraceBias(),
-        lambda: not is_health_checks_trace_based,
+        lambda: is_health_checks_trace_based,
     )
     default_combinator.add_if(
         RuleType.IGNORE_HEALTH_CHECKS_RULE,
         IgnoreHealthChecksTransactionBias(),
-        lambda: is_health_checks_trace_based,
+        lambda: not is_health_checks_trace_based,
     )
 
     default_combinator.add(RuleType.BOOST_REPLAY_ID_RULE, BoostReplayIdBias())
