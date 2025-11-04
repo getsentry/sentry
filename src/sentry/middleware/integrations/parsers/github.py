@@ -18,6 +18,7 @@ from sentry.integrations.github.webhook_types import GITHUB_WEBHOOK_TYPE_HEADER,
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.overwatch_webhooks.webhook_forwarder import OverwatchGithubWebhookForwarder
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -98,6 +99,11 @@ class GithubRequestParser(BaseRequestParser):
             )
             if codecov_regions:
                 self.try_forward_to_codecov(event=event)
+
+        # The overwatch forwarder implements its own region-based checks
+        OverwatchGithubWebhookForwarder(integration=integration).forward_if_applicable(
+            event=event, headers=self.request.headers
+        )
 
         return self.get_response_from_webhookpayload(
             regions=regions, identifier=integration.id, integration_id=integration.id
