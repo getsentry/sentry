@@ -2,7 +2,12 @@ from typing import Any
 
 import pytest
 
-from sentry.grouping.component import StacktraceGroupingComponent
+from sentry.grouping.api import load_grouping_config
+from sentry.grouping.component import (
+    StacktraceGroupingComponent,
+    ThreadNameGroupingComponent,
+    ThreadsGroupingComponent,
+)
 from sentry.grouping.strategies.base import GroupingContext, create_strategy_configuration_class
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
@@ -306,20 +311,10 @@ class ThreadGroupingTest(TestCase):
 
     def test_thread_name_grouping_enabled(self) -> None:
         """Test that thread name contributes to grouping when enabled"""
-        from sentry.grouping.api import load_grouping_config
-
-        # Create two events with same error but different threads
+        # Create two events with same stacktrace but different thread names
+        # Use threads-only (no exception) to test thread grouping
         event_main_thread = save_new_event(
             {
-                "exception": {
-                    "values": [
-                        {
-                            "type": "RuntimeError",
-                            "value": "Database timeout",
-                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
-                        }
-                    ]
-                },
                 "threads": {
                     "values": [
                         {
@@ -327,7 +322,11 @@ class ThreadGroupingTest(TestCase):
                             "name": "MainThread",
                             "crashed": True,
                             "current": False,
-                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
+                            "stacktrace": {
+                                "frames": [
+                                    {"function": "query", "module": "app.db", "in_app": True}
+                                ]
+                            },
                         }
                     ]
                 },
@@ -337,15 +336,6 @@ class ThreadGroupingTest(TestCase):
 
         event_worker_thread = save_new_event(
             {
-                "exception": {
-                    "values": [
-                        {
-                            "type": "RuntimeError",
-                            "value": "Database timeout",
-                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
-                        }
-                    ]
-                },
                 "threads": {
                     "values": [
                         {
@@ -353,7 +343,11 @@ class ThreadGroupingTest(TestCase):
                             "name": "WorkerThread",
                             "crashed": True,
                             "current": False,
-                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
+                            "stacktrace": {
+                                "frames": [
+                                    {"function": "query", "module": "app.db", "in_app": True}
+                                ]
+                            },
                         }
                     ]
                 },
@@ -363,41 +357,38 @@ class ThreadGroupingTest(TestCase):
 
         # With thread name grouping enabled
         config_with_threads = load_grouping_config(
-            {"id": "newstyle:2025-with-threads", "enhancements": ""}
+            {"id": "newstyle:2025-with-threads", "enhancements": None}
         )
 
-        variants_main = event_main_thread.get_grouping_variants(
-            force_config=config_with_threads._asdict()
-        )
+        variants_main = event_main_thread.get_grouping_variants(force_config=config_with_threads)
         variants_worker = event_worker_thread.get_grouping_variants(
-            force_config=config_with_threads._asdict()
+            force_config=config_with_threads
         )
 
         # They should have different hashes because thread names differ
-        assert variants_main["app"].get_hash() != variants_worker["app"].get_hash()
+        assert variants_main["app"].get_hash() is not None, "Main thread variant should have a hash"
+        assert (
+            variants_worker["app"].get_hash() is not None
+        ), "Worker thread variant should have a hash"
+        assert (
+            variants_main["app"].get_hash() != variants_worker["app"].get_hash()
+        ), "Different thread names should produce different hashes"
 
     def test_thread_name_grouping_disabled(self) -> None:
         """Test that without thread grouping, threads don't affect grouping"""
-        from sentry.grouping.api import load_grouping_config
-
         event_main_thread = save_new_event(
             {
-                "exception": {
-                    "values": [
-                        {
-                            "type": "RuntimeError",
-                            "value": "Database timeout",
-                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
-                        }
-                    ]
-                },
                 "threads": {
                     "values": [
                         {
                             "id": "1",
                             "name": "MainThread",
                             "crashed": True,
-                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
+                            "stacktrace": {
+                                "frames": [
+                                    {"function": "query", "module": "app.db", "in_app": True}
+                                ]
+                            },
                         }
                     ]
                 },
@@ -407,22 +398,17 @@ class ThreadGroupingTest(TestCase):
 
         event_worker_thread = save_new_event(
             {
-                "exception": {
-                    "values": [
-                        {
-                            "type": "RuntimeError",
-                            "value": "Database timeout",
-                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
-                        }
-                    ]
-                },
                 "threads": {
                     "values": [
                         {
                             "id": "2",
                             "name": "WorkerThread",
                             "crashed": True,
-                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
+                            "stacktrace": {
+                                "frames": [
+                                    {"function": "query", "module": "app.db", "in_app": True}
+                                ]
+                            },
                         }
                     ]
                 },
@@ -431,39 +417,24 @@ class ThreadGroupingTest(TestCase):
         )
 
         # Default config without thread grouping
-        config_default = load_grouping_config({"id": "newstyle:2023-01-11", "enhancements": ""})
+        config_default = load_grouping_config({"id": "newstyle:2023-01-11", "enhancements": None})
 
-        variants_main = event_main_thread.get_grouping_variants(
-            force_config=config_default._asdict()
-        )
-        variants_worker = event_worker_thread.get_grouping_variants(
-            force_config=config_default._asdict()
-        )
+        variants_main = event_main_thread.get_grouping_variants(force_config=config_default)
+        variants_worker = event_worker_thread.get_grouping_variants(force_config=config_default)
 
-        # They should have the same hash - thread name doesn't matter
+        # They should have the same hash - thread name doesn't matter without the config
         assert variants_main["app"].get_hash() == variants_worker["app"].get_hash()
 
     def test_thread_metadata_component_structure(self) -> None:
         """Test that thread metadata components are structured correctly"""
-        from sentry.grouping.api import load_grouping_config
-        from sentry.grouping.component import ThreadNameGroupingComponent
-
         event = save_new_event(
             {
-                "exception": {
-                    "values": [
-                        {
-                            "type": "ValueError",
-                            "stacktrace": {"frames": [{"function": "main"}]},
-                        }
-                    ]
-                },
                 "threads": {
                     "values": [
                         {
                             "name": "MainThread",
                             "crashed": True,
-                            "stacktrace": {"frames": [{"function": "main"}]},
+                            "stacktrace": {"frames": [{"function": "main", "in_app": True}]},
                         }
                     ]
                 },
@@ -471,21 +442,24 @@ class ThreadGroupingTest(TestCase):
             self.project,
         )
 
-        config = load_grouping_config({"id": "newstyle:2025-with-threads", "enhancements": ""})
+        config = load_grouping_config({"id": "newstyle:2025-with-threads", "enhancements": None})
 
-        variants = event.get_grouping_variants(force_config=config._asdict())
-        threads_component = variants["app"].component
+        variants = event.get_grouping_variants(force_config=config)
+        threads_component = variants["app"].contributing_component
 
-        # Check that thread metadata is in the component tree
-        found_thread_name_component = False
-        for value in threads_component.values:
-            for sub_value in value.values:
-                if isinstance(sub_value, ThreadNameGroupingComponent):
-                    found_thread_name_component = True
-                    assert sub_value.values == ["MainThread"]
-                    assert sub_value.contributes is True
-                    break
+        # The contributing component should be a ThreadsGroupingComponent
+        assert isinstance(threads_component, ThreadsGroupingComponent)
 
+        # Check that thread metadata is accessible
+        assert len(threads_component.metadata) > 0, "Thread metadata should be present"
+
+        # Find the ThreadNameGroupingComponent in metadata
+        thread_name_component = next(
+            (m for m in threads_component.metadata if isinstance(m, ThreadNameGroupingComponent)),
+            None,
+        )
         assert (
-            found_thread_name_component
-        ), "ThreadNameGroupingComponent not found in component tree"
+            thread_name_component is not None
+        ), "ThreadNameGroupingComponent not found in metadata"
+        assert thread_name_component.values == ["MainThread"]
+        assert thread_name_component.contributes is True

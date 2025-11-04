@@ -483,14 +483,14 @@ class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent
         self.frame_counts = frame_counts or Counter()
         self.metadata = metadata or []
 
-    def get_hash_values(self) -> list[str]:
+    def iter_values(self) -> Generator[str | int]:
         """Include both stacktrace values and metadata in hash calculation."""
-        hash_values = super().get_hash_values()
-        # Add metadata component hashes if they contribute
+        # First yield values from stacktrace components
+        yield from super().iter_values()
+        # Then yield values from metadata components
         for meta in self.metadata:
             if meta.contributes:
-                hash_values.extend(meta.get_hash_values())
-        return hash_values
+                yield from meta.iter_values()
 
 
 class CSPGroupingComponent(

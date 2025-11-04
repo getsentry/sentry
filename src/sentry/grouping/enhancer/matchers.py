@@ -78,12 +78,6 @@ MATCHERS = {
     # fingerprinting-specific fields
     "family": "family",
     "app": "app",
-    # thread context fields (available when processing threads)
-    "thread.name": "thread_name",
-    "thread.id": "thread_id",
-    "thread.state": "thread_state",
-    "thread.crashed": "thread_crashed",
-    "thread.current": "thread_current",
 }
 
 
@@ -96,29 +90,11 @@ class MatchFrame(TypedDict):
     module: bytes | None
     package: bytes | None
     path: bytes | None
-    # Thread context (optional, only present when frame belongs to a thread)
-    thread_name: bytes | None
-    thread_id: bytes | None
-    thread_state: bytes | None
-    thread_crashed: bool | None
-    thread_current: bool | None
 
 
 # TODO: Maybe someday mypy won't make us keep this as a separate list
 MatchFrameKey = Literal[
-    "category",
-    "family",
-    "function",
-    "in_app",
-    "orig_in_app",
-    "module",
-    "package",
-    "path",
-    "thread_name",
-    "thread_id",
-    "thread_state",
-    "thread_crashed",
-    "thread_current",
+    "category", "family", "function", "in_app", "orig_in_app", "module", "package", "path"
 ]
 
 
@@ -128,16 +104,8 @@ def _get_function_name(frame_data: dict[str, Any], platform: str | None) -> str:
     return function_name or "<unknown>"
 
 
-def create_match_frame(
-    frame_data: dict[str, Any], platform: str | None, thread_data: dict[str, Any] | None = None
-) -> MatchFrame:
-    """Create flat dict of values relevant to matchers
-
-    Args:
-        frame_data: Frame information
-        platform: Platform string
-        thread_data: Optional thread context (name, id, state, crashed, current)
-    """
+def create_match_frame(frame_data: dict[str, Any], platform: str | None) -> MatchFrame:
+    """Create flat dict of values relevant to matchers"""
     match_frame = dict(
         category=get_path(frame_data, "data", "category"),
         family=get_behavior_family_for_platform(frame_data.get("platform") or platform),
@@ -147,12 +115,6 @@ def create_match_frame(
         module=get_path(frame_data, "module"),
         package=frame_data.get("package"),
         path=frame_data.get("abs_path") or frame_data.get("filename"),
-        # Thread context (if available)
-        thread_name=thread_data.get("name") if thread_data else None,
-        thread_id=str(thread_data.get("id")) if thread_data and thread_data.get("id") else None,
-        thread_state=thread_data.get("state") if thread_data else None,
-        thread_crashed=bool(thread_data.get("crashed")) if thread_data else None,
-        thread_current=bool(thread_data.get("current")) if thread_data else None,
     )
 
     for key in list(match_frame.keys()):
@@ -161,14 +123,11 @@ def create_match_frame(
             if isinstance(value, str):
                 value = match_frame[key] = value.encode("utf-8")
 
-            if key in ("package", "path", "thread_name", "thread_id", "thread_state"):
-                # NOTE: path-like and thread matchers are case insensitive
+            if key in ("package", "path"):
+                # NOTE: path-like matchers are case insensitive, and normalize
+                # file-system separators to `/`.
                 # We do this here in a central place instead of in each matcher separately.
-                if key in ("package", "path"):
-                    # Also normalize file-system separators to `/` for paths
-                    value = match_frame[key] = value.lower().replace(b"\\", b"/")
-                else:
-                    value = match_frame[key] = value.lower()
+                value = match_frame[key] = value.lower().replace(b"\\", b"/")
 
     return MatchFrame(
         category=match_frame["category"],
@@ -179,11 +138,6 @@ def create_match_frame(
         module=match_frame["module"],
         package=match_frame["package"],
         path=match_frame["path"],
-        thread_name=match_frame.get("thread_name"),
-        thread_id=match_frame.get("thread_id"),
-        thread_state=match_frame.get("thread_state"),
-        thread_crashed=match_frame.get("thread_crashed"),
-        thread_current=match_frame.get("thread_current"),
     )
 
 
