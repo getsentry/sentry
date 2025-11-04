@@ -57,7 +57,7 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
             if (tag.key === 'release') {
               valueComponent = <Version version={tagValue.name} anchor={false} />;
             } else if (tag.key === 'device') {
-              valueComponent = <DeviceName value={tagValue.value} />;
+              valueComponent = <DeviceName value={tagValue.name} />;
             }
           }
 
