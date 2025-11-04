@@ -250,7 +250,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    @track_alert_endpoint_execution("sentry-api-0-organization-combined-rules")
+    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-combined-rules")
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches metric, issue, crons, and uptime alert rules for an organization
@@ -641,7 +641,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         },
         examples=MetricAlertExamples.LIST_METRIC_ALERT_RULES,  # TODO: make
     )
-    @track_alert_endpoint_execution("sentry-api-0-organization-alert-rules")
+    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         Return a list of active metric alert rules bound to an organization.
@@ -669,7 +669,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         },
         examples=MetricAlertExamples.CREATE_METRIC_ALERT_RULE,
     )
-    @track_alert_endpoint_execution("sentry-api-0-organization-alert-rules")
+    @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
     def post(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         Create a new metric alert rule for the given organization.

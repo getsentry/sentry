@@ -24,7 +24,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleIndexMixin):
     }
     permission_classes = (ProjectAlertRulePermission,)
 
-    @track_alert_endpoint_execution("sentry-api-0-project-alert-rules")
+    @track_alert_endpoint_execution("GET", "sentry-api-0-project-alert-rules")
     def get(self, request: Request, project) -> HttpResponseBase:
         """
         Fetches metric alert rules for a project - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.
@@ -32,7 +32,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleIndexMixin):
         alert_rules = AlertRule.objects.fetch_for_project(project)
         return self.fetch_metric_alert(request, project.organization, alert_rules)
 
-    @track_alert_endpoint_execution("sentry-api-0-project-alert-rules")
+    @track_alert_endpoint_execution("POST", "sentry-api-0-project-alert-rules")
     def post(self, request: Request, project) -> HttpResponseBase:
         """
         Create an alert rule - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.

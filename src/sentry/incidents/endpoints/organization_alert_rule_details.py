@@ -340,7 +340,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         },
         examples=MetricAlertExamples.GET_METRIC_ALERT_RULE,
     )
-    @track_alert_endpoint_execution("sentry-api-0-organization-alert-rule-details")
+    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rule-details")
     @_check_project_access
     def get(self, request: Request, organization: Organization, alert_rule: AlertRule) -> Response:
         """
@@ -367,7 +367,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         },
         examples=MetricAlertExamples.UPDATE_METRIC_ALERT_RULE,
     )
-    @track_alert_endpoint_execution("sentry-api-0-organization-alert-rule-details")
+    @track_alert_endpoint_execution("PUT", "sentry-api-0-organization-alert-rule-details")
     @_check_project_access
     def put(self, request: Request, organization: Organization, alert_rule: AlertRule) -> Response:
         """
@@ -397,7 +397,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @track_alert_endpoint_execution("sentry-api-0-organization-alert-rule-details")
+    @track_alert_endpoint_execution("DELETE", "sentry-api-0-organization-alert-rule-details")
     @_check_project_access
     def delete(
         self, request: Request, organization: Organization, alert_rule: AlertRule

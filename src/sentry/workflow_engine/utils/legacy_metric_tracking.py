@@ -11,7 +11,7 @@ from __future__ import annotations
 import functools
 from collections.abc import Callable
 from contextvars import ContextVar
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 from django.http import HttpResponseBase
 
@@ -38,6 +38,7 @@ def report_used_legacy_models() -> None:
 
 
 def track_alert_endpoint_execution(
+    method: Literal["GET", "POST", "PUT", "DELETE", "PATCH"],
     route_name: str,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """
@@ -49,11 +50,12 @@ def track_alert_endpoint_execution(
     3. Reports a metric with whether legacy models were used
 
     Args:
+        method: HTTP method (e.g., "GET", "POST", "PUT", "DELETE")
         route_name: Django route name for the endpoint (e.g.,
                    "sentry-api-0-organization-alert-rule-details")
 
     Usage:
-        @track_alert_endpoint_execution("sentry-api-0-organization-alert-rule-details")
+        @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rule-details")
         def get(self, request: Request, organization: Organization) -> Response:
             ...
     """
@@ -64,12 +66,6 @@ def track_alert_endpoint_execution(
             # Reset the context var for this request
             token = _legacy_models_used.set(False)
 
-            # Extract request object to get HTTP method
-            # The request is typically the second argument (after self)
-            request = None
-            if len(args) > 1 and hasattr(args[1], "method"):
-                request = args[1]
-
             try:
                 # Execute the endpoint
                 response = func(*args, **kwargs)
@@ -77,13 +73,12 @@ def track_alert_endpoint_execution(
             finally:
                 # Report the metric after execution
                 legacy_models = _legacy_models_used.get()
-                http_method = request.method if request else "UNKNOWN"
 
                 metrics.incr(
                     "alert_endpoint.executed",
                     tags={
                         "endpoint": route_name,
-                        "method": http_method,
+                        "method": method,
                         "legacy_models": str(legacy_models).lower(),
                     },
                 )

@@ -33,7 +33,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
     }
     permission_classes = (IncidentPermission,)
 
-    @track_alert_endpoint_execution("sentry-api-0-organization-incident-index")
+    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-incident-index")
     def get(self, request: Request, organization: Organization) -> Response:
         """
         List Incidents that a User can access within an Organization

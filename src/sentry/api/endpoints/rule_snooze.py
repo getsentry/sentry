@@ -280,13 +280,13 @@ class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
     }
     rule_field = "alert_rule"
 
-    @track_alert_endpoint_execution("sentry-api-0-metric-rule-snooze")
+    @track_alert_endpoint_execution("POST", "sentry-api-0-metric-rule-snooze")
     def post(self, request: Request, project: Project, rule: AlertRule) -> Response:
         # Mark that we're using legacy AlertRule models
         report_used_legacy_models()
         return super().post(request, project, rule)
 
-    @track_alert_endpoint_execution("sentry-api-0-metric-rule-snooze")
+    @track_alert_endpoint_execution("DELETE", "sentry-api-0-metric-rule-snooze")
     def delete(self, request: Request, project: Project, rule: AlertRule) -> Response:
         # Mark that we're using legacy AlertRule models
         report_used_legacy_models()
