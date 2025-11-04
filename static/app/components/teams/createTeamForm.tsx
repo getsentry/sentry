@@ -43,15 +43,16 @@ function CreateTeamForm({organization, formProps, ...props}: Props) {
         {...formProps}
       >
         <TextField
+          stacked
+          required
           name="slug"
           label={t('Team Name')}
+          transformInput={slugify}
           placeholder={t('e.g. operations, web-frontend, desktop')}
           help={t('May contain lowercase letters, numbers, dashes and underscores.')}
-          required
-          stacked
           flexibleControlStateSize
           inline={false}
-          transformInput={slugify}
+          autoFocus
         />
       </Form>
     </Fragment>

@@ -108,6 +108,9 @@ describe('CronDetectorsList', () => {
     // Name
     expect(within(row).getByText('Cron Detector')).toBeInTheDocument();
 
+    // Environment name
+    expect(within(row).getByText('production')).toBeInTheDocument();
+
     // Timeline visualization should render ticks once stats load
     expect(await screen.findAllByTestId('monitor-checkin-tick')).not.toHaveLength(0);
     expect(monitorStatsRequest).toHaveBeenCalled();
