@@ -4,6 +4,7 @@ from sentry.seer.assisted_query.issues_tools import (
     execute_issues_query,
     get_filter_key_values,
     get_issue_filter_keys,
+    get_issues_stats,
 )
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -662,3 +663,120 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
         project_ids = {issue["project"]["id"] for issue in result}
         assert str(self.project.id) in project_ids
         assert str(project2.id) in project_ids
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+class TestGetIssuesStats(APITestCase, SnubaTestCase):
+    databases = {"default", "control"}
+
+    def setUp(self):
+        super().setUp()
+        self.min_ago = before_now(minutes=1)
+
+    def test_get_issues_stats_success(self):
+        """Test that get_issues_stats returns stats for issues"""
+        # Store two events to create issues
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "First error",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "Second error",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        issue_ids = [str(event1.group_id), str(event2.group_id)]
+
+        result = get_issues_stats(
+            org_id=self.organization.id,
+            issue_ids=issue_ids,
+            project_ids=[self.project.id],
+            query="is:unresolved",
+            stats_period="24h",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) == 2
+
+        # Verify each stat has the expected fields
+        for stat in result:
+            assert "id" in stat
+            assert "count" in stat
+            assert "userCount" in stat
+            assert "firstSeen" in stat
+            assert "lastSeen" in stat
+            assert stat["id"] in issue_ids
+
+    def test_get_issues_stats_with_multiple_projects(self):
+        """Test that get_issues_stats works with multiple project IDs"""
+        project2 = self.create_project(organization=self.organization)
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Project 1 error",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "Project 2 error",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=project2.id,
+        )
+
+        issue_ids = [str(event1.group_id), str(event2.group_id)]
+
+        result = get_issues_stats(
+            org_id=self.organization.id,
+            issue_ids=issue_ids,
+            project_ids=[self.project.id, project2.id],
+            query="is:unresolved",
+            stats_period="24h",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        # Should return stats for both issues
+        assert len(result) >= 2
+        returned_issue_ids = {stat["id"] for stat in result}
+        assert str(event1.group_id) in returned_issue_ids
+        assert str(event2.group_id) in returned_issue_ids
+
+    def test_get_issues_stats_nonexistent_org(self):
+        """Test that get_issues_stats returns None for nonexistent org"""
+        result = get_issues_stats(
+            org_id=999999,
+            issue_ids=["123"],
+            project_ids=[self.project.id],
+            query="is:unresolved",
+            stats_period="24h",
+        )
+
+        assert result is None
+
+    def test_get_issues_stats_empty_issue_ids(self):
+        """Test that get_issues_stats handles empty issue IDs"""
+        result = get_issues_stats(
+            org_id=self.organization.id,
+            issue_ids=[],
+            project_ids=[self.project.id],
+            query="is:unresolved",
+            stats_period="24h",
+        )
+
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) == 0
