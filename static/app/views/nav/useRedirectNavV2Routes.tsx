@@ -37,12 +37,9 @@ function useLogUnexpectedNavigationRedirect({shouldRedirect}: {shouldRedirect: b
 
   useEffect(() => {
     if (shouldRedirect && lastKnownRoute !== routeString) {
-      Sentry.captureMessage('Unexpected navigation redirect', {
-        level: 'warning',
-        tags: {
-          last_known_route: lastKnownRoute,
-          route: routeString,
-        },
+      Sentry.logger.warn('Unexpected navigation redirect', {
+        last_known_route: lastKnownRoute,
+        route: routeString,
       });
     }
   }, [lastKnownRoute, shouldRedirect, routeString]);
