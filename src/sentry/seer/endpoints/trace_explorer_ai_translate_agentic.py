@@ -116,14 +116,12 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         validated_data = serializer.validated_data
-        raw_project_ids = validated_data["project_ids"]
         natural_language_query = validated_data["natural_language_query"]
         strategy = validated_data.get("strategy", "Traces")
         options = validated_data.get("options") or {}
         model_name = options.get("model_name")
 
-        project_ids_set = {int(x) for x in raw_project_ids}
-        projects = self.get_projects(request, organization, project_ids=project_ids_set)
+        projects = self.get_projects(request, organization)
         project_ids = [project.id for project in projects]
 
         if not features.has("organizations:seer-explorer", organization, actor=request.user):
