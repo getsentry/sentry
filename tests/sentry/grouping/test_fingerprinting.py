@@ -275,6 +275,174 @@ def test_variable_resolution() -> None:
         ], f"Entry {fingerprint_entry} resolved incorrectly"
 
 
+def test_thread_variable_resolution() -> None:
+    """Test that thread.name, thread.id, and thread.state variables resolve correctly."""
+    # Event with thread data - crashed thread should be preferred
+    event_with_threads = NodeData(
+        id="test-event",
+        data={
+            "threads": {
+                "values": [
+                    {
+                        "id": "1",
+                        "name": "MainThread",
+                        "state": "RUNNABLE",
+                        "crashed": False,
+                        "current": False,
+                    },
+                    {
+                        "id": "2",
+                        "name": "WorkerThread",
+                        "state": "WAITING",
+                        "crashed": True,
+                        "current": False,
+                    },
+                    {
+                        "id": "3",
+                        "name": "BackgroundThread",
+                        "state": "BLOCKED",
+                        "crashed": False,
+                        "current": True,
+                    },
+                ]
+            }
+        },
+    )
+
+    # Test thread.name resolution - should prefer crashed thread
+    assert resolve_fingerprint_values(["{{ thread.name }}"], event_with_threads) == ["WorkerThread"]
+    assert resolve_fingerprint_values(["{{ thread_name }}"], event_with_threads) == ["WorkerThread"]
+
+    # Test thread.id resolution - should prefer crashed thread
+    assert resolve_fingerprint_values(["{{ thread.id }}"], event_with_threads) == ["2"]
+    assert resolve_fingerprint_values(["{{ thread_id }}"], event_with_threads) == ["2"]
+
+    # Test thread.state resolution - should prefer crashed thread
+    assert resolve_fingerprint_values(["{{ thread.state }}"], event_with_threads) == ["WAITING"]
+    assert resolve_fingerprint_values(["{{ thread_state }}"], event_with_threads) == ["WAITING"]
+
+    # Event with only current thread (no crashed thread)
+    event_current_thread = NodeData(
+        id="test-event-2",
+        data={
+            "threads": {
+                "values": [
+                    {
+                        "id": "1",
+                        "name": "MainThread",
+                        "state": "RUNNABLE",
+                        "crashed": False,
+                        "current": False,
+                    },
+                    {
+                        "id": "2",
+                        "name": "CurrentThread",
+                        "state": "RUNNING",
+                        "crashed": False,
+                        "current": True,
+                    },
+                ]
+            }
+        },
+    )
+
+    # Should use current thread when no crashed thread
+    assert resolve_fingerprint_values(["{{ thread.name }}"], event_current_thread) == [
+        "CurrentThread"
+    ]
+    assert resolve_fingerprint_values(["{{ thread.id }}"], event_current_thread) == ["2"]
+    assert resolve_fingerprint_values(["{{ thread.state }}"], event_current_thread) == ["RUNNING"]
+
+    # Event with only regular threads (no crashed or current)
+    event_regular_threads = NodeData(
+        id="test-event-3",
+        data={
+            "threads": {
+                "values": [
+                    {
+                        "id": "1",
+                        "name": "FirstThread",
+                        "state": "RUNNABLE",
+                        "crashed": False,
+                        "current": False,
+                    },
+                    {
+                        "id": "2",
+                        "name": "SecondThread",
+                        "state": "WAITING",
+                        "crashed": False,
+                        "current": False,
+                    },
+                ]
+            }
+        },
+    )
+
+    # Should use first thread when no crashed or current thread
+    assert resolve_fingerprint_values(["{{ thread.name }}"], event_regular_threads) == [
+        "FirstThread"
+    ]
+    assert resolve_fingerprint_values(["{{ thread.id }}"], event_regular_threads) == ["1"]
+    assert resolve_fingerprint_values(["{{ thread.state }}"], event_regular_threads) == ["RUNNABLE"]
+
+    # Event with no threads
+    event_no_threads = NodeData(id="test-event-4", data={})
+
+    # Should return fallback values when no threads
+    assert resolve_fingerprint_values(["{{ thread.name }}"], event_no_threads) == [
+        "<no-thread-name>"
+    ]
+    assert resolve_fingerprint_values(["{{ thread.id }}"], event_no_threads) == ["<no-thread-id>"]
+    assert resolve_fingerprint_values(["{{ thread.state }}"], event_no_threads) == [
+        "<no-thread-state>"
+    ]
+
+    # Event with threads but missing name/id/state
+    event_incomplete_threads = NodeData(
+        id="test-event-5",
+        data={
+            "threads": {
+                "values": [
+                    {"crashed": False, "current": True},  # Missing name, id, state
+                ]
+            }
+        },
+    )
+
+    # Should return fallback values when thread data is incomplete
+    assert resolve_fingerprint_values(["{{ thread.name }}"], event_incomplete_threads) == [
+        "<no-thread-name>"
+    ]
+    assert resolve_fingerprint_values(["{{ thread.id }}"], event_incomplete_threads) == [
+        "<no-thread-id>"
+    ]
+    assert resolve_fingerprint_values(["{{ thread.state }}"], event_incomplete_threads) == [
+        "<no-thread-state>"
+    ]
+
+    # Test combination with other variables
+    event_with_mixed = NodeData(
+        id="test-event-6",
+        data={
+            "threads": {
+                "values": [
+                    {
+                        "id": "42",
+                        "name": "CrashedThread",
+                        "state": "BLOCKED",
+                        "crashed": True,
+                        "current": False,
+                    },
+                ]
+            }
+        },
+    )
+
+    assert resolve_fingerprint_values(
+        ["{{ default }}", "{{ thread.name }}", "custom-value"], event_with_mixed
+    ) == ["{{ default }}", "CrashedThread", "custom-value"]
+
+
 @with_fingerprint_input("input")
 @django_db_all  # because of `options` usage
 def test_event_hash_variant(insta_snapshot: InstaSnapshotter, input: FingerprintInput) -> None:
