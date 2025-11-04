@@ -196,7 +196,6 @@ const PlayerPanel = styled('div')`
   gap: ${space(1)};
   flex-direction: column;
   flex-grow: 1;
-  overflow: hidden;
   height: 100%;
 `;
 
@@ -208,6 +207,7 @@ const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
   gap: ${space(2)};
   background: ${p => p.theme.background};
   height: unset;
+  overflow: unset;
 
   :fullscreen {
     padding: ${space(1)};
