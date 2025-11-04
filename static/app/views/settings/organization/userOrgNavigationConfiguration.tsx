@@ -178,6 +178,17 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           show: ({organization}) => !!organization && !organization.hideAiFeatures,
           id: 'seer',
         },
+        {
+          path: `${organizationSettingsPathPrefix}/data-forwarding/`,
+          title: t('Data Forwarding'),
+          description: t('Manage data forwarding across your organization'),
+          id: 'data-forwarding',
+          badge: () => <FeatureBadge type="beta" />,
+          recordAnalytics: true,
+          show: ({organization}) =>
+            !!organization &&
+            organization.features.includes('data-forwarding-revamp-access'),
+        },
       ],
     },
     {
