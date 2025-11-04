@@ -35,12 +35,12 @@ class CursorAgentClient(CodingAgentClient):
 
     def build_session(self) -> SafeSession:
         """Build session with retry configuration for transient failures.
-        
+
         Retries on:
         - Server errors (5xx status codes)
         - Connection errors (network issues)
         - Connection timeouts
-        
+
         Does NOT retry on:
         - Client errors (4xx status codes)
         - Read timeouts (server taking too long to respond)
