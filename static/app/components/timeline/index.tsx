@@ -2,6 +2,8 @@ import type {CSSProperties} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {space} from 'sentry/styles/space';
 import type {Color} from 'sentry/utils/theme';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
@@ -24,6 +26,7 @@ export interface TimelineItemProps {
   showLastLine?: boolean;
   style?: CSSProperties;
   timestamp?: React.ReactNode;
+  titleTrailingItems?: React.ReactNode;
 }
 
 function Item({
@@ -33,6 +36,7 @@ function Item({
   colorConfig,
   timestamp,
   isActive = false,
+  titleTrailingItems,
   ref,
   ...props
 }: TimelineItemProps) {
@@ -58,7 +62,10 @@ function Item({
       ) : (
         <IconWrapper className="timeline-icon-wrapper" />
       )}
-      <Title style={{color: titleColor}}>{title}</Title>
+      <Flex align="center" gap="xs" wrap="wrap">
+        <Title style={{color: titleColor}}>{title}</Title>
+        {titleTrailingItems}
+      </Flex>
       {timestamp ?? <div />}
       <Spacer />
       <Content>{children}</Content>
