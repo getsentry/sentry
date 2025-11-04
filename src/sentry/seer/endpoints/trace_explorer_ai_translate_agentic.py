@@ -27,7 +27,7 @@ def send_translate_agentic_request(
     org_slug: str,
     project_ids: list[int],
     natural_language_query: str,
-    strategy: str = "TRACES",
+    strategy: str = "Traces",
     model_name: str | None = None,
 ) -> Any:
     """
@@ -80,12 +80,6 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         """
         Request to translate a natural language query using the agentic search API.
         """
-        if not request.user.is_authenticated:
-            return Response(
-                {"detail": "User is not authenticated"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         project_ids = [int(x) for x in request.data.get("project_ids", [])]
         natural_language_query = request.data.get("natural_language_query")
         strategy = request.data.get("strategy", "Traces")
