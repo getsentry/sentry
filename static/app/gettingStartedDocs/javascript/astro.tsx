@@ -22,7 +22,7 @@ import {
   getReplaySDKSetupSnippet,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
+import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
 import {t, tct} from 'sentry/locale';
 import {
   getJavascriptFullStackOnboarding,
@@ -560,7 +560,7 @@ const docs: Docs = {
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
   crashReportOnboarding,
-  featureFlagOnboarding,
+  featureFlagOnboarding: featureFlag,
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'astro',
     packageName: '@sentry/astro',
