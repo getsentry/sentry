@@ -1000,10 +1000,10 @@ class JiraIntegration(IssueSyncIntegration):
         """
         logging_context = {
             "exception_type": type(exc).__name__,
-            "request_body": str(exc.json),
+            "request_body": str(exc.json) if isinstance(exc, ApiError) else None,
         }
 
-        if not exc.json:
+        if isinstance(exc, ApiError) and not exc.json:
             logger.warning("sentry.jira.raise_error.non_json_error_response", extra=logging_context)
             raise IntegrationConfigurationError(
                 "Something went wrong while communicating with Jira"
