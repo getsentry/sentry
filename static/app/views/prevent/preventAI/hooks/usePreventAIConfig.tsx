@@ -10,7 +10,7 @@ interface UsePreventAIGitHubConfigOptions {
 interface UsePreventAIGitHubConfigResult {
   default_org_config: PreventAIConfig;
   schema_version: string;
-  organization?: PreventAIConfig;
+  organization?: PreventAIConfig | Record<string, never>;
 }
 
 export function usePreventAIGitHubConfig({gitOrgName}: UsePreventAIGitHubConfigOptions) {
