@@ -3,8 +3,10 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {PackageManager} from 'sentry/gettingStartedDocs/java/java/utils';
 
-import docs, {PackageManager, SpringVersion} from './spring';
+import {SpringVersion} from './utils';
+import docs from '.';
 
 describe('GettingStartedWithSpring', () => {
   it('renders gradle docs correctly', async () => {
