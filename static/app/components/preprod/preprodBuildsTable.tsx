@@ -110,6 +110,13 @@ export function PreprodBuildsTable({
                 <Text size="sm" variant="muted" monospace>
                   {(build.vcs_info?.head_sha?.slice(0, 7) || '--').toUpperCase()}
                 </Text>
+                {build.vcs_info?.pr_number && (
+                  <React.Fragment>
+                    <Text size="sm" variant="muted">
+                      #{build.vcs_info?.pr_number}
+                    </Text>
+                  </React.Fragment>
+                )}
                 {build.vcs_info?.head_ref !== null && (
                   <React.Fragment>
                     <Text size="sm" variant="muted">
