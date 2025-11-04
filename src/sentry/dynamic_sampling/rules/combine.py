@@ -22,22 +22,21 @@ from sentry.models.organization import Organization
 
 
 def get_relay_biases_combinator(organization: Organization) -> BiasesCombinator:
+    is_health_checks_trace_based = features.has(
+        "organizations:ds-health-checks-trace-based", organization, actor=None
+    )
     default_combinator = OrderedBiasesCombinator()
 
     default_combinator.add(RuleType.CUSTOM_RULE, CustomRuleBias())
     default_combinator.add_if(
         RuleType.IGNORE_HEALTH_CHECKS_RULE,
         IgnoreHealthChecksTraceBias(),
-        lambda: features.has(
-            "organizations:ds-health-checks-trace-based", organization, actor=None
-        ),
+        lambda: not is_health_checks_trace_based,
     )
     default_combinator.add_if(
         RuleType.IGNORE_HEALTH_CHECKS_RULE,
         IgnoreHealthChecksTransactionBias(),
-        lambda: not features.has(
-            "organizations:ds-health-checks-trace-based", organization, actor=None
-        ),
+        lambda: is_health_checks_trace_based,
     )
 
     default_combinator.add(RuleType.BOOST_REPLAY_ID_RULE, BoostReplayIdBias())
