@@ -84,6 +84,7 @@ from sentry.issues.grouptype import (
     PerformanceFileIOMainThreadGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
+    import_grouptype,
 )
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
@@ -217,6 +218,15 @@ class BaseTestCase(Fixtures):
         auth.register(DummyProvider)
         yield
         auth.unregister(DummyProvider)
+
+    @pytest.fixture(autouse=True)
+    def register_grouptypes(self):
+        """
+        Ensure all grouptypes are imported and registered before tests run.
+        This is necessary because creating projects now always creates detectors,
+        which require grouptypes to be registered.
+        """
+        import_grouptype()
 
     def tasks(self):
         return TaskRunner()
