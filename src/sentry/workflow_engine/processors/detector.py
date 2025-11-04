@@ -112,14 +112,21 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
 
     issue_occurrence = evt.occurrence
 
+    detector: Detector | None = None
+
+    if issue_occurrence is None or evt.group.issue_type.detector_settings is None:
+        # if there are no detector settings, default to the error detector
+        detector = Detector.get_error_detector_for_project(evt.project_id)
+    elif issue_occurrence:
+        detector = Detector.objects.filter(
+            id=issue_occurrence.evidence_data.get("detector_id", None)
+        ).first()
+
+    if detector:
+        return detector
+
     try:
-        if issue_occurrence is None or evt.group.issue_type.detector_settings is None:
-            # if there are no detector settings, default to the error detector
-            detector = Detector.get_error_detector_for_project(evt.project_id)
-        else:
-            detector = Detector.objects.get(
-                id=issue_occurrence.evidence_data.get("detector_id", None)
-            )
+        return Detector.objects.get(type=IssueStreamGroupType.slug, project_id=evt.project_id)
     except Detector.DoesNotExist:
         metrics.incr("workflow_engine.detectors.error")
         detector_id = (
@@ -136,13 +143,11 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
         )
         raise Detector.DoesNotExist("Detector not found for event")
 
-    return detector
-
 
 class _SplitEvents(NamedTuple):
     events_with_occurrences: list[tuple[GroupEvent, int]]
     error_events: list[GroupEvent]
-    events_missing_detectors: list[GroupEvent]
+    issue_stream_events: list[GroupEvent]
 
 
 def _split_events_by_occurrence(
@@ -150,7 +155,9 @@ def _split_events_by_occurrence(
 ) -> _SplitEvents:
     events_with_occurrences: list[tuple[GroupEvent, int]] = []
     error_events: list[GroupEvent] = []  # only error events don't have occurrences
-    events_missing_detectors: list[GroupEvent] = []
+    issue_stream_events: list[GroupEvent] = (
+        []
+    )  # all other events are picked up by the issue stream detector
 
     for event in event_list:
         issue_occurrence = event.occurrence
@@ -160,12 +167,12 @@ def _split_events_by_occurrence(
         elif detector_id := issue_occurrence.evidence_data.get("detector_id"):
             events_with_occurrences.append((event, detector_id))
         else:
-            events_missing_detectors.append(event)
+            issue_stream_events.append(event)
 
     return _SplitEvents(
         events_with_occurrences,
         error_events,
-        events_missing_detectors,
+        issue_stream_events,
     )
 
 
@@ -188,6 +195,29 @@ def _create_event_detector_map(
     return result, keys
 
 
+def _create_default_event_detector_map(
+    events: list[GroupEvent], type: str
+) -> tuple[dict[str, Detector], set[int], dict[int, list[GroupEvent]]]:
+    project_to_events: dict[int, list[GroupEvent]] = defaultdict(list)
+
+    for event in events:
+        project_to_events[event.project_id].append(event)
+
+    def _extract_events_lookup_key(detector: Detector) -> int:
+        return detector.project_id
+
+    detectors = Detector.objects.filter(
+        project_id__in=project_to_events.keys(),
+        type=type,
+    )
+    mapping, projects_with_detectors = _create_event_detector_map(
+        detectors,
+        key_event_map=project_to_events,
+        detector_key_extractor=_extract_events_lookup_key,
+    )
+    return mapping, projects_with_detectors, project_to_events
+
+
 def get_detectors_by_groupevents_bulk(
     event_list: list[GroupEvent],
 ) -> Mapping[str, Detector]:
@@ -200,12 +230,12 @@ def get_detectors_by_groupevents_bulk(
     result: dict[str, Detector] = {}
 
     # Separate events by whether they have occurrences or not
-    events_with_occurrences, error_events, events_missing_detectors = _split_events_by_occurrence(
+    events_with_occurrences, error_events, issue_stream_events = _split_events_by_occurrence(
         event_list
     )
 
     # Fetch detectors for events with occurrences (by detector_id)
-    missing_detector_ids = set()
+    missing_detector_ids: set[int] = set()
     if events_with_occurrences:
         detector_id_to_events: dict[int, list[GroupEvent]] = defaultdict(list)
 
@@ -224,35 +254,40 @@ def get_detectors_by_groupevents_bulk(
             )
             result.update(mapping)
 
-            missing_detector_ids = set(detector_id_to_events.keys()) - found_detector_ids
+            # events with missing detectors can be picked up by the issue stream detector
+            for project_id, events in detector_id_to_events.items():
+                if project_id not in found_detector_ids:
+                    issue_stream_events.extend(events)
+
+            missing_detector_ids.update(set(detector_id_to_events.keys()) - found_detector_ids)
 
     # Fetch detectors for events without occurrences (by project_id)
-    projects_missing_detectors = set()
+    projects_missing_detectors: set[int] = set()
     if error_events:
-        # Group events by project_id
-        project_to_events: dict[int, list[GroupEvent]] = defaultdict(list)
-
-        for event in error_events:
-            project_to_events[event.project_id].append(event)
-
-        def _extract_events_lookup_key(detector: Detector) -> int:
-            return detector.project_id
-
-        detectors = Detector.objects.filter(
-            project_id__in=project_to_events.keys(),
-            type=ErrorGroupType.slug,
-        )
-        mapping, projects_with_error_detectors = _create_event_detector_map(
-            detectors,
-            key_event_map=project_to_events,
-            detector_key_extractor=_extract_events_lookup_key,
+        mapping, projects_with_error_detectors, project_to_events = (
+            _create_default_event_detector_map(error_events, ErrorGroupType.slug)
         )
         result.update(mapping)
 
-        projects_missing_detectors = set(project_to_events.keys()) - projects_with_error_detectors
+        # events with missing detectors can be picked up by the issue stream detector
+        for project_id, events in project_to_events.items():
+            if project_id not in projects_with_error_detectors:
+                issue_stream_events.extend(events)
+
+    if issue_stream_events:
+        mapping, projects_with_issue_stream_detectors, project_to_events = (
+            _create_default_event_detector_map(issue_stream_events, IssueStreamGroupType.slug)
+        )
+        result.update(mapping)
+
+        # if no detectors, then something is wrong
+        projects_missing_detectors -= projects_with_issue_stream_detectors
+        projects_missing_detectors.update(
+            set(project_to_events.keys()) - projects_with_issue_stream_detectors
+        )
 
     # Log all missing detectors
-    if missing_detector_ids or projects_missing_detectors or events_missing_detectors:
+    if missing_detector_ids or projects_missing_detectors:
         metrics.incr(
             "workflow_engine.detectors.error",
             amount=len(projects_missing_detectors) + len(missing_detector_ids),
@@ -262,9 +297,6 @@ def get_detectors_by_groupevents_bulk(
             extra={
                 "projects_missing_error_detectors": projects_missing_detectors,
                 "missing_detectors": missing_detector_ids,
-                "events_missing_detectors": [
-                    (event.event_id, event.group_id) for event in events_missing_detectors
-                ],
             },
         )
 

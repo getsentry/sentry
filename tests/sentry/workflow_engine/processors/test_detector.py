@@ -825,6 +825,7 @@ class TestGetDetectorByEvent(TestCase):
         self.group = self.create_group(project=self.project)
         self.detector = self.create_detector(project=self.project, type="metric_issue")
         self.error_detector = self.create_detector(project=self.project, type="error")
+        self.issue_stream_detector = self.create_detector(project=self.project, type="issue_stream")
         self.event = self.store_event(project_id=self.project.id, data={})
         self.occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
@@ -876,6 +877,7 @@ class TestGetDetectorByEvent(TestCase):
             get_detector_by_event(event_data)
 
     def test_no_detector_id(self) -> None:
+        # defaults to issue stream detector
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
             project_id=1,
@@ -897,8 +899,8 @@ class TestGetDetectorByEvent(TestCase):
 
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
-        with pytest.raises(Detector.DoesNotExist):
-            get_detector_by_event(event_data)
+        detector = get_detector_by_event(event_data)
+        assert detector == self.issue_stream_detector
 
     def test_defaults_to_error_detector(self) -> None:
         occurrence = IssueOccurrence(
@@ -939,6 +941,9 @@ class TestGetDetectorsByGroupEventsBulk(TestCase):
         self.detector1 = self.create_detector(project=self.project1, type="metric_issue")
         self.detector2 = self.create_detector(project=self.project2, type="error")
         self.detector3 = self.create_detector(project=self.project2, type="metric_issue")
+        self.issue_stream_detector = self.create_detector(
+            project=self.project2, type="issue_stream"
+        )
 
         self.event1 = self.store_event(project_id=self.project1.id, data={})
         self.event2 = self.store_event(project_id=self.project2.id, data={})
@@ -979,6 +984,7 @@ class TestGetDetectorsByGroupEventsBulk(TestCase):
         assert len(result) == 2
 
     def test_mixed_occurrences_missing_detectors(self) -> None:
+        # defaults to issue stream detector, and errors if no detectors found
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
             project_id=1,
@@ -1006,8 +1012,9 @@ class TestGetDetectorsByGroupEventsBulk(TestCase):
 
         with mock.patch("sentry.workflow_engine.processors.detector.metrics") as mock_metrics:
             result = get_detectors_by_groupevents_bulk(events)
-
-            assert result == {}
+            assert result == {
+                group_event2.event_id: self.issue_stream_detector,
+            }
             mock_metrics.incr.assert_called_with("workflow_engine.detectors.error", amount=1)
 
 
