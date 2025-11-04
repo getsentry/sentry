@@ -1,22 +1,30 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  type RouterConfig,
+} from 'sentry-test/reactTestingLibrary';
 
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 import {IssueEventNavigation} from './eventNavigation';
 
 jest.mock('sentry/views/issueDetails/streamline/context');
 
 describe('EventNavigation', () => {
-  const {organization} = initializeOrg();
+  const organization = OrganizationFixture();
   const group = GroupFixture({id: 'group-id'});
+  const initialRouterConfig: RouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+    },
+    route: `/organizations/:orgId/issues/:groupId/events/`,
+  };
   const testEvent = EventFixture({
     id: 'event-id',
     size: 7,
@@ -65,17 +73,8 @@ describe('EventNavigation', () => {
 
   describe('all events buttons', () => {
     it('renders the all events controls', () => {
-      const allEventsRouter = RouterFixture({
-        params: {groupId: group.id},
-        routes: [{path: TabPaths[Tab.EVENTS]}],
-        location: LocationFixture({
-          pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-        }),
-      });
-
       render(<IssueEventNavigation {...defaultProps} />, {
-        router: allEventsRouter,
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       });
 
       const discoverButton = screen.getByLabelText('Open in Discover');
@@ -96,17 +95,8 @@ describe('EventNavigation', () => {
     });
 
     it('supplies the default timestamp sort when no sort is set in the query params', () => {
-      const allEventsRouter = RouterFixture({
-        params: {groupId: group.id},
-        routes: [{path: TabPaths[Tab.EVENTS]}],
-        location: LocationFixture({
-          pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-        }),
-      });
-
       render(<IssueEventNavigation {...defaultProps} />, {
-        router: allEventsRouter,
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       });
 
       const discoverButton = screen.getByLabelText('Open in Discover');
@@ -119,18 +109,14 @@ describe('EventNavigation', () => {
     });
 
     it('supplies the sort when it is set in the query params', () => {
-      const allEventsRouter = RouterFixture({
-        params: {groupId: group.id},
-        routes: [{path: TabPaths[Tab.EVENTS]}],
-        location: LocationFixture({
-          pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-          query: {sort: '-title'},
-        }),
-      });
-
       render(<IssueEventNavigation {...defaultProps} />, {
-        router: allEventsRouter,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+            query: {sort: '-title'},
+          },
+          route: `/organizations/:orgId/issues/:groupId/events/`,
+        },
       });
 
       const discoverButton = screen.getByLabelText('Open in Discover');
@@ -146,7 +132,7 @@ describe('EventNavigation', () => {
   describe('counts', () => {
     it('renders default counts', async () => {
       render(<IssueEventNavigation {...defaultProps} />, {
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       });
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
@@ -165,7 +151,7 @@ describe('EventNavigation', () => {
       });
 
       render(<IssueEventNavigation {...defaultProps} />, {
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       });
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
@@ -185,7 +171,7 @@ describe('EventNavigation', () => {
       });
 
       render(<IssueEventNavigation {...defaultProps} />, {
-        deprecatedRouterMocks: true,
+        initialRouterConfig,
       });
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
