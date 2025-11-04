@@ -22,10 +22,10 @@ class CursorClientTest(TestCase):
     def test_build_session_has_retry_config(self):
         """Test that build_session creates a session with proper retry configuration."""
         session = self.cursor_client.build_session()
-        
+
         # Get the adapter from the session
         adapter = session.get_adapter("https://api.cursor.com")
-        
+
         # Verify retry configuration
         assert adapter.max_retries is not None
         assert isinstance(adapter.max_retries, Retry)
@@ -179,7 +179,7 @@ class CursorClientTest(TestCase):
         )
 
         webhook_url = "https://sentry.io/webhook"
-        
+
         with pytest.raises(ApiError):
             self.cursor_client.launch(webhook_url=webhook_url, request=request)
 
@@ -214,7 +214,7 @@ class CursorClientTest(TestCase):
         )
 
         webhook_url = "https://sentry.io/webhook"
-        
+
         with pytest.raises(ApiError):
             self.cursor_client.launch(webhook_url=webhook_url, request=request)
 
