@@ -199,7 +199,8 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             self.clear_session()
 
         metrics.incr(
-            "sentry.integrations.installation_finished", tags={"integration": self.provider.key}
+            "sentry.integrations.installation_finished",
+            tags={"integration_name": self.provider.key},
         )
 
         return response
