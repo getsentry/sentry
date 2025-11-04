@@ -63,13 +63,14 @@ interface NumericFilterState {
 }
 
 function useNativeOperatorFilter(
-  globalFilterToken: TokenResult<Token.FILTER>,
+  globalFilterToken: TokenResult<Token.FILTER> | undefined,
   globalFilter: GlobalFilter
 ): NumericFilterState {
   // Initial values of the filter
-  const globalFilterValue = globalFilterToken?.value?.text || '';
-  const {operator: globalFilterOperator, options} = useMemo(
+  const globalFilterValue = globalFilterToken?.value?.text ?? '';
+  const operatorInfo = useMemo(
     () =>
+      globalFilterToken &&
       getOperatorInfo({
         filterToken: globalFilterToken,
         hasWildcardOperators: false,
@@ -80,6 +81,7 @@ function useNativeOperatorFilter(
       }),
     [globalFilterToken, globalFilter.tag, globalFilter.dataset]
   );
+  const globalFilterOperator = operatorInfo?.operator ?? TermOperator.EQUAL;
 
   // Staged values of the filter
   const [stagedFilterOperator, setStagedFilterOperator] =
@@ -112,13 +114,13 @@ function useNativeOperatorFilter(
     );
   };
 
-  const isValidValue = isValidNumericFilterValue(
-    stagedFilterValue,
-    globalFilterToken,
-    globalFilter
-  );
+  const isValidValue =
+    !!globalFilterToken &&
+    isValidNumericFilterValue(stagedFilterValue, globalFilterToken, globalFilter);
 
   const buildFilterQuery = () => {
+    if (!globalFilterToken) return '';
+
     return newNumericFilterQuery(
       stagedFilterValue,
       stagedFilterOperator,
@@ -133,7 +135,7 @@ function useNativeOperatorFilter(
   };
 
   return {
-    operatorOptions: options as Array<SelectOption<Operator>>,
+    operatorOptions: operatorInfo?.options ?? [],
     stagedOperator: stagedFilterOperator,
     setStagedOperator: setStagedFilterOperator,
     stagedValue: stagedFilterValue,
@@ -148,11 +150,11 @@ function useNativeOperatorFilter(
 }
 
 function useBetweenOperatorFilter(
-  globalFilterTokens: [TokenResult<Token.FILTER>, TokenResult<Token.FILTER>],
+  globalFilterTokens: Array<TokenResult<Token.FILTER>>,
   globalFilter: GlobalFilter
 ): NumericFilterState {
-  const lowerBound = useNativeOperatorFilter(globalFilterTokens[0], globalFilter);
-  const upperBound = useNativeOperatorFilter(globalFilterTokens[1], globalFilter);
+  const lowerBound = useNativeOperatorFilter(globalFilterTokens?.[0], globalFilter);
+  const upperBound = useNativeOperatorFilter(globalFilterTokens?.[1], globalFilter);
 
   const renderInputField = () => {
     return (
@@ -215,11 +217,11 @@ function NumericFilterSelector({
   const nativeFilterToken = useMemo(() => {
     if (isNativeOperator) {
       const [firstQuery] = globalFilterQueries;
-      const [token] = parseFilterValue(firstQuery!, globalFilter);
-      return token!;
+      const tokens = parseFilterValue(firstQuery!, globalFilter);
+      return tokens?.[0];
     }
-    const [token] = parseFilterValue(`${globalFilter.tag.key}:>100`, globalFilter);
-    return token!;
+    const tokens = parseFilterValue(`${globalFilter.tag.key}:>100`, globalFilter);
+    return tokens?.[0];
   }, [globalFilter, globalFilterQueries, isNativeOperator]);
 
   const betweenFilterTokens = useMemo(() => {
@@ -229,23 +231,24 @@ function NumericFilterSelector({
     ];
     const [lowerBoundQuery, upperBoundQuery] =
       globalFilterQueries.length === 2 ? globalFilterQueries : defaultBetweenQueries;
+
+    if (!lowerBoundQuery || !upperBoundQuery) {
+      return [];
+    }
     // Parse queries separately to avoid token location issues
-    const lowerBoundToken = parseFilterValue(lowerBoundQuery!, {
+    const lowerBoundToken = parseFilterValue(lowerBoundQuery, {
       ...globalFilter,
-      value: lowerBoundQuery!,
+      value: lowerBoundQuery,
     });
-    const upperBoundToken = parseFilterValue(upperBoundQuery!, {
+    const upperBoundToken = parseFilterValue(upperBoundQuery, {
       ...globalFilter,
-      value: upperBoundQuery!,
+      value: upperBoundQuery,
     });
     return [...lowerBoundToken, ...upperBoundToken];
   }, [globalFilter, globalFilterQueries]);
 
   const nativeFilter = useNativeOperatorFilter(nativeFilterToken, globalFilter);
-  const betweenFilter = useBetweenOperatorFilter(
-    betweenFilterTokens as [TokenResult<Token.FILTER>, TokenResult<Token.FILTER>],
-    globalFilter
-  );
+  const betweenFilter = useBetweenOperatorFilter(betweenFilterTokens, globalFilter);
 
   const filter = stagedIsNativeOperator ? nativeFilter : betweenFilter;
   const hasStagedChanges =
