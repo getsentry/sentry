@@ -2,7 +2,6 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout/flex';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
@@ -205,17 +204,11 @@ function InnerContent({
       <ToggleExceptionButton
         {...{hiddenExceptions, toggleRelatedExceptions, values, exception}}
       />
-      {exception.mechanism || hasCoverageData ? (
-        <RowWrapper direction="row" justify="between">
-          {exception.mechanism && (
-            <Mechanism
-              data={exception.mechanism}
-              meta={meta?.[exceptionIdx]?.mechanism}
-            />
-          )}
-          {hasCoverageData ? <LineCoverageLegend /> : null}
-        </RowWrapper>
+
+      {exception.mechanism ? (
+        <Mechanism data={exception.mechanism} meta={meta?.[exceptionIdx]?.mechanism} />
       ) : null}
+      {hasCoverageData ? <LineCoverageLegend /> : null}
       <RelatedExceptions
         mechanism={exception.mechanism}
         allExceptions={values}
@@ -410,8 +403,4 @@ const StyledFoldSection = styled(FoldSection)`
     margin-left: ${p => p.theme.space.xl};
     margin-right: ${p => p.theme.space.xl};
   }
-`;
-
-const RowWrapper = styled(Flex)`
-  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.xs} 0;
 `;
