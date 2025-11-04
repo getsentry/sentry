@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any, NamedTuple, NotRequired, Self, TypedDict
+from typing import NamedTuple, NotRequired, Self, TypedDict
 
-from sentry.grouping.fingerprinting.matchers import FingerprintMatcher
+from sentry.grouping.fingerprinting.matchers import CalleeMatcher, CallerMatcher, FingerprintMatcher
 from sentry.grouping.fingerprinting.utils import EventDatastore
 
 logger = logging.getLogger("sentry.events.grouping")
@@ -48,7 +48,7 @@ class FingerprintRuleMatch(NamedTuple):
 class FingerprintRule:
     def __init__(
         self,
-        matchers: Sequence[FingerprintMatcher],
+        matchers: Sequence[FingerprintMatcher | CallerMatcher | CalleeMatcher],
         fingerprint: list[str],
         attributes: FingerprintRuleAttributes,
         is_builtin: bool = False,
@@ -61,9 +61,9 @@ class FingerprintRule:
     def test_for_match_with_event(
         self, event_datastore: EventDatastore
     ) -> None | FingerprintWithAttributes:
-        from sentry.grouping.fingerprinting.matchers import CalleeMatcher, CallerMatcher
-
-        matchers_by_match_type: dict[str, list[Any]] = {}
+        matchers_by_match_type: dict[
+            str, list[FingerprintMatcher | CallerMatcher | CalleeMatcher]
+        ] = {}
         has_sibling_matchers = False
 
         for matcher in self.matchers:
@@ -86,10 +86,10 @@ class FingerprintRule:
         return FingerprintWithAttributes(self.fingerprint, self.attributes)
 
     def _test_with_frame_context(
-        self, event_datastore: EventDatastore, matchers_by_match_type: dict[str, list[Any]]
+        self,
+        event_datastore: EventDatastore,
+        matchers_by_match_type: dict[str, list[FingerprintMatcher | CallerMatcher | CalleeMatcher]],
     ) -> None | FingerprintWithAttributes:
-        from sentry.grouping.fingerprinting.matchers import CalleeMatcher, CallerMatcher
-
         # First, handle non-frame matchers
         for match_type, matchers in matchers_by_match_type.items():
             if match_type != "frames":

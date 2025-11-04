@@ -48,9 +48,6 @@ class FingerprintMatcher:
         key: str,  # The event attribute on which to match
         pattern: str,  # The value to match (or to not match, depending on `negated`)
         negated: bool = False,  # If True, match when `event[key]` does NOT equal `pattern`
-        range: (
-            str | None
-        ) = None,  # "up" (frames above), "down" (frames below), or None (this frame)
     ) -> None:
         if key.startswith("tags."):
             self.key = key
@@ -61,7 +58,6 @@ class FingerprintMatcher:
                 raise InvalidFingerprintingConfig("Unknown matcher '%s'" % key)
         self.pattern = pattern
         self.negated = negated
-        self.range = range
 
     @property
     def match_type(self) -> str:
@@ -158,9 +154,7 @@ class FingerprintMatcher:
 
     @property
     def text(self) -> str:
-        range_prefix = {"up": "^", "down": "v"}.get(self.range, "")
-        return '{}{}{}:"{}"'.format(
-            range_prefix,
+        return '{}{}:"{}"'.format(
             "!" if self.negated else "",
             self.key,
             self.pattern,
