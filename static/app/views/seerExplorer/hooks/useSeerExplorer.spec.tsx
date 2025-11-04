@@ -91,7 +91,6 @@ describe('useSeerExplorer', () => {
           data: expect.objectContaining({
             query: 'Test query',
             insert_index: 0,
-            message_timestamp: expect.any(Number),
           }),
         })
       );
