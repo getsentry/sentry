@@ -809,6 +809,7 @@ class TestSeerRpcMethods(APITestCase):
                     "organization_id": self.organization.id,
                     "integration_id": integration.id,
                     "external_id": "123",
+                    "provider": "github",
                 }
             ]
         )
@@ -823,6 +824,7 @@ class TestSeerRpcMethods(APITestCase):
                     "organization_id": self.organization.id,
                     "integration_id": 999,
                     "external_id": "nonexistent",
+                    "provider": "github",
                 }
             ]
         )
@@ -860,21 +862,25 @@ class TestSeerRpcMethods(APITestCase):
                     "organization_id": self.organization.id,
                     "integration_id": integration.id,
                     "external_id": "123",
+                    "provider": "github",
                 },  # exists
                 {
                     "organization_id": self.organization.id,
                     "integration_id": integration.id,
                     "external_id": "999",
+                    "provider": "github",
                 },  # doesn't exist
                 {
                     "organization_id": self.organization.id,
                     "integration_id": integration.id,
                     "external_id": "456",
+                    "provider": "github",
                 },  # exists
                 {
                     "organization_id": self.organization.id,
                     "integration_id": 888,
                     "external_id": "123",
+                    "provider": "github",
                 },  # wrong integration_id
             ]
         )
@@ -903,6 +909,7 @@ class TestSeerRpcMethods(APITestCase):
                     "organization_id": self.organization.id,
                     "integration_id": integration.id,
                     "external_id": "123",
+                    "provider": "github",
                 }
             ]
         )
@@ -933,6 +940,7 @@ class TestSeerRpcMethods(APITestCase):
                     "organization_id": org2.id,
                     "integration_id": integration.id,
                     "external_id": "123",
+                    "provider": "github",
                 }
             ]
         )
@@ -965,6 +973,7 @@ class TestSeerRpcMethods(APITestCase):
                     "organization_id": self.organization.id,
                     "integration_id": integration2.id,
                     "external_id": "123",
+                    "provider": "github",
                 }
             ]
         )
@@ -994,6 +1003,7 @@ class TestSeerRpcMethods(APITestCase):
                     "organization_id": self.organization.id,
                     "integration_id": integration.id,
                     "external_id": "456",
+                    "provider": "github",
                 }
             ]
         )
@@ -1038,16 +1048,19 @@ class TestSeerRpcMethods(APITestCase):
                     "organization_id": self.organization.id,
                     "integration_id": integration.id,
                     "external_id": "111",
+                    "provider": "github",
                 },
                 {
                     "organization_id": self.organization.id,
                     "integration_id": integration.id,
                     "external_id": "222",
+                    "provider": "github",
                 },
                 {
                     "organization_id": self.organization.id,
                     "integration_id": integration.id,
                     "external_id": "333",
+                    "provider": "github",
                 },
             ]
         )
@@ -1091,11 +1104,13 @@ class TestSeerRpcMethods(APITestCase):
                     "organization_id": self.organization.id,
                     "integration_id": integration1.id,
                     "external_id": "123",
+                    "provider": "github",
                 },
                 {
                     "organization_id": org2.id,
                     "integration_id": integration2.id,
                     "external_id": "456",
+                    "provider": "github",
                 },
             ]
         )
@@ -1125,6 +1140,7 @@ class TestSeerRpcMethods(APITestCase):
                     "organization_id": self.organization.id,
                     "integration_id": integration.id,
                     "external_id": "123",
+                    "provider": "gitlab",
                 }
             ]
         )
@@ -1169,11 +1185,13 @@ class TestSeerRpcMethods(APITestCase):
                     "organization_id": self.organization.id,
                     "integration_id": github_integration.id,
                     "external_id": "111",
+                    "provider": "github",
                 },  # GitHub - supported
                 {
                     "organization_id": self.organization.id,
                     "integration_id": gitlab_integration.id,
                     "external_id": "222",
+                    "provider": "gitlab",
                 },  # GitLab - unsupported
             ]
         )

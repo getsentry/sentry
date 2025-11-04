@@ -1047,33 +1047,58 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
             - organization_id: Organization ID
             - integration_id: Integration ID
             - external_id: External repository ID
+            - provider: Provider identifier (e.g., "github", "github_enterprise")
+                       Supports both with and without "integrations:" prefix
 
     Returns:
         dict: {"statuses": list of booleans indicating if each repository exists and is active}
               e.g., {"statuses": [True, False, True]}
+              Only repositories with supported SCM providers will return True.
     """
 
     if not repository_integrations:
         return {"statuses": []}
 
     q_objects = Q()
+
     for item in repository_integrations:
+        # Support both "integrations:{provider}" and just "{provider}"
         q_objects |= Q(
             organization_id=item["organization_id"],
+            provider=f"integrations:{item['provider']}",
+            integration_id=item["integration_id"],
+            external_id=item["external_id"],
+        ) | Q(
+            organization_id=item["organization_id"],
+            provider=item["provider"],
             integration_id=item["integration_id"],
             external_id=item["external_id"],
         )
 
     existing_repos = Repository.objects.filter(
         q_objects, status=ObjectStatus.ACTIVE, provider__in=SEER_SUPPORTED_SCM_PROVIDERS
-    ).values_list("organization_id", "integration_id", "external_id")
+    ).values_list("organization_id", "provider", "integration_id", "external_id")
 
     existing_set = set(existing_repos)
 
     statuses = []
     for item in repository_integrations:
-        repo_tuple = (item["organization_id"], item["integration_id"], item["external_id"])
-        statuses.append(repo_tuple in existing_set)
+        # Check both with and without "integrations:" prefix
+        repo_tuple_with_prefix = (
+            item["organization_id"],
+            f"integrations:{item['provider']}",
+            item["integration_id"],
+            item["external_id"],
+        )
+        repo_tuple_without_prefix = (
+            item["organization_id"],
+            item["provider"],
+            item["integration_id"],
+            item["external_id"],
+        )
+        statuses.append(
+            repo_tuple_with_prefix in existing_set or repo_tuple_without_prefix in existing_set
+        )
 
     return {"statuses": statuses}
 
