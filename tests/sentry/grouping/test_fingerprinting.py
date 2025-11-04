@@ -364,6 +364,79 @@ def test_resolves_unknown_variables_correctly_given_config_value() -> None:
         ) == ["<unrecognized-variable-dog>"]
 
 
+@django_db_all  # Because initializing context checks options
+def test_thread_variable_resolution() -> None:
+    """Test that thread.name, thread.id, and thread.state variables resolve correctly."""
+    # Event with thread data - crashed thread should be preferred
+    event_with_threads = Event(
+        project_id=908415,
+        event_id="11211231",
+        data={
+            "threads": {
+                "values": [
+                    {
+                        "id": "1",
+                        "name": "MainThread",
+                        "state": "RUNNABLE",
+                        "crashed": False,
+                        "current": False,
+                    },
+                    {
+                        "id": "2",
+                        "name": "WorkerThread",
+                        "state": "WAITING",
+                        "crashed": True,
+                        "current": False,
+                    },
+                    {
+                        "id": "3",
+                        "name": "BackgroundThread",
+                        "state": "BLOCKED",
+                        "crashed": False,
+                        "current": True,
+                    },
+                ]
+            }
+        },
+    )
+    context = GroupingContext(StrategyConfiguration(), event_with_threads)
+
+    # Test thread.name resolution - should prefer crashed thread
+    assert resolve_fingerprint_values(["{{ thread.name }}"], event_with_threads, context) == [
+        "WorkerThread"
+    ]
+    assert resolve_fingerprint_values(["{{ thread_name }}"], event_with_threads, context) == [
+        "WorkerThread"
+    ]
+
+    # Test thread.id resolution - should prefer crashed thread
+    assert resolve_fingerprint_values(["{{ thread.id }}"], event_with_threads, context) == ["2"]
+    assert resolve_fingerprint_values(["{{ thread_id }}"], event_with_threads, context) == ["2"]
+
+    # Test thread.state resolution - should prefer crashed thread
+    assert resolve_fingerprint_values(["{{ thread.state }}"], event_with_threads, context) == [
+        "WAITING"
+    ]
+    assert resolve_fingerprint_values(["{{ thread_state }}"], event_with_threads, context) == [
+        "WAITING"
+    ]
+
+    # Event with no threads
+    event_no_threads = Event(project_id=908415, event_id="11211232", data={})
+    context_no_threads = GroupingContext(StrategyConfiguration(), event_no_threads)
+
+    # Should return fallback values when no threads
+    assert resolve_fingerprint_values(
+        ["{{ thread.name }}"], event_no_threads, context_no_threads
+    ) == ["<no-thread-name>"]
+    assert resolve_fingerprint_values(
+        ["{{ thread.id }}"], event_no_threads, context_no_threads
+    ) == ["<no-thread-id>"]
+    assert resolve_fingerprint_values(
+        ["{{ thread.state }}"], event_no_threads, context_no_threads
+    ) == ["<no-thread-state>"]
+
+
 @with_fingerprint_input("input")
 @django_db_all  # because of `options` usage
 def test_event_hash_variant(insta_snapshot: InstaSnapshotter, input: FingerprintInput) -> None:

@@ -299,3 +299,193 @@ class StacktraceTest(TestCase):
         assert (
             system_stacktrace_component.hint == "ignored because it contains no contributing frames"
         )
+
+
+class ThreadGroupingTest(TestCase):
+    """Tests for thread metadata in automatic grouping"""
+
+    def test_thread_name_grouping_enabled(self) -> None:
+        """Test that thread name contributes to grouping when enabled"""
+        from sentry.grouping.api import load_grouping_config
+
+        # Create two events with same error but different threads
+        event_main_thread = save_new_event(
+            {
+                "exception": {
+                    "values": [
+                        {
+                            "type": "RuntimeError",
+                            "value": "Database timeout",
+                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
+                        }
+                    ]
+                },
+                "threads": {
+                    "values": [
+                        {
+                            "id": "1",
+                            "name": "MainThread",
+                            "crashed": True,
+                            "current": False,
+                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
+                        }
+                    ]
+                },
+            },
+            self.project,
+        )
+
+        event_worker_thread = save_new_event(
+            {
+                "exception": {
+                    "values": [
+                        {
+                            "type": "RuntimeError",
+                            "value": "Database timeout",
+                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
+                        }
+                    ]
+                },
+                "threads": {
+                    "values": [
+                        {
+                            "id": "2",
+                            "name": "WorkerThread",
+                            "crashed": True,
+                            "current": False,
+                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
+                        }
+                    ]
+                },
+            },
+            self.project,
+        )
+
+        # With thread name grouping enabled
+        config_with_threads = load_grouping_config(
+            {"id": "newstyle:2025-with-threads", "enhancements": ""}
+        )
+
+        variants_main = event_main_thread.get_grouping_variants(
+            force_config=config_with_threads._asdict()
+        )
+        variants_worker = event_worker_thread.get_grouping_variants(
+            force_config=config_with_threads._asdict()
+        )
+
+        # They should have different hashes because thread names differ
+        assert variants_main["app"].get_hash() != variants_worker["app"].get_hash()
+
+    def test_thread_name_grouping_disabled(self) -> None:
+        """Test that without thread grouping, threads don't affect grouping"""
+        from sentry.grouping.api import load_grouping_config
+
+        event_main_thread = save_new_event(
+            {
+                "exception": {
+                    "values": [
+                        {
+                            "type": "RuntimeError",
+                            "value": "Database timeout",
+                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
+                        }
+                    ]
+                },
+                "threads": {
+                    "values": [
+                        {
+                            "id": "1",
+                            "name": "MainThread",
+                            "crashed": True,
+                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
+                        }
+                    ]
+                },
+            },
+            self.project,
+        )
+
+        event_worker_thread = save_new_event(
+            {
+                "exception": {
+                    "values": [
+                        {
+                            "type": "RuntimeError",
+                            "value": "Database timeout",
+                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
+                        }
+                    ]
+                },
+                "threads": {
+                    "values": [
+                        {
+                            "id": "2",
+                            "name": "WorkerThread",
+                            "crashed": True,
+                            "stacktrace": {"frames": [{"function": "query", "module": "app.db"}]},
+                        }
+                    ]
+                },
+            },
+            self.project,
+        )
+
+        # Default config without thread grouping
+        config_default = load_grouping_config({"id": "newstyle:2023-01-11", "enhancements": ""})
+
+        variants_main = event_main_thread.get_grouping_variants(
+            force_config=config_default._asdict()
+        )
+        variants_worker = event_worker_thread.get_grouping_variants(
+            force_config=config_default._asdict()
+        )
+
+        # They should have the same hash - thread name doesn't matter
+        assert variants_main["app"].get_hash() == variants_worker["app"].get_hash()
+
+    def test_thread_metadata_component_structure(self) -> None:
+        """Test that thread metadata components are structured correctly"""
+        from sentry.grouping.api import load_grouping_config
+        from sentry.grouping.component import ThreadNameGroupingComponent
+
+        event = save_new_event(
+            {
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "stacktrace": {"frames": [{"function": "main"}]},
+                        }
+                    ]
+                },
+                "threads": {
+                    "values": [
+                        {
+                            "name": "MainThread",
+                            "crashed": True,
+                            "stacktrace": {"frames": [{"function": "main"}]},
+                        }
+                    ]
+                },
+            },
+            self.project,
+        )
+
+        config = load_grouping_config({"id": "newstyle:2025-with-threads", "enhancements": ""})
+
+        variants = event.get_grouping_variants(force_config=config._asdict())
+        threads_component = variants["app"].component
+
+        # Check that thread metadata is in the component tree
+        found_thread_name_component = False
+        for value in threads_component.values:
+            for sub_value in value.values:
+                if isinstance(sub_value, ThreadNameGroupingComponent):
+                    found_thread_name_component = True
+                    assert sub_value.values == ["MainThread"]
+                    assert sub_value.contributes is True
+                    break
+
+        assert (
+            found_thread_name_component
+        ), "ThreadNameGroupingComponent not found in component tree"
