@@ -175,6 +175,7 @@ class DetectorSerializer(Serializer):
             "id": str(obj.id),
             "projectId": str(obj.project_id),
             "name": obj.name,
+            "description": obj.description,
             "type": obj.type,
             "workflowIds": attrs.get("workflow_ids"),
             "owner": attrs.get("owner"),
