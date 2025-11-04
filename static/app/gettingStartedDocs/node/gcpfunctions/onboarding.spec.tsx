@@ -6,7 +6,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './gcpfunctions';
+import docs from '.';
 
 describe('gcpfunctions onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
@@ -22,9 +22,7 @@ describe('gcpfunctions onboarding docs', () => {
 
     // Includes import statement
     const allMatches = screen.getAllByText(
-      textWithMarkupMatcher(
-        /const Sentry = require\("@sentry\/google-cloud-serverless"\);/
-      )
+      textWithMarkupMatcher(/import \* as Sentry from "@sentry\/google-cloud-serverless"/)
     );
     allMatches.forEach(match => {
       expect(match).toBeInTheDocument();
