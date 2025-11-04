@@ -1,4 +1,4 @@
-import {useCallback, useEffect} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 
@@ -7,7 +7,6 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {disablePlugin, enablePlugin} from 'sentry/actionCreators/plugins';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
@@ -19,55 +18,55 @@ import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
-import withPlugins from 'sentry/utils/withPlugins';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useTogglePluginMutation} from 'sentry/views/settings/projectPlugins/useTogglePluginMutation';
 
 type Props = {
   organization: Organization;
-  plugins: {
-    plugins: Plugin[];
-  };
   project: Project;
 };
 
-/**
- * There are currently two sources of truths for plugin details:
- *
- * 1) PluginsStore has a list of plugins, and this is where ENABLED state lives
- * 2) We fetch "plugin details" via API and save it to local state as `pluginDetails`.
- *    This is because "details" call contains form `config` and the "list" endpoint does not.
- *    The more correct way would be to pass `config` to PluginConfig and use plugin from
- *    PluginsStore
- */
-function ProjectPluginDetails({organization, plugins, project}: Props) {
-  const api = useApi({persistInFlight: true});
+export default function ProjectPluginDetails({organization, project}: Props) {
   const {pluginId, projectId} = useParams<{pluginId: string; projectId: string}>();
-  const endpoint = `/projects/${organization.slug}/${projectId}/plugins/${pluginId}/`;
+  const pluginsQueryKey = `/projects/${organization.slug}/${projectId}/plugins/`;
+  const pluginDetailsQueryKey = `/projects/${organization.slug}/${projectId}/plugins/${pluginId}/`;
+
+  const {
+    data: plugins,
+    isPending: isPluginsPending,
+    isError: isPluginsError,
+    refetch: refetchPlugins,
+  } = useApiQuery<Plugin[]>([pluginsQueryKey], {
+    staleTime: 0,
+  });
 
   const {
     data: pluginDetails,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<Plugin>([endpoint], {
+    isPending: isPluginDetailsPending,
+    isError: isPluginDetailsError,
+    refetch: refetchPluginDetails,
+  } = useApiQuery<Plugin>([pluginDetailsQueryKey], {
     staleTime: 0,
   });
+
+  const isPending = isPluginsPending || isPluginDetailsPending;
+  const isError = isPluginsError || isPluginDetailsError;
 
   const trimSchema = (value: string) => value.split('//')[1];
 
   const resetMutation = useMutation({
     mutationFn: () =>
-      api.requestPromise(endpoint, {
+      fetchMutation({
         method: 'POST',
+        url: pluginDetailsQueryKey,
         data: {reset: true},
       }),
     onMutate: () => {
       addLoadingMessage(t('Saving changes\u2026'));
-      trackIntegrationAnalytics('integrations.uninstall_clicked', {
+      trackAnalytics('integrations.uninstall_clicked', {
         integration: pluginId,
         integration_type: 'plugin',
         view: 'plugin_details',
@@ -76,7 +75,7 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
     },
     onSuccess: () => {
       addSuccessMessage(t('Plugin was reset'));
-      trackIntegrationAnalytics('integrations.uninstall_completed', {
+      trackAnalytics('integrations.uninstall_completed', {
         integration: pluginId,
         integration_type: 'plugin',
         view: 'plugin_details',
@@ -88,37 +87,18 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
     },
   });
 
-  const analyticsChangeEnableStatus = useCallback(
-    (enabled: boolean) => {
-      const eventKey = enabled ? 'integrations.enabled' : 'integrations.disabled';
-      trackIntegrationAnalytics(eventKey, {
-        integration: pluginId,
-        integration_type: 'plugin',
-        view: 'plugin_details',
-        organization,
-      });
-    },
-    [pluginId, organization]
-  );
+  const togglePluginMutation = useTogglePluginMutation({
+    projectSlug: project.slug,
+    analyticsView: 'plugin_details',
+  });
 
-  // Enabled state is handled via PluginsStore and not via plugins detail
   const getEnabled = () => {
-    const plugin = plugins?.plugins?.find(({slug}) => slug === pluginId);
+    const plugin = plugins?.find(({slug}) => slug === pluginId);
     return plugin ? plugin.enabled : pluginDetails?.enabled;
   };
 
-  const handleEnable = useCallback(() => {
-    enablePlugin({pluginId, projectId, orgId: organization.slug});
-    analyticsChangeEnableStatus(true);
-  }, [organization.slug, analyticsChangeEnableStatus, pluginId, projectId]);
-
-  const handleDisable = useCallback(() => {
-    disablePlugin({pluginId, projectId, orgId: organization.slug});
-    analyticsChangeEnableStatus(false);
-  }, [organization.slug, analyticsChangeEnableStatus, pluginId, projectId]);
-
   useEffect(() => {
-    trackIntegrationAnalytics('integrations.details_viewed', {
+    trackAnalytics('integrations.details_viewed', {
       integration: pluginId,
       integration_type: 'plugin',
       view: 'plugin_details',
@@ -133,13 +113,20 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
     const enabled = getEnabled();
 
     const enable = (
-      <StyledButton size="sm" onClick={handleEnable}>
+      <StyledButton
+        size="sm"
+        onClick={() => togglePluginMutation.mutate({pluginId, shouldEnable: true})}
+      >
         {t('Enable Plugin')}
       </StyledButton>
     );
 
     const disable = (
-      <StyledButton size="sm" priority="danger" onClick={handleDisable}>
+      <StyledButton
+        size="sm"
+        priority="danger"
+        onClick={() => togglePluginMutation.mutate({pluginId, shouldEnable: false})}
+      >
         {t('Disable Plugin')}
       </StyledButton>
     );
@@ -161,7 +148,14 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
   }
 
   if (isError) {
-    return <LoadingError onRetry={refetch} />;
+    return (
+      <LoadingError
+        onRetry={() => {
+          refetchPlugins();
+          refetchPluginDetails();
+        }}
+      />
+    );
   }
 
   if (!pluginDetails) {
@@ -178,7 +172,9 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
             project={project}
             plugin={pluginDetails}
             enabled={getEnabled()}
-            onDisablePlugin={handleDisable}
+            onDisablePlugin={() =>
+              togglePluginMutation.mutate({pluginId, shouldEnable: false})
+            }
           />
         </div>
         <div className="col-md-4 col-md-offset-1">
@@ -229,10 +225,6 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
     </div>
   );
 }
-
-export {ProjectPluginDetails};
-
-export default withPlugins(ProjectPluginDetails);
 
 const StyledButton = styled(Button)`
   margin-right: ${space(0.75)};

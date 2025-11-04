@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
@@ -92,13 +92,12 @@ type Props = {
   project: Project;
 };
 
-function ProjectDataForwarding({project}: Props) {
+export default function ProjectDataForwarding({project}: Props) {
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
-  const [pluginState, setPluginState] = useState<Plugin[]>([]);
 
   const {
-    data: fetchedPlugins,
+    data: plugins = [],
     isPending,
     isError,
     refetch,
@@ -114,33 +113,15 @@ function ProjectDataForwarding({project}: Props) {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const plugins = pluginState.length ? pluginState : fetchedPlugins;
-
   const forwardingPlugins = () => {
     return plugins.filter(p => p.type === 'data-forwarding' && p.hasConfiguration);
   };
-
-  const updatePlugin = (plugin: Plugin, enabled: boolean) => {
-    const newPlugins = plugins.map(p => ({
-      ...p,
-      enabled: p.id === plugin.id ? enabled : p.enabled,
-    }));
-
-    setPluginState(newPlugins);
-  };
-
-  const onDisablePlugin = (plugin: Plugin) => updatePlugin(plugin, false);
 
   const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
   const pluginsPanel =
     plugins.length > 0 ? (
-      <PluginList
-        organization={organization}
-        project={project}
-        pluginList={forwardingPlugins()}
-        onDisablePlugin={onDisablePlugin}
-      />
+      <PluginList project={project} pluginList={forwardingPlugins()} />
     ) : (
       <Panel>
         <EmptyMessage
@@ -201,5 +182,3 @@ function ProjectDataForwarding({project}: Props) {
     </div>
   );
 }
-
-export default ProjectDataForwarding;

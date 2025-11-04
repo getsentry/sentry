@@ -6,9 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import ProjectPluginDetailsContainer, {
-  ProjectPluginDetails,
-} from 'sentry/views/settings/projectPlugins/details';
+import ProjectPluginDetails from 'sentry/views/settings/projectPlugins/details';
 
 describe('ProjectPluginDetails', () => {
   const organization = OrganizationFixture();
@@ -56,23 +54,17 @@ describe('ProjectPluginDetails', () => {
   });
 
   it('renders', async () => {
-    render(
-      <ProjectPluginDetailsContainer organization={organization} project={project} />,
-      {initialRouterConfig}
-    );
+    render(<ProjectPluginDetails organization={organization} project={project} />, {
+      initialRouterConfig,
+    });
     expect(await screen.findByRole('heading', {name: 'Amazon SQS'})).toBeInTheDocument();
   });
 
   it('resets plugin', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
-    render(
-      <ProjectPluginDetails
-        organization={organization}
-        project={project}
-        plugins={{plugins}}
-      />,
-      {initialRouterConfig}
-    );
+    render(<ProjectPluginDetails organization={organization} project={project} />, {
+      initialRouterConfig,
+    });
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Reset Configuration'})
@@ -85,10 +77,9 @@ describe('ProjectPluginDetails', () => {
 
   it('enables/disables plugin', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
-    render(
-      <ProjectPluginDetailsContainer organization={organization} project={project} />,
-      {initialRouterConfig}
-    );
+    render(<ProjectPluginDetails organization={organization} project={project} />, {
+      initialRouterConfig,
+    });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Enable Plugin'}));
 

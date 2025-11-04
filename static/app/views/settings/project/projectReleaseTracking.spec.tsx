@@ -1,5 +1,4 @@
 import {PluginsFixture} from 'sentry-fixture/plugins';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -10,14 +9,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {fetchPlugins} from 'sentry/actionCreators/plugins';
-import ProjectReleaseTrackingContainer, {
-  ProjectReleaseTracking,
-} from 'sentry/views/settings/project/projectReleaseTracking';
-
-jest.mock('sentry/actionCreators/plugins', () => ({
-  fetchPlugins: jest.fn().mockResolvedValue([]),
-}));
+import ProjectReleaseTracking from 'sentry/views/settings/project/projectReleaseTracking';
 
 describe('ProjectReleaseTracking', () => {
   const {organization: org, project} = initializeOrg();
@@ -52,14 +44,9 @@ describe('ProjectReleaseTracking', () => {
   });
 
   it('renders with token', async () => {
-    render(
-      <ProjectReleaseTracking
-        organization={org}
-        project={project}
-        plugins={{loading: false, plugins: PluginsFixture()}}
-      />,
-      {initialRouterConfig}
-    );
+    render(<ProjectReleaseTracking organization={org} project={project} />, {
+      initialRouterConfig,
+    });
 
     await waitFor(() => {
       expect(screen.getByRole('textbox')).toHaveValue('token token token');
@@ -67,14 +54,9 @@ describe('ProjectReleaseTracking', () => {
   });
 
   it('can regenerate token', async () => {
-    render(
-      <ProjectReleaseTracking
-        organization={org}
-        project={project}
-        plugins={{loading: false, plugins: PluginsFixture()}}
-      />,
-      {initialRouterConfig}
-    );
+    render(<ProjectReleaseTracking organization={org} project={project} />, {
+      initialRouterConfig,
+    });
     renderGlobalModal();
 
     const mock = MockApiClient.addMockResponse({
@@ -109,47 +91,6 @@ describe('ProjectReleaseTracking', () => {
     );
   });
 
-  it('fetches new plugins when project changes', async () => {
-    const newProject = ProjectFixture({slug: 'new-project'});
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${newProject.slug}/releases/token/`,
-      method: 'GET',
-      body: {
-        webhookUrl: 'webhook-url',
-        token: 'token token token',
-      },
-    });
-
-    const {rerender} = render(
-      <ProjectReleaseTrackingContainer organization={org} project={project} />,
-      {initialRouterConfig}
-    );
-    await waitFor(() => {
-      expect(fetchPlugins).toHaveBeenCalled();
-    });
-
-    jest.mocked(fetchPlugins).mockClear();
-
-    // For example, this happens when we switch to a new project using settings breadcrumb
-    rerender(<ProjectReleaseTrackingContainer organization={org} project={newProject} />);
-
-    expect(fetchPlugins).toHaveBeenCalledWith(
-      expect.objectContaining({
-        projectId: 'new-project',
-      })
-    );
-
-    await waitFor(() => {
-      jest.mocked(fetchPlugins).mockClear();
-    });
-
-    // Does not call fetchPlugins if slug is the same
-    rerender(<ProjectReleaseTrackingContainer organization={org} project={newProject} />);
-    await waitFor(() => {
-      expect(fetchPlugins).not.toHaveBeenCalled();
-    });
-  });
-
   it('renders placeholders on 403', async () => {
     MockApiClient.addMockResponse({
       url,
@@ -158,14 +99,9 @@ describe('ProjectReleaseTracking', () => {
       body: undefined,
     });
 
-    render(
-      <ProjectReleaseTracking
-        organization={org}
-        project={project}
-        plugins={{loading: false, plugins: PluginsFixture()}}
-      />,
-      {initialRouterConfig}
-    );
+    render(<ProjectReleaseTracking organization={org} project={project} />, {
+      initialRouterConfig,
+    });
 
     await waitFor(() => {
       expect(screen.getByRole('textbox')).toHaveValue('YOUR_TOKEN');

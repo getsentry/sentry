@@ -16,7 +16,7 @@ import type {Plugin} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -34,9 +34,11 @@ function makeFetchProjectPluginsQueryKey(
   return [`/projects/${organizationSlug}/${projectSlug}/plugins/`];
 }
 
-function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) {
+export default function ProjectAlertSettings({
+  canEditRule,
+  params,
+}: ProjectAlertSettingsProps) {
   const organization = useOrganization();
-  const queryClient = useQueryClient();
 
   const projectSlug = params.projectId;
   const {
@@ -72,27 +74,6 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
       />
     );
   }
-
-  const updatePlugin = (plugin: Plugin, enabled: boolean) => {
-    setApiQueryData<Plugin[]>(
-      queryClient,
-      makeFetchProjectPluginsQueryKey(organization.slug, projectSlug),
-      oldState =>
-        oldState?.map(p => {
-          if (p.id !== plugin.id) {
-            return p;
-          }
-          return {
-            ...plugin,
-            enabled,
-          };
-        })
-    );
-  };
-
-  const handleDisablePlugin = (plugin: Plugin) => {
-    updatePlugin(plugin, false);
-  };
 
   return (
     <Fragment>
@@ -166,12 +147,10 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
 
           {canEditRule && (
             <PluginList
-              organization={organization}
               project={project}
               pluginList={(pluginList ?? []).filter(
                 p => p.type === 'notification' && p.hasConfiguration
               )}
-              onDisablePlugin={handleDisablePlugin}
             />
           )}
         </Fragment>
@@ -179,5 +158,3 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
     </Fragment>
   );
 }
-
-export default ProjectAlertSettings;
