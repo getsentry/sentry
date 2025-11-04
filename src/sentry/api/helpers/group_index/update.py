@@ -448,7 +448,7 @@ def handle_resolve_in_release(
             continue
 
         # Users should only be able to manually resolve error issues
-        if not get_group_type_by_type_id(group.type).enable_user_status_and_priority_changes:
+        if not group.issue_type.enable_user_status_and_priority_changes:
             continue
 
         with transaction.atomic(router.db_for_write(Group)):
