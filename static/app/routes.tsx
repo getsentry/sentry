@@ -691,6 +691,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/project/projectReplays')),
     },
     {
+      path: 'playstation/',
+      name: t('PlayStation'),
+      component: make(() => import('sentry/views/settings/project/tempest')),
+    },
+    {
       path: 'keys/',
       name: t('Client Keys'),
       children: [
@@ -772,11 +777,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'issue-tracking/',
       redirectTo: '/settings/:orgId/:projectId/plugins/',
-    },
-    {
-      path: 'playstation/',
-      name: t('PlayStation'),
-      component: make(() => import('sentry/views/settings/project/tempest')),
     },
     {
       path: 'hooks/',
