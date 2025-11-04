@@ -38,14 +38,9 @@ export default function Ai() {
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const analyticsArea = useAnalyticsArea();
 
-  const isVideoReplay = replay?.isVideoReplay();
-
-  // for mobile replays, each segment is 5s, so show a different message to avoid confusion.
-  const replayTooLongMessage = isVideoReplay
-    ? t(
-        'Note: this replay has many video segments, so we might not be summarizing the full replay.'
-      )
-    : t('Note: this replay is very long, so we might not be summarizing all of it.');
+  const replayTooLongMessage = t(
+    'While in beta phase, we only summarize a small portion of the replay.'
+  );
 
   const {
     summaryData,
