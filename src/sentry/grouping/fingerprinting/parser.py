@@ -7,7 +7,7 @@ from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor, RegexNode
 
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
-from sentry.grouping.fingerprinting.matchers import FingerprintMatcher
+from sentry.grouping.fingerprinting.matchers import CalleeMatcher, CallerMatcher, FingerprintMatcher
 from sentry.grouping.fingerprinting.rules import (
     FingerprintRule,
     FingerprintRuleAttributes,
@@ -102,13 +102,13 @@ class FingerprintingVisitor(NodeVisitor[list[FingerprintRule]]):
         self,
         _: object,
         children: tuple[
-            list[FingerprintMatcher] | None,
+            list[FingerprintMatcher | CallerMatcher | CalleeMatcher] | None,
             list[FingerprintMatcher],
-            list[FingerprintMatcher] | None,
+            list[FingerprintMatcher | CallerMatcher | CalleeMatcher] | None,
         ],
-    ) -> list[FingerprintMatcher]:
+    ) -> list[FingerprintMatcher | CallerMatcher | CalleeMatcher]:
         caller_matcher, frame_matchers, callee_matcher = children
-        result = []
+        result: list[FingerprintMatcher | CallerMatcher | CalleeMatcher] = []
         if caller_matcher:
             result.extend(caller_matcher)
         result.extend(frame_matchers)
@@ -120,9 +120,7 @@ class FingerprintingVisitor(NodeVisitor[list[FingerprintRule]]):
         self,
         _: object,
         children: tuple[object, object, object, FingerprintMatcher, object, object, object, object],
-    ) -> list[FingerprintMatcher]:
-        from sentry.grouping.fingerprinting.matchers import CallerMatcher
-
+    ) -> list[FingerprintMatcher | CallerMatcher | CalleeMatcher]:
         _, _, _, frame_matcher, _, _, _, _ = children
         return [CallerMatcher(frame_matcher)]
 
@@ -130,9 +128,7 @@ class FingerprintingVisitor(NodeVisitor[list[FingerprintRule]]):
         self,
         _: object,
         children: tuple[object, object, object, object, object, FingerprintMatcher, object, object],
-    ) -> list[FingerprintMatcher]:
-        from sentry.grouping.fingerprinting.matchers import CalleeMatcher
-
+    ) -> list[FingerprintMatcher | CallerMatcher | CalleeMatcher]:
         _, _, _, _, _, frame_matcher, _, _ = children
         return [CalleeMatcher(frame_matcher)]
 

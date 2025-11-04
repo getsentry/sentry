@@ -877,3 +877,118 @@ class AssembleStacktraceComponentTest(TestCase):
             self.assert_frame_values_match_expected(
                 app_stacktrace_component, expected_frame_results=app_expected_frame_results
             )
+
+
+def test_thread_context_matchers() -> None:
+    """Test that thread context is available in frame matchers"""
+    from sentry.grouping.enhancer.matchers import create_match_frame
+
+    # Create a frame with thread context
+    frame = {"function": "processData", "module": "app.handlers"}
+    thread_data = {
+        "name": "MainThread",
+        "id": "123",
+        "state": "RUNNABLE",
+        "crashed": True,
+        "current": False,
+    }
+
+    match_frame = create_match_frame(frame, "python", thread_data)
+
+    # Verify thread context is present
+    assert match_frame["thread_name"] == b"mainthread"  # lowercased
+    assert match_frame["thread_id"] == b"123"
+    assert match_frame["thread_state"] == b"runnable"  # lowercased
+    assert match_frame["thread_crashed"] is True
+    assert match_frame["thread_current"] is False
+
+
+def test_thread_name_enhancement_rule() -> None:
+    """Test enhancement rules with thread.name matcher"""
+    from sentry.grouping.enhancer import EnhancementsConfig
+
+    enhancements = EnhancementsConfig.from_rules_text(
+        """
+        thread.name:MainThread +app
+        thread.name:Worker* -group
+        thread.crashed:true category=fatal
+        """
+    )
+
+    # Verify the rule structure was parsed correctly
+    assert len(enhancements.rules) == 3
+    assert enhancements.rules[0].matchers.matcher.key == b"thread_name"
+    assert enhancements.rules[0].matchers.matcher.pattern == b"MainThread"
+
+
+def test_thread_crashed_enhancement_rule() -> None:
+    """Test enhancement rules with thread.crashed matcher"""
+    from sentry.grouping.enhancer.matchers import create_match_frame
+
+    frame = {"function": "main", "module": "app"}
+
+    # Crashed thread
+    thread_crashed = {"name": "MainThread", "crashed": True}
+    match_frame_crashed = create_match_frame(frame, "python", thread_crashed)
+    assert match_frame_crashed["thread_crashed"] is True
+
+    # Not crashed thread
+    thread_not_crashed = {"name": "MainThread", "crashed": False}
+    match_frame_not_crashed = create_match_frame(frame, "python", thread_not_crashed)
+    assert match_frame_not_crashed["thread_crashed"] is False
+
+
+def test_thread_matchers_in_matchers_dict() -> None:
+    """Test that thread matchers are registered in MATCHERS dict"""
+    from sentry.grouping.enhancer.matchers import MATCHERS
+
+    assert "thread.name" in MATCHERS
+    assert "thread.id" in MATCHERS
+    assert "thread.state" in MATCHERS
+    assert "thread.crashed" in MATCHERS
+    assert "thread.current" in MATCHERS
+
+    assert MATCHERS["thread.name"] == "thread_name"
+    assert MATCHERS["thread.id"] == "thread_id"
+    assert MATCHERS["thread.state"] == "thread_state"
+    assert MATCHERS["thread.crashed"] == "thread_crashed"
+    assert MATCHERS["thread.current"] == "thread_current"
+
+
+def test_create_match_frame_without_thread_context() -> None:
+    """Test that frames can still be created without thread context (backward compatibility)"""
+    from sentry.grouping.enhancer.matchers import create_match_frame
+
+    frame = {"function": "handler", "module": "app"}
+
+    # Call without thread_data parameter
+    match_frame = create_match_frame(frame, "python")
+
+    # Thread fields should be None
+    assert match_frame["thread_name"] is None
+    assert match_frame["thread_id"] is None
+    assert match_frame["thread_state"] is None
+    assert match_frame["thread_crashed"] is None
+    assert match_frame["thread_current"] is None
+
+    # Regular frame fields should still work
+    assert match_frame["function"] == b"handler"
+    assert match_frame["module"] == b"app"
+
+
+def test_thread_context_with_wildcard_patterns() -> None:
+    """Test thread matchers with wildcard patterns"""
+    from sentry.grouping.enhancer import EnhancementsConfig
+
+    enhancements = EnhancementsConfig.from_rules_text(
+        """
+        thread.name:Worker* -group
+        thread.state:RUN* category=active
+        """
+    )
+
+    assert len(enhancements.rules) == 2
+
+    # Verify patterns were parsed
+    assert enhancements.rules[0].matchers.matcher.pattern == b"Worker*"
+    assert enhancements.rules[1].matchers.matcher.pattern == b"RUN*"
