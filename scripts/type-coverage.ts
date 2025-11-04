@@ -4,7 +4,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import {minimatch} from 'minimatch';
 import pc from 'picocolors';
 import * as ts from 'typescript';
 
@@ -516,20 +515,27 @@ function main() {
   }
 
   // Filter files
-  const files = parsedConfig.fileNames.filter(filePath => {
-    if (filePath.includes('node_modules')) return false;
+  let files = parsedConfig.fileNames.filter(filePath => {
+    return !filePath.includes('node_modules');
+  });
 
-    if (opts.ignoreFiles) {
-      const relPath = path.relative(process.cwd(), filePath);
-      for (const pattern of opts.ignoreFiles) {
-        if (minimatch(relPath, pattern)) {
-          return false;
+  if (opts.ignoreFiles) {
+    const cwd = process.cwd();
+    const ignoreSet = new Set<string>();
+
+    for (const pattern of opts.ignoreFiles) {
+      try {
+        const matches = fs.globSync(pattern, {cwd});
+        for (const match of matches) {
+          ignoreSet.add(path.resolve(cwd, match));
         }
+      } catch {
+        // Pattern might be invalid, skip it
       }
     }
 
-    return true;
-  });
+    files = files.filter(filePath => !ignoreSet.has(filePath));
+  }
 
   if (files.length === 0) {
     console.error(pc.yellow('No files found in tsconfig include/exclude settings.'));
