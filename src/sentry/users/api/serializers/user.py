@@ -74,7 +74,7 @@ class _UserOptions(TypedDict):
     clock24Hours: bool
     prefersIssueDetailsStreamlinedUI: bool | None
     prefersNextjsInsightsOverview: bool
-    prefersChonkUI: bool
+    prefersChonkUI: bool | None
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
