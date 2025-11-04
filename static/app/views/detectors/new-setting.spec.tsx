@@ -106,7 +106,10 @@ describe('DetectorEdit', () => {
       await screen.findByText('New Monitor');
 
       // Enter threshold value
-      await userEvent.type(screen.getByRole('spinbutton', {name: 'Threshold'}), '100');
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '100'
+      );
 
       // Name should be auto-generated from defaults (Spans + count(span.duration))
       expect(await screen.findByTestId('editable-text-label')).toHaveTextContent(
@@ -160,7 +163,10 @@ describe('DetectorEdit', () => {
       await userEvent.click(title);
       await userEvent.keyboard('Foo{enter}');
 
-      await userEvent.type(screen.getByRole('spinbutton', {name: 'Threshold'}), '100');
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '100'
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
 
@@ -239,7 +245,10 @@ describe('DetectorEdit', () => {
         initialRouterConfig: prefilledRouterConfig,
       });
 
-      await userEvent.type(screen.getByRole('spinbutton', {name: 'Threshold'}), '100');
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '100'
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
 
@@ -305,7 +314,10 @@ describe('DetectorEdit', () => {
       await userEvent.click(screen.getByText('Spans'));
       await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Errors'}));
 
-      await userEvent.type(screen.getByRole('spinbutton', {name: 'Threshold'}), '100');
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '100'
+      );
 
       await userEvent.click(screen.getByLabelText('Add a search term'));
       await userEvent.paste(
@@ -361,7 +373,10 @@ describe('DetectorEdit', () => {
       });
 
       // Set initial trigger threshold
-      await userEvent.type(screen.getByRole('spinbutton', {name: 'Threshold'}), '100');
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '100'
+      );
 
       // Enable custom resolution and set resolution threshold
       await userEvent.click(screen.getByText('Custom').closest('label')!);

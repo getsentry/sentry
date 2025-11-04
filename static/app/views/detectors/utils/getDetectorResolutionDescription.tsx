@@ -18,14 +18,14 @@ interface PercentDetectionParams extends BaseDetectionParams {
    */
   comparisonDelta: number;
   conditionType: DataConditionType | undefined;
-  conditionValue: string | number | undefined;
   detectionType: 'percent';
+  highThreshold: string | number | undefined;
 }
 
 interface StaticDetectionParams extends BaseDetectionParams {
   conditionType: DataConditionType | undefined;
-  conditionValue: string | number | undefined;
   detectionType: 'static';
+  highThreshold: string | number | undefined;
 }
 
 interface DynamicDetectionParams extends BaseDetectionParams {
@@ -45,7 +45,7 @@ export function getResolutionDescription(params: ResolutionDescriptionParams): s
     );
   }
 
-  if (!params.conditionType || params.conditionValue === undefined) {
+  if (!params.conditionType || params.highThreshold === undefined) {
     return t('Resolution conditions not configured');
   }
 
@@ -53,13 +53,13 @@ export function getResolutionDescription(params: ResolutionDescriptionParams): s
     if (params.conditionType === DataConditionType.GREATER) {
       return t(
         'Issue will be resolved when the query value is less than %s%s.',
-        params.conditionValue,
+        params.highThreshold,
         suffix
       );
     }
     return t(
       'Issue will be resolved when the query value is more than %s%s.',
-      params.conditionValue,
+      params.highThreshold,
       suffix
     );
   }
@@ -69,13 +69,13 @@ export function getResolutionDescription(params: ResolutionDescriptionParams): s
     if (params.conditionType === DataConditionType.GREATER) {
       return t(
         'Issue will be resolved when the query value is less than %s%% higher than the previous %s.',
-        params.conditionValue,
+        params.highThreshold,
         getDuration(delta)
       );
     }
     return t(
       'Issue will be resolved when the query value is less than %s%% lower than the previous %s.',
-      params.conditionValue,
+      params.highThreshold,
       getDuration(delta)
     );
   }
