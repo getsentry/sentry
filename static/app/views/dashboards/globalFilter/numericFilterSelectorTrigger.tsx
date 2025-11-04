@@ -12,7 +12,7 @@ type NumericFilterSelectorTriggerProps = {
   globalFilterValue: string;
 };
 
-function FilterSelectorTrigger({
+function NumericFilterSelectorTrigger({
   globalFilter,
   globalFilterOperator,
   globalFilterValue,
@@ -29,7 +29,33 @@ function FilterSelectorTrigger({
   );
 }
 
-export default FilterSelectorTrigger;
+const LESS_THAN_EQUAL = '\u2264';
+
+type BetweenFilterSelectorTriggerProps = {
+  globalFilter: GlobalFilter;
+  lowerBound: string;
+  upperBound: string;
+};
+
+function BetweenFilterSelectorTrigger({
+  globalFilter,
+  lowerBound,
+  upperBound,
+}: BetweenFilterSelectorTriggerProps) {
+  const {tag} = globalFilter;
+
+  return (
+    <ButtonLabelWrapper>
+      <TextOverflow>
+        <FilterValueWrapper>{lowerBound}</FilterValueWrapper> {LESS_THAN_EQUAL}{' '}
+        {prettifyTagKey(tag.key)} {LESS_THAN_EQUAL}{' '}
+        <FilterValueWrapper>{upperBound}</FilterValueWrapper>
+      </TextOverflow>
+    </ButtonLabelWrapper>
+  );
+}
+
+export {NumericFilterSelectorTrigger, BetweenFilterSelectorTrigger};
 
 const ButtonLabelWrapper = styled('span')`
   width: 100%;
