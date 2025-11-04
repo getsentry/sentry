@@ -350,13 +350,6 @@ register(
 )
 
 register(
-    "deletions.group-history.use-bulk-deletion",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "cleanup.abort_execution",
     default=False,
     type=Bool,
