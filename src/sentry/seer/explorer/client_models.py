@@ -20,7 +20,7 @@ class Message(BaseModel):
     """A message in the conversation."""
 
     role: Literal["user", "assistant", "tool_use"]
-    content: str
+    content: str | None = None
     tool_calls: list[ToolCall] | None = None
 
 
