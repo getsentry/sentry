@@ -46,6 +46,8 @@ export function getOperatorLabel(operator: Operator): string {
   return OPERATOR_LABELS[operator] ?? NATIVE_OP_LABELS[operator as TermOperator];
 }
 
+const FILTER_QUERY_SEPARATOR = ' ';
+
 interface NumericFilterState {
   buildFilterQuery: () => string;
   hasStagedChanges: boolean;
@@ -191,7 +193,9 @@ function useBetweenOperatorFilter(
     renderSelectorTrigger,
     isValidValue,
     buildFilterQuery: () =>
-      lowerBound.buildFilterQuery() + ' ' + upperBound.buildFilterQuery(),
+      lowerBound.buildFilterQuery() +
+      FILTER_QUERY_SEPARATOR +
+      upperBound.buildFilterQuery(),
   };
 }
 
@@ -201,7 +205,7 @@ function NumericFilterSelector({
   onUpdateFilter,
 }: GenericFilterSelectorProps) {
   const globalFilterQueries = useMemo(
-    () => globalFilter.value.split(' '),
+    () => globalFilter.value.split(FILTER_QUERY_SEPARATOR),
     [globalFilter]
   );
 
