@@ -119,10 +119,8 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
         detector = Detector.get_error_detector_for_project(evt.project_id)
     elif issue_occurrence and (detector_id := issue_occurrence.evidence_data.get("detector_id")):
         detector = Detector.objects.filter(id=detector_id).first()
-    if detector:
-        return detector
 
-    if detector:
+    if detector is not None:
         return detector
 
     try:
