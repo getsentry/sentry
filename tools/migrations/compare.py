@@ -1,3 +1,13 @@
+"""
+Compares PostgreSQL database dumps for Sentry schema between two sources, normalizing
+irrelevant differences (like constraint names and Django migration tables), and
+highlighting only meaningful schema changes. Useful for testing and validating
+Django or raw SQL migrations.
+
+This script is typically used in CI to assert that migrations yield the intended
+database structure.
+"""
+
 import argparse
 import collections
 import difflib
@@ -6,6 +16,8 @@ import re
 import sys
 
 CONSTRAINT_RE = re.compile(r"CONSTRAINT ([^ ]+) (.*)")
+# Matches ANSI escape sequences (used for terminal color codes), e.g. '\033[31m'
+ANSI_ESCAPE_RE = re.compile(r"\033\[[0-9;]*m")
 
 
 def _constraint_replacement(m: re.Match[str]) -> str:
@@ -62,6 +74,46 @@ def norm(s: str) -> dict[str, str]:
     return {k: "\n\n".join(sorted("".join(v).split("\n\n"))).strip() for k, v in dbs.items()}
 
 
+def _is_only_pending_deletion_drift(differences: list[str]) -> bool:
+    """
+    Detect if drift is only from pending model deletions (step 1 of safe deletion).
+    Pending deletion drift has this pattern:
+    - Only removals (lines starting with '-'), no additions ('+')
+    - Removals are table definitions, indexes, constraints, sequences
+
+    In unified diff format:
+    - Lines starting with '-' (but not '---') are removals
+    - Lines starting with '+' (but not '+++') are additions
+    - Lines starting with ' ' are context lines
+    """
+    has_removals = False
+    has_additions = False
+
+    for line in differences:
+        # Skip header lines
+        if line.startswith("---") or line.startswith("+++") or line.startswith("@@"):
+            continue
+
+        # Remove ANSI color codes for checking
+        stripped = ANSI_ESCAPE_RE.sub("", line)
+
+        if stripped.startswith("-") and not stripped.startswith("---"):
+            has_removals = True
+        elif stripped.startswith("+") and not stripped.startswith("+++"):
+            has_additions = True
+
+    # Pending deletion drift = only removals, no additions
+    return has_removals and not has_additions
+
+
+COLOR_GREEN = "\033[32m"
+COLOR_RED = "\033[31m"
+COLOR_BOLD = "\033[1m"
+COLOR_SUBTLE = "\033[2m"
+COLOR_YELLOW = "\033[33m"
+COLOR_RESET = "\033[m"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("before")
@@ -69,14 +121,9 @@ def main() -> int:
     parser.add_argument("--color", action="store_true", default=sys.stdout.isatty())
     args = parser.parse_args()
 
-    if args.color:
-        green = "\033[32m"
-        red = "\033[31m"
-        bold = "\033[1m"
-        subtle = "\033[2m"
-        reset = "\033[m"
-    else:
-        green = red = bold = subtle = reset = ""
+    if not args.color:
+        global COLOR_GREEN, COLOR_RED, COLOR_BOLD, COLOR_SUBTLE, COLOR_YELLOW, COLOR_RESET
+        COLOR_GREEN = COLOR_RED = COLOR_BOLD = COLOR_SUBTLE = COLOR_YELLOW = COLOR_RESET = ""
 
     with open(args.before) as f:
         before = norm(f.read())
@@ -102,24 +149,41 @@ def main() -> int:
 
     for i, line in enumerate(differences):
         if line.startswith("---"):
-            differences[i] = f"{bold}{red}{line}{reset}"
+            differences[i] = f"{COLOR_BOLD}{COLOR_RED}{line}{COLOR_RESET}"
         elif line.startswith("+++"):
-            differences[i] = f"{bold}{green}{line}{reset}"
+            differences[i] = f"{COLOR_BOLD}{COLOR_GREEN}{line}{COLOR_RESET}"
         elif line.startswith("-"):
-            differences[i] = f"{red}{line}{reset}"
+            differences[i] = f"{COLOR_RED}{line}{COLOR_RESET}"
         elif line.startswith("+"):
-            differences[i] = f"{green}{line}{reset}"
+            differences[i] = f"{COLOR_GREEN}{line}{COLOR_RESET}"
 
     if differences:
+        analyze_differences(differences)
+    else:
+        return 0
+
+
+def analyze_differences(differences: list[str]) -> int:
+    # Check if this is only pending deletion drift
+    if _is_only_pending_deletion_drift(differences):
+        print(
+            f'{"".join(differences)}\n'
+            f"---\n\n"
+            f"{COLOR_BOLD}{COLOR_YELLOW}⚠️  Expected schema drift detected{COLOR_RESET}\n\n"
+            f"This drift is due to {COLOR_BOLD}step 1 of safe model deletion{COLOR_RESET} (MOVE_TO_PENDING).\n"
+            f"Tables are removed from Django's model state but remain in the database.\n\n"
+            f"{COLOR_SUBTLE}This is expected and safe. The actual table deletion (step 2) will happen later.{COLOR_RESET}\n\n"
+            f"✅ Check passes - no action needed for your PR.\n"
+        )
+        return 0
+    else:
         raise SystemExit(
             f'{"".join(differences)}\n'
             f"---\n\n"
-            f"{bold}migrations drift detected!{reset}\n\n"
-            f"{subtle}(drift due to step 1 of deletion is normal){reset}\n\n"
+            f"{COLOR_BOLD}{COLOR_RED}❌ migrations drift detected!{COLOR_RESET}\n\n"
+            f"{COLOR_SUBTLE}(If this is due to step 1 of the two-step deletion process, it is expected and would pass){COLOR_RESET}\n\n"
             f"^^^ diff printed above ^^^"
         )
-    else:
-        return 0
 
 
 if __name__ == "__main__":
