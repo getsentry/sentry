@@ -70,7 +70,7 @@ describe('FilterSelector', () => {
 
     expect(mockOnUpdateFilter).toHaveBeenCalledWith({
       ...mockGlobalFilter,
-      value: 'browser:[chrome]',
+      value: 'browser:chrome',
     });
   });
 
