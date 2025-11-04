@@ -28,6 +28,7 @@ PREFERRED_GROUP_OWNERS = 2
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 MIN_COMMIT_SCORE = 2
 DEBOUNCE_CACHE_KEY = lambda group_id: f"process-suspect-commits-{group_id}"
+TASK_DURATION_S = 90
 
 logger = logging.getLogger(__name__)
 
@@ -179,7 +180,7 @@ def _process_suspect_commits(
 @instrumented_task(
     name="sentry.tasks.process_suspect_commits",
     namespace=issues_tasks,
-    processing_deadline_duration=90,
+    processing_deadline_duration=TASK_DURATION_S,
     retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
 )
@@ -197,7 +198,9 @@ def process_suspect_commits(
     This is the task behind SuspectCommitStrategy.RELEASE_BASED
     """
     lock = locks.get(
-        f"process-suspect-commits:{group_id}", duration=10, name="process_suspect_commits"
+        f"process-suspect-commits:{group_id}",
+        duration=TASK_DURATION_S,
+        name="process_suspect_commits",
     )
     try:
         with lock.acquire():
