@@ -106,7 +106,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         assert response.data["data"][0][1][0]["count"] == pytest.approx(0.01, abs=0.001)
 
     def test_top_events(self) -> None:
-        event_counts = [6, 0, 6, 3, 0, 3]
+        metric_values = [6, 0, 6, 3, 0, 3]
 
         trace_metrics = [
             self.create_trace_metric(
@@ -125,7 +125,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
             ),
         ]
 
-        for hour, count in enumerate(event_counts):
+        for hour, count in enumerate(metric_values):
             trace_metrics.append(
                 self.create_trace_metric(
                     "bar",
@@ -165,7 +165,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         assert response.status_code == 200, response.content
         for key in ["value1", "value2"]:
             rows = response.data[key]["data"][0:6]
-            for expected, result in zip(event_counts, rows):
+            for expected, result in zip(metric_values, rows):
                 assert result[1][0]["count"] == expected, key
 
         rows = response.data["Other"]["data"][0:6]
@@ -175,3 +175,35 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         assert response.data["value1"]["meta"]["dataset"] == "tracemetrics"
         assert response.data["value2"]["meta"]["dataset"] == "tracemetrics"
         assert response.data["Other"]["meta"]["dataset"] == "tracemetrics"
+
+    def test_meta_accuracy(self):
+        metric_values = [1, 2, 3, 4]
+
+        trace_metrics = [
+            self.create_trace_metric(
+                metric_name, metric_value, "counter", timestamp=self.start + timedelta(hours=i)
+            )
+            for metric_name in ["foo", "bar"]
+            for i, metric_value in enumerate(metric_values)
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "metricName": "foo",
+                "metricType": "counter",
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": ["sum(value)", "per_second(value)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        for y_axis in ["sum(value)", "per_second(value)"]:
+            assert [
+                bucket["value"]
+                for bucket in response.data[y_axis]["meta"]["accuracy"]["sampleCount"]
+            ] == [1 for _ in metric_values]
