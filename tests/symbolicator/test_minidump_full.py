@@ -201,6 +201,16 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
             assert minidump.name == "windows.dmp"
             assert minidump.sha1 == "74bb01c850e8d65d3ffbc5bad5cabc4668fce247"
 
+    @requires_objectstore
+    def test_reprocessing_with_objectstore(self) -> None:
+        with override_options(
+            {
+                "objectstore.force-stored-symbolication": 1,
+                "objectstore.enable_for.attachments": 1,
+            }
+        ):
+            self.test_reprocessing()
+
     def test_minidump_threadnames(self) -> None:
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
 
@@ -213,14 +223,5 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
     @requires_objectstore
     def test_force_stored_minidump(self) -> None:
-        self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
-
-        with (
-            self.feature(self._FEATURES),
-            override_options({"objectstore.force-stored-symbolication": 1}),
-        ):
-            with open(get_fixture_path("native", "threadnames.dmp"), "rb") as f:
-                event = self.post_and_retrieve_minidump({"upload_file_minidump": f}, {})
-
-        thread_name = get_path(event.data, "threads", "values", 1, "name")
-        assert thread_name == "sentry-http"
+        with override_options({"objectstore.force-stored-symbolication": 1}):
+            self.test_minidump_threadnames()
