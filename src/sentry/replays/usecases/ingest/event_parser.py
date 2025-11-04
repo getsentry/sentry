@@ -341,12 +341,16 @@ def parse_trace_item(
 ) -> TraceItem | None:
     try:
         return as_trace_item(context, event_type, event)
-    except (AttributeError, KeyError, TypeError, ValueError) as e:
+    except (AttributeError, KeyError, TypeError, ValueError):
         if random.random() < 0.01:
             logger.warning(
                 "[EVENT PARSE FAIL] Could not transform breadcrumb to trace-item",
-                exc_info=e,
-                extra={"event": event},
+                exc_info=True,
+                extra={
+                    "organization_id": context["organization_id"],
+                    "project_id": context["project_id"],
+                    "event": event,
+                },
             )
         return None
 
