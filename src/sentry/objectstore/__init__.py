@@ -1,5 +1,50 @@
-from sentry.objectstore.service import Client, ClientBuilder
+from datetime import timedelta
 
-__all__ = ["attachments", "Client", "ClientBuilder"]
+from objectstore_client import Client, ClientBuilder, ClientError, MetricsBackend, TimeToLive
+from objectstore_client.metrics import Tags
 
-attachments = ClientBuilder("attachments")
+from sentry.utils import metrics
+
+__all__ = ["get_attachments_client", "Client", "ClientBuilder", "ClientError"]
+
+_attachments_client: ClientBuilder | None = None
+
+
+class SentryMetricsBackend(MetricsBackend):
+    def increment(
+        self,
+        name: str,
+        value: int | float = 1,
+        tags: Tags | None = None,
+    ) -> None:
+        metrics.incr(name, int(value), tags=tags)
+
+    def gauge(self, name: str, value: int | float, tags: Tags | None = None) -> None:
+        """
+        Sets a gauge metric to the given value.
+        """
+        metrics.gauge(name, value, tags=tags)
+
+    def distribution(
+        self,
+        name: str,
+        value: int | float,
+        tags: Tags | None = None,
+        unit: str | None = None,
+    ) -> None:
+        metrics.distribution(name, value, tags=tags, unit=unit)
+
+
+def get_attachments_client() -> ClientBuilder:
+    global _attachments_client
+    if not _attachments_client:
+        from sentry import options as options_store
+
+        options = options_store.get("objectstore.config")
+        _attachments_client = ClientBuilder(
+            options["base_url"],
+            "attachments",
+            metrics_backend=SentryMetricsBackend(),
+            default_expiration_policy=TimeToLive(timedelta(days=30)),
+        )
+    return _attachments_client
