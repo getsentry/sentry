@@ -72,6 +72,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
                     {},
                 )
 
+        # TODO - each of these types should be broken out into their individual modules
         @dataclass(frozen=True)
         class TestMetricGroupType(GroupType):
             type_id = 1
