@@ -609,6 +609,3 @@ def maybe_send_seer_for_new_model_training(
                         "grouphash": existing_grouphash.hash,
                     },
                 )
-        else:
-            # Not eligible for Seer call (e.g., rate limited, killswitch enabled)
-            record_did_call_seer_metric(event, call_made=False, blocker="new_model_embedding_check")
