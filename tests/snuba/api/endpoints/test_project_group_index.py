@@ -12,6 +12,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.utils import timezone
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
@@ -485,6 +486,25 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.client.get(f"{self.path}?sort_by=date&query=is:unresolved", format="json")
 
         assert len(response.data) == 0
+
+    def test_exclude_metric_issue(self) -> None:
+        self.login_as(user=self.user)
+
+        error_group = self.create_group()
+        metric_issue_group = self.create_group(type=MetricIssue.type_id)
+
+        response = self.client.put(
+            f"{self.path}?status=unresolved&query=is:unresolved",
+            data={"status": "resolved"},
+            format="json",
+        )
+        assert response.status_code == 200, response.data
+
+        error_group.refresh_from_db()
+        metric_issue_group.refresh_from_db()
+
+        assert error_group.status == GroupStatus.RESOLVED
+        assert metric_issue_group.status == GroupStatus.UNRESOLVED
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     def test_resolve_with_integration(self, mock_sync_status_outbound: MagicMock) -> None:

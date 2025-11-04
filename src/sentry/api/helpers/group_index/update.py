@@ -354,6 +354,8 @@ def handle_resolve_in_release(
     acting_user: RpcUser | User | None,
     result: MutableMapping[str, Any],
 ) -> tuple[dict[str, Any], int | None]:
+    from sentry.grouping.grouptype import ErrorGroupType
+
     res_type = None
     release = None
     commit = None
@@ -445,6 +447,10 @@ def handle_resolve_in_release(
     for group in group_list:
         # If the group is already resolved, we don't need to do anything
         if group.status == GroupStatus.RESOLVED:
+            continue
+
+        # Users should only be able to manually resolve error issues
+        if group.type != ErrorGroupType.type_id:
             continue
 
         with transaction.atomic(router.db_for_write(Group)):
