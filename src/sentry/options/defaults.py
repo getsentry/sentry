@@ -629,6 +629,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout configuration for Arroyo ConfluentProducer
+# Controls the rollout of individual Kafka producers by name
+register(
+    "arroyo.producer.confluent-producer-rollout",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -3177,13 +3186,6 @@ register(
     "workflow_engine.issue_alert.group.type_id.ga",
     type=Sequence,
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "workflow_engine.sentry-app-actions-outbox",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
