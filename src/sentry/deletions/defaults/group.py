@@ -264,10 +264,9 @@ def delete_group_hashes(
             # 2. Delete the GroupHashMetadata rows entirely (they'll be deleted anyway)
             # If we update the columns first, the deletion of the grouphash metadata rows will have less work to do,
             # thus, improving the performance of the deletion.
-            if options.get("deletions.group-hashes-metadata.update-seer-matched-grouphash-ids"):
-                GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids).update(
-                    seer_matched_grouphash=None
-                )
+            GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids).update(
+                seer_matched_grouphash=None
+            )
             GroupHashMetadata.objects.filter(grouphash_id__in=hash_ids).delete()
             GroupHash.objects.filter(id__in=hash_ids).delete()
 
