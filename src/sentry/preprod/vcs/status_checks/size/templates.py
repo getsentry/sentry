@@ -137,7 +137,7 @@ def _format_artifact_summary(
         else:
             artifact_url = get_preprod_artifact_url(artifact)
 
-        name_text = f"[`{app_name}`<br>{app_id}]({artifact_url})"
+        name_text = f"[{app_name}<br>`{app_id}`]({artifact_url})"
 
         # Configuration
         configuration_text = (
