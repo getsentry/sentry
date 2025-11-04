@@ -3665,3 +3665,50 @@ class PostProcessGroupFeedbackTest(
     @pytest.mark.skip(reason="regression is disabled for feedback issues")
     def test_group_last_seen_buffer(self) -> None:
         pass
+
+    @with_feature("organizations:expanded-sentry-apps-webhooks")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    def test_feedback_sends_webhook_with_feature_flag(self, mock_delay: MagicMock) -> None:
+        sentry_app = self.create_sentry_app(
+            organization=self.organization, events=["issue.created"]
+        )
+        self.create_sentry_app_installation(organization=self.organization, slug=sentry_app.slug)
+
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        mock_delay.assert_called_once_with(
+            action="created", sender="Group", instance_id=event.group.id
+        )
+
+    @patch("sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound.delay")
+    def test_feedback_no_webhook_without_feature_flag(self, mock_delay: MagicMock) -> None:
+        sentry_app = self.create_sentry_app(
+            organization=self.organization, events=["issue.created"]
+        )
+        self.create_sentry_app_installation(organization=self.organization, slug=sentry_app.slug)
+
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+            feedback_type=FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assert not mock_delay.called
