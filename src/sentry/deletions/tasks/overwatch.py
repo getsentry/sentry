@@ -35,8 +35,19 @@ def notify_overwatch_organization_deleted(
         )
         return
 
-    local_region = get_local_region()
-    region_name = local_region.name
+    try:
+        local_region = get_local_region()
+        region_name = local_region.name
+    except Exception as e:
+        logger.exception(
+            "overwatch.organization_deleted.region_error",
+            extra={
+                "organization_id": organization_id,
+                "organization_slug": organization_slug,
+                "error": str(e),
+            },
+        )
+        return
 
     # Check if this region is enabled for Overwatch notifications
     enabled_regions = options.get("overwatch.enabled-regions")
