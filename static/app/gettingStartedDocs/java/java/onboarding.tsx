@@ -1,139 +1,20 @@
 import {ExternalLink, Link} from 'sentry/components/core/link';
-import type {
-  BasePlatformOptions,
-  Docs,
-  DocsParams,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportApiIntroduction,
-  getCrashReportInstallDescription,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-export enum PackageManager {
-  GRADLE = 'gradle',
-  MAVEN = 'maven',
-  SBT = 'sbt',
-}
-
-export enum YesNo {
-  YES = 'yes',
-  NO = 'no',
-}
-
-const packageManagerName: Record<PackageManager, string> = {
-  [PackageManager.GRADLE]: 'Gradle',
-  [PackageManager.MAVEN]: 'Maven',
-  [PackageManager.SBT]: 'SBT',
-};
-
-const platformOptions = {
-  packageManager: {
-    label: t('Package Manager'),
-    items: [
-      {
-        label: packageManagerName[PackageManager.GRADLE],
-        value: PackageManager.GRADLE,
-      },
-      {
-        label: packageManagerName[PackageManager.MAVEN],
-        value: PackageManager.MAVEN,
-      },
-      {
-        label: packageManagerName[PackageManager.SBT],
-        value: PackageManager.SBT,
-      },
-    ],
-  },
-  opentelemetry: {
-    label: t('OpenTelemetry'),
-    items: [
-      {
-        label: t('With OpenTelemetry'),
-        value: YesNo.YES,
-      },
-      {
-        label: t('Without OpenTelemetry'),
-        value: YesNo.NO,
-      },
-    ],
-  },
-} satisfies BasePlatformOptions;
-
-type PlatformOptions = typeof platformOptions;
-type Params = DocsParams<PlatformOptions>;
-
-const getGradleInstallSnippet = (params: Params) => `
-buildscript {
-  repositories {
-    mavenCentral()
-  }
-}
-
-plugins {
-  id "io.sentry.jvm.gradle" version "${getPackageVersion(
-    params,
-    'sentry.java.android.gradle-plugin',
-    '3.12.0'
-  )}"
-}
-
-sentry {
-  // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
-  // This enables source context, allowing you to see your source
-  // code as part of your stack traces in Sentry.
-  includeSourceContext = true
-
-  org = "${params.organization.slug}"
-  projectName = "${params.project.slug}"
-  authToken = System.getenv("SENTRY_AUTH_TOKEN")
-}`;
-
-const getMavenInstallSnippet = (params: Params) => `
-<build>
-  <plugins>
-    <plugin>
-      <groupId>io.sentry</groupId>
-      <artifactId>sentry-maven-plugin</artifactId>
-      <version>${getPackageVersion(params, 'sentry.java.maven-plugin', '0.0.4')}</version>
-      <extensions>true</extensions>
-      <configuration>
-        <!-- for showing output of sentry-cli -->
-        <debugSentryCli>true</debugSentryCli>
-
-        <org>${params.organization.slug}</org>
-
-        <project>${params.project.slug}</project>
-
-        <!-- in case you're self hosting, provide the URL here -->
-        <!--<url>http://localhost:8000/</url>-->
-
-        <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
-        <authToken>\${env.SENTRY_AUTH_TOKEN}</authToken>
-      </configuration>
-      <executions>
-        <execution>
-          <goals>
-            <!--
-            Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
-            This enables source context, allowing you to see your source
-            code as part of your stack traces in Sentry.
-            -->
-            <goal>uploadSourceBundle</goal>
-          </goals>
-        </execution>
-      </executions>
-    </plugin>
-  </plugins>
-  ...
-</build>`;
-
-const getOpenTelemetryRunSnippet = (params: Params) => `
-SENTRY_PROPERTIES_FILE=sentry.properties java -javaagent:sentry-opentelemetry-agent-${getPackageVersion(params, 'sentry.java.opentelemetry-agent', '8.0.0')}.jar -jar your-application.jar
-`;
+import {
+  getGradleInstallSnippet,
+  getMavenInstallSnippet,
+  getOpenTelemetryRunSnippet,
+  getVerifyJavaSnippet,
+  PackageManager,
+  packageManagerName,
+  YesNo,
+  type Params,
+  type PlatformOptions,
+} from './utils';
 
 const getSentryPropertiesSnippet = (params: Params) => `
 dsn=${params.dsn.public}
@@ -173,17 +54,7 @@ Sentry.init(options -> {
   options.setDebug(true);
 });`;
 
-const getVerifySnippet = () => `
-import java.lang.Exception;
-import io.sentry.Sentry;
-
-try {
-  throw new Exception("This is a test.");
-} catch (Exception e) {
-  Sentry.captureException(e);
-}`;
-
-const onboarding: OnboardingConfig<PlatformOptions> = {
+export const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
       'Sentry for Java is a collection of modules provided by Sentry; it supports Java 1.8 and above. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, or Log4j2], we recommend visiting our Sentry Java documentation for installation instructions.',
@@ -376,7 +247,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           type: 'code',
           language: 'java',
-          code: getVerifySnippet(),
+          code: getVerifyJavaSnippet(),
         },
         {
           type: 'text',
@@ -402,160 +273,3 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     },
   ],
 };
-
-export const feedbackOnboardingCrashApiJava: OnboardingConfig = {
-  introduction: () => getCrashReportApiIntroduction(),
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportInstallDescription(),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'Java',
-              language: 'java',
-              code: `import io.sentry.Sentry;
-import io.sentry.UserFeedback;
-
-SentryId sentryId = Sentry.captureMessage("My message");
-
-UserFeedback userFeedback = new UserFeedback(sentryId);
-userFeedback.setComments("It broke.");
-userFeedback.setEmail("john.doe@example.com");
-userFeedback.setName("John Doe");
-Sentry.captureUserFeedback(userFeedback);`,
-            },
-            {
-              label: 'Kotlin',
-              language: 'kotlin',
-              code: `import io.sentry.Sentry
-import io.sentry.UserFeedback
-
-val sentryId = Sentry.captureMessage("My message")
-
-val userFeedback = UserFeedback(sentryId).apply {
-  comments = "It broke."
-  email = "john.doe@example.com"
-  name = "John Doe"
-}
-Sentry.captureUserFeedback(userFeedback)`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  configure: () => [],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const logsOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            "To start using logs, make sure your application uses Sentry Java SDK version [code:8.12.0] or higher. If you're on an older major version of the SDK, follow our [link:migration guide] to upgrade.",
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/java/migration/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'To enable logging, you need to initialize the SDK with the [code:logs.enabled] option set to [code:true].',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'Java',
-              language: 'java',
-              code: `import io.sentry.Sentry;
-
-Sentry.init(options -> {
-  options.setDsn("${params.dsn.public}");
-  options.getLogs().setEnabled(true);
-});`,
-            },
-            {
-              label: 'Kotlin',
-              language: 'kotlin',
-              code: `import io.sentry.Sentry
-
-Sentry.init { options ->
-  options.dsn = "${params.dsn.public}"
-  options.logs.enabled = true
-}`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'Java',
-              language: 'java',
-              code: `import io.sentry.Sentry;
-
-Sentry.logger().info("A simple log message");
-Sentry.logger().error("A %s log message", "formatted");`,
-            },
-            {
-              label: 'Kotlin',
-              language: 'kotlin',
-              code: `import io.sentry.Sentry
-
-Sentry.logger().info("A simple log message")
-Sentry.logger().error("A %s log message", "formatted")`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-};
-
-const docs: Docs<PlatformOptions> = {
-  platformOptions,
-  feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
-  crashReportOnboarding: feedbackOnboardingCrashApiJava,
-  logsOnboarding,
-  onboarding,
-};
-
-export default docs;

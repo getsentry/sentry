@@ -2,7 +2,9 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs, {PackageManager} from './logback';
+import {PackageManager} from 'sentry/gettingStartedDocs/java/java/utils';
+
+import docs from '.';
 
 describe('getting started with logback', () => {
   it('renders gradle docs correctly', async () => {
