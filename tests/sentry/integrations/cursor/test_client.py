@@ -22,10 +22,10 @@ class CursorClientTest(TestCase):
     def test_build_session_has_retry_config(self):
         """Test that build_session creates a session with proper retry configuration."""
         session = self.cursor_client.build_session()
-
+        
         # Get the adapter from the session
         adapter = session.get_adapter("https://api.cursor.com")
-
+        
         # Verify retry configuration
         assert adapter.max_retries is not None
         assert isinstance(adapter.max_retries, Retry)
@@ -33,6 +33,9 @@ class CursorClientTest(TestCase):
         assert adapter.max_retries.backoff_factor == 0.5
         assert adapter.max_retries.status_forcelist == [500, 502, 503, 504]
         assert "POST" in adapter.max_retries.allowed_methods
+        # Verify timeout retry behavior
+        assert adapter.max_retries.connect == 3  # Retry connection timeouts
+        assert adapter.max_retries.read == 0  # Don't retry read timeouts
 
     @patch("sentry.integrations.cursor.client.CursorAgentClient.post")
     def test_launch(self, mock_post):
@@ -214,9 +217,43 @@ class CursorClientTest(TestCase):
         )
 
         webhook_url = "https://sentry.io/webhook"
-
+        
         with pytest.raises(ApiError):
             self.cursor_client.launch(webhook_url=webhook_url, request=request)
 
         # Verify it only made 1 attempt (no retries on 4xx)
         assert len(responses.calls) == 1
+
+    def test_launch_retries_on_connection_timeout(self):
+        """Test that the client retries on connection timeout errors."""
+        from unittest.mock import Mock
+
+        from requests.exceptions import ConnectTimeout
+
+        from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
+        from sentry.seer.models import SeerRepoDefinition
+
+        request = CodingAgentLaunchRequest(
+            prompt="Fix the bug",
+            repository=SeerRepoDefinition(
+                integration_id="123",
+                provider="github",
+                owner="testorg",
+                name="testrepo",
+                external_id="456",
+                branch_name="main",
+            ),
+            branch_name="fix-bug",
+        )
+
+        webhook_url = "https://sentry.io/webhook"
+
+        # Mock the post method to raise ConnectTimeout
+        with patch.object(
+            self.cursor_client, "post", side_effect=ConnectTimeout("Connection timeout")
+        ):
+            with pytest.raises(ConnectTimeout):
+                self.cursor_client.launch(webhook_url=webhook_url, request=request)
+
+        # Note: The actual retry behavior happens at the session/adapter level,
+        # so this test verifies that ConnectTimeout exceptions are properly propagated

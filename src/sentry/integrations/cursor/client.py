@@ -34,13 +34,28 @@ class CursorAgentClient(CodingAgentClient):
         return {"Authorization": f"Bearer {self.api_key}"}
 
     def build_session(self) -> SafeSession:
-        """Build session with retry configuration for transient failures."""
+        """Build session with retry configuration for transient failures.
+        
+        Retries on:
+        - Server errors (5xx status codes)
+        - Connection errors (network issues)
+        - Connection timeouts
+        
+        Does NOT retry on:
+        - Client errors (4xx status codes)
+        - Read timeouts (server taking too long to respond)
+        """
         return SafeSession(
             max_retries=Retry(
                 total=3,
                 backoff_factor=0.5,
                 status_forcelist=[500, 502, 503, 504],
                 allowed_methods=["POST"],
+                # Retry on connection errors but not read timeouts
+                # connect=3 allows retrying connection failures
+                # read=0 prevents retrying read timeouts to avoid overloading the server
+                connect=3,
+                read=0,
             )
         )
 
