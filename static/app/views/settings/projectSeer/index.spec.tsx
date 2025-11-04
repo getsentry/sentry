@@ -507,8 +507,9 @@ describe('ProjectSeer', () => {
       method: 'POST',
     });
 
-    render(<ProjectSeer project={initialProject} />, {
+    render(<ProjectSeer />, {
       organization: orgWithCursorFeature,
+      outletContext: {project: initialProject},
     });
 
     // Find the select menu for Where should Seer stop?
