@@ -352,6 +352,14 @@ def build_metric_alert_chart(
             chart_data.update(chart_data_detector)
         else:
             chart_data.update(chart_data_alert_rule)
+        if organization.slug == "mf-test-n7":
+            logger.info(
+                "passed chart data",
+                extra={
+                    "chart_data": chart_data,
+                    "style": style,
+                },
+            )
         return charts.generate_chart(style, chart_data, size=size)
     except RuntimeError as exc:
         logger.error(
