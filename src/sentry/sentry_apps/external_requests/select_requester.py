@@ -134,7 +134,44 @@ class SelectRequester:
                 raise
 
     def _build_url(self) -> str:
-        urlparts: list[str] = [url_part for url_part in urlparse(self.sentry_app.webhook_url)]
+        webhook_url = self.sentry_app.webhook_url
+        
+        # Validate that webhook_url is not empty and has a valid scheme
+        if not webhook_url:
+            raise SentryAppIntegratorError(
+                message=f"Cannot build URL for Sentry App '{self.sentry_app.name}': webhook_url is not configured",
+                webhook_context={
+                    "error_type": FAILURE_REASON_BASE.format(
+                        SentryAppExternalRequestFailureReason.MISSING_URL
+                    ),
+                    "sentry_app_slug": self.sentry_app.slug,
+                    "install_uuid": self.install.uuid,
+                    "project_slug": self.project_slug,
+                    "uri": self.uri,
+                    "webhook_url": webhook_url,
+                },
+                status_code=400,
+            )
+        
+        urlparts: list[str] = [url_part for url_part in urlparse(webhook_url)]
+        
+        # Check if the webhook_url has a valid scheme
+        if not urlparts[0]:  # urlparts[0] is the scheme
+            raise SentryAppIntegratorError(
+                message=f"Cannot build URL for Sentry App '{self.sentry_app.name}': webhook_url '{webhook_url}' is missing a scheme (e.g., https://)",
+                webhook_context={
+                    "error_type": FAILURE_REASON_BASE.format(
+                        SentryAppExternalRequestFailureReason.MISSING_URL
+                    ),
+                    "sentry_app_slug": self.sentry_app.slug,
+                    "install_uuid": self.install.uuid,
+                    "project_slug": self.project_slug,
+                    "uri": self.uri,
+                    "webhook_url": webhook_url,
+                },
+                status_code=400,
+            )
+        
         urlparts[2] = self.uri
 
         query = {"installationId": self.install.uuid}

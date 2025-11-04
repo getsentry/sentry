@@ -339,3 +339,97 @@ class TestSelectRequester(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_empty_webhook_url(self, mock_record: MagicMock) -> None:
+        # Create a Sentry App with an empty webhook_url (as happens with internal apps)
+        sentry_app_empty_webhook = self.create_sentry_app(
+            name="empty_webhook_app",
+            organization=self.org,
+            webhook_url="",
+            scopes=(),
+        )
+        install_empty_webhook = self.create_sentry_app_installation(
+            slug="empty_webhook_app", organization=self.org, user=self.user
+        )
+        rpc_install = app_service.get_many(filter=dict(installation_ids=[install_empty_webhook.id]))[0]
+
+        uri = "/get-issues"
+        with pytest.raises(SentryAppIntegratorError) as exception_info:
+            SelectRequester(
+                install=rpc_install,
+                project_slug=self.project.slug,
+                uri=uri,
+            ).run()
+
+        assert (
+            exception_info.value.message
+            == f"Cannot build URL for Sentry App '{sentry_app_empty_webhook.name}': webhook_url is not configured"
+        )
+        assert exception_info.value.webhook_context == {
+            "error_type": f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestFailureReason.MISSING_URL}",
+            "sentry_app_slug": sentry_app_empty_webhook.slug,
+            "install_uuid": rpc_install.uuid,
+            "project_slug": self.project.slug,
+            "uri": uri,
+            "webhook_url": "",
+        }
+        assert exception_info.value.status_code == 400
+
+        # SLO assertions
+        assert_halt_metric(mock_record, exception_info.value)
+
+        # EXTERNAL_REQUEST (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_webhook_url_without_scheme(self, mock_record: MagicMock) -> None:
+        # Create a Sentry App with a webhook_url that's missing a scheme
+        sentry_app_no_scheme = self.create_sentry_app(
+            name="no_scheme_app",
+            organization=self.org,
+            webhook_url="example.com/api",
+            scopes=(),
+        )
+        install_no_scheme = self.create_sentry_app_installation(
+            slug="no_scheme_app", organization=self.org, user=self.user
+        )
+        rpc_install = app_service.get_many(filter=dict(installation_ids=[install_no_scheme.id]))[0]
+
+        uri = "/get-issues"
+        with pytest.raises(SentryAppIntegratorError) as exception_info:
+            SelectRequester(
+                install=rpc_install,
+                project_slug=self.project.slug,
+                uri=uri,
+            ).run()
+
+        assert (
+            exception_info.value.message
+            == f"Cannot build URL for Sentry App '{sentry_app_no_scheme.name}': webhook_url 'example.com/api' is missing a scheme (e.g., https://)"
+        )
+        assert exception_info.value.webhook_context == {
+            "error_type": f"{SentryAppEventType.SELECT_OPTIONS_REQUESTED}.{SentryAppExternalRequestFailureReason.MISSING_URL}",
+            "sentry_app_slug": sentry_app_no_scheme.slug,
+            "install_uuid": rpc_install.uuid,
+            "project_slug": self.project.slug,
+            "uri": uri,
+            "webhook_url": "example.com/api",
+        }
+        assert exception_info.value.status_code == 400
+
+        # SLO assertions
+        assert_halt_metric(mock_record, exception_info.value)
+
+        # EXTERNAL_REQUEST (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
