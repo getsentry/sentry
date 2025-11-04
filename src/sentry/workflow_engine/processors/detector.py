@@ -260,7 +260,7 @@ def get_detectors_by_groupevents_bulk(
             missing_detector_ids.update(set(detector_id_to_events.keys()) - found_detector_ids)
 
     # Fetch detectors for events without occurrences (by project_id)
-    projects_missing_detectors: set[int] = set()
+    missing_error_detector_projects: set[int] = set()
     if error_events:
         mapping, projects_with_error_detectors, project_to_events = (
             _create_default_event_detector_map(error_events, ErrorGroupType.slug)
@@ -272,6 +272,11 @@ def get_detectors_by_groupevents_bulk(
             if project_id not in projects_with_error_detectors:
                 issue_stream_events.extend(events)
 
+        missing_error_detector_projects.update(
+            set(project_to_events.keys()) - projects_with_error_detectors
+        )
+
+    missing_issue_stream_detector_projects: set[int] = set()
     if issue_stream_events:
         mapping, projects_with_issue_stream_detectors, project_to_events = (
             _create_default_event_detector_map(issue_stream_events, IssueStreamGroupType.slug)
@@ -279,21 +284,27 @@ def get_detectors_by_groupevents_bulk(
         result.update(mapping)
 
         # if no detectors, then something is wrong
-        projects_missing_detectors -= projects_with_issue_stream_detectors
-        projects_missing_detectors.update(
+        missing_issue_stream_detector_projects.update(
             set(project_to_events.keys()) - projects_with_issue_stream_detectors
         )
 
     # Log all missing detectors
-    if missing_detector_ids or projects_missing_detectors:
+    if (
+        missing_detector_ids
+        or missing_error_detector_projects
+        or missing_issue_stream_detector_projects
+    ):
         metrics.incr(
             "workflow_engine.detectors.error",
-            amount=len(projects_missing_detectors) + len(missing_detector_ids),
+            amount=len(missing_error_detector_projects)
+            + len(missing_issue_stream_detector_projects)
+            + len(missing_detector_ids),
         )
         logger.error(
             "Detectors not found for events",
             extra={
-                "projects_missing_error_detectors": projects_missing_detectors,
+                "projects_missing_error_detectors": missing_error_detector_projects,
+                "projects_missing_issue_stream_detectors": missing_issue_stream_detector_projects,
                 "missing_detectors": missing_detector_ids,
             },
         )
