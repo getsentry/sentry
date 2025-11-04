@@ -34,7 +34,7 @@ import type {GlobalFilter} from 'sentry/views/dashboards/types';
 enum CustomOperator {
   BETWEEN = 'between',
 }
-export type Operator = TermOperator | CustomOperator;
+type Operator = TermOperator | CustomOperator;
 
 const OPERATOR_LABELS: Partial<Record<Operator, string>> = {
   [CustomOperator.BETWEEN]: t('between'),
