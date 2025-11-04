@@ -207,5 +207,3 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
                 bucket["value"]
                 for bucket in response.data[y_axis]["meta"]["accuracy"]["sampleCount"]
             ] == [1 for _ in metric_values]
-
-        assert 0
