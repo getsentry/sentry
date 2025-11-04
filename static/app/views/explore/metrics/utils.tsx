@@ -155,6 +155,7 @@ export function getMetricsUrlFromSavedQueryUrl({
 
     return {
       ...defaultQuery,
+      metric: queryItem.metric ?? defaultQuery.metric,
       queryParams: defaultQuery.queryParams.replace({
         mode: queryItem.mode,
         query: queryItem.query,
