@@ -1,10 +1,10 @@
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-import docs from './qt';
+import docs from '.';
 
-describe('getting started with native-qt', () => {
-  it('renders gradle docs correctly', () => {
+describe('getting started with native', () => {
+  it('renders docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
