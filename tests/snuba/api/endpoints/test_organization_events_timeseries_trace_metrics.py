@@ -12,7 +12,7 @@ from tests.snuba.api.endpoints.test_organization_events_timeseries_spans import 
 any_confidence = AnyConfidence()
 
 
-class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpointTestBase):
+class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     endpoint = "sentry-api-0-organization-events-timeseries"
 
     def setUp(self) -> None:
@@ -30,83 +30,84 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
         )
 
     def _do_request(self, data, url=None, features=None):
-        if features is None:
-            features = {"organizations:ourlogs": True}
-        features.update(self.features)
-        with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+        return self.client.get(self.url if url is None else url, data=data, format="json")
 
-    def test_count(self) -> None:
-        event_counts = [6, 0, 6, 3, 0, 3]
-        logs = []
-        for hour, count in enumerate(event_counts):
-            logs.extend(
+    def test_simple(self) -> None:
+        metric_values = [6, 0, 6, 3, 0, 3]
+
+        trace_metrics = []
+        for hour, value in enumerate(metric_values):
+            trace_metrics.extend(
                 [
-                    self.create_ourlog(
-                        {"body": "foo"},
-                        timestamp=self.start + timedelta(hours=hour, minutes=minute),
-                        attributes={"status": {"string_value": "success"}},
+                    self.create_trace_metric(
+                        "foo",
+                        value,
+                        "counter",
+                        timestamp=self.start + timedelta(hours=hour),
                     )
-                    for minute in range(count)
-                ],
+                ]
             )
-        self.store_ourlogs(logs)
+        self.store_trace_metrics(trace_metrics)
 
         response = self._do_request(
             data={
                 "start": self.start,
                 "end": self.end,
                 "interval": "1h",
-                "yAxis": "count()",
+                "yAxis": "sum(value)",
+                "query": "metric.name:foo",
                 "project": self.project.id,
-                "dataset": "logs",
+                "dataset": "tracemetrics",
             },
         )
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {
-            "dataset": "logs",
+            "dataset": "tracemetrics",
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
         }
         assert len(response.data["timeSeries"]) == 1
         timeseries = response.data["timeSeries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["yAxis"] == "count()"
+        assert timeseries["yAxis"] == "sum(value)"
         assert timeseries["values"] == build_expected_timeseries(
-            self.start,
-            3_600_000,
-            event_counts,
-            sample_count=event_counts,
-            sample_rate=[1 if val else None for val in event_counts],
-            confidence=[any_confidence if val else None for val in event_counts],
+            self.start, 3_600_000, metric_values, ignore_accuracy=True
         )
         assert timeseries["meta"] == {
             "dataScanned": "full",
-            "valueType": "integer",
+            "valueType": "number",
             "valueUnit": None,
             "interval": 3_600_000,
         }
 
     def test_top_events(self) -> None:
-        self.store_ourlogs(
+        self.store_trace_metrics(
             [
-                self.create_ourlog(
-                    {"body": "foo"},
+                self.create_trace_metric(
+                    "foo",
+                    1,
+                    "counter",
                     timestamp=self.start + timedelta(minutes=1),
                     attributes={"environment": {"string_value": "prod"}},
                 ),
-                self.create_ourlog(
-                    {"body": "foo"},
+                self.create_trace_metric(
+                    "foo",
+                    1,
+                    "counter",
                     timestamp=self.start + timedelta(minutes=1),
                     attributes={"environment": {"string_value": "dev"}},
                 ),
-                self.create_ourlog(
-                    {"body": "foo"},
+                self.create_trace_metric(
+                    "foo",
+                    1,
+                    "counter",
                     timestamp=self.start + timedelta(minutes=1),
                     attributes={"environment": {"string_value": "prod"}},
                 ),
-                self.create_ourlog(
-                    {"body": "foo"},
+                self.create_trace_metric(
+                    "foo",
+                    1,
+                    "counter",
                     timestamp=self.start + timedelta(minutes=1),
                     attributes={"environment": {"string_value": "dev"}},
                 ),
@@ -120,10 +121,10 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
                 "start": self.start,
                 "end": self.end,
                 "interval": "1m",
-                "yAxis": "count()",
+                "yAxis": "sum(value)",
                 "groupBy": ["environment"],
                 "project": self.project.id,
-                "dataset": "logs",
+                "dataset": "tracemetrics",
                 "excludeOther": 0,
                 "topEvents": 2,
             }
@@ -132,7 +133,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
         assert response.status_code == 200, response.content
 
         assert response.data["meta"] == {
-            "dataset": "logs",
+            "dataset": "tracemetrics",
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
         }
@@ -140,14 +141,14 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
 
         timeseries = response.data["timeSeries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["yAxis"] == "count()"
+        assert timeseries["yAxis"] == "sum(value)"
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 60_000, [0, 2, 0, 0, 0, 0], ignore_accuracy=True
         )
         assert timeseries["groupBy"] == [{"key": "environment", "value": "prod"}]
         assert timeseries["meta"] == {
             "dataScanned": "full",
-            "valueType": "integer",
+            "valueType": "number",
             "valueUnit": None,
             "interval": 60_000,
             "isOther": False,
@@ -156,42 +157,16 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
 
         timeseries = response.data["timeSeries"][1]
         assert len(timeseries["values"]) == 6
-        assert timeseries["yAxis"] == "count()"
+        assert timeseries["yAxis"] == "sum(value)"
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 60_000, [0, 2, 0, 0, 0, 0], ignore_accuracy=True
         )
         assert timeseries["groupBy"] == [{"key": "environment", "value": "dev"}]
         assert timeseries["meta"] == {
             "dataScanned": "full",
-            "valueType": "integer",
+            "valueType": "number",
             "valueUnit": None,
             "interval": 60_000,
             "isOther": False,
             "order": 1,
         }
-
-    def test_zerofill(self) -> None:
-        response = self._do_request(
-            data={
-                "start": self.start,
-                "end": self.end,
-                "interval": "1h",
-                "yAxis": "count()",
-                "project": self.project.id,
-                "dataset": "logs",
-            },
-        )
-        assert response.status_code == 200, response.content
-        assert response.data["meta"] == {
-            "dataset": "logs",
-            "start": self.start.timestamp() * 1000,
-            "end": self.end.timestamp() * 1000,
-        }
-        assert len(response.data["timeSeries"]) == 1
-        timeseries = response.data["timeSeries"][0]
-        assert len(timeseries["values"]) == 7
-        assert timeseries["values"] == build_expected_timeseries(
-            self.start,
-            3_600_000,
-            [0] * 7,
-        )
