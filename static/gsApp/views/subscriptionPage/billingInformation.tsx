@@ -65,11 +65,13 @@ function BillingInformation({organization, subscription, location}: Props) {
           isNewBillingUI={isNewBillingUI}
           ftcLocation={FTCConsentLocation.BILLING_DETAILS}
           budgetTerm={subscription.planDetails.budgetTerm}
+          maxPanelWidth="600px"
         />
         <BillingDetailsPanel
           organization={organization}
           subscription={subscription}
           isNewBillingUI={isNewBillingUI}
+          maxPanelWidth="600px"
         />
       </SubscriptionPageContainer>
     );
@@ -90,12 +92,14 @@ function BillingInformation({organization, subscription, location}: Props) {
               ftcLocation={FTCConsentLocation.BILLING_DETAILS}
               budgetTerm={subscription.planDetails.budgetTerm}
               shouldExpandInitially
+              maxPanelWidth="600px"
             />
             <BillingDetailsPanel
               organization={organization}
               subscription={subscription}
               isNewBillingUI={isNewBillingUI}
               shouldExpandInitially
+              maxPanelWidth="600px"
             />
           </Flex>
         ) : (
