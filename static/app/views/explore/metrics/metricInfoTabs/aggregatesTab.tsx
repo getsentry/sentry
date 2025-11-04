@@ -24,7 +24,10 @@ import {
   TransparentLoadingMask,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {createMetricNameFilter, getMetricsUnit} from 'sentry/views/explore/metrics/utils';
+import {
+  createTraceMetricFilter,
+  getMetricsUnit,
+} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -57,19 +60,19 @@ export function AggregatesTab({traceMetric}: AggregatesTabProps) {
   const setSorts = useSetQueryParamsAggregateSortBys();
   const groupBys = useQueryParamsGroupBys();
 
-  const metricNameFilter = createMetricNameFilter(traceMetric.name);
+  const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
   const {attributes: numberTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'number',
-    enabled: Boolean(metricNameFilter),
-    query: metricNameFilter,
+    enabled: Boolean(traceMetricFilter),
+    query: traceMetricFilter,
   });
   const {attributes: stringTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'string',
-    enabled: Boolean(metricNameFilter),
-    query: metricNameFilter,
+    enabled: Boolean(traceMetricFilter),
+    query: traceMetricFilter,
   });
 
   const meta = result.meta ?? {};

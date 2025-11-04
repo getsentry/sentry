@@ -24,7 +24,6 @@ export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
 export type RPCQueryExtras = {
   caseInsensitive?: CaseInsensitive;
   disableAggregateExtrapolation?: string;
-  metricName?: string;
   samplingMode?: SamplingMode;
   traceMetric?: TraceMetric;
 };

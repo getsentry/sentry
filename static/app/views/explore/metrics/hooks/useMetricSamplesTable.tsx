@@ -13,7 +13,7 @@ import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuer
 import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
-  useQueryParamsSearch,
+  useQueryParamsQuery,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {
@@ -84,16 +84,8 @@ function useMetricSamplesTableImpl({
   queryExtras,
 }: UseMetricSamplesTableOptions): MetricSamplesTableResult {
   const {selection} = usePageFilters();
-  const searchQuery = useQueryParamsSearch();
+  const query = useQueryParamsQuery();
   const sortBys = useQueryParamsSortBys();
-
-  const query = useMemo(() => {
-    const baseQuery = `metric.name:${traceMetric.name}`;
-    if (!searchQuery.isEmpty()) {
-      return `${baseQuery} (${searchQuery.formatString()})`;
-    }
-    return baseQuery;
-  }, [traceMetric.name, searchQuery]);
 
   // Calculate adjusted datetime values with ingestion delay applied
   // This is memoized separately to prevent recalculating on every render
