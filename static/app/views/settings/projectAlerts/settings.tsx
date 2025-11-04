@@ -14,7 +14,7 @@ import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -32,7 +32,6 @@ function makeFetchProjectPluginsQueryKey(
 export default function ProjectAlertSettings() {
   const organization = useOrganization();
   const {canEditRule, project} = useProjectAlertsOutlet();
-  const queryClient = useQueryClient();
 
   const {
     data: pluginList = [],
@@ -47,27 +46,6 @@ export default function ProjectAlertSettings() {
   if (isPluginListError) {
     return <LoadingError onRetry={refetchPluginList} />;
   }
-
-  const updatePlugin = (plugin: Plugin, enabled: boolean) => {
-    setApiQueryData<Plugin[]>(
-      queryClient,
-      makeFetchProjectPluginsQueryKey(organization.slug, project.slug),
-      oldState =>
-        oldState?.map(p => {
-          if (p.id !== plugin.id) {
-            return p;
-          }
-          return {
-            ...plugin,
-            enabled,
-          };
-        })
-    );
-  };
-
-  const handleDisablePlugin = (plugin: Plugin) => {
-    updatePlugin(plugin, false);
-  };
 
   return (
     <Fragment>
@@ -141,12 +119,10 @@ export default function ProjectAlertSettings() {
 
           {canEditRule && (
             <PluginList
-              organization={organization}
               project={project}
               pluginList={(pluginList ?? []).filter(
                 p => p.type === 'notification' && p.hasConfiguration
               )}
-              onDisablePlugin={handleDisablePlugin}
             />
           )}
         </Fragment>

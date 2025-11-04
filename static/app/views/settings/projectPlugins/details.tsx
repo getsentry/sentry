@@ -27,9 +27,9 @@ import {useTogglePluginMutation} from './useTogglePluginMutation';
 export default function ProjectPluginDetails() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const {pluginId, projectId} = useParams<{pluginId: string; projectId: string}>();
-  const pluginDetailsQueryKey = `/projects/${organization.slug}/${projectId}/plugins/${pluginId}/`;
+  const {pluginId} = useParams<{pluginId: string; projectId: string}>();
   const pluginsQueryKey = `/projects/${organization.slug}/${project.slug}/plugins/`;
+  const pluginDetailsQueryKey = `/projects/${organization.slug}/${project.slug}/plugins/${pluginId}/`;
 
   const {
     data: plugins,

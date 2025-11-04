@@ -70,8 +70,10 @@ describe('ProjectPluginsContainer', () => {
     if (!pluginItem) {
       throw new Error('Plugin item not found');
     }
-    const button = within(pluginItem).getByRole('checkbox');
 
+    expect(enableRequest).not.toHaveBeenCalled();
+
+    const button = within(pluginItem).getByRole('checkbox');
     await userEvent.click(button);
 
     await waitFor(() => expect(enableRequest).toHaveBeenCalled());
@@ -91,8 +93,9 @@ describe('ProjectPluginsContainer', () => {
       throw new Error('Plugin item not found');
     }
 
-    const button = within(pluginItem).getByRole('checkbox');
+    expect(disableRequest).not.toHaveBeenCalled();
 
+    const button = within(pluginItem).getByRole('checkbox');
     await userEvent.click(button);
 
     await waitFor(() => expect(disableRequest).toHaveBeenCalled());

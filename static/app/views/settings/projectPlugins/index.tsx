@@ -16,7 +16,6 @@ import {useTogglePluginMutation} from './useTogglePluginMutation';
 export default function ProjectPluginsContainer() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-
   const pluginsQueryKey = `/projects/${organization.slug}/${project.slug}/plugins/`;
 
   const {

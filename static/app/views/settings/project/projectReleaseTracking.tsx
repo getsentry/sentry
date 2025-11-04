@@ -228,7 +228,7 @@ export default function ProjectReleaseTracking() {
         </PanelBody>
       </Panel>
 
-      <PluginList organization={organization} project={project} pluginList={pluginList} />
+      <PluginList project={project} pluginList={pluginList} />
 
       <Panel>
         <PanelHeader>{t('API')}</PanelHeader>
