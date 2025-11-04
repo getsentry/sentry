@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -22,12 +23,14 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
 
     @override_settings(
         OVERWATCH_WEBHOOK_SECRET="test-secret",
-        OVERWATCH_REGION_URLS={"us": "https://overwatch-us.example.com"},
+        OVERWATCH_REGION_URL="https://overwatch-us.example.com",
     )
     @patch("sentry.deletions.tasks.overwatch.get_local_region")
     @patch("sentry.deletions.tasks.overwatch.logger")
     @patch("sentry.deletions.tasks.overwatch.metrics")
-    def test_region_not_enabled(self, mock_metrics, mock_logger, mock_get_local_region) -> None:
+    def test_region_not_enabled(
+        self, mock_metrics: Any, mock_logger: Any, mock_get_local_region: Any
+    ) -> None:
         """Test that nothing happens when local region is not in enabled list"""
         mock_get_local_region.return_value = self.mock_region
 
@@ -48,7 +51,9 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
     @patch("sentry.deletions.tasks.overwatch.get_local_region")
     @patch("sentry.deletions.tasks.overwatch.logger")
     @patch("sentry.deletions.tasks.overwatch.metrics")
-    def test_no_webhook_secret(self, mock_metrics, mock_logger, mock_get_local_region) -> None:
+    def test_no_webhook_secret(
+        self, mock_metrics: Any, mock_logger: Any, mock_get_local_region: Any
+    ) -> None:
         """Test that a warning is logged when secret is not configured"""
         mock_get_local_region.return_value = self.mock_region
 
@@ -66,14 +71,14 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
 
     @override_settings(
         OVERWATCH_WEBHOOK_SECRET="test-secret",
-        OVERWATCH_REGION_URLS={"us": "https://overwatch-us.example.com"},
+        OVERWATCH_REGION_URL="https://overwatch-us.example.com",
     )
     @responses.activate
     @patch("sentry.deletions.tasks.overwatch.get_local_region")
     @patch("sentry.deletions.tasks.overwatch.logger")
     @patch("sentry.deletions.tasks.overwatch.metrics")
     def test_successful_notification(
-        self, mock_metrics, mock_logger, mock_get_local_region
+        self, mock_metrics: Any, mock_logger: Any, mock_get_local_region: Any
     ) -> None:
         """Test successful notification to the local region"""
         mock_get_local_region.return_value = self.mock_region
@@ -129,13 +134,15 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
 
     @override_settings(
         OVERWATCH_WEBHOOK_SECRET="test-secret",
-        OVERWATCH_REGION_URLS={},  # No URL configured for us region
+        OVERWATCH_REGION_URL=None,  # No URL configured
     )
     @patch("sentry.deletions.tasks.overwatch.get_local_region")
     @patch("sentry.deletions.tasks.overwatch.logger")
     @patch("sentry.deletions.tasks.overwatch.metrics")
-    def test_missing_region_url(self, mock_metrics, mock_logger, mock_get_local_region) -> None:
-        """Test handling when local region doesn't have a URL configured"""
+    def test_missing_region_url(
+        self, mock_metrics: Any, mock_logger: Any, mock_get_local_region: Any
+    ) -> None:
+        """Test handling when OVERWATCH_REGION_URL is not configured"""
         mock_get_local_region.return_value = self.mock_region
 
         with self.options({"overwatch.enabled-regions": ["us"]}):
@@ -159,13 +166,15 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
 
     @override_settings(
         OVERWATCH_WEBHOOK_SECRET="test-secret",
-        OVERWATCH_REGION_URLS={"us": "https://overwatch-us.example.com"},
+        OVERWATCH_REGION_URL="https://overwatch-us.example.com",
     )
     @responses.activate
     @patch("sentry.deletions.tasks.overwatch.get_local_region")
     @patch("sentry.deletions.tasks.overwatch.logger")
     @patch("sentry.deletions.tasks.overwatch.metrics")
-    def test_request_failure(self, mock_metrics, mock_logger, mock_get_local_region) -> None:
+    def test_request_failure(
+        self, mock_metrics: Any, mock_logger: Any, mock_get_local_region: Any
+    ) -> None:
         """Test handling of HTTP request failures"""
         mock_get_local_region.return_value = self.mock_region
 
@@ -194,11 +203,11 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
 
     @override_settings(
         OVERWATCH_WEBHOOK_SECRET="test-secret",
-        OVERWATCH_REGION_URLS={"us": "https://overwatch-us.example.com"},
+        OVERWATCH_REGION_URL="https://overwatch-us.example.com",
     )
     @responses.activate
     @patch("sentry.deletions.tasks.overwatch.get_local_region")
-    def test_request_timeout(self, mock_get_local_region) -> None:
+    def test_request_timeout(self, mock_get_local_region: Any) -> None:
         """Test that requests have a timeout configured"""
         import requests
 
@@ -218,11 +227,11 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
 
     @override_settings(
         OVERWATCH_WEBHOOK_SECRET="secret-with-special-chars-!@#$%",
-        OVERWATCH_REGION_URLS={"us": "https://overwatch-us.example.com"},
+        OVERWATCH_REGION_URL="https://overwatch-us.example.com",
     )
     @responses.activate
     @patch("sentry.deletions.tasks.overwatch.get_local_region")
-    def test_signature_with_special_characters(self, mock_get_local_region) -> None:
+    def test_signature_with_special_characters(self, mock_get_local_region: Any) -> None:
         """Test that signature is correctly generated with special characters in secret"""
         mock_get_local_region.return_value = self.mock_region
 
@@ -247,12 +256,14 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
 
     @override_settings(
         OVERWATCH_WEBHOOK_SECRET="test-secret",
-        OVERWATCH_REGION_URLS={"us": "https://overwatch-us.example.com"},
+        OVERWATCH_REGION_URL="https://overwatch-us.example.com",
     )
     @patch("sentry.deletions.tasks.overwatch.get_local_region")
     @patch("sentry.deletions.tasks.overwatch.logger")
     @patch("sentry.deletions.tasks.overwatch.metrics")
-    def test_get_local_region_error(self, mock_metrics, mock_logger, mock_get_local_region) -> None:
+    def test_get_local_region_error(
+        self, mock_metrics: Any, mock_logger: Any, mock_get_local_region: Any
+    ) -> None:
         """Test handling when get_local_region raises an exception"""
         mock_get_local_region.side_effect = Exception("Region not configured")
 
@@ -271,13 +282,15 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
 
     @override_settings(
         OVERWATCH_WEBHOOK_SECRET="test-secret",
-        OVERWATCH_REGION_URLS={"us": "https://overwatch-us.example.com"},
+        OVERWATCH_REGION_URL="https://overwatch-us.example.com",
     )
     @responses.activate
     @patch("sentry.deletions.tasks.overwatch.get_local_region")
     @patch("sentry.deletions.tasks.overwatch.logger")
     @patch("sentry.deletions.tasks.overwatch.metrics")
-    def test_different_region_name(self, mock_metrics, mock_logger, mock_get_local_region) -> None:
+    def test_different_region_name(
+        self, mock_metrics: Any, mock_logger: Any, mock_get_local_region: Any
+    ) -> None:
         """Test that the correct region name from get_local_region is used"""
         eu_region = MagicMock()
         eu_region.name = "eu"

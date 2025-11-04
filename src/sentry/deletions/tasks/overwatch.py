@@ -62,8 +62,8 @@ def notify_overwatch_organization_deleted(
         )
         return
 
-    # Get the Overwatch URL for this region
-    base_url = settings.OVERWATCH_REGION_URLS.get(region_name)
+    # Get the Overwatch URL
+    base_url = settings.OVERWATCH_REGION_URL
     if not base_url:
         logger.warning(
             "overwatch.organization_deleted.missing_region_url",

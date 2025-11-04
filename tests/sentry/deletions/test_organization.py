@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -401,7 +402,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
     @responses.activate
     @patch("sentry.deletions.tasks.overwatch.notify_overwatch_organization_deleted")
     def test_overwatch_notification_on_deletion(
-        self, mock_notify_overwatch_organization_deleted
+        self, mock_notify_overwatch_organization_deleted: Any
     ) -> None:
         """Test that Overwatch is notified when an organization is deleted"""
         org = self.create_organization(name="test")
