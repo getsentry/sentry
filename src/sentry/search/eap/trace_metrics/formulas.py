@@ -96,6 +96,7 @@ TRACE_METRICS_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=per_second,
         is_aggregate=True,
+        infer_search_type_from_arguments=False,
     ),
     "per_minute": FormulaDefinition(
         default_search_type="rate",
@@ -115,5 +116,6 @@ TRACE_METRICS_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=per_minute,
         is_aggregate=True,
+        infer_search_type_from_arguments=False,
     ),
 }
