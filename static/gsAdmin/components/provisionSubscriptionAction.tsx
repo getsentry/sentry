@@ -887,17 +887,45 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                               step={0.00000001}
                               min={0}
                               max={1}
-                              onChange={v =>
-                                this.setState(state => ({
-                                  ...state,
-                                  data: {
-                                    ...state.data,
+                              onChange={v => {
+                                // Normalize and validate CPE value before updating state
+                                const normalizedValue =
+                                  typeof v === 'number'
+                                    ? v
+                                    : parseFloat(String(v || '').trim());
+
+                                this.setState(state => {
+                                  const updates: Record<string, any> = {
                                     [`reservedCpe${capitalizedApiName}`]: v,
-                                    [`reserved${capitalizedApiName}`]:
-                                      RESERVED_BUDGET_QUOTA,
-                                  },
-                                }))
-                              }
+                                  };
+
+                                  if (
+                                    Number.isFinite(normalizedValue) &&
+                                    normalizedValue > 0
+                                  ) {
+                                    // Set reserved to RESERVED_BUDGET_QUOTA when CPE has a valid positive value
+                                    // This indicates the category should use budget-based billing
+                                    updates[`reserved${capitalizedApiName}`] =
+                                      RESERVED_BUDGET_QUOTA;
+                                  } else if (
+                                    state.data[`reserved${capitalizedApiName}`] ===
+                                    RESERVED_BUDGET_QUOTA
+                                  ) {
+                                    // Clear reserved field when CPE is invalid to maintain consistency
+                                    // and allow manual reserved quantity input
+                                    updates[`reserved${capitalizedApiName}`] = '';
+                                  }
+                                  // Otherwise, leave reserved unchanged
+
+                                  return {
+                                    ...state,
+                                    data: {
+                                      ...state.data,
+                                      ...updates,
+                                    },
+                                  };
+                                });
+                              }}
                               onBlur={() => {
                                 const currentValue = parseFloat(
                                   this.state.data[`reservedCpe${capitalizedApiName}`]
