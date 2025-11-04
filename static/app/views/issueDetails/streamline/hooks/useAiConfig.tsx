@@ -46,8 +46,7 @@ export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
   const orgNeedsGenAiAcknowledgement =
     !autofixSetupData?.setupAcknowledgement.orgHasAcknowledged &&
     (isSummaryEnabled || isAutofixEnabled) &&
-    areAiFeaturesAllowed &&
-    !organization.features.includes('gen-ai-consent-flow-removal');
+    areAiFeaturesAllowed;
 
   return {
     hasSummary,

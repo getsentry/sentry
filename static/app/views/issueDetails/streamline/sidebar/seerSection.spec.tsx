@@ -143,8 +143,8 @@ describe('SeerSection', () => {
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
           setupAcknowledgement: {
-            orgHasAcknowledged: false, // Has not consented
-            userHasAcknowledged: false,
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
           },
           integration: {ok: true, reason: null},
           githubWriteIntegration: {ok: true, repos: []},
