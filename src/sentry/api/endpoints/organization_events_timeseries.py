@@ -23,6 +23,10 @@ from sentry.api.endpoints.timeseries import (
 from sentry.api.utils import handle_query_errors
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
+from sentry.search.eap.trace_metrics.config import (
+    TraceMetricsSearchResolverConfig,
+    get_trace_metric_from_request,
+)
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
@@ -37,6 +41,7 @@ from sentry.snuba import (
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.utils.snuba import SnubaTSResult
 
@@ -207,6 +212,33 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             )
         )
 
+        def get_rpc_config():
+            if dataset not in RPC_DATASETS:
+                raise NotImplementedError
+
+            if dataset == TraceMetrics:
+                # tracemetrics uses aggregate conditions
+                metric_name, metric_type = get_trace_metric_from_request(request, organization)
+                return TraceMetricsSearchResolverConfig(
+                    metric_name=metric_name,
+                    metric_type=metric_type,
+                    auto_fields=False,
+                    use_aggregate_conditions=True,
+                    disable_aggregate_extrapolation=request.GET.get(
+                        "disableAggregateExtrapolation", "0"
+                    )
+                    == "1",
+                )
+
+            return SearchResolverConfig(
+                auto_fields=False,
+                use_aggregate_conditions=True,
+                disable_aggregate_extrapolation=request.GET.get(
+                    "disableAggregateExtrapolation", "0"
+                )
+                == "1",
+            )
+
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
             if len(raw_groupby) == 0:
@@ -223,14 +255,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     limit=top_events,
                     include_other=include_other,
                     referrer=referrer,
-                    config=SearchResolverConfig(
-                        auto_fields=False,
-                        use_aggregate_conditions=True,
-                        disable_aggregate_extrapolation=request.GET.get(
-                            "disableAggregateExtrapolation", "0"
-                        )
-                        == "1",
-                    ),
+                    config=get_rpc_config(),
                     sampling_mode=snuba_params.sampling_mode,
                     equations=self.get_equation_list(organization, request, param_name="groupBy"),
                 )
@@ -259,14 +284,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 query_string=query,
                 y_axes=query_columns,
                 referrer=referrer,
-                config=SearchResolverConfig(
-                    auto_fields=False,
-                    use_aggregate_conditions=True,
-                    disable_aggregate_extrapolation=request.GET.get(
-                        "disableAggregateExtrapolation", "0"
-                    )
-                    == "1",
-                ),
+                config=get_rpc_config(),
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
             )
