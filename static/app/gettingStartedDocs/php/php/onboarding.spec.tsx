@@ -4,9 +4,9 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './symfony';
+import docs from '.';
 
-describe('symfony onboarding docs', () => {
+describe('php onboarding docs', () => {
   it('renders doc correctly', () => {
     renderWithOnboardingLayout(docs);
 
@@ -17,7 +17,7 @@ describe('symfony onboarding docs', () => {
 
     // Renders install instructions
     expect(
-      screen.getByText(textWithMarkupMatcher(/composer require sentry\/sentry-symfony/))
+      screen.getByText(textWithMarkupMatcher(/composer require sentry\/sentry/))
     ).toBeInTheDocument();
   });
 
@@ -28,41 +28,36 @@ describe('symfony onboarding docs', () => {
 
     // Does not render config option
     expect(
-      screen.queryByText(textWithMarkupMatcher(/traces_sample_rate: 1\.0/))
+      screen.queryByText(textWithMarkupMatcher(/'traces_sample_rate' => 1\.0,/))
     ).not.toBeInTheDocument();
 
     // Does not render config option
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate: 1\.0/))
+      screen.queryByText(textWithMarkupMatcher(/'profiles_sample_rate' => 1\.0,/))
     ).not.toBeInTheDocument();
 
-    // Does not render the YAML configuration section at all
+    // Does not render logs config option
     expect(
-      screen.queryByText(textWithMarkupMatcher(/config\/packages\/sentry\.yaml/))
+      screen.queryByText(textWithMarkupMatcher(/'enable_logs' => true,/))
     ).not.toBeInTheDocument();
   });
 
-  it('renders with performance monitoring selected', () => {
+  it('renders with logs selected', () => {
     renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.ERROR_MONITORING,
-        ProductSolution.PERFORMANCE_MONITORING,
-      ],
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
     });
 
-    // Renders performance configuration
+    // Renders logs configuration
     expect(
-      screen.getByText(textWithMarkupMatcher(/traces_sample_rate: 1\.0/))
-    ).toBeInTheDocument();
-
-    // Renders the YAML configuration file instruction
-    expect(
-      screen.getByText(textWithMarkupMatcher(/config\/packages\/sentry\.yaml/))
+      screen.getByText(textWithMarkupMatcher(/'enable_logs' => true,/))
     ).toBeInTheDocument();
 
     // Ensure other config options are not rendered when not selected
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate: 1\.0/))
+      screen.queryByText(textWithMarkupMatcher(/'traces_sample_rate' => 1\.0,/))
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/'profiles_sample_rate' => 1\.0,/))
     ).not.toBeInTheDocument();
   });
 
@@ -72,20 +67,19 @@ describe('symfony onboarding docs', () => {
         ProductSolution.ERROR_MONITORING,
         ProductSolution.PERFORMANCE_MONITORING,
         ProductSolution.PROFILING,
+        ProductSolution.LOGS,
       ],
     });
 
     // Renders all configuration options
     expect(
-      screen.getByText(textWithMarkupMatcher(/traces_sample_rate: 1\.0/))
+      screen.getByText(textWithMarkupMatcher(/'traces_sample_rate' => 1\.0,/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/profiles_sample_rate: 1\.0/))
+      screen.getByText(textWithMarkupMatcher(/'profiles_sample_rate' => 1\.0,/))
     ).toBeInTheDocument();
-
-    // Renders the YAML configuration file instruction
     expect(
-      screen.getByText(textWithMarkupMatcher(/config\/packages\/sentry\.yaml/))
+      screen.getByText(textWithMarkupMatcher(/'enable_logs' => true,/))
     ).toBeInTheDocument();
   });
 });
