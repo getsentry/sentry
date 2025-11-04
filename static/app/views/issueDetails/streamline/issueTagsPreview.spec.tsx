@@ -119,17 +119,37 @@ describe('IssueTagsPreview', () => {
     expect(await screen.findByText('Other')).toBeInTheDocument();
     expect(await screen.findByText('<1%')).toBeInTheDocument();
   });
+
+  it('renders (empty) label when tag value name is blank', async () => {
+    const group = GroupFixture();
+    mockTagResponses(group.id, [2, 1], 3, ['', 'Chrome1']);
+    render(
+      <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+    );
+
+    expect(await screen.findByText('(empty)')).toBeInTheDocument();
+    expect(await screen.findByText('67%')).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('(empty)'));
+    expect(await screen.findByText('Chrome1')).toBeInTheDocument();
+    expect(await screen.findByText('33%')).toBeInTheDocument();
+  });
 });
 
-function mockTagResponses(groupId: string, topValues: number[], totalValues: number) {
+function mockTagResponses(
+  groupId: string,
+  topValues: number[],
+  totalValues: number,
+  valueNames?: string[]
+) {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/issues/${groupId}/tags/`,
     body: [
       {
         topValues: topValues.map((count, index) => ({
           count,
-          name: `Chrome${index}`,
-          value: `Chrome${index}`,
+          name: valueNames?.[index] ?? `Chrome${index}`,
+          value: valueNames?.[index] ?? `Chrome${index}`,
           lastSeen: '2018-11-16T22:52:24Z',
           key: 'browser',
           firstSeen: '2018-05-06T03:48:28.855Z',
@@ -145,8 +165,8 @@ function mockTagResponses(groupId: string, topValues: number[], totalValues: num
     url: `/organizations/org-slug/issues/${groupId}/tags/browser/values/`,
     body: topValues.map((count, index) => ({
       count,
-      name: `Chrome${index}`,
-      value: `Chrome${index}`,
+      name: valueNames?.[index] ?? `Chrome${index}`,
+      value: valueNames?.[index] ?? `Chrome${index}`,
       lastSeen: '2018-11-16T22:52:24Z',
       key: 'browser',
       firstSeen: '2018-05-06T03:48:28.855Z',
@@ -158,8 +178,8 @@ function mockTagResponses(groupId: string, topValues: number[], totalValues: num
     body: {
       topValues: topValues.map((count, index) => ({
         count,
-        name: `Chrome${index}`,
-        value: `Chrome${index}`,
+        name: valueNames?.[index] ?? `Chrome${index}`,
+        value: valueNames?.[index] ?? `Chrome${index}`,
         lastSeen: '2018-11-16T22:52:24Z',
         key: 'browser',
         firstSeen: '2018-05-06T03:48:28.855Z',
