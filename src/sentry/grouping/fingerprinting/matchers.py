@@ -33,6 +33,12 @@ MATCHERS = {
     "app": "app",
     "sdk": "sdk",
     "release": "release",
+    # thread fields
+    "thread.id": "thread_id",
+    "thread.name": "thread_name",
+    "thread.state": "thread_state",
+    "thread.crashed": "thread_crashed",
+    "thread.current": "thread_current",
 }
 
 
@@ -42,6 +48,9 @@ class FingerprintMatcher:
         key: str,  # The event attribute on which to match
         pattern: str,  # The value to match (or to not match, depending on `negated`)
         negated: bool = False,  # If True, match when `event[key]` does NOT equal `pattern`
+        range: (
+            str | None
+        ) = None,  # "up" (frames above), "down" (frames below), or None (this frame)
     ) -> None:
         if key.startswith("tags."):
             self.key = key
@@ -52,6 +61,7 @@ class FingerprintMatcher:
                 raise InvalidFingerprintingConfig("Unknown matcher '%s'" % key)
         self.pattern = pattern
         self.negated = negated
+        self.range = range
 
     @property
     def match_type(self) -> str:
@@ -69,6 +79,8 @@ class FingerprintMatcher:
             return "family"
         if self.key == "release":
             return "release"
+        if self.key.startswith("thread_"):
+            return "threads"
         return "frames"
 
     def matches(self, event_values: dict[str, Any]) -> bool:
@@ -121,6 +133,12 @@ class FingerprintMatcher:
         if self.key in ["level", "value"]:
             return glob_match(value, self.pattern, ignorecase=True)
 
+        if self.key in ["thread_crashed", "thread_current"]:
+            return value == bool_from_string(self.pattern)
+
+        if self.key in ["thread_id", "thread_name", "thread_state"]:
+            return glob_match(value, self.pattern, ignorecase=True)
+
         return glob_match(value, self.pattern, ignorecase=False)
 
     def _to_config_structure(self) -> list[str]:
@@ -140,8 +158,78 @@ class FingerprintMatcher:
 
     @property
     def text(self) -> str:
-        return '{}{}:"{}"'.format(
+        range_prefix = {"up": "^", "down": "v"}.get(self.range, "")
+        return '{}{}{}:"{}"'.format(
+            range_prefix,
             "!" if self.negated else "",
             self.key,
             self.pattern,
         )
+
+
+class CallerMatcher:
+    """
+    Wraps a FingerprintMatcher to match frames above (callers) in the stack.
+    Syntax: [ function:foo ] | matches when the caller is foo
+    """
+
+    def __init__(self, inner: FingerprintMatcher):
+        self.inner = inner
+
+    @property
+    def match_type(self) -> str:
+        # Caller matchers only work with frame-based matching
+        return "frames"
+
+    def matches(
+        self, event_values: dict[str, Any], frame_idx: int, all_frames: list[dict[str, Any]]
+    ) -> bool:
+        # Check if there's a frame above (caller)
+        if frame_idx + 1 < len(all_frames):
+            caller_frame = all_frames[frame_idx + 1]
+            return self.inner.matches(caller_frame)
+        return False
+
+    def _to_config_structure(self) -> list[str]:
+        inner_structure = self.inner._to_config_structure()
+        # Mark as caller matcher by wrapping key with brackets and pipe
+        inner_structure[0] = f"[{inner_structure[0]}]|"
+        return inner_structure
+
+    @property
+    def text(self) -> str:
+        return f"[ {self.inner.text} ] |"
+
+
+class CalleeMatcher:
+    """
+    Wraps a FingerprintMatcher to match frames below (callees) in the stack.
+    Syntax: | [ function:bar ] matches when the callee is bar
+    """
+
+    def __init__(self, inner: FingerprintMatcher):
+        self.inner = inner
+
+    @property
+    def match_type(self) -> str:
+        # Callee matchers only work with frame-based matching
+        return "frames"
+
+    def matches(
+        self, event_values: dict[str, Any], frame_idx: int, all_frames: list[dict[str, Any]]
+    ) -> bool:
+        # Check if there's a frame below (callee)
+        if frame_idx > 0:
+            callee_frame = all_frames[frame_idx - 1]
+            return self.inner.matches(callee_frame)
+        return False
+
+    def _to_config_structure(self) -> list[str]:
+        inner_structure = self.inner._to_config_structure()
+        # Mark as callee matcher by wrapping key with pipe and brackets
+        inner_structure[0] = f"|[{inner_structure[0]}]"
+        return inner_structure
+
+    @property
+    def text(self) -> str:
+        return f"| [ {self.inner.text} ]"

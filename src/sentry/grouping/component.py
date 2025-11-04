@@ -19,6 +19,8 @@ KNOWN_MAJOR_COMPONENT_NAMES = {
     "exception": "exception",
     "stacktrace": "stacktrace",
     "threads": "thread",
+    "thread_id": "thread-id",
+    "thread_name": "thread-name",
     "hostname": "hostname",
     "violation": "violation",
     "uri": "URL",
@@ -269,6 +271,14 @@ class NSErrorGroupingComponent(
     BaseGroupingComponent[NSErrorDomainGroupingComponent | NSErrorCodeGroupingComponent]
 ):
     id: str = "ns_error"
+
+
+class ThreadIdGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "thread_id"
+
+
+class ThreadNameGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "thread_name"
 
 
 FrameGroupingComponentChild = (
