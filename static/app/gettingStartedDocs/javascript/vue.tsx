@@ -23,7 +23,7 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
+import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
 import {t, tct} from 'sentry/locale';
 import {
   getJavascriptLogsOnboarding,
@@ -444,7 +444,7 @@ const docs: Docs<PlatformOptions> = {
   replayOnboarding,
   crashReportOnboarding,
   profilingOnboarding,
-  featureFlagOnboarding,
+  featureFlagOnboarding: featureFlag,
   logsOnboarding,
 };
 
