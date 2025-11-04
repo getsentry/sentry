@@ -50,6 +50,7 @@ type Props = {
   stackTraceNotFound: boolean;
   title: React.ReactNode;
   type: string;
+  activeThreadId?: number;
   isNestedSection?: boolean;
 };
 
@@ -68,6 +69,7 @@ export function TraceEventDataSection({
   hasAbsoluteFilePaths,
   hasAbsoluteAddresses,
   isNestedSection = false,
+  activeThreadId,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
@@ -244,7 +246,10 @@ export function TraceEventDataSection({
     });
 
     const stacktraceEntries = event.entries.filter(
-      entry => entry.type === EntryType.EXCEPTION || entry.type === EntryType.STACKTRACE
+      entry =>
+        entry.type === EntryType.EXCEPTION ||
+        entry.type === EntryType.STACKTRACE ||
+        entry.type === EntryType.THREADS
     );
 
     const rawStacktraces = stacktraceEntries.map(entry => {
@@ -274,12 +279,32 @@ export function TraceEventDataSection({
           rawTrace: true,
         });
       }
+      if (entry.type === EntryType.THREADS) {
+        // For threads, copy only the active thread's stacktrace
+        const activeThread = entry.data.values?.find(
+          thread => thread.id === activeThreadId
+        );
+        if (activeThread?.stacktrace) {
+          const threadInfo = activeThread.name ? `Thread: ${activeThread.name}\n` : '';
+          return (
+            threadInfo +
+            displayRawContent({
+              data: activeThread.stacktrace,
+              platform: activeThread.stacktrace.frames?.[0]?.platform ?? platform,
+              hasSimilarityEmbeddingsFeature: false,
+              includeLocation: true,
+              rawTrace: true,
+            })
+          );
+        }
+        return '';
+      }
       return '';
     });
 
     const formattedStacktrace = rawStacktraces.filter(Boolean).join('\n\n');
     copy(formattedStacktrace);
-  }, [event, platform, organization, projectSlug, isMobile, copy]);
+  }, [event, platform, organization, projectSlug, isMobile, copy, activeThreadId]);
 
   function getDisplayOptions(): Array<{
     label: string;

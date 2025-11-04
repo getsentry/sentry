@@ -337,6 +337,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
           title={hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
           platform={platform}
           isNestedSection={hasMoreThanOneThread}
+          activeThreadId={activeThread?.id}
           hasMinified={
             !!exception?.values?.find(value => value.rawStacktrace) ||
             !!activeThread?.rawStacktrace
