@@ -94,7 +94,7 @@ PREVENT_AI_CONFIG_DEFAULT = {
     "default_org_config": {
         "org_defaults": {
             "bug_prediction": {
-                "enabled": False,
+                "enabled": True,
                 "sensitivity": "medium",
                 "triggers": {
                     "on_command_phrase": True,
@@ -102,14 +102,14 @@ PREVENT_AI_CONFIG_DEFAULT = {
                 },
             },
             "test_generation": {
-                "enabled": False,
+                "enabled": True,
                 "triggers": {
                     "on_command_phrase": True,
                     "on_ready_for_review": False,
                 },
             },
             "vanilla": {
-                "enabled": False,
+                "enabled": True,
                 "sensitivity": "medium",
                 "triggers": {
                     "on_command_phrase": True,
