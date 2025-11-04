@@ -149,7 +149,7 @@ sentry_sdk.init(
     {
       type: StepType.VERIFY,
       description: t('Test that logs are working by sending some test logs:'),
-      content: [getVerifyLogsContent(params)],
+      content: [getVerifyMetricsContent(params)],
     },
   ],
 });
@@ -417,6 +417,27 @@ logger = logging.getLogger(__name__)
 logger.info('This will be sent to Sentry')
 logger.warning('User login failed')
 logger.error('Something went wrong')`,
+    },
+  ],
+});
+
+export const getVerifyMetricsContent = (params: DocsParams): ContentBlock => ({
+  type: 'conditional',
+  condition: params.isMetricsSelected,
+  content: [
+    {
+      type: 'text',
+      text: t('You can send metrics to Sentry using the Sentry metrics APIs:'),
+    },
+    {
+      type: 'code',
+      language: 'python',
+      code: `import sentry_sdk
+
+# Send metrics directly to Sentry
+metrics.count("checkout.failed", 1)
+metrics.gauge("queue.depth", 42)
+metrics.distribution("cart.amount_usd", 187.5)`,
     },
   ],
 });
