@@ -245,6 +245,8 @@ export function TraceEventDataSection({
       is_mobile: isMobile,
     });
 
+    const useMinified = displayOptions.includes('minified');
+
     const stacktraceEntries = event.entries.filter(
       entry =>
         entry.type === EntryType.EXCEPTION ||
@@ -256,16 +258,19 @@ export function TraceEventDataSection({
       if (entry.type === EntryType.EXCEPTION) {
         return (
           entry.data.values
-            ?.map(exception =>
-              displayRawContent({
-                data: exception.stacktrace,
-                platform: exception.stacktrace?.frames?.[0]?.platform ?? platform,
+            ?.map(exception => {
+              const stacktraceData = useMinified
+                ? (exception.rawStacktrace ?? exception.stacktrace)
+                : exception.stacktrace;
+              return displayRawContent({
+                data: stacktraceData,
+                platform: stacktraceData?.frames?.[0]?.platform ?? platform,
                 exception,
                 hasSimilarityEmbeddingsFeature: false,
                 includeLocation: true,
                 rawTrace: true,
-              })
-            )
+              });
+            })
             .filter(Boolean)
             .join('\n\n') ?? ''
         );
@@ -280,22 +285,26 @@ export function TraceEventDataSection({
         });
       }
       if (entry.type === EntryType.THREADS) {
-        // For threads, copy only the active thread's stacktrace
         const activeThread = entry.data.values?.find(
           thread => thread.id === activeThreadId
         );
-        if (activeThread?.stacktrace) {
-          const threadInfo = activeThread.name ? `Thread: ${activeThread.name}\n` : '';
-          return (
-            threadInfo +
-            displayRawContent({
-              data: activeThread.stacktrace,
-              platform: activeThread.stacktrace.frames?.[0]?.platform ?? platform,
-              hasSimilarityEmbeddingsFeature: false,
-              includeLocation: true,
-              rawTrace: true,
-            })
-          );
+        if (activeThread) {
+          const stacktraceData = useMinified
+            ? (activeThread.rawStacktrace ?? activeThread.stacktrace)
+            : activeThread.stacktrace;
+          if (stacktraceData) {
+            const threadInfo = activeThread.name ? `Thread: ${activeThread.name}\n` : '';
+            return (
+              threadInfo +
+              displayRawContent({
+                data: stacktraceData,
+                platform: stacktraceData.frames?.[0]?.platform ?? platform,
+                hasSimilarityEmbeddingsFeature: false,
+                includeLocation: true,
+                rawTrace: true,
+              })
+            );
+          }
         }
         return '';
       }
@@ -304,7 +313,16 @@ export function TraceEventDataSection({
 
     const formattedStacktrace = rawStacktraces.filter(Boolean).join('\n\n');
     copy(formattedStacktrace);
-  }, [event, platform, organization, projectSlug, isMobile, copy, activeThreadId]);
+  }, [
+    event,
+    platform,
+    organization,
+    projectSlug,
+    isMobile,
+    copy,
+    activeThreadId,
+    displayOptions,
+  ]);
 
   function getDisplayOptions(): Array<{
     label: string;
