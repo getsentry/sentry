@@ -105,7 +105,7 @@ const getDynamicParts = (params: Params): string[] => {
   return dynamicParts;
 };
 
-export function getSdkSetupSnippet(params: Params) {
+export const getSdkSetupSnippet = (params: Params) => {
   const config = buildSdkConfig({
     params,
     staticParts: [
@@ -125,7 +125,7 @@ Sentry.init({
   ${config}
 });
 `;
-}
+};
 
 export const installSnippetBlock: ContentBlock = {
   type: 'code',
@@ -148,29 +148,30 @@ export const installSnippetBlock: ContentBlock = {
   ],
 };
 
+const getVerifyJSSnippet = () => `
+myUndefinedFunction();`;
+
 export const verifySnippetBlock: ContentBlock[] = [
   {
     type: 'text',
     text: t(
-      'This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected.'
+      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
     ),
   },
   {
     type: 'code',
     tabs: [
       {
-        label: 'JavaScript',
+        label: 'Javascript',
         language: 'javascript',
-        code: `myUndefinedFunction();`,
+        code: getVerifyJSSnippet(),
       },
     ],
   },
 ];
 
-export function getAiRulesConfig(params: Params): OnboardingStep {
-  return getAIRulesForCodeEditorStep({
-    // ATTENTION: The rules defined here must match those in the documentation (see: https://github.com/getsentry/sentry-docs/blob/master/platform-includes/llm-rules-logs/javascript.mdx).
-    // If you make any changes, please update the docs accordingly.
+export const getAiRulesConfig = (params: Params): OnboardingStep =>
+  getAIRulesForCodeEditorStep({
     rules: `
 These examples should be used as guidance when configuring Sentry functionality within a project.
 
@@ -182,35 +183,48 @@ Use this in try catch blocks or areas where exceptions are expected
 # Tracing Examples
 
 Spans should be created for meaningful actions within an applications like button clicks, API calls, and function calls
-Ensure you are creating custom spans with meaningful names and operations
 Use the \`Sentry.startSpan\` function to create a span
 Child spans can exist within a parent span
 
 ## Custom Span instrumentation in component actions
 
+Name custom spans with meaningful names and operations.
+Attach attributes based on relevant information and metrics from the request
+
 \`\`\`javascript
-function handleTestButtonClick() {
-  // Create a transaction/span to measure performance
-  Sentry.startSpan(
-    {
-      op: "ui.click",
-      name: "Test Button Click",
-    },
-    (span) => {
-      const value = "some config";
-      const metric = "some metric";
+function TestComponent() {
+  const handleTestButtonClick = () => {
+    // Create a transaction/span to measure performance
+    Sentry.startSpan(
+      {
+        op: "ui.click",
+        name: "Test Button Click",
+      },
+      (span) => {
+        const value = "some config";
+        const metric = "some metric";
 
-      // Metrics can be added to the span
-      span.setAttribute("config", value);
-      span.setAttribute("metric", metric);
+        // Metrics can be added to the span
+        span.setAttribute("config", value);
+        span.setAttribute("metric", metric);
 
-      doSomething();
-    },
+        doSomething();
+      },
+    );
+  };
+
+  return (
+    <button type="button" onClick={handleTestButtonClick}>
+      Test Sentry
+    </button>
   );
 }
 \`\`\`
 
 ## Custom span instrumentation in API calls
+
+Name custom spans with meaningful names and operations.
+Attach attributes based on relevant information and metrics from the request
 
 \`\`\`javascript
 async function fetchUserData(userId) {
@@ -231,9 +245,9 @@ async function fetchUserData(userId) {
 # Logs
 
 Where logs are used, ensure Sentry is imported using \`import * as Sentry from "@sentry/browser"\`
-Enable logging in Sentry using \`Sentry.init({ enableLogs: true })\`
+Enable logging in Sentry using \`Sentry.init({ _experiments: { enableLogs: true } })\`
 Reference the logger using \`const { logger } = Sentry\`
-Sentry offers a consoleLoggingIntegration that can be used to log specific console error types automatically without instrumenting the individual logger calls
+Sentry offers a \`consoleLoggingIntegration\` that can be used to log specific console error types automatically without instrumenting the individual logger calls
 
 ## Configuration
 
@@ -245,7 +259,9 @@ import * as Sentry from "@sentry/browser";
 Sentry.init({
   dsn: "${params.dsn.public}",
 
-  enableLogs: true,
+  _experiments: {
+    enableLogs: true,
+  },
 });
 \`\`\`
 
@@ -288,54 +304,6 @@ logger.fatal("Database connection pool exhausted", {
 \`\`\`
 `,
   });
-}
-
-export function getLoaderScriptCallbacks(params: Params) {
-  return {
-    onOptionalToggleClick: (showOptionalConfig: boolean) => {
-      if (showOptionalConfig) {
-        trackAnalytics('onboarding.js_loader_npm_docs_optional_shown', {
-          organization: params.organization,
-          platform: params.platformKey,
-          project_id: params.project.id,
-        });
-      }
-    },
-    onPageLoad: () => {
-      trackAnalytics('onboarding.setup_loader_docs_rendered', {
-        organization: params.organization,
-        platform: params.platformKey,
-        project_id: params.project.id,
-      });
-    },
-    onPlatformOptionsChange: () => {
-      trackAnalytics('onboarding.js_loader_npm_docs_shown', {
-        organization: params.organization,
-        platform: params.platformKey,
-        project_id: params.project.id,
-      });
-    },
-    onProductSelectionChange: ({previousProducts, products}: any) => {
-      updateDynamicSdkLoaderOptions({
-        orgSlug: params.organization.slug,
-        projectSlug: params.project.slug,
-        products,
-        previousProducts,
-        projectKey: params.projectKeyId,
-        api: params.api,
-      });
-    },
-    onProductSelectionLoad: (products: any) => {
-      updateDynamicSdkLoaderOptions({
-        orgSlug: params.organization.slug,
-        projectSlug: params.project.slug,
-        products,
-        projectKey: params.projectKeyId,
-        api: params.api,
-      });
-    },
-  };
-}
 
 const getVerifyConfig = () => [
   {
