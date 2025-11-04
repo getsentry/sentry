@@ -7,7 +7,6 @@ import type {Color} from 'sentry/utils/theme';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 export interface TimelineItemProps {
-  icon: React.ReactNode;
   title: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
@@ -16,6 +15,7 @@ export interface TimelineItemProps {
     iconBorder: string | Color;
     title: string | Color;
   };
+  icon?: React.ReactNode;
   isActive?: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
@@ -45,15 +45,19 @@ function Item({
 
   return (
     <Row ref={ref} {...props}>
-      <IconWrapper
-        style={{
-          borderColor: isActive ? iconBorder : 'transparent',
-          color: iconColor,
-        }}
-        className="timeline-icon-wrapper"
-      >
-        {icon}
-      </IconWrapper>
+      {icon ? (
+        <IconWrapper
+          style={{
+            borderColor: isActive ? iconBorder : 'transparent',
+            color: iconColor,
+          }}
+          className="timeline-icon-wrapper"
+        >
+          {icon}
+        </IconWrapper>
+      ) : (
+        <IconWrapper className="timeline-icon-wrapper" />
+      )}
       <Title style={{color: titleColor}}>{title}</Title>
       {timestamp ?? <div />}
       <Spacer />

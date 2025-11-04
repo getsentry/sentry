@@ -1,18 +1,22 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import upperFirst from 'lodash/upperFirst';
 
-import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Flex} from '@sentry/scraps/layout';
+
+// import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
+// import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Timeline} from 'sentry/components/timeline';
+import {IconCircleFill} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AuditLog} from 'sentry/types/organization';
@@ -33,26 +37,26 @@ import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/componen
 
 import SubscriptionHeader from './subscriptionHeader';
 
-const avatarStyle = {
-  width: 36,
-  height: 36,
-  marginRight: space(1),
-};
+// const avatarStyle = {
+//   width: 36,
+//   height: 36,
+//   marginRight: space(1),
+// };
 
-function LogAvatar({logEntryUser}: {logEntryUser: User | undefined}) {
-  // Display Sentry's avatar for system or superuser-initiated events
-  if (
-    logEntryUser?.isSuperuser ||
-    (logEntryUser?.name === 'Sentry' && logEntryUser?.email === undefined)
-  ) {
-    return <SentryAvatar type="system" size={36} />;
-  }
-  // Display user's avatar for non-superusers-initiated events
-  if (logEntryUser !== undefined) {
-    return <UserAvatar style={avatarStyle} user={logEntryUser} />;
-  }
-  return null;
-}
+// function LogAvatar({logEntryUser}: {logEntryUser: User | undefined}) {
+//   // Display Sentry's avatar for system or superuser-initiated events
+//   if (
+//     logEntryUser?.isSuperuser ||
+//     (logEntryUser?.name === 'Sentry' && logEntryUser?.email === undefined)
+//   ) {
+//     return <SentryAvatar type="system" size={36} />;
+//   }
+//   // Display user's avatar for non-superusers-initiated events
+//   if (logEntryUser !== undefined) {
+//     return <UserAvatar style={avatarStyle} user={logEntryUser} />;
+//   }
+//   return null;
+// }
 
 function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
   if (logEntryUser?.isSuperuser) {
@@ -98,9 +102,10 @@ type Props = {
 function UsageLog({location, subscription}: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const theme = useTheme();
   const {
     data: auditLogs,
-    isPending,
+    // isPending,
     isError,
     getResponseHeader,
     refetch,
@@ -179,36 +184,37 @@ function UsageLog({location, subscription}: Props) {
         {isError ? (
           <LoadingError onRetry={refetch} />
         ) : (
-          <UsageTable
-            headers={[t('Action'), t('Time')]}
-            isEmpty={auditLogs?.rows && auditLogs?.rows.length === 0}
-            emptyMessage={t('No entries available')}
-            isLoading={isPending}
-          >
-            {auditLogs?.rows.map(entry => (
-              <Fragment key={entry.id}>
-                <UserInfo>
-                  <div>
-                    <LogAvatar logEntryUser={entry.actor} />
-                  </div>
-                  <NoteContainer>
+          <Timeline.Container>
+            {auditLogs?.rows.map((entry, index) => (
+              <Timeline.Item
+                key={entry.id}
+                colorConfig={{
+                  icon: index === 0 ? theme.active : theme.disabled,
+                  iconBorder: index === 0 ? theme.active : theme.disabled,
+                  title: theme.textColor,
+                }}
+                icon={<IconCircleFill />}
+                title={
+                  <Flex align="center" gap="xs">
+                    {formatEntryTitle(entry.event)}{' '}
                     <LogUsername logEntryUser={entry.actor} />
-                    <Title>{formatEntryTitle(entry.event)}</Title>
-                    <Note>{formatEntryMessage(entry.note)}</Note>
-                  </NoteContainer>
-                </UserInfo>
-
-                <TimestampInfo>
-                  <DateTime dateOnly date={entry.dateCreated} />
-                  <DateTime
-                    timeOnly
-                    format={shouldUse24Hours() ? 'HH:mm zz' : 'LT zz'}
-                    date={entry.dateCreated}
-                  />
-                </TimestampInfo>
-              </Fragment>
+                  </Flex>
+                }
+                timestamp={
+                  <TimestampInfo>
+                    <DateTime dateOnly date={entry.dateCreated} />
+                    <DateTime
+                      timeOnly
+                      format={shouldUse24Hours() ? 'HH:mm zz' : 'LT zz'}
+                      date={entry.dateCreated}
+                    />
+                  </TimestampInfo>
+                }
+              >
+                <Note>{formatEntryMessage(entry.note)}</Note>
+              </Timeline.Item>
             ))}
-          </UsageTable>
+          </Timeline.Container>
         )}
       </UsageLogContainer>
       <Pagination pageLinks={getResponseHeader?.('Link')} onCursor={handleCursor} />
@@ -236,13 +242,14 @@ function UsageLog({location, subscription}: Props) {
 export default withSubscription(UsageLog);
 export {UsageLog};
 
-const SentryAvatar = styled(ActivityAvatar)`
-  margin-right: ${space(1)};
-`;
+// const SentryAvatar = styled(ActivityAvatar)`
+//   margin-right: ${space(1)};
+// `;
 
 const Note = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   word-break: break-word;
+  font-weight: normal;
 `;
 
 const StaffNote = styled(Note)`
@@ -255,26 +262,6 @@ const UsageLogContainer = styled('div')`
   display: grid;
   grid-auto-flow: row;
   gap: ${space(3)};
-`;
-
-const UsageTable = styled(PanelTable)`
-  box-shadow: inset 0px -1px 0px ${p => p.theme.gray200};
-`;
-
-const UserInfo = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  min-width: 250px;
-  display: flex;
-`;
-
-const NoteContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
-
-const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const TimestampInfo = styled('div')`
