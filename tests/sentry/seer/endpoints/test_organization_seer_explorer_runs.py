@@ -1,8 +1,10 @@
+from datetime import datetime
 from unittest.mock import patch
 
-import orjson
+import requests
 from django.urls import reverse
 
+from sentry.seer.explorer.client_models import ExplorerRun
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cursors import Cursor
@@ -23,81 +25,115 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
             return_value=(True, None),
         )
         self.seer_access_patcher.start()
-        self.make_seer_request_patcher = patch(
-            "sentry.seer.endpoints.organization_seer_explorer_runs.make_signed_seer_api_request"
+        self.get_seer_runs_patcher = patch(
+            "sentry.seer.endpoints.organization_seer_explorer_runs.get_seer_runs"
         )
-        self.make_seer_request = self.make_seer_request_patcher.start()
+        self.get_seer_runs = self.get_seer_runs_patcher.start()
 
     def tearDown(self) -> None:
         self.seer_access_patcher.stop()
-        self.make_seer_request_patcher.stop()
+        self.get_seer_runs_patcher.stop()
         super().tearDown()
 
     def test_get_simple(self) -> None:
-        self.make_seer_request.return_value.status = 200
-        self.make_seer_request.return_value.json.return_value = {
-            "data": [{"run_id": "1"}, {"run_id": "2"}],
-        }
+        self.get_seer_runs.return_value = [
+            ExplorerRun(
+                run_id=1,
+                title="Run 1",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+            ),
+            ExplorerRun(
+                run_id=2,
+                title="Run 2",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+            ),
+        ]
         response = self.client.get(self.url)
         assert response.status_code == 200
-        assert response.json()["data"] == [{"run_id": "1"}, {"run_id": "2"}]
+        data = response.json()["data"]
+        assert len(data) == 2
+        assert data[0]["run_id"] == 1
+        assert data[1]["run_id"] == 2
 
-        self.make_seer_request.assert_called_once()
-        call_args = self.make_seer_request.call_args
-        assert call_args[0][1] == "/v1/automation/explorer/runs"
-        body_json = orjson.loads(call_args[0][2])
-        assert body_json == {
-            "organization_id": self.organization.id,
-            "user_id": self.user.id,
-            "limit": 101,  # Default per_page of 100 + 1 for has_more
-            "offset": 0,
-        }
+        self.get_seer_runs.assert_called_once()
+        call_args = self.get_seer_runs.call_args
+        assert call_args.kwargs["organization"] == self.organization
+        assert call_args.kwargs["user"].id == self.user.id
+        assert call_args.kwargs["limit"] == 101  # Default per_page of 100 + 1 for has_more
+        assert call_args.kwargs["offset"] == 0
 
     def test_get_cursor_pagination(self) -> None:
-        self.make_seer_request.return_value.status = 200
         # Mock seer response for offset 0, limit 3.
-        self.make_seer_request.return_value.json.return_value = {
-            "data": [{"run_id": "1"}, {"run_id": "2"}, {"run_id": "3"}],
-        }
+        self.get_seer_runs.return_value = [
+            ExplorerRun(
+                run_id=1,
+                title="Run 1",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+            ),
+            ExplorerRun(
+                run_id=2,
+                title="Run 2",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+            ),
+            ExplorerRun(
+                run_id=3,
+                title="Run 3",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+            ),
+        ]
         cursor = str(Cursor(0, 0))
         response = self.client.get(self.url + f"?per_page=2&cursor={cursor}")
         assert response.status_code == 200
-        assert response.json()["data"] == [{"run_id": "1"}, {"run_id": "2"}]
+        data = response.json()["data"]
+        assert len(data) == 2
+        assert data[0]["run_id"] == 1
+        assert data[1]["run_id"] == 2
         assert 'rel="next"; results="true"' in response.headers["Link"]
 
-        self.make_seer_request.assert_called_once()
-        call_args = self.make_seer_request.call_args
-        assert call_args[0][1] == "/v1/automation/explorer/runs"
-        body_json = orjson.loads(call_args[0][2])
-        assert body_json == {
-            "organization_id": self.organization.id,
-            "user_id": self.user.id,
-            "limit": 3,  # +1 for has_more
-            "offset": 0,
-        }
+        self.get_seer_runs.assert_called_once()
+        call_args = self.get_seer_runs.call_args
+        assert call_args.kwargs["organization"] == self.organization
+        assert call_args.kwargs["user"].id == self.user.id
+        assert call_args.kwargs["limit"] == 3  # +1 for has_more
+        assert call_args.kwargs["offset"] == 0
 
         # Second page - mock seer response for offset 2, limit 3.
-        self.make_seer_request.return_value.json.return_value = {
-            "data": [{"run_id": "3"}, {"run_id": "4"}],
-        }
+        self.get_seer_runs.return_value = [
+            ExplorerRun(
+                run_id=3,
+                title="Run 3",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+            ),
+            ExplorerRun(
+                run_id=4,
+                title="Run 4",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+            ),
+        ]
         cursor = str(Cursor(0, 2))
         response = self.client.get(self.url + f"?per_page=2&cursor={cursor}")
         assert response.status_code == 200
-        assert response.json()["data"] == [{"run_id": "3"}, {"run_id": "4"}]
+        data = response.json()["data"]
+        assert len(data) == 2
+        assert data[0]["run_id"] == 3
+        assert data[1]["run_id"] == 4
         assert 'rel="next"; results="false"' in response.headers["Link"]
 
-        call_args = self.make_seer_request.call_args
-        assert call_args[0][1] == "/v1/automation/explorer/runs"
-        body_json = orjson.loads(call_args[0][2])
-        assert body_json == {
-            "organization_id": self.organization.id,
-            "user_id": self.user.id,
-            "limit": 3,  # +1 for has_more
-            "offset": 2,
-        }
+        call_args = self.get_seer_runs.call_args
+        assert call_args.kwargs["organization"] == self.organization
+        assert call_args.kwargs["user"].id == self.user.id
+        assert call_args.kwargs["limit"] == 3  # +1 for has_more
+        assert call_args.kwargs["offset"] == 2
 
     def test_get_with_seer_error(self) -> None:
-        self.make_seer_request.return_value.status = 404
+        self.get_seer_runs.side_effect = requests.HTTPError("API Error")
         response = self.client.get(self.url)
         assert response.status_code == 500
 
