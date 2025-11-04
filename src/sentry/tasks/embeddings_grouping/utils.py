@@ -494,7 +494,7 @@ def send_group_and_stacktrace_to_seer(
     ):
         project = Project.objects.get_from_cache(id=project_id)
         model_version = get_grouping_model_version(project)
-        training_mode = False  # Backfill always uses production mode
+        training_mode = True
 
         return _make_seer_call(
             CreateGroupingRecordsRequest(
@@ -517,7 +517,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
 ):
     project = Project.objects.get_from_cache(id=project_id)
     model_version = get_grouping_model_version(project)
-    training_mode = False  # Backfill always uses production mode
+    training_mode = True
 
     def process_chunk(chunk_data, chunk_stacktrace):
         return _make_seer_call(

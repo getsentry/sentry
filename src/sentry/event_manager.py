@@ -1290,7 +1290,6 @@ def assign_event_to_group(
     if primary.existing_grouphash:
         group_info = handle_existing_grouphash(job, primary.existing_grouphash, primary.grouphashes)
         result = "found_primary"
-        # Send new model embedding request if needed for rollout
         maybe_send_seer_for_new_model_training(event, primary.existing_grouphash, primary.variants)
     # If we haven't, try again using the secondary config. (If there is no secondary config, or
     # we're out of the transition period, we'll get back the empty `NULL_GROUPHASH_INFO`.)
@@ -1303,7 +1302,6 @@ def assign_event_to_group(
                 job, secondary.existing_grouphash, all_grouphashes
             )
             result = "found_secondary"
-            # Send new model embedding request if needed for rollout
             maybe_send_seer_for_new_model_training(
                 event, secondary.existing_grouphash, primary.variants
             )
