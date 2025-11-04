@@ -79,12 +79,9 @@ const isPolling = (sessionData: SeerExplorerResponse['session'], runStarted: boo
     return false;
   }
 
-  if (!sessionData) {
-    return true;
-  }
-
-  // Poll if status is processing or if any message is loading
   return (
+    !sessionData ||
+    runStarted ||
     sessionData.status === 'processing' ||
     sessionData.blocks.some(message => message.loading)
   );
