@@ -1,12 +1,21 @@
 import type React from 'react';
 import {useMemo} from 'react';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
-import {IconAdd, IconCheckmark, IconClose, IconLightning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {
+  IconAdd,
+  IconCheckmark,
+  IconClose,
+  IconLightning,
+  IconWarning,
+} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
 import {DEFAULT_TIER, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {PlanTier, type Plan} from 'getsentry/types';
@@ -15,7 +24,9 @@ import {
   getPlanCategoryName,
   getSingularCategoryName,
   isByteCategory,
+  listDisplayNames,
 } from 'getsentry/utils/dataCategory';
+import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
 // TODO(isabella): Clean up repetitive code in this component
 
@@ -482,6 +493,32 @@ function PlanFeatures({
   planOptions: Plan[];
 }) {
   const currentTier = getAmPlanTier(activePlan.id);
+  const perPlanPriceDiffs: Record<
+    Plan['id'],
+    Partial<Record<DataCategory, number>> & {plan: Plan}
+  > = {};
+  planOptions.forEach((planOption, index) => {
+    const priorPlan = index > 0 ? planOptions[index - 1] : null;
+    if (priorPlan && priorPlan?.basePrice > 0) {
+      perPlanPriceDiffs[planOption.id] = {
+        plan: planOption,
+        ...Object.entries(planOption.planCategories ?? {}).reduce(
+          (acc, [category, eventBuckets]) => {
+            const priorPlanEventBuckets =
+              priorPlan?.planCategories[category as DataCategory];
+            const currentStartingPrice = eventBuckets[1]?.onDemandPrice ?? 0;
+            const priorStartingPrice = priorPlanEventBuckets?.[1]?.onDemandPrice ?? 0;
+            const perUnitPriceDiff = currentStartingPrice - priorStartingPrice;
+            if (perUnitPriceDiff > 0) {
+              acc[category as DataCategory] = perUnitPriceDiff;
+            }
+            return acc;
+          },
+          {} as Partial<Record<DataCategory, number>>
+        ),
+      };
+    }
+  });
 
   return (
     <Flex direction="column">
@@ -508,6 +545,45 @@ function PlanFeatures({
           </Flex>
         )}
       </Flex>
+      {Object.entries(perPlanPriceDiffs).map(([planId, info]) => {
+        const {plan, ...priceDiffs} = info;
+        const planName = plan.name;
+
+        return (
+          <Container padding="xl" key={planId}>
+            <Tooltip
+              title={tct('Starting at [priceDiffs] more on [planName]', {
+                priceDiffs: oxfordizeArray(
+                  Object.entries(priceDiffs).map(([category, diff]) => {
+                    const formattedDiff = displayUnitPrice({cents: diff});
+                    const formattedCategory = getSingularCategoryName({
+                      plan,
+                      category: category as DataCategory,
+                      capitalize: false,
+                    });
+                    return `+${formattedDiff} / ${formattedCategory}`;
+                  })
+                ),
+                planName,
+              })}
+            >
+              <Flex gap="sm">
+                <IconWarning size="sm" color="disabled" />
+                <Text size="sm" variant="muted">
+                  {tct('Excess usage for [categories] costs more on [planName]', {
+                    categories: listDisplayNames({
+                      plan,
+                      categories: Object.keys(priceDiffs) as DataCategory[],
+                      shouldTitleCase: true,
+                    }),
+                    planName,
+                  })}
+                </Text>
+              </Flex>
+            </Tooltip>
+          </Container>
+        );
+      })}
     </Flex>
   );
 }

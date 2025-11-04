@@ -24,7 +24,6 @@ function SetSpendCap({
   organization,
   subscription,
   checkoutTier,
-  billingConfig,
 }: StepProps) {
   const [isOpen, setIsOpen] = useState(true);
 
@@ -83,7 +82,6 @@ function SetSpendCap({
             organization={organization}
             subscription={subscription}
             checkoutTier={checkoutTier}
-            billingConfig={billingConfig}
           />
         }
       />

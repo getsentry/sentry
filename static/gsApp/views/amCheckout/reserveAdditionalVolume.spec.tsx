@@ -154,7 +154,6 @@ describe('ReserveAdditionalVolume', () => {
           selectedTier: '500',
         },
       ]);
-      expect(screen.getByText(/Excess usage for/)).toBeInTheDocument();
     });
 
     it('displays performance unit types with feature', async () => {
@@ -290,7 +289,6 @@ describe('ReserveAdditionalVolume', () => {
           selectedTier: '10,000,000',
         },
       ]);
-      expect(screen.getByText(/Excess usage for/)).toBeInTheDocument();
     });
 
     it('can hide sliders', async () => {
@@ -299,7 +297,6 @@ describe('ReserveAdditionalVolume', () => {
       expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
       await closeSection();
       expect(screen.queryByTestId('errors-volume-item')).not.toBeInTheDocument();
-      expect(screen.queryByText(/Excess usage for/)).not.toBeInTheDocument();
     });
 
     it('auto-shows sliders if customer has reserved volume above platform', () => {

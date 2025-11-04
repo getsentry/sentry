@@ -1,28 +1,19 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import debounce from 'lodash/debounce';
-
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Button} from 'sentry/components/core/button';
 import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
-import {IconAdd, IconSubtract, IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconAdd, IconSubtract} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
-import {PlanTier, type Plan} from 'getsentry/types';
+import {PlanTier} from 'getsentry/types';
 import {isAmPlan, isDeveloperPlan} from 'getsentry/utils/billing';
-import {getSingularCategoryName, listDisplayNames} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import VolumeSliders from 'getsentry/views/amCheckout/steps/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
-import {
-  displayUnitPrice,
-  formatPrice,
-  getBucket,
-  getShortInterval,
-} from 'getsentry/views/amCheckout/utils';
+import {formatPrice, getBucket, getShortInterval} from 'getsentry/views/amCheckout/utils';
 
 function ReserveAdditionalVolume({
   organization,
@@ -31,7 +22,6 @@ function ReserveAdditionalVolume({
   checkoutTier,
   formData,
   onUpdate,
-  billingConfig,
 }: Pick<
   StepProps,
   | 'organization'
@@ -40,7 +30,6 @@ function ReserveAdditionalVolume({
   | 'checkoutTier'
   | 'formData'
   | 'onUpdate'
-  | 'billingConfig'
 >) {
   // if the customer has any reserved volume above platform already, auto-show the sliders
   const [showSliders, setShowSliders] = useState<boolean>(
@@ -60,9 +49,6 @@ function ReserveAdditionalVolume({
               }).price > 0
           )
   );
-  const [perPlanPriceDiffs, setPerPlanPriceDiffs] = useState<
-    Record<Plan['id'], Partial<Record<DataCategory, number>> & {plan: Plan}>
-  >({});
   const reservedVolumeTotal = useMemo(() => {
     return Object.entries(formData.reserved).reduce((acc, [category, value]) => {
       const bucket = activePlan.planCategories?.[category as DataCategory]?.find(
@@ -100,56 +86,6 @@ function ReserveAdditionalVolume({
       ),
     [handleReservedChange]
   );
-
-  const planOptions = useMemo(() => {
-    // TODO(isabella): Remove this once Developer is surfaced; should this be bubbled up to the
-    // parent component now that we use it in multiple child components?
-    const plans = billingConfig.planList.filter(
-      ({contractInterval, id}) =>
-        contractInterval === activePlan.contractInterval && id !== billingConfig.freePlan
-    );
-
-    if (plans.length === 0) {
-      throw new Error('Cannot get plan options');
-    }
-
-    // sort by price ascending
-    return plans.sort((a, b) => a.basePrice - b.basePrice);
-  }, [billingConfig, activePlan.contractInterval]);
-
-  useEffect(() => {
-    setPerPlanPriceDiffs({});
-    planOptions.forEach((planOption, index) => {
-      const priorPlan = index > 0 ? planOptions[index - 1] : null;
-      if (priorPlan && priorPlan?.basePrice > 0) {
-        setPerPlanPriceDiffs(
-          (
-            prev: Record<Plan['id'], Partial<Record<DataCategory, number>> & {plan: Plan}>
-          ) => ({
-            ...prev,
-            [planOption.id]: {
-              plan: planOption,
-              ...Object.entries(planOption.planCategories ?? {}).reduce(
-                (acc, [category, eventBuckets]) => {
-                  const priorPlanEventBuckets =
-                    priorPlan?.planCategories[category as DataCategory];
-                  const currentStartingPrice = eventBuckets[1]?.onDemandPrice ?? 0;
-                  const priorStartingPrice =
-                    priorPlanEventBuckets?.[1]?.onDemandPrice ?? 0;
-                  const perUnitPriceDiff = currentStartingPrice - priorStartingPrice;
-                  if (perUnitPriceDiff > 0) {
-                    acc[category as DataCategory] = perUnitPriceDiff;
-                  }
-                  return acc;
-                },
-                {} as Partial<Record<DataCategory, number>>
-              ),
-            },
-          })
-        );
-      }
-    });
-  }, [planOptions, setPerPlanPriceDiffs]);
 
   return (
     <Stack borderTop="primary">
@@ -213,45 +149,6 @@ function ReserveAdditionalVolume({
             isNewCheckout
             onReservedChange={debouncedReservedChange}
           />
-          {Object.entries(perPlanPriceDiffs).map(([planId, info]) => {
-            const {plan, ...priceDiffs} = info;
-            const planName = plan.name;
-
-            return (
-              <Container padding="xl" key={planId}>
-                <Tooltip
-                  title={tct('Starting at [priceDiffs] more on [planName]', {
-                    priceDiffs: oxfordizeArray(
-                      Object.entries(priceDiffs).map(([category, diff]) => {
-                        const formattedDiff = displayUnitPrice({cents: diff});
-                        const formattedCategory = getSingularCategoryName({
-                          plan,
-                          category: category as DataCategory,
-                          capitalize: false,
-                        });
-                        return `+${formattedDiff} / ${formattedCategory}`;
-                      })
-                    ),
-                    planName,
-                  })}
-                >
-                  <Flex gap="sm">
-                    <IconWarning size="sm" color="disabled" />
-                    <Text size="sm" variant="muted">
-                      {tct('Excess usage for [categories] costs more on [planName]', {
-                        categories: listDisplayNames({
-                          plan,
-                          categories: Object.keys(priceDiffs) as DataCategory[],
-                          shouldTitleCase: true,
-                        }),
-                        planName,
-                      })}
-                    </Text>
-                  </Flex>
-                </Tooltip>
-              </Container>
-            );
-          })}
         </Stack>
       )}
     </Stack>
