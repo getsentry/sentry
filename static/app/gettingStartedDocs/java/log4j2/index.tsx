@@ -3,15 +3,13 @@ import {feedback} from 'sentry/gettingStartedDocs/java/java/feedback';
 
 import {logs} from './logs';
 import {onboarding} from './onboarding';
-import {profiling} from './profiling';
-import {sessionReplay} from './sessionReplay';
+import {platformOptions, type PlatformOptions} from './utils';
 
-const docs: Docs = {
-  onboarding,
+const docs: Docs<PlatformOptions> = {
+  platformOptions,
   feedbackOnboardingCrashApi: feedback,
   crashReportOnboarding: feedback,
-  profilingOnboarding: profiling,
-  replayOnboarding: sessionReplay,
+  onboarding,
   logsOnboarding: logs,
 };
 

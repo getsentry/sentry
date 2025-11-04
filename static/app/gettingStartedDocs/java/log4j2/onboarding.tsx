@@ -1,125 +1,18 @@
 import {ExternalLink, Link} from 'sentry/components/core/link';
-import type {
-  BasePlatformOptions,
-  Docs,
-  DocsParams,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
+import {
+  getGradleInstallSnippet,
+  getMavenInstallSnippet,
+  getOpenTelemetryRunSnippet,
+  getVerifyJavaSnippet,
+  getVerifyKotlinSnippet,
+  PackageManager,
+  YesNo,
+} from 'sentry/gettingStartedDocs/java/java/utils';
 import {t, tct} from 'sentry/locale';
-import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-export enum PackageManager {
-  GRADLE = 'gradle',
-  MAVEN = 'maven',
-}
-
-export enum YesNo {
-  YES = 'yes',
-  NO = 'no',
-}
-
-const platformOptions = {
-  packageManager: {
-    label: t('Package Manager'),
-    items: [
-      {
-        label: t('Gradle'),
-        value: PackageManager.GRADLE,
-      },
-      {
-        label: t('Maven'),
-        value: PackageManager.MAVEN,
-      },
-    ],
-  },
-  opentelemetry: {
-    label: t('OpenTelemetry'),
-    items: [
-      {
-        label: t('With OpenTelemetry'),
-        value: YesNo.YES,
-      },
-      {
-        label: t('Without OpenTelemetry'),
-        value: YesNo.NO,
-      },
-    ],
-  },
-} satisfies BasePlatformOptions;
-
-type PlatformOptions = typeof platformOptions;
-type Params = DocsParams<PlatformOptions>;
-
-const getGradleInstallSnippet = (params: Params) => `
-buildscript {
-  repositories {
-    mavenCentral()
-  }
-}
-
-plugins {
-  id "io.sentry.jvm.gradle" version "${getPackageVersion(
-    params,
-    'sentry.java.android.gradle-plugin',
-    '3.12.0'
-  )}"
-}
-
-sentry {
-  // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
-  // This enables source context, allowing you to see your source
-  // code as part of your stack traces in Sentry.
-  includeSourceContext = true
-
-  org = "${params.organization.slug}"
-  projectName = "${params.project.slug}"
-  authToken = System.getenv("SENTRY_AUTH_TOKEN")
-}`;
-
-const getMavenInstallSnippet = (params: Params) => `
-<build>
-  <plugins>
-    <plugin>
-      <groupId>io.sentry</groupId>
-      <artifactId>sentry-maven-plugin</artifactId>
-      <version>${getPackageVersion(params, 'sentry.java.maven-plugin', '0.0.4')}</version>
-      <extensions>true</extensions>
-      <configuration>
-        <!-- for showing output of sentry-cli -->
-        <debugSentryCli>true</debugSentryCli>
-
-        <org>${params.organization.slug}</org>
-
-        <project>${params.project.slug}</project>
-
-        <!-- in case you're self hosting, provide the URL here -->
-        <!--<url>http://localhost:8000/</url>-->
-
-        <!-- provide your auth token via SENTRY_AUTH_TOKEN environment variable -->
-        <authToken>\${env.SENTRY_AUTH_TOKEN}</authToken>
-      </configuration>
-      <executions>
-        <execution>
-          <goals>
-            <!--
-            Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
-            This enables source context, allowing you to see your source
-            code as part of your stack traces in Sentry.
-            -->
-            <goal>uploadSourceBundle</goal>
-          </goals>
-        </execution>
-      </executions>
-    </plugin>
-  </plugins>
-  ...
-</build>`;
-
-const getOpenTelemetryRunSnippet = (params: Params) => `
-SENTRY_PROPERTIES_FILE=sentry.properties java -javaagent:sentry-opentelemetry-agent-${getPackageVersion(params, 'sentry.java.opentelemetry-agent', '8.0.0')}.jar -jar your-application.jar
-`;
+import {type Params, type PlatformOptions} from './utils';
 
 const getSentryPropertiesSnippet = (params: Params) => `
 dsn=${params.dsn.public}
@@ -183,27 +76,7 @@ const getLogLevelSnippet = (params: Params) => `
         }
 />`;
 
-const getVerifyJavaSnippet = () => `
-import java.lang.Exception;
-import io.sentry.Sentry;
-
-try {
-  throw new Exception("This is a test.");
-} catch (Exception e) {
-  Sentry.captureException(e);
-}`;
-
-const getVerifyKotlinSnippet = () => `
-import java.lang.Exception
-import io.sentry.Sentry
-
-try {
-  throw Exception("This is a test.")
-} catch (e: Exception) {
-  Sentry.captureException(e)
-}`;
-
-const onboarding: OnboardingConfig<PlatformOptions> = {
+export const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
       'The [code:sentry-log4j2] library provides [log4jLink:Log4j 2.x] support for Sentry via an [appenderLink:Appender] that sends logged exceptions to Sentry.',
@@ -458,134 +331,3 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     },
   ],
 };
-
-const logsOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            "To start using logs, make sure your application uses Sentry Java SDK version [code:8.16.0] or higher. If you're on an older major version of the SDK, follow our [link:migration guide] to upgrade.",
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/java/guides/log4j2/migration/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'To enable logging, you need to initialize the SDK with the [code:logs.enabled] option in your [code:sentry.properties] file or when you call [code:Sentry.init].',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'sentry.properties',
-              language: 'properties',
-              code: `logs.enabled=true`,
-            },
-            {
-              label: 'Java',
-              language: 'java',
-              code: `import io.sentry.Sentry;
-
-Sentry.init(options -> {
-  options.setDsn("${params.dsn.public}");
-  options.getLogs().setEnabled(true);
-});`,
-            },
-            {
-              label: 'Kotlin',
-              language: 'kotlin',
-              code: `import io.sentry.Sentry
-
-Sentry.init { options ->
-  options.dsn = "${params.dsn.public}"
-  options.logs.enabled = true
-}`,
-            },
-          ],
-        },
-        {
-          type: 'text',
-          text: tct(
-            'You may also set [code:minimumLevel] in [code:log4j2.xml] to configure which log messages are sent to Sentry.',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'log4j2.xml',
-              language: 'xml',
-              code: `<Sentry
-  name="Sentry"
-  dsn="${params.dsn.public}"
-  minimumLevel="DEBUG"
-/>
-`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Once the handler is configured with logging enabled, any logs at or above the [code:minimumLevel] will be sent to Sentry.',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        {
-          type: 'code',
-          language: 'java',
-          code: `import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-public class SentryLog4jExample {
-  public static void main(String[] args) {
-    Logger logger = LogManager.getRootLogger();
-    logger.info("A %s test log message", "formatted");
-  }
-}`,
-        },
-      ],
-    },
-  ],
-};
-
-const docs: Docs<PlatformOptions> = {
-  platformOptions,
-  feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
-  crashReportOnboarding: feedbackOnboardingCrashApiJava,
-  onboarding,
-  logsOnboarding,
-};
-
-export default docs;

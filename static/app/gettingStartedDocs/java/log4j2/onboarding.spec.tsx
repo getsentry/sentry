@@ -2,9 +2,11 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs, {PackageManager} from './java';
+import {PackageManager} from 'sentry/gettingStartedDocs/java/java/utils';
 
-describe('java-spring-boot onboarding docs', () => {
+import docs from '.';
+
+describe('getting started with log4j2', () => {
   it('renders gradle docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
@@ -49,33 +51,6 @@ describe('java-spring-boot onboarding docs', () => {
       await screen.findByText(
         textWithMarkupMatcher(
           /<artifactId>sentry-maven-plugin<\/artifactId>\s*<version>3\.99\.9<\/version>/m
-        )
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('renders SBT docs correctly', async () => {
-    renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.java': {
-          version: '4.99.9',
-        },
-      },
-      selectedOptions: {
-        packageManager: PackageManager.SBT,
-      },
-    });
-
-    // Renders main headings
-    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-
-    // Renders Plugin version from registry
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher(
-          /libraryDependencies \+= "io\.sentry" % "sentry" % "4\.99\.9"/m
         )
       )
     ).toBeInTheDocument();
