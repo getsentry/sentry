@@ -97,8 +97,11 @@ function ManageReposPanel({
     );
   }
 
+  // If organization is an empty object (Record<string, never>), use default_org_config
   const orgConfig =
-    githubConfigData.organization?.[org.name] ?? githubConfigData.default_org_config;
+    githubConfigData.organization && Object.keys(githubConfigData.organization).length > 0
+      ? (githubConfigData.organization as PreventAIConfig)
+      : githubConfigData.default_org_config;
 
   const {doesUseOrgDefaults, repoConfig} = isEditingOrgDefaults
     ? {doesUseOrgDefaults: true, repoConfig: orgConfig.org_defaults}

@@ -32,15 +32,13 @@ describe('usePreventAIGitHubConfig', () => {
         schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
       },
       organization: {
-        'octo-corp': {
-          org_defaults: {
-            vanilla: {enabled: false, sensitivity: 'low'},
-            test_generation: {enabled: true, sensitivity: 'medium'},
-            bug_prediction: {enabled: true, sensitivity: 'high'},
-          },
-          repo_overrides: {},
-          schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
+        org_defaults: {
+          vanilla: {enabled: false, sensitivity: 'low'},
+          test_generation: {enabled: true, sensitivity: 'medium'},
+          bug_prediction: {enabled: true, sensitivity: 'high'},
         },
+        repo_overrides: {},
+        schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
       },
       schema_version: PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT,
     };
