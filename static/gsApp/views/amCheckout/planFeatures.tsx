@@ -1,10 +1,11 @@
 import type React from 'react';
 import {useMemo} from 'react';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   IconAdd,
   IconCheckmark,
@@ -41,6 +42,9 @@ type FeatureKey =
   | 'baa'
   | 'alerts'
   | 'dashboards'
+  | 'inbound-filters'
+  | 'gh-multi-org'
+  | 'relay'
   | DataCategory;
 
 type FeatureInfo = {
@@ -87,20 +91,38 @@ const EXPANSION_PACK_FEATURES: FeatureInfo[] = [
   {
     key: 'insights',
     displayStringMap: {
-      business: t('Insights (90 day lookback)'),
+      business: t('Insights (90 day lookback) + 13 month sampled retention'),
     },
     excludedTiers: [PlanTier.AM1],
   },
   {
     key: 'codeowners',
     displayStringMap: {
-      business: t('Code Owners support'),
+      business: t('Code Owners and ownership rules'),
+    },
+  },
+  {
+    key: 'inbound-filters',
+    displayStringMap: {
+      business: t('Advanced inbound filtering'),
+    },
+  },
+  {
+    key: 'gh-multi-org',
+    displayStringMap: {
+      business: t('Multi-org support for GitHub'),
     },
   },
   {
     key: 'baa',
     displayStringMap: {
-      business: t('BAA'),
+      business: t('Business Associate Agreement'),
+    },
+  },
+  {
+    key: 'relay',
+    displayStringMap: {
+      business: t('Relay'),
     },
   },
 ];
