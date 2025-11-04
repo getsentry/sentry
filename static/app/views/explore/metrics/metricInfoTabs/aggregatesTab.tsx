@@ -23,7 +23,11 @@ import {
   StyledTopResultsIndicator,
   TransparentLoadingMask,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
-import {createMetricNameFilter, getMetricsUnit} from 'sentry/views/explore/metrics/utils';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  createTraceMetricFilter,
+  getMetricsUnit,
+} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -35,17 +39,17 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 const RESULT_LIMIT = 50;
 
 interface AggregatesTabProps {
-  metricName: string;
+  traceMetric: TraceMetric;
 }
 
-export function AggregatesTab({metricName}: AggregatesTabProps) {
+export function AggregatesTab({traceMetric}: AggregatesTabProps) {
   const topEvents = useTopEvents();
   const tableRef = useRef<HTMLDivElement>(null);
 
   const {result, eventView, fields} = useMetricAggregatesTable({
-    enabled: Boolean(metricName),
+    enabled: Boolean(traceMetric.name),
     limit: RESULT_LIMIT,
-    metricName,
+    traceMetric,
   });
 
   const columns = useMemo(
@@ -56,19 +60,19 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
   const setSorts = useSetQueryParamsAggregateSortBys();
   const groupBys = useQueryParamsGroupBys();
 
-  const metricNameFilter = createMetricNameFilter(metricName);
+  const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
   const {attributes: numberTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'number',
-    enabled: Boolean(metricNameFilter),
-    query: metricNameFilter,
+    enabled: Boolean(traceMetricFilter),
+    query: traceMetricFilter,
   });
   const {attributes: stringTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'string',
-    enabled: Boolean(metricNameFilter),
-    query: metricNameFilter,
+    enabled: Boolean(traceMetricFilter),
+    query: traceMetricFilter,
   });
 
   const meta = result.meta ?? {};
