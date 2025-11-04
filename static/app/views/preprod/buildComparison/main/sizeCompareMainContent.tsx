@@ -15,7 +15,6 @@ import {
   IconChevron,
   IconCode,
   IconDownload,
-  IconFile,
   IconRefresh,
   IconSearch,
 } from 'sentry/icons';
@@ -112,7 +111,7 @@ export function SizeCompareMainContent() {
       return [];
     }
 
-    const {diff_items, size_metric_diff_item} = comparisonDataQuery.data;
+    const {size_metric_diff_item} = comparisonDataQuery.data;
 
     // Calculate summary data
     const installSizeDiff =
@@ -123,11 +122,6 @@ export function SizeCompareMainContent() {
       installSizeDiff / size_metric_diff_item.base_install_size;
     const downloadSizePercentage =
       downloadSizeDiff / size_metric_diff_item.base_download_size;
-
-    const largestChange = diff_items.sort(
-      (a, b) => Math.abs(b.size_diff) - Math.abs(a.size_diff)
-    )[0];
-
     // Calculate metrics
     const metrics = [
       {
@@ -149,13 +143,6 @@ export function SizeCompareMainContent() {
           size_metric_diff_item.base_download_size,
         percentageChange: downloadSizePercentage,
         icon: IconDownload,
-      },
-      {
-        title: t('Largest change'),
-        head: largestChange ? largestChange?.head_size || 0 : 0,
-        base: largestChange ? largestChange?.base_size || 0 : 0,
-        diff: largestChange ? largestChange?.size_diff || 0 : 0,
-        icon: IconFile,
       },
     ];
 
