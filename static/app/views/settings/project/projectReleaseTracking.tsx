@@ -26,13 +26,11 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
-import withPlugins from 'sentry/utils/withPlugins';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   organization: Organization;
-  plugins: {loading: boolean; plugins: Plugin[]};
   project: Project;
 };
 
@@ -49,13 +47,13 @@ const placeholderData = {
 };
 
 function getReleaseTokenQueryKey(
-  organization: Organization,
-  projectId: string
+  organizationSlug: string,
+  projectSlug: string
 ): ApiQueryKey {
-  return [`/projects/${organization.slug}/${projectId}/releases/token/`];
+  return [`/projects/${organizationSlug}/${projectSlug}/releases/token/`];
 }
 
-function ProjectReleaseTracking({organization, project, plugins}: Props) {
+export default function ProjectReleaseTracking({organization, project}: Props) {
   const api = useApi({persistInFlight: true});
   const {projectId} = useParams<{projectId: string}>();
   const queryClient = useQueryClient();
@@ -65,10 +63,17 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
     isFetching,
     isError,
     error,
-  } = useApiQuery<TokenResponse>(getReleaseTokenQueryKey(organization, projectId), {
+  } = useApiQuery<TokenResponse>(getReleaseTokenQueryKey(organization.slug, projectId), {
     staleTime: 0,
     retry: false,
   });
+
+  const {data: fetchedPlugins = [], isPending: isPluginsLoading} = useApiQuery<Plugin[]>(
+    [`/projects/${organization.slug}/${projectId}/plugins/`],
+    {
+      staleTime: 0,
+    }
+  );
 
   const handleRegenerateToken = () => {
     api.request(`/projects/${organization.slug}/${projectId}/releases/token/`, {
@@ -77,7 +82,7 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
       success: data => {
         setApiQueryData<TokenResponse>(
           queryClient,
-          getReleaseTokenQueryKey(organization, projectId),
+          getReleaseTokenQueryKey(organization.slug, projectId),
           data
         );
         addSuccessMessage(
@@ -111,11 +116,11 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
   }
 
   // Using isFetching instead of isPending to avoid showing loading indicator when 403
-  if (isFetching || plugins.loading) {
+  if (isFetching || isPluginsLoading) {
     return <LoadingIndicator />;
   }
 
-  const pluginList = plugins.plugins.filter(
+  const pluginList = fetchedPlugins.filter(
     (p: Plugin) => p.type === 'release-tracking' && p.hasConfiguration
   );
 
@@ -225,7 +230,7 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
         </PanelBody>
       </Panel>
 
-      <PluginList organization={organization} project={project} pluginList={pluginList} />
+      <PluginList project={project} pluginList={pluginList} />
 
       <Panel>
         <PanelHeader>{t('API')}</PanelHeader>
@@ -246,8 +251,3 @@ function ProjectReleaseTracking({organization, project, plugins}: Props) {
     </div>
   );
 }
-
-export default withPlugins(ProjectReleaseTracking);
-
-// Export for tests
-export {ProjectReleaseTracking};
