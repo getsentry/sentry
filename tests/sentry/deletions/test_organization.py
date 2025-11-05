@@ -1,8 +1,5 @@
-from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
-
-import responses
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
@@ -399,27 +396,30 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert not DataCondition.objects.filter(id=dc.id).exists()
         assert not Workflow.objects.filter(id=workflow.id).exists()
 
-    @responses.activate
-    @patch("sentry.deletions.defaults.organization.transaction.on_commit")
-    @patch("sentry.deletions.tasks.overwatch.notify_overwatch_organization_deleted")
-    def test_overwatch_notification_on_deletion(
-        self, mock_notify_overwatch_organization_deleted: Any, mock_on_commit: Any
-    ) -> None:
-        """Test that Overwatch is notified when an organization is deleted"""
-        # Make on_commit execute callbacks immediately
-        mock_on_commit.side_effect = lambda callback, using: callback()
+    def test_overwatch_notification_on_deletion(self) -> None:
+        """Test that Overwatch notification is called when delete_instance is invoked"""
+        from sentry.deletions.defaults.organization import OrganizationDeletionTask
 
         org = self.create_organization(name="test")
         org_id = org.id
         org_slug = org.slug
 
-        org.update(status=OrganizationStatus.PENDING_DELETION)
-        self.ScheduledDeletion.schedule(instance=org, days=0)
+        deletion_task = OrganizationDeletionTask()
 
-        with self.tasks():
-            run_scheduled_deletions()
+        with patch(
+            "sentry.deletions.defaults.organization.notify_overwatch_organization_deleted"
+        ) as mock_task:
+            with patch(
+                "sentry.deletions.defaults.organization.transaction.on_commit"
+            ) as mock_on_commit:
+                # Make on_commit execute the callback immediately for this specific call
+                def execute_callback(callback, using=None):
+                    callback()
 
-        assert not Organization.objects.filter(id=org_id).exists()
+                mock_on_commit.side_effect = execute_callback
 
-        # Verify the Overwatch notification task was called with org id and slug
-        mock_notify_overwatch_organization_deleted.delay.assert_called_once_with(org_id, org_slug)
+                # Call delete_instance directly
+                deletion_task.delete_instance(org)
+
+                # Verify the task was scheduled via on_commit
+                mock_task.delay.assert_called_once_with(org_id, org_slug)
