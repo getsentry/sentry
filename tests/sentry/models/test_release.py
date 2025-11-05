@@ -1406,7 +1406,7 @@ class ClearCommitsTestCase(TestCase):
         """
         Test that clear_commits works correctly when a release has commits
         from multiple repositories, which creates multiple ReleaseHeadCommit objects.
-        
+
         This test would fail on master with .get() raising MultipleObjectsReturned,
         but passes with the fix using .filter().
         """
@@ -1433,7 +1433,7 @@ class ClearCommitsTestCase(TestCase):
 
         release = Release.objects.create(version="multi-repo-release", organization=org)
         release.add_project(project)
-        
+
         # Set commits from both repositories
         release.set_commits(
             [
@@ -1443,9 +1443,7 @@ class ClearCommitsTestCase(TestCase):
         )
 
         # Verify we have multiple ReleaseHeadCommit objects for this release
-        head_commits = ReleaseHeadCommit.objects.filter(
-            organization_id=org.id, release=release
-        )
+        head_commits = ReleaseHeadCommit.objects.filter(organization_id=org.id, release=release)
         assert head_commits.count() == 2
         assert ReleaseHeadCommit.objects.filter(
             release_id=release.id, commit_id=commit1.id, repository_id=repo1.id
@@ -1463,8 +1461,7 @@ class ClearCommitsTestCase(TestCase):
 
         # Verify all ReleaseHeadCommit objects are deleted
         assert (
-            ReleaseHeadCommit.objects.filter(organization_id=org.id, release=release).count()
-            == 0
+            ReleaseHeadCommit.objects.filter(organization_id=org.id, release=release).count() == 0
         )
 
         # Verify all ReleaseCommit objects are deleted
