@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.grouptype import FeedbackGroup, PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
@@ -26,8 +26,9 @@ from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import (
+    EventDetectors,
     associate_new_group_with_detector,
-    get_detector_by_event,
+    get_detectors_by_event,
     get_detectors_by_groupevents_bulk,
     process_detectors,
 )
@@ -819,7 +820,7 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
         }
 
 
-class TestGetDetectorByEvent(TestCase):
+class TestGetDetectorsByEvent(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
@@ -844,24 +845,33 @@ class TestGetDetectorByEvent(TestCase):
         )
 
     def test_with_occurrence(self) -> None:
+        self.group.update(type=MetricIssue.type_id)
         group_event = GroupEvent.from_event(self.event, self.group)
         group_event.occurrence = self.occurrence
 
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
-        result = get_detector_by_event(event_data)
+        result = get_detectors_by_event(event_data)
 
-        assert result == self.detector
+        assert result == EventDetectors(
+            event_type_detector=self.detector, issue_stream_detector=self.issue_stream_detector
+        )
+        assert result.get_preferred_detector() == self.detector
 
     def test_without_occurrence(self) -> None:
+        self.group.update(type=ErrorGroupType.type_id)
         group_event = GroupEvent.from_event(self.event, self.group)
         group_event.occurrence = None
 
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
-        result = get_detector_by_event(event_data)
+        result = get_detectors_by_event(event_data)
 
-        assert result == self.error_detector
+        assert result == EventDetectors(
+            event_type_detector=self.error_detector,
+            issue_stream_detector=self.issue_stream_detector,
+        )
+        assert result.get_preferred_detector() == self.error_detector
 
     def test_activity_not_supported(self) -> None:
         activity = Activity.objects.create(
@@ -874,9 +884,9 @@ class TestGetDetectorByEvent(TestCase):
         event_data = WorkflowEventData(event=activity, group=self.group)
 
         with pytest.raises(TypeError):
-            get_detector_by_event(event_data)
+            get_detectors_by_event(event_data)
 
-    def test_no_detector_id(self) -> None:
+    def test_issue_stream_detector_fallback(self) -> None:
         # defaults to issue stream detector
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
@@ -894,40 +904,17 @@ class TestGetDetectorByEvent(TestCase):
             culprit="",
         )
 
+        self.group.update(type=MetricIssue.type_id)
         group_event = GroupEvent.from_event(self.event, self.group)
         group_event.occurrence = occurrence
 
         event_data = WorkflowEventData(event=group_event, group=self.group)
 
-        detector = get_detector_by_event(event_data)
-        assert detector == self.issue_stream_detector
-
-    def test_defaults_to_error_detector(self) -> None:
-        occurrence = IssueOccurrence(
-            id=uuid.uuid4().hex,
-            project_id=self.project.id,
-            event_id="asdf",
-            fingerprint=["asdf"],
-            issue_title="title",
-            subtitle="subtitle",
-            resource_id=None,
-            evidence_data={},
-            evidence_display=[],
-            type=PerformanceNPlusOneAPICallsGroupType,
-            detection_time=timezone.now(),
-            level="error",
-            culprit="",
+        result = get_detectors_by_event(event_data)
+        assert result == EventDetectors(
+            event_type_detector=None, issue_stream_detector=self.issue_stream_detector
         )
-
-        group_event = GroupEvent.from_event(self.event, self.group)
-        self.group.update(type=PerformanceNPlusOneAPICallsGroupType.type_id)
-        group_event.occurrence = occurrence
-
-        event_data = WorkflowEventData(event=group_event, group=self.group)
-
-        result = get_detector_by_event(event_data)
-
-        assert result == self.error_detector
+        assert result.get_preferred_detector() == self.issue_stream_detector
 
 
 class TestGetDetectorsByGroupEventsBulk(TestCase):
@@ -1015,7 +1002,7 @@ class TestGetDetectorsByGroupEventsBulk(TestCase):
             assert result == {
                 group_event2.event_id: self.issue_stream_detector,
             }
-            mock_metrics.incr.assert_called_with("workflow_engine.detectors.error", amount=1)
+            mock_metrics.incr.assert_called_with("workflow_engine.detectors.error", amount=2)
 
 
 class TestAssociateNewGroupWithDetector(TestCase):

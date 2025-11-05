@@ -40,6 +40,7 @@ from sentry.workflow_engine.processors.workflow import (
 )
 from sentry.workflow_engine.tasks.workflows import process_workflows_event
 from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
@@ -60,6 +61,12 @@ class TestProcessWorkflows(BaseWorkflowTest):
                 workflow_triggers=self.create_data_condition_group(),
                 detector_type=ErrorGroupType.slug,
             )
+        )
+        self.issue_stream_detector = self.create_detector(
+            project=self.project, type=IssueStreamGroupType.slug
+        )
+        self.create_detector_workflow(
+            detector=self.issue_stream_detector, workflow=self.error_workflow
         )
 
         self.group, self.event, self.group_event = self.create_group_event()
@@ -212,11 +219,12 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert triggered_workflows == {self.error_workflow, matching_env_workflow}
 
     def test_issue_occurrence_event(self) -> None:
+        # picks up the issue stream detector which is connected to error workflows
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group_event.occurrence = issue_occurrence
 
         triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert triggered_workflows == {self.workflow}
+        assert triggered_workflows == {self.workflow, self.error_workflow}
 
     def test_regressed_event(self) -> None:
         dcg = self.create_data_condition_group()
@@ -238,22 +246,13 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
-    def test_no_detector(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
+    def test_defaults_to_issue_stream_detector(
+        self, mock_logger: MagicMock, mock_incr: MagicMock
+    ) -> None:
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
 
         triggered_workflows = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-
-        assert not triggered_workflows
-
-        mock_incr.assert_called_once_with("workflow_engine.detectors.error")
-        mock_logger.exception.assert_called_once_with(
-            "Detector not found for event",
-            extra={
-                "event_id": self.event.event_id,
-                "group_id": self.group_event.group_id,
-                "detector_id": None,
-            },
-        )
+        assert triggered_workflows == {self.error_workflow}
 
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.workflow.logger")
@@ -275,7 +274,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
     def test_no_metrics_triggered(self, mock_logger: MagicMock, mock_incr: MagicMock) -> None:
-        self.event_data.event.project_id = 0
+        self.issue_stream_detector.delete()
 
         process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         mock_incr.assert_called_once_with("workflow_engine.detectors.error")
@@ -334,6 +333,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert mock_trigger_action.call_count == 3
 
     def test_defaults_to_error_workflows(self) -> None:
+        # defaults to issue stream detector which is connected to error workflows
         issue_occurrence = self.build_occurrence()
         self.group_event.occurrence = issue_occurrence
         self.group.update(type=issue_occurrence.type.type_id)
@@ -350,6 +350,10 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             self.detector_workflow,
             self.workflow_triggers,
         ) = self.create_detector_and_workflow(organization=self.organization)
+
+        self.issue_stream_detector = self.create_detector(
+            project=self.project, type=IssueStreamGroupType.slug
+        )
 
         occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group, self.event, self.group_event = self.create_group_event(
@@ -536,6 +540,10 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
             self.detector_workflow,
             self.workflow_triggers,
         ) = self.create_detector_and_workflow()
+
+        self.issue_stream_detector = self.create_detector(
+            project=self.project, type=IssueStreamGroupType.slug
+        )
 
         occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group, self.event, self.group_event = self.create_group_event(
@@ -735,6 +743,10 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             self.detector_workflow,
             self.workflow_triggers,
         ) = self.create_detector_and_workflow()
+
+        self.issue_stream_detector = self.create_detector(
+            project=self.project, type=IssueStreamGroupType.slug
+        )
 
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
 

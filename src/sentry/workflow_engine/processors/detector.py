@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from typing import NamedTuple
 
 import sentry_sdk
@@ -102,29 +103,54 @@ def ensure_default_detectors(project: Project) -> tuple[Detector, Detector]:
     )
 
 
-def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
+@dataclass
+class EventDetectors:
+    event_type_detector: Detector | None
+    issue_stream_detector: Detector
+
+    def get_preferred_detector(self) -> Detector:
+        return self.event_type_detector if self.event_type_detector else self.issue_stream_detector
+
+    def get_all_detectors(self) -> list[Detector]:
+        detectors = [self.event_type_detector, self.issue_stream_detector]
+        return [detector for detector in detectors if detector is not None]
+
+
+def get_detectors_by_event(event_data: WorkflowEventData) -> EventDetectors:
     evt = event_data.event
 
     if not isinstance(evt, GroupEvent):
         raise TypeError(
-            "Can only use `get_detector_by_event` for a new event, Activity updates are not supported"
+            "Can only use `get_detectors_by_event` for a new event, Activity updates are not supported"
         )
 
     issue_occurrence = evt.occurrence
 
-    detector: Detector | None = None
+    event_type_detector: Detector | None = None
 
-    if issue_occurrence is None or evt.group.issue_type.detector_settings is None:
-        # if there are no detector settings, default to the error detector
-        detector = Detector.get_error_detector_for_project(evt.project_id)
-    elif issue_occurrence and (detector_id := issue_occurrence.evidence_data.get("detector_id")):
-        detector = Detector.objects.filter(id=detector_id).first()
-
-    if detector is not None:
-        return detector
+    if not issue_occurrence and evt.group.issue_type == ErrorGroupType:
+        try:
+            event_type_detector = Detector.get_error_detector_for_project(evt.project_id)
+        except Detector.DoesNotExist:
+            event_type_detector = None
+            logger.exception(
+                "Error detector not found for event",
+                extra={
+                    "event_id": evt.event_id,
+                    "group_id": evt.group_id,
+                    "project_id": evt.project_id,
+                },
+            )
+    elif (
+        issue_occurrence
+        and (detector_id := issue_occurrence.evidence_data.get("detector_id")) is not None
+    ):
+        event_type_detector = Detector.objects.filter(id=detector_id).first()
 
     try:
-        return Detector.objects.get(type=IssueStreamGroupType.slug, project_id=evt.project_id)
+        issue_stream_detector = Detector.objects.get(
+            type=IssueStreamGroupType.slug, project_id=evt.project_id
+        )
     except Detector.DoesNotExist:
         metrics.incr("workflow_engine.detectors.error")
         detector_id = (
@@ -140,6 +166,8 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
             },
         )
         raise Detector.DoesNotExist("Detector not found for event")
+
+    return EventDetectors(event_type_detector, issue_stream_detector)
 
 
 class _SplitEvents(NamedTuple):
