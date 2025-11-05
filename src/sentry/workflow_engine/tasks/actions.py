@@ -23,7 +23,7 @@ logger = log_context.get_logger(__name__)
 
 
 def build_trigger_action_task_params(
-    action: Action, detector: Detector, event_data: WorkflowEventData
+    action: Action, event_data: WorkflowEventData
 ) -> dict[str, object]:
     """
     Build parameters for trigger_action task invocation.
@@ -45,7 +45,7 @@ def build_trigger_action_task_params(
 
     return {
         "action_id": action.id,
-        "detector_id": detector.id,
+        "detector_id": getattr(action, "detector_id", None),
         "workflow_id": getattr(action, "workflow_id", None),
         "event_id": event_id,
         "activity_id": activity_id,

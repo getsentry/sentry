@@ -163,7 +163,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
-        mock_filter.assert_called_with({workflow_filters}, self.event_data)
+        mock_filter.assert_called_with([self.error_detector], {workflow_filters}, self.event_data)
 
     def test_same_environment_only(self) -> None:
         env = self.create_environment(project=self.project)

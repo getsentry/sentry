@@ -25,6 +25,7 @@ from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
     DataConditionGroupAction,
+    DetectorWorkflow,
     Workflow,
     WorkflowActionGroupStatus,
 )
@@ -149,19 +150,21 @@ def get_unique_active_actions(
 
 
 @scopedstats.timer()
-def fire_actions(
-    actions: BaseQuerySet[Action], detector: Detector, event_data: WorkflowEventData
-) -> None:
+def fire_actions(actions: BaseQuerySet[Action], event_data: WorkflowEventData) -> None:
     deduped_actions = get_unique_active_actions(actions)
 
     for action in deduped_actions:
-        task_params = build_trigger_action_task_params(action, detector, event_data)
+        task_params = build_trigger_action_task_params(action, event_data)
         trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
 
 
 def filter_recently_fired_workflow_actions(
-    filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
+    detectors: list[Detector],
+    filtered_action_groups: set[DataConditionGroup],
+    event_data: WorkflowEventData,
 ) -> BaseQuerySet[Action]:
+    from sentry.workflow_engine.processors.detector import get_preferred_detector
+
     """
     Returns actions associated with the provided DataConditionsGroups, excluding those that have been recently fired. Also updates associated WorkflowActionGroupStatus objects.
     """
@@ -176,6 +179,25 @@ def filter_recently_fired_workflow_actions(
     for action_id, workflow_id in data_condition_group_actions:
         action_to_workflows_ids[action_id].add(workflow_id)
         workflow_ids.add(workflow_id)
+
+    # Map workflow_id to preferred detector
+    detector_workflows = (
+        DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids)
+        .select_related("detector")
+        .order_by("workflow_id", "id")
+    )
+
+    workflow_id_to_detectors: dict[int, list[Detector]] = defaultdict(list)
+    for dw in detector_workflows:
+        if dw.detector in detectors:
+            workflow_id_to_detectors[dw.workflow_id].append(dw.detector)
+
+    workflow_id_to_preferred_detector: dict[int, Detector] = {
+        workflow_id: get_preferred_detector(
+            workflow_id_to_detectors[workflow_id], event_data.group.issue_type.slug
+        )
+        for workflow_id in workflow_id_to_detectors.keys()
+    }
 
     workflows = Workflow.objects.filter(id__in=workflow_ids)
 
@@ -204,8 +226,18 @@ def filter_recently_fired_workflow_actions(
         for action_id, workflow_id in action_to_workflow_ids.items()
     ]
 
+    # annotate actions with detector_id they are firing for
+    detector_id_cases = [
+        When(
+            id=action_id,
+            then=Value(workflow_id_to_preferred_detector[workflow_id].id),
+        )
+        for action_id, workflow_id in action_to_workflow_ids.items()
+    ]
+
     return actions_queryset.annotate(
         workflow_id=Case(*workflow_id_cases, output_field=models.IntegerField()),
+        detector_id=Case(*detector_id_cases, output_field=models.IntegerField()),
     )
 
 

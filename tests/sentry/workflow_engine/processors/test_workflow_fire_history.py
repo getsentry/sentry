@@ -1,3 +1,5 @@
+from django.db.models import Value
+
 from sentry.workflow_engine.models import Action, WorkflowFireHistory
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import WorkflowEventData
@@ -21,9 +23,11 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
     def test_create_workflow_fire_histories(self) -> None:
+        # annotate action with detector_id
         create_workflow_fire_histories(
-            self.detector,
-            Action.objects.filter(id=self.action.id),
+            Action.objects.filter(id=self.action.id).annotate(
+                detector_id=Value(self.detector.id), workflow_id=Value(self.workflow.id)
+            ),
             self.event_data,
             is_single_processing=True,
             is_delayed=False,

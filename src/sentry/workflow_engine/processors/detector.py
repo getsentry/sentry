@@ -44,6 +44,24 @@ class UnableToAcquireLockApiError(SentryAPIException):
     message = "Unable to acquire lock for issue alert migration."
 
 
+def get_preferred_detector(detectors: list[Detector], type: str) -> Detector:
+    if len(detectors) == 1:
+        return detectors[0]
+
+    elif len(detectors) != 2:
+        raise ValueError(f"Expected 1 or 2 detectors, got {len(detectors)}")
+
+    issue_stream_detector = next(
+        (detector for detector in detectors if detector.type == IssueStreamGroupType.slug), None
+    )
+    event_type_detector = next((detector for detector in detectors if detector.type == type), None)
+
+    if event_type_detector is None:
+        return issue_stream_detector
+
+    return event_type_detector
+
+
 def _ensure_detector(project: Project, type: str) -> Detector:
     """
     Ensure that a detector of a given type exists for a project.

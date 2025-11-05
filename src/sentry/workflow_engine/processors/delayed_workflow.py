@@ -722,7 +722,7 @@ def fire_actions_for_groups(
 
                 dcgs_for_group = groups_to_fire.get(group.id, set())
                 filtered_actions = filter_recently_fired_workflow_actions(
-                    dcgs_for_group, workflow_event_data
+                    [detector], dcgs_for_group, workflow_event_data
                 )
 
                 metrics.incr(
@@ -732,7 +732,6 @@ def fire_actions_for_groups(
                 )
 
                 workflow_fire_histories = create_workflow_fire_histories(
-                    detector,
                     filtered_actions,
                     workflow_event_data,
                     should_trigger_actions(group_event.group.type),
@@ -758,7 +757,7 @@ def fire_actions_for_groups(
                 )
                 total_actions += len(filtered_actions)
 
-                fire_actions(filtered_actions, detector, workflow_event_data)
+                fire_actions(filtered_actions, workflow_event_data)
 
     logger.debug(
         "workflow_engine.delayed_workflow.triggered_actions_summary",

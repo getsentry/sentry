@@ -10,8 +10,6 @@ from sentry.workflow_engine.models import (
     Action,
     DataCondition,
     DataConditionGroup,
-    Detector,
-    WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.types import WorkflowEventData
@@ -24,7 +22,6 @@ EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
 @scopedstats.timer()
 def create_workflow_fire_histories(
-    detector: Detector,
     actions_to_fire: BaseQuerySet[Action],
     event_data: WorkflowEventData,
     is_single_processing: bool,
@@ -37,11 +34,10 @@ def create_workflow_fire_histories(
 
     If we're reporting a fire due to delayed processing, is_delayed should be True.
     """
-    # Create WorkflowFireHistory objects for workflows we fire actions for
-    workflow_ids = set(
-        WorkflowDataConditionGroup.objects.filter(
-            condition_group__dataconditiongroupaction__action__in=actions_to_fire
-        ).values_list("workflow_id", flat=True)
+    # Extract workflow_id and detector_id from the annotated actions
+    # Each action has been annotated with workflow_id and detector_id in filter_recently_fired_workflow_actions
+    workflow_id_to_detector_id = dict(
+        actions_to_fire.values_list("workflow_id", "detector_id").distinct()
     )
 
     event_id = (
@@ -54,7 +50,7 @@ def create_workflow_fire_histories(
         fire_latency_seconds = (datetime.now(timezone.utc) - start_timestamp).total_seconds()
         group_type = event_data.group.issue_type.slug
 
-        for _ in workflow_ids:
+        for _ in workflow_id_to_detector_id.keys():
             metrics.timing(
                 "workflow_fire_history.latency",
                 fire_latency_seconds,
@@ -63,12 +59,13 @@ def create_workflow_fire_histories(
 
     fire_histories = [
         WorkflowFireHistory(
-            detector_id=detector.id,
+            detector_id=detector_id,
             workflow_id=workflow_id,
             group=event_data.group,
             event_id=event_id,
             is_single_written=is_single_processing,
         )
-        for workflow_id in workflow_ids
+        for workflow_id, detector_id in workflow_id_to_detector_id.items()
     ]
+
     return WorkflowFireHistory.objects.bulk_create(fire_histories)

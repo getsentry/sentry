@@ -410,8 +410,8 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
 
 @scopedstats.timer()
 def _get_associated_workflows(
-    detector: Detector, environment: Environment | None, event_data: WorkflowEventData
-) -> set[Workflow]:
+    detectors: list[Detector], environment: Environment | None, event_data: WorkflowEventData
+) -> list[Workflow]:
     """
     This is a wrapper method to get the workflows associated with a detector and environment.
     Used in process_workflows to wrap the query + logging into a single method
@@ -424,7 +424,7 @@ def _get_associated_workflows(
     workflows = set(
         Workflow.objects.filter(
             environment_filter,
-            detectorworkflow__detector_id=detector.id,
+            detectorworkflow__detector_id__in=[detector.id for detector in detectors],
             enabled=True,
         )
         .select_related("environment")
@@ -451,7 +451,7 @@ def _get_associated_workflows(
                 "event_data": asdict(event_data),
                 "event_environment_id": environment.id if environment else None,
                 "workflows": [workflow.id for workflow in workflows],
-                "detector_type": detector.type,
+                "detector_types": [detector.type for detector in detectors],
             },
         )
 
@@ -515,7 +515,7 @@ def process_workflows(
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
-    workflows = _get_associated_workflows(detector, environment, event_data)
+    workflows = _get_associated_workflows([detector], environment, event_data)
     if not workflows:
         # If there aren't any workflows, there's nothing to evaluate
         return set()
@@ -531,7 +531,7 @@ def process_workflows(
         triggered_workflows, event_data, queue_items_by_workflow_id, event_start_time
     )
     enqueue_workflows(batch_client, queue_items_by_workflow_id)
-    actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
+    actions = filter_recently_fired_workflow_actions([detector], actions_to_trigger, event_data)
     sentry_sdk.set_tag("workflow_engine.triggered_actions", len(actions))
 
     if not actions:
@@ -540,7 +540,6 @@ def process_workflows(
 
     should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
     create_workflow_fire_histories(
-        detector,
         actions,
         event_data,
         should_trigger_actions,
@@ -548,6 +547,6 @@ def process_workflows(
         start_timestamp=event_start_time,
     )
 
-    fire_actions(actions, detector, event_data)
+    fire_actions(actions, event_data)
 
     return triggered_workflows
