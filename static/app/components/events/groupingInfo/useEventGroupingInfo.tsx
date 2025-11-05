@@ -8,7 +8,37 @@ import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type EventGroupingInfoResponse = Record<string, EventGroupVariant>;
+type EventGroupingInfoResponseOld = Record<string, EventGroupVariant>;
+type EventGroupingInfoResponse = {
+  grouping_config: string | null;
+  variants: Record<string, EventGroupVariant>;
+};
+
+// temporary function to convert the old response structure to the new one
+function eventGroupingInfoResponseOldToNew(
+  old: EventGroupingInfoResponseOld | null
+): EventGroupingInfoResponse | null {
+  const grouping_config = old
+    ? (
+        Object.values(old).find(
+          variant => 'config' in variant && variant.config?.id
+        ) as any
+      )?.config?.id
+    : null;
+  return old
+    ? {
+        grouping_config,
+        variants: old,
+      }
+    : null;
+}
+
+// temporary function to check if the respinse is old type
+function isOld(
+  data: EventGroupingInfoResponseOld | EventGroupingInfoResponse | null
+): data is EventGroupingInfoResponseOld {
+  return data ? !('grouping_config' in data) : false;
+}
 
 function generatePerformanceGroupInfo({
   event,
@@ -27,21 +57,24 @@ function generatePerformanceGroupInfo({
 
   return group
     ? {
-        [group.issueType]: {
-          contributes: true,
-          description: t('performance problem'),
-          hash: event.occurrence?.fingerprint[0] || '',
-          hashMismatch: false,
-          hint: null,
-          key: group.issueType,
-          type: EventGroupVariantType.PERFORMANCE_PROBLEM,
-          evidence: {
-            op: evidenceData?.op,
-            parent_span_ids: evidenceData?.parentSpanIds,
-            cause_span_ids: evidenceData?.causeSpanIds,
-            offender_span_ids: evidenceData?.offenderSpanIds,
-            desc: t('performance problem'),
-            fingerprint: hash,
+        grouping_config: null,
+        variants: {
+          [group.issueType]: {
+            contributes: true,
+            description: t('performance problem'),
+            hash: event.occurrence?.fingerprint[0] || '',
+            hashMismatch: false,
+            hint: null,
+            key: group.issueType,
+            type: EventGroupVariantType.PERFORMANCE_PROBLEM,
+            evidence: {
+              op: evidenceData?.op,
+              parent_span_ids: evidenceData?.parentSpanIds,
+              cause_span_ids: evidenceData?.causeSpanIds,
+              offender_span_ids: evidenceData?.offenderSpanIds,
+              desc: t('performance problem'),
+              fingerprint: hash,
+            },
           },
         },
       }
@@ -61,14 +94,26 @@ export function useEventGroupingInfo({
 
   const hasPerformanceGrouping = event.occurrence && event.type === 'transaction';
 
-  const {data, isPending, isError, isSuccess} = useApiQuery<EventGroupingInfoResponse>(
-    [`/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`],
-    {enabled: !hasPerformanceGrouping, staleTime: Infinity}
-  );
+  const {data, isPending, isError, isSuccess} = useApiQuery<
+    EventGroupingInfoResponseOld | EventGroupingInfoResponse
+  >([`/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`], {
+    enabled: !hasPerformanceGrouping,
+    staleTime: Infinity,
+  });
 
-  const groupInfo = hasPerformanceGrouping
+  const groupInfoRaw = hasPerformanceGrouping
     ? generatePerformanceGroupInfo({group, event})
     : (data ?? null);
 
-  return {groupInfo, isPending, isError, isSuccess, hasPerformanceGrouping};
+  const groupInfo = isOld(groupInfoRaw)
+    ? eventGroupingInfoResponseOldToNew(groupInfoRaw)
+    : groupInfoRaw;
+
+  return {
+    groupInfo,
+    isPending,
+    isError,
+    isSuccess,
+    hasPerformanceGrouping,
+  };
 }
