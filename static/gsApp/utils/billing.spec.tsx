@@ -1080,6 +1080,139 @@ describe('getBestActionToIncreaseEventLimits', () => {
     });
     expect(getBestActionToIncreaseEventLimits(organization, subscription)).toBe('');
   });
+
+  it('returns request_add_events for managed subscription (Heroku)', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      partner: {
+        externalId: '123',
+        name: 'heroku',
+        isActive: true,
+        partnership: {
+          id: '456',
+          displayName: 'Heroku',
+          supportNote: 'Contact Heroku to manage your subscription',
+        },
+      },
+    });
+    // Managed subscriptions should never go to checkout
+    expect(getBestActionToIncreaseEventLimits(organization, subscription)).toBe(
+      UsageAction.REQUEST_ADD_EVENTS
+    );
+  });
+
+  it('returns request_add_events for managed subscription (Vercel)', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      partner: {
+        externalId: '789',
+        name: 'vercel',
+        isActive: true,
+        partnership: {
+          id: '101',
+          displayName: 'Vercel',
+          supportNote: 'Contact Vercel to upgrade your plan',
+        },
+      },
+    });
+    expect(getBestActionToIncreaseEventLimits(organization, subscription)).toBe(
+      UsageAction.REQUEST_ADD_EVENTS
+    );
+  });
+
+  it('returns request_add_events for managed subscription even with billing permissions', () => {
+    const orgWithBillingPerms = OrganizationFixture({
+      access: ['org:read', 'org:write', 'org:billing'],
+    });
+    const subscription = SubscriptionFixture({
+      organization: orgWithBillingPerms,
+      plan: 'am3_team',
+      partner: {
+        externalId: '999',
+        name: 'github',
+        isActive: true,
+        partnership: {
+          id: '888',
+          displayName: 'GitHub',
+          supportNote: 'Manage via GitHub Marketplace',
+        },
+      },
+    });
+    // Even with billing perms, managed orgs should request, not go to checkout
+    expect(getBestActionToIncreaseEventLimits(orgWithBillingPerms, subscription)).toBe(
+      UsageAction.REQUEST_ADD_EVENTS
+    );
+  });
+
+  it('returns request_add_events for managed subscription on free plan', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      partner: {
+        externalId: '111',
+        name: 'partner',
+        isActive: true,
+        partnership: {
+          id: '222',
+          displayName: 'Partner',
+          supportNote: 'Contact partner support',
+        },
+      },
+    });
+    // Managed subscriptions should request even on free plan (can't self-serve trial)
+    expect(getBestActionToIncreaseEventLimits(organization, subscription)).toBe(
+      UsageAction.REQUEST_ADD_EVENTS
+    );
+  });
+
+  it('returns normal actions for inactive partner subscriptions', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      partner: {
+        externalId: '333',
+        name: 'partner',
+        isActive: false, // Inactive partner
+        partnership: {
+          id: '444',
+          displayName: 'Partner',
+          supportNote: '',
+        },
+      },
+    });
+    // Inactive partners should behave like normal subscriptions
+    expect(getBestActionToIncreaseEventLimits(organization, subscription)).toBe(
+      UsageAction.START_TRIAL
+    );
+  });
+
+  it('returns normal actions for partner without support note', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      partner: {
+        externalId: '555',
+        name: 'partner',
+        isActive: true,
+        partnership: {
+          id: '666',
+          displayName: 'Partner',
+          supportNote: '', // No support note means not managed
+        },
+      },
+    });
+    // Partner without support note should behave like normal subscription
+    expect(getBestActionToIncreaseEventLimits(organization, subscription)).toBe(
+      UsageAction.START_TRIAL
+    );
+  });
 });
 
 describe('getCreditApplied', () => {
