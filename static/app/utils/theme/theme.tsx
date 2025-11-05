@@ -256,7 +256,9 @@ const generateTokens = (colors: Colors) => ({
 type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
 type PhysicsTransitionName = 'spring';
 
-type MotionDuration = 'fast' | 'moderate' | 'slow';
+export type MotionName = SimpleMotionName | PhysicsTransitionName;
+
+export type MotionDuration = 'fast' | 'moderate' | 'slow';
 
 type MotionCurve = [number, number, number, number];
 

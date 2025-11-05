@@ -1,10 +1,12 @@
 import {useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type Transition} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
+import type {MotionDuration, MotionName} from 'sentry/utils/theme/theme';
+import {useLocation} from 'sentry/utils/useLocation';
 
 const RIGHT_SIDE_PANEL_WIDTH = '50vw';
 const LEFT_SIDE_PANEL_WIDTH = '40vw';
@@ -49,6 +51,16 @@ function SlideOverPanel({
   panelWidth,
   ref,
 }: SlideOverPanelProps) {
+  const theme = useTheme();
+
+  const location = useLocation();
+  const motionName = (location.query.motionName ?? 'spring') as MotionName;
+  const motionDuration = (location.query.motionDuration ?? 'moderate') as MotionDuration;
+
+  const transitionSettings =
+    (theme.motion.framer[motionName][motionDuration] as Transition | undefined) ??
+    theme.motion.framer.spring.moderate;
+
   useEffect(() => {
     if (!collapsed && onOpen) {
       onOpen();
@@ -69,9 +81,7 @@ function SlideOverPanel({
       exit={collapsedStyle}
       slidePosition={slidePosition}
       transition={{
-        type: 'spring',
-        stiffness: 1000,
-        damping: 50,
+        ...transitionSettings,
         ...transitionProps,
       }}
       role="complementary"
