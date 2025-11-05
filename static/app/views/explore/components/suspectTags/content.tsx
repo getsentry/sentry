@@ -9,6 +9,7 @@ import {ButtonBar} from '@sentry/scraps/button/buttonBar';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Text} from 'sentry/components/core/text';
+import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -56,6 +57,31 @@ function FeedbackButton() {
     >
       {t('Feedback')}
     </Button>
+  );
+}
+
+function SelectionInfo({
+  boxSelectOptions,
+  chartInfo,
+}: {
+  boxSelectOptions: BoxSelectOptions;
+  chartInfo: ChartInfo;
+}) {
+  const [x1, x2] = boxSelectOptions.xRange!;
+
+  let startTimestamp = Math.floor(x1 / 60_000) * 60_000;
+  const endTimestamp = Math.ceil(x2 / 60_000) * 60_000;
+
+  startTimestamp = Math.min(startTimestamp, endTimestamp - 60_000);
+
+  return (
+    <SelectionInfoContainer>
+      <Text size="sm" color="subText">
+        {t('Selection are spans between ')}{' '}
+        <DateTime date={startTimestamp} /> {t(' - ')} <DateTime date={endTimestamp} />{' '}
+        {t('and greater than or equal to ')} {chartInfo.yAxis}
+      </Text>
+    </SelectionInfoContainer>
   );
 }
 
@@ -138,6 +164,7 @@ function ContentImpl({
         <LoadingError message={t('Failed to load suspect attributes')} />
       ) : (
         <Fragment>
+          <SelectionInfo boxSelectOptions={boxSelectOptions} chartInfo={chartInfo} />
           <ControlsContainer>
             <StyledBaseSearchBar
               placeholder={t('Search keys')}
@@ -265,4 +292,11 @@ const PaginationContainer = styled('div')`
   display: flex;
   justify-content: end;
   align-items: center;
+`;
+
+const SelectionInfoContainer = styled('div')`
+  padding: ${space(1.5)} ${space(2)};
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
 `;
