@@ -85,6 +85,18 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "quantity": 1,
             }
         )
+        self.store_outcomes(
+            {
+                "org_id": self.org.id,
+                "timestamp": self._now - timedelta(hours=1),
+                "project_id": self.project4.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 1,
+            },
+            2,
+        )
 
         # Add profile_duration outcome data
         self.store_outcomes(
@@ -972,6 +984,118 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 }
             ],
         }
+
+    @freeze_time(_now)
+    def test_project_filtering_with_all_projects(self) -> None:
+        """Test that project=-1 aggregates data across all projects in the org"""
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": ["error", "transaction"],
+            },
+            status_code=200,
+        )
+
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"sum(quantity)": 9},
+                "series": {"sum(quantity)": [0, 9]},
+            }
+        ]
+
+    @freeze_time(_now)
+    def test_project_filtering_without_project_param(self) -> None:
+        """Test that when no project parameter is provided, it filters by user's projects (my projects)"""
+        response = self.do_request(
+            {
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": ["error", "transaction"],
+            },
+            status_code=200,
+        )
+
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"sum(quantity)": 7},
+                "series": {"sum(quantity)": [0, 7]},
+            }
+        ]
+
+    @freeze_time(_now)
+    def test_project_filtering_with_specific_project(self) -> None:
+        """Test that when a specific project id is provided, it filters by that project only"""
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": ["error", "transaction"],
+            },
+            status_code=200,
+        )
+
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"sum(quantity)": 6},
+                "series": {"sum(quantity)": [0, 6]},
+            }
+        ]
+
+    @freeze_time(_now)
+    def test_project_filtering_with_multiple_specific_projects(self) -> None:
+        """Test filtering with multiple specific project IDs"""
+        response = self.do_request(
+            {
+                "project": [self.project.id, self.project2.id],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": ["error", "transaction"],
+            },
+            status_code=200,
+        )
+
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"sum(quantity)": 7},
+                "series": {"sum(quantity)": [0, 7]},
+            }
+        ]
+
+    @freeze_time(_now)
+    def test_with_groupby_project(self) -> None:
+        """Test that groupBy=project shows individual project stats"""
+        response = self.do_request(
+            {
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": ["error", "transaction"],
+                "groupBy": ["project"],
+            },
+            status_code=200,
+        )
+
+        assert response.data["groups"] == [
+            {
+                "by": {"project": self.project.id},
+                "totals": {"sum(quantity)": 6},
+            },
+            {
+                "by": {"project": self.project2.id},
+                "totals": {"sum(quantity)": 1},
+            },
+        ]
 
 
 def result_sorted(result):
