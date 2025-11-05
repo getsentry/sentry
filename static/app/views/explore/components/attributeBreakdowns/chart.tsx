@@ -177,24 +177,15 @@ export function Chart({
         throw new Error('selectedParam or baselineParam is not defined');
       }
 
-      const selectedPercentage = Number(selectedParam?.data);
-      const baselinePercentage = Number(baselineParam?.data);
-
-      const isDifferent = selectedPercentage.toFixed(1) !== baselinePercentage.toFixed(1);
-
-      const status = isDifferent
-        ? {adjective: 'different', message: 'This is suspicious.'}
-        : {adjective: 'similar', message: 'Nothing unusual here.'};
-
       const name = selectedParam?.name ?? baselineParam?.name ?? '';
       const truncatedName =
         name.length > TOOLTIP_MAX_VALUE_LENGTH
           ? `${name.slice(0, TOOLTIP_MAX_VALUE_LENGTH)}...`
           : name;
 
-      return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2;">${truncatedName} <span style="color: ${theme.textColor};">is <strong>${status.adjective}</strong> ${isDifferent ? 'between' : 'across'} selected and baseline data. ${status.message}</span></div>`;
+      return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2; color: black;">${truncatedName}</div>`;
     },
-    [theme.textColor]
+    []
   );
 
   const chartXAxisLabelFormatter = useCallback(
