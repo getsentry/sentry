@@ -35,6 +35,31 @@ SUPPORTED_VCS_PROVIDERS = [
 ]
 
 
+def validate_vcs_parameters(data: dict[str, Any]) -> str | None:
+    head_sha = data.get("head_sha")
+    base_sha = data.get("base_sha")
+
+    if head_sha and base_sha and head_sha == base_sha:
+        return f"Head SHA and base SHA cannot be the same ({head_sha}). Please provide a different base SHA."
+
+    if not head_sha and base_sha:
+        return "Head SHA is required when base SHA is provided. Please provide a head SHA."
+
+    # If any VCS parameters are provided, all required ones must be present
+    vcs_params = {
+        "head_sha": head_sha,
+        "head_repo_name": data.get("head_repo_name"),
+        "provider": data.get("provider"),
+        "head_ref": data.get("head_ref"),
+    }
+
+    if any(vcs_params.values()) and any(not v for v in vcs_params.values()):
+        missing_params = [k for k, v in vcs_params.items() if not v]
+        return f"All required VCS parameters must be provided when using VCS features. Missing parameters: {', '.join(missing_params)}"
+
+    return None
+
+
 def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any], str | None]:
     """
     Validate the JSON schema for preprod artifact assembly requests.
@@ -144,22 +169,10 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             checksum = str(data.get("checksum", ""))
             chunks = data.get("chunks", [])
 
-            # Validate VCS parameters - if any are provided, all required ones must be present
-            vcs_params = {
-                "head_sha": data.get("head_sha"),
-                "head_repo_name": data.get("head_repo_name"),
-                "provider": data.get("provider"),
-                "head_ref": data.get("head_ref"),
-            }
-
-            if any(vcs_params.values()) and any(not v for v in vcs_params.values()):
-                missing_params = [k for k, v in vcs_params.items() if not v]
-                return Response(
-                    {
-                        "error": f"All required VCS parameters must be provided when using VCS features. Missing parameters: {', '.join(missing_params)}"
-                    },
-                    status=400,
-                )
+            # Validate VCS parameters
+            vcs_error = validate_vcs_parameters(data)
+            if vcs_error:
+                return Response({"error": vcs_error}, status=400)
 
             # Check if all requested chunks have been uploaded
             missing_chunks = find_missing_chunks(project.organization_id, set(chunks))
