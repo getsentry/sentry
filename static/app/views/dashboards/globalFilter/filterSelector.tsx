@@ -6,6 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
+import {getPredefinedValues} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,6 +16,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import FilterSelectorTrigger from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
+import {
+  getFieldDefinitionForDataset,
+  getFilterToken,
+} from 'sentry/views/dashboards/globalFilter/utils';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 type FilterSelectorProps = {
@@ -48,6 +53,35 @@ function FilterSelector({
   const {dataset, tag} = globalFilter;
   const {selection} = usePageFilters();
 
+  // Retrieve full tag definition to check if it has predefined values
+  const datasetFilterKeys = searchBarData.getFilterKeys();
+  const fullTag = datasetFilterKeys[tag.key];
+  const fieldDefinition = getFieldDefinitionForDataset(tag, dataset);
+
+  const filterToken = useMemo(
+    () => getFilterToken(globalFilter, fieldDefinition),
+    [globalFilter, fieldDefinition]
+  );
+
+  // Retrieve predefined values if the tag has any
+  const predefinedValues = useMemo(() => {
+    if (!filterToken) {
+      return null;
+    }
+    const filterValue = filterToken.value.text;
+    return getPredefinedValues({
+      key: fullTag,
+      filterValue,
+      token: filterToken,
+      fieldDefinition,
+    });
+  }, [fullTag, filterToken, fieldDefinition]);
+
+  // Only fetch values if the tag has no predefined values
+  const shouldFetchValues = fullTag
+    ? !fullTag.predefined && predefinedValues === null
+    : true;
+
   const baseQueryKey = useMemo(
     () => ['global-dashboard-filters-tag-values', tag, selection, searchQuery],
     [tag, selection, searchQuery]
@@ -63,7 +97,7 @@ function FilterSelector({
       return result ?? [];
     },
     placeholderData: keepPreviousData,
-    enabled: true,
+    enabled: shouldFetchValues,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -75,6 +109,10 @@ function FilterSelector({
 
     // Filter values fetched using getTagValues
     fetchedFilterValues?.forEach(addOption);
+    // Predefined values
+    predefinedValues?.forEach(suggestionSection => {
+      suggestionSection.suggestions.forEach(suggestion => addOption(suggestion.value));
+    });
     // Filter values in the global filter
     activeFilterValues.forEach(addOption);
     // Staged filter values inside the filter selector
@@ -89,7 +127,13 @@ function FilterSelector({
     // and avoid losing their original order from the fetched results
     // (e.g. without this, all staged values would be grouped at the top of the list)
     return Array.from(optionMap.values()).reverse();
-  }, [fetchedFilterValues, activeFilterValues, stagedFilterValues, searchQuery]);
+  }, [
+    fetchedFilterValues,
+    predefinedValues,
+    activeFilterValues,
+    stagedFilterValues,
+    searchQuery,
+  ]);
 
   const handleChange = (opts: string[]) => {
     if (isEqual(opts, activeFilterValues)) {
