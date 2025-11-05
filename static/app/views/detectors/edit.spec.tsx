@@ -287,6 +287,9 @@ describe('DetectorEdit', () => {
       await userEvent.clear(nameInputField);
       await userEvent.type(nameInputField, 'Updated Detector Name');
 
+      const descriptionField = await screen.findByRole('textbox', {name: 'description'});
+      await userEvent.type(descriptionField, 'This is the description');
+
       // Update environment
       await userEvent.click(screen.getByText('All Environments'));
       await userEvent.click(
@@ -304,6 +307,7 @@ describe('DetectorEdit', () => {
             data: {
               detectorId: mockDetector.id,
               name: 'Updated Detector Name',
+              description: 'This is the description',
               owner: null,
               projectId: project.id,
               type: 'metric_issue',

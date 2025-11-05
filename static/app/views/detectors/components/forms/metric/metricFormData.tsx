@@ -90,6 +90,7 @@ export interface MetricDetectorFormData
     MetricDetectorConditionFormData,
     MetricDetectorDynamicFormData,
     SnubaQueryFormData {
+  description: string | null;
   detectionType: MetricDetectorConfig['detectionType'];
   name: string;
   owner: string;
@@ -110,6 +111,7 @@ export const METRIC_DETECTOR_FORM_FIELDS = {
   projectId: 'projectId',
   owner: 'owner',
   workflowIds: 'workflowIds',
+  description: 'description',
 
   // Snuba query fields
   dataset: 'dataset',
@@ -331,6 +333,7 @@ export function metricDetectorFormDataToEndpointPayload(
     type: 'metric_issue',
     projectId: data.projectId,
     owner: data.owner || null,
+    description: data.description || null,
     conditionGroup: {
       logicType: DataConditionGroupLogicType.ANY,
       conditions,
@@ -445,6 +448,7 @@ export function metricSavedDetectorToFormData(
     workflowIds: detector.workflowIds,
     environment: getDetectorEnvironment(detector) || '',
     owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
+    description: detector.description || null,
     query: datasetConfig.toSnubaQueryString(snubaQuery),
     aggregateFunction:
       datasetConfig.fromApiAggregate(snubaQuery?.aggregate || '') ||

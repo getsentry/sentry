@@ -36,6 +36,7 @@ const BASE_DETECTOR = {
   projectId: '1',
   enabled: true,
   latestGroup: SimpleGroupFixture(),
+  description: null,
 };
 
 function DataConditionFixture(params: Partial<MetricCondition> = {}): MetricCondition {
