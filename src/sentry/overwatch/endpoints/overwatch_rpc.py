@@ -152,7 +152,7 @@ class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
 
         response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_DEFAULT)
         if config:
-            response_data["organization"][git_org_name] = config.data
+            response_data["organization"] = config.data
 
         return Response(data=response_data)
 
