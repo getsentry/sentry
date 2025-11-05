@@ -1329,9 +1329,9 @@ def process_data_forwarding(job: PostProcessJob) -> None:
         return
 
     forwarder_classes = {
-        DataForwarderProviderSlug.SEGMENT: SegmentForwarder,
-        DataForwarderProviderSlug.SQS: AmazonSQSForwarder,
-        DataForwarderProviderSlug.SPLUNK: SplunkForwarder,
+        DataForwarderProviderSlug.SEGMENT.value: SegmentForwarder,
+        DataForwarderProviderSlug.SQS.value: AmazonSQSForwarder,
+        DataForwarderProviderSlug.SPLUNK.value: SplunkForwarder,
     }
 
     for data_forwarder_project in data_forwarder_projects:
