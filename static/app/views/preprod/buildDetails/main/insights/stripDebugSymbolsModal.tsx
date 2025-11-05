@@ -29,7 +29,7 @@ if [ -d "\${APP_FRAMEWORKS_DIR}" ]; then
 fi`;
 
 const DSYM_INPUT_FILE =
-  '{DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${EXECUTABLE_NAME}';
+  '${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${EXECUTABLE_NAME}';
 
 function getStripDebugSymbolsContent() {
   return (
