@@ -7,6 +7,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -22,7 +23,10 @@ import {
   useMetricsFrozenSearch,
   useMetricsFrozenTracePeriod,
 } from 'sentry/views/explore/metrics/metricsFrozenContext';
-import type {TraceMetricEventsResponseItem} from 'sentry/views/explore/metrics/types';
+import {
+  TraceMetricKnownFieldKey,
+  type TraceMetricEventsResponseItem,
+} from 'sentry/views/explore/metrics/types';
 import {
   useQueryParamsQuery,
   useQueryParamsSortBys,
@@ -60,7 +64,7 @@ interface MetricSamplesTableResult {
 
 function useMetricsQueryKey({
   limit,
-  traceMetric: _traceMetric,
+  traceMetric,
   fields,
   ingestionDelaySeconds = INGESTION_DELAY,
   referrer,
@@ -88,8 +92,14 @@ function useMetricsQueryKey({
   const queryString = useMemo(() => {
     const queryStr = query;
     const frozenSearchStr = frozenSearch?.formatString() ?? '';
+    const traceMetricFilter = traceMetric?.name
+      ? MutableSearch.fromQueryObject({
+          [`${TraceMetricKnownFieldKey.METRIC_NAME}`]: [traceMetric.name],
+          [`${TraceMetricKnownFieldKey.METRIC_TYPE}`]: [traceMetric.type],
+        }).formatString()
+      : '';
 
-    const parts = [frozenSearchStr, queryStr].filter(Boolean);
+    const parts = [frozenSearchStr, queryStr, traceMetricFilter].filter(Boolean);
 
     if (parts.length === 0) {
       return '';
@@ -99,7 +109,7 @@ function useMetricsQueryKey({
     }
 
     return parts.join(' ');
-  }, [query, frozenSearch]);
+  }, [query, frozenSearch, traceMetric]);
 
   const adjustedDatetime = useMemo(() => {
     const baseDatetime = frozenTracePeriod
