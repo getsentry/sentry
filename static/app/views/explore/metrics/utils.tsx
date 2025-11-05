@@ -14,14 +14,18 @@ import type {
   SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import type {
-  BaseMetricQuery,
-  TraceMetric,
-} from 'sentry/views/explore/metrics/metricQuery';
+import {TraceSamplesTableStatColumns} from 'sentry/views/explore/metrics/constants';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   defaultMetricQuery,
   encodeMetricQueryParams,
+  type BaseMetricQuery,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {
+  TraceMetricKnownFieldKey,
+  VirtualTableSampleColumnKey,
+  type SampleTableColumnKey,
+} from 'sentry/views/explore/metrics/types';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import type {PickableDays} from 'sentry/views/explore/utils';
@@ -182,4 +186,16 @@ export function getMetricsUrlFromSavedQueryUrl({
       projects: savedQuery.projects ? [...savedQuery.projects] : [],
     },
   });
+}
+
+export function getMetricTableColumnType(
+  column: SampleTableColumnKey
+): 'value' | 'stat' | 'metric_value' {
+  if (TraceSamplesTableStatColumns.includes(column as VirtualTableSampleColumnKey)) {
+    return 'stat';
+  }
+  if (column === TraceMetricKnownFieldKey.METRIC_VALUE) {
+    return 'metric_value'; // Special cased for headers and rendering usually.
+  }
+  return 'value';
 }
