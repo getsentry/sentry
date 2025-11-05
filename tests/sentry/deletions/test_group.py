@@ -383,7 +383,8 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     def tenant_ids(self) -> dict[str, str]:
         return {"referrer": self.referrer, "organization_id": self.organization.id}
 
-    def test_simple_issue_platform(self) -> None:
+    @mock.patch("sentry.deletions.tasks.nodestore.bulk_snuba_queries")
+    def test_simple_issue_platform(self, mock_bulk_snuba_queries: mock.Mock) -> None:
         # Adding this query here to make sure that the cache is not being used
         assert self.select_error_events(self.project.id) is None
         assert self.select_issue_platform_events(self.project.id) is None
@@ -433,10 +434,36 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert nodestore.backend.get(event_node_id)
         assert self.select_error_events(self.project.id) == expected_error
 
-        # The Issue Platform group and occurrence have been deleted
+        # The Issue Platform group and occurrence have been deleted from Postgres
         assert not Group.objects.filter(id=issue_platform_group.id).exists()
         # assert not nodestore.backend.get(occurrence_node_id)
-        assert self.select_issue_platform_events(self.project.id) is None
+
+        # Verify that deletion was sent to Snuba
+        # We mock bulk_snuba_queries to avoid eventual consistency issues with ClickHouse light deletes
+        assert mock_bulk_snuba_queries.called
+        delete_calls = [
+            call for call in mock_bulk_snuba_queries.call_args_list if call[0]
+        ]  # Get calls with args
+        assert (
+            len(delete_calls) > 0
+        ), "Expected at least one call to bulk_snuba_queries for deletion"
+
+        # Verify a DeleteQuery was sent for the issue platform group
+        from snuba_sdk import DeleteQuery
+
+        found_delete = False
+        for call in delete_calls:
+            requests = call[0][0]  # First positional arg is the list of requests
+            for req in requests:
+                if isinstance(req.query, DeleteQuery):
+                    # Verify it's deleting the correct group
+                    if issue_platform_group.id in req.query.column_conditions.get("group_id", []):
+                        found_delete = True
+                        break
+            if found_delete:
+                break
+
+        assert found_delete, f"No DeleteQuery found for group {issue_platform_group.id}"
 
     @mock.patch("sentry.deletions.tasks.nodestore.bulk_snuba_queries")
     def test_issue_platform_batching(self, mock_bulk_snuba_queries: mock.Mock) -> None:
@@ -451,11 +478,11 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             group3 = self.create_group(project=self.project)
             group4 = self.create_group(project=self.project)
 
-            # Set times_seen for each group
-            Group.objects.filter(id=group1.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
-            Group.objects.filter(id=group2.id).update(times_seen=1, type=GroupCategory.FEEDBACK)
-            Group.objects.filter(id=group3.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
-            Group.objects.filter(id=group4.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
+            # Set times_seen and type for each group
+            Group.objects.filter(id=group1.id).update(times_seen=3, type=FeedbackGroup.type_id)
+            Group.objects.filter(id=group2.id).update(times_seen=1, type=FeedbackGroup.type_id)
+            Group.objects.filter(id=group3.id).update(times_seen=3, type=FeedbackGroup.type_id)
+            Group.objects.filter(id=group4.id).update(times_seen=3, type=FeedbackGroup.type_id)
 
             # This will delete the group and the events from the node store and Snuba
             with self.tasks():
