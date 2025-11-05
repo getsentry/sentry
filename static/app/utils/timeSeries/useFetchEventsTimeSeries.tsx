@@ -4,12 +4,18 @@ import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {
+  useApiQuery,
+  type UseApiQueryOptions,
+  type UseApiQueryResult,
+} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {DEFAULT_SAMPLING_MODE} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   getRetryDelay,
@@ -45,6 +51,10 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    * Duration between items in the time series, as a string. e.g., `"5m"`
    */
   interval?: string;
+  /**
+   * If making a request for trace metrics, the metric configuration
+   */
+  metric?: TraceMetric;
   /**
    * Page filters to apply to the request. This applies the date selection, projects, and environments. By default uses the currently applied filters after waiting for them to become available. If `pageFilters` are passed as a prop, does not wait for readiness.
    */
@@ -89,7 +99,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   dataset: DiscoverDatasets,
   options: UseFetchEventsTimeSeriesOptions<YAxis, Attribute>,
   referrer: string
-) {
+): UseApiQueryResult<EventsTimeSeriesResponse, RequestError> {
   const {
     yAxis,
     excludeOther,
@@ -147,6 +157,10 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
               ? '0'
               : '1'
             : undefined,
+          ...(options.metric && {
+            metricName: options.metric.name,
+            metricType: options.metric.type,
+          }),
         },
       },
     ],

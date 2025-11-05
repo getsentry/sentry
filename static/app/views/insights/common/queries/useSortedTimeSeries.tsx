@@ -141,6 +141,7 @@ export const useSortedTimeSeries = <
       sampling: samplingMode,
       extrapolate: !disableAggregateExtrapolation,
       enabled: isTimeSeriesEndpointComparisonEnabled,
+      metric: traceMetric,
     },
     `${referrer}-time-series`
   );

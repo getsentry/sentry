@@ -64,6 +64,52 @@ describe('useFetchEventsTimeSeries', () => {
     );
   });
 
+  it('fetches trace metrics from `/events-timeseries`', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: [],
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(
+        DiscoverDatasets.TRACEMETRICS,
+        {
+          yAxis: 'per_second(value)',
+          metric: {
+            name: 'attachment_count',
+            type: 'counter',
+          },
+        },
+        REFERRER
+      )
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          excludeOther: 0,
+          partial: 1,
+          referrer: 'test-query',
+          dataset: 'tracemetrics',
+          statsPeriod: '10d',
+          yAxis: 'per_second(value)',
+          metricName: 'attachment_count',
+          metricType: 'counter',
+          environment: ['prod'],
+          project: [42],
+          interval: '30m',
+          sampling: 'NORMAL',
+        },
+      })
+    );
+  });
+
   it('can be disabled', async () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
