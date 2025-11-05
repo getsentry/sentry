@@ -919,8 +919,9 @@ def dual_delete_migrated_alert_rule(alert_rule: AlertRule) -> None:
             RegionScheduledDeletion.schedule(instance=workflow, days=0)
 
     else:
-        detector.update(status=ObjectStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(instance=detector, days=0)
+        with transaction.atomic(router.db_for_write(Detector)):
+            detector.update(status=ObjectStatus.PENDING_DELETION)
+            RegionScheduledDeletion.schedule(instance=detector, days=0)
 
     return
 
