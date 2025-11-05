@@ -10,7 +10,7 @@ import BaseChart from 'sentry/components/charts/baseChart';
 import {Flex} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import type {SuspectAttributesResult} from 'sentry/views/explore/hooks/useSuspectAttributes';
+import type {AttributeBreakdownsResult} from 'sentry/views/explore/hooks/useAttributeBreakdowns';
 
 const MAX_BAR_WIDTH = 20;
 const HIGH_CARDINALITY_THRESHOLD = 20;
@@ -21,7 +21,7 @@ const MAX_CHART_SERIES_LENGTH = 40;
 const SELECTED_SERIES_NAME = 'selected';
 const BASELINE_SERIES_NAME = 'baseline';
 
-type CohortData = SuspectAttributesResult['rankedAttributes'][number]['cohort1'];
+type CohortData = AttributeBreakdownsResult['rankedAttributes'][number]['cohort1'];
 
 function calculatePopulationPercentage(cohort: CohortData, cohortTotal: number): number {
   if (cohortTotal === 0) return 0;
@@ -103,7 +103,7 @@ export function Chart({
   cohort1Total,
   cohort2Total,
 }: {
-  attribute: SuspectAttributesResult['rankedAttributes'][number];
+  attribute: AttributeBreakdownsResult['rankedAttributes'][number];
   cohort1Total: number;
   cohort2Total: number;
   theme: Theme;
