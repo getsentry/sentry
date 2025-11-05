@@ -110,3 +110,19 @@ organization_urlpatterns = [
         name="sentry-api-0-organization-incident-groupopenperiod-index",
     ),
 ]
+
+"""
+TOOD - should this be a thing?
+admin_urlpatterns = [
+    re_path(
+        r"^/workflow/(?P<workflow_id>[^/]+)/$",
+        # OrganizationOpenPeriodsEndpoint.as_view(),
+        name="sentry-api-0-admin-workflows",
+    ),
+    re_path(
+        r"^/workflow_evaluation/$",
+        # OrganizationOpenPeriodsEndpoint.as_view(),
+        name="sentry-api-0-admin-workflow-evaluation",
+    ),
+]
+"""
