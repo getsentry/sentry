@@ -229,13 +229,10 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
             return [p.id for p in projects]
 
     def _is_org_total_query(self, request: Request, project_ids):
-        return all(
-            [
-                # ALL_ACCESS_PROJECTS ({-1}) signals that stats should aggregate across
-                # all projects rather than filtering to specific project IDs
-                project_ids == ALL_ACCESS_PROJECTS,
-                "project" not in request.GET.get("groupBy", []),
-            ]
+        # ALL_ACCESS_PROJECTS ({-1}) signals that stats should aggregate across
+        # all projects rather than filtering to specific project IDs
+        return project_ids == ALL_ACCESS_PROJECTS and "project" not in request.GET.get(
+            "groupBy", []
         )
 
     @contextmanager
