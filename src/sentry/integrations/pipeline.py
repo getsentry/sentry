@@ -131,7 +131,7 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
         super().initialize()
 
         metrics.incr(
-            "sentry.integrations.installation_attempt", tags={"integration": self.provider.key}
+            "sentry.integrations.installation_attempt", tags={"integration_name": self.provider.key}
         )
 
     def finish_pipeline(self) -> HttpResponseBase:
@@ -199,7 +199,8 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             self.clear_session()
 
         metrics.incr(
-            "sentry.integrations.installation_finished", tags={"integration": self.provider.key}
+            "sentry.integrations.installation_finished",
+            tags={"integration_name": self.provider.key},
         )
 
         return response
