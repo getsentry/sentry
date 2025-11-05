@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
@@ -102,18 +102,15 @@ export function useMetricOptions({
   });
 
   // This replaces order-by metric.name as that will never be performant over large time periods with high numbers of metrics.
-  const sortedResult = useMemo(() => {
-    return (
-      result.data?.data?.sort((a, b) => {
+  useEffect(() => {
+    if (result.data?.data) {
+      result.data.data.sort((a, b) => {
         return a[TraceMetricKnownFieldKey.METRIC_NAME].localeCompare(
           b[TraceMetricKnownFieldKey.METRIC_NAME]
         );
-      }) ?? []
-    );
+      });
+    }
   }, [result.data]);
 
-  if (result.data?.data) {
-    result.data.data = sortedResult;
-  }
   return result;
 }
