@@ -14,8 +14,12 @@ import type {
 import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {TraceSamplesTableStatColumns} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {
+  defaultMetricQuery,
+  type BaseMetricQuery,
+} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
   type SampleTableColumnKey,
 } from 'sentry/views/explore/metrics/types';
