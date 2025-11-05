@@ -101,6 +101,9 @@ class ReleaseModelManager(BaseManager["Release"]):
     def annotate_prerelease_column(self):
         return self.get_queryset().annotate_prerelease_column()
 
+    def annotate_build_number_column(self):
+        return self.get_queryset().annotate_build_number_column()
+
     def filter_to_semver(self) -> ReleaseQuerySet:
         return self.get_queryset().filter_to_semver()
 
@@ -306,6 +309,7 @@ class Release(Model):
         "revision",
         "prerelease_case",
         "prerelease",
+        "build_number_case",
         "build_number",
         "build_code",
     ]
@@ -400,6 +404,13 @@ class Release(Model):
 
     @property
     def semver_tuple(self) -> SemverVersion:
+        if self.build_number is None and self.build_code is not None:
+            build_number_case = 2
+        elif self.build_number is not None:
+            build_number_case = 1
+        else:
+            build_number_case = 0
+
         return SemverVersion(
             self.major,
             self.minor,
@@ -407,6 +418,7 @@ class Release(Model):
             self.revision,
             1 if self.prerelease == "" else 0,
             self.prerelease,
+            build_number_case,
             self.build_number,
             self.build_code,
         )

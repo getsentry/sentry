@@ -257,24 +257,28 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         release_7 = self.create_release(version="test@10.0+122")
         release_8 = self.create_release(version="test@some_thing")
         release_9 = self.create_release(version="random_junk")
-        release_10 = self.create_release(version="test@10.0+xyz")
-        release_11 = self.create_release(version="test@10.0+abc")
+        release_10 = self.create_release(version="test@10.0+x22")
+        release_11 = self.create_release(version="test@10.0+a23")
+        release_12 = self.create_release(version="test@10.0")
+        release_13 = self.create_release(version="test@10.0-abc")
 
         response = self.get_success_response(self.organization.slug, sort="semver")
         self.assert_expected_versions(
             response,
             [
-                release_2,
-                release_7,
-                release_10,
-                release_11,
-                release_6,
-                release_5,
-                release_4,
-                release_1,
-                release_3,
-                release_9,
-                release_8,
+                release_10,  # test@10.0+x22
+                release_11,  # test@10.0+a23
+                release_2,  # test@10.0+123
+                release_7,  # test@10.0+122
+                release_12,  # test@10.0
+                release_13,  # test@10.0-abc
+                release_6,  # test@2.20.3.3
+                release_5,  # test@2.20.3
+                release_4,  # test@2.2.3
+                release_1,  # test@2.2
+                release_3,  # test@2.2-alpha
+                release_9,  # random_junk
+                release_8,  # test@some_thing
             ],
         )
 

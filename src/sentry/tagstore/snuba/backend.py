@@ -1043,13 +1043,17 @@ class SnubaTagStorage(TagStorage):
             .distinct()
         )
 
-        return Release.objects.filter(
-            organization_id=organization_id,
-            package__in=packages,
-            id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
-                "release_id", flat=True
-            ),
-        ).annotate_prerelease_column()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
+        return (
+            Release.objects.filter(
+                organization_id=organization_id,
+                package__in=packages,
+                id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
+                    "release_id", flat=True
+                ),
+            )
+            .annotate_prerelease_column()
+            .annotate_build_number_column()
+        )  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
 
     def _get_tag_values_for_semver(
         self,
@@ -1093,6 +1097,7 @@ class SnubaTagStorage(TagStorage):
         versions = (
             versions.filter_to_semver()
             .annotate_prerelease_column()
+            .annotate_build_number_column()
             .order_by(*order_by)
             .values_list("version", flat=True)[:1000]
         )

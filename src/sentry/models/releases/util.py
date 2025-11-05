@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class SemverVersion(
     namedtuple(
         "SemverVersion",
-        "major minor patch revision prerelease_case prerelease build_number build_code",
+        "major minor patch revision prerelease_case prerelease build_number_case build_number build_code",
     )
 ):
     pass
@@ -50,6 +50,23 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         return self.annotate(
             prerelease_case=Case(
                 When(prerelease="", then=1), default=0, output_field=models.IntegerField()
+            )
+        )
+
+    def annotate_build_number_column(self):
+        """
+        Adds a `build_number_case` column to the queryset which is used to properly sort
+        by build number to match compare_version behavior:
+        - Alphanumeric builds (NULL build_number, non-NULL build_code): case=2 (highest)
+        - Numeric builds (non-NULL build_number): case=1 (middle)
+        - No build metadata (NULL build_number, NULL build_code): case=0 (lowest)
+        """
+        return self.annotate(
+            build_number_case=Case(
+                When(build_number__isnull=True, build_code__isnull=False, then=2),
+                When(build_number__isnull=False, then=1),
+                default=0,
+                output_field=models.IntegerField(),
             )
         )
 
@@ -110,7 +127,11 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
 
         Typically we build a `SemverFilter` via `sentry.search.events.filter.parse_semver`
         """
-        qs = self.filter(organization_id=organization_id).annotate_prerelease_column()
+        qs = (
+            self.filter(organization_id=organization_id)
+            .annotate_prerelease_column()
+            .annotate_build_number_column()
+        )
         query_func = "exclude" if semver_filter.negated else "filter"
 
         if semver_filter.package:

@@ -1908,15 +1908,21 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
 
 class ReleaseOrderBySemverTestCase(TestCase):
     def test_compare_version_sorts_by_build_number(self):
-        """Test that compare_version correctly sorts releases by build number with various formats"""
+        """
+        Test that compare_version correctly sorts releases by build number with various formats.
 
-        # numeric builds (numerical comparison)
+        DESC (largest to smallest):
+        1. alphanumeric builds (compared lexicographically)
+        2. numeric builds (compared numerically)
+        3. no build
+        """
+        # numeric builds use numerical comparison
         v1 = parse_release("app@1.0.0+999")["version_raw"]
         v2 = parse_release("app@1.0.0+1000")["version_raw"]
         assert compare_version(v1, v2) == -1
         assert compare_version(v2, v1) == 1
 
-        # alphanumeric builds (lexicographic comparison)
+        # alphanumeric builds use lexicographic comparison
         v1 = parse_release("app@1.0.0+abc")["version_raw"]
         v2 = parse_release("app@1.0.0+xyz")["version_raw"]
         assert compare_version(v1, v2) == -1
@@ -1930,7 +1936,14 @@ class ReleaseOrderBySemverTestCase(TestCase):
         assert compare_version(v1, v2) == 1
         assert compare_version(v2, v1) == -1
 
-        # no build vs. with build (with build > no build)
+        # numeric < alphanumeric
+        v1 = parse_release("app@1.0.0+999")["version_raw"]
+        v2 = parse_release("app@1.0.0+abc")["version_raw"]
+        assert compare_version(v1, v2) == -1
+        assert compare_version(v2, v1) == 1
+
+        #  no build < with build
         v_no_build = parse_release("app@1.0.0")["version_raw"]
         v_with_build = parse_release("app@1.0.0+123")["version_raw"]
         assert compare_version(v_no_build, v_with_build) == -1
+        assert compare_version(v_with_build, v_no_build) == 1
