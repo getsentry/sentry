@@ -155,10 +155,6 @@ export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
       value: 'avg',
     },
     {
-      label: 'last',
-      value: 'last',
-    },
-    {
       label: 'per_second',
       value: 'per_second',
     },
