@@ -49,10 +49,13 @@ const manageDetectorData = [
     label: 'HTTP/1.1 Overhead Detection',
     key: 'http_overhead_detection_enabled',
   },
+  {label: 'Web Vitals Detection', key: 'web_vitals_detection_enabled'},
 ];
 
 describe('projectPerformance', () => {
-  const org = OrganizationFixture({features: ['performance-view']});
+  const org = OrganizationFixture({
+    features: ['performance-view', 'performance-web-vitals-seer-suggestions'],
+  });
   const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock: jest.Mock;
@@ -327,6 +330,17 @@ describe('projectPerformance', () => {
         index: 1,
       },
     },
+    {
+      title: IssueTitle.WEB_VITALS,
+      threshold: DetectorConfigCustomer.WEB_VITALS_COUNT,
+      allowedValues: allowedCountValues,
+      defaultValue: 10,
+      newValue: 20,
+      sliderIdentifier: {
+        label: 'Minimum Sample Count',
+        index: 0,
+      },
+    },
   ])(
     'renders detector thresholds settings for $title issue',
     async ({
@@ -350,6 +364,7 @@ describe('projectPerformance', () => {
         large_http_payload_detection_enabled: true,
         n_plus_one_api_calls_detection_enabled: true,
         consecutive_http_spans_detection_enabled: true,
+        web_vitals_detection_enabled: true,
       };
       const performanceIssuesGetMock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/performance-issues/configure/',
@@ -463,7 +478,7 @@ describe('projectPerformance', () => {
 
       render(<ProjectPerformance />, {
         organization: OrganizationFixture({
-          features: ['performance-view'],
+          features: ['performance-view', 'performance-web-vitals-seer-suggestions'],
         }),
         initialRouterConfig,
       });
@@ -526,7 +541,7 @@ describe('projectPerformance', () => {
 
       render(<ProjectPerformance />, {
         organization: OrganizationFixture({
-          features: ['performance-view'],
+          features: ['performance-view', 'performance-web-vitals-seer-suggestions'],
           access: ['project:read'],
         }),
         initialRouterConfig,
