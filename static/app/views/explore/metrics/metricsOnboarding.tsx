@@ -149,6 +149,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     return <LoadingIndicator />;
   }
 
+  // This will not be hit until `withoutMetricsSupport` is filled out.
   if (doesNotSupportMetrics) {
     return (
       <OnboardingPanel project={project}>
@@ -171,7 +172,7 @@ function Onboarding({organization, project}: OnboardingProps) {
               });
             }}
           >
-            {t('Go to Documentation')}
+            {t('Join the discussion')}
           </LinkButton>
         </div>
       </OnboardingPanel>
@@ -183,15 +184,16 @@ function Onboarding({organization, project}: OnboardingProps) {
       <OnboardingPanel project={project}>
         <div>
           {tct(
-            "Fiddlesticks. The metrics onboarding checklist isn't available for your [project] project yet, but for now, go to Sentry docs for installation details.",
-            {project: project.slug}
+            "We're working to bring Metrics support to [platform]. Stay updated by joining the discussion!",
+
+            {platform: <strong>{currentPlatform?.name || project.slug}</strong>}
           )}
         </div>
         <br />
         <div>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/product/metrics/"
+            href={METRICS_GH_DISCUSSION_LINK}
             external
             onClick={() => {
               trackAnalytics('metrics.onboarding_platform_docs_viewed', {
@@ -200,7 +202,7 @@ function Onboarding({organization, project}: OnboardingProps) {
               });
             }}
           >
-            {t('Go to Documentation')}
+            {t('Join the discussion')}
           </LinkButton>
         </div>
       </OnboardingPanel>
