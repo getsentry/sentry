@@ -28,7 +28,8 @@ import {prettifyAggregation} from 'sentry/views/explore/utils';
 
 import {Chart} from './chart';
 import {useChartSelection} from './chartSelectionContext';
-import {SortingToggle, type SortingMethod} from './sortingToggle';
+
+type SortingMethod = 'rrr';
 
 const CHARTS_COLUMN_COUNT = 3;
 const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
@@ -96,7 +97,7 @@ function ContentImpl({
     chartInfo,
   });
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortingMethod, setSortingMethod] = useState<SortingMethod>('rrr');
+  const sortingMethod: SortingMethod = 'rrr';
   const [page, setPage] = useState(0);
   const theme = useTheme();
 
@@ -192,7 +193,6 @@ function ContentImpl({
               query={debouncedSearchQuery}
               size="sm"
             />
-            <SortingToggle value={sortingMethod} onChange={setSortingMethod} />
           </ControlsContainer>
           {selectionHint && (
             <SelectionHintContainer>
