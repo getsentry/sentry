@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -32,6 +33,8 @@ type Props = {
 function BillingInformation({organization, subscription, location}: Props) {
   const isNewBillingUI = hasNewBillingUI(organization);
   const hasBillingPerms = organization.access?.includes('org:billing');
+  const theme = useTheme();
+  const maxPanelWidth = theme.breakpoints.lg;
 
   if (subscription?.isSelfServePartner) {
     return <Redirect to={`/settings/${organization.slug}/billing/overview/`} />;
@@ -65,11 +68,13 @@ function BillingInformation({organization, subscription, location}: Props) {
           isNewBillingUI={isNewBillingUI}
           ftcLocation={FTCConsentLocation.BILLING_DETAILS}
           budgetTerm={subscription.planDetails.budgetTerm}
+          maxPanelWidth={maxPanelWidth}
         />
         <BillingDetailsPanel
           organization={organization}
           subscription={subscription}
           isNewBillingUI={isNewBillingUI}
+          maxPanelWidth={maxPanelWidth}
         />
       </SubscriptionPageContainer>
     );
@@ -90,12 +95,14 @@ function BillingInformation({organization, subscription, location}: Props) {
               ftcLocation={FTCConsentLocation.BILLING_DETAILS}
               budgetTerm={subscription.planDetails.budgetTerm}
               shouldExpandInitially
+              maxPanelWidth={maxPanelWidth}
             />
             <BillingDetailsPanel
               organization={organization}
               subscription={subscription}
               isNewBillingUI={isNewBillingUI}
               shouldExpandInitially
+              maxPanelWidth={maxPanelWidth}
             />
           </Flex>
         ) : (
