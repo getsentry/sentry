@@ -258,20 +258,16 @@ def delete_group_hashes(
             logger.warning("Error scheduling task to delete hashes from seer")
         finally:
             hash_ids = [gh[0] for gh in hashes_chunk]
-            # If we delete the grouphash metadata rows first we will not need to update the references to the other grouphashes.
-            # If we try to delete the group hashes first, then it will require the updating of the columns first.
-            #
-            # To understand this, let's say we have the following relationships:
-            # gh A -> ghm A -> no reference to another grouphash
-            # gh B -> ghm B -> gh C
-            # gh C -> ghm C -> gh A
-            #
-            # Deleting group hashes A, B & C (since they all point to the same group) will require:
-            # * Updating columns ghmB & ghmC to point to None
-            # * Deleting the group hash metadata rows
-            # * Deleting the group hashes
-            #
-            # If we delete the metadata first, we will not need to update the columns before deleting them.
+            # GroupHashMetadata rows can reference GroupHash rows via seer_matched_grouphash_id.
+            # Before deleting these GroupHash rows, we need to either:
+            # 1. Update seer_matched_grouphash to None first (to avoid foreign key constraint errors), OR
+            # 2. Delete the GroupHashMetadata rows entirely (they'll be deleted anyway)
+            # If we update the columns first, the deletion of the grouphash metadata rows will have less work to do,
+            # thus, improving the performance of the deletion.
+            if options.get("deletions.group-hashes-metadata.update-seer-matched-grouphash-ids"):
+                GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids).update(
+                    seer_matched_grouphash=None
+                )
             GroupHashMetadata.objects.filter(grouphash_id__in=hash_ids).delete()
             GroupHash.objects.filter(id__in=hash_ids).delete()
 
