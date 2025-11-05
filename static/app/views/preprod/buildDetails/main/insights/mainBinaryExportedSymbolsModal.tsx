@@ -1,7 +1,6 @@
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
-import {Heading} from 'sentry/components/core/text/heading';
 import {t, tct} from 'sentry/locale';
 import {InlineCode} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
 
@@ -10,9 +9,6 @@ function getMainBinaryExportedSymbolsContent() {
     <Flex direction="column" gap="2xl">
       <Flex direction="column" gap="xl">
         <Flex direction="column" gap="md">
-          <Heading as="h3" size="md">
-            {t('Main Binary Export Metadata')}
-          </Heading>
           <Text>
             {tct(
               '[bold:What it is]: Binaries that act as entrypoints for your app, such as your main app binary or watchOS app binary, are not linked against by other binaries. This means the export trie information is unnecessary and can be removed.',
