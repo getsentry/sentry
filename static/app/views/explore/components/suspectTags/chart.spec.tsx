@@ -88,12 +88,7 @@ describe('Chart', () => {
     };
 
     const {container} = render(
-      <Chart
-        attribute={attribute}
-        theme={mockTheme}
-        cohort1Total={0}
-        cohort2Total={0}
-      />
+      <Chart attribute={attribute} theme={mockTheme} cohort1Total={0} cohort2Total={0} />
     );
 
     // The chart should be rendered even with empty data
