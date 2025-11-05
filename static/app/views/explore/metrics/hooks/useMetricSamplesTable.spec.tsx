@@ -44,7 +44,10 @@ describe('useMetricSamplesTable', () => {
     renderHookWithProviders(
       () =>
         useMetricSamplesTable({
-          metricName: 'test metric',
+          traceMetric: {
+            name: 'test metric',
+            type: 'counter',
+          },
           fields: [],
           limit: 100,
           ingestionDelaySeconds: 0,

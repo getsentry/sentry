@@ -13,7 +13,7 @@ import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelec
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
-export type SuspectAttributesResult = {
+export type AttributeBreakdownsResult = {
   cohort1Total: number;
   cohort2Total: number;
   rankedAttributes: Array<{
@@ -33,7 +33,7 @@ export type SuspectAttributesResult = {
   }>;
 };
 
-function useSuspectAttributes({
+function useAttributeBreakdowns({
   boxSelectOptions,
   chartInfo,
 }: {
@@ -49,7 +49,7 @@ function useSuspectAttributes({
   const enableQuery = boxSelectOptions.xRange !== null;
   const [x1, x2] = boxSelectOptions.xRange!;
 
-  // Ensure that we pass the existing queries in the search bar to the suspect attributes queries
+  // Ensure that we pass the existing queries in the search bar to the attribute breakdowns queries
   const currentQuery = location.query.query?.toString() ?? '';
   const selectedRegionQuery = new MutableSearch(currentQuery);
   const baselineRegionQuery = new MutableSearch(currentQuery);
@@ -84,7 +84,7 @@ function useSuspectAttributes({
     };
   }, [query1, query2, pageFilters, dataset, chartInfo.yAxis, aggregateExtrapolation]);
 
-  return useApiQuery<SuspectAttributesResult>(
+  return useApiQuery<AttributeBreakdownsResult>(
     [
       `/organizations/${organization.slug}/trace-items/attributes/ranked/`,
       {query: queryParams},
@@ -96,4 +96,4 @@ function useSuspectAttributes({
   );
 }
 
-export default useSuspectAttributes;
+export default useAttributeBreakdowns;
