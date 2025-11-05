@@ -284,16 +284,6 @@ const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
-const BulletList = styled('ul')`
-  list-style-type: disc;
-  padding-left: 20px;
-  margin-bottom: ${space(2)};
-
-  li {
-    margin-bottom: ${space(1)};
-  }
-`;
-
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
