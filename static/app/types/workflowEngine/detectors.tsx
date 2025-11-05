@@ -77,7 +77,8 @@ export type DetectorType =
   | 'error'
   | 'metric_issue'
   | 'monitor_check_in_failure'
-  | 'uptime_domain_failure';
+  | 'uptime_domain_failure'
+  | 'issue_stream';
 
 interface BaseMetricDetectorConfig {
   thresholdPeriod: number;

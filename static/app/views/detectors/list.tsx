@@ -36,7 +36,10 @@ interface DetectorHeadingInfo {
   title: string;
 }
 
-const DETECTOR_TYPE_HEADING_MAPPING: Record<DetectorType, DetectorHeadingInfo> = {
+const DETECTOR_TYPE_HEADING_MAPPING: Record<
+  Exclude<DetectorType, 'issue_stream'>,
+  DetectorHeadingInfo
+> = {
   error: {
     title: t('Error Monitors'),
     description: t(
