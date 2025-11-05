@@ -279,7 +279,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         from sentry.types.group import GroupSubStatus
 
         project = self.create_project(fire_project_created=True)
-        detector = Detector.objects.get(project=project)
+        detector = Detector.objects.get(project=project, type=ErrorGroupType.slug)
         workflow = DetectorWorkflow.objects.get(detector=detector).workflow
         workflow.update(config={"frequency": 0})
 
