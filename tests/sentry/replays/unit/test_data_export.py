@@ -69,7 +69,11 @@ def test_export_blob_data() -> None:
             ),
             notification_config=NotificationConfig(
                 pubsub_topic=pubsub_topic,
-                event_types=[NotificationConfig.EventType.TRANSFER_OPERATION_FAILED],
+                event_types=[
+                    NotificationConfig.EventType.TRANSFER_OPERATION_FAILED,
+                    NotificationConfig.EventType.TRANSFER_OPERATION_SUCCESS,
+                    NotificationConfig.EventType.TRANSFER_OPERATION_ABORTED,
+                ],
                 payload_format=NotificationConfig.PayloadFormat.JSON,
             ),
         )
