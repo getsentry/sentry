@@ -34,7 +34,8 @@ function ManageReposPage({integratedOrgs}: {integratedOrgs: OrganizationIntegrat
     searchTerm: undefined,
   });
   const reposData = useMemo(
-    () => uniqBy(queryResult.data?.pages.flatMap(result => result[0]) ?? [], 'id'),
+    () =>
+      uniqBy(queryResult.data?.pages.flatMap(result => result[0]) ?? [], 'externalId'),
     [queryResult.data?.pages]
   );
 
