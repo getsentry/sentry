@@ -251,10 +251,7 @@ def test_example() -> None:
 """
     # Should error in test files
     errors = _run(src, filename="tests/test_example.py")
-    assert errors == [
-        "t.py:4:8: S015 Tests should not use branching logic around asserts. "
-        "Asserts may not run in all branches."
-    ]
+    assert errors == ["t.py:4:8: S015 Tests should not use branching logic around asserts."]
 
     # Should not error in non-test files
     assert _run(src, filename="src/sentry/example.py") == []
@@ -273,53 +270,41 @@ def test_example() -> None:
 """
     errors = _run(src, filename="tests/test_example.py")
     assert errors == [
-        "t.py:4:8: S015 Tests should not use branching logic around asserts. "
-        "Asserts may not run in all branches.",
-        "t.py:6:8: S015 Tests should not use branching logic around asserts. "
-        "Asserts may not run in all branches.",
-        "t.py:8:8: S015 Tests should not use branching logic around asserts. "
-        "Asserts may not run in all branches.",
-    ]
-
-
-def test_S015_for_loop() -> None:
-    src = """\
-def test_example() -> None:
-    for item in items:
-        assert item.valid
-"""
-    errors = _run(src, filename="tests/test_example.py")
-    assert errors == [
-        "t.py:3:8: S015 Tests should not use branching logic around asserts. "
-        "Asserts may not run in all branches."
-    ]
-
-
-def test_S015_while_loop() -> None:
-    src = """\
-def test_example() -> None:
-    while condition:
-        assert something
-"""
-    errors = _run(src, filename="tests/test_example.py")
-    assert errors == [
-        "t.py:3:8: S015 Tests should not use branching logic around asserts. "
-        "Asserts may not run in all branches."
+        "t.py:4:8: S015 Tests should not use branching logic around asserts.",
+        "t.py:6:8: S015 Tests should not use branching logic around asserts.",
+        "t.py:8:8: S015 Tests should not use branching logic around asserts.",
     ]
 
 
 def test_S015_nested_branching() -> None:
     src = """\
 def test_example() -> None:
-    if condition:
-        for item in items:
-            assert item.valid
+    if condition1:
+        if condition2:
+            assert something
 """
     errors = _run(src, filename="tests/test_example.py")
-    assert errors == [
-        "t.py:4:12: S015 Tests should not use branching logic around asserts. "
-        "Asserts may not run in all branches."
-    ]
+    assert errors == ["t.py:4:12: S015 Tests should not use branching logic around asserts."]
+
+
+def test_S015_ok_for_loop() -> None:
+    src = """\
+def test_example() -> None:
+    for item in items:
+        assert item.valid
+"""
+    # Should not error - for loops are not branching logic
+    assert _run(src, filename="tests/test_example.py") == []
+
+
+def test_S015_ok_while_loop() -> None:
+    src = """\
+def test_example() -> None:
+    while condition:
+        assert something
+"""
+    # Should not error - while loops are not branching logic
+    assert _run(src, filename="tests/test_example.py") == []
 
 
 def test_S015_ok_no_branching() -> None:
