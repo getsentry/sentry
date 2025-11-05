@@ -5,6 +5,7 @@ import {Tag} from '@sentry/scraps/badge/tag';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import usePrevious from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useSetTraceMetric} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -71,11 +72,7 @@ export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
   }, [metricOptionsData, optionFromTraceMetric, traceMetric.name]);
 
   useEffect(() => {
-    if (
-      metricOptions.length &&
-      metricOptions[0] &&
-      traceMetric.name !== metricOptions[0].metricName
-    ) {
+    if (metricOptions.length && metricOptions[0] && !traceMetric.name) {
       setTraceMetric({
         name: metricOptions[0].metricName,
         type: metricOptions[0].metricType,
@@ -92,11 +89,12 @@ export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
   );
 
   const traceMetricSelectValue = makeMetricSelectValue(traceMetric);
+  const previousOptions = usePrevious(metricOptions ?? []);
 
   return (
     <CompactSelect
       searchable
-      options={metricOptions ?? []}
+      options={isFetching ? previousOptions : (metricOptions ?? [])}
       value={traceMetricSelectValue}
       loading={isFetching}
       onSearch={debouncedSetSearch}
