@@ -716,6 +716,42 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
             assert "lastSeen" in stat
             assert stat["id"] in issue_ids
 
+            # Verify stats field structure
+            # stats should be a dict with stats_period keys (e.g., "24h", "14d")
+            # Each value is an array of [timestamp, count] tuples
+            assert "stats" in stat
+            assert isinstance(stat["stats"], dict)
+            # Should have the stats_period key we passed ("24h")
+            assert "24h" in stat["stats"]
+            # The value should be an array of tuples
+            assert isinstance(stat["stats"]["24h"], list)
+            # Each tuple should be [timestamp, count] where both are numbers
+            for data_point in stat["stats"]["24h"]:
+                assert isinstance(data_point, list)
+                assert len(data_point) == 2
+                assert isinstance(data_point[0], (int, float))  # timestamp
+                assert isinstance(data_point[1], (int, float))  # count
+
+            # Verify lifetime field structure
+            # lifetime should be a dict with count, userCount, firstSeen, lastSeen
+            assert "lifetime" in stat
+            assert isinstance(stat["lifetime"], dict)
+            assert "count" in stat["lifetime"]
+            assert "userCount" in stat["lifetime"]
+            assert "firstSeen" in stat["lifetime"]
+            assert "lastSeen" in stat["lifetime"]
+            # count should be a string representation of the number
+            assert isinstance(stat["lifetime"]["count"], str)
+            # userCount should be an integer
+            assert isinstance(stat["lifetime"]["userCount"], int)
+            # firstSeen and lastSeen should be ISO timestamp strings or None
+            assert stat["lifetime"]["firstSeen"] is None or isinstance(
+                stat["lifetime"]["firstSeen"], str
+            )
+            assert stat["lifetime"]["lastSeen"] is None or isinstance(
+                stat["lifetime"]["lastSeen"], str
+            )
+
     def test_get_issues_stats_with_multiple_projects(self):
         """Test that get_issues_stats works with multiple project IDs"""
         project2 = self.create_project(organization=self.organization)
@@ -780,3 +816,83 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
         assert result is not None
         assert isinstance(result, list)
         assert len(result) == 0
+
+    def test_get_issues_stats_stats_and_lifetime_structure(self):
+        """Test that stats and lifetime fields have the correct structure"""
+        # Create an issue
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Test error",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_issues_stats(
+            org_id=self.organization.id,
+            issue_ids=[str(event.group_id)],
+            project_ids=[self.project.id],
+            query="is:unresolved",
+            stats_period="24h",
+        )
+
+        assert result is not None
+        assert len(result) == 1
+
+        stat = result[0]
+
+        # Verify stats structure:
+        # stats is a dict where keys are stats_period strings (e.g., "24h", "14d")
+        # and values are arrays of [timestamp, count] tuples
+        assert "stats" in stat
+        assert isinstance(stat["stats"], dict)
+        assert "24h" in stat["stats"]
+        assert isinstance(stat["stats"]["24h"], list)
+        # Each element should be a tuple/list of [timestamp, count]
+        for timepoint in stat["stats"]["24h"]:
+            assert isinstance(timepoint, list)
+            assert len(timepoint) == 2
+            timestamp, count = timepoint
+            assert isinstance(timestamp, (int, float))
+            assert isinstance(count, (int, float))
+            # Timestamp should be a reasonable Unix timestamp (seconds since epoch)
+            # For 24h period, should be within last day
+            assert timestamp > 0
+
+        # Verify lifetime structure:
+        # lifetime is a dict with count (string), userCount (int), firstSeen (datetime str), lastSeen (datetime str)
+        assert "lifetime" in stat
+        assert isinstance(stat["lifetime"], dict)
+        lifetime = stat["lifetime"]
+
+        # Required fields
+        assert "count" in lifetime
+        assert "userCount" in lifetime
+        assert "firstSeen" in lifetime
+        assert "lastSeen" in lifetime
+
+        # Field types
+        assert isinstance(lifetime["count"], str), "lifetime.count should be a string"
+        # Count should be a numeric string representing the total times seen
+        # (e.g., "1", "42", "1000")
+        assert lifetime[
+            "count"
+        ].isdigit(), f"lifetime.count should be a numeric string, got: {lifetime['count']}"
+
+        assert isinstance(lifetime["userCount"], int), "lifetime.userCount should be an integer"
+
+        # firstSeen and lastSeen can be None or ISO timestamp strings
+        if lifetime["firstSeen"] is not None:
+            assert isinstance(lifetime["firstSeen"], str), "lifetime.firstSeen should be a string"
+            # Should be ISO format (contains 'T' or 'Z' or is parseable)
+            assert "T" in lifetime["firstSeen"] or "Z" in lifetime["firstSeen"]
+
+        if lifetime["lastSeen"] is not None:
+            assert isinstance(lifetime["lastSeen"], str), "lifetime.lastSeen should be a string"
+            # Should be ISO format (contains 'T' or 'Z' or is parseable)
+            assert "T" in lifetime["lastSeen"] or "Z" in lifetime["lastSeen"]
+
+        # Optional stats field in lifetime (currently None in implementation)
+        if "stats" in lifetime:
+            assert lifetime["stats"] is None or isinstance(lifetime["stats"], dict)
