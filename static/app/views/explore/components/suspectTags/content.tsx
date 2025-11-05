@@ -25,7 +25,6 @@ import useSuspectAttributes from 'sentry/views/explore/hooks/useSuspectAttribute
 
 import {Chart} from './chart';
 import {useChartSelection} from './chartSelectionContext';
-import {SortingToggle, type SortingMethod} from './sortingToggle';
 
 const CHARTS_COLUMN_COUNT = 3;
 const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
@@ -89,7 +88,6 @@ function ContentImpl({
 }) {
   const {data, isLoading, isError} = useSuspectAttributes({boxSelectOptions, chartInfo});
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortingMethod, setSortingMethod] = useState<SortingMethod>('rrr');
   const [page, setPage] = useState(0);
   const theme = useTheme();
 
@@ -112,8 +110,8 @@ function ContentImpl({
     }
 
     const sortedAttrs = [...filteredAttrs].sort((a, b) => {
-      const aOrder = a.order[sortingMethod];
-      const bOrder = b.order[sortingMethod];
+      const aOrder = a.order.rrr;
+      const bOrder = b.order.rrr;
 
       if (aOrder === null && bOrder === null) return 0;
       if (aOrder === null) return 1;
@@ -123,7 +121,7 @@ function ContentImpl({
     });
 
     return sortedAttrs;
-  }, [debouncedSearchQuery, data?.rankedAttributes, sortingMethod]);
+  }, [debouncedSearchQuery, data?.rankedAttributes]);
 
   useEffect(() => {
     // Ensure that we are on the first page whenever filtered attributes change.
@@ -147,7 +145,6 @@ function ContentImpl({
               query={debouncedSearchQuery}
               size="sm"
             />
-            <SortingToggle value={sortingMethod} onChange={setSortingMethod} />
           </ControlsContainer>
           {filteredRankedAttributes.length > 0 ? (
             <Fragment>
