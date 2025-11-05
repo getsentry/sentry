@@ -22,7 +22,7 @@ import {
   useMetricsFrozenSearch,
   useMetricsFrozenTracePeriod,
 } from 'sentry/views/explore/metrics/metricsFrozenContext';
-import type {TraceMetricEventsResponseItem} from 'sentry/views/explore/metrics/types';
+import {type TraceMetricEventsResponseItem} from 'sentry/views/explore/metrics/types';
 import {
   useQueryParamsQuery,
   useQueryParamsSortBys,
@@ -60,7 +60,7 @@ interface MetricSamplesTableResult {
 
 function useMetricsQueryKey({
   limit,
-  traceMetric: _traceMetric,
+  traceMetric,
   fields,
   ingestionDelaySeconds = INGESTION_DELAY,
   referrer,
@@ -158,6 +158,8 @@ function useMetricsQueryKey({
       orderby: orderby.length > 0 ? orderby : undefined,
       per_page: limit,
       referrer,
+      metricName: traceMetric?.name,
+      metricType: traceMetric?.type,
       sampling: queryExtras?.samplingMode ?? SAMPLING_MODE.NORMAL,
       caseInsensitive: queryExtras?.caseInsensitive,
       disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation
