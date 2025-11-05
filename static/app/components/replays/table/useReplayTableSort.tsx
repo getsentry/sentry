@@ -12,7 +12,7 @@ interface Props {
   queryParamKey?: string;
 }
 
-export const DEFAULT_SORT = {field: 'started_at', kind: 'asc'} as const;
+export const DEFAULT_SORT = {field: 'started_at', kind: 'desc'} as const;
 
 export default function useReplayTableSort({
   defaultSort = DEFAULT_SORT,
