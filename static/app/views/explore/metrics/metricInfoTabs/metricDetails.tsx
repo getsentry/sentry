@@ -22,6 +22,7 @@ import {
   DetailsContent,
   MetricsDetailsWrapper,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
 export function MetricDetails({
   dataRow,
@@ -36,11 +37,13 @@ export function MetricDetails({
   const getActions = useLogAttributesTreeActions({embedded: false});
 
   const traceDetailResult = useMetricTraceDetail({
-    metricId: String(dataRow.id ?? ''),
-    projectId: String(dataRow['project.id'] ?? ''),
-    traceId: String(dataRow.trace ?? ''),
+    metricId: String(dataRow[TraceMetricKnownFieldKey.ID] ?? ''),
+    projectId: String(dataRow[TraceMetricKnownFieldKey.PROJECT_ID] ?? ''),
+    traceId: String(dataRow[TraceMetricKnownFieldKey.TRACE] ?? ''),
     enabled:
-      defined(dataRow.id) && defined(dataRow['project.id']) && defined(dataRow.trace),
+      defined(dataRow[TraceMetricKnownFieldKey.ID]) &&
+      defined(dataRow[TraceMetricKnownFieldKey.PROJECT_ID]) &&
+      defined(dataRow[TraceMetricKnownFieldKey.TRACE]),
   });
 
   const {data, isPending, isError} = traceDetailResult;

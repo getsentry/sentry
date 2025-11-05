@@ -205,10 +205,9 @@ export function AggregatesTab({traceMetric}: AggregatesTabProps) {
               {fields.map((field, j) => (
                 <StickyCompatibleStyledRowCell
                   key={j}
-                  hasPadding
                   data-sticky-column={isLastColumn(j) ? 'true' : 'false'}
                   isSticky={isLastColumn(j)}
-                  offset={j === 0 ? firstColumnOffset : '0px'}
+                  offset={j === 0 ? firstColumnOffset : undefined}
                 >
                   <FieldRenderer
                     column={columns[j]}
@@ -253,7 +252,9 @@ const StickyCompatibleStyledHeaderCell = styled(StyledSimpleTableHeaderCell)<{
   isSticky: boolean;
 }>`
   justify-content: ${p => (p.isSticky ? 'flex-end' : 'flex-start')};
-  padding: 0 4px;
+  padding: ${p => (p.noPadding ? 0 : p.theme.space.lg)};
+  padding-top: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
+  padding-bottom: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
   ${p =>
     p.isSticky &&
     css`
@@ -267,9 +268,13 @@ const StickyCompatibleStyledHeaderCell = styled(StyledSimpleTableHeaderCell)<{
 
 const StickyCompatibleStyledRowCell = styled(StyledSimpleTableRowCell)<{
   isSticky: boolean;
-  offset: string;
+  offset?: string;
 }>`
-  padding-left: ${p => p.offset};
+  ${p =>
+    p.offset &&
+    css`
+      padding-left: ${p.offset};
+    `}
   ${p =>
     p.isSticky &&
     css`

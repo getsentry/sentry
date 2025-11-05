@@ -1,3 +1,5 @@
+import type {Location} from 'history';
+
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -140,4 +142,15 @@ function defaultAggregateFields(): AggregateField[] {
 
 function defaultAggregateSortBys(): Sort[] {
   return [{field: 'per_second(value)', kind: 'desc'}];
+}
+
+export function stripMetricParamsFromLocation(location: Location): Location {
+  const target: Location = {...location, query: {...location.query}};
+  for (const key in ReadableQueryParams.prototype) {
+    delete target.query[key];
+  }
+  // Metric context
+  delete target.query.metric;
+
+  return target;
 }

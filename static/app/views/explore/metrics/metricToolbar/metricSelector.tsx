@@ -1,62 +1,116 @@
-import {useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
+import debounce from 'lodash/debounce';
 
 import {Tag} from '@sentry/scraps/badge/tag';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import usePrevious from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useSetTraceMetric} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {
+  TraceMetricKnownFieldKey,
+  type TraceMetricTypeValue,
+} from 'sentry/views/explore/metrics/types';
 
 interface MetricSelectOption extends SelectOption<string> {
-  type: string;
+  metricName: string;
+  metricType: TraceMetricTypeValue;
+  metricUnit?: string;
 }
 
-function TypeBadge({kind}: {kind: string}) {
-  if (!kind) {
+export function MetricTypeBadge({metricType}: {metricType: TraceMetricTypeValue}) {
+  if (!metricType) {
     return null;
   }
 
-  return <Tag>{kind}</Tag>;
+  return <Tag>{metricType}</Tag>;
 }
 
 export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
-  const {data: metricOptionsData} = useMetricOptions();
+  const [search, setSearch] = useState('');
+  const {data: metricOptionsData, isFetching} = useMetricOptions({search});
   const setTraceMetric = useSetTraceMetric();
 
+  const metricSelectValue = makeMetricSelectValue(traceMetric);
+  const optionFromTraceMetric: MetricSelectOption = useMemo(
+    () => ({
+      label: `${traceMetric.name}`,
+      value: metricSelectValue,
+      metricType: traceMetric.type as TraceMetricTypeValue,
+      metricName: traceMetric.name,
+      trailingItems: (
+        <MetricTypeBadge metricType={traceMetric.type as TraceMetricTypeValue} />
+      ),
+    }),
+    [metricSelectValue, traceMetric.name, traceMetric.type]
+  );
+
   const metricOptions = useMemo((): MetricSelectOption[] => {
+    const shouldIncludeOptionFromTraceMetric =
+      traceMetric.name &&
+      !metricOptionsData?.data?.some(
+        option => option[TraceMetricKnownFieldKey.METRIC_NAME] === traceMetric.name
+      );
     return [
+      ...(shouldIncludeOptionFromTraceMetric ? [optionFromTraceMetric] : []),
       ...(metricOptionsData?.data?.map(option => ({
-        label: `${option['metric.name']}`,
-        value: option['metric.name'],
-        type: option['metric.type'],
-        trailingItems: <TypeBadge kind={option['metric.type']} />,
+        label: `${option[TraceMetricKnownFieldKey.METRIC_NAME]}`,
+        value: makeMetricSelectValue({
+          name: option[TraceMetricKnownFieldKey.METRIC_NAME],
+          type: option[TraceMetricKnownFieldKey.METRIC_TYPE] as TraceMetricTypeValue,
+        }),
+        metricType: option[TraceMetricKnownFieldKey.METRIC_TYPE],
+        metricUnit: option[TraceMetricKnownFieldKey.METRIC_UNIT],
+        metricName: option[TraceMetricKnownFieldKey.METRIC_NAME],
+        trailingItems: (
+          <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
+        ),
       })) ?? []),
     ];
-  }, [metricOptionsData]);
+  }, [metricOptionsData, optionFromTraceMetric, traceMetric.name]);
 
   useEffect(() => {
-    if (metricOptions.length && !traceMetric.name) {
+    if (metricOptions.length && metricOptions[0] && !traceMetric.name) {
       setTraceMetric({
-        name: metricOptions[0]?.value ?? '',
-        type: metricOptions[0]?.type ?? '',
+        name: metricOptions[0].metricName,
+        type: metricOptions[0].metricType,
       });
     }
   }, [metricOptions, setTraceMetric, traceMetric.name]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSetSearch = useCallback(
+    debounce(newSearch => {
+      setSearch(newSearch);
+    }, DEFAULT_DEBOUNCE_DURATION),
+    [setSearch]
+  );
+
+  const traceMetricSelectValue = makeMetricSelectValue(traceMetric);
+  const previousOptions = usePrevious(metricOptions ?? []);
+
   return (
     <CompactSelect
       searchable
-      options={metricOptions ?? []}
-      value={traceMetric.name}
+      options={isFetching ? previousOptions : (metricOptions ?? [])}
+      value={traceMetricSelectValue}
+      loading={isFetching}
+      onSearch={debouncedSetSearch}
       onChange={option => {
-        if ('type' in option) {
+        if ('metricType' in option) {
           const typedOption = option as MetricSelectOption;
           setTraceMetric({
-            name: typedOption.value,
-            type: typedOption.type,
+            name: typedOption.metricName,
+            type: typedOption.metricType,
           });
         }
       }}
     />
   );
+}
+
+function makeMetricSelectValue(metric: TraceMetric): string {
+  return `${metric.name}||${metric.type}`;
 }

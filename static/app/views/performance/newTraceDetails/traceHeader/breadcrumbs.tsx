@@ -52,6 +52,7 @@ export enum TraceViewSources {
   FEEDBACK_DETAILS = 'feedback_details',
   LOGS = 'logs',
   AGENT_MONITORING = 'agent_monitoring',
+  TRACE_METRICS = 'trace_metrics',
 }
 
 // Ideally every new entry to ModuleName, would require a new source to be added here so we don't miss any.
@@ -81,6 +82,7 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
   feedback_details: 'issues/feedback',
   dashboards: 'dashboards',
   logs: 'explore/logs',
+  trace_metrics: 'explore/metrics',
 };
 
 function getBreadCrumbTarget(pathname: string, query: Location['query']) {

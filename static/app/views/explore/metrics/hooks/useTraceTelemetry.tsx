@@ -8,6 +8,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useMetricsFrozenTracePeriod} from 'sentry/views/explore/metrics/metricsFrozenContext';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseTraceTelemetryOptions {
@@ -33,7 +34,23 @@ export function useTraceTelemetry({
 }: UseTraceTelemetryOptions): TraceTelemetryResult {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const frozenTracePeriod = useMetricsFrozenTracePeriod();
   const location = useLocation();
+
+  const pageFilters = useMemo(() => {
+    if (frozenTracePeriod) {
+      return {
+        ...selection,
+        datetime: {
+          start: frozenTracePeriod.start ?? null,
+          end: frozenTracePeriod.end ?? null,
+          period: frozenTracePeriod.period ?? null,
+          utc: selection.datetime.utc,
+        },
+      };
+    }
+    return selection;
+  }, [selection, frozenTracePeriod]);
 
   // Query for error count
   const errorsEventView = useMemo(() => {
@@ -47,8 +64,8 @@ export function useTraceTelemetry({
       version: 2,
       dataset: DiscoverDatasets.ERRORS,
     };
-    return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [traceIds, selection]);
+    return EventView.fromNewQueryWithPageFilters(discoverQuery, pageFilters);
+  }, [traceIds, pageFilters]);
 
   const errorsResult = useDiscoverQuery({
     eventView: errorsEventView,
@@ -75,8 +92,8 @@ export function useTraceTelemetry({
       dataset: DiscoverDatasets.SPANS,
     };
 
-    return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [traceIds, selection]);
+    return EventView.fromNewQueryWithPageFilters(discoverQuery, pageFilters);
+  }, [traceIds, pageFilters]);
 
   const spansResult = useSpansQuery({
     enabled: enabled && spansEventView !== null,
@@ -101,8 +118,8 @@ export function useTraceTelemetry({
       dataset: DiscoverDatasets.OURLOGS,
     };
 
-    return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [traceIds, selection]);
+    return EventView.fromNewQueryWithPageFilters(discoverQuery, pageFilters);
+  }, [traceIds, pageFilters]);
 
   const logsResult = useSpansQuery({
     enabled: enabled && logsEventView !== null,

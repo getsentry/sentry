@@ -51,21 +51,37 @@ export const WrappingText = styled('div')`
   align-items: center;
 `;
 
-export const ExpandedRowContainer = styled('div')`
+export const ExpandedRowContainer = styled('div')<{embedded?: boolean}>`
   grid-column: 1 / -1;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+
+  ${p =>
+    p.embedded &&
+    css`
+      padding: ${p.theme.space.xs} ${p.theme.space.sm};
+    `}
 `;
 
 export const StyledSimpleTableRowCell = styled(SimpleTable.RowCell)<{
-  hasPadding?: boolean;
+  embedded?: boolean;
+  noPadding?: boolean;
 }>`
-  padding: ${p => (p.hasPadding ? p.theme.space.xs : 0)};
+  padding: ${p => (p.noPadding ? 0 : p.theme.space.lg)};
+  padding-top: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
+  padding-bottom: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
+
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
-export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)`
+export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)<{
+  noPadding?: boolean;
+}>`
   font-size: ${p => p.theme.fontSize.sm};
+  padding: ${p => (p.noPadding ? 0 : p.theme.space.lg)};
+  padding-top: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
+  padding-bottom: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
 `;
+
 export const StyledSimpleTableBody = styled('div')`
   position: relative;
   overflow-y: auto;
