@@ -88,7 +88,7 @@ describe('projectGeneralSettings', () => {
     );
 
     expect(await screen.findByRole('textbox', {name: 'Slug'})).toHaveValue(
-      'Project Name'
+      'project-slug'
     );
     expect(screen.getByRole('textbox', {name: 'Subject Prefix'})).toHaveValue('[my-org]');
 

@@ -38,6 +38,7 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -329,6 +330,25 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
     help: t('The unique identifier for this project. It cannot be modified.'),
   };
 
+  const slugField: FieldObject = {
+    name: 'slug',
+    type: 'string',
+    required: true,
+    label: t('Slug'),
+    help: t('A unique ID used to identify this project'),
+    transformInput: slugify as (str: string) => string,
+    getData: (data: {slug?: string}) => {
+      return {
+        slug: data.slug,
+      };
+    },
+    saveOnBlur: false,
+    saveMessageAlertType: 'warning',
+    saveMessage: t(
+      "Changing a project's slug can break your build scripts! Please proceed carefully."
+    ),
+  };
+
   // Create filtered platform field without mutating the shared fields object
   const platformField = {
     ...fields.platform,
@@ -355,7 +375,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
         <JsonForm
           {...jsonFormProps}
           title={t('Project Details')}
-          fields={[fields.name, projectIdField, platformField]}
+          fields={[slugField, projectIdField, platformField]}
         />
         <JsonForm {...jsonFormProps} title={t('Email')} fields={[fields.subjectPrefix]} />
       </Form>
