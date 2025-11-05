@@ -10,6 +10,11 @@ import {COVERAGE_PAGE_TITLE} from 'sentry/views/prevent/settings';
 export default function CoveragePageWrapper() {
   const organization = useOrganization();
 
+  // Debug: Show loading state if org is not loaded
+  if (!organization) {
+    return <div style={{padding: '20px'}}>Loading organization...</div>;
+  }
+
   return (
     <SentryDocumentTitle title={COVERAGE_PAGE_TITLE} orgSlug={organization.slug}>
       <Layout.Header unified>

@@ -35,6 +35,20 @@ import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
 import {PREVENT_AI_BASE_URL, PREVENT_BASE_URL} from 'sentry/views/prevent/settings';
 
+const SidebarLinkWithBadge = styled('div')`
+  position: relative;
+  width: 100%;
+  height: 100%;
+`;
+
+const BetaBadge = styled(FeatureBadge)`
+  position: absolute;
+  top: -2px;
+  right: 6px;
+  z-index: 10;
+  pointer-events: none;
+`;
+
 function SidebarBody({
   children,
   ref,
@@ -145,20 +159,22 @@ export function PrimaryNavigationItems() {
           </NavTourElement>
         </Feature>
 
-        <Feature features={['prevent-ai']}>
-          <Container position="relative" height="100%">
-            <SidebarLink
-              to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
-              activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
-              analyticsKey="prevent"
-              group={PrimaryNavGroup.PREVENT}
-              {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
-            >
-              <IconPrevent />
-            </SidebarLink>
-            <BetaBadge type="beta" />
-          </Container>
-        </Feature>
+        <SidebarLinkWithBadge>
+          <Feature features={['prevent-ai']}>
+            <Container position="relative" height="100%">
+              <SidebarLink
+                to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
+                activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
+                analyticsKey="prevent"
+                group={PrimaryNavGroup.PREVENT}
+                {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
+              >
+                <IconPrevent />
+              </SidebarLink>
+              <BetaBadge type="beta" />
+            </Container>
+          </Feature>
+        </SidebarLinkWithBadge>
 
         <SeparatorItem />
 
@@ -217,13 +233,3 @@ export function PrimaryNavigationItems() {
     </Fragment>
   );
 }
-
-const BetaBadge = styled(FeatureBadge)`
-  position: absolute;
-  pointer-events: none;
-  top: -2px;
-  right: 2px;
-  font-size: ${p => p.theme.fontSize.xs};
-  padding: 0 ${p => p.theme.space.xs};
-  height: 16px;
-`;

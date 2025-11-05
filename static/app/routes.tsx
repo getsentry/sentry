@@ -2412,6 +2412,10 @@ function buildRoutes(): RouteObject[] {
           path: 'new/',
           component: make(() => import('sentry/views/prevent/coverage/onboarding')),
         },
+        {
+          path: 'preOnb/',
+          component: make(() => import('sentry/views/prevent/coverage/preOnboarding')),
+        },
         codecovCommitRoutes,
         codecovPRRoutes,
       ],
@@ -2449,6 +2453,26 @@ function buildRoutes(): RouteObject[] {
               component: make(() => import('sentry/views/prevent/preventAI/index')),
             },
           ],
+        },
+      ],
+    },
+    {
+      path: 'ai/',
+      children: [
+        // Render AI page with layout wrapper
+        {
+          component: make(() => import('sentry/views/codecov/ai/aiWrapper')),
+          children: [
+            {
+              index: true,
+              component: make(() => import('sentry/views/codecov/ai/ai')),
+            },
+          ],
+        },
+        // Render AI onboarding without any layout wrapping
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/codecov/ai/onboarding')),
         },
       ],
     },
