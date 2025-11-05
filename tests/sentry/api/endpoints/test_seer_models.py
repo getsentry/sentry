@@ -61,7 +61,7 @@ class TestSeerModels(APITestCase):
         response = self.client.get(self.url)
 
         assert response.status_code == status.HTTP_504_GATEWAY_TIMEOUT
-        assert response.data == {"error": "Request to Seer timed out"}
+        assert response.data == {"detail": "Request to Seer timed out"}
 
     @patch("sentry.api.endpoints.seer_models.requests.get")
     def test_get_models_request_exception(self, mock_get: MagicMock) -> None:
@@ -71,7 +71,7 @@ class TestSeerModels(APITestCase):
         response = self.client.get(self.url)
 
         assert response.status_code == status.HTTP_502_BAD_GATEWAY
-        assert response.data == {"error": "Failed to fetch models from Seer"}
+        assert response.data == {"detail": "Failed to fetch models from Seer"}
 
     @patch("sentry.api.endpoints.seer_models.requests.get")
     def test_get_models_http_error(self, mock_get: MagicMock) -> None:
@@ -84,7 +84,7 @@ class TestSeerModels(APITestCase):
         response = self.client.get(self.url)
 
         assert response.status_code == status.HTTP_502_BAD_GATEWAY
-        assert response.data == {"error": "Failed to fetch models from Seer"}
+        assert response.data == {"detail": "Failed to fetch models from Seer"}
 
     @patch("sentry.api.endpoints.seer_models.requests.get")
     def test_get_models_empty_response(self, mock_get: MagicMock) -> None:

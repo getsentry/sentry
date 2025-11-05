@@ -6,6 +6,7 @@ from typing import TypedDict
 import requests
 from django.conf import settings
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import APIException
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,6 +19,16 @@ from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
+
+
+class SeerTimeoutError(APIException):
+    status_code = 504
+    default_detail = "Request to Seer timed out"
+
+
+class SeerConnectionError(APIException):
+    status_code = 502
+    default_detail = "Failed to fetch models from Seer"
 
 
 class SeerModelsResponse(TypedDict):
@@ -75,13 +86,7 @@ class SeerModelsEndpoint(Endpoint):
 
         except requests.exceptions.Timeout:
             logger.warning("Timeout when fetching models from Seer")
-            return Response(
-                {"error": "Request to Seer timed out"},
-                status=504,
-            )
+            raise SeerTimeoutError()
         except requests.exceptions.RequestException as e:
             logger.exception("Error fetching models from Seer", extra={"error": str(e)})
-            return Response(
-                {"error": "Failed to fetch models from Seer"},
-                status=502,
-            )
+            raise SeerConnectionError()
