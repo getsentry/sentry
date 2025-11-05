@@ -1,14 +1,20 @@
 import {css} from '@emotion/react';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconEdit} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Theme} from 'sentry/utils/theme';
 
 import type {Subscription} from 'getsentry/types';
-import {hasNewBillingUI} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  hasBillingAccess,
+  hasNewBillingUI,
+  supportsPayg,
+} from 'getsentry/utils/billing';
 import OnDemandBudgetEditModal from 'getsentry/views/onDemandBudgets/onDemandBudgetEditModal';
 
 interface EditOnDemandButtonProps {
@@ -23,19 +29,30 @@ export function openOnDemandBudgetEditModal({
   theme,
 }: EditOnDemandButtonProps) {
   const isNewBillingUI = hasNewBillingUI(organization);
+  const hasBillingPerms = hasBillingAccess(organization);
+  const canUsePayg = supportsPayg(subscription);
 
-  openModal(
-    modalProps => (
-      <OnDemandBudgetEditModal
-        {...modalProps}
-        subscription={subscription}
-        organization={organization}
-      />
-    ),
-    {
-      closeEvents: 'escape-key',
-      modalCss: theme && isNewBillingUI ? modalCss(theme) : undefined,
-    }
+  if (hasBillingPerms && canUsePayg) {
+    openModal(
+      modalProps => (
+        <OnDemandBudgetEditModal
+          {...modalProps}
+          subscription={subscription}
+          organization={organization}
+        />
+      ),
+      {
+        closeEvents: 'escape-key',
+        modalCss: theme && isNewBillingUI ? modalCss(theme) : undefined,
+      }
+    );
+    return;
+  }
+
+  addErrorMessage(
+    tct("You don't have permission to edit [budgetTerm] budgets.", {
+      budgetTerm: displayBudgetName(subscription.planDetails),
+    })
   );
 }
 

@@ -1,5 +1,4 @@
-import {Fragment, useCallback} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useCallback, useState} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -14,7 +13,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
@@ -24,10 +22,10 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
@@ -43,35 +41,20 @@ import {
   makeAutomationBasePathname,
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
-import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
-
-const AUTOMATION_DETECTORS_LIMIT = 10;
+import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const {
-    data: detectors,
-    isLoading,
-    isError,
-    getResponseHeader,
-  } = useDetectorsQuery(
-    {
-      ids: automation.detectorIds,
-      limit: AUTOMATION_DETECTORS_LIMIT,
-      cursor: location.query.cursor as string | undefined,
-    },
-    {
-      enabled: automation.detectorIds.length > 0,
-    }
-  );
+  const {automationsLinkPrefix} = useMonitorViewContext();
 
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
 
   const warning = getAutomationActionsWarning(automation);
+
+  const [monitorListCursor, setMonitorListCursor] = useState<string | undefined>(
+    undefined
+  );
 
   return (
     <SentryDocumentTitle title={automation.name}>
@@ -81,8 +64,11 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             <Breadcrumbs
               crumbs={[
                 {
-                  label: t('Automations'),
-                  to: makeAutomationBasePathname(organization.slug),
+                  label: t('Alerts'),
+                  to: makeAutomationBasePathname(
+                    organization.slug,
+                    automationsLinkPrefix
+                  ),
                 },
                 {label: automation.name},
               ]}
@@ -127,23 +113,9 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
               <Section title={t('Connected Monitors')}>
                 <ErrorBoundary mini>
                   <ConnectedMonitorsList
-                    detectors={detectors ?? []}
-                    isLoading={isLoading}
-                    isError={isError}
-                    connectedDetectorIds={automation.detectorIds}
-                    numSkeletons={Math.min(
-                      automation.detectorIds.length,
-                      AUTOMATION_DETECTORS_LIMIT
-                    )}
-                  />
-                  <StyledPagination
-                    pageLinks={getResponseHeader?.('Link')}
-                    onCursor={cursor => {
-                      navigate({
-                        pathname: location.pathname,
-                        query: {...location.query, cursor},
-                      });
-                    }}
+                    detectorIds={automation.detectorIds}
+                    cursor={monitorListCursor}
+                    onCursor={setMonitorListCursor}
                   />
                 </ErrorBoundary>
               </Section>
@@ -203,16 +175,13 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   );
 }
 
-export default function AutomationDetail() {
-  useWorkflowEngineFeatureGate({redirect: true});
-  const params = useParams<{automationId: string}>();
-
+function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
   const {
     data: automation,
     isPending,
     isError,
     refetch,
-  } = useAutomationQuery(params.automationId);
+  } = useAutomationQuery(automationId);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -225,8 +194,26 @@ export default function AutomationDetail() {
   return <AutomationDetailContent automation={automation} />;
 }
 
+export default function AutomationDetail() {
+  useWorkflowEngineFeatureGate({redirect: true});
+  const params = useParams<{automationId: string}>();
+
+  const {data: automation, isPending} = useAutomationQuery(params.automationId);
+
+  return (
+    <VisuallyCompleteWithData
+      id="AutomationDetails-Body"
+      isLoading={isPending}
+      hasData={defined(automation)}
+    >
+      <AutomationDetailLoadingStates automationId={params.automationId} />
+    </VisuallyCompleteWithData>
+  );
+}
+
 function Actions({automation}: {automation: Automation}) {
   const organization = useOrganization();
+  const {automationsLinkPrefix} = useMonitorViewContext();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
   const toggleDisabled = useCallback(() => {
@@ -239,9 +226,7 @@ function Actions({automation}: {automation: Automation}) {
       },
       {
         onSuccess: () => {
-          addSuccessMessage(
-            newEnabled ? t('Automation enabled') : t('Automation disabled')
-          );
+          addSuccessMessage(newEnabled ? t('Alert enabled') : t('Alert disabled'));
         },
       }
     );
@@ -254,7 +239,11 @@ function Actions({automation}: {automation: Automation}) {
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
-        to={makeAutomationEditPathname(organization.slug, automation.id)}
+        to={makeAutomationEditPathname(
+          organization.slug,
+          automation.id,
+          automationsLinkPrefix
+        )}
         priority="primary"
         icon={<IconEdit />}
         size="sm"
@@ -270,14 +259,10 @@ function UserDisplayName({id}: {id: string | undefined}) {
     id: id ? Number(id) : undefined,
   });
   if (!id) {
-    return t('Sentry');
+    return '—';
   }
   if (isPending) {
     return <Placeholder height="20px" />;
   }
   return createdByUser?.name || createdByUser?.email || t('Unknown');
 }
-
-const StyledPagination = styled(Pagination)`
-  margin: 0;
-`;

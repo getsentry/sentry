@@ -44,6 +44,14 @@ describe('CronDetectorDetails - check-ins', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/detectors/1/`,
+      body: detector,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/detectors/2/`,
+      body: detector,
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=14d`,
       body: [],
     });
@@ -96,6 +104,11 @@ describe('CronDetectorDetails - check-ins', () => {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.id}/monitors/${noCheckInDataSource.queryObj.slug}/processing-errors/`,
       body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/detectors/2/`,
+      body: noCheckInDetector,
     });
 
     render(<CronDetectorDetails detector={noCheckInDetector} project={project} />);
@@ -169,6 +182,11 @@ describe('CronDetectorDetails - check-ins', () => {
       MockApiClient.addMockResponse({
         url: `/projects/org-slug/${project.id}/monitors/${detectorWithCheckIn.dataSources[0].queryObj.slug}/processing-errors/`,
         body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/detectors/${detectorWithCheckIn.id}/`,
+        body: detectorWithCheckIn,
       });
 
       // Set user timezone to New York EST/EDT (UTC-4)
@@ -265,6 +283,11 @@ describe('CronDetectorDetails - check-ins', () => {
       MockApiClient.addMockResponse({
         url: `/projects/org-slug/${project.id}/monitors/${noCheckInDataSource.queryObj.slug}/processing-errors/`,
         body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/detectors/2/`,
+        body: noCheckInDetector,
       });
 
       render(<CronDetectorDetails detector={noCheckInDetector} project={project} />);

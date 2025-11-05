@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -19,6 +20,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import Redirect from 'sentry/components/redirect';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconCheckmark, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -26,6 +28,7 @@ import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -34,9 +37,9 @@ import type {Subscription} from 'getsentry/types';
 import {displayBudgetName, hasNewBillingUI} from 'getsentry/utils/billing';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {hasSpendVisibilityNotificationsFeature} from 'getsentry/views/subscriptionPage/utils';
 
 import SubscriptionHeader from './subscriptionHeader';
-import {trackSubscriptionView} from './utils';
 
 interface SubscriptionNotificationsProps extends RouteComponentProps<unknown, unknown> {
   subscription: Subscription;
@@ -66,10 +69,9 @@ function isThresholdsEqual(value: ThresholdsType, other: ThresholdsType): boolea
 function SubscriptionNotifications({subscription}: SubscriptionNotificationsProps) {
   const organization = useOrganization();
   const api = useApi();
-  useEffect(() => {
-    trackSubscriptionView(organization, subscription, 'notifications');
-  }, [organization, subscription]);
   const isNewBillingUI = hasNewBillingUI(organization);
+  const theme = useTheme();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const {
     data: backendThresholds,
@@ -113,6 +115,10 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
 
   const hasBillingPerms = organization.access?.includes('org:billing');
 
+  if (!hasSpendVisibilityNotificationsFeature(organization)) {
+    return <Redirect to={`/settings/${organization.slug}/billing/overview/`} />;
+  }
+
   if (!isNewBillingUI) {
     if (!hasBillingPerms) {
       return (
@@ -155,6 +161,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
           />
           <NotificationsFooter>
             <NotificationButtons
+              isNewBillingUI={isNewBillingUI}
               onDemandEnabled={subscription.planDetails.allowOnDemand}
               backendThresholds={backendThresholds}
               notificationThresholds={notificationThresholds}
@@ -188,16 +195,29 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
           "Receive notifications when your organization's usage exceeds a threshold"
         )}
         action={
+          !isSmallScreen && (
+            <NotificationButtons
+              isNewBillingUI={isNewBillingUI}
+              onDemandEnabled={subscription.planDetails.allowOnDemand}
+              backendThresholds={backendThresholds}
+              notificationThresholds={notificationThresholds}
+              setNotificationThresholds={setNotificationThresholds}
+              onSubmit={onSubmit}
+            />
+          )
+        }
+      />
+      <Flex direction="column" gap="2xl">
+        {isSmallScreen && (
           <NotificationButtons
+            isNewBillingUI={isNewBillingUI}
             onDemandEnabled={subscription.planDetails.allowOnDemand}
             backendThresholds={backendThresholds}
             notificationThresholds={notificationThresholds}
             setNotificationThresholds={setNotificationThresholds}
             onSubmit={onSubmit}
           />
-        }
-      />
-      <Flex direction="column" gap="2xl">
+        )}
         <AlertLink
           to="/settings/account/notifications/quota/"
           type="info"
@@ -348,7 +368,9 @@ function NotificationButtons({
   setNotificationThresholds,
   onSubmit,
   onDemandEnabled,
+  isNewBillingUI,
 }: {
+  isNewBillingUI: boolean;
   onDemandEnabled: boolean;
   onSubmit: () => void;
   setNotificationThresholds: (newThresholds: ThresholdsType) => void;
@@ -369,6 +391,7 @@ function NotificationButtons({
           }
           setNotificationThresholds(backendThresholds);
         }}
+        analyticsParams={{isNewBillingUI}}
       >
         {t('Reset')}
       </Button>
@@ -384,6 +407,7 @@ function NotificationButtons({
             notificationThresholds.perProductOndemandPercent.length === 0)
         }
         onClick={onSubmit}
+        analyticsParams={{isNewBillingUI}}
       >
         {t('Save changes')}
       </Button>

@@ -4,7 +4,7 @@ from typing import Any
 
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry.spans.consumers.process_segments.types import attribute_value, get_span_op
+from sentry.spans.consumers.process_segments.types import Attribute, attribute_value, get_span_op
 
 # Keys of shared sentry attributes that are shared across all spans in a segment. This list
 # is taken from `extract_shared_tags` in Relay.
@@ -60,7 +60,7 @@ def _find_segment_span(spans: list[SpanEvent]) -> SpanEvent | None:
 
     # Iterate backwards since we usually expect the segment span to be at the end.
     for span in reversed(spans):
-        if attribute_value(span, "sentry.is_segment"):
+        if span.get("is_segment"):
             return span
 
     return None
@@ -92,7 +92,7 @@ class TreeEnricher:
             # Assume that Relay has extracted the shared tags into `data` on the
             # root span. Once `sentry_tags` is removed, the logic from
             # `extract_shared_tags` should be moved here.
-            segment_attrs = self._segment_span.get("attributes", {})
+            segment_attrs = self._segment_span.get("attributes") or {}
             shared_attrs = {k: v for k, v in segment_attrs.items() if k in SHARED_SENTRY_ATTRIBUTES}
 
             is_mobile = attribute_value(self._segment_span, "sentry.mobile") == "true"
@@ -200,6 +200,7 @@ def _timestamp_by_op(spans: list[SpanEvent], op: str) -> float | None:
 
 def _span_interval(span: SpanEvent) -> tuple[int, int]:
     """Get the start and end timestamps of a span in microseconds."""
+
     return _us(span["start_timestamp"]), _us(span["end_timestamp"])
 
 
@@ -212,7 +213,7 @@ def _us(timestamp: float) -> int:
 def compute_breakdowns(
     spans: Sequence[SpanEvent],
     breakdowns_config: dict[str, dict[str, Any]],
-) -> dict[str, Any]:
+) -> dict[str, Attribute]:
     """
     Computes breakdowns from all spans and writes them to the segment span.
 
@@ -221,7 +222,7 @@ def compute_breakdowns(
     are converted into attributes on the span trace item.
     """
 
-    ret = {}
+    ret: dict[str, Attribute] = {}
     for breakdown_name, breakdown_config in breakdowns_config.items():
         ty = breakdown_config.get("type")
 
@@ -231,7 +232,7 @@ def compute_breakdowns(
             continue
 
         for key, value in breakdowns.items():
-            ret[f"{breakdown_name}.{key}"] = {"value": value}
+            ret[f"{breakdown_name}.{key}"] = {"value": value, "type": "double"}
 
     return ret
 

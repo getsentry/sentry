@@ -8,7 +8,7 @@ import {
 import type {Event} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
-import {NODE_ENV, SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
+import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import type {Config} from 'sentry/types/system';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -57,21 +57,18 @@ function getSentryIntegrations() {
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    // Blocks main thread for long periods with react 19.2 in dev mode
-    NODE_ENV === 'production'
-      ? Sentry.reactRouterV6BrowserTracingIntegration({
-          useEffect,
-          useLocation,
-          useNavigationType,
-          createRoutesFromChildren,
-          matchRoutes,
-          _experiments: {
-            enableStandaloneClsSpans: true,
-            enableStandaloneLcpSpans: true,
-          },
-          linkPreviousTrace: 'session-storage',
-        })
-      : null,
+    Sentry.reactRouterV6BrowserTracingIntegration({
+      useEffect,
+      useLocation,
+      useNavigationType,
+      createRoutesFromChildren,
+      matchRoutes,
+      _experiments: {
+        enableStandaloneClsSpans: true,
+        enableStandaloneLcpSpans: true,
+      },
+      linkPreviousTrace: 'session-storage',
+    }),
     Sentry.browserProfilingIntegration(),
     Sentry.thirdPartyErrorFilterIntegration({
       filterKeys: ['sentry-spa'],
@@ -79,7 +76,7 @@ function getSentryIntegrations() {
     }),
     Sentry.featureFlagsIntegration(),
     Sentry.consoleLoggingIntegration(),
-  ].filter(integration => integration !== null);
+  ];
 
   return integrations;
 }

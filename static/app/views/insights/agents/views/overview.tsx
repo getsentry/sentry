@@ -1,9 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {Stack} from 'sentry/components/core/layout';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
+import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -16,7 +17,6 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -24,6 +24,11 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
+import {ConversationsTable} from 'sentry/views/insights/agents/components/conversationsTable';
+import {
+  ConversationsTableSwitch,
+  useConversationsTableSwitch,
+} from 'sentry/views/insights/agents/components/conversationsTableSwitch';
 import {IssuesWidget} from 'sentry/views/insights/agents/components/issuesWidget';
 import LLMGenerationsWidget from 'sentry/views/insights/agents/components/llmCallsWidget';
 import TokenCostWidget from 'sentry/views/insights/agents/components/modelCostWidget';
@@ -38,8 +43,9 @@ import {
   TableType,
   useActiveTable,
 } from 'sentry/views/insights/agents/hooks/useActiveTable';
-import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
+import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {TwoColumnWidgetGrid, WidgetGrid} from 'sentry/views/insights/agents/views/styles';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
@@ -53,9 +59,6 @@ import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/componen
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {ModuleName} from 'sentry/views/insights/types';
-
-const TableControl = SegmentedControl<TableType>;
-const TableControlItem = SegmentedControl.Item<TableType>;
 
 function useShowOnboarding() {
   const {projects} = useProjects();
@@ -72,10 +75,14 @@ function AgentsOverviewPage() {
   const organization = useOrganization();
   const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
-  const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'query',
+    parseAsString.withOptions({history: 'replace'})
+  );
   useDefaultToAllProjects();
 
   const {activeTable, onActiveTableChange} = useActiveTable();
+  const {unsetCursor} = useTableCursor();
 
   useEffect(() => {
     trackAnalytics('agent-monitoring.page-view', {
@@ -110,6 +117,7 @@ function AgentsOverviewPage() {
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
         setSearchQuery(newQuery);
+        unsetCursor();
       },
       searchSource: 'agent-monitoring',
       numberTags,
@@ -130,6 +138,7 @@ function AgentsOverviewPage() {
       setSearchQuery,
       stringSecondaryAliases,
       stringTags,
+      unsetCursor,
     ]
   );
 
@@ -157,19 +166,26 @@ function AgentsOverviewPage() {
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <ModuleFeature moduleName={ModuleName.AGENTS}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <ToolRibbon>
                   <PageFilterBar condensed>
-                    <InsightsProjectSelector />
-                    <InsightsEnvironmentSelector />
-                    <DatePageFilter {...datePageFilterProps} />
+                    <InsightsProjectSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
+                    <InsightsEnvironmentSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
+                    <DatePageFilter
+                      {...datePageFilterProps}
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
                   </PageFilterBar>
                   {!showOnboarding && (
-                    <QueryBuilderWrapper>
+                    <Flex flex={2}>
                       <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
-                    </QueryBuilderWrapper>
+                    </Flex>
                   )}
                 </ToolRibbon>
               </ModuleLayout.Full>
@@ -200,27 +216,30 @@ function AgentsOverviewPage() {
                         <IssuesWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
-                    <ControlsWrapper>
-                      <TableControl
-                        value={activeTable}
-                        onChange={handleTableSwitch}
-                        size="sm"
-                      >
-                        <TableControlItem key={TableType.TRACES}>
-                          {t('Traces')}
-                        </TableControlItem>
-                        <TableControlItem key={TableType.MODELS}>
-                          {t('Models')}
-                        </TableControlItem>
-                        <TableControlItem key={TableType.TOOLS}>
-                          {t('Tools')}
-                        </TableControlItem>
-                      </TableControl>
-                    </ControlsWrapper>
-
-                    {activeTable === TableType.TRACES && <TracesView />}
-                    {activeTable === TableType.MODELS && <ModelsView />}
-                    {activeTable === TableType.TOOLS && <ToolsView />}
+                    <Container paddingTop="xl" paddingBottom="xl">
+                      <Tabs value={activeTable} onChange={handleTableSwitch}>
+                        <TabList variant="floating">
+                          <TabList.Item key={TableType.TRACES}>
+                            {t('Traces')}
+                          </TabList.Item>
+                          <TabList.Item key={TableType.MODELS}>
+                            {t('Models')}
+                          </TabList.Item>
+                          <TabList.Item key={TableType.TOOLS}>{t('Tools')}</TabList.Item>
+                        </TabList>
+                        <TabPanels>
+                          <TabPanels.Item key={TableType.TRACES}>
+                            <TracesView />
+                          </TabPanels.Item>
+                          <TabPanels.Item key={TableType.MODELS}>
+                            <ModelsView />
+                          </TabPanels.Item>
+                          <TabPanels.Item key={TableType.TOOLS}>
+                            <ToolsView />
+                          </TabPanels.Item>
+                        </TabPanels>
+                      </Tabs>
+                    </Container>
                   </Fragment>
                 )}
               </ModuleLayout.Full>
@@ -233,6 +252,8 @@ function AgentsOverviewPage() {
 }
 
 function TracesView() {
+  const {value: conversationTable} = useConversationsTableSwitch();
+
   return (
     <Fragment>
       <WidgetGrid rowHeight={260}>
@@ -246,7 +267,10 @@ function TracesView() {
           <ToolUsageWidget />
         </WidgetGrid.Position3>
       </WidgetGrid>
-      <TracesTable />
+      <Flex justify="end" paddingBottom="xl">
+        <ConversationsTableSwitch />
+      </Flex>
+      {conversationTable ? <ConversationsTable /> : <TracesTable />}
     </Fragment>
   );
 }
@@ -317,18 +341,6 @@ function LoadingPanel() {
 
 const LoadingMask = styled(TransparentLoadingMask)`
   background: ${p => p.theme.background};
-`;
-
-const QueryBuilderWrapper = styled('div')`
-  flex: 2;
-`;
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  margin: ${p => p.theme.space.xl} 0;
 `;
 
 export default PageWithProviders;

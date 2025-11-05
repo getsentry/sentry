@@ -17,7 +17,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 @django_db_all
 def test_process_recording_event_without_video() -> None:
     """Test process_recording_event without replay video data"""
-    payload = b'[{"type": "test"}]'
+    payload = b'[{"type": 1}]'
     payload_compressed = zlib.compress(payload)
 
     message: Event = {
@@ -52,7 +52,7 @@ def test_process_recording_event_without_video() -> None:
 @django_db_all
 def test_process_recording_event_with_video() -> None:
     """Test process_recording_event with replay video data"""
-    payload = b'[{"type": "test"}]'
+    payload = b'[{"type": 1}]'
     payload_compressed = zlib.compress(payload)
     video_data = b"video"
 
@@ -107,7 +107,8 @@ def test_parse_replay_events_empty() -> None:
             "payload_compressed": b"",
             "replay_event": None,
             "replay_video": None,
-        }
+        },
+        True,
     )
     assert result == ParsedEventMeta([], [], [], [], [], [], [], [])
     assert trace_items == []
@@ -130,7 +131,8 @@ def test_parse_replay_events_invalid_json() -> None:
             "payload_compressed": b"",
             "replay_event": None,
             "replay_video": None,
-        }
+        },
+        True,
     )
     assert result is None
 

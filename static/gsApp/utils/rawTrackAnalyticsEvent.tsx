@@ -10,6 +10,9 @@ import localStorage from 'sentry/utils/localStorage';
 import sessionStorage from 'sentry/utils/sessionStorage';
 
 import type {Subscription} from 'getsentry/types';
+import {hasNewBillingUI} from 'getsentry/utils/billing';
+import {GETSENTRY_EVENT_MAP} from 'getsentry/utils/trackGetsentryAnalytics';
+import {hasNewCheckout} from 'getsentry/views/amCheckout/utils';
 
 import trackAmplitudeEvent from './trackAmplitudeEvent';
 import trackMarketingEvent from './trackMarketingEvent';
@@ -179,6 +182,11 @@ export default function rawTrackAnalyticsEvent(
     // pass in properties if we have the full organization
     if (isFullOrganization(organization)) {
       data.role = organization.orgRole;
+
+      if (eventKey in GETSENTRY_EVENT_MAP) {
+        data.isNewCheckout = hasNewCheckout(organization);
+        data.isNewBillingUI = hasNewBillingUI(organization);
+      }
     }
 
     // add in plan information

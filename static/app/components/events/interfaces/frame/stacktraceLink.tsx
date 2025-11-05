@@ -191,11 +191,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   }
 
   if ((isPending && isQueryEnabled) || !match) {
-    return (
-      <StacktraceLinkWrapper>
-        <Placeholder height="14px" width={coverageEnabled ? '40px' : '14px'} />
-      </StacktraceLinkWrapper>
-    );
+    return null;
   }
 
   // Match found - display link to source
@@ -411,15 +407,18 @@ function CopyFrameLink({event, frame}: CopyFrameLinkProps) {
       ? `${frame.filename}:${frame.lineNo}`
       : frame.filename || '';
 
-  const {onClick: handleCopyPath} = useCopyToClipboard({
-    text: filePath,
-    successMessage: t('File path copied to clipboard'),
-    errorMessage: t('Failed to copy file path'),
-  });
+  const {copy} = useCopyToClipboard();
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    handleCopyPath();
+
+    // Strip away relative path segments to make it easier for editors to actually find the file (like VSCode cmd+p)
+    const cleanedFilepath = filePath.replace(/^(\.\/)?(\.\.\/)*/g, '');
+
+    copy(cleanedFilepath, {
+      successMessage: t('File path copied to clipboard'),
+      errorMessage: t('Failed to copy file path'),
+    });
   };
 
   // Don't render if there's no valid file path to copy

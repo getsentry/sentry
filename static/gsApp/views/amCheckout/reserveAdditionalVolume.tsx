@@ -1,10 +1,8 @@
 import {useCallback, useMemo, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Separator} from 'sentry/components/core/separator';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -74,7 +72,6 @@ function ReserveAdditionalVolume({
           organization,
           data_type: category,
           quantity: value,
-          isNewCheckout: true,
         });
       }
     },
@@ -91,9 +88,16 @@ function ReserveAdditionalVolume({
   );
 
   return (
-    <Flex direction="column" gap="md">
-      <Flex gap="md" align="center" justify="between" width="100%" height="28px">
-        <Flex align="center" gap="md">
+    <Stack borderTop="primary">
+      <Flex
+        gap="md"
+        align="center"
+        justify="between"
+        width="100%"
+        background="secondary"
+        padding="xl xl"
+      >
+        <Stack gap="sm" align="start">
           <Button
             size="sm"
             priority="link"
@@ -116,41 +120,38 @@ function ReserveAdditionalVolume({
           >
             {t('Reserve additional volume')}
           </Button>
-          <Tag type="promotion">{t('save 20%')}</Tag>
-        </Flex>
+          <Text variant="muted">
+            {t('Prepay for usage by reserving volumes and save up to 20%')}
+          </Text>
+        </Stack>
         {reservedVolumeTotal > 0 && (
           <Container>
-            <Text size="2xl" bold density="compressed">
+            <Text size={{xs: 'lg', sm: 'xl'}} bold density="compressed">
               +${formatPrice({cents: reservedVolumeTotal})}
             </Text>
-            <Text size="lg" variant="muted">
+            <Text size={{xs: 'sm', sm: 'lg'}} variant="muted">
               /{getShortInterval(activePlan.billingInterval)}
             </Text>
           </Container>
         )}
       </Flex>
       {showSliders && (
-        <Flex direction="column" gap="xl">
-          <Text variant="muted">
-            {t('Prepay for usage by reserving volumes and save up to 20%')}
-          </Text>
-          <Flex direction="column" gap="md">
-            <Separator orientation="horizontal" border="primary" />
-            <VolumeSliders
-              checkoutTier={checkoutTier}
-              activePlan={activePlan}
-              organization={organization}
-              onUpdate={onUpdate}
-              formData={formData}
-              subscription={subscription}
-              isLegacy={isLegacy}
-              isNewCheckout
-              onReservedChange={debouncedReservedChange}
-            />
-          </Flex>
-        </Flex>
+        <Stack direction="column" borderTop="primary">
+          <Flex borderTop="primary" width="100%" />
+          <VolumeSliders
+            checkoutTier={checkoutTier}
+            activePlan={activePlan}
+            organization={organization}
+            onUpdate={onUpdate}
+            formData={formData}
+            subscription={subscription}
+            isLegacy={isLegacy}
+            isNewCheckout
+            onReservedChange={debouncedReservedChange}
+          />
+        </Stack>
       )}
-    </Flex>
+    </Stack>
   );
 }
 

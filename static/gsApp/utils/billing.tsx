@@ -462,8 +462,7 @@ export const isNewPayingCustomer = (
  * instead of a Plan
  */
 
-export const getBusinessPlanOfTier = (plan: string) =>
-  plan.startsWith('am2_') ? 'am2_business' : 'am1_business';
+export const getBusinessPlanOfTier = (plan: string) => plan.slice(0, 4) + 'business';
 
 export const isTeamPlan = (plan: string) => plan.includes('team');
 
@@ -597,11 +596,25 @@ export function getProductIcon(product: AddOnCategory, size?: IconSize) {
   }
 }
 
+/**
+ * Returns true if the subscription can use pay-as-you-go.
+ */
+export function supportsPayg(subscription: Subscription) {
+  return subscription.planDetails.allowOnDemand && subscription.supportsOnDemand;
+}
+
+/**
+ * Returns true if the current user has billing perms.
+ */
+export function hasBillingAccess(organization: Organization) {
+  return organization.access.includes('org:billing');
+}
+
 export function hasAccessToSubscriptionOverview(
   subscription: Subscription,
   organization: Organization
 ) {
-  return organization.access.includes('org:billing') || subscription.canSelfServe;
+  return hasBillingAccess(organization) || subscription.canSelfServe;
 }
 
 /**
@@ -780,6 +793,7 @@ export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) 
 export const RETENTION_SETTINGS_CATEGORIES = new Set([
   DataCategory.SPANS,
   DataCategory.LOG_BYTE,
+  DataCategory.TRANSACTIONS,
 ]);
 
 export function getCredits({

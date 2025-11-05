@@ -9,7 +9,6 @@ import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
-import type {PreventAIConfig} from './prevent';
 import type {Project} from './project';
 import type {Relay} from './relay';
 import type {User} from './user';
@@ -114,7 +113,6 @@ export interface Organization extends OrganizationSummary {
   };
   orgRole?: string;
   planSampleRate?: number | null;
-  preventAiConfigGithub?: PreventAIConfig;
 }
 
 export interface Team {

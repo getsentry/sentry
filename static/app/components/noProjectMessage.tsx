@@ -72,10 +72,24 @@ function NoProjectMessage({
   );
 
   return (
-    <Flex flex="1" align="center" justify="center">
-      <NoProjectEmptyState />
+    <Flex
+      flex="1"
+      align="center"
+      justify="center"
+      gap="3xl"
+      padding="lg"
+      direction={{xs: 'column', sm: 'row'}}
+    >
+      <Flex
+        align="center"
+        justify="center"
+        height="auto"
+        width={{xs: '300px', sm: 'auto'}}
+      >
+        <StyledNoProjectEmptyState />
+      </Flex>
 
-      <Content>
+      <Flex direction="column" justify="center">
         <Layout.Title>{t('Remain Calm')}</Layout.Title>
         <HelpMessage>{t('You need at least one project to use this view')}</HelpMessage>
         <Actions>
@@ -88,22 +102,20 @@ function NoProjectMessage({
             createProjectAction
           )}
         </Actions>
-      </Content>
+      </Flex>
     </Flex>
   );
 }
 
 export default NoProjectMessage;
 
-const HelpMessage = styled('div')`
-  margin-bottom: ${space(2)};
+const StyledNoProjectEmptyState = styled(NoProjectEmptyState)`
+  width: 100%;
+  height: auto;
 `;
 
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  margin-left: 40px;
+const HelpMessage = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 const Actions = styled(ButtonBar)`

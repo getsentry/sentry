@@ -5,7 +5,6 @@ import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
 
 import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {FeatureBadge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -38,6 +37,10 @@ export default function Ai() {
   const segmentCount = replayRecord?.count_segments ?? 0;
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const analyticsArea = useAnalyticsArea();
+
+  const replayTooLongMessage = t(
+    'While in beta phase, we only summarize a small portion of the replay.'
+  );
 
   const {
     summaryData,
@@ -192,7 +195,6 @@ export default function Ai() {
             <Flex align="center" gap="xs">
               {t('Replay Summary')}
             </Flex>
-            <FeatureBadge type="experimental" tooltipProps={{disabled: true}} />
           </SummaryLeftTitle>
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
@@ -221,13 +223,7 @@ export default function Ai() {
       <StyledTabItemContainer>
         <OverflowBody>
           <ChapterList timeRanges={summaryData.data.time_ranges} />
-          {segmentCount > 100 && (
-            <Subtext>
-              {t(
-                `Note: this replay is very long, so we might not be summarizing all of it.`
-              )}
-            </Subtext>
-          )}
+          {segmentCount > 100 && <Subtext>{replayTooLongMessage}</Subtext>}
         </OverflowBody>
       </StyledTabItemContainer>
     </Wrapper>

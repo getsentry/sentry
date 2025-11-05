@@ -684,6 +684,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             )
             assert response.status_code == 200, response.content
             expected = {
+                "bytesScanned": mock.ANY,
                 "dataScanned": "full",
                 "dataset": mock.ANY,
                 "datasetReason": "unchanged",
@@ -1902,6 +1903,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
         expected = {
+            "bytesScanned": mock.ANY,
             "dataScanned": "full",
             "dataset": mock.ANY,
             "datasetReason": "unchanged",
@@ -5991,6 +5993,73 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["fields"]["count_if(span.status,equals,success)"] == "integer"
         assert meta["units"]["count_if(span.status,equals,success)"] is None
 
+    def test_count_if_span_status_equation_quoted(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": ""},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+        equation = 'equation|count_if(span.status,equals,"success")'
+        response = self.do_request(
+            {
+                "field": [equation],
+                "query": "",
+                "orderby": equation,
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                equation: 1.0,
+            },
+        ]
+        assert meta["dataset"] == "spans"
+        assert meta["fields"][equation] == "integer"
+        assert meta["units"][equation] is None
+
+        equation = 'equation|count_if(span.status,equals,"")'
+        response = self.do_request(
+            {
+                "field": [equation],
+                "query": "",
+                "orderby": equation,
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                equation: 1.0,
+            },
+        ]
+        assert meta["dataset"] == "spans"
+        assert meta["fields"][equation] == "integer"
+        assert meta["units"][equation] is None
+
     def test_count_if_numeric(self) -> None:
         self.store_spans(
             [
@@ -6612,3 +6681,24 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 0
         assert data == []
         assert meta["dataset"] == "spans"
+
+    def test_count_span_duration(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+        request = {
+            "field": ["count(span.duration)"],
+            "project": self.project.id,
+            "dataset": "spans",
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == [{"count(span.duration)": 1}]

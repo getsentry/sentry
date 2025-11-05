@@ -24,7 +24,7 @@ function PlaceholderForm() {
   return (
     <Layout.Page>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <LoadingError message={t('This monitor type is not yet implemented')} />
         </Layout.Main>
       </Layout.Body>

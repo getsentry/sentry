@@ -9,7 +9,9 @@ export interface BuildDetailsApiResponse {
 }
 
 export interface BuildDetailsAppInfo {
+  android_app_info?: AndroidAppInfo | null;
   app_id?: string | null;
+  apple_app_info?: AppleAppInfo | null;
   artifact_type?: BuildDetailsArtifactType | null;
   build_configuration?: string | null;
   build_number?: string | null;
@@ -21,7 +23,15 @@ export interface BuildDetailsAppInfo {
   version?: string | null;
 }
 
-interface BuildDetailsVcsInfo {
+interface AppleAppInfo {
+  missing_dsym_binaries?: string[];
+}
+
+interface AndroidAppInfo {
+  has_proguard_mapping?: boolean;
+}
+
+export interface BuildDetailsVcsInfo {
   base_ref?: string | null;
   base_repo_name?: string | null;
   base_sha?: string | null;
@@ -62,6 +72,15 @@ export function isSizeInfoCompleted(
   sizeInfo: BuildDetailsSizeInfo | undefined
 ): sizeInfo is BuildDetailsSizeInfoCompleted {
   return sizeInfo?.state === BuildDetailsSizeAnalysisState.COMPLETED;
+}
+
+export function isSizeInfoProcessing(
+  sizeInfo: BuildDetailsSizeInfo | undefined
+): boolean {
+  return (
+    sizeInfo?.state === BuildDetailsSizeAnalysisState.PENDING ||
+    sizeInfo?.state === BuildDetailsSizeAnalysisState.PROCESSING
+  );
 }
 
 export enum BuildDetailsState {

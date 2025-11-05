@@ -18,15 +18,28 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
-  const [showSlashCommands, setShowSlashCommands] = useState(false);
+  const [isSlashCommandsVisible, setIsSlashCommandsVisible] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false); // state for slide-down
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const blockEnterHandlers = useRef<
+    Map<number, (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean>
+  >(new Map());
+  const panelRef = useRef<HTMLDivElement>(null);
+  const hoveredBlockIndex = useRef<number>(-1);
 
   // Custom hooks
-  const {panelSize, handleMaxSize, handleMedSize, handleMinSize} = usePanelSizing();
-  const {sessionData, sendMessage, deleteFromIndex, startNewSession, isPolling} =
-    useSeerExplorer();
+  const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
+  const {
+    sessionData,
+    sendMessage,
+    deleteFromIndex,
+    startNewSession,
+    isPolling,
+    interruptRun,
+    interruptRequested,
+  } = useSeerExplorer();
 
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
@@ -39,12 +52,27 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     textareaRef,
     setFocusedBlockIndex,
     onDeleteFromIndex: deleteFromIndex,
+    onKeyPress: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
+      const handler = blockEnterHandlers.current.get(blockIndex);
+      const handled = handler?.(key) ?? false;
+
+      // If Enter was pressed and handled (navigation occurred), minimize the panel
+      if (key === 'Enter' && handled) {
+        setIsMinimized(true);
+      }
+
+      return handled;
+    },
+    onNavigate: () => {
+      setIsMinimized(false);
+    },
   });
 
   useEffect(() => {
     // Focus textarea when panel opens and reset focus
     if (isVisible) {
       setFocusedBlockIndex(-1);
+      setIsMinimized(false); // Expand when opening
       setTimeout(() => {
         // Scroll to bottom when panel opens
         if (scrollContainerRef.current) {
@@ -53,6 +81,24 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         textareaRef.current?.focus();
       }, 100);
     }
+  }, [isVisible]);
+
+  // Detect clicks outside the panel to minimize it
+  useEffect(() => {
+    if (!isVisible) {
+      return undefined;
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
+        setIsMinimized(true);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isVisible]);
 
   // Auto-scroll to bottom when new blocks are added
@@ -67,8 +113,37 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     blockRefs.current = blockRefs.current.slice(0, blocks.length);
   }, [blocks]);
 
+  // Auto-focus input when user starts typing while a block is focused
+  useEffect(() => {
+    if (!isVisible) {
+      return undefined;
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (focusedBlockIndex !== -1) {
+        const isPrintableChar =
+          e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+
+        if (isPrintableChar) {
+          e.preventDefault();
+          setFocusedBlockIndex(-1);
+          textareaRef.current?.focus();
+          setInputValue(prev => prev + e.key);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isVisible, focusedBlockIndex]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Escape' && isPolling && !interruptRequested) {
+      e.preventDefault();
+      interruptRun();
+    } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (inputValue.trim() && !isPolling) {
         sendMessage(inputValue.trim());
@@ -84,10 +159,12 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setInputValue(value);
+    setIsMinimized(false);
 
-    // Check if we should show slash commands
-    const shouldShow = value.startsWith('/') && !value.includes(' ') && value.length > 1;
-    setShowSlashCommands(shouldShow);
+    if (focusedBlockIndex !== -1) {
+      setFocusedBlockIndex(-1);
+      textareaRef.current?.focus();
+    }
 
     // Auto-resize textarea
     const textarea = e.target;
@@ -97,20 +174,26 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   const handleBlockClick = (index: number) => {
     setFocusedBlockIndex(index);
+    setIsMinimized(false);
   };
 
   const handleInputClick = () => {
+    hoveredBlockIndex.current = -1;
     setFocusedBlockIndex(-1);
     textareaRef.current?.focus();
+    setIsMinimized(false);
+  };
+
+  const handlePanelBackgroundClick = () => {
+    setIsMinimized(false);
   };
 
   const handleCommandSelect = (command: SlashCommand) => {
     // Execute the command
     command.handler();
 
-    // Clear input and hide slash commands
+    // Clear input
     setInputValue('');
-    setShowSlashCommands(false);
 
     // Reset textarea height
     if (textareaRef.current) {
@@ -118,23 +201,15 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     }
   };
 
-  const handleSlashCommandsClose = () => {
-    setShowSlashCommands(false);
-  };
-
   const panelContent = (
     <PanelContainers
+      ref={panelRef}
       isOpen={isVisible}
+      isMinimized={isMinimized}
       panelSize={panelSize}
-      blocks={blocks}
-      onSubmit={sendMessage}
-      isPolling={isPolling}
-      onMaxSize={handleMaxSize}
-      onMedSize={handleMedSize}
-      onMinSize={handleMinSize}
-      onClear={startNewSession}
+      onUnminimize={() => setIsMinimized(false)}
     >
-      <BlocksContainer ref={scrollContainerRef}>
+      <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
         {blocks.length === 0 ? (
           <EmptyState />
         ) : (
@@ -145,9 +220,33 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
                 blockRefs.current[index] = el;
               }}
               block={block}
+              blockIndex={index}
               isLast={index === blocks.length - 1}
               isFocused={focusedBlockIndex === index}
+              isPolling={isPolling}
               onClick={() => handleBlockClick(index)}
+              onMouseEnter={() => {
+                // Don't change focus while slash commands menu is open or if already on this block
+                if (isSlashCommandsVisible || hoveredBlockIndex.current === index) {
+                  return;
+                }
+
+                hoveredBlockIndex.current = index;
+                setFocusedBlockIndex(index);
+                if (document.activeElement === textareaRef.current) {
+                  textareaRef.current?.blur();
+                }
+              }}
+              onMouseLeave={() => {
+                if (hoveredBlockIndex.current === index) {
+                  hoveredBlockIndex.current = -1;
+                }
+              }}
+              onDelete={() => deleteFromIndex(index)}
+              onNavigate={() => setIsMinimized(true)}
+              onRegisterEnterHandler={handler => {
+                blockEnterHandlers.current.set(index, handler);
+              }}
             />
           ))
         )}
@@ -156,15 +255,15 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         ref={textareaRef}
         inputValue={inputValue}
         focusedBlockIndex={focusedBlockIndex}
-        showSlashCommands={showSlashCommands}
+        isPolling={isPolling}
+        interruptRequested={interruptRequested}
         onInputChange={handleInputChange}
         onKeyDown={handleKeyDown}
         onInputClick={handleInputClick}
         onCommandSelect={handleCommandSelect}
-        onSlashCommandsClose={handleSlashCommandsClose}
+        onSlashCommandsVisibilityChange={setIsSlashCommandsVisible}
         onMaxSize={handleMaxSize}
         onMedSize={handleMedSize}
-        onMinSize={handleMinSize}
         onClear={startNewSession}
       />
     </PanelContainers>

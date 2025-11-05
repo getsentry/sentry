@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
@@ -36,7 +36,6 @@ import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import SubscriptionHeader from './subscriptionHeader';
-import {trackSubscriptionView} from './utils';
 
 type Props = {
   organization: Organization;
@@ -56,10 +55,6 @@ enum ReceiptStatus {
 function PaymentHistory({organization, subscription}: Props) {
   const isNewBillingUI = hasNewBillingUI(organization);
   const location = useLocation();
-
-  useEffect(() => {
-    trackSubscriptionView(organization, subscription, 'receipts');
-  }, [organization, subscription]);
 
   const {
     data: payments,
@@ -150,7 +145,9 @@ function ReceiptGrid({
   paymentsPageLinks: string | null | undefined;
 }) {
   const theme = useTheme();
-  const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
+  const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+  const isNewBillingUI = hasNewBillingUI(organization);
 
   const getTag = (payment: InvoiceBase) => {
     const status = payment.amountRefunded
@@ -199,8 +196,8 @@ function ReceiptGrid({
         data-test-id="payment-list"
       >
         <Grid
-          align="center"
-          columns={isMobile ? 'repeat(5, 1fr)' : 'repeat(4, 1fr) 2fr'}
+          align="start"
+          columns={isXSmallScreen ? 'repeat(4, 1fr)' : 'repeat(4, 1fr) 2fr'}
           gap="xl"
           padding="xl"
         >
@@ -209,7 +206,7 @@ function ReceiptGrid({
             {t('Amount')}
           </Text>
           <Text bold>{t('Status')}</Text>
-          <Text bold>{t('Receipt ID')}</Text>
+          {!isXSmallScreen && <Text bold>{t('Receipt ID')}</Text>}
           <div />
         </Grid>
         {payments.map(payment => {
@@ -218,7 +215,7 @@ function ReceiptGrid({
             <Grid
               key={payment.id}
               align="center"
-              columns={isMobile ? 'repeat(5, 1fr)' : 'repeat(4, 1fr) 2fr'}
+              columns={isXSmallScreen ? 'repeat(4, 1fr)' : 'repeat(4, 1fr) 2fr'}
               gap="xl"
               borderTop="primary"
               padding="xl"
@@ -235,12 +232,18 @@ function ReceiptGrid({
                 )}
               </Container>
               <Container>{getTag(payment)}</Container>
-              <Text monospace ellipsis>
-                {payment.id}
-              </Text>
+              {!isXSmallScreen && (
+                <Text monospace ellipsis>
+                  {payment.id}
+                </Text>
+              )}
               <Flex justify="end">
-                <LinkButton icon={<IconDownload />} href={payment.receipt.url}>
-                  {isMobile ? undefined : t('Download PDF')}
+                <LinkButton
+                  analyticsParams={{isNewBillingUI}}
+                  icon={<IconDownload />}
+                  href={payment.receipt.url}
+                >
+                  {isSmallScreen ? undefined : t('Download PDF')}
                 </LinkButton>
               </Flex>
             </Grid>

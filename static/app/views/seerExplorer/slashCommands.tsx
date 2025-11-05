@@ -13,21 +13,19 @@ export interface SlashCommand {
 interface SlashCommandsProps {
   inputValue: string;
   onClear: () => void;
-  onClose: () => void;
   onCommandSelect: (command: SlashCommand) => void;
   onMaxSize: () => void;
   onMedSize: () => void;
-  onMinSize: () => void;
+  onVisibilityChange?: (isVisible: boolean) => void;
 }
 
 function SlashCommands({
   inputValue,
   onCommandSelect,
-  onClose,
   onMaxSize,
   onMedSize,
-  onMinSize,
   onClear,
+  onVisibilityChange,
 }: SlashCommandsProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const openFeedbackForm = useFeedbackForm();
@@ -50,11 +48,6 @@ function SlashCommands({
         description: 'Set panel to medium size (default)',
         handler: onMedSize,
       },
-      {
-        command: '/min-size',
-        description: 'Minimize panel to small icon',
-        handler: onMinSize,
-      },
       ...(openFeedbackForm
         ? [
             {
@@ -72,7 +65,7 @@ function SlashCommands({
           ]
         : []),
     ],
-    [onClear, onMaxSize, onMedSize, onMinSize, openFeedbackForm]
+    [onClear, onMaxSize, onMedSize, openFeedbackForm]
   );
 
   // Filter commands based on current input
@@ -92,6 +85,11 @@ function SlashCommands({
   useEffect(() => {
     setSelectedIndex(0);
   }, [filteredCommands]);
+
+  // Notify parent when visibility changes
+  useEffect(() => {
+    onVisibilityChange?.(showSuggestions);
+  }, [showSuggestions, onVisibilityChange]);
 
   // Handle keyboard navigation with higher priority
   const handleKeyDown = useCallback(
@@ -116,16 +114,11 @@ function SlashCommands({
             onCommandSelect(filteredCommands[selectedIndex]);
           }
           break;
-        case 'Escape':
-          e.preventDefault();
-          e.stopPropagation();
-          onClose();
-          break;
         default:
           break;
       }
     },
-    [showSuggestions, selectedIndex, filteredCommands, onCommandSelect, onClose]
+    [showSuggestions, selectedIndex, filteredCommands, onCommandSelect]
   );
 
   useEffect(() => {
@@ -169,7 +162,7 @@ const SuggestionsPanel = styled('div')`
   border-bottom: none;
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  max-height: 200px;
+  max-height: 500px;
   overflow-y: auto;
   z-index: 10;
 `;
@@ -191,7 +184,7 @@ const SuggestionItem = styled('div')<{isSelected: boolean}>`
 
 const CommandName = styled('div')`
   font-weight: 600;
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.purple400};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

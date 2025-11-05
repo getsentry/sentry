@@ -16,6 +16,7 @@ import {
   SectionLabelSecondary,
 } from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
 export function DetectorQueryFilterBuilder() {
   const currentQuery = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
@@ -45,6 +46,7 @@ export function DetectorQueryFilterBuilder() {
       flexibleControlStateSize
       label={t('Filter')}
       hideLabel
+      disabled={dataset === DetectorDataset.TRANSACTIONS}
     >
       {({ref: _ref, ...fieldProps}) => (
         <Flex direction="column" gap="xs" flex={1}>

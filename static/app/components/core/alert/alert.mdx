@@ -4,7 +4,7 @@ description: Alerts provide contextual feedback messages to users with different
 source: 'sentry/components/core/alert'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/alert/index.tsx
-  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=3040-309&p=f&t=waV9nlkQ95W3UZtu-0
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=3040-309&p=f&t=fldvMEFX98yRuTH5-0
   a11y:
     WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
     WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
@@ -19,9 +19,9 @@ import {Flex} from 'sentry/components/core/layout';
 import {IconAdd, IconDelete, IconEdit, IconMail} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import APIReference from '!!type-loader!sentry/components/core/alert/index';
+import documentation from '!!type-loader!@sentry/scraps/alert';
 
-export const types = {Alert: APIReference.Alert};
+export {documentation};
 
 To create a basic alert, wrap your message in an `<Alert>` component and specify the appropriate type.
 
@@ -98,7 +98,7 @@ By default, alerts display appropriate icons based on their type. You can hide i
 
 ### Expandable Content
 
-Alerts can contain expandable content to provide additional details without overwhelming the initial view.
+Alerts can contain expandable content to provide additional details without overwhelming the initial view. Use `handleExpandChange` to add additional logic on expand and on collapse.
 
 <Storybook.Demo>
   <Alert
@@ -173,7 +173,7 @@ Add interactive elements like buttons, links or badges to the right side of aler
 <Storybook.Demo>
   <Alert.Container>
     <Alert type="info" trailingItems={<Badge type="warning">Action Required</Badge>}>
-      This alert has a trailing bagde
+      This alert has a trailing badge
     </Alert>
     <Alert
       type="error"
@@ -189,6 +189,25 @@ Add interactive elements like buttons, links or badges to the right side of aler
       }
     >
       This alert has multiple trailing actions
+    </Alert>
+    <Alert
+      type="warning"
+      expand={
+        <div>
+          <p>This alert starts in an expanded state.</p>
+          <p>Users can still collapse it by clicking the chevron.</p>
+        </div>
+      }
+      trailingItems={
+        <Flex gap="sm">
+          <Badge type="warning">Action Required</Badge>
+          <Alert.Button priority="muted" icon={<IconEdit />}>
+            Edit
+          </Alert.Button>
+        </Flex>
+      }
+    >
+      This alert has multiple trailing items and can be expanded.
     </Alert>
   </Alert.Container>
 </Storybook.Demo>

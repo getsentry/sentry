@@ -608,7 +608,7 @@ function ManageDashboards() {
                   </Layout.HeaderActions>
                 </Layout.Header>
                 <Layout.Body>
-                  <Layout.Main fullWidth>
+                  <Layout.Main width="full">
                     {showTemplates && renderTemplates()}
                     {renderActions()}
                     <div ref={dashboardGridRef} id="dashboard-list-container">

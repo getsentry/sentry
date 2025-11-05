@@ -1,5 +1,5 @@
 ---
-created: '2025-10-06T21:57:33.151299+00:00'
+created: '2025-10-27T23:46:01.037917+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -26,6 +26,24 @@ source: tests/sentry/grouping/test_grouping_info.py
                 {
                   "contributes": true,
                   "hint": null,
+                  "id": "type",
+                  "name": null,
+                  "values": [
+                    "ValueError"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": "ignored because stacktrace takes precedence",
+                  "id": "value",
+                  "name": null,
+                  "values": [
+                    "hello world"
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
                   "id": "stacktrace",
                   "name": "stacktrace",
                   "values": [
@@ -60,24 +78,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                         }
                       ]
                     }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "type",
-                  "name": null,
-                  "values": [
-                    "ValueError"
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored because stacktrace takes precedence",
-                  "id": "value",
-                  "name": null,
-                  "values": [
-                    "hello world"
                   ]
                 }
               ]
@@ -91,6 +91,24 @@ source: tests/sentry/grouping/test_grouping_info.py
                 {
                   "contributes": true,
                   "hint": null,
+                  "id": "type",
+                  "name": null,
+                  "values": [
+                    "ValueError"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": "ignored because stacktrace takes precedence",
+                  "id": "value",
+                  "name": null,
+                  "values": [
+                    "hello world"
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
                   "id": "stacktrace",
                   "name": "stacktrace",
                   "values": [
@@ -125,24 +143,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                         }
                       ]
                     }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "type",
-                  "name": null,
-                  "values": [
-                    "ValueError"
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored because stacktrace takes precedence",
-                  "id": "value",
-                  "name": null,
-                  "values": [
-                    "hello world"
                   ]
                 }
               ]
@@ -200,6 +200,24 @@ source: tests/sentry/grouping/test_grouping_info.py
                 {
                   "contributes": true,
                   "hint": null,
+                  "id": "type",
+                  "name": null,
+                  "values": [
+                    "ValueError"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": "ignored because stacktrace takes precedence",
+                  "id": "value",
+                  "name": null,
+                  "values": [
+                    "hello world"
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
                   "id": "stacktrace",
                   "name": "stacktrace",
                   "values": [
@@ -234,24 +252,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                         }
                       ]
                     }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "type",
-                  "name": null,
-                  "values": [
-                    "ValueError"
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored because stacktrace takes precedence",
-                  "id": "value",
-                  "name": null,
-                  "values": [
-                    "hello world"
                   ]
                 }
               ]
@@ -265,6 +265,24 @@ source: tests/sentry/grouping/test_grouping_info.py
                 {
                   "contributes": true,
                   "hint": null,
+                  "id": "type",
+                  "name": null,
+                  "values": [
+                    "ValueError"
+                  ]
+                },
+                {
+                  "contributes": false,
+                  "hint": "ignored because stacktrace takes precedence",
+                  "id": "value",
+                  "name": null,
+                  "values": [
+                    "hello world"
+                  ]
+                },
+                {
+                  "contributes": true,
+                  "hint": null,
                   "id": "stacktrace",
                   "name": "stacktrace",
                   "values": [
@@ -299,24 +317,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                         }
                       ]
                     }
-                  ]
-                },
-                {
-                  "contributes": true,
-                  "hint": null,
-                  "id": "type",
-                  "name": null,
-                  "values": [
-                    "ValueError"
-                  ]
-                },
-                {
-                  "contributes": false,
-                  "hint": "ignored because stacktrace takes precedence",
-                  "id": "value",
-                  "name": null,
-                  "values": [
-                    "hello world"
                   ]
                 }
               ]

@@ -7,6 +7,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Select} from 'sentry/components/core/select';
+import Spinner from 'sentry/components/forms/spinner';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -14,23 +15,38 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
+import type {
+  DashboardDetails,
+  DashboardListItem,
+  LinkedDashboard,
+} from 'sentry/views/dashboards/types';
 import {MAX_WIDGETS} from 'sentry/views/dashboards/types';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 export type LinkToDashboardModalProps = {
-  source?: string; // TODO: perhpas make this an enum
+  currentLinkedDashboard?: LinkedDashboard;
+  onLink?: (dashboardId: string) => void;
+  // TODO: perhpas make this an enum
+  source?: string;
 };
 
 type Props = ModalRenderProps & LinkToDashboardModalProps;
 
 const SELECT_DASHBOARD_MESSAGE = t('Select a dashboard');
 
-export function LinkToDashboardModal({Header, Body, Footer, closeModal}: Props) {
+export function LinkToDashboardModal({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  onLink,
+  currentLinkedDashboard,
+}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
   const [_, setSelectedDashboard] = useState<DashboardDetails | null>(null);
+  const [isDashboardListLoading, setIsDashboardListLoading] = useState<boolean>(false);
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
 
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
@@ -39,19 +55,30 @@ export function LinkToDashboardModal({Header, Body, Footer, closeModal}: Props) 
     // Track mounted state so we dont call setState on unmounted components
     let unmounted = false;
 
-    fetchDashboards(api, organization.slug).then(response => {
-      // If component has unmounted, dont set state
-      if (unmounted) {
-        return;
-      }
+    setIsDashboardListLoading(true);
+    fetchDashboards(api, organization.slug)
+      .then(response => {
+        // If component has unmounted, dont set state
+        if (unmounted) {
+          return;
+        }
 
-      setDashboards(response);
-    });
+        setDashboards(response);
+        const currentDashboard = response.find(
+          dashboard => dashboard.id === currentLinkedDashboard?.dashboardId
+        );
+        if (currentDashboard) {
+          setSelectedDashboardId(currentDashboard.id);
+        }
+      })
+      .finally(() => {
+        setIsDashboardListLoading(false);
+      });
 
     return () => {
       unmounted = true;
     };
-  }, [api, organization.slug]);
+  }, [api, organization.slug, currentLinkedDashboard?.dashboardId]);
 
   useEffect(() => {
     // Track mounted state so we dont call setState on unmounted components
@@ -119,6 +146,9 @@ export function LinkToDashboardModal({Header, Body, Footer, closeModal}: Props) 
   function linkToDashboard() {
     // TODO: Update the local state of the widget to include the links
     // When the user clicks `save widget` we should update the dashboard widget link on the backend
+    if (selectedDashboardId) {
+      onLink?.(selectedDashboardId);
+    }
     closeModal();
   }
 
@@ -128,21 +158,26 @@ export function LinkToDashboardModal({Header, Body, Footer, closeModal}: Props) 
       <Body>
         <Wrapper>
           <DashboardCreateLimitWrapper>
-            {({hasReachedDashboardLimit, isLoading, limitMessage}) => (
-              <Select
-                disabled={dashboards === null}
-                name="dashboard"
-                placeholder={t('Select Dashboard')}
-                value={selectedDashboardId}
-                options={getOptions(hasReachedDashboardLimit, isLoading, limitMessage)}
-                onChange={(option: SelectValue<string>) => {
-                  if (option.disabled) {
-                    return;
-                  }
-                  setSelectedDashboardId(option.value);
-                }}
-              />
-            )}
+            {({hasReachedDashboardLimit, isLoading, limitMessage}) => {
+              if (isDashboardListLoading) {
+                return <Spinner />;
+              }
+              return (
+                <Select
+                  disabled={dashboards === null}
+                  name="dashboard"
+                  placeholder={t('Select Dashboard')}
+                  value={selectedDashboardId}
+                  options={getOptions(hasReachedDashboardLimit, isLoading, limitMessage)}
+                  onChange={(option: SelectValue<string>) => {
+                    if (option.disabled) {
+                      return;
+                    }
+                    setSelectedDashboardId(option.value);
+                  }}
+                />
+              );
+            }}
           </DashboardCreateLimitWrapper>
         </Wrapper>
       </Body>

@@ -213,8 +213,18 @@ class GroupHistory(Model):
         ),
     )
     prev_history = FlexibleForeignKey(
-        "sentry.GroupHistory", null=True
-    )  # This field has no immediate use, but might be useful.
+        "sentry.GroupHistory",
+        null=True,
+        on_delete=models.SET_NULL,
+        # By default, Django creates a database-level foreign key constraint when you define a ForeignKey field.
+        # This constraint enforces referential integrity at the database level, preventing you from:
+        # * Deleting a referenced record without handling the reference
+        # * Creating a reference to a non-existent record
+        # When you set db_constraint=False, Django skips creating this database constraint.
+        # The field still works as a ForeignKey in Python/Django (you can traverse relationships,
+        # use .select_related(), etc.), but the database won't enforce the relationship.
+        db_constraint=False,
+    )
     prev_history_date = models.DateTimeField(
         null=True
     )  # This field is used to simplify query calculations.
@@ -313,7 +323,6 @@ def record_group_history(
         user_id=user_id,
         team_id=team_id,
         status=status,
-        prev_history=prev_history,
         prev_history_date=prev_history.date_added if prev_history else None,
     )
 
@@ -352,7 +361,6 @@ def bulk_record_group_history(
                 team_id=team_id,
                 user_id=user_id,
                 status=status,
-                prev_history=get_prev_history(group, status),
                 prev_history_date=get_prev_history_date(group, status),
             )
             for group in groups

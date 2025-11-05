@@ -10,7 +10,7 @@ from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
-from typing import Any, TypedDict, Union
+from typing import Any, Literal, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import UUID, uuid4
@@ -57,7 +57,7 @@ from slack_sdk.web import SlackResponse
 from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
-from sentry import auth, eventstore
+from sentry import auth
 from sentry.api.serializers.models.dashboard import DATASET_SOURCES
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.provider import Provider
@@ -129,6 +129,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.snuba.dataset import EntityKey
@@ -3479,6 +3480,7 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
         self,
         metric_name: str,
         metric_value: float,
+        metric_type: Literal["counter", "distribution", "gauge"],
         organization: Organization | None = None,
         project: Project | None = None,
         timestamp: datetime | None = None,
@@ -3504,7 +3506,10 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
 
         attributes_proto = {
             "sentry.metric_name": AnyValue(string_value=metric_name),
+            "sentry.metric_type": AnyValue(string_value=metric_type),
             "sentry.value": AnyValue(double_value=metric_value),
+            f"sentry._internal.cooccuring.name.{metric_name}": AnyValue(bool_value=True),
+            f"sentry._internal.cooccuring.type.{metric_type}": AnyValue(bool_value=True),
         }
 
         if attributes:

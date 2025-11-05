@@ -73,7 +73,7 @@ export function SpanDescription({
   hideNodeActions?: boolean;
 }) {
   const {data: event} = useEventDetails({
-    eventId: node.event?.eventID,
+    eventId: node.value.transaction_id,
     projectSlug: project?.slug,
   });
   const span = node.value;
@@ -103,7 +103,8 @@ export function SpanDescription({
     return formatter.toString(dbQueryText ?? span.description ?? '');
   }, [span.description, resolvedModule, dbSystem, dbQueryText]);
 
-  const exploreUsingName = shouldUseOTelFriendlyUI && span.name !== span.op;
+  const exploreUsingName =
+    shouldUseOTelFriendlyUI && !span.description && span.name !== span.op;
   const exploreAttributeName = exploreUsingName
     ? SpanFields.NAME
     : SpanFields.SPAN_DESCRIPTION;
@@ -143,7 +144,7 @@ export function SpanDescription({
           to={getSearchInExploreTarget(
             organization,
             location,
-            node.event?.projectID,
+            project?.id,
             exploreAttributeName,
             exploreAttributeValue,
             TraceDrawerActionKind.INCLUDE
@@ -169,6 +170,8 @@ export function SpanDescription({
   const codeLineNumber = findSpanAttributeValue(attributes, 'code.lineno');
   const codeFunction = findSpanAttributeValue(attributes, 'code.function');
 
+  const requestMethod = findSpanAttributeValue(attributes, 'http.request.method');
+
   // `"url.full"` is semantic, but `"url"` is common
   const spanURL =
     findSpanAttributeValue(attributes, 'url.full') ??
@@ -185,7 +188,7 @@ export function SpanDescription({
         </StyledCodeSnippet>
         {codeFilepath ? (
           <StackTraceMiniFrame
-            projectId={node.event?.projectID}
+            projectId={project?.id}
             event={event}
             frame={{
               filename: codeFilepath,
@@ -198,11 +201,11 @@ export function SpanDescription({
         )}
       </CodeSnippetWrapper>
     ) : resolvedModule === ModuleName.HTTP && span.op === 'http.client' && spanURL ? (
-      <Flex direction="column">
+      <Flex direction="column" width="100%">
         <Flex align="start" justify="between" gap="xs" padding="md">
           <Flex align="start" paddingLeft="md" paddingTop="sm" paddingBottom="sm">
             <Flex gap="xs">
-              <Text>{findSpanAttributeValue(attributes, 'http.request.method')}</Text>
+              {requestMethod && <Text>{requestMethod}</Text>}
               <Text wordBreak="break-word">{spanURL}</Text>
             </Flex>
             <LinkHint value={spanURL} />
@@ -210,13 +213,14 @@ export function SpanDescription({
           <CopyToClipboardButton
             borderless
             size="zero"
+            aria-label={t('Copy span URL to clipboard')}
             text={spanURL}
             tooltipProps={{disabled: true}}
           />
         </Flex>
         {codeFilepath && (
           <StackTraceMiniFrame
-            projectId={node.event?.projectID}
+            projectId={project?.id}
             event={event}
             frame={{
               filename: codeFilepath,
@@ -232,13 +236,17 @@ export function SpanDescription({
         node={node}
         attributes={attributes}
       />
-    ) : shouldUseOTelFriendlyUI && span.name && span.name !== span.op ? (
+    ) : shouldUseOTelFriendlyUI &&
+      !span.description &&
+      span.name &&
+      span.name !== span.op ? (
       <DescriptionWrapper>
         <FormattedDescription>{span.name}</FormattedDescription>
         <CopyToClipboardButton
           borderless
           size="zero"
           text={span.name}
+          aria-label={t('Copy span name to clipboard')}
           tooltipProps={{disabled: true}}
         />
       </DescriptionWrapper>
@@ -254,6 +262,7 @@ export function SpanDescription({
               borderless
               size="zero"
               text={formattedDescription}
+              aria-label={t('Copy formatted description to clipboard')}
               tooltipProps={{disabled: true}}
             />
           </Fragment>
@@ -274,6 +283,7 @@ export function SpanDescription({
       hideNodeActions={hideNodeActions}
       highlightedAttributes={getHighlightedSpanAttributes({
         attributes,
+        spanId: span.event_id,
         op: span.op,
       })}
     />
@@ -329,7 +339,7 @@ function ResourceImageDescription({
       ) : (
         <DisabledImages
           onClickShowLinks={() => setShowLinks(true)}
-          projectSlug={span.project_slug ?? node.event?.projectSlug}
+          projectSlug={span.project_slug}
         />
       )}
     </StyledDescriptionWrapper>
@@ -356,6 +366,7 @@ function ResourceImage(props: {
           borderless
           size="zero"
           text={fileName}
+          aria-label={t('Copy file name to clipboard')}
           title={t('Copy file name')}
         />
       </FilenameContainer>

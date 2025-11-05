@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from enum import StrEnum
 from typing import Any, TypedDict
 from urllib.parse import parse_qsl
@@ -30,6 +30,9 @@ from sentry.integrations.base import (
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.codecov_account_link import codecov_account_link
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
+from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -51,7 +54,7 @@ from sentry.integrations.source_code_management.language_parsers import (
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -72,7 +75,9 @@ from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestErr
 from sentry.snuba.referrer import Referrer
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import determine_active_organization
@@ -81,6 +86,7 @@ from sentry.web.helpers import render_to_response
 from .client import GitHubApiClient, GitHubBaseClient, GithubSetupApiClient
 from .issues import GitHubIssuesSpec
 from .repository import GitHubRepositoryProvider
+from .types import IssueEvenntWebhookActionType
 from .utils import parse_github_blob_url
 
 logger = logging.getLogger("sentry.integrations.github")
@@ -220,9 +226,21 @@ def get_document_origin(org) -> str:
 
 
 class GitHubIntegration(
-    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration
+    RepositoryIntegration,
+    GitHubIssuesSpec,
+    IssueSyncIntegration,
+    CommitContextIntegration,
+    RepoTreesIntegration,
 ):
     integration_name = IntegrationProviderSlug.GITHUB
+
+    # IssueSyncIntegration configuration keys
+    comment_key = "sync_comments"
+    outbound_status_key = None
+    inbound_status_key = "sync_status_reverse"
+    outbound_assignee_key = "sync_forward_assignment"
+    inbound_assignee_key = "sync_reverse_assignment"
+    resolution_strategy_key = "resolution_strategy"
 
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -383,11 +401,219 @@ class GitHubIntegration(
 
         return False
 
+    # IssueSyncIntegration methods
+
+    def sync_assignee_outbound(
+        self,
+        external_issue: ExternalIssue,
+        user: RpcUser | None,
+        assign: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        """
+        Propagate a sentry issue's assignee to a linked GitHub issue's assignee.
+        If assign=True, we're assigning the issue. Otherwise, deassign.
+        """
+        client = self.get_client()
+
+        # Parse the external issue key to get repo and issue number
+        # Format is "{repo_full_name}#{issue_number}"
+        try:
+            repo, issue_num = external_issue.key.split("#")
+        except ValueError:
+            logger.exception(
+                "github.assignee-outbound.invalid-key",
+                extra={
+                    "integration_id": external_issue.integration_id,
+                    "external_issue_key": external_issue.key,
+                    "external_issue_id": external_issue.id,
+                },
+            )
+            return
+
+        github_username = None
+
+        # If we're assigning and have a user, find their GitHub username
+        if user and assign:
+            # Check if user has a GitHub identity linked
+            external_actor = ExternalActor.objects.filter(
+                provider=ExternalProviders.GITHUB.value,
+                user_id=user.id,
+                integration_id=external_issue.integration_id,
+                organization=external_issue.organization,
+            ).first()
+            if not external_actor:
+                logger.info(
+                    "github.assignee-outbound.external-actor-not-found",
+                    extra={
+                        "integration_id": external_issue.integration_id,
+                        "user_id": user.id,
+                    },
+                )
+                return
+
+            # Strip the @ from the username
+            github_username = external_actor.external_name.lstrip("@")
+            # lowercase the username
+            github_username = github_username.lower()
+
+        # Only update GitHub if we have a username to assign or if we're explicitly deassigning
+        if github_username or not assign:
+            try:
+                client.update_issue(repo, issue_num, [github_username] if github_username else [])
+            except Exception as e:
+                self.raise_error(e)
+
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
+        """
+        Propagate a sentry issue's status to a linked GitHub issue's status.
+        """
+        # Not implemented yet
+        pass
+
+    def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
+        """
+        Given webhook data, check whether the GitHub issue status changed.
+        GitHub issues only have open/closed state.
+        """
+        if not features.has(
+            "organizations:integrations-github-project-management", self.organization
+        ):
+            return ResolveSyncAction.NOOP
+
+        if data.get("action") == IssueEvenntWebhookActionType.CLOSED.value:
+            return ResolveSyncAction.RESOLVE
+        elif data.get("action") == IssueEvenntWebhookActionType.REOPENED.value:
+            return ResolveSyncAction.UNRESOLVE
+        return ResolveSyncAction.NOOP
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        """
+        Return configuration options for the GitHub integration.
+        """
+        config: list[dict[str, Any]] = []
+
+        if features.has("organizations:integrations-github-project-management", self.organization):
+            config.extend(
+                [
+                    {
+                        "name": self.inbound_assignee_key,
+                        "type": "boolean",
+                        "label": _("Sync Github Assignment to Sentry"),
+                        "help": _(
+                            "When an issue is assigned in GitHub, assign its linked Sentry issue to the same user."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.outbound_assignee_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Assignment to GitHub"),
+                        "help": _(
+                            "When an issue is assigned in Sentry, assign its linked GitHub issue to the same user."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.inbound_status_key,
+                        "type": "boolean",
+                        "label": _("Sync GitHub Status to Sentry"),
+                        "help": _(
+                            "When a GitHub issue is marked closed, resolve its linked issue in Sentry. "
+                            "When a GitHub issue is reopened, unresolve its linked Sentry issue."
+                        ),
+                        "default": False,
+                    },
+                    {
+                        "name": self.resolution_strategy_key,
+                        "label": "Resolve",
+                        "type": "select",
+                        "placeholder": "Resolve",
+                        "choices": [
+                            ("resolve", "Resolve"),
+                            ("resolve_current_release", "Resolve in Current Release"),
+                            ("resolve_next_release", "Resolve in Next Release"),
+                        ],
+                        "help": _(
+                            "Select what action to take on Sentry Issue when GitHub ticket is marked Closed."
+                        ),
+                    },
+                    {
+                        "name": self.comment_key,
+                        "type": "boolean",
+                        "label": _("Sync Sentry Comments to GitHub"),
+                        "help": _("Post comments from Sentry issues to linked GitHub issues"),
+                    },
+                ]
+            )
+
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
+        assert context, "organizationcontext must exist to get org"
+        organization = context.organization
+
+        has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
+
+        if not has_issue_sync:
+            for field in config:
+                field["disabled"] = True
+                field["disabledReason"] = _(
+                    "Your organization does not have access to this feature"
+                )
+
+        return config
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        """
+        Update the configuration field for an organization integration.
+        """
+        if not self.org_integration:
+            return
+
+        config = self.org_integration.config
+        config.update(data)
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=config,
+        )
+        if org_integration is not None:
+            self.org_integration = org_integration
+
     def get_pr_comment_workflow(self) -> PRCommentWorkflow:
         return GitHubPRCommentWorkflow(integration=self)
 
     def get_open_pr_comment_workflow(self) -> OpenPRCommentWorkflow:
         return GitHubOpenPRCommentWorkflow(integration=self)
+
+    def create_comment_attribution(self, user_id, comment_text):
+        user = user_service.get_user(user_id)
+        username = "Unknown User" if user is None else user.name
+
+        attribution = f"**{username}** wrote:\n\n"
+        # GitHub uses markdown blockquotes
+        quoted_text = "\n".join(f"> {line}" for line in comment_text.split("\n"))
+        return f"{attribution}{quoted_text}"
+
+    def update_comment(self, issue_id, user_id, group_note):
+        quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
+
+        repo, issue_number = issue_id.rsplit("#", 1)
+
+        return self.get_client().update_comment(
+            repo, issue_number, group_note.data["external_id"], {"body": quoted_comment}
+        )
+
+    def create_comment(self, issue_id, user_id, group_note):
+        # GitHub uses markdown syntax directly without needing special formatting
+        comment = group_note.data["text"]
+        quoted_comment = self.create_comment_attribution(user_id, comment)
+
+        repo, issue_number = issue_id.rsplit("#", 1)
+
+        return self.get_client().create_comment(repo, issue_number, {"body": quoted_comment})
 
 
 MERGED_PR_COMMENT_BODY_TEMPLATE = """\

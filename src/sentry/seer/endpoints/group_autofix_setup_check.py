@@ -20,6 +20,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -72,13 +73,7 @@ def get_repos_and_access(project: Project, group_id: int) -> list[dict]:
     for repo in repos:
         # We only support github and github enterprise for now.
         provider = repo.get("provider")
-        allowed_providers = [
-            "integrations:github",
-            "integrations:github_enterprise",
-            IntegrationProviderSlug.GITHUB.value,
-            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-        ]
-        if provider not in allowed_providers:
+        if provider not in SEER_SUPPORTED_SCM_PROVIDERS:
             continue
 
         body = orjson.dumps(
@@ -149,10 +144,12 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 "repos": repos,
             }
 
-        user_acknowledgement = get_seer_user_acknowledgement(user_id=request.user.id, org_id=org.id)
+        user_acknowledgement = get_seer_user_acknowledgement(
+            user_id=request.user.id, organization=org
+        )
         org_acknowledgement = True
         if not user_acknowledgement:  # If the user has acknowledged, the org must have too.
-            org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
+            org_acknowledgement = get_seer_org_acknowledgement(org)
 
         has_autofix_quota: bool = quotas.backend.has_available_reserved_budget(
             org_id=org.id, data_category=DataCategory.SEER_AUTOFIX

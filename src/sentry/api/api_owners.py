@@ -20,6 +20,7 @@ class ApiOwner(Enum):
     FLAG = "replay-backend"
     GDX = "gdx"
     HYBRID_CLOUD = "hybrid-cloud"
+    INFRA_ENG = "sre-infrastructure-engineering"
     INTEGRATIONS = "product-owners-settings-integrations"
     ISSUES = "issue-workflow"
     ISSUE_DETECTION_BACKEND = "issue-detection-backend"
@@ -32,4 +33,4 @@ class ApiOwner(Enum):
     TELEMETRY_EXPERIENCE = "telemetry-experience"
     UNOWNED = "unowned"
     VISIBILITY = "visibility"
-    WEB_FRONTEND_SDKS = "team-web-sdk-frontend"
+    WEB_FRONTEND_SDKS = "team-javascript-sdks"

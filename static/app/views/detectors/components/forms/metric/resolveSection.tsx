@@ -33,13 +33,13 @@ function validateResolutionThreshold({
   form: MetricDetectorFormData;
   id: string;
 }): Array<[string, string]> {
-  const {conditionType, conditionValue, detectionType, resolutionStrategy} = form;
+  const {conditionType, highThreshold, detectionType, resolutionStrategy} = form;
   if (!conditionType || detectionType !== 'static' || resolutionStrategy !== 'custom') {
     return [];
   }
 
   const resolutionNum = Number(form.resolutionValue);
-  const conditionNum = Number(conditionValue);
+  const conditionNum = Number(highThreshold);
 
   if (
     Number.isFinite(resolutionNum) &&
@@ -61,8 +61,8 @@ export function ResolveSection() {
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
-  const conditionValue = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionValue
+  const highThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.highThreshold
   );
   const conditionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionType
@@ -76,6 +76,11 @@ export function ResolveSection() {
   const aggregate = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
+
+  if (detectionType === 'dynamic') {
+    return null;
+  }
+
   const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
 
   const descriptionContent = getResolutionDescription(
@@ -83,7 +88,7 @@ export function ResolveSection() {
       ? {
           detectionType: 'percent',
           conditionType,
-          conditionValue: conditionValue || 0,
+          highThreshold: highThreshold || 0,
           comparisonDelta: conditionComparisonAgo ?? 3600, // Default to 1 hour if not set
           thresholdSuffix,
         }
@@ -91,7 +96,7 @@ export function ResolveSection() {
         ? {
             detectionType: 'static',
             conditionType,
-            conditionValue: conditionValue || 0,
+            highThreshold: highThreshold || 0,
             thresholdSuffix,
           }
         : {
@@ -129,16 +134,15 @@ export function ResolveSection() {
     <Container>
       <Section title={t('Resolve')}>
         <div>
-          {detectionType !== 'dynamic' && (
-            <FormRow>
-              <StyledRadioField
-                name={METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy}
-                aria-label={t('Resolution method')}
-                choices={resolutionStrategyChoices}
-                defaultValue="automatic"
-              />
-            </FormRow>
-          )}
+          <FormRow>
+            <StyledRadioField
+              name={METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy}
+              aria-label={t('Resolution method')}
+              choices={resolutionStrategyChoices}
+              defaultValue="automatic"
+              preserveOnUnmount
+            />
+          </FormRow>
           {resolutionStrategy === 'custom' && (
             <DescriptionContainer onClick={e => e.preventDefault()}>
               <Text>

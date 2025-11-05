@@ -170,6 +170,8 @@ interface AutomationActions {
 
 export const AutomationBuilderContext = createContext<{
   actions: AutomationActions;
+  // Selector is only shown for existing automations with the "All" logic type
+  showTriggerLogicTypeSelector: boolean;
   state: AutomationBuilderState;
 } | null>(null);
 
@@ -183,7 +185,7 @@ export const useAutomationBuilderContext = () => {
   return context;
 };
 
-export const initialAutomationBuilderState: AutomationBuilderState = {
+const initialAutomationBuilderState: AutomationBuilderState = {
   triggers: {
     id: 'when',
     logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,

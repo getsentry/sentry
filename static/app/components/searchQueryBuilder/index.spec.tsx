@@ -224,7 +224,7 @@ describe('SearchQueryBuilder', () => {
         ).not.toBeInTheDocument();
       });
 
-      it('does not display footer when using a wildcard operator', async () => {
+      it('renders swap to is for * when using a wildcard operator', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />,
           {organization: {features: ['search-query-builder-wildcard-operators']}}
@@ -250,10 +250,9 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
-
         expect(
-          screen.queryByText('Wildcard (*) matching allowed')
-        ).not.toBeInTheDocument();
+          screen.getByText('Switch to "is" operator to use wildcard (*) matching')
+        ).toBeInTheDocument();
       });
     });
   });
@@ -785,14 +784,10 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('escapes values with spaces and reserved characters', async () => {
-      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
-        organization: {features: ['search-query-builder-input-flow-changes']},
-      });
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
 
-      await userEvent.keyboard('assigned:');
-      await userEvent.click(screen.getByRole('option', {name: 'is'}));
-      await userEvent.keyboard('some" value{enter}');
+      await userEvent.keyboard('assigned:some" value{enter}');
 
       // Value should be surrounded by quotes and escaped
       expect(
@@ -815,13 +810,48 @@ describe('SearchQueryBuilder', () => {
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
 
-    it('can remove boolean ops by clicking the delete button', async () => {
-      render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
+    describe('boolean ops', () => {
+      describe('flag disabled', () => {
+        it('can remove boolean ops by clicking the delete button', async () => {
+          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
 
-      expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete OR'}));
+          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+          await userEvent.click(screen.getByRole('gridcell', {name: 'Delete OR'}));
 
-      expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
+          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
+        });
+      });
+
+      describe('flag enabled', () => {
+        it('can remove boolean selector by clicking the delete button', async () => {
+          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
+            organization: {
+              features: ['search-query-builder-add-boolean-operator-select'],
+            },
+          });
+
+          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+          await userEvent.click(screen.getByRole('button', {name: 'Remove boolean: OR'}));
+
+          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
+        });
+
+        it('can select a different boolean operator', async () => {
+          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
+            organization: {
+              features: ['search-query-builder-add-boolean-operator-select'],
+            },
+          });
+
+          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit boolean operator: OR'})
+          );
+          await userEvent.click(screen.getByRole('option', {name: 'AND'}));
+
+          expect(screen.getByRole('row', {name: 'AND'})).toBeInTheDocument();
+        });
+      });
     });
 
     it('can click and drag to select tokens', async () => {
@@ -915,8 +945,7 @@ describe('SearchQueryBuilder', () => {
     it('can add an unsupported filter key and value', async () => {
       const mockOnChange = jest.fn();
       render(
-        <SearchQueryBuilder {...defaultProps} onChange={mockOnChange} initialQuery="" />,
-        {organization: {features: ['search-query-builder-input-flow-changes']}}
+        <SearchQueryBuilder {...defaultProps} onChange={mockOnChange} initialQuery="" />
       );
       await userEvent.click(getLastInput());
 
@@ -926,10 +955,7 @@ describe('SearchQueryBuilder', () => {
         'foo '
       );
 
-      await userEvent.keyboard('a:');
-      expect(await screen.findByRole('option', {name: 'is'})).toHaveFocus();
-      await userEvent.keyboard('{enter}');
-      await userEvent.keyboard('b{enter}');
+      await userEvent.keyboard('a:b{enter}');
 
       expect(await screen.findByRole('row', {name: 'foo'})).toBeInTheDocument();
       expect(await screen.findByRole('row', {name: 'a:b'})).toBeInTheDocument();
@@ -980,31 +1006,43 @@ describe('SearchQueryBuilder', () => {
     it('can add a new token by clicking a key suggestion', async () => {
       const mockOnChange = jest.fn();
       render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />, {
-        organization: {features: ['search-query-builder-input-flow-changes']},
+        organization: {
+          features: [
+            'search-query-builder-input-flow-changes',
+            'search-query-builder-wildcard-operators',
+            'search-query-builder-default-to-contains',
+          ],
+        },
       });
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
 
       // New token should be added with the correct key and default value
-      expect(screen.getByRole('row', {name: 'browser.name:""'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {name: `browser.name:${WildcardOperators.CONTAINS}""`})
+      ).toBeInTheDocument();
       // onChange should not be called until exiting edit mode
       expect(mockOnChange).not.toHaveBeenCalled();
 
       // Should have focus on the operator option
-      const operatorOption = await screen.findByRole('option', {name: 'is'});
+      const operatorOption = await screen.findByRole('option', {name: 'contains'});
       expect(operatorOption).toHaveFocus();
       await userEvent.click(operatorOption);
 
       await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
 
       // New token should have a value
-      expect(screen.getByRole('row', {name: 'browser.name:Firefox'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {
+          name: `browser.name:${WildcardOperators.CONTAINS}Firefox`,
+        })
+      ).toBeInTheDocument();
 
       // Now we call onChange
       expect(mockOnChange).toHaveBeenCalledTimes(1);
       expect(mockOnChange).toHaveBeenCalledWith(
-        'browser.name:Firefox',
+        `browser.name:${WildcardOperators.CONTAINS}Firefox`,
         expect.anything()
       );
     });
@@ -1118,8 +1156,6 @@ describe('SearchQueryBuilder', () => {
       const lastInput = (await screen.findAllByTestId('query-builder-input')).at(-1);
       expect(lastInput).toHaveFocus();
 
-      await userEvent.click(getLastInput());
-
       // Should have three tokens: a, or, b
       await screen.findByRole('row', {name: /a/});
       await screen.findByRole('row', {name: /or/});
@@ -1127,7 +1163,15 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('converts text to filter when typing <filter>:', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: {
+          features: [
+            'search-query-builder-input-flow-changes',
+            'search-query-builder-wildcard-operators',
+            'search-query-builder-default-to-contains',
+          ],
+        },
+      });
       await userEvent.click(getLastInput());
 
       await userEvent.type(
@@ -1135,7 +1179,9 @@ describe('SearchQueryBuilder', () => {
         'browser.name:'
       );
 
-      const browserNameFilter = await screen.findByRole('row', {name: 'browser.name:""'});
+      const browserNameFilter = await screen.findByRole('row', {
+        name: `browser.name:${WildcardOperators.CONTAINS}""`,
+      });
       expect(browserNameFilter).toBeInTheDocument();
     });
 
@@ -1155,16 +1201,28 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('selects [Filtered] from dropdown', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: {
+          features: [
+            'search-query-builder-input-flow-changes',
+            'search-query-builder-wildcard-operators',
+            'search-query-builder-default-to-contains',
+          ],
+        },
+      });
       await userEvent.click(getLastInput());
 
       await userEvent.type(
         screen.getByRole('combobox', {name: 'Add a search term'}),
         'message:'
       );
+      await userEvent.keyboard('{enter}');
       await userEvent.click(screen.getByRole('option', {name: '[Filtered]'}));
+
       expect(
-        await screen.findByRole('row', {name: 'message:"[Filtered]"'})
+        await screen.findByRole('row', {
+          name: `message:${WildcardOperators.CONTAINS}"[Filtered]"`,
+        })
       ).toBeInTheDocument();
     });
   });
@@ -4192,51 +4250,280 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
+    it('escapes * for is op but not contains op', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {organization: {features: ['search-query-builder-wildcard-operators']}}
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'test*');
+
+      const options = within(screen.getByRole('listbox')).getAllByRole('option');
+      expect(options).toHaveLength(2);
+
+      expect(options[0]).toHaveTextContent('span.description contains test\\*');
+      expect(options[1]).toHaveTextContent('span.description is test*');
+    });
+
     describe('with wildcard operators enabled', () => {
-      it('should replace raw search keys with defined key:contains:value', async () => {
-        render(
-          <SearchQueryBuilder
-            {...defaultProps}
-            initialQuery=""
-            replaceRawSearchKeys={['span.description']}
-          />,
-          {organization: {features: ['search-query-builder-wildcard-operators']}}
-        );
+      describe('selecting suggestions', () => {
+        it('should replace raw search keys with defined key:contains:value', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery=""
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
 
-        await userEvent.type(screen.getByRole('textbox'), 'randomValue');
+          await userEvent.type(screen.getByRole('textbox'), 'randomValue');
 
-        await userEvent.click(
-          within(screen.getByRole('listbox')).getAllByText('span.description')[0]!
-        );
+          await userEvent.click(
+            within(screen.getByRole('listbox')).getAllByText('span.description')[0]!
+          );
 
-        expect(
-          screen.getByRole('row', {
-            name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
-          })
-        ).toBeInTheDocument();
+          expect(
+            screen.getByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
+            })
+          ).toBeInTheDocument();
+        });
+
+        it('should replace raw search keys with defined key:contains:"value space', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery=""
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          await userEvent.type(screen.getByRole('textbox'), 'random value');
+
+          await userEvent.click(
+            within(screen.getByRole('listbox')).getAllByText('span.description')[0]!
+          );
+
+          expect(
+            screen.getByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}"random value"`,
+            })
+          ).toBeInTheDocument();
+        });
       });
 
-      it('should replace raw search keys with defined key:contains:"value space', async () => {
-        render(
-          <SearchQueryBuilder
-            {...defaultProps}
-            initialQuery=""
-            replaceRawSearchKeys={['span.description']}
-          />,
-          {organization: {features: ['search-query-builder-wildcard-operators']}}
-        );
+      describe('pasting text', () => {
+        it('should replace raw search keys on paste', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery=""
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
 
-        await userEvent.type(screen.getByRole('textbox'), 'random value');
+          await userEvent.click(getLastInput());
+          await userEvent.paste('randomValue');
 
-        await userEvent.click(
-          within(screen.getByRole('listbox')).getAllByText('span.description')[0]!
-        );
+          // Should have tokenized the pasted text
+          expect(
+            screen.getByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
+            })
+          ).toBeInTheDocument();
+          // Focus should be at the end of the pasted text
+          expect(
+            screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+          ).toHaveFocus();
+        });
 
-        expect(
-          screen.getByRole('row', {
-            name: `span.description:${WildcardOperators.CONTAINS}"random value"`,
-          })
-        ).toBeInTheDocument();
+        it('should replace raw search keys on paste, leaving other tokens intact', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:firefox span.description:test"
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          await userEvent.click(getLastInput());
+          await userEvent.paste('randomValue');
+
+          // leaves unrelated filter key tokens intact
+          expect(
+            screen.getByRole('row', {name: 'browser.name:firefox'})
+          ).toBeInTheDocument();
+
+          // leaves the same filter key minus the wildcard contains operator intact
+          expect(
+            screen.getByRole('row', {name: 'span.description:test'})
+          ).toBeInTheDocument();
+
+          // Should have tokenized the pasted text
+          expect(
+            screen.getByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
+            })
+          ).toBeInTheDocument();
+          // Focus should be at the end of the pasted text
+          expect(
+            screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+          ).toHaveFocus();
+        });
+
+        it('should replace raw search keys on paste, merging with existing tokens', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery={`span.description:${WildcardOperators.CONTAINS}test`}
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          await userEvent.click(getLastInput());
+          await userEvent.paste('randomValue');
+          // the new filter key combobox is opened, when we get moved to the new token
+          await userEvent.keyboard('{Escape}');
+
+          // Should have tokenized the pasted text
+          expect(
+            screen.getByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}test`,
+            })
+          ).toBeInTheDocument();
+          expect(
+            screen.getByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
+            })
+          ).toBeInTheDocument();
+          // Focus should be at the end of the pasted text
+          expect(getLastInput()).toHaveFocus();
+        });
+      });
+
+      describe('on commit', () => {
+        it('should replace the raw search key with the defined key:value', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery=""
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          await userEvent.click(getLastInput());
+          await userEvent.keyboard('randomValue{Enter}');
+
+          expect(
+            screen.getByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
+            })
+          ).toBeInTheDocument();
+          expect(getLastInput()).toHaveFocus();
+        });
+      });
+
+      describe('on blur', () => {
+        it('should replace the raw search key with the defined key:value', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery=""
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          const input = getLastInput();
+          await userEvent.click(input);
+          await userEvent.keyboard('randomValue');
+          await userEvent.click(document.body);
+
+          expect(
+            screen.getByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
+            })
+          ).toBeInTheDocument();
+          expect(getLastInput()).not.toHaveFocus();
+        });
+      });
+
+      describe('on exit', () => {
+        it('should replace the raw search key with the defined key:value', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery=""
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          const input = getLastInput();
+          await userEvent.click(input);
+          await userEvent.keyboard('randomValue');
+          await userEvent.keyboard('{Enter}');
+
+          expect(
+            screen.getByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}randomValue`,
+            })
+          ).toBeInTheDocument();
+          expect(getLastInput()).toHaveFocus();
+        });
+      });
+
+      describe('selecting from filter key suggestions', () => {
+        beforeEach(() => {
+          MockApiClient.addMockResponse({
+            url: '/organizations/org-slug/recent-searches/',
+            body: [{query: 'a or b'}, {query: 'some recent query'}],
+          });
+        });
+
+        it('should replace the raw search key with the defined key:value', async () => {
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery=""
+              recentSearches={SavedSearchType.ISSUE}
+              replaceRawSearchKeys={['span.description']}
+            />,
+            {organization: {features: ['search-query-builder-wildcard-operators']}}
+          );
+
+          await userEvent.click(getLastInput());
+
+          const aOrBOption = await screen.findByRole('option', {name: 'a or b'});
+          expect(aOrBOption).toBeInTheDocument();
+
+          await userEvent.hover(aOrBOption);
+          await userEvent.keyboard('{enter}{enter}');
+
+          expect(
+            await screen.findByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}a`,
+            })
+          ).toBeInTheDocument();
+
+          expect(await screen.findByRole('row', {name: 'OR'})).toBeInTheDocument();
+
+          expect(
+            await screen.findByRole('row', {
+              name: `span.description:${WildcardOperators.CONTAINS}b`,
+            })
+          ).toBeInTheDocument();
+        });
       });
     });
   });
@@ -4415,6 +4702,8 @@ describe('SearchQueryBuilder', () => {
           return displayAskSeer ? (
             <AskSeerComboBox
               initialQuery={query}
+              analyticsSource="test"
+              feedbackSource="test"
               applySeerSearchQuery={() => {}}
               askSeerMutationOptions={mutationOptions({
                 mutationFn: async (_value: string) => {
@@ -4551,35 +4840,55 @@ describe('SearchQueryBuilder', () => {
       });
     });
 
-    it('displays enable ai button when searching free text and user has not given consent', async () => {
-      const mockOnSearch = jest.fn();
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: false,
-            userHasAcknowledged: false,
-          },
-        }),
+    describe('consent flow changes enabled', () => {
+      it('renders tooltip', async () => {
+        const mockOnSearch = jest.fn();
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/seer/setup-check/',
+          body: AutofixSetupFixture({
+            setupAcknowledgement: {
+              orgHasAcknowledged: true,
+              userHasAcknowledged: true,
+            },
+          }),
+        });
+
+        render(
+          <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
+          {
+            organization: {
+              features: [
+                'gen-ai-features',
+                'gen-ai-explore-traces',
+                'gen-ai-explore-traces-consent-ui',
+                'ask-seer-consent-flow-update',
+              ],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(screen.getByRole('combobox'), 'some free text');
+
+        const askSeerText = screen.getByText(/Ask Seer/);
+        expect(askSeerText).toBeInTheDocument();
+
+        await userEvent.hover(askSeerText);
+
+        const tooltipTitle = await screen.findByText(
+          /The assistant requires Generative AI/
+        );
+        expect(tooltipTitle).toBeInTheDocument();
+        expect(tooltipTitle).toBeVisible();
+
+        const tooltipLink = screen.getByText(/data processing policy/);
+        expect(tooltipLink).toBeInTheDocument();
+        expect(tooltipLink).toBeVisible();
+        expect(tooltipLink).toHaveAttribute(
+          'href',
+          'https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features'
+        );
       });
-
-      render(
-        <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
-        {
-          organization: {
-            features: [
-              'gen-ai-features',
-              'gen-ai-explore-traces',
-              'gen-ai-explore-traces-consent-ui',
-            ],
-          },
-        }
-      );
-
-      await userEvent.click(getLastInput());
-      await userEvent.type(screen.getByRole('combobox'), 'some free text');
-
-      expect(screen.getByRole('option', {name: /Enable Gen AI/})).toBeInTheDocument();
     });
   });
 

@@ -287,6 +287,31 @@ def test_parse_highlighted_events_with_tap_event() -> None:
     assert builder.result.tap_events[0].view_id == "send_user_feedback"
 
 
+def test_parse_highlighted_events_with_tap_event_missing_fields() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758523985314,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758523985.314,
+                "category": "ui.tap",
+                "message": "send_user_feedback",
+                "data": {},
+            },
+        },
+    }
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    assert len(builder.result.tap_events) == 1
+    assert builder.result.tap_events[0].timestamp == int(1758523985.314)
+    assert builder.result.tap_events[0].message == "send_user_feedback"
+    assert builder.result.tap_events[0].view_class == ""
+    assert builder.result.tap_events[0].view_id == ""
+
+
 # Click parsing.
 
 
@@ -876,9 +901,19 @@ def test_which() -> None:
     assert which(event) == EventType.NAVIGATION_SPAN
 
     event = {
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1761671674.977515,
+                "type": "default",
+                "data": {"to": "UIInputWindowController"},
+                "message": "UIInputWindowController",
+                "category": "navigation",
+                "level": "none",
+            },
+        },
         "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "navigation"}},
+        "timestamp": 1761671674977,
     }
     assert which(event) == EventType.NAVIGATION
 
@@ -967,6 +1002,122 @@ def test_which() -> None:
     }
 
     assert which(event) == EventType.TAP
+
+    event = {
+        "type": 5,
+        "timestamp": 1753203886279,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1753203886.279,
+                "category": "device.battery",
+                "data": {"level": 100.0, "charging": False},
+            },
+        },
+    }
+    assert which(event) == EventType.DEVICE_BATTERY
+
+    event = {
+        "type": 5,
+        "timestamp": 1758212033534,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "level": "none",
+                "category": "device.orientation",
+                "timestamp": 1758212033.534864,
+                "data": {"position": "landscape"},
+                "type": "default",
+            },
+        },
+    }
+    assert which(event) == EventType.DEVICE_ORIENTATION
+
+    event = {
+        "type": 5,
+        "timestamp": 1758733250547,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758733250.547,
+                "category": "device.connectivity",
+                "data": {"state": "wifi"},
+            },
+        },
+    }
+    assert which(event) == EventType.DEVICE_CONNECTIVITY
+
+    event = {
+        "type": 5,
+        "timestamp": 1760948639388,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1760948639.388,
+                "category": "ui.scroll",
+                "level": "info",
+                "data": {
+                    "view.class": "androidx.recyclerview.widget.RecyclerView",
+                    "view.id": "recycler_view",
+                    "direction": "up",
+                },
+            },
+        },
+    }
+    assert which(event) == EventType.SCROLL
+
+    event = {
+        "type": 5,
+        "timestamp": 1760948640299,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1760948640.299,
+                "category": "ui.swipe",
+                "level": "info",
+                "data": {
+                    "view.class": "androidx.recyclerview.widget.RecyclerView",
+                    "view.id": "recycler_view",
+                    "direction": "up",
+                },
+            },
+        },
+    }
+    assert which(event) == EventType.SWIPE
+
+    event = {
+        "type": 5,
+        "timestamp": 1758735184405,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758735184.405,
+                "category": "app.background",
+                "data": {},
+            },
+        },
+    }
+    assert which(event) == EventType.BACKGROUND
+
+    event = {
+        "type": 5,
+        "timestamp": 1758733250461,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": 1758733250.461,
+                "category": "app.foreground",
+                "data": {},
+            },
+        },
+    }
+    assert which(event) == EventType.FOREGROUND
 
     assert which({}) == EventType.UNKNOWN
 

@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
@@ -16,14 +16,19 @@ import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {OnDemandBudgetMode, type Subscription} from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
+import {
+  OnDemandBudgetMode,
+  type OnDemandBudgets,
+  type Subscription,
+} from 'getsentry/types';
+import {displayBudgetName, hasBillingAccess} from 'getsentry/utils/billing';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 import {
   getTotalBudget,
   getTotalSpend,
   parseOnDemandBudgetsFromSubscription,
+  trackOnDemandBudgetAnalytics,
 } from 'getsentry/views/onDemandBudgets/utils';
 import {openSpendLimitsPricingModal} from 'getsentry/views/spendLimits/modal';
 import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
@@ -35,6 +40,12 @@ function PaygCard({
   organization: Organization;
   subscription: Subscription;
 }) {
+  const hasBillingPerms = hasBillingAccess(organization);
+  const hasPaymentSource = !!(
+    subscription.paymentSource ||
+    subscription.isSelfServePartner ||
+    subscription.onDemandInvoicedManual
+  );
   const api = useApi();
   const theme = useTheme();
   const paygBudget = parseOnDemandBudgetsFromSubscription(subscription);
@@ -43,7 +54,9 @@ function PaygCard({
     ? getTotalSpend(subscription.onDemandBudgets)
     : 0;
 
+  const [isHighlighted, setIsHighlighted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const paygInput = useRef<HTMLInputElement>(null);
   const [newBudgetDollars, setNewBudgetDollars] = useState<number>(
     Math.ceil(totalBudget / 100)
   );
@@ -59,9 +72,11 @@ function PaygCard({
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: (_data: OnDemandBudgets) => {
+      trackOnDemandBudgetAnalytics(organization, paygBudget, _data, 'payg_inline_form');
       SubscriptionStore.loadData(subscription.slug);
       setIsEditing(false);
+      setIsHighlighted(false);
     },
     onError: err => {
       setError(err.message);
@@ -75,10 +90,47 @@ function PaygCard({
     getDaysSinceDate(
       moment(subscription.onDemandPeriodEnd).add(1, 'days').format('YYYY-MM-DD')
     );
-  const isLegacy = subscription.planDetails.hasOnDemandModes;
+  const hasBudgetModes = subscription.planDetails.hasOnDemandModes;
+
+  const handleEditPayg = useCallback(
+    (shouldHighlight = false) => {
+      if (!hasBillingPerms) {
+        return;
+      }
+      if (hasBudgetModes) {
+        openOnDemandBudgetEditModal({organization, subscription, theme});
+      } else {
+        if (shouldHighlight) {
+          setIsHighlighted(true);
+        }
+        setIsEditing(true);
+      }
+    },
+    [hasBudgetModes, organization, subscription, theme, hasBillingPerms]
+  );
+
+  useEffect(() => {
+    if (paygInput.current && isEditing) {
+      paygInput.current.focus();
+    }
+  }, [isEditing]);
+
+  useEffect(() => {
+    if (window.location.hash === '#open-ondemand-modal') {
+      handleEditPayg(true);
+
+      // Clear hash to prevent modal reopening or focus state on refresh
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + window.location.search
+      );
+    }
+  }, [handleEditPayg]);
 
   return (
     <SubscriptionHeaderCard
+      isHighlighted={isHighlighted}
       title={
         isEditing
           ? tct('Edit [budgetTerm] limit', {
@@ -97,8 +149,9 @@ function PaygCard({
                 )}
                 <Currency>
                   <StyledInput
+                    ref={paygInput}
                     aria-label={t(
-                      'Edit %s limit',
+                      'Edit %s limit (in dollars)',
                       displayBudgetName(subscription.planDetails)
                     )}
                     size="sm"
@@ -106,9 +159,14 @@ function PaygCard({
                     value={newBudgetDollars}
                     min={0}
                     onChange={e => setNewBudgetDollars(parseInt(e.target.value, 10) || 0)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        handleSubmit();
+                      }
+                    }}
                   />
                 </Currency>
-                <Flex justify="between" align="center">
+                <Flex justify="between" align="center" gap="xl sm" wrap="wrap">
                   <Flex gap="sm" align="center">
                     <Button priority="primary" onClick={() => handleSubmit()}>
                       {t('Save')}
@@ -118,6 +176,7 @@ function PaygCard({
                         // reset the budget to the current total budget
                         setNewBudgetDollars(Math.ceil(totalBudget / 100));
                         setIsEditing(false);
+                        setIsHighlighted(false);
                       }}
                     >
                       {t('Cancel')}
@@ -139,22 +198,26 @@ function PaygCard({
               </Flex>,
             ]
           : [
-              <Flex justify="between" align="start" key="title" width="100%">
+              <Flex justify="between" align="start" key="title" width="100%" gap="sm">
                 <Heading as="h2" size="lg">
                   {displayBudgetName(subscription.planDetails, {title: true})}
                 </Heading>
-                <Button
-                  size="xs"
-                  onClick={() => {
-                    if (isLegacy) {
-                      openOnDemandBudgetEditModal({organization, subscription, theme});
-                    } else {
-                      setIsEditing(true);
+                {hasBillingPerms && (
+                  <Button
+                    size="xs"
+                    disabled={!hasPaymentSource}
+                    title={
+                      hasPaymentSource
+                        ? undefined
+                        : t('You must add a payment method to edit the limit')
                     }
-                  }}
-                >
-                  {totalBudget > 0 ? t('Edit limit') : t('Set limit')}
-                </Button>
+                    onClick={() => {
+                      handleEditPayg(false);
+                    }}
+                  >
+                    {totalBudget > 0 ? t('Edit limit') : t('Set limit')}
+                  </Button>
+                )}
               </Flex>,
               <Container key="payg-budget">
                 <Text size="xl" bold>
