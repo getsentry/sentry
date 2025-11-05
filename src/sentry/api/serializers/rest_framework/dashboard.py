@@ -966,6 +966,17 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             ):
                 return
 
+            # check if the linked dashboard appears in the fields of the query
+            if not all(
+                field in query.fields
+                for field in [
+                    linked_dashboard.get("field") for linked_dashboard in linked_dashboards
+                ]
+            ):
+                raise serializers.ValidationError(
+                    "Linked dashboard does not appear in the fields of the query"
+                )
+
             for link_data in linked_dashboards:
                 field = link_data.get("field")
                 dashboard_id = link_data.get("dashboard_id")
