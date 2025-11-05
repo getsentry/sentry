@@ -21,10 +21,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
   telemetry_index_dependencies: (args, isLoading) => {
     const title = args.title || 'item';
-    const truncatedTitle = title.length > 75 ? title.slice(0, 75) + '...' : title;
-    return isLoading
-      ? `Tracing the flow of ${truncatedTitle}...`
-      : `Traced the flow of ${truncatedTitle}`;
+    return isLoading ? `Tracing the flow of ${title}...` : `Traced the flow of ${title}`;
   },
 
   google_search: (args, isLoading) => {
@@ -34,11 +31,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
   trace_explorer_query: (args, isLoading) => {
     const question = args.question || 'spans';
-    const truncatedQuestion =
-      question.length > 75 ? question.slice(0, 75) + '...' : question;
-    return isLoading
-      ? `Querying spans: '${truncatedQuestion}'`
-      : `Queried spans: '${truncatedQuestion}'`;
+    return isLoading ? `Querying spans: '${question}'` : `Queried spans: '${question}'`;
   },
 
   get_trace_waterfall: (args, isLoading) => {
@@ -74,10 +67,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     switch (mode) {
       case 'read_file':
         if (path) {
-          const truncatedPath = path.length > 50 ? path.slice(0, 50) + '...' : path;
           return isLoading
-            ? `Reading ${truncatedPath} from ${repoName}...`
-            : `Read ${truncatedPath} from ${repoName}`;
+            ? `Reading ${path} from ${repoName}...`
+            : `Read ${path} from ${repoName}`;
         }
         return isLoading
           ? `Reading file from ${repoName}...`
@@ -85,11 +77,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
       case 'find_files':
         if (pattern) {
-          const truncatedPattern =
-            pattern.length > 40 ? pattern.slice(0, 40) + '...' : pattern;
           return isLoading
-            ? `Finding files matching '${truncatedPattern}' in ${repoName}...`
-            : `Found files matching '${truncatedPattern}' in ${repoName}`;
+            ? `Finding files matching '${pattern}' in ${repoName}...`
+            : `Found files matching '${pattern}' in ${repoName}`;
         }
         return isLoading
           ? `Finding files in ${repoName}...`
@@ -97,11 +87,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
       case 'search_content':
         if (pattern) {
-          const truncatedPattern =
-            pattern.length > 40 ? pattern.slice(0, 40) + '...' : pattern;
           return isLoading
-            ? `Searching for '${truncatedPattern}' in ${repoName}...`
-            : `Searched for '${truncatedPattern}' in ${repoName}`;
+            ? `Searching for '${pattern}' in ${repoName}...`
+            : `Searched for '${pattern}' in ${repoName}`;
         }
         return isLoading
           ? `Searching code in ${repoName}...`
@@ -141,11 +129,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     }
 
     if (filePath) {
-      const truncatedPath =
-        filePath.length > 40 ? filePath.slice(0, 40) + '...' : filePath;
       return isLoading
-        ? `Excavating commits affecting '${truncatedPath}'${dateRangeStr} in ${repoName}...`
-        : `Excavated commits affecting '${truncatedPath}'${dateRangeStr} in ${repoName}`;
+        ? `Excavating commits affecting '${filePath}'${dateRangeStr} in ${repoName}...`
+        : `Excavated commits affecting '${filePath}'${dateRangeStr} in ${repoName}`;
     }
 
     return isLoading

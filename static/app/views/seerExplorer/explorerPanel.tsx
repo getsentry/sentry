@@ -28,6 +28,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   >(new Map());
   const panelRef = useRef<HTMLDivElement>(null);
   const hoveredBlockIndex = useRef<number>(-1);
+  const userScrolledUpRef = useRef<boolean>(false);
 
   // Custom hooks
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
@@ -65,6 +66,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     },
     onNavigate: () => {
       setIsMinimized(false);
+      userScrolledUpRef.current = true;
     },
   });
 
@@ -73,6 +75,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     if (isVisible) {
       setFocusedBlockIndex(-1);
       setIsMinimized(false); // Expand when opening
+      userScrolledUpRef.current = false;
       setTimeout(() => {
         // Scroll to bottom when panel opens
         if (scrollContainerRef.current) {
@@ -101,9 +104,42 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     };
   }, [isVisible]);
 
-  // Auto-scroll to bottom when new blocks are added
+  // Track scroll position to detect if user scrolled up
   useEffect(() => {
-    if (scrollContainerRef.current) {
+    if (!isVisible) {
+      return undefined;
+    }
+
+    const handleScroll = () => {
+      const container = scrollContainerRef.current;
+      if (!container) {
+        return;
+      }
+
+      const {scrollTop, scrollHeight, clientHeight} = container;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50; // 50px threshold
+
+      // If user is at/near bottom, mark that they haven't scrolled up
+      if (isAtBottom) {
+        userScrolledUpRef.current = false;
+      } else {
+        userScrolledUpRef.current = true;
+      }
+    };
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => {
+        container.removeEventListener('scroll', handleScroll);
+      };
+    }
+    return undefined;
+  }, [isVisible, focusedBlockIndex]);
+
+  // Auto-scroll to bottom when new blocks are added, but only if user hasn't scrolled up
+  useEffect(() => {
+    if (!userScrolledUpRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   }, [blocks]);
@@ -112,6 +148,23 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   useEffect(() => {
     blockRefs.current = blockRefs.current.slice(0, blocks.length);
   }, [blocks]);
+
+  // Reset scroll state when navigating to input (which is at the bottom)
+  useEffect(() => {
+    if (focusedBlockIndex === -1 && scrollContainerRef.current) {
+      // Small delay to let scrollIntoView complete
+      setTimeout(() => {
+        const container = scrollContainerRef.current;
+        if (container) {
+          const {scrollTop, scrollHeight, clientHeight} = container;
+          const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+          if (isAtBottom) {
+            userScrolledUpRef.current = false;
+          }
+        }
+      }, 100);
+    }
+  }, [focusedBlockIndex]);
 
   // Auto-focus input when user starts typing while a block is focused
   useEffect(() => {
@@ -148,6 +201,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       if (inputValue.trim() && !isPolling) {
         sendMessage(inputValue.trim());
         setInputValue('');
+        // Reset scroll state so we auto-scroll to show the response
+        userScrolledUpRef.current = false;
         // Reset textarea height
         if (textareaRef.current) {
           textareaRef.current.style.height = 'auto';
