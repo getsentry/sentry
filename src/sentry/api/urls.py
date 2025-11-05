@@ -528,6 +528,7 @@ from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreference
 from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.seer.endpoints.trace_explorer_ai_query import TraceExplorerAIQuery
 from sentry.seer.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
+from sentry.seer.endpoints.trace_explorer_ai_translate_agentic import SearchAgentTranslateEndpoint
 from sentry.sentry_apps.api.endpoints.group_external_issue_details import (
     GroupExternalIssueDetailsEndpoint,
 )
@@ -2299,6 +2300,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/trace-explorer-ai/query/$",
         TraceExplorerAIQuery.as_view(),
         name="sentry-api-0-trace-explorer-ai-query",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/search-agent/translate/$",
+        SearchAgentTranslateEndpoint.as_view(),
+        name="sentry-api-0-search-agent-translate",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?:(?P<run_id>[^/]+)/)?$",
