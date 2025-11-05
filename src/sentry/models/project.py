@@ -344,7 +344,7 @@ class Project(Model):
         # This Project has sent insight queues spans
         has_insights_queues: bool
 
-        # This Project has sent insight llm monitoring spans
+        # No longer used, use has_insights_agent_monitoring instead
         has_insights_llm_monitoring: bool
 
         # This Project has sent feature flags

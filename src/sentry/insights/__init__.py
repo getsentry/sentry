@@ -68,10 +68,6 @@ def is_queue(span: FilterSpan) -> bool:
     return span.op in ["queue.process", "queue.publish"]
 
 
-def is_llm_monitoring(span: FilterSpan) -> bool:
-    return span.op is not None and span.op.startswith("ai.pipeline")
-
-
 def is_agents(span: FilterSpan) -> bool:
     return span.op is not None and span.op.startswith("gen_ai.")
 
@@ -89,7 +85,6 @@ INSIGHT_MODULE_FILTERS = {
     InsightModules.VITAL: is_vital,
     InsightModules.CACHE: is_cache,
     InsightModules.QUEUE: is_queue,
-    InsightModules.LLM_MONITORING: is_llm_monitoring,
     InsightModules.AGENTS: is_agents,
     InsightModules.MCP: is_mcp,
 }
