@@ -402,7 +402,7 @@ class ComponentTest(TestCase):
         exception_component = variants["app"].root_component.values[0]
         assert isinstance(exception_component, ExceptionGroupingComponent)
         assert [subcomponent.id for subcomponent in exception_component.values] == [
-            "stacktrace",
             "type",
             "value",
+            "stacktrace",
         ]

@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.738417+00:00'
+created: '2025-11-03T21:48:48.738331+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,6 +10,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "SIGABRT"
+        value*
+          "<redacted>"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             function*
@@ -95,18 +99,18 @@ app:
           frame (marked out of app by the client)
             function*
               "__pthread_kill"
-        type*
-          "SIGABRT"
-        value*
-          "<redacted>"
 --------------------------------------------------------------------------
 system:
-  hash: "70b7b816193e06eb5d6649989fbaf605"
+  hash: "ca6e8f30e1e7b088514deb26ec59b379"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "SIGABRT"
+        value (ignored because stacktrace takes precedence)
+          "<redacted>"
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
@@ -192,7 +196,3 @@ system:
           frame (ignored by stack trace rule (category:throw ^-group))
             function*
               "__pthread_kill"
-        type*
-          "SIGABRT"
-        value (ignored because stacktrace takes precedence)
-          "<redacted>"

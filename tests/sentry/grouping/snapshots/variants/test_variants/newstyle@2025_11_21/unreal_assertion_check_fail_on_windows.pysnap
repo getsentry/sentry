@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:18:54.642464+00:00'
+created: '2025-11-03T21:48:49.542317+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,6 +10,10 @@ app:
   root_component:
     app*
       exception*
+        type (ignored because exception is synthetic)
+          "unknown 0x00004000 / 0x7ff89574837a"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: unknown <hex> / <hex>"
         stacktrace*
           frame (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app) but ignored by stack trace rule (category:threadbase -group v-group))
             function*
@@ -150,10 +154,6 @@ app:
           frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
             function*
               "RaiseException"
-        type (ignored because exception is synthetic)
-          "unknown 0x00004000 / 0x7ff89574837a"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: unknown <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
   hash: "d0669f63f03ddaec66ac8b9f4e3e449d"
@@ -162,6 +162,10 @@ system:
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "unknown 0x00004000 / 0x7ff89574837a"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: unknown <hex> / <hex>"
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
@@ -302,7 +306,3 @@ system:
           frame*
             function*
               "RaiseException"
-        type (ignored because exception is synthetic)
-          "unknown 0x00004000 / 0x7ff89574837a"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: unknown <hex> / <hex>"

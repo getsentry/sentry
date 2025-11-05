@@ -1,15 +1,19 @@
 ---
-created: '2025-10-29T21:18:54.601872+00:00'
+created: '2025-11-03T21:48:49.499753+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "ecb890e5cd60dec2b626d500cc866de4"
+  hash: "2301317599ab22875b83ce2dafdab6ce"
   contributing component: exception
   hint: None
   root_component:
     app*
       exception*
+        type*
+          "EXC_BAD_ACCESS"
+        value (ignored because stacktrace takes precedence)
+          "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
         stacktrace*
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
@@ -107,18 +111,18 @@ app:
           frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
             function*
               "FGenericPlatformMisc::RaiseException"
-        type*
-          "EXC_BAD_ACCESS"
-        value (ignored because stacktrace takes precedence)
-          "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
 --------------------------------------------------------------------------
 system:
-  hash: "57493ac3e558feffb778cf170a7fd986"
+  hash: "65c0ee687814f8d166cc29c9443ffc8a"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "EXC_BAD_ACCESS"
+        value (ignored because stacktrace takes precedence)
+          "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
@@ -216,7 +220,3 @@ system:
           frame*
             function*
               "FGenericPlatformMisc::RaiseException"
-        type*
-          "EXC_BAD_ACCESS"
-        value (ignored because stacktrace takes precedence)
-          "p__commonOp__fn__fn__makeReturn__fn__1823_fn__done > XTUM >\nKERN_INVALID_ADDRESS at <hex>."

@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:18:52.864858+00:00'
+created: '2025-11-03T21:48:47.881809+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,6 +10,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value* (stripped event-specific values)
+          "Fatal Error: <hex> / <hex>"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -140,10 +144,6 @@ app:
             function*
               "__abort"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-        type (ignored because exception is synthetic)
-          "0x00000000 / 0x00000000"
-        value* (stripped event-specific values)
-          "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
   hash: "49b6f72b6635cb43190c57ee56b026b0"
@@ -152,6 +152,10 @@ system:
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
         stacktrace*
           frame
           frame (ignored by stack trace rule (category:threadbase -group v-group))
@@ -282,7 +286,3 @@ system:
             function*
               "__abort"
           frame
-        type (ignored because exception is synthetic)
-          "0x00000000 / 0x00000000"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: <hex> / <hex>"
