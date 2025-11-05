@@ -593,7 +593,10 @@ def basic_consumer(
         logging.getLogger("arroyo").setLevel(log_level.upper())
 
     add_global_tags(
-        kafka_topic=topic, consumer_group=options["group_id"], kafka_slice_id=kafka_slice_id
+        _set_sentry_tags=True,
+        kafka_topic=topic,
+        consumer_group=options["group_id"],
+        kafka_slice_id=kafka_slice_id,
     )
     processor = get_stream_processor(
         consumer_name,

@@ -2,6 +2,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from threading import local
 
+import sentry_sdk
 from django.conf import settings
 
 from sentry.metrics.base import MetricsBackend, MutableTags, Tags, TagValue
@@ -50,7 +51,9 @@ _THREAD_LOCAL_TAGS = local()
 _GLOBAL_TAGS: list[Tags] = []
 
 
-def _add_global_tags(_all_threads: bool = False, **tags: TagValue) -> list[Tags]:
+def _add_global_tags(
+    _all_threads: bool = False, _set_sentry_tags: bool = False, **tags: TagValue
+) -> list[Tags]:
     if _all_threads:
         stack = _GLOBAL_TAGS
     else:
@@ -60,16 +63,22 @@ def _add_global_tags(_all_threads: bool = False, **tags: TagValue) -> list[Tags]
             stack = _THREAD_LOCAL_TAGS.stack
 
     stack.append(tags)
+    if _set_sentry_tags:
+        sentry_sdk.set_tags(tags)
     return stack
 
 
-def add_global_tags(_all_threads: bool = False, **tags: TagValue) -> None:
+def add_global_tags(
+    _all_threads: bool = False, _set_sentry_tags: bool = False, **tags: TagValue
+) -> None:
     """
     Set multiple metric tags onto the global or thread-local stack which then
     apply to all metrics.
+    If `_set_sentry_tags` is True, also sets the given tags in sentry_sdk.
 
     When used in combination with the `global_tags` context manager,
-    `add_global_tags` is reverted in any wrapping invocaation of `global_tags`.
+    `add_global_tags` is reverted in any wrapping invocation of `global_tags`.
+    However, tags set in the current sentry_sdk instance will remain set there.
     For example::
 
         with global_tags(tag_a=123):
@@ -77,18 +86,20 @@ def add_global_tags(_all_threads: bool = False, **tags: TagValue) -> None:
 
         # tag_b is no longer visible
     """
-    _add_global_tags(_all_threads=_all_threads, **tags)
+    _add_global_tags(_all_threads=_all_threads, _set_sentry_tags=_set_sentry_tags, **tags)
 
 
 @contextmanager
-def global_tags(_all_threads: bool = False, **tags: TagValue) -> Generator[None]:
+def global_tags(
+    _all_threads: bool = False, _set_sentry_tags: bool = False, **tags: TagValue
+) -> Generator[None]:
     """
     The context manager version of `add_global_tags` that reverts all tag
     changes upon exit.
 
     See docstring of `add_global_tags` for how those two methods interact.
     """
-    stack = _add_global_tags(_all_threads=_all_threads, **tags)
+    stack = _add_global_tags(_all_threads=_all_threads, _set_sentry_tags=_set_sentry_tags, **tags)
     old_len = len(stack) - 1
 
     try:
