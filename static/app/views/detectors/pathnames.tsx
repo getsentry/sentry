@@ -1,17 +1,13 @@
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
-export const makeMonitorBasePathname = (orgSlug: string, linkPrefix: string) => {
-  return normalizeUrl(`/organizations/${orgSlug}/${linkPrefix}/`);
+export const makeMonitorBasePathname = (orgSlug: string) => {
+  return normalizeUrl(`/organizations/${orgSlug}/monitors/`);
 };
 
-export const makeMonitorDetailsPathname = (
-  orgSlug: string,
-  monitorId: string,
-  linkPrefix: string
-) => {
-  return normalizeUrl(`${makeMonitorBasePathname(orgSlug, linkPrefix)}${monitorId}/`);
+export const makeMonitorDetailsPathname = (orgSlug: string, monitorId: string) => {
+  return normalizeUrl(`${makeMonitorBasePathname(orgSlug)}${monitorId}/`);
 };
 
-export const makeMonitorCreatePathname = (orgSlug: string, linkPrefix: string) => {
-  return normalizeUrl(`${makeMonitorBasePathname(orgSlug, linkPrefix)}new/`);
+export const makeMonitorCreatePathname = (orgSlug: string) => {
+  return normalizeUrl(`${makeMonitorBasePathname(orgSlug)}new/`);
 };

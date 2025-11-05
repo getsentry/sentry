@@ -35,7 +35,6 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -47,13 +46,12 @@ function AutomationDocumentTitle() {
 function AutomationBreadcrumbs() {
   const title = useFormField('name');
   const organization = useOrganization();
-  const {automationsLinkPrefix} = useMonitorViewContext();
   return (
     <Breadcrumbs
       crumbs={[
         {
           label: t('Alerts'),
-          to: makeAutomationBasePathname(organization.slug, automationsLinkPrefix),
+          to: makeAutomationBasePathname(organization.slug),
         },
         {label: title ? title : t('New Alert')},
       ]}
@@ -72,7 +70,6 @@ export default function AutomationNewSettings() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const {automationsLinkPrefix} = useMonitorViewContext();
   useWorkflowEngineFeatureGate({redirect: true});
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
@@ -114,16 +111,10 @@ export default function AutomationNewSettings() {
         const automation = await createAutomation(
           getNewAutomationData(data as AutomationFormData, state)
         );
-        navigate(
-          makeAutomationDetailsPathname(
-            organization.slug,
-            automation.id,
-            automationsLinkPrefix
-          )
-        );
+        navigate(makeAutomationDetailsPathname(organization.slug, automation.id));
       }
     },
-    [createAutomation, state, navigate, organization.slug, automationsLinkPrefix]
+    [createAutomation, state, navigate, organization.slug]
   );
 
   return (

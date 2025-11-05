@@ -236,13 +236,13 @@ function TableHeader() {
 function Actions() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const {monitorsLinkPrefix, detectorFilter} = useMonitorViewContext();
+  const {detectorFilter} = useMonitorViewContext();
 
   // Pass the first selected project id that is not the all access project
   const project = selection.projects.find(pid => pid !== ALL_ACCESS_PROJECTS);
 
   // If detectorFilter is set, pass it as a query param to skip type selection
-  const createPath = makeMonitorCreatePathname(organization.slug, monitorsLinkPrefix);
+  const createPath = makeMonitorCreatePathname(organization.slug);
 
   const createQuery = detectorFilter
     ? {project, detectorType: detectorFilter}

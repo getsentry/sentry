@@ -41,11 +41,9 @@ import {
   makeAutomationBasePathname,
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 function AutomationDetailContent({automation}: {automation: Automation}) {
   const organization = useOrganization();
-  const {automationsLinkPrefix} = useMonitorViewContext();
 
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
@@ -65,10 +63,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
               crumbs={[
                 {
                   label: t('Alerts'),
-                  to: makeAutomationBasePathname(
-                    organization.slug,
-                    automationsLinkPrefix
-                  ),
+                  to: makeAutomationBasePathname(organization.slug),
                 },
                 {label: automation.name},
               ]}
@@ -213,7 +208,6 @@ export default function AutomationDetail() {
 
 function Actions({automation}: {automation: Automation}) {
   const organization = useOrganization();
-  const {automationsLinkPrefix} = useMonitorViewContext();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
 
   const toggleDisabled = useCallback(() => {
@@ -239,11 +233,7 @@ function Actions({automation}: {automation: Automation}) {
         {automation.enabled ? t('Disable') : t('Enable')}
       </Button>
       <LinkButton
-        to={makeAutomationEditPathname(
-          organization.slug,
-          automation.id,
-          automationsLinkPrefix
-        )}
+        to={makeAutomationEditPathname(organization.slug, automation.id)}
         priority="primary"
         icon={<IconEdit />}
         size="sm"
