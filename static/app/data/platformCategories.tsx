@@ -391,7 +391,37 @@ export const withoutLoggingSupport: Set<PlatformKey> = new Set([
 ]);
 
 // List of platforms that have metrics onboarding checklist content
-export const withMetricsOnboarding: Set<PlatformKey> = new Set([]);
+export const withMetricsOnboarding: Set<PlatformKey> = new Set([
+  'javascript',
+  'javascript-angular',
+  'javascript-astro',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-nextjs',
+  'javascript-nuxt',
+  'javascript-react',
+  'javascript-react-router',
+  'javascript-remix',
+  'javascript-solid',
+  'javascript-solidstart',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-tanstackstart-react',
+  'javascript-vue',
+  'node',
+  'node-awslambda',
+  'node-azurefunctions',
+  'node-cloudflare-pages',
+  'node-cloudflare-workers',
+  'node-connect',
+  'node-express',
+  'node-fastify',
+  'node-gcpfunctions',
+  'node-hapi',
+  'node-hono',
+  'node-koa',
+  'node-nestjs',
+]);
 
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
 export const withoutMetricsSupport: Set<PlatformKey> = new Set([]);

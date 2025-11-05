@@ -8,6 +8,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getJavascriptFullStackOnboarding,
   getJavascriptLogsFullStackOnboarding,
+  getJavascriptMetricsFullStackOnboarding,
 } from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
@@ -502,6 +503,10 @@ const docs: Docs = {
     configFileName: 'app/ssr.tsx',
   }),
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'tanstackstart-react',
+    packageName: '@sentry/tanstackstart-react',
+  }),
+  metricsOnboarding: getJavascriptMetricsFullStackOnboarding({
     docsPlatform: 'tanstackstart-react',
     packageName: '@sentry/tanstackstart-react',
   }),

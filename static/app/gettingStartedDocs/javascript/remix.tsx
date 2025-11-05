@@ -27,6 +27,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getJavascriptFullStackOnboarding,
   getJavascriptLogsFullStackOnboarding,
+  getJavascriptMetricsFullStackOnboarding,
 } from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
@@ -293,6 +294,10 @@ const docs: Docs = {
     configFileName: 'instrument.server.mjs',
   }),
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'remix',
+    packageName: '@sentry/remix',
+  }),
+  metricsOnboarding: getJavascriptMetricsFullStackOnboarding({
     docsPlatform: 'remix',
     packageName: '@sentry/remix',
   }),

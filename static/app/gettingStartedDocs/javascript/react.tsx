@@ -30,6 +30,7 @@ import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featu
 import {t, tct} from 'sentry/locale';
 import {
   getJavascriptLogsOnboarding,
+  getJavascriptMetricsOnboarding,
   getJavascriptProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/javascript';
 
@@ -134,12 +135,18 @@ const getVerifySnippet = (params: Params) => {
         });`
     : '';
 
+  const metricsCode = params.isMetricsSelected
+    ? `
+        // Send a test metric before throwing the error
+        Sentry.metrics.count('test_counter', 1);`
+    : '';
+
   return `import * as Sentry from '@sentry/react';
 // Add this button component to your app to test Sentry's error tracking
 function ErrorButton() {
   return (
     <button
-      onClick={() => {${logsCode}
+      onClick={() => {${logsCode}${metricsCode}
         throw new Error('This is your first error!');
       }}
     >
@@ -406,6 +413,17 @@ logger.fatal("Database connection pool exhausted", {
       });
     }
 
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/metrics/',
+      });
+    }
+
     return steps;
   },
 };
@@ -655,6 +673,12 @@ const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
   packageName: '@sentry/react',
 });
 
+const metricsOnboarding: OnboardingConfig = getJavascriptMetricsOnboarding({
+  installSnippetBlock,
+  docsPlatform: 'react',
+  packageName: '@sentry/react',
+});
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
@@ -664,6 +688,7 @@ const docs: Docs = {
   profilingOnboarding,
   logsOnboarding,
   featureFlagOnboarding: featureFlag,
+  metricsOnboarding,
 };
 
 export default docs;

@@ -26,6 +26,7 @@ import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featu
 import {t, tct, tctCode} from 'sentry/locale';
 import {
   getJavascriptLogsFullStackOnboarding,
+  getJavascriptMetricsFullStackOnboarding,
   getJavascriptProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
@@ -289,6 +290,10 @@ const docs: Docs = {
   profilingOnboarding,
   featureFlagOnboarding: featureFlag,
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'nuxt',
+    packageName: '@sentry/nuxt',
+  }),
+  metricsOnboarding: getJavascriptMetricsFullStackOnboarding({
     docsPlatform: 'nuxt',
     packageName: '@sentry/nuxt',
   }),

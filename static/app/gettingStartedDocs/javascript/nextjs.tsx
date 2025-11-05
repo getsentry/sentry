@@ -27,6 +27,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getJavascriptFullStackOnboarding,
   getJavascriptLogsFullStackOnboarding,
+  getJavascriptMetricsFullStackOnboarding,
 } from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
@@ -611,6 +612,10 @@ const docs: Docs = {
   featureFlagOnboarding: featureFlag,
   profilingOnboarding,
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'nextjs',
+    packageName: '@sentry/nextjs',
+  }),
+  metricsOnboarding: getJavascriptMetricsFullStackOnboarding({
     docsPlatform: 'nextjs',
     packageName: '@sentry/nextjs',
   }),

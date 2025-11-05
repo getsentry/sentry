@@ -27,6 +27,7 @@ import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featu
 import {t, tct} from 'sentry/locale';
 import {
   getJavascriptLogsOnboarding,
+  getJavascriptMetricsOnboarding,
   getJavascriptProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/javascript';
 
@@ -437,6 +438,12 @@ const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
   packageName: '@sentry/vue',
 });
 
+const metricsOnboarding: OnboardingConfig = getJavascriptMetricsOnboarding({
+  installSnippetBlock,
+  docsPlatform: 'vue',
+  packageName: '@sentry/vue',
+});
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
@@ -446,6 +453,7 @@ const docs: Docs<PlatformOptions> = {
   profilingOnboarding,
   featureFlagOnboarding: featureFlag,
   logsOnboarding,
+  metricsOnboarding,
 };
 
 export default docs;
