@@ -1,23 +1,25 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 import upperFirst from 'lodash/upperFirst';
 
-import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {Tag} from 'sentry/components/core/badge/tag';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Timeline} from 'sentry/components/timeline';
+import {IconCircleFill} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AuditLog} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {shouldUse24Hours} from 'sentry/utils/dates';
+import {getTimeFormat} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
@@ -33,38 +35,24 @@ import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/componen
 
 import SubscriptionHeader from './subscriptionHeader';
 
-const avatarStyle = {
-  width: 36,
-  height: 36,
-  marginRight: space(1),
-};
-
-function LogAvatar({logEntryUser}: {logEntryUser: User | undefined}) {
-  // Display Sentry's avatar for system or superuser-initiated events
-  if (
-    logEntryUser?.isSuperuser ||
-    (logEntryUser?.name === 'Sentry' && logEntryUser?.email === undefined)
-  ) {
-    return <SentryAvatar type="system" size={36} />;
-  }
-  // Display user's avatar for non-superusers-initiated events
-  if (logEntryUser !== undefined) {
-    return <UserAvatar style={avatarStyle} user={logEntryUser} />;
-  }
-  return null;
-}
-
 function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
   if (logEntryUser?.isSuperuser) {
     return (
-      <StaffNote>
-        {logEntryUser.name}
+      <Flex align="center" gap="md">
+        <Text variant="muted" size="sm">
+          {logEntryUser.name}
+        </Text>
         <Tag type="default">{t('Sentry Staff')}</Tag>
-      </StaffNote>
+      </Flex>
     );
   }
+
   if (logEntryUser?.name !== 'Sentry' && logEntryUser !== undefined) {
-    return <Note>{logEntryUser.name}</Note>;
+    return (
+      <Text variant="muted" size="sm">
+        {logEntryUser.name}
+      </Text>
+    );
   }
   return null;
 }
@@ -95,9 +83,21 @@ type Props = {
   subscription: Subscription;
 };
 
+function SkeletonEntry() {
+  return (
+    <Timeline.Item
+      title={<Placeholder width="100px" height="20px" />}
+      icon={<IconCircleFill />}
+    >
+      <Placeholder width="300px" height="36px" />
+    </Timeline.Item>
+  );
+}
+
 function UsageLog({location, subscription}: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const theme = useTheme();
   const {
     data: auditLogs,
     isPending,
@@ -117,7 +117,6 @@ function UsageLog({location, subscription}: Props) {
     {staleTime: 0}
   );
 
-  //
   const eventNames = useMemoWithPrevious<string[] | null>(
     previous => auditLogs?.eventNames ?? previous,
     [auditLogs?.eventNames]
@@ -160,7 +159,7 @@ function UsageLog({location, subscription}: Props) {
 
   const usageLogContent = (
     <Fragment>
-      <UsageLogContainer>
+      <Grid gap="2xl" flow="row">
         <CompactSelect
           searchable
           clearable
@@ -178,39 +177,55 @@ function UsageLog({location, subscription}: Props) {
         />
         {isError ? (
           <LoadingError onRetry={refetch} />
+        ) : auditLogs?.rows?.length === 0 ? (
+          <Text size="md">{t('No entries available.')}</Text>
         ) : (
-          <UsageTable
-            headers={[t('Action'), t('Time')]}
-            isEmpty={auditLogs?.rows && auditLogs?.rows.length === 0}
-            emptyMessage={t('No entries available')}
-            isLoading={isPending}
-          >
-            {auditLogs?.rows.map(entry => (
-              <Fragment key={entry.id}>
-                <UserInfo>
-                  <div>
-                    <LogAvatar logEntryUser={entry.actor} />
-                  </div>
-                  <NoteContainer>
-                    <LogUsername logEntryUser={entry.actor} />
-                    <Title>{formatEntryTitle(entry.event)}</Title>
-                    <Note>{formatEntryMessage(entry.note)}</Note>
-                  </NoteContainer>
-                </UserInfo>
-
-                <TimestampInfo>
-                  <DateTime dateOnly date={entry.dateCreated} />
-                  <DateTime
-                    timeOnly
-                    format={shouldUse24Hours() ? 'HH:mm zz' : 'LT zz'}
-                    date={entry.dateCreated}
-                  />
-                </TimestampInfo>
-              </Fragment>
-            ))}
-          </UsageTable>
+          <Timeline.Container>
+            {isPending
+              ? Array.from({length: 50}).map((_, index) => <SkeletonEntry key={index} />)
+              : auditLogs?.rows.map((entry, index) => (
+                  <Timeline.Item
+                    key={entry.id}
+                    colorConfig={{
+                      icon: index === 0 ? theme.active : theme.gray300,
+                      iconBorder: index === 0 ? theme.active : theme.gray300,
+                      title: theme.textColor,
+                    }}
+                    icon={<IconCircleFill />}
+                    title={formatEntryTitle(entry.event)}
+                    titleTrailingItems={
+                      <Fragment>
+                        <Text size="md" variant="muted" bold>
+                          {' ・ '}
+                        </Text>
+                        <Grid columns="max-content auto" gap="md">
+                          <DateTime
+                            format={`MMM D, YYYY ・ ${getTimeFormat({timeZone: true})}`}
+                            date={entry.dateCreated}
+                            style={{fontSize: theme.fontSize.sm}}
+                          />
+                        </Grid>
+                        {entry.actor && entry.actor.name !== 'Sentry' && (
+                          <Fragment>
+                            <Text size="sm" variant="muted" bold>
+                              {' ・ '}
+                            </Text>
+                            <LogUsername logEntryUser={entry.actor} />
+                          </Fragment>
+                        )}
+                      </Fragment>
+                    }
+                  >
+                    <Container paddingBottom="xl" maxWidth="800px">
+                      <Text variant="muted" size="md">
+                        {formatEntryMessage(entry.note)}
+                      </Text>
+                    </Container>
+                  </Timeline.Item>
+                ))}
+          </Timeline.Container>
         )}
-      </UsageLogContainer>
+      </Grid>
       <Pagination pageLinks={getResponseHeader?.('Link')} onCursor={handleCursor} />
     </Fragment>
   );
@@ -235,52 +250,3 @@ function UsageLog({location, subscription}: Props) {
 
 export default withSubscription(UsageLog);
 export {UsageLog};
-
-const SentryAvatar = styled(ActivityAvatar)`
-  margin-right: ${space(1)};
-`;
-
-const Note = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-  word-break: break-word;
-`;
-
-const StaffNote = styled(Note)`
-  display: flex;
-  gap: ${space(1)};
-  line-height: 1.5;
-`;
-
-const UsageLogContainer = styled('div')`
-  display: grid;
-  grid-auto-flow: row;
-  gap: ${space(3)};
-`;
-
-const UsageTable = styled(PanelTable)`
-  box-shadow: inset 0px -1px 0px ${p => p.theme.gray200};
-`;
-
-const UserInfo = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  min-width: 250px;
-  display: flex;
-`;
-
-const NoteContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
-
-const Title = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const TimestampInfo = styled('div')`
-  display: grid;
-  grid-template-columns: max-content auto;
-  gap: ${space(1)};
-  font-size: ${p => p.theme.fontSize.md};
-  align-content: center;
-`;
