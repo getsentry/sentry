@@ -34,74 +34,51 @@ const DSYM_INPUT_FILE =
 
 function getStripDebugSymbolsContent() {
   return (
-    <Flex direction="column" gap="2xl">
+    <Flex direction="column" gap="lg">
+      <Alert type="warning">
+        {t(
+          'Stripping symbols before creating a dSYM breaks crash symbolication. Confirm your release build still produces and uploads dSYMs before stripping.'
+        )}
+      </Alert>
       <Text>
         {t(
           'Debug info and symbols are only used during development and should not be shipped to users.'
         )}
       </Text>
 
-      <Flex direction="column" gap="xl">
-        <Flex direction="column" gap="md">
-          <Heading as="h3" size="md">
-            {t('How to fix')}
-          </Heading>
-          <Text>
-            {t(
-              'Strip symbols from release builds and instead rely on separate dSYM files for crash reporters.'
-            )}
-          </Text>
-          <Alert type="warning">
-            {t(
-              'Stripping symbols before creating a dSYM breaks crash symbolication. Confirm your release build still produces and uploads dSYMs (or another crash reporter has them) before stripping.'
-            )}
-          </Alert>
-          <Text>
-            {t(
-              'In Xcode, ensure your release configuration sets the Debug Information Format build setting to DWARF with dSYM.'
-            )}
-          </Text>
-          <Text>
-            {t('You can manually strip a compiled binary with the strip command:')}
-          </Text>
-          <CodeBlockWrapper>
-            <CodeBlock language="bash" filename="strip.sh">
-              {STRIP_SINGLE_BINARY}
-            </CodeBlock>
-          </CodeBlockWrapper>
-        </Flex>
+      <Heading as="h3" size="md">
+        {t('How to fix')}
+      </Heading>
+      <Text>{t('You can manually strip a compiled binary with the strip command:')}</Text>
+      <CodeBlockWrapper>
+        <CodeBlock language="bash" filename="strip.sh">
+          {STRIP_SINGLE_BINARY}
+        </CodeBlock>
+      </CodeBlockWrapper>
 
-        <Flex direction="column" gap="md">
-          <Heading as="h3" size="md">
-            {t('Automate stripping after build')}
-          </Heading>
-          <Alert type="warning">
-            {t(
-              'This script will strip the main app binary along with any binaries in the Frameworks/ directory. This is a sample script that may require adjustments for your project.'
-            )}
-          </Alert>
-          <Text>
-            {t(
-              'Add a Run Script phase that skips non-release builds and leaves Apple-signed frameworks untouched:'
-            )}
-          </Text>
-          <CodeBlockWrapper>
-            <CodeBlock language="bash" filename="strip_debug_symbols.sh">
-              {STRIP_BUILD_SCRIPT}
-            </CodeBlock>
-          </CodeBlockWrapper>
-          <Text>
-            {t(
-              'Because Xcode generates dSYMs from the unstripped binary, list the dSYM as an Input File so the script runs after Xcode finishes generating it:'
-            )}
-          </Text>
-          <CodeBlockWrapper>
-            <CodeBlock language="bash" filename="RunScript.inputfiles">
-              {DSYM_INPUT_FILE}
-            </CodeBlock>
-          </CodeBlockWrapper>
-        </Flex>
-      </Flex>
+      <Heading as="h3" size="md">
+        {t('Automate stripping after build')}
+      </Heading>
+      <Text>
+        {t(
+          'Below is a sample script you can add as a Run Script phase. This script may require adjustments based on your project.'
+        )}
+      </Text>
+      <CodeBlockWrapper>
+        <CodeBlock language="bash" filename="strip_debug_symbols.sh">
+          {STRIP_BUILD_SCRIPT}
+        </CodeBlock>
+      </CodeBlockWrapper>
+      <Text>
+        {t(
+          'Because Xcode generates dSYMs from the unstripped binary, list the dSYM as an Input File so the script runs after Xcode finishes generating it:'
+        )}
+      </Text>
+      <CodeBlockWrapper>
+        <CodeBlock language="bash" filename="RunScript.inputfiles">
+          {DSYM_INPUT_FILE}
+        </CodeBlock>
+      </CodeBlockWrapper>
     </Flex>
   );
 }
