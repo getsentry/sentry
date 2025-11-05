@@ -77,9 +77,9 @@ function OnboardingPanel({
               <Image src={connectDotsImg} />
             </HeaderWrapper>
             <Divider />
-            <Body $isUnsupportedPlatform={isUnsupportedPlatform}>
+            <Body isUnsupportedPlatform={isUnsupportedPlatform}>
               {!isUnsupportedPlatform && <Setup>{children}</Setup>}
-              <Preview>
+              <Preview isUnsupportedPlatform={isUnsupportedPlatform}>
                 <BodyTitle>{t('Preview a Sentry Metric')}</BodyTitle>
                 <Arcade
                   src="https://demo.arcade.software/wNDJOXTJw64xiuVi7Hp6?embed"
@@ -319,21 +319,31 @@ const Setup = styled('div')`
   }
 `;
 
-const Preview = styled('div')`
+const Preview = styled('div')<{isUnsupportedPlatform?: boolean}>`
   padding: ${space(4)};
+
+  ${p =>
+    p.isUnsupportedPlatform &&
+    `
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  `}
 `;
 
-const Body = styled('div')<{$isUnsupportedPlatform?: boolean}>`
+const Body = styled('div')<{isUnsupportedPlatform?: boolean}>`
   display: grid;
   position: relative;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
 
   ${p =>
-    p.$isUnsupportedPlatform &&
+    p.isUnsupportedPlatform &&
     `
     grid-auto-flow: row;
     grid-auto-columns: unset;
+    justify-content: center;
   `}
 
   h4 {
