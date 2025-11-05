@@ -5,6 +5,7 @@ import requests
 from django.urls import reverse
 
 from sentry.seer.explorer.client_models import ExplorerRun
+from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cursors import Cursor
@@ -21,7 +22,7 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
         self.login_as(user=self.user)
 
         self.seer_access_patcher = patch(
-            "sentry.seer.endpoints.organization_seer_explorer_runs.has_seer_access_with_detail",
+            "sentry.seer.explorer.client_utils.has_seer_explorer_access_with_detail",
             return_value=(True, None),
         )
         self.seer_access_patcher.start()
@@ -254,8 +255,8 @@ class TestOrganizationSeerExplorerRunsEndpointFeatureFlags(APITestCase):
     def test_missing_gen_ai_features_flag(self) -> None:
         with self.feature({"organizations:seer-explorer": True}):
             with patch(
-                "sentry.seer.seer_setup.get_seer_org_acknowledgement",
-                return_value=True,
+                "sentry.seer.endpoints.organization_seer_explorer_runs.get_seer_runs",
+                side_effect=SeerPermissionError("Feature flag not enabled"),
             ):
                 response = self.client.get(self.url)
                 assert response.status_code == 403
@@ -264,8 +265,8 @@ class TestOrganizationSeerExplorerRunsEndpointFeatureFlags(APITestCase):
     def test_missing_seer_explorer_flag(self) -> None:
         with self.feature({"organizations:gen-ai-features": True}):
             with patch(
-                "sentry.seer.seer_setup.get_seer_org_acknowledgement",
-                return_value=True,
+                "sentry.seer.endpoints.organization_seer_explorer_runs.get_seer_runs",
+                side_effect=SeerPermissionError("Feature flag not enabled"),
             ):
                 response = self.client.get(self.url)
                 assert response.status_code == 403
@@ -276,8 +277,10 @@ class TestOrganizationSeerExplorerRunsEndpointFeatureFlags(APITestCase):
             {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
         ):
             with patch(
-                "sentry.seer.seer_setup.get_seer_org_acknowledgement",
-                return_value=False,
+                "sentry.seer.endpoints.organization_seer_explorer_runs.get_seer_runs",
+                side_effect=SeerPermissionError(
+                    "Seer has not been acknowledged by the organization."
+                ),
             ):
                 response = self.client.get(self.url)
                 assert response.status_code == 403
@@ -290,11 +293,11 @@ class TestOrganizationSeerExplorerRunsEndpointFeatureFlags(APITestCase):
             {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
         ):
             with patch(
-                "sentry.seer.seer_setup.get_seer_org_acknowledgement",
-                return_value=True,
+                "sentry.seer.endpoints.organization_seer_explorer_runs.get_seer_runs",
+                side_effect=SeerPermissionError(
+                    "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
+                ),
             ):
-                self.organization.flags.allow_joinleave = False
-                self.organization.save()
                 response = self.client.get(self.url)
                 assert response.status_code == 403
                 assert response.data == {

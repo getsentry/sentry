@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,6 +14,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
 from sentry.seer.explorer.client import get_seer_runs
+from sentry.seer.models import SeerPermissionError
 
 logger = logging.getLogger(__name__)
 
@@ -45,14 +47,17 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
         category_value = request.GET.get("category_value")
 
         def _make_seer_runs_request(offset: int, limit: int) -> dict[str, Any]:
-            runs = get_seer_runs(
-                organization=organization,
-                user=request.user,
-                category_key=category_key,
-                category_value=category_value,
-                offset=offset,
-                limit=limit,
-            )
+            try:
+                runs = get_seer_runs(
+                    organization=organization,
+                    user=request.user,
+                    category_key=category_key,
+                    category_value=category_value,
+                    offset=offset,
+                    limit=limit,
+                )
+            except SeerPermissionError as e:
+                raise PermissionDenied(e.message) from e
 
             return {"data": [run.dict() for run in runs]}
 
