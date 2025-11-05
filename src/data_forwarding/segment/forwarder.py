@@ -4,7 +4,6 @@ import logging
 from typing import Any, ClassVar
 
 from data_forwarding.base import BaseDataForwarder
-
 from sentry import VERSION, http
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug

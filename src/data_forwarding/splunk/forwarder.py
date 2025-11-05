@@ -4,7 +4,6 @@ import logging
 from typing import Any
 
 from data_forwarding.base import BaseDataForwarder
-
 from sentry import http, tagstore
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
