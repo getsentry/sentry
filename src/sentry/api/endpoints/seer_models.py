@@ -17,6 +17,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,6 @@ class SeerModelsEndpoint(Endpoint):
         except requests.exceptions.Timeout:
             logger.warning("Timeout when fetching models from Seer")
             raise SeerTimeoutError()
-        except requests.exceptions.RequestException as e:
-            logger.exception("Error fetching models from Seer", extra={"error": str(e)})
+        except (requests.exceptions.RequestException, json.JSONDecodeError):
+            logger.exception("Error fetching models from Seer")
             raise SeerConnectionError()
