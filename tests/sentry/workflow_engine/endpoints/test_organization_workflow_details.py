@@ -72,6 +72,51 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
 
+    def test_update_triggers_with_empty_conditions(self) -> None:
+        """Test that passing an empty list to triggers.conditions clears all conditions"""
+        # Create a workflow with a trigger condition
+        workflow_with_conditions = {
+            "name": "Workflow with Conditions",
+            "enabled": True,
+            "config": {},
+            "triggers": {
+                "logicType": "any",
+                "conditions": [
+                    {"type": "first_seen_event", "comparison": True, "conditionResult": True},
+                ],
+            },
+            "action_filters": [],
+        }
+
+        validator = WorkflowValidator(
+            data=workflow_with_conditions,
+            context={"organization": self.organization, "request": self.make_request()},
+        )
+        validator.is_valid(raise_exception=True)
+        workflow = validator.create(validator.validated_data)
+
+        # Verify the condition was created
+        assert workflow.when_condition_group is not None
+        assert workflow.when_condition_group.conditions.count() == 1
+
+        # Now update with empty conditions list
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "logicType": "any",
+                "conditions": [],
+            },
+        }
+
+        response = self.get_success_response(self.organization.slug, workflow.id, raw_data=data)
+
+        assert response.status_code == 200
+
+        # Verify all conditions were removed
+        workflow.refresh_from_db()
+        assert workflow.when_condition_group is not None
+        assert workflow.when_condition_group.conditions.count() == 0
+
     def test_update_detectors_add_detector(self) -> None:
         detector1 = self.create_detector(project_id=self.project.id)
         detector2 = self.create_detector(project_id=self.project.id)
