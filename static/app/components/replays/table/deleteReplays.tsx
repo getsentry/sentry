@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
@@ -55,9 +55,6 @@ export default function DeleteReplays({
     projectSlug: project?.slug ?? '',
     query: {referrer: analyticsArea},
   });
-  const refetchAuditLog = useCallback(() => {
-    queryClient.invalidateQueries({queryKey});
-  }, [queryClient, queryKey]);
 
   return (
     <Button
@@ -94,9 +91,7 @@ export default function DeleteReplays({
                     settings: <LinkWithUnderline to={settingsPath} />,
                   })
                 );
-                // TODO: get the list to refetch
-                refetchAuditLog();
-                // queryClient.invalidateQueries({queryKey});
+                queryClient.invalidateQueries({queryKey});
               },
               onError: () =>
                 addErrorMessage(

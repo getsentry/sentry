@@ -9,7 +9,6 @@ import useDeleteReplays from 'sentry/utils/replays/hooks/useDeleteReplays';
 describe('useDeleteReplays', () => {
   describe('queryOptionsToPayload', () => {
     const project = ProjectFixture();
-    // const projectSlug = project.slug;
 
     beforeEach(() => {
       const configstate = ConfigStore.getState();
