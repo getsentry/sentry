@@ -144,6 +144,10 @@ export function ListBox({
     }
   };
 
+  const onMouseLeave = () => {
+    listState.selectionManager.setFocusedKey(null);
+  };
+
   const listItems = useMemo(
     () =>
       [...listState.collection].filter(node => {
@@ -163,6 +167,7 @@ export function ListBox({
       <ListWrap
         {...mergeProps(listBoxProps, props)}
         onKeyDown={onKeyDown}
+        onMouseLeave={onMouseLeave}
         ref={mergeRefs(listElementRef, ref)}
       >
         {overlayIsOpen &&
