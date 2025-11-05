@@ -527,7 +527,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable dual writing for issue alert issues (see: alerts create issues)
     manager.add("organizations:workflow-engine-issue-alert-dual-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable workflow processing for metric issues
-    manager.add("organizations:workflow-engine-process-metric-issue-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:workflow-engine-process-metric-issue-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False, default=True)
     # Enable single processing through workflow engine for issue alerts
     manager.add("organizations:workflow-engine-single-process-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable logging to debug workflow engine process workflows
@@ -537,7 +537,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable logs to debug metric alert dual processing
     manager.add("organizations:workflow-engine-metric-alert-dual-processing-logs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Processing for Metric Alerts in the workflow_engine
-    manager.add("organizations:workflow-engine-metric-alert-processing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:workflow-engine-metric-alert-processing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False, default=True)
     # Enable Creation of Metric Alerts that use the `group_by` field in the workflow_engine
     manager.add("organizations:workflow-engine-metric-alert-group-by-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable ingestion through trusted relays only
@@ -549,7 +549,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Use workflow engine serializers to return data for old rule / incident endpoints
     manager.add("organizations:workflow-engine-rule-serializers", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable single processing of metric issues
-    manager.add("organizations:workflow-engine-single-process-metric-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:workflow-engine-single-process-metric-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False, default=True)
     # Enable metric detector limits by plan type
     manager.add("organizations:workflow-engine-metric-detector-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable EventUniqueUserFrequencyConditionWithConditions special alert condition
