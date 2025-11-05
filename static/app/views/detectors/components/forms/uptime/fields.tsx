@@ -10,6 +10,7 @@ export const UPTIME_DEFAULT_DOWNTIME_THRESHOLD = 3;
 
 interface UptimeDetectorFormData {
   body: string;
+  description: string | null;
   downtimeThreshold: number;
   environment: string;
   headers: Array<[string, string]>;
@@ -23,7 +24,6 @@ interface UptimeDetectorFormData {
   traceSampling: boolean;
   url: string;
   workflowIds: string[];
-  description?: string;
 }
 
 export function uptimeFormDataToEndpointPayload(
@@ -71,7 +71,7 @@ export function uptimeSavedDetectorToFormData(
     projectId: detector.projectId,
     recoveryThreshold,
     downtimeThreshold,
-    description: detector.description || '',
+    description: detector.description || null,
   };
 
   if (dataSource?.type === 'uptime_subscription') {
