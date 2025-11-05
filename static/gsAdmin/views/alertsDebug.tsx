@@ -3,7 +3,6 @@ import {Fragment, useRef, useState} from 'react';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {Radio} from 'sentry/components/core/radio';
-import {useAutomationQuery} from 'sentry/views/automations/hooks';
 
 import PageHeader from 'admin/components/pageHeader';
 
@@ -44,15 +43,12 @@ const TimeInput = () => (
 
 // eslint-disable-next-line
 const AlertDebugForm = ({
-  workflowId,
+  workflowId, // TOOD -- pass in the workflow, not the workflow id
   onSubmit,
 }: {
   workflowId: number;
   onSubmit?: (data: AlertDebugFormData) => void;
 }) => {
-  // TOOD -- pass in the workflow, not the workflow id
-  console.log({workflowId});
-
   const inputRef = useRef<HTMLInputElement>(null);
   const [selectedInputType, setInputType] = useState<AlertDebugSelectionType>(
     AlertDebugSelectionType.ISSUE_ID
@@ -143,7 +139,7 @@ const AlertDebugForm = ({
       {selectedInputType === AlertDebugSelectionType.TIME_RANGE && <TimeInput />}
 
       <Button priority="primary" type="submit">
-        Evalue Alert
+        Execute Alert Evaluation
       </Button>
     </form>
   );
@@ -157,9 +153,10 @@ const AlertDebugResults = ({results}: {results: any}) => (
   </div>
 );
 
+/*
 function AlertDetails({workflowId}: {workflowId: number}) {
-  // TODO figure out how to h4x the organization information?
-  const {data: automation, isPending} = useAutomationQuery(workflowId.toString());
+  // TODO - link this to the /admin/workflow/:id API.
+  const {data: automation, isPending} = useAPIQuery();
 
   if (isPending) {
     return 'loading...';
@@ -172,6 +169,7 @@ function AlertDetails({workflowId}: {workflowId: number}) {
     </div>
   );
 }
+*/
 
 function AlertsDebug() {
   const [results, setResults] = useState<AlertDebugFormData>();
