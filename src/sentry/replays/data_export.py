@@ -127,10 +127,9 @@ def export_clickhouse_rows(
 #  \______/  \______/  \______/
 
 
-def request_create_transfer_job(request: CreateTransferJobRequest) -> None:
+def request_create_transfer_job(request: CreateTransferJobRequest) -> TransferJob:
     client = storage_transfer_v1.StorageTransferServiceClient()
-    client.create_transfer_job(request)
-    return None
+    return client.create_transfer_job(request)
 
 
 def create_transfer_job[T](

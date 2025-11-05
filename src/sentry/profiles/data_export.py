@@ -38,7 +38,7 @@ def export_profiles_data(
         logger.exception("Could not find organization", extra={"organization.id": organization_id})
         return None
 
-    create_transfer_job(
+    job = create_transfer_job(
         gcp_project_id=gcp_project_id,
         transfer_job_name=None,
         source_bucket=source_bucket,
@@ -51,3 +51,4 @@ def export_profiles_data(
         do_create_transfer_job=request_create_transfer_job,
     )
     logger.info("Successfully scheduled recording export job.")
+    return job
