@@ -1,12 +1,17 @@
 import {Fragment, type PropsWithChildren} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import kebabCase from 'lodash/kebabCase';
 
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {StorySidebar} from 'sentry/stories/view/storySidebar';
-import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
+import {
+  StorySidebar,
+  useStoryBookFilesByCategory,
+} from 'sentry/stories/view/storySidebar';
+import type {StoryCategory, StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
@@ -22,7 +27,7 @@ export default function Stories() {
 }
 
 function isLandingPage(location: ReturnType<typeof useLocation>) {
-  return /\/stories\/?$/.test(location.pathname) && !location.query.name;
+  return /^\/stories\/?$/.test(location.pathname);
 }
 
 function StoriesLanding() {
@@ -35,14 +40,29 @@ function StoriesLanding() {
   );
 }
 
+function getStoryFromParams(
+  stories: ReturnType<typeof useStoryBookFilesByCategory>,
+  context: {storySlug: string; storyType: StoryCategory}
+): StoryTreeNode | undefined {
+  const {storyType: category, storySlug} = context;
+  const nodes =
+    category && category in stories ? stories[category as keyof typeof stories] : [];
+  for (const node of nodes) {
+    const match = node.find(n => kebabCase(n.label) === storySlug);
+    if (match) {
+      return match;
+    }
+  }
+  return undefined;
+}
+
 function StoryDetail() {
-  useStoryRedirect();
+  const params = useParams<{storySlug: string; storyType: StoryCategory}>();
+  const stories = useStoryBookFilesByCategory();
+  const storyNode = getStoryFromParams(stories, params);
 
-  const location = useLocation<{name: string; query?: string}>();
-
-  const file = location.state?.storyPath ?? location.query.name;
   const story = useStoriesLoader({
-    files: file ? [file] : [],
+    files: storyNode ? [storyNode.filesystemPath] : [],
   });
 
   return (
