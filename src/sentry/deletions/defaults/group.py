@@ -63,8 +63,17 @@ _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
     models.EventAttachment,
     NotificationMessage,
 )
-if options.get("deletions.activity.delete-in-bulk"):
-    _GROUP_RELATED_MODELS += (models.Activity,)
+
+
+def get_group_related_models() -> tuple[type[models.Model], ...]:
+    """
+    Returns the tuple of models related to groups that should be deleted.
+    Checks options at runtime to allow dynamic configuration.
+    """
+    models_list = _GROUP_RELATED_MODELS
+    if options.get("deletions.activity.delete-in-bulk"):
+        models_list = models_list + (models.Activity,)
+    return models_list
 
 
 class EventsBaseDeletionTask(BaseDeletionTask[Group]):
@@ -178,7 +187,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         group_ids = [group.id for group in instance_list]
         # Remove child relations for all groups first.
         child_relations: list[BaseRelation] = []
-        for model in _GROUP_RELATED_MODELS:
+        for model in get_group_related_models():
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
