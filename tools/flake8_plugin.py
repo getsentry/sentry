@@ -40,9 +40,7 @@ S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
 
 S014_msg = "S014 Use `unittest.mock` instead"
 
-S015_msg = (
-    "S015 Tests should not use branching logic around asserts. Asserts may not run in all branches."
-)
+S015_msg = "S015 Tests should not use branching logic around asserts."
 
 
 class SentryVisitor(ast.NodeVisitor):
