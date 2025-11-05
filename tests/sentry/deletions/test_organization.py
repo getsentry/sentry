@@ -400,11 +400,15 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert not Workflow.objects.filter(id=workflow.id).exists()
 
     @responses.activate
+    @patch("sentry.deletions.defaults.organization.transaction.on_commit")
     @patch("sentry.deletions.tasks.overwatch.notify_overwatch_organization_deleted")
     def test_overwatch_notification_on_deletion(
-        self, mock_notify_overwatch_organization_deleted: Any
+        self, mock_notify_overwatch_organization_deleted: Any, mock_on_commit: Any
     ) -> None:
         """Test that Overwatch is notified when an organization is deleted"""
+        # Make on_commit execute callbacks immediately
+        mock_on_commit.side_effect = lambda callback, using: callback()
+
         org = self.create_organization(name="test")
         org_id = org.id
         org_slug = org.slug
@@ -413,8 +417,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         self.ScheduledDeletion.schedule(instance=org, days=0)
 
         with self.tasks():
-            with self.captureOnCommitCallbacks(execute=True):
-                run_scheduled_deletions()
+            run_scheduled_deletions()
 
         assert not Organization.objects.filter(id=org_id).exists()
 
