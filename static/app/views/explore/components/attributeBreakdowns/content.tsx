@@ -20,8 +20,8 @@ import {space} from 'sentry/styles/space';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import useAttributeBreakdowns from 'sentry/views/explore/hooks/useAttributeBreakdowns';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
-import useSuspectAttributes from 'sentry/views/explore/hooks/useSuspectAttributes';
 
 import {Chart} from './chart';
 import {useChartSelection} from './chartSelectionContext';
@@ -40,15 +40,15 @@ function FeedbackButton() {
   return (
     <Button
       size="xs"
-      aria-label="suspect-attributes-feedback"
+      aria-label="attribute-breakdowns-feedback"
       icon={<IconMegaphone size="xs" />}
       onClick={() =>
         openForm?.({
           messagePlaceholder: t(
-            'How can we make suspect attributes work better for you?'
+            'How can we make attribute breakdowns work better for you?'
           ),
           tags: {
-            ['feedback.source']: 'suspect-attributes',
+            ['feedback.source']: 'attribute-breakdowns',
             ['feedback.owner']: 'ml-ai',
           },
         })
@@ -70,11 +70,11 @@ function EmptyState() {
       </Flex>
       <Text>
         {t(
-          "Drag to select an area on the chart and click 'Find Suspect Attributes' to analyze differences between selected and unselected (baseline) data. Attributes that differ most in frequency appear first, making it easier to idenify the suspicious ones:"
+          "Drag to select an area on the chart and click 'Find Attribute Breakdowns' to analyze differences between selected and unselected (baseline) data. Attributes that differ most in frequency appear first, making it easier to identify key differences:"
         )}
       </Text>
       <IllustrationWrapper>
-        <Illustration src={emptyTraceImg} alt="Suspect attributes illustration" />
+        <Illustration src={emptyTraceImg} alt="Attribute breakdowns illustration" />
       </IllustrationWrapper>
     </Flex>
   );
@@ -87,7 +87,10 @@ function ContentImpl({
   boxSelectOptions: BoxSelectOptions;
   chartInfo: ChartInfo;
 }) {
-  const {data, isLoading, isError} = useSuspectAttributes({boxSelectOptions, chartInfo});
+  const {data, isLoading, isError} = useAttributeBreakdowns({
+    boxSelectOptions,
+    chartInfo,
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [sortingMethod, setSortingMethod] = useState<SortingMethod>('rrr');
   const [page, setPage] = useState(0);
@@ -135,7 +138,7 @@ function ContentImpl({
       {isLoading ? (
         <LoadingIndicator />
       ) : isError ? (
-        <LoadingError message={t('Failed to load suspect attributes')} />
+        <LoadingError message={t('Failed to load attribute breakdowns')} />
       ) : (
         <Fragment>
           <ControlsContainer>
@@ -199,7 +202,7 @@ function ContentImpl({
   );
 }
 
-export function SuspectTagsContent() {
+export function AttributeBreakdownsContent() {
   const {chartSelection} = useChartSelection();
 
   return (
