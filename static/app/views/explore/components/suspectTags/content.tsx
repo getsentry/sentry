@@ -77,9 +77,9 @@ function SelectionInfo({
   return (
     <SelectionInfoContainer>
       <Text size="sm" color="subText">
-        {t('Selection are spans between ')}{' '}
-        <DateTime date={startTimestamp} /> {t(' - ')} <DateTime date={endTimestamp} />{' '}
-        {t('and greater than or equal to ')} {chartInfo.yAxis}
+        {t('Selection are spans between ')} <DateTime date={startTimestamp} /> {t(' - ')}{' '}
+        <DateTime date={endTimestamp} /> {t('and greater than or equal to ')}{' '}
+        {chartInfo.yAxis}
       </Text>
     </SelectionInfoContainer>
   );
