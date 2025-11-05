@@ -39,7 +39,7 @@ describe('DetectorsList', () => {
       url: '/organizations/org-slug/detectors/',
       body: [MetricDetectorFixture({name: 'Detector 1'})],
     });
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
   });
 
   it('displays all detector info correctly', async () => {
@@ -126,10 +126,10 @@ describe('DetectorsList', () => {
 
     render(<DetectorsList />, {organization});
     const row = await screen.findByTestId('detector-list-row');
-    expect(within(row).getByText('1 automation')).toBeInTheDocument();
+    expect(within(row).getByText('1 alert')).toBeInTheDocument();
 
     // Tooltip should fetch and display the automation name/action
-    await userEvent.hover(within(row).getByText('1 automation'));
+    await userEvent.hover(within(row).getByText('1 alert'));
     expect(await screen.findByText('Automation 1')).toBeInTheDocument();
     expect(await screen.findByText('Slack')).toBeInTheDocument();
   });
@@ -159,7 +159,7 @@ describe('DetectorsList', () => {
       const mockDetectorsRequestErrorType = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
         body: [ErrorDetectorFixture({name: 'Error Detector'})],
-        match: [MockApiClient.matchQuery({query: 'type:error'})],
+        match: [MockApiClient.matchQuery({query: '!type:issue_stream type:error'})],
       });
 
       render(<DetectorsList />, {organization});
@@ -168,6 +168,7 @@ describe('DetectorsList', () => {
       // Click through menus to select type:error
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'type'}));
+
       const options = await screen.findAllByRole('option');
       expect(options).toHaveLength(4);
       expect(options[0]).toHaveTextContent('error');
@@ -190,7 +191,11 @@ describe('DetectorsList', () => {
             owner: ActorFixture({id: testUser.id, name: testUser.email, type: 'user'}),
           }),
         ],
-        match: [MockApiClient.matchQuery({query: 'assignee:test@example.com'})],
+        match: [
+          MockApiClient.matchQuery({
+            query: '!type:issue_stream assignee:test@example.com',
+          }),
+        ],
       });
 
       render(<DetectorsList />, {organization});
@@ -200,11 +205,7 @@ describe('DetectorsList', () => {
       const searchInput = await screen.findByRole('combobox', {
         name: 'Add a search term',
       });
-      await userEvent.type(searchInput, 'assignee:test@example.com');
-
-      // It takes two enters. One to enter the search term, and one to submit the search.
-      await userEvent.keyboard('{enter}');
-      await userEvent.keyboard('{enter}');
+      await userEvent.type(searchInput, 'assignee:test@example.com{enter}');
 
       await screen.findByText('Assigned Detector');
       expect(mockDetectorsRequestAssignee).toHaveBeenCalled();
@@ -295,10 +296,7 @@ describe('DetectorsList', () => {
           }),
         ],
       });
-      PageFiltersStore.onInitializeUrlState(
-        PageFiltersFixture({projects: [1]}),
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
     });
 
     it('can select detectors', async () => {
@@ -490,7 +488,11 @@ describe('DetectorsList', () => {
         headers: {
           'X-Hits': '50',
         },
-        match: [MockApiClient.matchQuery({query: 'assignee:test@example.com'})],
+        match: [
+          MockApiClient.matchQuery({
+            query: '!type:issue_stream assignee:test@example.com',
+          }),
+        ],
       });
 
       // Click through menus to select assignee

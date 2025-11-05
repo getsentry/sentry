@@ -89,7 +89,7 @@ export function DetectorListConnectedAutomations({
             `}
             showUnderline
           >
-            {tn('%s automation', '%s automations', automationIds.length)}
+            {tn('%s alert', '%s alerts', automationIds.length)}
           </Hovercard>
         )}
       </ClassNames>

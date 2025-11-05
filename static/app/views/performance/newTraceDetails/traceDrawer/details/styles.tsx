@@ -54,10 +54,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {getIsAiNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
-import {
-  hasAgentInsightsFeature,
-  hasMCPInsightsFeature,
-} from 'sentry/views/insights/agents/utils/features';
 import {getIsMCPNode} from 'sentry/views/insights/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
@@ -151,6 +147,7 @@ function SubtitleWithCopyButton({
       <StyledSubTitleText>{subTitle}</StyledSubTitleText>
       {clipboardText ? (
         <CopyToClipboardButton
+          aria-label={t('Copy to clipboard')}
           borderless
           size="zero"
           text={clipboardText}
@@ -177,6 +174,7 @@ function TitleOp({text}: {text: string}) {
         <Fragment>
           {text}
           <CopyToClipboardButton
+            aria-label={t('Copy to clipboard')}
             borderless
             size="zero"
             text={text}
@@ -448,8 +446,8 @@ function Highlights({
     return null;
   }
 
-  const isAiNode = hasAgentInsightsFeature(organization) && getIsAiNode(node);
-  const isMCPNode = hasMCPInsightsFeature(organization) && getIsMCPNode(node);
+  const isAiNode = getIsAiNode(node);
+  const isMCPNode = getIsMCPNode(node);
 
   const hidePanelAndBreakdown = isAiNode || isMCPNode;
 
@@ -1223,7 +1221,12 @@ function CopyableCardValueWithLink({
       <CardValueText>
         {value}
         {typeof value === 'string' ? (
-          <StyledCopyToClipboardButton borderless size="zero" text={value} />
+          <StyledCopyToClipboardButton
+            borderless
+            size="zero"
+            text={value}
+            aria-label={t('Copy to clipboard')}
+          />
         ) : null}
       </CardValueText>
       {linkTarget && linkTarget ? (

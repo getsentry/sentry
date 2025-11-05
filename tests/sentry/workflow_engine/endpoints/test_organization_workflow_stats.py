@@ -71,3 +71,12 @@ class WorkflowStatsEndpointTest(APITestCase):
             {"date": now - timedelta(hours=1), "count": 1},
             {"date": now, "count": 0},
         ]
+
+    def test_invalid_dates_error(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            start="This is not a date",
+            end=before_now(days=6),
+            status_code=400,
+        )

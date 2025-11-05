@@ -18,7 +18,6 @@ from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, AssembleChecksumMismatch
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import export_tasks
 from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
 from sentry.utils import metrics
@@ -42,19 +41,13 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.data_export.tasks.assemble_download",
-    queue="data_export",
-    default_retry_delay=60,
-    max_retries=3,
-    acks_late=True,
-    silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=export_tasks,
-        retry=Retry(
-            times=3,
-            delay=60,
-        ),
-        processing_deadline_duration=120,
+    namespace=export_tasks,
+    retry=Retry(
+        times=3,
+        delay=60,
     ),
+    processing_deadline_duration=120,
+    silo_mode=SiloMode.REGION,
 )
 def assemble_download(
     data_export_id: int,
@@ -320,12 +313,8 @@ def store_export_chunk_as_blob(
 
 @instrumented_task(
     name="sentry.data_export.tasks.merge_blobs",
-    queue="data_export",
-    acks_late=True,
+    namespace=export_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=export_tasks,
-    ),
 )
 def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
     extra: dict[str, Any] = {"data_export_id": data_export_id}

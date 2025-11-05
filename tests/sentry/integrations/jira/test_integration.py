@@ -28,7 +28,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.users.services.user.serial import serialize_rpc_user
@@ -120,6 +119,7 @@ class RegionJiraIntegrationTest(APITestCase):
                     "choices": [("10000", "EX - Example"), ("10001", "ABC - Alphabetical")],
                     "label": "Jira Project",
                     "type": "select",
+                    "url": search_url,
                     "required": True,
                 },
                 {
@@ -215,7 +215,6 @@ class RegionJiraIntegrationTest(APITestCase):
             ]
 
     @responses.activate
-    @with_feature("organizations:jira-paginated-projects")
     def test_get_create_issue_config_with_none_issue(self) -> None:
         # Mock the paginated projects response
         responses.add(
@@ -277,7 +276,6 @@ class RegionJiraIntegrationTest(APITestCase):
         assert project_field["type"] == "select"
 
     @responses.activate
-    @with_feature("organizations:jira-paginated-projects")
     def test_get_create_issue_config_paginated_projects(self) -> None:
         """Test that projects are fetched using pagination when the feature flag is enabled"""
         event = self.store_event(
@@ -512,6 +510,10 @@ class RegionJiraIntegrationTest(APITestCase):
                 "type": "select",
                 "name": "project",
                 "label": "Jira Project",
+                "url": reverse(
+                    "sentry-extensions-jira-search",
+                    args=[self.organization.slug, self.integration.id],
+                ),
                 "updatesForm": True,
                 "required": True,
             }
@@ -546,6 +548,10 @@ class RegionJiraIntegrationTest(APITestCase):
                 "type": "select",
                 "name": "project",
                 "label": "Jira Project",
+                "url": reverse(
+                    "sentry-extensions-jira-search",
+                    args=[self.organization.slug, self.integration.id],
+                ),
                 "updatesForm": True,
                 "required": True,
             }
@@ -596,6 +602,10 @@ class RegionJiraIntegrationTest(APITestCase):
                 "type": "select",
                 "name": "project",
                 "label": "Jira Project",
+                "url": reverse(
+                    "sentry-extensions-jira-search",
+                    args=[self.organization.slug, self.integration.id],
+                ),
                 "updatesForm": True,
                 "required": True,
             }
@@ -759,6 +769,66 @@ class RegionJiraIntegrationTest(APITestCase):
         )
         installation = self.integration.get_installation(self.organization.id)
         with pytest.raises(IntegrationConfigurationError):
+            installation.create_issue(
+                {
+                    "title": "example summary",
+                    "description": "example bug report",
+                    "issuetype": "1",
+                    "project": "10000",
+                }
+            )
+
+    @responses.activate
+    def test_create_issue_product_unavailable_error(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            content_type="json",
+        )
+        # Simulate Jira returning an HTML "Product Unavailable" error page
+        responses.add(
+            responses.POST,
+            "https://example.atlassian.net/rest/api/2/issue",
+            status=503,
+            body='<!DOCTYPE html>\n<html lang="en">\n    <head>\n        <title>Atlassian Cloud Notifications - Product Unavailable</title>\n    </head>\n    <body>\n        <h1>Jira has been deactivated</h1>\n    </body>\n</html>',
+            content_type="text/html",
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        with pytest.raises(
+            IntegrationConfigurationError,
+            match="Something went wrong while communicating with Jira",
+        ):
+            installation.create_issue(
+                {
+                    "title": "example summary",
+                    "description": "example bug report",
+                    "issuetype": "1",
+                    "project": "10000",
+                }
+            )
+
+    @responses.activate
+    def test_create_issue_page_unavailable_error(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            content_type="json",
+        )
+        # Simulate Jira returning an HTML "Page Unavailable" error
+        responses.add(
+            responses.POST,
+            "https://example.atlassian.net/rest/api/2/issue",
+            status=503,
+            body='<!DOCTYPE html>\n<html lang="en">\n    <head>\n        <title>Page Unavailable</title>\n    </head>\n    <body>\n        <h1>Page Unavailable</h1>\n    </body>\n</html>',
+            content_type="text/html",
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        with pytest.raises(
+            IntegrationConfigurationError,
+            match="Something went wrong while communicating with Jira",
+        ):
             installation.create_issue(
                 {
                     "title": "example summary",

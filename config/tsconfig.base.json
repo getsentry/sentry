@@ -91,6 +91,7 @@
     "verbatimModuleSyntax": true,
 
     "paths": {
+      "@sentry/scraps/*": ["../static/app/components/core/*"],
       "sentry/*": ["../static/app/*"],
       "sentry-fixture/*": ["../tests/js/fixtures/*"],
       "sentry-test/*": ["../tests/js/sentry-test/*"],
@@ -102,7 +103,6 @@
       "getsentry/*": ["../static/gsApp/*"],
       "getsentry-images/*": ["../static/images/*"],
       "admin/*": ["../static/gsAdmin/*"],
-      "ui/*": ["../static/app/components/core/*"],
     },
 
     "plugins": [

@@ -24,6 +24,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
@@ -33,6 +34,7 @@ from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
@@ -44,7 +46,6 @@ from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
-from sentry.releases.commits import bulk_create_commit_file_changes, create_commit
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
@@ -53,6 +54,7 @@ from sentry.utils import metrics
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
 from .tasks.codecov_account_unlink import codecov_account_unlink
+from .types import IssueEvenntWebhookActionType
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -441,9 +443,9 @@ class PushEventWebhook(GitHubWebhook):
                 author.preload_users()
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
-                    c, _ = create_commit(
-                        organization=organization,
-                        repo_id=repo.id,
+                    c = Commit.objects.create(
+                        organization_id=organization.id,
+                        repository_id=repo.id,
                         key=commit["id"],
                         message=commit["message"],
                         author=author,
@@ -486,7 +488,7 @@ class PushEventWebhook(GitHubWebhook):
                         )
 
                     if file_changes:
-                        bulk_create_commit_file_changes(file_changes)
+                        CommitFileChange.objects.bulk_create(file_changes)
                         post_bulk_create(file_changes)
 
             except IntegrityError:
@@ -495,6 +497,155 @@ class PushEventWebhook(GitHubWebhook):
         languages.discard(None)
         repo.languages = list(set(repo.languages or []).union(languages))
         repo.save()
+
+
+class IssuesEventWebhook(GitHubWebhook):
+    """https://developer.github.com/v3/activity/events/types/#issuesevent"""
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.INBOUND_SYNC
+
+    def _handle(self, integration: RpcIntegration, event: Mapping[str, Any], **kwargs: Any) -> None:
+        """
+        Handle GitHub issue events, particularly assignment and status changes.
+        """
+
+        action = event.get("action")
+
+        external_issue_key = self._extract_issue_key(integration, event)
+
+        if not external_issue_key:
+            logger.warning(
+                "github.webhook.issues.missing-external-issue-key",
+                extra={
+                    "integration_id": integration.id,
+                    "action": action,
+                },
+            )
+            return
+
+        # Route to appropriate handler based on action
+        if action in [
+            IssueEvenntWebhookActionType.ASSIGNED.value,
+            IssueEvenntWebhookActionType.UNASSIGNED.value,
+        ]:
+            self._handle_assignment(integration, event, external_issue_key, action)
+        elif action in [
+            IssueEvenntWebhookActionType.CLOSED.value,
+            IssueEvenntWebhookActionType.REOPENED.value,
+        ]:
+            self._handle_status_change(integration, external_issue_key, action)
+
+    def _handle_assignment(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        external_issue_key: str,
+        action: str,
+    ) -> None:
+        """
+        Handle issue assignment and unassignment events.
+
+        Args:
+            integration: The GitHub integration
+            event: The webhook event payload
+            external_issue_key: The formatted issue key
+            action: The action type ('assigned' or 'unassigned')
+        """
+        assignee = event.get("assignee", {})
+        assignee_gh_name = assignee.get("login")
+
+        if not assignee_gh_name:
+            logger.warning(
+                "github.webhook.missing-assignee",
+                extra={
+                    "integration_id": integration.id,
+                    "external_issue_key": external_issue_key,
+                    "action": action,
+                },
+            )
+            return
+
+        # Sentry uses the @username format for assignees
+        assignee_name = f"@{assignee_gh_name}"
+
+        sync_group_assignee_inbound_by_external_actor(
+            integration=integration,
+            external_user_name=assignee_name,
+            external_issue_key=external_issue_key,
+            assign=(action == IssueEvenntWebhookActionType.ASSIGNED.value),
+        )
+
+        logger.info(
+            "github.webhook.assignment.synced",
+            extra={
+                "integration_id": integration.id,
+                "external_issue_key": external_issue_key,
+                "assignee_name": assignee_name,
+                "action": action,
+            },
+        )
+
+    def _handle_status_change(
+        self, integration: RpcIntegration, external_issue_key: str, action: str
+    ) -> None:
+        """
+        Handle issue status changes (closed/reopened).
+
+        Args:
+            integration: The GitHub integration
+            external_issue_key: The formatted issue key
+            action: The action type ('closed' or 'reopened')
+        """
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration.id,
+            providers=[integration.provider],
+            status=ObjectStatus.ACTIVE,
+        )
+
+        for oi in org_integrations:
+            installation = integration.get_installation(oi.organization_id)
+
+            if hasattr(installation, "sync_status_inbound"):
+                installation.sync_status_inbound(external_issue_key, {"action": action})
+
+                logger.info(
+                    "github.webhook.status-change.synced",
+                    extra={
+                        "integration_id": integration.id,
+                        "organization_id": oi.organization_id,
+                        "external_issue_key": external_issue_key,
+                        "action": action,
+                    },
+                )
+
+    def _extract_issue_key(
+        self, integration: RpcIntegration, event: Mapping[str, Any]
+    ) -> str | None:
+        """
+        Extract and validate the external issue key from the event.
+
+        Returns the external issue key in format 'repo_full_name#issue_number' or None if invalid.
+        """
+        issue = event.get("issue", {})
+        repository = event.get("repository", {})
+        repo_full_name = repository.get("full_name")
+        issue_number = issue.get("number")
+
+        if not repo_full_name or not issue_number:
+            logger.warning(
+                "github.webhook.missing-data",
+                extra={
+                    "integration_id": integration.id,
+                    "repo": repo_full_name,
+                    "issue_number": issue_number,
+                    "action": event.get("action"),
+                },
+            )
+            return None
+
+        return f"{repo_full_name}#{issue_number}"
 
 
 class PullRequestEventWebhook(GitHubWebhook):
@@ -618,9 +769,10 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
     }
 
     _handlers: dict[str, type[GitHubWebhook]] = {
-        "push": PushEventWebhook,
-        "pull_request": PullRequestEventWebhook,
-        "installation": InstallationEventWebhook,
+        GithubWebhookType.PUSH: PushEventWebhook,
+        GithubWebhookType.PULL_REQUEST: PullRequestEventWebhook,
+        GithubWebhookType.INSTALLATION: InstallationEventWebhook,
+        GithubWebhookType.ISSUE: IssuesEventWebhook,
     }
 
     def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:

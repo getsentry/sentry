@@ -27,7 +27,6 @@ from sentry.grouping.utils import (
 )
 from sentry.grouping.variants import (
     BaseVariant,
-    BuiltInFingerprintVariant,
     ChecksumVariant,
     ComponentVariant,
     CustomFingerprintVariant,
@@ -422,20 +421,18 @@ def get_grouping_variants_for_event(
     # If it's hybrid, we'll replace the existing variants with "salted" versions which include
     # the fingerprint.
     if fingerprint_type == "custom":
-        matched_rule = fingerprint_info.get("matched_rule", {})
+        matched_rule = fingerprint_info.get("matched_rule")
+        is_built_in_fingerprint = bool(matched_rule and matched_rule.get("is_builtin"))
 
-        if matched_rule and matched_rule.get("is_builtin") is True:
-            additional_variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
-                resolved_fingerprint, fingerprint_info
-            )
-            fingerprint_source = "built-in"
-        else:
-            additional_variants["custom_fingerprint"] = CustomFingerprintVariant(
-                resolved_fingerprint, fingerprint_info
-            )
-            fingerprint_source = "custom server" if matched_rule else "custom client"
-
+        fingerprint_source = (
+            "custom client"
+            if not matched_rule
+            else "built-in" if is_built_in_fingerprint else "custom server"
+        )
         hint = f"ignored because {fingerprint_source} fingerprint takes precedence"
+
+        fingerprint_variant = CustomFingerprintVariant(resolved_fingerprint, fingerprint_info)
+        additional_variants[fingerprint_variant.key] = fingerprint_variant
 
         for variant in strategy_component_variants.values():
             variant.root_component.update(contributes=False, hint=hint)

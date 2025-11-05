@@ -96,7 +96,11 @@ class ApiClient:
 
         if params:
             mock_request.GET._mutable = True
-            mock_request.GET.update(params)
+            for key, value in params.items():
+                if isinstance(value, list):
+                    mock_request.GET.setlist(key, [str(v) for v in value])
+                else:
+                    mock_request.GET[key] = str(value)
             mock_request.GET._mutable = False
 
         if data:

@@ -71,6 +71,7 @@ export const DEPRECATED_TRANSACTION_ALERTS: AlertType[] = [
   'lcp',
   'fid',
   'cls',
+  'custom_transactions',
 ];
 
 export const DatasetMEPAlertQueryTypes: Record<
@@ -114,7 +115,6 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
   uptime_monitor: <FeatureBadge type="new" />,
-  trace_item_logs: <FeatureBadge type="new" />,
 };
 
 type AlertWizardCategory = {
@@ -182,10 +182,12 @@ export const getAlertWizardCategories = (org: Organization) => {
       options: ['crons_monitor'],
     });
 
-    result.push({
-      categoryHeading: t('Custom'),
-      options: ['custom_transactions'],
-    });
+    if (!deprecateTransactionAlerts(org)) {
+      result.push({
+        categoryHeading: t('Custom'),
+        options: ['custom_transactions'],
+      });
+    }
   }
   return result;
 };

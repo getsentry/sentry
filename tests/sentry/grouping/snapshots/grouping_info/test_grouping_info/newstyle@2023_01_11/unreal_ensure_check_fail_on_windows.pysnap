@@ -1,10 +1,10 @@
 ---
-created: '2025-09-24T22:53:05.879181+00:00'
+created: '2025-10-27T23:46:03.810131+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -17,6 +17,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "Ensure failed"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Ensure condition failed: ensurePtr != nullptr [File:D:\\projects\\sentry-unreal\\sample\\Source\\SentryPlayground\\SentryPlaygroundUtils.cpp] [Line: <int>]"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -1592,24 +1610,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "Ensure failed"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Ensure condition failed: ensurePtr != nullptr [File:D:\\projects\\sentry-unreal\\sample\\Source\\SentryPlayground\\SentryPlaygroundUtils.cpp] [Line: <int>]"
-              ]
             }
           ]
         }
@@ -1635,13 +1635,14 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stacktrace",
+    "contributes": true,
+    "description": "exception stacktrace — in-app frames",
     "hash": "4717aeb08ff642726ef6ea8f1ce55cdf",
     "hint": null,
-    "key": "app",
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
-  "system": {
+  "system_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -1654,6 +1655,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "Ensure failed"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Ensure condition failed: ensurePtr != nullptr [File:D:\\projects\\sentry-unreal\\sample\\Source\\SentryPlayground\\SentryPlaygroundUtils.cpp] [Line: <int>]"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -3229,24 +3248,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "Ensure failed"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Ensure condition failed: ensurePtr != nullptr [File:D:\\projects\\sentry-unreal\\sample\\Source\\SentryPlayground\\SentryPlaygroundUtils.cpp] [Line: <int>]"
-              ]
             }
           ]
         }
@@ -3272,10 +3273,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "exception stacktrace",
+    "contributes": true,
+    "description": "exception stacktrace — all frames",
     "hash": "65244b22630821cacd0be603ebcef671",
     "hint": null,
-    "key": "system",
+    "key": "system_exception_stacktrace",
     "type": "component"
   }
 }

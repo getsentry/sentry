@@ -544,6 +544,18 @@ def taskbroker_send_tasks(
     default=False,
     help="A potential workaround for Broker Handle Destroyed during shutdown (see arroyo option).",
 )
+@click.option(
+    "--profile-consumer-join",
+    is_flag=True,
+    default=False,
+    help="Adds a ProcessingStrategy to the start of a consumer that records a transaction of the consumer's join() method.",
+)
+@click.option(
+    "--enable-autocommit",
+    is_flag=True,
+    default=False,
+    help="Enable Kafka autocommit mode with 1s commit interval. Offsets are stored via store_offsets and rdkafka commits them automatically.",
+)
 @configuration
 def basic_consumer(
     consumer_name: str,
@@ -551,6 +563,7 @@ def basic_consumer(
     topic: str | None,
     kafka_slice_id: int | None,
     quantized_rebalance_delay_secs: int | None,
+    enable_autocommit: bool,
     **options: Any,
 ) -> None:
     """
@@ -573,6 +586,7 @@ def basic_consumer(
     """
     from sentry.consumers import get_stream_processor
     from sentry.metrics.middleware import add_global_tags
+    from sentry.options import get
 
     log_level = options.pop("log_level", None)
     if log_level is not None:
@@ -587,6 +601,7 @@ def basic_consumer(
         topic=topic,
         kafka_slice_id=kafka_slice_id,
         add_global_tags=True,
+        enable_autocommit=enable_autocommit,
         **options,
     )
 
@@ -594,7 +609,11 @@ def basic_consumer(
     if not quantized_rebalance_delay_secs and consumer_name == "ingest-generic-metrics":
         quantized_rebalance_delay_secs = options.get("sentry-metrics.synchronized-rebalance-delay")
 
-    run_processor_with_signals(processor, quantized_rebalance_delay_secs)
+    dump_stacktrace_on_shutdown = consumer_name in get("consumer.dump_stacktrace_on_shutdown", [])
+
+    run_processor_with_signals(
+        processor, quantized_rebalance_delay_secs, dump_stacktrace_on_shutdown
+    )
 
 
 @run.command("dev-consumer")
@@ -628,6 +647,7 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
             stale_threshold_sec=None,
             healthcheck_file_path=None,
             enforce_schema=True,
+            profile_consumer_join=False,
         )
         for consumer_name in consumer_names
     ]

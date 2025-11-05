@@ -1,6 +1,8 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
+import type {DistributiveOmit} from '@sentry/scraps/types';
+
 import {Container, type ContainerElement, type ContainerProps} from './container';
 import {getSpacing, rc, type Responsive, type SpacingSize} from './styles';
 
@@ -9,7 +11,7 @@ const omitFlexProps = new Set<keyof FlexLayoutProps | 'as'>([
   'direction',
   'flex',
   'gap',
-  'inline',
+  'display',
   'align',
   'justify',
   'wrap',
@@ -21,13 +23,22 @@ interface FlexLayoutProps {
    * Uses CSS align-items property.
    */
   align?: Responsive<'start' | 'end' | 'center' | 'baseline' | 'stretch'>;
-  direction?: Responsive<'row' | 'row-reverse' | 'column' | 'column-reverse'>;
-  flex?: Responsive<CSSProperties['flex']>;
-  gap?: Responsive<SpacingSize | `${SpacingSize} ${SpacingSize}`>;
   /**
-   * Determines whether the flex container should be displayed as an inline-flex.
+   * Specifies the direction of the flex items.
    */
-  inline?: Responsive<boolean>;
+  direction?: Responsive<'row' | 'row-reverse' | 'column' | 'column-reverse'>;
+  /**
+   * Specifies the display type of the flex container.
+   */
+  display?: Responsive<'flex' | 'inline-flex' | 'none'>;
+  /**
+   * Shorthand for the flex property.
+   */
+  flex?: Responsive<CSSProperties['flex']>;
+  /**
+   * Specifies the spacing between flex items.
+   */
+  gap?: Responsive<SpacingSize | `${SpacingSize} ${SpacingSize}`>;
   /**
    * Aligns flex items along the block axis of the current line of flex items.
    * Uses CSS justify-content property.
@@ -35,10 +46,16 @@ interface FlexLayoutProps {
   justify?: Responsive<
     'start' | 'end' | 'center' | 'between' | 'around' | 'evenly' | 'left' | 'right'
   >;
+  /**
+   * Specifies the wrapping behavior of the flex items.
+   */
   wrap?: Responsive<'nowrap' | 'wrap' | 'wrap-reverse'>;
 }
 
-export type FlexProps<T extends ContainerElement = 'div'> = ContainerProps<T> &
+export type FlexProps<T extends ContainerElement = 'div'> = DistributiveOmit<
+  ContainerProps<T>,
+  'display'
+> &
   FlexLayoutProps;
 
 export const Flex = styled(Container, {
@@ -46,8 +63,7 @@ export const Flex = styled(Container, {
     return !omitFlexProps.has(prop as any);
   },
 })<FlexProps<any>>`
-  ${p => rc('display', p.as === 'span' || p.inline ? 'inline-flex' : 'flex', p.theme)};
-
+  ${p => rc('display', p.display ?? 'flex', p.theme, v => v ?? 'flex')};
   ${p => rc('order', p.order, p.theme)};
   ${p => rc('gap', p.gap, p.theme, getSpacing)};
 

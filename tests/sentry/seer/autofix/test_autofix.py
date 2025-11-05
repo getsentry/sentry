@@ -10,11 +10,12 @@ from sentry.issues.ingest import save_issue_occurrence
 from sentry.seer.autofix.autofix import (
     TIMEOUT_SECONDS,
     _call_autofix,
-    _get_all_tags_overview,
+    _get_github_username_for_user,
     _get_logs_for_event,
     _get_profile_from_trace_tree,
     _get_trace_tree_for_event,
     _respond_with_error,
+    get_all_tags_overview,
     trigger_autofix,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
@@ -294,7 +295,7 @@ class TestConvertProfileToExecutionTree(TestCase):
 
 
 @pytest.mark.django_db
-class TestGetTraceTreeForEvent(APITestCase):
+class TestGetTraceTreeForEvent(APITestCase, OccurrenceTestMixin):
     @patch("sentry.api.endpoints.organization_trace.OrganizationTraceEndpoint.query_trace_data")
     def test_get_trace_tree_basic(self, mock_query_trace_data) -> None:
         """Test that we can get a basic trace tree."""
@@ -396,6 +397,61 @@ class TestGetTraceTreeForEvent(APITestCase):
         child_span = parent_span["children"][0]
         assert child_span["description"] == "Child Operation"
         assert child_span["parent_span"] == "aaaaaaaaaaaaaaaa"
+
+    @patch("sentry.api.endpoints.organization_trace.OrganizationTraceEndpoint.query_trace_data")
+    def test_get_trace_tree_with_web_vital_issue(self, mock_query_trace_data) -> None:
+        """Test that we can get a trace tree for a web vital issue."""
+        trace_id = "1234567890abcdef1234567890abcdef"
+        event_data = load_data("javascript")
+        event_data.update(
+            {"contexts": {"trace": {"trace_id": trace_id, "span_id": "abcdef0123456789"}}}
+        )
+
+        occurrence_data = self.build_occurrence_data(
+            project_id=self.project.id,
+            type=WebVitalsGroup.type_id,
+            issue_title="LCP score needs improvement",
+            subtitle="/test-transaction has an LCP score of 75",
+            culprit="/test-transaction",
+            evidence_data={
+                "transaction": "/test-transaction",
+                "vital": "lcp",
+                "score": 75,
+                "trace_id": trace_id,
+            },
+            level="info",
+        )
+
+        event_data["event_id"] = occurrence_data["event_id"]
+        event = self.store_event(data=event_data, project_id=self.project.id)
+
+        _, group_info = save_issue_occurrence(occurrence_data, event)
+        assert group_info is not None
+        group = group_info.group
+        group_event = event.for_group(group)
+
+        mock_trace_data = [
+            {
+                "id": "aaaaaaaaaaaaaaaa",
+                "description": "Test Transaction",
+                "is_transaction": True,
+                "children": [],
+                "errors": [],
+                "occurrences": [],
+            }
+        ]
+        mock_query_trace_data.return_value = mock_trace_data
+
+        trace_tree = _get_trace_tree_for_event(group_event, self.project)
+
+        assert trace_tree is not None
+        assert trace_tree["trace_id"] == trace_id
+        assert trace_tree["trace"] == mock_trace_data
+        mock_query_trace_data.assert_called_once()
+        call_args = mock_query_trace_data.call_args
+        snuba_params = call_args[0][0]
+        time_range = snuba_params.end - snuba_params.start
+        assert time_range.days == 90
 
 
 @requires_snuba
@@ -651,7 +707,7 @@ class TestGetAllTagsOverview(TestCase, SnubaTestCase):
 
     def test_get_all_tags_overview_basic(self) -> None:
         """Test basic functionality of getting all tags overview with real data."""
-        result = _get_all_tags_overview(self.group)
+        result = get_all_tags_overview(self.group)
 
         assert result is not None
         assert "tags_overview" in result
@@ -688,7 +744,7 @@ class TestGetAllTagsOverview(TestCase, SnubaTestCase):
 
     def test_get_all_tags_overview_percentage_calculation(self) -> None:
         """Test that percentage calculations work correctly."""
-        result = _get_all_tags_overview(self.group)
+        result = get_all_tags_overview(self.group)
 
         assert result is not None
 
@@ -732,7 +788,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
 
     @patch("sentry.quotas.backend.record_seer_run")
-    @patch("sentry.seer.autofix.autofix._get_all_tags_overview")
+    @patch("sentry.seer.autofix.autofix.get_all_tags_overview")
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.autofix._call_autofix")
@@ -834,7 +890,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_serialized_event.assert_not_called()
 
     @patch("sentry.quotas.backend.record_seer_run")
-    @patch("sentry.seer.autofix.autofix._get_all_tags_overview")
+    @patch("sentry.seer.autofix.autofix.get_all_tags_overview")
     @patch("sentry.seer.autofix.autofix._get_profile_from_trace_tree")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.autofix._call_autofix")
@@ -965,13 +1021,15 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
 
 
 class TestCallAutofix(TestCase):
+    @patch("sentry.seer.autofix.autofix._get_github_username_for_user")
     @patch("sentry.seer.autofix.autofix.requests.post")
     @patch("sentry.seer.autofix.autofix.sign_with_seer_secret")
-    def test_call_autofix(self, mock_sign, mock_post) -> None:
+    def test_call_autofix(self, mock_sign, mock_post, mock_get_username) -> None:
         """Tests the _call_autofix function makes the correct API call."""
         # Setup mocks
         mock_sign.return_value = {"Authorization": "Bearer test"}
         mock_post.return_value.json.return_value = {"run_id": "test-run-id"}
+        mock_get_username.return_value = None  # No GitHub username
 
         # Mock objects
         user = Mock()
@@ -1037,6 +1095,7 @@ class TestCallAutofix(TestCase):
         assert body["timeout_secs"] == TIMEOUT_SECONDS
         assert body["invoking_user"]["id"] == 123
         assert body["invoking_user"]["display_name"] == "Test User"
+        assert body["invoking_user"]["github_username"] is None
         assert (
             body["options"]["comment_on_pr_with_url"]
             == "https://github.com/getsentry/sentry/pull/123"
@@ -1047,6 +1106,133 @@ class TestCallAutofix(TestCase):
         headers = mock_post.call_args[1]["headers"]
         assert headers["content-type"] == "application/json;charset=utf-8"
         assert headers["Authorization"] == "Bearer test"
+
+
+class TestGetGithubUsernameForUser(TestCase):
+    def test_get_github_username_for_user_with_github(self) -> None:
+        """Tests getting GitHub username from ExternalActor with GitHub provider."""
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+
+        user = self.create_user()
+        organization = self.create_organization()
+
+        # Create an ExternalActor with GitHub provider
+        ExternalActor.objects.create(
+            user_id=user.id,
+            organization=organization,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@testuser",
+            external_id="12345",
+            integration_id=1,
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "testuser"
+
+    def test_get_github_username_for_user_with_github_enterprise(self) -> None:
+        """Tests getting GitHub username from ExternalActor with GitHub Enterprise provider."""
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+
+        user = self.create_user()
+        organization = self.create_organization()
+
+        # Create an ExternalActor with GitHub Enterprise provider
+        ExternalActor.objects.create(
+            user_id=user.id,
+            organization=organization,
+            provider=ExternalProviders.GITHUB_ENTERPRISE.value,
+            external_name="@gheuser",
+            external_id="67890",
+            integration_id=2,
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "gheuser"
+
+    def test_get_github_username_for_user_without_at_prefix(self) -> None:
+        """Tests getting GitHub username when external_name doesn't have @ prefix."""
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+
+        user = self.create_user()
+        organization = self.create_organization()
+
+        # Create an ExternalActor without @ prefix
+        ExternalActor.objects.create(
+            user_id=user.id,
+            organization=organization,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="noprefixuser",
+            external_id="11111",
+            integration_id=3,
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "noprefixuser"
+
+    def test_get_github_username_for_user_no_mapping(self) -> None:
+        """Tests that None is returned when user has no GitHub mapping."""
+        user = self.create_user()
+        organization = self.create_organization()
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username is None
+
+    def test_get_github_username_for_user_non_github_provider(self) -> None:
+        """Tests that None is returned when user only has non-GitHub external actors."""
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+
+        user = self.create_user()
+        organization = self.create_organization()
+
+        # Create an ExternalActor with Slack provider (should be ignored)
+        ExternalActor.objects.create(
+            user_id=user.id,
+            organization=organization,
+            provider=ExternalProviders.SLACK.value,
+            external_name="@slackuser",
+            external_id="slack123",
+            integration_id=4,
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username is None
+
+    def test_get_github_username_for_user_multiple_mappings(self) -> None:
+        """Tests that most recent GitHub mapping is used when multiple exist."""
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+
+        user = self.create_user()
+        organization = self.create_organization()
+
+        # Create older mapping
+        ExternalActor.objects.create(
+            user_id=user.id,
+            organization=organization,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@olduser",
+            external_id="old123",
+            integration_id=5,
+            date_added=before_now(days=10),
+        )
+
+        # Create newer mapping
+        ExternalActor.objects.create(
+            user_id=user.id,
+            organization=organization,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@newuser",
+            external_id="new456",
+            integration_id=6,
+            date_added=before_now(days=1),
+        )
+
+        username = _get_github_username_for_user(user, organization.id)
+        assert username == "newuser"
 
 
 class TestRespondWithError(TestCase):

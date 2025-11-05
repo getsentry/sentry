@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Flex} from 'sentry/components/core/layout';
 import Form from 'sentry/components/forms/form';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -109,7 +110,7 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
   const version = ConfigStore.get('version');
   return (
     <SentryDocumentTitle noSuffix title={t('Setup Sentry')}>
-      <Wrapper>
+      <Flex justify="center">
         <Pattern />
         <SetupWizard>
           <Heading>
@@ -128,15 +129,10 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
             {renderFormFields()}
           </Form>
         </SetupWizard>
-      </Wrapper>
+      </Flex>
     </SentryDocumentTitle>
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  justify-content: center;
-`;
 
 const fixedStyle = css`
   position: fixed;

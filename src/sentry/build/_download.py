@@ -5,13 +5,19 @@ import urllib.request
 from typing import IO
 
 
-def urlopen_with_retries(url: str, timeout: int = 5, retries: int = 10) -> IO[bytes]:
+def urlopen_with_retries(url: str, timeout: int = 5, retries: int = 6) -> IO[bytes]:
+    """
+    Retries with exponential backoff.
+    Assuming default parameters (5s timeout, 6 retries), waits for a maximum of
+    (5 + 2^0) + (5 + 2^1) + ... + (5 + 2^4) + (5) = 61s.
+            raises on the last one so no sleep ^
+    """
     for i in range(retries):
         try:
             return urllib.request.urlopen(url, timeout=timeout)
         except Exception:
             if i == retries - 1:
                 raise
-            time.sleep(i * 0.01)
+            time.sleep(2**i)  # 1, 2, 4, ..., 16
     else:
         raise AssertionError("unreachable")

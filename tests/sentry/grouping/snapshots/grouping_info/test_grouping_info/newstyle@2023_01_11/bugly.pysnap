@@ -1,10 +1,10 @@
 ---
-created: '2025-09-24T22:53:02.113693+00:00'
+created: '2025-10-30T17:09:42.519117+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because system exception takes precedence",
@@ -17,6 +17,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": false,
+              "hint": "ignored because exception is synthetic",
+              "id": "type",
+              "name": null,
+              "values": [
+                "SIGSEGV"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
+              "id": "value",
+              "name": null,
+              "values": [
+                "Segfault"
+              ]
+            },
             {
               "contributes": false,
               "hint": "ignored because it contains no in-app frames",
@@ -262,24 +280,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "SIGSEGV"
-              ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "value",
-              "name": null,
-              "values": [
-                "Segfault"
-              ]
             }
           ]
         }
@@ -305,13 +305,14 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app",
+    "contributes": false,
+    "description": "exception stacktrace — in-app frames",
     "hash": null,
     "hint": "ignored because system exception takes precedence",
-    "key": "app",
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
-  "system": {
+  "system_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -324,6 +325,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "id": "exception",
           "name": "exception",
           "values": [
+            {
+              "contributes": false,
+              "hint": "ignored because exception is synthetic",
+              "id": "type",
+              "name": null,
+              "values": [
+                "SIGSEGV"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Segfault"
+              ]
+            },
             {
               "contributes": true,
               "hint": null,
@@ -569,24 +588,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "SIGSEGV"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Segfault"
-              ]
             }
           ]
         }
@@ -612,10 +613,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "exception stacktrace",
+    "contributes": true,
+    "description": "exception stacktrace — all frames",
     "hash": "d9c9b0f9ba46e32fddd7cd1512fad235",
     "hint": null,
-    "key": "system",
+    "key": "system_exception_stacktrace",
     "type": "component"
   }
 }

@@ -1,5 +1,5 @@
 import datetime
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -18,13 +18,18 @@ from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializer,
     DetailedIncidentSerializerResponse,
 )
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
-from sentry.incidents.models.incident import Incident
+from sentry.incidents.models.incident import Incident, IncidentActivityType, IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
+from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.models import DetectorGroup
 
 now = "2022-05-16T20:00:00"
 frozen_time = f"{now}Z"
@@ -89,7 +94,9 @@ class BuildMetricAlertChartTest(TestCase):
     def test_eap_alert(self, mock_client_get: MagicMock, mock_generate_chart: MagicMock) -> None:
         mock_client_get.return_value.data = {"data": []}
         alert_rule = self.create_alert_rule(
-            query="span.op:pageload", dataset=Dataset.EventsAnalyticsPlatform
+            query="span.op:pageload",
+            dataset=Dataset.EventsAnalyticsPlatform,
+            aggregate="apdex(span.duration, 8000)",
         )
         incident = self.create_incident(
             status=2,
@@ -128,30 +135,78 @@ class BuildMetricAlertChartTest(TestCase):
 
 class FetchOpenPeriodsTest(TestCase):
     @freeze_time(frozen_time)
-    @patch("sentry.incidents.charts.client.get")
+    @with_feature("organizations:incidents")
     @with_feature("organizations:workflow-engine-single-process-metric-issues")
-    def test_get_incidents_from_detector(self, mock_client_get: MagicMock) -> None:
+    def test_get_incidents_from_detector(self) -> None:
         self.create_detector()  # dummy so detector ID != alert rule ID
         detector = self.create_detector(project=self.project)
         alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
         self.create_alert_rule_detector(detector=detector, alert_rule_id=alert_rule.id)
-        incident = Incident(
+        incident = self.create_incident(
             date_started=must_parse_datetime("2022-05-16T18:55:00Z"),
-            date_closed=None,
+            status=IncidentStatus.CRITICAL.value,
             alert_rule=alert_rule,
         )
+        # create incident activity the same way we do in logic.py create_incident
+        detected_activity = self.create_incident_activity(
+            incident,
+            IncidentActivityType.DETECTED.value,
+            date_added=incident.date_started,
+        )
+        created_activity = self.create_incident_activity(
+            incident,
+            IncidentActivityType.CREATED.value,
+        )
+
         time_period = incident_date_range(60, incident.date_started, incident.date_closed)
 
-        fetch_metric_issue_open_periods(self.organization, detector.id, time_period)
-        mock_client_get.assert_called_with(
-            auth=ANY,
-            user=ANY,
-            path="/organizations/baz/incidents/",
-            params={
-                "alertRule": alert_rule.id,
-                "expand": "activities",
-                "includeSnapshots": True,
-                "project": -1,
-                **time_period,
-            },
+        chart_data = fetch_metric_issue_open_periods(self.organization, detector.id, time_period)
+        assert chart_data[0]["alertRule"]["id"] == str(alert_rule.id)
+        assert chart_data[0]["projects"] == [self.project.slug]
+        assert chart_data[0]["dateStarted"] == incident.date_started
+
+        assert len(chart_data[0]["activities"]) == 2
+        detected_activity_resp = chart_data[0]["activities"][0]
+        created_activity_resp = chart_data[0]["activities"][1]
+
+        assert detected_activity_resp["incidentIdentifier"] == str(incident.identifier)
+        assert detected_activity_resp["type"] == IncidentActivityType.DETECTED.value
+        assert detected_activity_resp["dateCreated"] == detected_activity.date_added
+
+        assert created_activity_resp["incidentIdentifier"] == str(incident.identifier)
+        assert created_activity_resp["type"] == IncidentActivityType.CREATED.value
+        assert created_activity_resp["dateCreated"] == created_activity.date_added
+
+    @freeze_time(frozen_time)
+    @with_feature("organizations:incidents")
+    @with_feature("organizations:new-metric-issue-charts")
+    @with_feature("organizations:workflow-engine-single-process-metric-issues")
+    def test_use_open_period_serializer(self) -> None:
+        detector = self.create_detector(project=self.project)
+        group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.HIGH)
+
+        # Link detector to group
+        DetectorGroup.objects.create(detector=detector, group=group)
+
+        group_open_period = GroupOpenPeriod.objects.get(group=group)
+
+        opened_gopa = GroupOpenPeriodActivity.objects.create(
+            date_added=group_open_period.date_added,
+            group_open_period=group_open_period,
+            type=OpenPeriodActivityType.OPENED,
+            value=group.priority,
         )
+
+        time_period = incident_date_range(
+            60, group_open_period.date_started, group_open_period.date_ended
+        )
+
+        chart_data = fetch_metric_issue_open_periods(self.organization, detector.id, time_period)
+
+        assert chart_data[0]["id"] == str(group_open_period.id)
+        assert chart_data[0]["start"] == group_open_period.date_started
+
+        activities = chart_data[0]["activities"]
+        assert activities[0]["id"] == str(opened_gopa.id)
+        assert activities[0]["type"] == OpenPeriodActivityType(opened_gopa.type).to_str()
+        assert activities[0]["value"] == PriorityLevel(group.priority).to_str()

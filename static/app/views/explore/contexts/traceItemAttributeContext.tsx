@@ -33,12 +33,15 @@ const TraceItemAttributeContext = createContext<
   TypedTraceItemAttributesResult | undefined
 >(undefined);
 
-interface TraceItemAttributeProviderProps {
-  children: React.ReactNode;
+type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
   projects?: Project[];
-}
+};
+
+type TraceItemAttributeProviderProps = {
+  children: React.ReactNode;
+} & TraceItemAttributeConfig;
 
 export function TraceItemAttributeProvider({
   children,
@@ -46,6 +49,24 @@ export function TraceItemAttributeProvider({
   enabled,
   projects,
 }: TraceItemAttributeProviderProps) {
+  const typedAttributesResult = useTraceItemAttributeConfig({
+    traceItemType,
+    enabled,
+    projects,
+  });
+
+  return (
+    <TraceItemAttributeContext value={typedAttributesResult}>
+      {children}
+    </TraceItemAttributeContext>
+  );
+}
+
+function useTraceItemAttributeConfig({
+  traceItemType,
+  enabled,
+  projects,
+}: TraceItemAttributeConfig) {
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({
       enabled,
@@ -98,34 +119,21 @@ export function TraceItemAttributeProvider({
     };
   }, [traceItemType, stringAttributes]);
 
-  return (
-    <TraceItemAttributeContext
-      value={{
-        number: allNumberAttributes.attributes,
-        string: allStringAttributes.attributes,
-        numberSecondaryAliases: allNumberAttributes.secondaryAliases,
-        stringSecondaryAliases: allStringAttributes.secondaryAliases,
-        numberAttributesLoading,
-        stringAttributesLoading,
-      }}
-    >
-      {children}
-    </TraceItemAttributeContext>
-  );
+  return {
+    number: allNumberAttributes.attributes,
+    string: allStringAttributes.attributes,
+    numberSecondaryAliases: allNumberAttributes.secondaryAliases,
+    stringSecondaryAliases: allStringAttributes.secondaryAliases,
+    numberAttributesLoading,
+    stringAttributesLoading,
+  };
 }
 
-export function useTraceItemAttributes(
+function processTraceItemAttributes(
+  typedAttributesResult: TypedTraceItemAttributesResult,
   type?: 'number' | 'string',
   hiddenKeys?: string[]
 ) {
-  const typedAttributesResult = useContext(TraceItemAttributeContext);
-
-  if (typedAttributesResult === undefined) {
-    throw new Error(
-      'useTraceItemAttributes must be used within a TraceItemAttributeProvider'
-    );
-  }
-
   if (type === 'number') {
     return {
       attributes: hiddenKeys
@@ -146,6 +154,30 @@ export function useTraceItemAttributes(
       : typedAttributesResult.stringSecondaryAliases,
     isLoading: typedAttributesResult.stringAttributesLoading,
   };
+}
+
+export function useTraceItemAttributes(
+  type?: 'number' | 'string',
+  hiddenKeys?: string[]
+) {
+  const typedAttributesResult = useContext(TraceItemAttributeContext);
+
+  if (typedAttributesResult === undefined) {
+    throw new Error(
+      'useTraceItemAttributes must be used within a TraceItemAttributeProvider'
+    );
+  }
+
+  return processTraceItemAttributes(typedAttributesResult, type, hiddenKeys);
+}
+
+export function useTraceItemAttributesWithConfig(
+  config: TraceItemAttributeConfig,
+  type?: 'number' | 'string',
+  hiddenKeys?: string[]
+) {
+  const typedAttributesResult = useTraceItemAttributeConfig(config);
+  return processTraceItemAttributes(typedAttributesResult, type, hiddenKeys);
 }
 
 function getDefaultStringAttributes(itemType: TraceItemDataset) {

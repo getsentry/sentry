@@ -11,8 +11,6 @@ export const MOBILE_MODULE_DOC_LINK =
 export const FRONTEND_MODULE_DOC_LINK =
   'https://docs.sentry.io/product/insights/frontend/session-health/';
 
-export const MODULE_VISIBLE_FEATURES = ['insights-session-health-tab-ui'];
-
 export const CHART_TITLES = {
   CrashFreeSessionsChartWidget: t('Crash Free Sessions'),
   UnhealthySessionsChartWidget: t('Unhealthy Sessions'),

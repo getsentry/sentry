@@ -1,11 +1,12 @@
 ---
-created: '2025-09-24T20:27:09.251707+00:00'
+created: '2025-10-07T20:41:49.920891+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "54e8028fb2526cf31b12dd66c01ad9e2"
   contributing component: threads
+  hint: None
   root_component:
     app*
       threads*
@@ -137,6 +138,7 @@ app:
 default:
   hash: null
   contributing component: null
+  hint: ignored because app/system threads take precedence
   root_component:
     default (ignored because app/system threads take precedence)
       message (ignored because app/system threads take precedence)
@@ -145,6 +147,7 @@ default:
 system:
   hash: "9e04decaf79ecba9dc0314dc0edd3993"
   contributing component: threads
+  hint: None
   root_component:
     system*
       threads*

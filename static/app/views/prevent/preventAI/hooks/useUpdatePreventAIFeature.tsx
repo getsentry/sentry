@@ -1,111 +1,110 @@
-import {useCallback, useState} from 'react';
+import type {
+  PreventAIConfig,
+  PreventAIFeatureTriggers,
+  Sensitivity,
+} from 'sentry/types/prevent';
+import {PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT} from 'sentry/types/prevent';
+import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
-import localStorageWrapper from 'sentry/utils/localStorage';
-import type {PreventAIConfig} from 'sentry/views/prevent/preventAI/types';
-
-interface UpdateFeatureParams {
+interface UpdatePreventAIFeatureParams {
   enabled: boolean;
-  feature: 'vanilla' | 'test_generation' | 'bug_prediction';
-  triggers?: Record<string, boolean>;
+  // 'use_org_defaults' is a special case that will remove the entire repo override
+  feature: 'vanilla' | 'test_generation' | 'bug_prediction' | 'use_org_defaults';
+  gitOrgName: string;
+  originalConfig: PreventAIConfig;
+  // if repo is provided, edit repo_overrides for that repo, otherwise edit org_defaults
+  repoId?: string;
+  sensitivity?: Sensitivity;
+  trigger?: Partial<PreventAIFeatureTriggers>;
 }
 
-interface UpdateFeatureResult {
-  enabled: boolean;
-  feature: string;
-  success: boolean;
-  triggers?: Record<string, boolean>;
-}
+export function useUpdatePreventAIFeature() {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
 
-export function useUpdatePreventAIFeature(orgName?: string, repoName?: string) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {mutateAsync, isPending, error} = useMutation({
+    mutationFn: async (params: UpdatePreventAIFeatureParams) => {
+      const newConfig = makePreventAIConfig(params.originalConfig, params);
 
-  // TODO: Hook up to real API - PUT `/organizations/${organization.slug}/prevent/ai/config/features/${feature}`
-
-  const enableFeature = useCallback(
-    async (params: UpdateFeatureParams): Promise<UpdateFeatureResult> => {
-      setIsLoading(true);
-      setError(null);
-
-      // TODO: Below reads/writes from localstorage until real apis hooked up
-      try {
-        // Generate storage key based on org and repo
-        const getStorageKey = () => {
-          if (!orgName || !repoName) {
-            return 'prevent-ai-config-default';
-          }
-          return `prevent-ai-config-${orgName}-${repoName}`;
-        };
-
-        // Load current config from localStorage
-        const currentConfig: PreventAIConfig = (() => {
-          try {
-            const storageKey = getStorageKey();
-            const stored = localStorageWrapper.getItem(storageKey);
-            if (stored) {
-              return JSON.parse(stored);
-            }
-          } catch (err) {
-            // Silently handle localStorage errors
-          }
-          // Return default config if nothing stored
-          return {
-            features: {
-              vanilla: {enabled: false},
-              test_generation: {enabled: false},
-              bug_prediction: {
-                enabled: false,
-                triggers: {
-                  on_command_phrase: false,
-                  on_ready_for_review: false,
-                },
-              },
-            },
-          };
-        })();
-
-        // Update the specific feature
-        const updatedConfig: PreventAIConfig = {
-          ...currentConfig,
-          features: {
-            ...currentConfig.features,
-            [params.feature]: {
-              enabled: params.enabled,
-              triggers: params.triggers,
-            },
-          },
-        };
-
-        // Save to localStorage
-        const storageKey = getStorageKey();
-        localStorageWrapper.setItem(storageKey, JSON.stringify(updatedConfig));
-
-        // Simulate API delay for realistic UX
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        const result = {
-          success: true,
-          feature: params.feature,
-          enabled: params.enabled,
-          triggers: params.triggers,
-        };
-
-        return result;
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to update feature';
-        setError(errorMessage);
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
+      return fetchMutation<{
+        default_org_config: PreventAIConfig;
+        organization: Record<string, PreventAIConfig>;
+      }>({
+        method: 'PUT',
+        url: `/organizations/${organization.slug}/prevent/ai/github/config/${params.gitOrgName}/`,
+        data: newConfig as unknown as Record<string, PreventAIConfig>,
+      });
     },
-    [orgName, repoName]
-  );
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          `/organizations/${organization.slug}/prevent/ai/github/config/${variables.gitOrgName}/`,
+        ],
+      });
+    },
+  });
 
   return {
-    enableFeature,
-    isLoading,
-    error,
+    enableFeature: mutateAsync,
+    isLoading: isPending,
+    error: error?.message,
   };
+}
+
+/**
+ * Makes a new PreventAIConfig object with feature settings applied for the specified repo or org defaults
+ * 1. Deep clones the original config to prevent mutation
+ * 2. If editing repo, get the repo override for the specified repo or create it from org_defaults template if not exists
+ * 3. Modifies the specified feature's settings, preserves any unspecified settings.
+ * 4. Special case: 'use_org_defaults' feature type will remove the entire repo override
+ *
+ * @param originalConfig Original PreventAIConfig object (will not be mutated)
+ * @param params Parameters to update
+ * @returns New (copy of) PreventAIConfig object with updates applied
+ */
+export function makePreventAIConfig(
+  originalConfig: PreventAIConfig,
+  params: UpdatePreventAIFeatureParams
+): PreventAIConfig {
+  const updatedConfig = structuredClone(originalConfig);
+  if (!updatedConfig.schema_version) {
+    updatedConfig.schema_version = PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT;
+  }
+
+  if (!updatedConfig.repo_overrides) {
+    updatedConfig.repo_overrides = {};
+  }
+
+  if (params.feature === 'use_org_defaults') {
+    if (!params.repoId) {
+      throw new Error('Repo name is required when feature is use_org_defaults');
+    }
+    if (params.enabled) {
+      delete updatedConfig.repo_overrides[params.repoId];
+    } else {
+      updatedConfig.repo_overrides[params.repoId] = structuredClone(
+        updatedConfig.org_defaults
+      );
+    }
+    return updatedConfig;
+  }
+
+  let featureConfig = updatedConfig.org_defaults;
+  if (params.repoId) {
+    let repoOverride = updatedConfig.repo_overrides[params.repoId];
+    if (!repoOverride) {
+      repoOverride = structuredClone(updatedConfig.org_defaults);
+      updatedConfig.repo_overrides[params.repoId] = repoOverride;
+    }
+    featureConfig = repoOverride;
+  }
+
+  featureConfig[params.feature] = {
+    enabled: params.enabled,
+    triggers: {...featureConfig[params.feature].triggers, ...params.trigger},
+    sensitivity: params.sensitivity ?? featureConfig[params.feature].sensitivity,
+  };
+
+  return updatedConfig;
 }

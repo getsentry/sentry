@@ -1,4 +1,4 @@
-import {Component, createRef} from 'react';
+import {Component, createRef, type ReactNode} from 'react';
 import {withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -102,6 +102,14 @@ type Props = {
   otherColumns?: Column[];
   placeholder?: string;
   /**
+   * A custom tag renderer for indicating the type of the field.
+   */
+  renderTagOverride?: (
+    kind: FieldValueKind,
+    label: string,
+    meta: FieldValue['meta']
+  ) => ReactNode;
+  /**
    * Whether or not to add the tag explaining the FieldValueKind of each field
    */
   shouldRenderTag?: boolean;
@@ -127,7 +135,7 @@ class _QueryField extends Component<Props> {
       return (
         <components.SingleValue data={data} {...props}>
           <span data-test-id="label">{data.label}</span>
-          {data.value && this.renderTag(data.value.kind, data.label)}
+          {data.value && this.renderTag(data.value.kind, data.label, data.value.meta)}
         </components.SingleValue>
       );
     },
@@ -455,8 +463,12 @@ class _QueryField extends Component<Props> {
           : descriptor.options;
 
         aggregateParameters.forEach(opt => {
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
+          opt.trailingItems = this.renderTag(
+            opt.value.kind,
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string
+            String(opt.label),
+            opt.value.meta
+          );
         });
 
         const portalProps = useMenuPortal
@@ -479,7 +491,6 @@ class _QueryField extends Component<Props> {
           <Select
             key="select"
             name="parameter"
-            menuPlacement="auto"
             placeholder={t('Select value')}
             options={aggregateParameters}
             value={descriptor.value}
@@ -543,7 +554,6 @@ class _QueryField extends Component<Props> {
           <Select
             key="dropdown"
             name="dropdown"
-            menuPlacement="auto"
             placeholder={t('Select value')}
             options={descriptor.options}
             value={descriptor.value}
@@ -576,10 +586,13 @@ class _QueryField extends Component<Props> {
     return inputs;
   }
 
-  renderTag(kind: FieldValueKind, label: string) {
-    const {shouldRenderTag} = this.props;
+  renderTag(kind: FieldValueKind, label: string, meta: FieldValue['meta']) {
+    const {shouldRenderTag, renderTagOverride} = this.props;
     if (shouldRenderTag === false) {
       return null;
+    }
+    if (renderTagOverride) {
+      return renderTagOverride(kind, label, meta);
     }
     let text: string;
     let tagType: 'success' | 'highlight' | 'warning' | undefined = undefined;
@@ -638,8 +651,12 @@ class _QueryField extends Component<Props> {
       : Object.values(fieldOptions);
 
     allFieldOptions.forEach(opt => {
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
+      opt.trailingItems = this.renderTag(
+        opt.value.kind,
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
+        String(opt.label),
+        opt.value.meta
+      );
     });
 
     const selectProps: ControlProps<FieldValueOption> = {
@@ -651,7 +668,6 @@ class _QueryField extends Component<Props> {
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
       disabled,
       noOptionsMessage: () => noFieldsMessage,
-      menuPlacement: 'auto',
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;

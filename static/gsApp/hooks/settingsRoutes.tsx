@@ -74,10 +74,11 @@ const settingsRoutes = (): SentryRouteObject => ({
         },
         {
           path: 'details/',
-          name: 'Billing Details',
+          name: 'Billing Information',
           component: make(() => import('../views/subscriptionPage/billingInformation')),
           deprecatedRouteProps: true,
         },
+        // TODO(sub-v3): We're keeping both routes for now, but we should remove the usage-log route once we're confident in keeping the new name
         {
           path: 'usage-log/',
           name: 'Usage Log',
@@ -85,8 +86,14 @@ const settingsRoutes = (): SentryRouteObject => ({
           deprecatedRouteProps: true,
         },
         {
+          path: 'activity-logs/',
+          name: 'Activity Logs',
+          component: make(() => import('../views/subscriptionPage/usageLog')),
+          deprecatedRouteProps: true,
+        },
+        {
           path: 'receipts/:invoiceGuid/',
-          name: 'Invoice Details',
+          name: 'Receipt Details',
           component: errorHandler(SubscriptionContext),
           deprecatedRouteProps: true,
           children: [

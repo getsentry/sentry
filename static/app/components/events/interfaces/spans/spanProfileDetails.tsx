@@ -41,6 +41,7 @@ export interface SpanProfileDetailsProps {
     end_timestamp: number;
     span_id: string;
     start_timestamp: number;
+    thread_id?: string;
   }>;
   onNoProfileFound?: () => void;
 }
@@ -69,10 +70,16 @@ export function useSpanProfileDetails(
   }, [event, profileGroup]);
 
   // TODO: Pick another thread if it's more relevant.
-  const threadId = useMemo(
-    () => profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId,
-    [profileGroup]
-  );
+  const threadId = useMemo(() => {
+    const rawThreadId = span.thread_id?.trim();
+    if (rawThreadId) {
+      const maybeThreadId = Number(rawThreadId);
+      if (!isNaN(maybeThreadId)) {
+        return maybeThreadId;
+      }
+    }
+    return profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId;
+  }, [span.thread_id, profileGroup]);
 
   const profile = useMemo(() => {
     if (!defined(threadId)) {
@@ -173,13 +180,14 @@ export function useSpanProfileDetails(
           query: {
             eventId: event.id,
             spanId: span.span_id,
+            tid: threadId ? String(threadId) : undefined,
           },
         });
       }
     }
 
     return undefined;
-  }, [organization, project, event, span]);
+  }, [organization, project, event, span, threadId]);
 
   return {
     processedEvent,

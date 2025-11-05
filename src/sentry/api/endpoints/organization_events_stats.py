@@ -19,6 +19,10 @@ from sentry.api.helpers.error_upsampling import (
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.eap.trace_metrics.config import (
+    TraceMetricsSearchResolverConfig,
+    get_trace_metric_from_request,
+)
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
@@ -36,6 +40,7 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import RPC_DATASETS
 from sentry.utils.snuba import SnubaError, SnubaTSResult
 
@@ -191,6 +196,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         spans_metrics,
                         Spans,
                         OurLogs,
+                        TraceMetrics,
                         errors,
                         transactions,
                     ]
@@ -231,6 +237,35 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             if should_upsample:
                 final_columns = transform_query_columns_for_error_upsampling(query_columns)
 
+            def get_rpc_config():
+                if scoped_dataset not in RPC_DATASETS:
+                    raise NotImplementedError
+
+                if scoped_dataset == TraceMetrics:
+                    # tracemetrics uses aggregate conditions
+                    metric_name, metric_type, metric_unit = get_trace_metric_from_request(request)
+
+                    return TraceMetricsSearchResolverConfig(
+                        metric_name=metric_name,
+                        metric_type=metric_type,
+                        metric_unit=metric_unit,
+                        auto_fields=False,
+                        use_aggregate_conditions=True,
+                        disable_aggregate_extrapolation=request.GET.get(
+                            "disableAggregateExtrapolation", "0"
+                        )
+                        == "1",
+                    )
+
+                return SearchResolverConfig(
+                    auto_fields=False,
+                    use_aggregate_conditions=True,
+                    disable_aggregate_extrapolation=request.GET.get(
+                        "disableAggregateExtrapolation", "0"
+                    )
+                    == "1",
+                )
+
             if top_events > 0:
                 raw_groupby = self.get_field_list(organization, request)
                 if "timestamp" in raw_groupby:
@@ -245,12 +280,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         limit=top_events,
                         include_other=include_other,
                         referrer=referrer,
-                        config=SearchResolverConfig(
-                            auto_fields=False,
-                            use_aggregate_conditions=True,
-                            disable_aggregate_extrapolation="disableAggregateExtrapolation"
-                            in request.GET,
-                        ),
+                        config=get_rpc_config(),
                         sampling_mode=snuba_params.sampling_mode,
                         equations=self.get_equation_list(organization, request),
                     )
@@ -281,12 +311,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     query_string=query,
                     y_axes=final_columns,
                     referrer=referrer,
-                    config=SearchResolverConfig(
-                        auto_fields=False,
-                        use_aggregate_conditions=True,
-                        disable_aggregate_extrapolation="disableAggregateExtrapolation"
-                        in request.GET,
-                    ),
+                    config=get_rpc_config(),
                     sampling_mode=snuba_params.sampling_mode,
                     comparison_delta=comparison_delta,
                 )

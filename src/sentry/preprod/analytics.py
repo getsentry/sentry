@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from sentry import analytics
 
 
@@ -110,10 +112,33 @@ class PreprodArtifactApiSizeAnalysisCompareDownloadEvent(analytics.Event):
     base_size_metric_id: str
 
 
+# PR page
+@analytics.eventclass("preprod_artifact.api.pr_page.details")
+class PreprodApiPrPageDetailsEvent(analytics.Event):
+    organization_id: int
+    user_id: int | None = None
+    repo_name: str
+    pr_number: str
+
+
+@analytics.eventclass("preprod_artifact.api.pr_page.size_analysis_download")
+class PreprodApiPrPageSizeAnalysisDownloadEvent(analytics.Event):
+    organization_id: int
+    user_id: int | None = None
+    artifact_id: str
+
+
+@analytics.eventclass("preprod_artifact.api.pr_page.comments")
+class PreprodApiPrPageCommentsEvent(analytics.Event):
+    organization_id: int
+    user_id: int | None = None
+    repo_name: str
+    pr_number: str
+
+
 analytics.register(PreprodArtifactApiAssembleEvent)
 analytics.register(PreprodArtifactApiUpdateEvent)
 analytics.register(PreprodArtifactApiAssembleGenericEvent)
-analytics.register(PreprodArtifactApiSizeAnalysisDownloadEvent)
 analytics.register(PreprodArtifactApiGetBuildDetailsEvent)
 analytics.register(PreprodArtifactApiListBuildsEvent)
 analytics.register(PreprodArtifactApiInstallDetailsEvent)
@@ -121,6 +146,12 @@ analytics.register(PreprodArtifactApiRerunAnalysisEvent)
 analytics.register(PreprodArtifactApiAdminGetInfoEvent)
 analytics.register(PreprodArtifactApiAdminBatchDeleteEvent)
 analytics.register(PreprodArtifactApiDeleteEvent)
+# Size analysis
+analytics.register(PreprodArtifactApiSizeAnalysisDownloadEvent)
 analytics.register(PreprodArtifactApiSizeAnalysisCompareGetEvent)
 analytics.register(PreprodArtifactApiSizeAnalysisComparePostEvent)
 analytics.register(PreprodArtifactApiSizeAnalysisCompareDownloadEvent)
+# PR page
+analytics.register(PreprodApiPrPageDetailsEvent)
+analytics.register(PreprodApiPrPageSizeAnalysisDownloadEvent)
+analytics.register(PreprodApiPrPageCommentsEvent)

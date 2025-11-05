@@ -38,7 +38,6 @@ from sentry.models.project import Project
 from sentry.services.filestore.gcs import GoogleCloudStorage
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import replays_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import json
@@ -128,10 +127,9 @@ def export_clickhouse_rows(
 #  \______/  \______/  \______/
 
 
-def request_create_transfer_job(request: CreateTransferJobRequest) -> None:
+def request_create_transfer_job(request: CreateTransferJobRequest) -> TransferJob:
     client = storage_transfer_v1.StorageTransferServiceClient()
-    client.create_transfer_job(request)
-    return None
+    return client.create_transfer_job(request)
 
 
 def create_transfer_job[T](
@@ -140,6 +138,7 @@ def create_transfer_job[T](
     source_bucket: str,
     source_prefix: str,
     destination_bucket: str,
+    destination_prefix: str,
     job_description: str,
     job_duration: timedelta,
     do_create_transfer_job: Callable[[CreateTransferJobRequest], T],
@@ -165,7 +164,8 @@ def create_transfer_job[T](
     :param destination_bucket:
     :param job_duration: The amount of time the job should take to complete. Longer runs put less
         pressure on our buckets.
-    :param notification_topic: Specifying a topic will enable automatic run retries on failure.
+    :param destination_prefix:
+    :param notification_topic: topic to which we'll notify the success or failure of the transfer.
     :param do_create_transfer_job: Injected function which creates the transfer-job.
     :param get_current_datetime: Injected function which computes the current datetime.
     """
@@ -178,7 +178,7 @@ def create_transfer_job[T](
         status=storage_transfer_v1.TransferJob.Status.ENABLED,
         transfer_spec=TransferSpec(
             gcs_data_source=GcsData(bucket_name=source_bucket, path=source_prefix),
-            gcs_data_sink=GcsData(bucket_name=destination_bucket),
+            gcs_data_sink=GcsData(bucket_name=destination_bucket, path=destination_prefix),
         ),
         schedule=Schedule(
             schedule_start_date=date_pb2.Date(
@@ -197,7 +197,11 @@ def create_transfer_job[T](
     if notification_topic:
         transfer_job.notification_config = NotificationConfig(
             pubsub_topic=notification_topic,
-            event_types=[NotificationConfig.EventType.TRANSFER_OPERATION_FAILED],
+            event_types=[
+                NotificationConfig.EventType.TRANSFER_OPERATION_FAILED,
+                NotificationConfig.EventType.TRANSFER_OPERATION_SUCCESS,
+                NotificationConfig.EventType.TRANSFER_OPERATION_ABORTED,
+            ],
             payload_format=NotificationConfig.PayloadFormat.JSON,
         )
 
@@ -456,16 +460,9 @@ def save_to_storage(destination_bucket: str, filename: str, contents: str) -> No
 
 @instrumented_task(
     name="sentry.replays.tasks.export_replay_row_set_async",
-    default_retry_delay=5,  # Five seconds because we want to give rate-limits some time to reset.
-    max_retries=120,  # Retry a lot because if it fails we have to start over from the beginning.
-    taskworker_config=TaskworkerConfig(
-        namespace=replays_tasks,
-        processing_deadline_duration=15 * 60,
-        retry=Retry(
-            times=120,
-            delay=5,
-        ),
-    ),
+    namespace=replays_tasks,
+    processing_deadline_duration=15 * 60,
+    retry=Retry(times=120, delay=5),
 )
 def export_replay_row_set_async(
     project_id: int,
@@ -539,7 +536,7 @@ def export_replay_row_set_async(
 
 @instrumented_task(
     name="sentry.replays.tasks.export_replay_project_async",
-    taskworker_config=TaskworkerConfig(namespace=replays_tasks),
+    namespace=replays_tasks,
 )
 def export_replay_project_async(
     project_id: int,
@@ -578,6 +575,7 @@ def export_replay_blob_data[T](
     project_id: int,
     gcp_project_id: str,
     destination_bucket: str,
+    destination_prefix: str,
     job_duration: timedelta,
     do_create_transfer_job: Callable[[CreateTransferJobRequest], T],
     pubsub_topic_name: str | None = None,
@@ -597,6 +595,7 @@ def export_replay_blob_data[T](
             source_bucket=source_bucket,
             source_prefix=f"{retention_days}/{project_id}",
             destination_bucket=destination_bucket,
+            destination_prefix=destination_prefix,
             notification_topic=pubsub_topic_name,
             job_description="Session Replay EU Compliance Export",
             job_duration=job_duration,
@@ -608,6 +607,7 @@ def export_replay_data(
     organization_id: int,
     gcp_project_id: str,
     destination_bucket: str,
+    destination_prefix: str,
     blob_export_job_duration: timedelta = EXPORT_JOB_DURATION_DEFAULT,
     database_rows_per_page: int = EXPORT_QUERY_ROWS_PER_PAGE,
     database_pages_per_task: int = EXPORT_QUERY_PAGES_PER_TASK,
@@ -655,6 +655,7 @@ def export_replay_data(
             project_id=project.id,
             gcp_project_id=gcp_project_id,
             destination_bucket=destination_bucket,
+            destination_prefix=destination_prefix,
             pubsub_topic_name=pubsub_topic_name,
             source_bucket=source_bucket,
             job_duration=blob_export_job_duration,

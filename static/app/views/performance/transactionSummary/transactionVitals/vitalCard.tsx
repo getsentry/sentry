@@ -12,6 +12,7 @@ import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -195,9 +196,9 @@ class VitalCard extends Component<Props, State> {
 
     return (
       <CardSummary>
-        <SummaryHeading>
+        <Flex justify="between">
           <CardSectionHeading>{`${name} (${slug.toUpperCase()})`}</CardSectionHeading>
-        </SummaryHeading>
+        </Flex>
         <StatNumber>
           {getDynamicText({
             value: this.getFormattedStatNumber(),
@@ -476,11 +477,6 @@ class VitalCard extends Component<Props, State> {
     );
   }
 }
-
-const SummaryHeading = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
 
 const Container = styled('div')`
   position: relative;

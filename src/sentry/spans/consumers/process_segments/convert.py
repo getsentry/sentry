@@ -15,7 +15,6 @@ FIELD_TO_ATTRIBUTE = {
     "end_timestamp": "sentry.end_timestamp_precise",
     "event_id": "sentry.event_id",
     "hash": "sentry.hash",
-    "is_remote": "sentry.is_remote",
     "kind": "sentry.kind",
     "name": "sentry.name",
     "parent_span_id": "sentry.parent_span_id",
@@ -57,6 +56,10 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
                 except ValueError:
                     pass
 
+    # For `is_segment`, we trust the value written by `flush_segments` over a pre-existing attribute:
+    if (is_segment := span.get("is_segment")) is not None:
+        attributes["sentry.is_segment"] = _anyvalue(is_segment)
+
     for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
         attribute = span.get(field_name)  # type:ignore[assignment]
         if attribute is not None:
@@ -69,16 +72,24 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
             attributes[eap_name] = attributes.pop(convention_name)
 
     try:
-        # TODO: Move this to Relay
         attributes["sentry.duration_ms"] = AnyValue(
             int_value=int(1000 * (span["end_timestamp"] - span["start_timestamp"]))
         )
     except Exception:
         sentry_sdk.capture_exception()
 
+    if span_meta := span.get("_meta"):
+        for attr, meta in (span_meta.get("attributes") or {}).items():
+            try:
+                if attr in RENAME_ATTRIBUTES:
+                    attr = RENAME_ATTRIBUTES[attr]
+                attributes[f"sentry._meta.fields.attributes.{attr}"] = _anyvalue({"meta": meta})
+            except Exception:
+                sentry_sdk.capture_exception()
+
     if links := span.get("links"):
         try:
-            sanitized_links = [_sanitize_span_link(link) for link in links]
+            sanitized_links = [_sanitize_span_link(link) for link in links if link is not None]
             attributes["sentry.links"] = _anyvalue(sanitized_links)
         except Exception:
             sentry_sdk.capture_exception()
@@ -133,17 +144,18 @@ def _sanitize_span_link(link: SpanLink) -> SpanLink:
     attributes, so span links are stored as a JSON-encoded string. In order to
     prevent unbounded storage, we only support well-known attributes.
     """
+
     sanitized_link = cast(SpanLink, {**link})
 
     allowed_attributes = {}
-    attributes = link.get("attributes", {}) or {}
+    attributes = link.get("attributes") or {}
 
     # In the future, we want Relay to drop unsupported attributes, so there
     # might be an intermediary state where there is a pre-existing dropped
     # attributes count. Respect that count, if it's present. It should always be
     # an integer.
     try:
-        dropped_attributes_count = int(attributes["sentry.dropped_attributes_count"]["value"])  # type: ignore[arg-type,index]
+        dropped_attributes_count = int(attributes["sentry.dropped_attributes_count"]["value"])  # type: ignore[index,arg-type]
     except (KeyError, ValueError, TypeError):
         dropped_attributes_count = 0
 

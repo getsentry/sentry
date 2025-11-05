@@ -1,5 +1,5 @@
 ---
-created: '2025-09-24T20:28:36.109779+00:00'
+created: '2025-10-07T20:42:05.152279+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -28,6 +28,7 @@ contributing variants:
   app*
     hash: "c5578778212497f1ff3435405e2a4a98"
     contributing component: exception
+    hint: None
     fingerprint_info: {"client_fingerprint":["{{ default }}","dogs are great"]}
     root_component:
       app*

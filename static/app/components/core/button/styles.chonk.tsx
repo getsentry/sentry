@@ -158,6 +158,15 @@ export function DO_NOT_USE_getChonkButtonStyles(
       },
     },
 
+    '&[aria-expanded="true"], &[aria-checked="true"]': {
+      '&::after': {
+        transition: 'none',
+      },
+      '> span:last-child': {
+        transition: 'none',
+      },
+    },
+
     '&:disabled, &[aria-disabled="true"]': {
       '&::after': {
         transform: 'translateY(0px)',

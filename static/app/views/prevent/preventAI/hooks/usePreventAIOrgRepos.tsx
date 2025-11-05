@@ -1,58 +1,22 @@
-import type {PreventAIOrg} from 'sentry/views/prevent/preventAI/types';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 
-interface PreventAIOrgReposResponse {
-  orgRepos: PreventAIOrg[];
-}
+export function usePreventAIOrgs(): UseApiQueryResult<
+  OrganizationIntegration[],
+  RequestError
+> {
+  const organization = useOrganization();
 
-interface PreventAIOrgsReposResult {
-  data: PreventAIOrgReposResponse | undefined;
-  isError: boolean;
-  isLoading: boolean;
-  refetch: () => void;
-}
-
-export function usePreventAIOrgRepos(): PreventAIOrgsReposResult {
-  // TODO: Hook up to real API - GET `/organizations/${organization.slug}/prevent-ai/${provider}/org-repos`
-
-  return {
-    data: {
-      orgRepos: [
-        {
-          id: '1',
-          name: 'org-1',
-          provider: 'github',
-          repos: [
-            {
-              id: '1',
-              name: 'repo-1',
-              fullName: 'org-1/repo-1',
-              url: 'https://github.com/org-1/repo-1',
-            },
-          ],
-        },
-        {
-          id: '2',
-          name: 'org-2',
-          provider: 'github',
-          repos: [
-            {
-              id: '2',
-              name: 'repo-2',
-              fullName: 'org-2/repo-2',
-              url: 'https://github.com/org-2/repo-2',
-            },
-            {
-              id: '3',
-              name: 'repo-3',
-              fullName: 'org-2/repo-3',
-              url: 'https://github.com/org-2/repo-3',
-            },
-          ],
-        },
-      ],
-    },
-    isLoading: false,
-    isError: false,
-    refetch: () => {},
-  };
+  return useApiQuery<OrganizationIntegration[]>(
+    [
+      `/organizations/${organization.slug}/integrations/`,
+      {query: {includeConfig: 0, provider_key: 'github'}},
+    ],
+    {
+      staleTime: 0,
+      retry: false,
+    }
+  );
 }

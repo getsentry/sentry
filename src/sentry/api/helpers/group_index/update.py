@@ -537,6 +537,10 @@ def process_group_resolution(
                     # in release
                     resolution_params.update(
                         {
+                            "release": Release.objects.filter(
+                                organization_id=release.organization_id,
+                                version=current_release_version,
+                            ).get(),
                             "type": GroupResolution.Type.in_release,
                             "status": GroupResolution.Status.resolved,
                         }

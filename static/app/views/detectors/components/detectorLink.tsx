@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionType,
@@ -36,6 +36,7 @@ import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 type DetectorLinkProps = {
   detector: Detector;
   className?: string;
+  openInNewTab?: boolean;
 };
 
 function formatConditionType(condition: MetricCondition) {
@@ -168,7 +169,11 @@ function UptimeDetectorDetails({detector}: {detector: UptimeDetector}) {
         return (
           <Fragment key={dataSource.id}>
             <DetailItem>{middleEllipsis(dataSource.queryObj.url, 40)}</DetailItem>
-            <DetailItem>{getDuration(dataSource.queryObj.intervalSeconds)}</DetailItem>
+            <DetailItem>
+              {tct('Every [duration]', {
+                duration: getDuration(dataSource.queryObj.intervalSeconds),
+              })}
+            </DetailItem>
           </Fragment>
         );
       })}
@@ -189,7 +194,6 @@ function Details({detector}: {detector: Detector}) {
       return <MetricDetectorDetails detector={detector} />;
     case 'uptime_domain_failure':
       return <UptimeDetectorDetails detector={detector} />;
-    // TODO: Implement details for Cron detectors
     case 'monitor_check_in_failure':
       return <CronDetectorDetails detector={detector} />;
     case 'error':
@@ -200,7 +204,7 @@ function Details({detector}: {detector: Detector}) {
   }
 }
 
-export function DetectorLink({detector, className}: DetectorLinkProps) {
+export function DetectorLink({detector, className, openInNewTab}: DetectorLinkProps) {
   const org = useOrganization();
   const project = useProjectFromId({project_id: detector.projectId});
 
@@ -209,8 +213,13 @@ export function DetectorLink({detector, className}: DetectorLinkProps) {
       className={className}
       name={detector.name}
       link={makeMonitorDetailsPathname(org.slug, detector.id)}
-      systemCreated={!detectorTypeIsUserCreateable(detector.type)}
+      systemCreated={
+        detectorTypeIsUserCreateable(detector.type)
+          ? undefined
+          : t('This monitor is managed by Sentry')
+      }
       disabled={!detector.enabled}
+      openInNewTab={openInNewTab}
       details={
         <Fragment>
           {project && (

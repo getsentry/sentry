@@ -24,7 +24,7 @@ function getInstructions(keyList: ProjectKey[]) {
     '        \'pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs="; \' \\\n' +
     '        \'pin-sha256="M8HztCzM3elUxkcjR2S5P4hhyBNf6lHkmjAHKhpGPWE="; \' \\\n' +
     "        'max-age=5184000; includeSubDomains; ' \\\n" +
-    `        \'report-uri="${getSecurityDsn(keyList)}"\' \n` +
+    `        'report-uri="${getSecurityDsn(keyList)}"' \n` +
     '    return response\n'
   );
 }
@@ -36,7 +36,7 @@ function getReportOnlyInstructions(keyList: ProjectKey[]) {
     '        \'pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs="; \' \\\n' +
     '        \'pin-sha256="M8HztCzM3elUxkcjR2S5P4hhyBNf6lHkmjAHKhpGPWE="; \' \\\n' +
     "        'max-age=5184000; includeSubDomains; ' \\\n" +
-    `        \'report-uri="${getSecurityDsn(keyList)}"\' \n` +
+    `        'report-uri="${getSecurityDsn(keyList)}"' \n` +
     '    return response\n'
   );
 }

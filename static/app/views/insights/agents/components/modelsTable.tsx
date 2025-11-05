@@ -2,18 +2,15 @@ import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
-import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
+import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -28,8 +25,8 @@ import {
   useTableSortParams,
 } from 'sentry/views/insights/agents/components/headSortCell';
 import {ModelName} from 'sentry/views/insights/agents/components/modelName';
-import {useColumnOrder} from 'sentry/views/insights/agents/hooks/useColumnOrder';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
 import {formatLLMCosts} from 'sentry/views/insights/agents/utils/formatLLMCosts';
 import {getAIGenerationsFilter} from 'sentry/views/insights/agents/utils/query';
@@ -58,7 +55,7 @@ const EMPTY_ARRAY: never[] = [];
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'model', name: t('Model'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 120},
-  {key: 'count_if(span.status,equals,unknown)', name: t('Errors'), width: 120},
+  {key: 'count_if(span.status,equals,internal_error)', name: t('Errors'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
   {key: 'sum(gen_ai.usage.total_cost)', name: t('Cost'), width: 100},
@@ -81,35 +78,22 @@ const rightAlignColumns = new Set([
   'sum(gen_ai.usage.output_tokens.reasoning)',
   'sum(gen_ai.usage.input_tokens.cached)',
   'sum(gen_ai.usage.total_cost)',
-  'count_if(span.status,equals,unknown)',
+  'count_if(span.status,equals,internal_error)',
   'avg(span.duration)',
   'p95(span.duration)',
 ]);
 
 export function ModelsTable() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const organization = useOrganization();
-  const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
+  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
+    columns: defaultColumnOrder,
+  });
 
   const fullQuery = useCombinedQuery(getAIGenerationsFilter());
 
-  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
-    navigate(
-      {
-        pathname,
-        query: {
-          ...previousQuery,
-          modelsCursor: cursor,
-        },
-      },
-      {replace: true, preventScrollReset: true}
-    );
-  };
+  const {cursor, setCursor} = useTableCursor();
 
   const {sortField, sortOrder} = useTableSortParams();
-
-  const cursor = decodeScalar(location.query?.modelsCursor);
 
   const modelsRequest = useSpans(
     {
@@ -123,7 +107,7 @@ export function ModelsTable() {
         'count()',
         'avg(span.duration)',
         'p95(span.duration)',
-        'count_if(span.status,equals,unknown)', // spans with status unknown are errors
+        'count_if(span.status,equals,internal_error)',
       ],
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
@@ -145,7 +129,7 @@ export function ModelsTable() {
       avg: span['avg(span.duration)'] ?? 0,
       p95: span['p95(span.duration)'] ?? 0,
       cost: span['sum(gen_ai.usage.total_cost)'],
-      errors: span['count_if(span.status,equals,unknown)'] ?? 0,
+      errors: span['count_if(span.status,equals,internal_error)'] ?? 0,
       inputTokens: Number(span['sum(gen_ai.usage.input_tokens)']),
       inputCachedTokens: Number(span['sum(gen_ai.usage.input_tokens.cached)']),
       outputTokens: Number(span['sum(gen_ai.usage.output_tokens)']),
@@ -170,7 +154,6 @@ export function ModelsTable() {
       return (
         <HeadSortCell
           sortKey={column.key}
-          cursorParamName="modelsCursor"
           forceCellGrow={column.key === 'model'}
           align={rightAlignColumns.has(column.key) ? 'right' : undefined}
           onClick={handleSort}
@@ -202,12 +185,12 @@ export function ModelsTable() {
           grid={{
             renderBodyCell,
             renderHeadCell,
-            onResizeColumn,
+            onResizeColumn: handleResizeColumn,
           }}
         />
         {modelsRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
-      <Pagination pageLinks={modelsRequest.pageLinks} onCursor={handleCursor} />
+      <Pagination pageLinks={modelsRequest.pageLinks} onCursor={setCursor} />
     </Fragment>
   );
 }
@@ -277,12 +260,12 @@ const BodyCell = memo(function BodyCell({
       return <DurationCell milliseconds={dataRow.p95} />;
     case 'sum(gen_ai.usage.total_cost)':
       return <TextAlignRight>{formatLLMCosts(dataRow.cost)}</TextAlignRight>;
-    case 'count_if(span.status,equals,unknown)':
+    case 'count_if(span.status,equals,internal_error)':
       return (
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            query: `${query} span.status:unknown gen_ai.request.model:${dataRow.model}`,
+            query: `${query} span.status:internal_error gen_ai.request.model:"${dataRow.model}"`,
             organization,
             selection,
             referrer: Referrer.MODELS_TABLE,

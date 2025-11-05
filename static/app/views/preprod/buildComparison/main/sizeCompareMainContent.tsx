@@ -15,7 +15,6 @@ import {
   IconChevron,
   IconCode,
   IconDownload,
-  IconFile,
   IconRefresh,
   IconSearch,
 } from 'sentry/icons';
@@ -39,6 +38,7 @@ import type {
   SizeAnalysisComparisonResults,
   SizeComparisonApiResponse,
 } from 'sentry/views/preprod/types/appSizeTypes';
+import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
 
 export function SizeCompareMainContent() {
   const organization = useOrganization();
@@ -100,9 +100,11 @@ export function SizeCompareMainContent() {
       );
     },
     onError: error => {
-      addErrorMessage(
-        error?.message || t('Failed to trigger comparison. Please try again.')
-      );
+      const errorMessage =
+        (typeof error?.responseJSON?.error === 'string'
+          ? error?.responseJSON.error
+          : null) ?? t('Failed to trigger comparison. Please try again.');
+      addErrorMessage(errorMessage);
     },
   });
 
@@ -112,7 +114,7 @@ export function SizeCompareMainContent() {
       return [];
     }
 
-    const {diff_items, size_metric_diff_item} = comparisonDataQuery.data;
+    const {size_metric_diff_item} = comparisonDataQuery.data;
 
     // Calculate summary data
     const installSizeDiff =
@@ -124,14 +126,13 @@ export function SizeCompareMainContent() {
     const downloadSizePercentage =
       downloadSizeDiff / size_metric_diff_item.base_download_size;
 
-    const largestChange = diff_items.sort(
-      (a, b) => Math.abs(b.size_diff) - Math.abs(a.size_diff)
-    )[0];
-
+    const labels = getLabels(
+      sizeComparisonQuery.data?.head_build_details.app_info?.platform ?? undefined
+    );
     // Calculate metrics
     const metrics = [
       {
-        title: t('Install Size'),
+        title: labels.installSizeLabel,
         head: size_metric_diff_item.head_install_size,
         base: size_metric_diff_item.base_install_size,
         diff:
@@ -141,7 +142,7 @@ export function SizeCompareMainContent() {
         icon: IconCode,
       },
       {
-        title: t('Download Size'),
+        title: labels.downloadSizeLabel,
         head: size_metric_diff_item.head_download_size,
         base: size_metric_diff_item.base_download_size,
         diff:
@@ -150,17 +151,10 @@ export function SizeCompareMainContent() {
         percentageChange: downloadSizePercentage,
         icon: IconDownload,
       },
-      {
-        title: t('Largest change'),
-        head: largestChange ? largestChange?.head_size || 0 : 0,
-        base: largestChange ? largestChange?.base_size || 0 : 0,
-        diff: largestChange ? largestChange?.size_diff || 0 : 0,
-        icon: IconFile,
-      },
     ];
 
     return metrics;
-  }, [comparisonDataQuery.data]);
+  }, [comparisonDataQuery.data, sizeComparisonQuery.data]);
 
   // Filter diff items based on the toggle and search query
   const filteredDiffItems = useMemo(() => {
@@ -360,9 +354,8 @@ export function SizeCompareMainContent() {
         <Flex direction="column" gap="0">
           <Flex align="center" justify="between" padding="xl">
             <Flex align="center" gap="sm">
-              <Heading as="h2">{t('Items Changed:')}</Heading>
-              <Heading as="h2" variant="muted">
-                {filteredDiffItems.length}
+              <Heading as="h2">
+                {t('Items Changed: %s', comparisonDataQuery.data?.diff_items.length)}
               </Heading>
             </Flex>
             <Flex align="center" gap="sm">
@@ -403,7 +396,7 @@ export function SizeCompareMainContent() {
                   />
                 </InputGroup>
                 <Flex align="center" gap="lg" wrap="nowrap">
-                  <Text wrap="nowrap">{t('Hide small changes (< 500B)')}</Text>
+                  <Text wrap="nowrap">{t('Hide changes < 500B')}</Text>
                   <Switch
                     checked={hideSmallChanges}
                     size="sm"
@@ -415,7 +408,11 @@ export function SizeCompareMainContent() {
                   />
                 </Flex>
               </Flex>
-              <SizeCompareItemDiffTable diffItems={filteredDiffItems} />
+              <SizeCompareItemDiffTable
+                diffItems={filteredDiffItems}
+                originalItemCount={comparisonDataQuery.data?.diff_items.length ?? 0}
+                disableHideSmallChanges={() => setHideSmallChanges(!hideSmallChanges)}
+              />
             </Stack>
           )}
         </Flex>

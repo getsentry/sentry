@@ -25,7 +25,6 @@ from sentry.analytics.events.repo_linked import RepoLinkedEvent
 from sentry.analytics.events.search_saved import SearchSavedEvent
 from sentry.analytics.events.sso_enabled import SSOEnabledEvent
 from sentry.analytics.events.team_created import TeamCreatedEvent
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.analytics import (
     IntegrationAddedEvent,
     IntegrationIssueCreatedEvent,
@@ -40,6 +39,7 @@ from sentry.models.project import Project
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.services.eventstore.models import GroupEvent
 from sentry.signals import (
     advanced_search,
     advanced_search_feature_gated,

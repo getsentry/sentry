@@ -1,10 +1,10 @@
 ---
-created: '2025-09-24T22:53:02.544609+00:00'
+created: '2025-10-27T23:46:00.935747+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because custom server fingerprint takes precedence",
@@ -20,6 +20,24 @@ source: tests/sentry/grouping/test_grouping_info.py
             {
               "contributes": true,
               "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "SoftTimeLimitExceeded"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "SoftTimeLimitExceeded()"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
               "id": "stacktrace",
               "name": "stacktrace",
               "values": [
@@ -772,24 +790,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "SoftTimeLimitExceeded"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "SoftTimeLimitExceeded()"
-              ]
             }
           ]
         }
@@ -815,10 +815,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stacktrace",
+    "contributes": false,
+    "description": "exception stacktrace — in-app frames",
     "hash": null,
     "hint": "ignored because custom server fingerprint takes precedence",
-    "key": "app",
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
   "custom_fingerprint": {
@@ -827,6 +828,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       "SoftTimeLimitExceeded",
       "sentry.tasks.store.process_event"
     ],
+    "contributes": true,
     "description": "custom fingerprint",
     "hash": "554e214208f0372603dc9fa6c1c0965f",
     "hint": null,
@@ -837,7 +839,7 @@ source: tests/sentry/grouping/test_grouping_info.py
       "soft-timelimit-exceeded"
     ]
   },
-  "system": {
+  "system_exception_stacktrace": {
     "component": {
       "contributes": false,
       "hint": "ignored because custom server fingerprint takes precedence",
@@ -853,6 +855,24 @@ source: tests/sentry/grouping/test_grouping_info.py
             {
               "contributes": true,
               "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "SoftTimeLimitExceeded"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "SoftTimeLimitExceeded()"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
               "id": "stacktrace",
               "name": "stacktrace",
               "values": [
@@ -1605,24 +1625,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "SoftTimeLimitExceeded"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "SoftTimeLimitExceeded()"
-              ]
             }
           ]
         }
@@ -1648,10 +1650,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "exception stacktrace",
+    "contributes": false,
+    "description": "exception stacktrace — all frames",
     "hash": null,
     "hint": "ignored because custom server fingerprint takes precedence",
-    "key": "system",
+    "key": "system_exception_stacktrace",
     "type": "component"
   }
 }

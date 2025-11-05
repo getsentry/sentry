@@ -13,8 +13,13 @@ import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import type {OnDemandBudgetMode, OnDemandBudgets, Subscription} from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
+import type {
+  OnDemandBudgetMode,
+  OnDemandBudgets,
+  Plan,
+  Subscription,
+} from 'getsentry/types';
+import {displayBudgetName, hasNewBillingUI} from 'getsentry/utils/billing';
 
 import OnDemandBudgetEdit from './onDemandBudgetEdit';
 import {
@@ -26,14 +31,22 @@ import {
   trackOnDemandBudgetAnalytics,
 } from './utils';
 
-const ONDEMAND_BUDGET_SAVE_ERROR = t('Unable to save your on-demand budgets.');
-const PAYG_BUDGET_SAVE_ERROR = t('Unable to save your pay-as-you-go budget.');
-const ONDEMAND_BUDGET_EXCEEDS_INVOICED_LIMIT = t(
-  'Your on-demand budget cannot exceed 5 times your monthly plan price.'
-);
-const PAYG_BUDGET_EXCEEDS_INVOICED_LIMIT = t(
-  'Your pay-as-you-go budget cannot exceed 5 times your monthly plan price.'
-);
+function getBudgetSaveError(plan: Plan) {
+  return t(
+    'Unable to save your %s',
+    displayBudgetName(plan, {
+      pluralOndemand: true,
+      withBudget: true,
+    })
+  );
+}
+
+function getBudgetExceededInvoicedLimitError(plan: Plan) {
+  return t(
+    'Your %s cannot exceed 5 times your monthly plan price.',
+    displayBudgetName(plan, {withBudget: true})
+  );
+}
 
 type Props = {
   api: Client;
@@ -79,7 +92,7 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
       if (listOfErrors.length === 0) {
         return (
           <Alert system type="error">
-            {ONDEMAND_BUDGET_SAVE_ERROR}
+            {getBudgetSaveError(this.props.subscription.planDetails)}
           </Alert>
         );
       }
@@ -119,10 +132,7 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
     const newOnDemandBudget = normalizeOnDemandBudget(this.state.onDemandBudget);
 
     if (exceedsInvoicedBudgetLimit(subscription, newOnDemandBudget)) {
-      const message =
-        subscription.planDetails.budgetTerm === 'pay-as-you-go'
-          ? PAYG_BUDGET_EXCEEDS_INVOICED_LIMIT
-          : ONDEMAND_BUDGET_EXCEEDS_INVOICED_LIMIT;
+      const message = getBudgetExceededInvoicedLimitError(subscription.planDetails);
       this.setState({
         updateError: message,
       });
@@ -166,40 +176,36 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
       return true;
     } catch (response: any) {
       const updateError =
-        (response?.responseJSON ??
-        subscription.planDetails.budgetTerm === 'pay-as-you-go')
-          ? PAYG_BUDGET_SAVE_ERROR
-          : ONDEMAND_BUDGET_SAVE_ERROR;
+        response?.responseJSON ?? getBudgetSaveError(subscription.planDetails);
       this.setState({
         updateError,
       });
-      addErrorMessage(
-        subscription.planDetails.budgetTerm === 'pay-as-you-go'
-          ? PAYG_BUDGET_SAVE_ERROR
-          : ONDEMAND_BUDGET_SAVE_ERROR
-      );
+      addErrorMessage(getBudgetSaveError(subscription.planDetails));
       return false;
     }
   };
 
   render() {
     const {Header, Footer, subscription, organization} = this.props;
+    const isNewBillingUI = hasNewBillingUI(organization);
     const onDemandBudgets = subscription.onDemandBudgets!;
 
     return (
       <Fragment>
-        <Header closeButton>
-          <h4>
-            {tct('[action] [budgetType]', {
-              action: onDemandBudgets.enabled ? t('Edit') : t('Set Up'),
-              budgetType: displayBudgetName(subscription.planDetails, {
-                title: true,
-                withBudget: true,
-                pluralOndemand: true,
-              }),
-            })}
-          </h4>
-        </Header>
+        {!isNewBillingUI && (
+          <Header closeButton>
+            <h4>
+              {tct('[action] [budgetType]', {
+                action: onDemandBudgets.enabled ? t('Edit') : t('Set Up'),
+                budgetType: displayBudgetName(subscription.planDetails, {
+                  title: true,
+                  withBudget: true,
+                  pluralOndemand: true,
+                }),
+              })}
+            </h4>
+          </Header>
+        )}
         <OffsetBody>
           {this.renderError(this.state.updateError)}
           <OnDemandBudgetEdit

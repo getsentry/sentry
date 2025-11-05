@@ -67,11 +67,7 @@ export interface PageFiltersState {
 }
 
 interface PageFiltersStoreDefinition extends StrictStoreDefinition<PageFiltersState> {
-  onInitializeUrlState(
-    newSelection: PageFilters,
-    pinned: Set<PinnedPageFilter>,
-    persist?: boolean
-  ): void;
+  onInitializeUrlState(newSelection: PageFilters, persist?: boolean): void;
   onReset(): void;
   pin(filter: PinnedPageFilter, pin: boolean): void;
   reset(selection?: PageFilters): void;
@@ -110,12 +106,12 @@ const storeConfig: PageFiltersStoreDefinition = {
   /**
    * Initializes the page filters store data
    */
-  onInitializeUrlState(newSelection, pinned, persist = true) {
+  onInitializeUrlState(newSelection, persist = true) {
     this.state = {
       ...this.state,
       isReady: true,
       selection: newSelection,
-      pinnedFilters: pinned,
+      pinnedFilters: new Set<PinnedPageFilter>(['projects', 'environments', 'datetime']),
       shouldPersist: persist,
     };
     this.trigger(this.getState());

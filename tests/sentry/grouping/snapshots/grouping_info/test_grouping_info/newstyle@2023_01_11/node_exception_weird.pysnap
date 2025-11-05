@@ -1,10 +1,10 @@
 ---
-created: '2025-09-24T22:53:05.278941+00:00'
+created: '2025-10-27T23:46:03.272156+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -20,6 +20,24 @@ source: tests/sentry/grouping/test_grouping_info.py
             {
               "contributes": true,
               "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "Error"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "bla"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
               "id": "stacktrace",
               "name": "stacktrace",
               "values": [
@@ -446,24 +464,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "Error"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "bla"
-              ]
             }
           ]
         }
@@ -489,13 +489,14 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stacktrace",
+    "contributes": true,
+    "description": "exception stacktrace — in-app frames",
     "hash": "a20509269752c9a1bea6078851e4d39c",
     "hint": null,
-    "key": "app",
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
-  "system": {
+  "system_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -511,6 +512,24 @@ source: tests/sentry/grouping/test_grouping_info.py
             {
               "contributes": true,
               "hint": null,
+              "id": "type",
+              "name": null,
+              "values": [
+                "Error"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "bla"
+              ]
+            },
+            {
+              "contributes": true,
+              "hint": null,
               "id": "stacktrace",
               "name": "stacktrace",
               "values": [
@@ -937,24 +956,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": true,
-              "hint": null,
-              "id": "type",
-              "name": null,
-              "values": [
-                "Error"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "bla"
-              ]
             }
           ]
         }
@@ -980,10 +981,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "exception stacktrace",
+    "contributes": true,
+    "description": "exception stacktrace — all frames",
     "hash": "252dc79eb5653bf822e2684d90734cb8",
     "hint": null,
-    "key": "system",
+    "key": "system_exception_stacktrace",
     "type": "component"
   }
 }

@@ -24,6 +24,7 @@ import type {NewQuery, Organization} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -354,20 +355,29 @@ function ReleaseOverview() {
             />
           </ReleaseDetailsPageFilters>
           {(hasDiscover || hasPerformance || hasHealthData) && (
-            <ReleaseComparisonChart
-              release={release}
-              releaseSessions={thisRelease}
-              allSessions={allReleases}
-              platform={project.platform}
-              location={location}
-              loading={loading}
-              reloading={reloading}
-              errored={errored}
-              project={project}
-              organization={organization}
-              api={api}
-              hasHealthData={hasHealthData}
-            />
+            <DemoTourElement
+              id={DemoTourStep.RELEASES_CHART}
+              title={t('Release-specific trends')}
+              description={t(
+                'Track key metrics like crash free session rate, failure rate and more.'
+              )}
+              position="top-end"
+            >
+              <ReleaseComparisonChart
+                release={release}
+                releaseSessions={thisRelease}
+                allSessions={allReleases}
+                platform={project.platform}
+                location={location}
+                loading={loading}
+                reloading={reloading}
+                errored={errored}
+                project={project}
+                organization={organization}
+                api={api}
+                hasHealthData={hasHealthData}
+              />
+            </DemoTourElement>
           )}
           <ReleaseIssues
             organization={organization}
@@ -392,57 +402,68 @@ function ReleaseOverview() {
             />
           </Feature>
         </Layout.Main>
-        <Layout.Side>
-          <ReleaseStats organization={organization} release={release} project={project} />
-          {hasHealthData && (
-            <ReleaseAdoption
-              releaseSessions={thisRelease}
-              allSessions={allReleases}
-              loading={loading}
-              reloading={reloading}
-              errored={errored}
+        <DemoTourElement
+          id={DemoTourStep.RELEASES_STATS}
+          title={t('Release stats')}
+          description={t('Track release adoption, commit stats, and more.')}
+          position="left-start"
+        >
+          <Layout.Side>
+            <ReleaseStats
+              organization={organization}
               release={release}
               project={project}
-              environment={environments}
             />
-          )}
-          <ProjectReleaseDetails
-            release={release}
-            releaseMeta={releaseMeta}
-            project={project}
-          />
-          {commitCount > 0 && (
-            <CommitAuthorBreakdown
-              version={version}
-              orgId={organization.slug}
-              projectSlug={project.slug}
+            {hasHealthData && (
+              <ReleaseAdoption
+                releaseSessions={thisRelease}
+                allSessions={allReleases}
+                loading={loading}
+                reloading={reloading}
+                errored={errored}
+                release={release}
+                project={project}
+                environment={environments}
+              />
+            )}
+            <ProjectReleaseDetails
+              release={release}
+              releaseMeta={releaseMeta}
+              project={project}
             />
-          )}
-          {releaseMeta.projects.length > 1 && (
-            <OtherProjects
-              projects={releaseMeta.projects.filter(p => p.slug !== project.slug)}
-              location={location}
-              version={version}
-              organization={organization}
-            />
-          )}
-          {hasHealthData && (
-            <TotalCrashFreeUsers
-              organization={organization}
-              version={version}
-              projectSlug={project.slug}
-              location={location}
-            />
-          )}
-          {deploys.length > 0 && (
-            <Deploys
-              version={version}
-              orgSlug={organization.slug}
-              deploys={deploys}
-              projectId={project.id}
-            />
-          )}
-        </Layout.Side>
+            {commitCount > 0 && (
+              <CommitAuthorBreakdown
+                version={version}
+                orgId={organization.slug}
+                projectSlug={project.slug}
+              />
+            )}
+            {releaseMeta.projects.length > 1 && (
+              <OtherProjects
+                projects={releaseMeta.projects.filter(p => p.slug !== project.slug)}
+                location={location}
+                version={version}
+                organization={organization}
+              />
+            )}
+            {hasHealthData && (
+              <TotalCrashFreeUsers
+                organization={organization}
+                version={version}
+                projectSlug={project.slug}
+                location={location}
+              />
+            )}
+            {deploys.length > 0 && (
+              <Deploys
+                version={version}
+                orgSlug={organization.slug}
+                deploys={deploys}
+                projectId={project.id}
+              />
+            )}
+          </Layout.Side>
+        </DemoTourElement>
       </Layout.Body>
     </Fragment>
   );

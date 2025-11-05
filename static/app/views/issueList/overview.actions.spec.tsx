@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {
   render,
@@ -84,8 +83,6 @@ describe('IssueListOverview (actions)', () => {
     TagStore.init?.();
   });
 
-  const defaultProps = RouteComponentPropsFixture();
-
   describe('status', () => {
     const group1 = GroupFixture({
       id: '1',
@@ -123,7 +120,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {organization});
+      render(<IssueListOverview />, {organization});
 
       const groups = await screen.findAllByTestId('group');
 
@@ -161,7 +158,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {
+      render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig: {
@@ -223,7 +220,7 @@ describe('IssueListOverview (actions)', () => {
 
       render(
         <Fragment>
-          <IssueListOverview {...defaultProps} />
+          <IssueListOverview />
           <Indicators />
         </Fragment>,
         {organization}
@@ -311,7 +308,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {
+      render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig: {
@@ -387,7 +384,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {
+      render(<IssueListOverview />, {
         organization,
       });
 
@@ -430,7 +427,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {
+      render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig: {
@@ -473,7 +470,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview {...defaultProps} />, {
+      render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig: {

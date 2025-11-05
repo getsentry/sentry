@@ -11,7 +11,7 @@ from typing import Any, cast
 import sentry_sdk
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
-from sentry.performance_issues.types import SentryTags as PerformanceIssuesSentryTags
+from sentry.issue_detection.types import SentryTags as PerformanceIssuesSentryTags
 from sentry.spans.consumers.process_segments.types import (
     CompatibleSpan,
     attribute_value,
@@ -33,7 +33,6 @@ def make_compatible(span: SpanEvent) -> CompatibleSpan:
         "sentry_tags": _sentry_tags(span.get("attributes") or {}),
         "op": get_span_op(span),
         "exclusive_time": attribute_value(span, "sentry.exclusive_time_ms"),
-        "is_segment": bool(attribute_value(span, "sentry.is_segment")),
     }
 
     return ret

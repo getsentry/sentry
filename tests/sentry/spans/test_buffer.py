@@ -16,7 +16,6 @@ DEFAULT_OPTIONS = {
     "spans.buffer.root-timeout": 10,
     "spans.buffer.segment-page-size": 100,
     "spans.buffer.max-segment-bytes": 10 * 1024 * 1024,
-    "spans.buffer.max-segment-spans": 1001,
     "spans.buffer.redis-ttl": 3600,
     "spans.buffer.max-flush-segments": 500,
     "spans.buffer.max-memory-percentage": 1.0,
@@ -46,9 +45,9 @@ def _output_segment(span_id: bytes, segment_id: bytes, is_segment: bool) -> Outp
     return OutputSpan(
         payload={
             "span_id": span_id.decode("ascii"),
+            "is_segment": is_segment,
             "attributes": {
                 "sentry.segment.id": {"type": "string", "value": segment_id.decode("ascii")},
-                "sentry.is_segment": {"type": "boolean", "value": is_segment},
             },
         }
     )

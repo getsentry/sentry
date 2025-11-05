@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo, useState} from 'react';
 
-import {defined} from 'sentry/utils';
+import {useResettableState} from 'sentry/utils/useResettableState';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {defaultSortBys} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
@@ -13,12 +13,15 @@ import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
 import {defaultGroupBys} from 'sentry/views/explore/queryParams/groupBy';
 import {defaultMode} from 'sentry/views/explore/queryParams/mode';
 import {defaultQuery} from 'sentry/views/explore/queryParams/query';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {
+  ReadableQueryParams,
+  type ReadableQueryParamsOptions,
+} from 'sentry/views/explore/queryParams/readableQueryParams';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 interface LogsStateQueryParamsProviderProps {
   children: ReactNode;
-  frozenParams?: Partial<ReadableQueryParams>;
+  frozenParams?: Partial<ReadableQueryParamsOptions>;
 }
 
 export function LogsStateQueryParamsProvider({
@@ -65,7 +68,7 @@ export function LogsStateQueryParamsProvider({
 
   const readableQueryParams = useMemo(
     () =>
-      frozenParams ? {..._readableQueryParams, ...frozenParams} : _readableQueryParams,
+      frozenParams ? _readableQueryParams.replace(frozenParams) : _readableQueryParams,
     [_readableQueryParams, frozenParams]
   );
 
@@ -90,21 +93,4 @@ export function LogsStateQueryParamsProvider({
 
 function defaultAggregateFields() {
   return [...defaultGroupBys(), ...defaultVisualizes()];
-}
-
-function useResettableState<T>(defaultValue: () => T) {
-  const [state, _setState] = useState<T>(defaultValue());
-
-  const setState = useCallback(
-    (newState: T | null | undefined) => {
-      if (defined(newState)) {
-        _setState(newState);
-      } else if (newState === null) {
-        _setState(defaultValue());
-      }
-    },
-    [defaultValue]
-  );
-
-  return [state, setState] as const;
 }

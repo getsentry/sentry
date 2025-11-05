@@ -15,13 +15,13 @@ import {
   isDefaultFields,
 } from 'sentry/views/explore/logs/logsQueryParams';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
-import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 interface LogsLocationQueryParamsProviderProps {
   children: ReactNode;
   // Will override the frozen params from the location if the key is provided.
-  frozenParams?: Partial<ReadableQueryParams>;
+  frozenParams?: Partial<ReadableQueryParamsOptions>;
 }
 
 export function LogsLocationQueryParamsProvider({
@@ -40,18 +40,13 @@ export function LogsLocationQueryParamsProvider({
 
   const readableQueryParams = useMemo(
     () =>
-      frozenParams ? {..._readableQueryParams, ...frozenParams} : _readableQueryParams,
+      frozenParams ? _readableQueryParams.replace(frozenParams) : _readableQueryParams,
     [_readableQueryParams, frozenParams]
   );
 
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
       const toPersist: Partial<PersistedLogsPageParams> = {};
-
-      const fields = writableQueryParams.fields;
-      if (defined(fields)) {
-        toPersist.fields = fields;
-      }
 
       const sortBys = writableQueryParams.sortBys;
       if (defined(sortBys)) {

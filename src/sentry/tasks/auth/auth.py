@@ -15,7 +15,6 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import auth_control_tasks, auth_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.region import RegionMappingNotFound
@@ -29,11 +28,9 @@ logger = logging.getLogger("sentry.auth")
 
 @instrumented_task(
     name="sentry.tasks.send_sso_link_emails_control",
-    queue="auth.control",
+    namespace=auth_control_tasks,
+    processing_deadline_duration=30,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(
-        namespace=auth_control_tasks, processing_deadline_duration=30
-    ),
 )
 def email_missing_links_control(org_id: int, actor_id: int, provider_key: str, **kwargs):
     # This seems dumb as the region method is the same, but we need to keep

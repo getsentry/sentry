@@ -134,9 +134,35 @@ const styles = (theme: Theme, isDark: boolean) => css`
       z-index: ${theme.zIndex.sentryErrorEmbed};
     }
 
+    .loading .loading-indicator {
+      background: transparent;
+    }
+
     color: ${theme.textColor};
-    background: ${theme.backgroundSecondary};
+    background: ${theme.tokens.background.primary};
   }
+
+  ${theme.type === 'dark' &&
+  css`
+    /*this updates styles set by base.less to match our theme*/
+    body.theme-dark {
+      background: ${theme.tokens.background.primary};
+      color: ${theme.textColor};
+    }
+    body.theme-system {
+      @media (prefers-color-scheme: dark) {
+        background: ${theme.tokens.background.primary};
+        color: ${theme.textColor};
+      }
+    }
+    /*this updates styles set by shared-components.less to match our theme*/
+    .theme-dark .loading .loading-indicator {
+      background: transparent;
+    }
+    .theme-dark .loading.triangle .loading-indicator {
+      background: #fff;
+    }
+  `}
 
   abbr {
     ${theme.tooltipUnderline()};

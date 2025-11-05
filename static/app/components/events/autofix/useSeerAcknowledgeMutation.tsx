@@ -21,8 +21,20 @@ export function useSeerAcknowledgeMutation() {
       });
     },
     onSuccess: () => {
+      // Invalidate organization-level setup check
       queryClient.invalidateQueries({
         queryKey: [setupCheckQueryKey(organization.slug)],
+      });
+      // Invalidate all group-level autofix setup queries
+      queryClient.invalidateQueries({
+        predicate: query => {
+          const key = query.queryKey[0];
+          return (
+            typeof key === 'string' &&
+            key.includes(`/organizations/${organization.slug}/issues/`) &&
+            key.includes('/autofix/setup/')
+          );
+        },
       });
     },
   });

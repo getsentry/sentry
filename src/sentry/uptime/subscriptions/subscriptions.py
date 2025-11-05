@@ -17,9 +17,8 @@ from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.types.actor import Actor
-from sentry.uptime.detectors.url_extraction import extract_domain_parts
+from sentry.uptime.autodetect.url_extraction import extract_domain_parts
 from sentry.uptime.models import (
-    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
     get_uptime_subscription,
@@ -40,6 +39,7 @@ from sentry.uptime.types import (
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
     UptimeMonitorMode,
 )
+from sentry.uptime.utils import build_fingerprint, build_last_update_key, get_cluster
 from sentry.utils.db import atomic_transaction
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.outcomes import Outcome
@@ -55,14 +55,6 @@ UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
 MAX_AUTO_SUBSCRIPTIONS_PER_ORG = 1
 MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
 MAX_MONITORS_PER_DOMAIN = 100
-
-
-def build_detector_fingerprint_component(detector: Detector) -> str:
-    return f"uptime-detector:{detector.id}"
-
-
-def build_fingerprint(detector: Detector) -> list[str]:
-    return [build_detector_fingerprint_component(detector)]
 
 
 def resolve_uptime_issue(detector: Detector) -> None:
@@ -84,6 +76,23 @@ def resolve_uptime_issue(detector: Detector) -> None:
 
 class MaxManualUptimeSubscriptionsReached(ValueError):
     pass
+
+
+def check_uptime_subscription_limit(organization_id: int) -> None:
+    """
+    Check if adding a new manual uptime monitor would exceed the organization's limit.
+    Raises MaxManualUptimeSubscriptionsReached if the limit would be exceeded.
+    """
+    manual_subscription_count = Detector.objects.filter(
+        status=ObjectStatus.ACTIVE,
+        enabled=True,
+        type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+        project__organization_id=organization_id,
+        config__mode=UptimeMonitorMode.MANUAL,
+    ).count()
+
+    if manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG:
+        raise MaxManualUptimeSubscriptionsReached
 
 
 class UptimeMonitorNoSeatAvailable(Exception):
@@ -112,7 +121,6 @@ def create_uptime_subscription(
     headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
     trace_sampling: bool = False,
-    uptime_status: UptimeStatus = UptimeStatus.OK,
 ) -> UptimeSubscription:
     """
     Creates a new uptime subscription. This creates the row in postgres, and fires a task that will send the config
@@ -136,7 +144,6 @@ def create_uptime_subscription(
         headers=headers,  # type: ignore[misc]
         body=body,
         trace_sampling=trace_sampling,
-        uptime_status=uptime_status,
     )
 
     # Associate active regions with this subscription
@@ -234,13 +241,6 @@ def create_uptime_detector(
     Creates an UptimeSubscription and associated Detector
     """
     if mode == UptimeMonitorMode.MANUAL:
-        manual_subscription_count = Detector.objects.filter(
-            status=ObjectStatus.ACTIVE,
-            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-            project__organization=project.organization,
-            config__mode=UptimeMonitorMode.MANUAL,
-        ).count()
-
         # Once a user has created a subscription manually, make sure we disable all autodetection, and remove any
         # onboarding monitors
         if project.organization.get_option("sentry:uptime_autodetection", False):
@@ -250,11 +250,8 @@ def create_uptime_detector(
             ):
                 delete_uptime_detector(detector)
 
-        if (
-            not override_manual_org_limit
-            and manual_subscription_count >= MAX_MANUAL_SUBSCRIPTIONS_PER_ORG
-        ):
-            raise MaxManualUptimeSubscriptionsReached
+        if not override_manual_org_limit:
+            check_uptime_subscription_limit(project.organization_id)
 
     with atomic_transaction(
         using=(
@@ -274,7 +271,6 @@ def create_uptime_detector(
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
-            uptime_status=UptimeStatus.OK,
         )
         owner_user_id = None
         owner_team_id = None
@@ -452,13 +448,18 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
         if not detector.enabled:
             return
 
-        if uptime_subscription.uptime_status == UptimeStatus.FAILED:
+        detector_state = detector.detectorstate_set.first()
+        if detector_state and detector_state.is_triggered:
             # Resolve the issue so that we don't see it in the ui anymore
             resolve_uptime_issue(detector)
 
-        # We set the status back to ok here so that if we re-enable we'll start
-        # from a good state
-        uptime_subscription.update(uptime_status=UptimeStatus.OK)
+            # We set the status back to ok here so that if we re-enable we'll
+            # start from a good state
+            detector_state.update(state=DetectorPriorityLevel.OK, is_triggered=False)
+
+        cluster = get_cluster()
+        last_update_key = build_last_update_key(detector)
+        cluster.delete(last_update_key)
 
         detector.update(enabled=False)
 
@@ -491,7 +492,7 @@ def enable_uptime_detector(
     are no available seats the monitor will be disabled and a
     `UptimeMonitorNoSeatAvailable` will be raised.
 
-    By default if the monitor is already marked as ACTIVE this function is a
+    By default if the detector is already marked as enabled this function is a
     no-op. Pass `ensure_assignment=True` to force seat assignment.
     """
     if not ensure_assignment and detector.enabled:
@@ -528,20 +529,7 @@ def delete_uptime_detector(detector: Detector):
     quotas.backend.remove_seat(DataCategory.UPTIME, detector)
     detector.update(status=ObjectStatus.PENDING_DELETION)
     RegionScheduledDeletion.schedule(detector, days=0)
-    remove_uptime_subscription_if_unused(uptime_subscription)
-
-
-def remove_uptime_subscription_if_unused(uptime_subscription: UptimeSubscription):
-    """
-    Determines if an uptime subscription is no longer used by any detectors and removes it if so
-    """
-    # If the uptime subscription is no longer used, we also remove it.
-    has_active_detector = Detector.objects.filter(
-        data_sources__source_id=str(uptime_subscription.id),
-        status=ObjectStatus.ACTIVE,
-    ).exists()
-    if not has_active_detector:
-        delete_uptime_subscription(uptime_subscription)
+    delete_uptime_subscription(uptime_subscription)
 
 
 def is_url_auto_monitored_for_project(project: Project, url: str) -> bool:

@@ -6,6 +6,7 @@ import {space} from 'sentry/styles/space';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
+import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
 import {CronDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/cron/detect';
 import {
   CRON_DEFAULT_SCHEDULE_TYPE,
@@ -16,13 +17,7 @@ import {CronDetectorFormResolveSection} from 'sentry/views/detectors/components/
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 
-function CronDetectorForm({
-  detector,
-  isEditing,
-}: {
-  isEditing: boolean;
-  detector?: CronDetector;
-}) {
+function CronDetectorForm({detector}: {detector?: CronDetector}) {
   const dataSource = detector?.dataSources[0];
 
   return (
@@ -34,9 +29,10 @@ function CronDetectorForm({
           )}
         </Alert>
       )}
-      <CronDetectorFormDetectSection isEditing={isEditing} />
+      <CronDetectorFormDetectSection />
       <CronDetectorFormResolveSection />
       <AssignSection />
+      <DescribeSection />
       <AutomateSection />
     </FormStack>
   );
@@ -49,9 +45,10 @@ export function NewCronDetectorForm() {
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       initialFormData={{
         scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
+        name: 'New Monitor',
       }}
     >
-      <CronDetectorForm isEditing={false} />
+      <CronDetectorForm />
     </NewDetectorLayout>
   );
 }
@@ -63,7 +60,7 @@ export function EditExistingCronDetectorForm({detector}: {detector: CronDetector
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       savedDetectorToFormData={cronSavedDetectorToFormData}
     >
-      <CronDetectorForm isEditing detector={detector} />
+      <CronDetectorForm detector={detector} />
     </EditDetectorLayout>
   );
 }

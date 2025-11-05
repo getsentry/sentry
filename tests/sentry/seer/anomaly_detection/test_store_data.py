@@ -12,7 +12,7 @@ from sentry.snuba.models import SnubaQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.performance_issues.event_generators import get_event
+from sentry.testutils.issue_detection.event_generators import get_event
 from sentry.utils.snuba import SnubaTSResult
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
@@ -231,7 +231,7 @@ class AnomalyDetectionStoreDataTest(
             organization=self.organization, projects=[self.project], dataset=Dataset.Transactions
         )
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
-        event_data = get_event("n-plus-one-in-django-index-view")
+        event_data = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
         event_data["timestamp"] = self.time_1_ts
         event1 = self.create_performance_issue(event_data=make_event(**event_data))
         event_data["timestamp"] = self.time_2_ts

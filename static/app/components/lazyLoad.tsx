@@ -42,7 +42,7 @@ function LazyLoad<C extends React.LazyExoticComponent<any>>({
       <Suspense
         fallback={
           loadingFallback ?? (
-            <Flex flex="1" align="center">
+            <Flex flex="1" align="center" column="1 / -1">
               <LoadingIndicator />
             </Flex>
           )
@@ -78,6 +78,9 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
     if (process.env.NODE_ENV === 'development') {
       if (typeof module !== 'undefined' && module.hot) {
         module.hot.accept(this.handleRetry);
+
+        // Reset lazyload state itself on mount / hot replacement
+        this.handleRetry();
       }
     }
   }

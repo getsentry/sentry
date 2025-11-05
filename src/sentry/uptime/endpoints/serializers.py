@@ -120,8 +120,8 @@ class UptimeDetectorSerializer(Serializer):
             uptime_subscription
         )
 
-        if detector_state and detector_state.state in DETECTOR_PRIORITY_TO_UPTIME_STATUS:
-            uptime_status = DETECTOR_PRIORITY_TO_UPTIME_STATUS[detector_state.state]
+        if detector_state and detector_state.priority_level in DETECTOR_PRIORITY_TO_UPTIME_STATUS:
+            uptime_status = DETECTOR_PRIORITY_TO_UPTIME_STATUS[detector_state.priority_level]
         else:
             uptime_status = UptimeStatus.OK
 
@@ -200,7 +200,7 @@ class UptimeSummarySerializerResponse(TypedDict):
     failedChecks: int
     downtimeChecks: int
     missedWindowChecks: int
-    avgDurationUs: float | None
+    avgDurationUs: float
 
 
 @register(UptimeSummary)

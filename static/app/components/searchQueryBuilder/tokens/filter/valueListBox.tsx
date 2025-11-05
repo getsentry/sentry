@@ -57,7 +57,7 @@ function WildcardFooter({
   token: TokenResult<Token.FILTER>;
 }) {
   if (isWildcardOperator(token.operator)) {
-    return null;
+    return <Label>{t('Switch to "is" operator to use wildcard (*) matching')}</Label>;
   }
 
   if (canUseWildcard) {
@@ -174,7 +174,6 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
               listState={state}
               hasSearch={!!filterValue}
               hiddenOptions={hiddenOptions}
-              keyDownHandler={() => true}
               overlayIsOpen={isOpen}
               showSectionHeaders={!filterValue}
               size="sm"

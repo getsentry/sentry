@@ -7,6 +7,7 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
@@ -139,7 +140,7 @@ function SidebarContent() {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Getting Started with Session Replay')}</Heading>
-        <HeaderActions>
+        <Flex direction="row" justify="between" gap="2xl">
           <div
             onClick={e => {
               // we need to stop bubbling the CompactSelect click event
@@ -171,7 +172,7 @@ function SidebarContent() {
               position="bottom-end"
             />
           </div>
-        </HeaderActions>
+        </Flex>
         <OnboardingContent currentProject={selectedProject} hasDocs={hasDocs} />
       </TaskList>
     </Fragment>
@@ -192,10 +193,10 @@ function OnboardingContent({
       value: platform.id,
       textValue: platform.name,
       label: (
-        <PlatformLabel>
+        <Flex gap="md" align="center">
           <PlatformIcon platform={platform.id} size={16} />
           <TextOverflow>{platform.name}</TextOverflow>
-        </PlatformLabel>
+        </Flex>
       ),
     };
   });
@@ -268,7 +269,7 @@ function OnboardingContent({
             [
               'npm',
               backendPlatform ? (
-                <PlatformSelect key="platform-select">
+                <Flex gap="md" align="center" wrap="wrap" key="platform-select">
                   {tct('I use [platformSelect]', {
                     platformSelect: (
                       <CompactSelect
@@ -289,7 +290,7 @@ function OnboardingContent({
                       disabled={setupMode() === 'jsLoader'}
                     />
                   )}
-                </PlatformSelect>
+                </Flex>
               ) : (
                 t('I use NPM or Yarn')
               ),
@@ -303,7 +304,7 @@ function OnboardingContent({
         !mobilePlatform &&
         (docs?.platformOptions?.siblingOption || docs?.platformOptions?.packageManager) &&
         !isProjKeysLoading && (
-          <PlatformSelect>
+          <Flex gap="md" align="center" wrap="wrap">
             {tct("I'm using [platformSelect]", {
               platformSelect: (
                 <PlatformOptionDropdown
@@ -311,7 +312,7 @@ function OnboardingContent({
                 />
               ),
             })}
-          </PlatformSelect>
+          </Flex>
         )
       )}
     </Header>
@@ -439,26 +440,6 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
-`;
-
-const HeaderActions = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(3)};
-`;
-
-const PlatformLabel = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const PlatformSelect = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  flex-wrap: wrap;
 `;
 
 const StyledRadioGroup = styled(RadioGroup)`

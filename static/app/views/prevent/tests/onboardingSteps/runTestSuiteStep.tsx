@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import testAnalyticsPRCommentDark from 'sentry-images/features/test-analytics-pr-comment-dark.png';
 import testAnalyticsPRCommentLight from 'sentry-images/features/test-analytics-pr-comment-light.png';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
@@ -36,9 +36,9 @@ export function RunTestSuiteStep({step}: RunTestSuiteStepProps) {
               'You can inspect the workflow logs to see if the call to Sentry succeeded.'
             )}
           </Text>
-          <CodeSnippet language="text" dark hideCopyButton>
+          <CodeBlock language="text" dark hideCopyButton>
             {WORKFLOW_LOGS_SNIPPET}
-          </CodeSnippet>
+          </CodeBlock>
           <Text>
             {t(
               'Run your tests as usual. A failed test is needed to view the failed tests report.'

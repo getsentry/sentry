@@ -11,6 +11,7 @@ import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
+import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {
   AutofixStatus,
   AutofixStepType,
@@ -118,6 +119,7 @@ type AutofixSolutionProps = {
   runId: string;
   solution: AutofixSolutionTimelineEvent[];
   solutionSelected: boolean;
+  status: AutofixStatus;
   agentCommentThread?: CommentThread;
   changesDisabled?: boolean;
   customSolution?: string;
@@ -313,9 +315,7 @@ function CopySolutionButton({
   rootCause?: any;
 }) {
   const text = formatSolutionWithEvent(solution, customSolution, event, rootCause);
-  const {onClick, label} = useCopyToClipboard({
-    text,
-  });
+  const {copy} = useCopyToClipboard();
 
   if (isEditing) {
     return null;
@@ -324,9 +324,8 @@ function CopySolutionButton({
   return (
     <Button
       size="sm"
-      aria-label={label}
       title="Copy plan as Markdown / LLM prompt"
-      onClick={onClick}
+      onClick={() => copy(text, {successMessage: t('Solution copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Solution as Markdown"
       analyticsEventKey="autofix.solution.copy"
       icon={<IconCopy />}
@@ -341,6 +340,7 @@ function AutofixSolutionDisplay({
   description,
   groupId,
   runId,
+  status,
   previousDefaultStepIndex,
   previousInsightCount,
   customSolution,
@@ -656,6 +656,9 @@ function AutofixSolutionDisplay({
             </Button>
           </Tooltip>
         </ButtonBar>
+        {status === AutofixStatus.COMPLETED && (
+          <AutofixStepFeedback stepType="solution" groupId={groupId} runId={runId} />
+        )}
       </BottomFooter>
     </SolutionContainer>
   );

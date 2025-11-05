@@ -336,6 +336,33 @@ describe('MutableSearch', () => {
         `( a:a1 OR a:a2 ) ( b:${WildcardOperators.CONTAINS}b1 OR b:${WildcardOperators.CONTAINS}b2 ) ( c:${WildcardOperators.STARTS_WITH}c1 OR c:${WildcardOperators.STARTS_WITH}c2 ) ( d:${WildcardOperators.ENDS_WITH}d1 OR d:${WildcardOperators.ENDS_WITH}d2 )`
       );
     });
+
+    it('addFilterValueList', () => {
+      let results = new MutableSearch('');
+
+      results.addFilterValueList('a', ['a1', 'a2']);
+      expect(results.formatString()).toBe('a:[a1,a2]');
+
+      results.addContainsFilterValueList('b', ['b1', 'b2']);
+      expect(results.formatString()).toBe(
+        `a:[a1,a2] b:${WildcardOperators.CONTAINS}[b1,b2]`
+      );
+
+      results.addStartsWithFilterValueList('c', ['c1', 'c2']);
+      expect(results.formatString()).toBe(
+        `a:[a1,a2] b:${WildcardOperators.CONTAINS}[b1,b2] c:${WildcardOperators.STARTS_WITH}[c1,c2]`
+      );
+
+      results.addEndsWithFilterValueList('d', ['d1', 'd2']);
+      expect(results.formatString()).toBe(
+        `a:[a1,a2] b:${WildcardOperators.CONTAINS}[b1,b2] c:${WildcardOperators.STARTS_WITH}[c1,c2] d:${WildcardOperators.ENDS_WITH}[d1,d2]`
+      );
+
+      // Quotes values with commas to avoid breaking list parsing
+      results = new MutableSearch('');
+      results.addFilterValueList('message', [',testA,', ',testB,']);
+      expect(results.formatString()).toBe('message:[",testA,",",testB,"]');
+    });
   });
 
   describe('formatString', () => {

@@ -55,7 +55,6 @@ export function CommandsTable() {
       'p95(span.duration)',
       'sum(span.duration)',
     ],
-    cursorParamName: 'commandsCursor',
     referrer: Referrer.PATHS_TABLE,
   });
 
@@ -65,18 +64,16 @@ export function CommandsTable() {
         sortKey={column.key}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
         forceCellGrow={column.key === 'command'}
-        cursorParamName="commandsCursor"
       >
         {column.name}
       </HeadSortCell>
     );
   }, []);
 
+  type TableData = (typeof tableDataRequest.data)[number];
+
   const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<string>,
-      dataRow: (typeof tableDataRequest.data)[number]
-    ) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
         case 'command':
           return <CommandCell command={dataRow.command} />;
@@ -102,7 +99,7 @@ export function CommandsTable() {
           return <div />;
       }
     },
-    [tableDataRequest]
+    []
   );
 
   return (
@@ -110,13 +107,12 @@ export function CommandsTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={defaultColumnOrder}
+      initialColumnOrder={defaultColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       grid={{
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="commandsCursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />

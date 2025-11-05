@@ -24,8 +24,8 @@ function PlaceholderForm() {
   return (
     <Layout.Page>
       <Layout.Body>
-        <Layout.Main fullWidth>
-          <LoadingError message={t('This monitor type is not yet implemented')} />
+        <Layout.Main width="full">
+          <LoadingError message={t('This monitor type can not be created')} />
         </Layout.Main>
       </Layout.Body>
     </Layout.Page>
@@ -42,6 +42,8 @@ export function NewDetectorForm({detectorType}: {detectorType: DetectorType}) {
       return <NewErrorDetectorForm />;
     case 'monitor_check_in_failure':
       return <NewCronDetectorForm />;
+    case 'issue_stream':
+      return <PlaceholderForm />;
     default:
       unreachable(detectorType);
       return <PlaceholderForm />;

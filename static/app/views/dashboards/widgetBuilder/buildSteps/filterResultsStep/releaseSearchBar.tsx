@@ -3,7 +3,7 @@ import {useCallback} from 'react';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
-import {InvalidReason} from 'sentry/components/searchSyntax/parser';
+import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -22,6 +22,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
 const invalidMessages = {
+  ...defaultConfig.invalidMessages,
   [InvalidReason.WILDCARD_NOT_ALLOWED]: t("Release queries don't support wildcards."),
   [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
     "Release queries don't support free text search."

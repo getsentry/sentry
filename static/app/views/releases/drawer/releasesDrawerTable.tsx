@@ -94,7 +94,7 @@ export function ReleasesDrawerTable({
     project: d.projects[0]!,
     release: d.version,
     date: d.dateCreated,
-    error_count: d.newGroups ?? 0,
+    error_count: d.projects[0]?.newGroups ?? 0,
     project_id: d.projects[0]?.id ?? 0,
   }));
 

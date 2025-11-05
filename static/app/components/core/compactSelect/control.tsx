@@ -158,7 +158,7 @@ export interface ControlProps
    */
   menuFooter?:
     | React.ReactNode
-    | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+    | ((actions: {closeOverlay: () => void; resetSearch: () => void}) => React.ReactNode);
   /**
    * Items to be displayed in the trailing (right) side of the menu's header.
    */
@@ -200,7 +200,9 @@ export interface ControlProps
    * won't work correctly.
    */
   trigger?: (
-    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    props: Omit<React.HTMLAttributes<HTMLButtonElement>, 'children'> & {
+      ref?: React.Ref<HTMLButtonElement | null>;
+    },
     isOpen: boolean
   ) => React.ReactNode;
   /**
@@ -572,7 +574,10 @@ export function Control({
               {menuFooter && (
                 <MenuFooter>
                   {typeof menuFooter === 'function'
-                    ? menuFooter({closeOverlay: overlayState.close})
+                    ? menuFooter({
+                        closeOverlay: overlayState.close,
+                        resetSearch: () => updateSearch(''),
+                      })
                     : menuFooter}
                 </MenuFooter>
               )}

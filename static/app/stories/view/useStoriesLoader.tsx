@@ -15,6 +15,7 @@ export interface StoryResources {
 export interface MDXStoryDescriptor {
   exports: {
     default: React.ComponentType | any;
+    documentation?: TypeLoader.TypeLoaderResult;
     frontmatter?: {
       description: string;
       title: string;
@@ -24,9 +25,6 @@ export interface MDXStoryDescriptor {
       status?: 'in-progress' | 'experimental' | 'stable';
       types?: string;
     };
-    types?:
-      | TypeLoader.ComponentDocWithFilename
-      | Record<string, TypeLoader.ComponentDocWithFilename>;
   };
   filename: string;
 }
@@ -80,6 +78,6 @@ export function useStoriesLoader(
     queryFn: (): Promise<StoryDescriptor[]> => {
       return Promise.all(options.files.map(importStory));
     },
-    enabled: !!options.files,
+    enabled: options.files.length > 0,
   });
 }

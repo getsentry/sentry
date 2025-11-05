@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Heading, Text} from 'sentry/components/core/text';
@@ -47,9 +47,9 @@ export function DebugNotificationsExample({
         {displayFormat === ExampleDataFormat.FORMATTED ? (
           <Text>{registration.example.subject}</Text>
         ) : (
-          <CodeSnippet language="javascript">
+          <CodeBlock language="javascript">
             {JSON.stringify(registration.example.subject)}
-          </CodeSnippet>
+          </CodeBlock>
         )}
         <Text variant="success" bold>
           Body
@@ -57,9 +57,9 @@ export function DebugNotificationsExample({
         {displayFormat === ExampleDataFormat.FORMATTED ? (
           <Text>{registration.example.body}</Text>
         ) : (
-          <CodeSnippet language="javascript">
+          <CodeBlock language="javascript">
             {JSON.stringify(registration.example.body)}
-          </CodeSnippet>
+          </CodeBlock>
         )}
         {registration.example.actions.length > 0 && (
           <Fragment>
@@ -80,9 +80,9 @@ export function DebugNotificationsExample({
                 ))}
               </div>
             ) : (
-              <CodeSnippet language="json">
+              <CodeBlock language="json">
                 {JSON.stringify(registration.example.actions, null, 2)}
-              </CodeSnippet>
+              </CodeBlock>
             )}
           </Fragment>
         )}
@@ -106,9 +106,9 @@ export function DebugNotificationsExample({
                 <PlaceholderChart />
               </Tooltip>
             ) : (
-              <CodeSnippet language="json">
+              <CodeBlock language="json">
                 {JSON.stringify(registration.example.chart, null, 2)}
-              </CodeSnippet>
+              </CodeBlock>
             )}
           </Fragment>
         )}
@@ -120,9 +120,9 @@ export function DebugNotificationsExample({
             {displayFormat === ExampleDataFormat.FORMATTED ? (
               <Text>{registration.example.footer}</Text>
             ) : (
-              <CodeSnippet language="javascript">
+              <CodeBlock language="javascript">
                 {JSON.stringify(registration.example.footer)}
-              </CodeSnippet>
+              </CodeBlock>
             )}
           </Fragment>
         )}

@@ -96,6 +96,7 @@ export enum DataCategory {
   PREVENT_USER = 'preventUsers',
   PREVENT_REVIEW = 'preventReviews',
   USER_REPORT_V2 = 'feedback',
+  TRACE_METRICS = 'traceMetrics',
 }
 
 /**
@@ -128,6 +129,7 @@ export enum DataCategoryExact {
   PREVENT_USER = 'prevent_user',
   PREVENT_REVIEW = 'prevent_review',
   USER_REPORT_V2 = 'feedback',
+  TRACE_METRIC = 'trace_metric',
 }
 
 export interface DataCategoryInfo {

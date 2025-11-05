@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from django.db import router, transaction
+from jsonschema import ValidationError as JSONSchemaValidationError
 from rest_framework import serializers
 
 from sentry import audit_log
@@ -14,7 +15,6 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDataConditionValidator,
-    BaseDataSourceValidator,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     get_unknown_detector_type_error,
@@ -27,7 +27,8 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
-from sentry.workflow_engine.types import DataConditionType
+from sentry.workflow_engine.models.detector import enforce_config_schema
+from sentry.workflow_engine.types import DataConditionType, DetectorLifeCycleHooks
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     type = serializers.CharField()
     config = serializers.JSONField(default=dict)
     owner = ActorField(required=False, allow_null=True)
+    description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     enabled = serializers.BooleanField(required=False)
     condition_group = BaseDataConditionGroupValidator(required=False)
 
@@ -63,11 +65,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         # TODO: Probably need to check a feature flag to decide if a given
         # org/user is allowed to add a detector
         return type
-
-    @property
-    def data_source(self) -> BaseDataSourceValidator | None:
-        # Moving this field to optional
-        return None
 
     @property
     def data_sources(self) -> serializers.ListField:
@@ -100,6 +97,10 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         with transaction.atomic(router.db_for_write(Detector)):
             if "name" in validated_data:
                 instance.name = validated_data.get("name", instance.name)
+
+            # Handle description field update
+            if "description" in validated_data:
+                instance.description = validated_data.get("description", instance.description)
 
             # Handle enable/disable detector
             if "enabled" in validated_data:
@@ -139,6 +140,8 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             event=audit_log.get_event_id("DETECTOR_EDIT"),
             data=instance.get_audit_log_data(),
         )
+
+        DetectorLifeCycleHooks.on_after_update(instance)
         return instance
 
     def _create_data_source(self, validated_data_source, detector: Detector):
@@ -181,9 +184,10 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 elif owner.is_team:
                     owner_team_id = owner.id
 
-            detector = Detector.objects.create(
+            detector = Detector(
                 project_id=self.context["project"].id,
                 name=validated_data["name"],
+                description=validated_data.get("description"),
                 workflow_condition_group=condition_group,
                 type=validated_data["type"].slug,
                 config=validated_data.get("config", {}),
@@ -192,9 +196,13 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 created_by_id=self.context["request"].user.id,
             )
 
-            if "data_source" in validated_data:
-                validated_data_source = validated_data["data_source"]
-                self._create_data_source(validated_data_source, detector)
+            try:
+                enforce_config_schema(detector)
+            except JSONSchemaValidationError as error:
+                # Surface schema errors as a user-facing validation error
+                raise serializers.ValidationError({"config": [str(error)]})
+
+            detector.save()
 
             if "data_sources" in validated_data:
                 for validated_data_source in validated_data["data_sources"]:
@@ -207,4 +215,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 event=audit_log.get_event_id("DETECTOR_ADD"),
                 data=detector.get_audit_log_data(),
             )
+
+            DetectorLifeCycleHooks.on_after_create(detector)
+
         return detector

@@ -26,6 +26,11 @@ buffer_tasks = app.taskregistry.create_namespace(
     app_feature="errors",
 )
 
+conduit_tasks = app.taskregistry.create_namespace(
+    "conduit",
+    app_feature="conduit",
+)
+
 crons_tasks = app.taskregistry.create_namespace(
     "crons",
     app_feature="crons",
@@ -112,6 +117,11 @@ integrations_tasks = app.taskregistry.create_namespace(
 
 integrations_control_tasks = app.taskregistry.create_namespace(
     "integrations.control",
+    app_feature="integrations",
+)
+
+integrations_control_throttled_tasks = app.taskregistry.create_namespace(
+    "integrations.control.throttled",
     app_feature="integrations",
 )
 

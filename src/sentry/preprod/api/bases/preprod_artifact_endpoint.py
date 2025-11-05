@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 
 from rest_framework import status
@@ -6,6 +8,11 @@ from rest_framework.request import Request
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.preprod.models import PreprodArtifact
+
+
+class PreprodArtifactResourceDoesNotExist(APIException):
+    status_code = status.HTTP_404_NOT_FOUND
+    default_detail = "The requested preprod artifact does not exist"
 
 
 class HeadPreprodArtifactResourceDoesNotExist(APIException):

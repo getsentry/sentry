@@ -73,7 +73,6 @@ export function PathsTable() {
       'http.request.method',
       'count_unique(user)',
     ],
-    cursorParamName: 'pathsCursor',
     referrer: Referrer.PATHS_TABLE,
   });
 
@@ -83,18 +82,16 @@ export function PathsTable() {
         sortKey={column.key}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
         forceCellGrow={column.key === 'transaction'}
-        cursorParamName="pathsCursor"
       >
         {column.name}
       </HeadSortCell>
     );
   }, []);
 
+  type TableData = (typeof tableDataRequest.data)[number];
+
   const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<string>,
-      dataRow: (typeof tableDataRequest.data)[number]
-    ) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
         case 'http.request.method':
           return dataRow['http.request.method'];
@@ -144,7 +141,7 @@ export function PathsTable() {
           return <div />;
       }
     },
-    [tableDataRequest]
+    []
   );
 
   return (
@@ -152,13 +149,12 @@ export function PathsTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={defaultColumnOrder}
+      initialColumnOrder={defaultColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       grid={{
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="pathsCursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />

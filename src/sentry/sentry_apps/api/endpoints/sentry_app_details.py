@@ -8,7 +8,7 @@ from requests import RequestException
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log, deletions, features
+from sentry import analytics, audit_log, features
 from sentry.analytics.events.sentry_app_deleted import SentryAppDeletedEvent
 from sentry.analytics.events.sentry_app_schema_validation_error import (
     SentryAppSchemaValidationError,
@@ -23,6 +23,7 @@ from sentry.apidocs.parameters import SentryAppParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.constants import SentryAppStatus
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppAndStaffPermission,
@@ -229,18 +230,19 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                             SentryAppInstallationNotifier(
                                 sentry_app_installation=install, user=request.user, action="deleted"
                             ).run()
-                            deletions.exec_sync(install)
                     except RequestException as exc:
                         sentry_sdk.capture_exception(exc)
 
             with transaction.atomic(using=router.db_for_write(SentryApp)):
-                deletions.exec_sync(sentry_app)
+                sentry_app.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
+                scheduled = ScheduledDeletion.schedule(sentry_app, days=0, actor=request.user)
                 create_audit_entry(
                     request=request,
                     organization_id=sentry_app.owner_id,
                     target_object=sentry_app.owner_id,
                     event=audit_log.get_event_id("SENTRY_APP_REMOVE"),
                     data={"sentry_app": sentry_app.name},
+                    transaction_id=scheduled.id,
                 )
             if request.user.is_authenticated:
                 analytics.record(

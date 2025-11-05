@@ -11,11 +11,13 @@ from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodes
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
+from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
@@ -256,9 +258,27 @@ def delete_group_hashes(
             logger.warning("Error scheduling task to delete hashes from seer")
         finally:
             hash_ids = [gh[0] for gh in hashes_chunk]
+            # GroupHashMetadata rows can reference GroupHash rows via seer_matched_grouphash_id.
+            # Before deleting these GroupHash rows, we need to either:
+            # 1. Update seer_matched_grouphash to None first (to avoid foreign key constraint errors), OR
+            # 2. Delete the GroupHashMetadata rows entirely (they'll be deleted anyway)
+            # If we update the columns first, the deletion of the grouphash metadata rows will have less work to do,
+            # thus, improving the performance of the deletion.
+            if options.get("deletions.group-hashes-metadata.update-seer-matched-grouphash-ids"):
+                GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids).update(
+                    seer_matched_grouphash=None
+                )
+            GroupHashMetadata.objects.filter(grouphash_id__in=hash_ids).delete()
             GroupHash.objects.filter(id__in=hash_ids).delete()
 
         iterations += 1
+
+    if iterations == GROUP_HASH_ITERATIONS:
+        metrics.incr("deletions.group_hashes.max_iterations_reached", sample_rate=1.0)
+        logger.warning(
+            "Group hashes batch deletion reached the maximum number of iterations. "
+            "Investigate if we need to change the GROUP_HASH_ITERATIONS value."
+        )
 
 
 def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Group], list[Group]]:

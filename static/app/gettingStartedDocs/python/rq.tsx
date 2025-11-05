@@ -65,8 +65,8 @@ import sentry_sdk
 ${getInitCallSnippet(params)}`;
 
 const getStartWorkerSnippet = () => `
-rq worker \
--c mysettings \  # module name of mysettings.py
+rq worker \\
+-c mysettings \\  # module name of mysettings.py
 --sentry-dsn="..."  # only necessary for RQ < 1.0`;
 
 const getJobDefinitionSnippet = () => `

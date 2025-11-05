@@ -58,11 +58,14 @@ DASHBOARD_OBJECT = {
                     ],
                     "isHidden": False,
                     "selectedAggregate": None,
+                    "linkedDashboards": [],
                 }
             ],
             "limit": None,
             "widgetType": "transaction-like",
             "layout": {"w": 2, "y": 0, "h": 2, "minH": 2, "x": 0},
+            "exploreUrls": None,
+            "changedReason": None,
         }
     ],
     "projects": [1],
@@ -74,6 +77,7 @@ DASHBOARD_OBJECT = {
         "teamsWithEditAccess": [],
     },
     "isFavorited": False,
+    "prebuiltId": None,
 }
 
 DASHBOARDS_OBJECT = [
@@ -117,6 +121,7 @@ DASHBOARDS_OBJECT = [
         "widgetPreview": [],
         "permissions": {"isEditableByEveryone": True, "teamsWithEditAccess": []},
         "isFavorited": False,
+        "prebuiltId": None,
     },
     {
         "id": "2",
@@ -158,6 +163,7 @@ DASHBOARDS_OBJECT = [
         "widgetPreview": [],
         "permissions": None,
         "isFavorited": False,
+        "prebuiltId": None,
     },
 ]
 

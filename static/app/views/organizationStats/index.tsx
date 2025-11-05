@@ -19,7 +19,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -36,6 +35,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate, type ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {canUseMetricsStatsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
@@ -166,10 +166,7 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
 
   // Project selection from GlobalSelectionHeader
   get projectIds(): number[] {
-    const selection_projects = this.props.selection.projects.length
-      ? this.props.selection.projects
-      : [ALL_ACCESS_PROJECTS];
-    return selection_projects;
+    return this.props.selection.projects;
   }
 
   get isSingleProject(): boolean {
@@ -279,6 +276,9 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
       if ([DataCategory.LOG_ITEM].includes(opt.value)) {
         return organization.features.includes('ourlogs-stats');
       }
+      if ([DataCategory.TRACE_METRICS].includes(opt.value)) {
+        return canUseMetricsStatsUI(organization);
+      }
       if (
         [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI].includes(
           opt.value
@@ -382,7 +382,7 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
               noTeamInsightsHeader
             )}
             <div>
-              <Layout.Main fullWidth>
+              <Layout.Main width="full">
                 <HookHeader organization={organization} />
                 <ControlsWrapper>
                   {this.renderProjectPageControl()}

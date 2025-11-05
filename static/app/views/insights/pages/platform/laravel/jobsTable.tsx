@@ -69,7 +69,6 @@ export function JobsTable() {
       'failure_rate()',
       'sum(span.duration)',
     ],
-    cursorParamName: 'jobsCursor',
     referrer: Referrer.PATHS_TABLE,
   });
 
@@ -79,18 +78,16 @@ export function JobsTable() {
         sortKey={column.key}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
         forceCellGrow={column.key === 'transaction'}
-        cursorParamName="jobsCursor"
       >
         {column.name}
       </HeadSortCell>
     );
   }, []);
 
+  type TableData = (typeof tableDataRequest.data)[number];
+
   const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<string>,
-      dataRow: (typeof tableDataRequest.data)[number]
-    ) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
         case 'messaging.destination.name':
           return <DestinationCell destination={dataRow['messaging.destination.name']} />;
@@ -119,7 +116,7 @@ export function JobsTable() {
           return <div />;
       }
     },
-    [tableDataRequest]
+    []
   );
 
   return (
@@ -127,13 +124,12 @@ export function JobsTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={defaultColumnOrder}
+      initialColumnOrder={defaultColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       grid={{
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="jobsCursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />

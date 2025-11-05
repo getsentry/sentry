@@ -110,6 +110,7 @@ export function ExploreExport(props: ExploreExportProps) {
         },
       }}
       disabled={disabled}
+      overrideFeatureFlags
       icon={<IconDownload />}
       onClick={() => {
         trackAnalytics('explore.table_exported', {

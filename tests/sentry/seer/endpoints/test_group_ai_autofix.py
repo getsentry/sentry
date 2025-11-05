@@ -375,13 +375,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
         # Check that the repos parameter contains the expected data
-        expected_repo = {
+        expected_repo_fields = {
             "provider": "integrations:github",
             "owner": "getsentry",
             "name": "sentry",
             "external_id": "123",
         }
-        assert expected_repo in call_kwargs["repos"]
+        assert any(
+            all(repo.get(key) == value for key, value in expected_repo_fields.items())
+            for repo in call_kwargs["repos"]
+        )
 
         # Check that the instruction was passed correctly
         assert call_kwargs["instruction"] == "Yes"
@@ -527,13 +530,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
         # Check that the repos parameter contains the expected data
-        expected_repo = {
+        expected_repo_fields = {
             "provider": "integrations:github",
             "owner": "getsentry",
             "name": "sentry",
             "external_id": "123",
         }
-        assert expected_repo in call_kwargs["repos"]
+        assert any(
+            all(repo.get(key) == value for key, value in expected_repo_fields.items())
+            for repo in call_kwargs["repos"]
+        )
 
         # Check that the instruction was passed correctly
         assert call_kwargs["instruction"] == "Yes"
@@ -609,13 +615,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
         # Check that the repos parameter contains the expected data
-        expected_repo = {
+        expected_repo_fields = {
             "provider": "integrations:github",
             "owner": "getsentry",
             "name": "sentry",
             "external_id": "123",
         }
-        assert expected_repo in call_kwargs["repos"]
+        assert any(
+            all(repo.get(key) == value for key, value in expected_repo_fields.items())
+            for repo in call_kwargs["repos"]
+        )
 
         # Check that the instruction was passed correctly
         assert call_kwargs["instruction"] == "Yes"
@@ -827,7 +836,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 400
-        assert "Invalid stopping_point" in response.data.get("detail", "")
+        assert "stoppingPoint" in response.data
+        assert "not a valid choice" in str(response.data["stoppingPoint"])
 
     def test_ai_autofix_post_invalid_stopping_point_type(self, mock_get_seer_org_acknowledgement):
         group = self.create_group()
@@ -840,4 +850,5 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 400
-        assert "Invalid stopping_point" in response.data.get("detail", "")
+        assert "stoppingPoint" in response.data
+        assert "not a valid choice" in str(response.data["stoppingPoint"])

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import patch
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.ignored import IGNORED_CONDITION_FIELDS
 from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.models.activity import Activity
@@ -92,7 +93,7 @@ class InferSubstatusTest(TestCase):
 
 class HandleStatusChangeTest(TestCase):
     def create_issue(self, status: int, substatus: int | None = None) -> None:
-        self.group = self.create_group(status=status)
+        self.group = self.create_group(status=status, type=MetricIssue.type_id)
         self.group_list = [self.group]
         self.group_ids = [self.group]
         self.projects = [self.group.project]

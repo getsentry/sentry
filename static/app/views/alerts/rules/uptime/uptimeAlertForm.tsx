@@ -448,7 +448,6 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
           <SentryMemberTeamSelectorField
             name="owner"
             label={t('Owner')}
-            menuPlacement="auto"
             inline={false}
             flexibleControlStateSize
             stacked

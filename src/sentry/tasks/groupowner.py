@@ -15,7 +15,6 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -29,6 +28,7 @@ PREFERRED_GROUP_OWNERS = 2
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 MIN_COMMIT_SCORE = 2
 DEBOUNCE_CACHE_KEY = lambda group_id: f"process-suspect-commits-{group_id}"
+TASK_DURATION_S = 90
 
 logger = logging.getLogger(__name__)
 
@@ -179,18 +179,10 @@ def _process_suspect_commits(
 
 @instrumented_task(
     name="sentry.tasks.process_suspect_commits",
-    queue="group_owners.process_suspect_commits",
-    default_retry_delay=5,
-    max_retries=5,
+    namespace=issues_tasks,
+    processing_deadline_duration=TASK_DURATION_S,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=90,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @retry
 def process_suspect_commits(
@@ -206,7 +198,9 @@ def process_suspect_commits(
     This is the task behind SuspectCommitStrategy.RELEASE_BASED
     """
     lock = locks.get(
-        f"process-suspect-commits:{group_id}", duration=10, name="process_suspect_commits"
+        f"process-suspect-commits:{group_id}",
+        duration=TASK_DURATION_S,
+        name="process_suspect_commits",
     )
     try:
         with lock.acquire():

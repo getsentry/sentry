@@ -24,6 +24,7 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
+import useProjectLatestSemverRelease from 'sentry/views/issueDetails/useProjectLatestSemverRelease';
 
 function SetupReleasesPrompt() {
   return (
@@ -53,6 +54,7 @@ function SetupReleasesPrompt() {
 
 interface ResolveActionsProps {
   hasRelease: boolean;
+  hasSemverReleaseFeature: boolean;
   onUpdate: (data: GroupStatusResolution) => void;
   confirmLabel?: string;
   confirmMessage?: React.ReactNode;
@@ -86,9 +88,20 @@ function ResolveActions({
   priority,
   projectFetchError,
   multipleProjectsSelected,
+  hasSemverReleaseFeature,
   onUpdate,
 }: ResolveActionsProps) {
   const organization = useOrganization();
+
+  // resolve in semver release is eligible if the flag is enabled,
+  // only 1 project is selected,
+  // and resolve in release is not disabled
+  const latestSemverRelease = useProjectLatestSemverRelease({
+    enabled:
+      Boolean(hasSemverReleaseFeature) &&
+      !multipleProjectsSelected &&
+      !disableResolveInRelease,
+  });
 
   function handleCommitResolution(statusDetails: ResolvedStatusDetails) {
     onUpdate({
@@ -110,12 +123,20 @@ function ResolveActions({
     });
   }
 
-  function handleCurrentReleaseResolution() {
+  function handleCurrentReleaseResolution({
+    isLatestSemverRelease,
+  }: {
+    isLatestSemverRelease: boolean;
+  }) {
     if (hasRelease) {
       onUpdate({
         status: GroupStatus.RESOLVED,
         statusDetails: {
-          inRelease: latestRelease ? latestRelease.version : 'latest',
+          inRelease: isLatestSemverRelease
+            ? latestSemverRelease?.version
+            : latestRelease
+              ? latestRelease.version
+              : 'latest',
         },
         substatus: null,
       });
@@ -123,7 +144,7 @@ function ResolveActions({
 
     trackAnalytics('resolve_issue', {
       organization,
-      release: 'current',
+      release: isLatestSemverRelease ? 'current-semver' : 'current',
     });
   }
 
@@ -199,27 +220,58 @@ function ResolveActions({
         details: actionTitle ? actionTitle : t('The next release after the current one'),
         onAction: () => onActionOrConfirm(handleNextReleaseResolution),
       },
-      {
-        key: 'current-release',
-        label: t('The current release'),
-        details: (
-          <CurrentReleaseWrapper>
-            {actionTitle ? (
-              actionTitle
-            ) : latestRelease ? (
-              <Fragment>
-                <div>
-                  <MaxReleaseWidthWrapper>
-                    {formatVersion(latestRelease.version)}
-                  </MaxReleaseWidthWrapper>
-                </div>{' '}
-                ({isSemver ? t('semver') : t('non-semver')})
-              </Fragment>
-            ) : null}
-          </CurrentReleaseWrapper>
-        ),
-        onAction: () => onActionOrConfirm(handleCurrentReleaseResolution),
-      },
+      ...(hasSemverReleaseFeature && latestSemverRelease?.version
+        ? [
+            {
+              key: 'semver-release',
+              label: t('The current semver release'),
+              details: (
+                <CurrentReleaseWrapper>
+                  {actionTitle ? (
+                    actionTitle
+                  ) : (
+                    <Fragment>
+                      <div>
+                        <MaxReleaseWidthWrapper>
+                          {formatVersion(latestSemverRelease.version)}
+                        </MaxReleaseWidthWrapper>
+                      </div>{' '}
+                    </Fragment>
+                  )}
+                </CurrentReleaseWrapper>
+              ),
+              onAction: () =>
+                onActionOrConfirm(() =>
+                  handleCurrentReleaseResolution({isLatestSemverRelease: true})
+                ),
+            },
+          ]
+        : [
+            {
+              key: 'current-release',
+              label: t('The current release'),
+              details: (
+                <CurrentReleaseWrapper>
+                  {actionTitle ? (
+                    actionTitle
+                  ) : latestRelease ? (
+                    <Fragment>
+                      <div>
+                        <MaxReleaseWidthWrapper>
+                          {formatVersion(latestRelease.version)}
+                        </MaxReleaseWidthWrapper>
+                      </div>{' '}
+                      ({isSemver ? t('semver') : t('non-semver')})
+                    </Fragment>
+                  ) : null}
+                </CurrentReleaseWrapper>
+              ),
+              onAction: () =>
+                onActionOrConfirm(() =>
+                  handleCurrentReleaseResolution({isLatestSemverRelease: false})
+                ),
+            },
+          ]),
       {
         key: 'another-release',
         label: t('Another existing release\u2026'),
@@ -252,7 +304,14 @@ function ResolveActions({
           multipleProjectsSelected
             ? ['next-release', 'current-release', 'another-release', 'a-commit']
             : disabled || !hasRelease
-              ? ['next-release', 'current-release', 'another-release']
+              ? [
+                  'next-release',
+
+                  ...(hasSemverReleaseFeature && latestSemverRelease?.version
+                    ? ['semver-release']
+                    : ['current-release']),
+                  'another-release',
+                ]
               : []
         }
         menuTitle={shouldDisplayCta ? <SetupReleasesPrompt /> : t('Resolved In')}

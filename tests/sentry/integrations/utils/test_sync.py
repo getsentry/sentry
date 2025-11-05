@@ -12,6 +12,7 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.users.models import User, UserEmail
 from sentry.users.services.user import RpcUser
@@ -182,6 +183,7 @@ class TestSyncAssigneeInbound(TestCase):
                 "email": "oopsnotfound@example.com",
                 "issue_key": external_issue.key,
                 "method": AssigneeInboundSyncMethod.EMAIL.value,
+                "assign": True,
             },
         )
 
@@ -225,6 +227,7 @@ class TestSyncAssigneeInbound(TestCase):
 
 
 @region_silo_test
+@with_feature("organizations:integrations-github-project-management")
 class TestSyncAssigneeInboundByExternalActor(TestCase):
 
     @pytest.fixture(autouse=True)
@@ -343,6 +346,41 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
         assert updated_assignee.email == "test@example.com"
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_assignment_with_external_actor_case_insensitive(
+        self,
+        mock_record_event: mock.MagicMock,
+    ) -> None:
+        """Test assigning a group to a user via external actor."""
+        assert self.group.get_assignee() is None
+
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            key="JIRA-123",
+            integration=self.example_integration,
+        )
+
+        # Create external user mapping
+        self.create_external_user(
+            user=self.test_user,
+            external_name="@JohnDoe",
+            provider=ExternalProviders.GITHUB.value,
+            integration=self.example_integration,
+        )
+
+        sync_group_assignee_inbound_by_external_actor(
+            integration=self.example_integration,
+            external_user_name="@johndoe",
+            external_issue_key=external_issue.key,
+            assign=True,
+        )
+
+        updated_assignee = self.group.get_assignee()
+        assert updated_assignee is not None
+        assert updated_assignee.id == self.test_user.id
+        assert updated_assignee.email == "test@example.com"
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
+
     @mock.patch("sentry.integrations.utils.sync.where_should_sync")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_assign_with_multiple_groups(
@@ -432,6 +470,10 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
                 "external_user_name": "unknownuser",
                 "issue_key": external_issue.key,
                 "method": AssigneeInboundSyncMethod.EXTERNAL_ACTOR.value,
+                "assign": True,
+                "user_ids": [],
+                "groups_assigned_count": 0,
+                "affected_groups_count": 1,
             },
         )
 
@@ -473,6 +515,10 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
                 "external_user_name": "outsider",
                 "issue_key": external_issue.key,
                 "method": AssigneeInboundSyncMethod.EXTERNAL_ACTOR.value,
+                "assign": True,
+                "user_ids": [other_user.id],
+                "groups_assigned_count": 0,
+                "affected_groups_count": 1,
             },
         )
 

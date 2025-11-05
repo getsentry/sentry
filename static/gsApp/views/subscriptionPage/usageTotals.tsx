@@ -3,7 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 
-import Card from 'sentry/components/card';
+import {Container} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconChevron, IconLock} from 'sentry/icons';
@@ -34,6 +35,7 @@ import {
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
+  getPercentage,
   getPotentialProductTrial,
   isAm2Plan,
   isUnlimitedReserved,
@@ -61,7 +63,7 @@ import {
   calculateTotalSpend,
 } from 'getsentry/views/subscriptionPage/utils';
 
-const EMPTY_STAT_TOTAL = {
+export const EMPTY_STAT_TOTAL = {
   accepted: 0,
   dropped: 0,
   droppedOther: 0,
@@ -70,18 +72,6 @@ const EMPTY_STAT_TOTAL = {
   filtered: 0,
   projected: 0,
 };
-
-function getPercentage(quantity: number, total: number | null) {
-  if (typeof total === 'number' && total > 0) {
-    return (Math.min(quantity, total) / total) * 100;
-  }
-  return 0;
-}
-
-export function displayPercentage(quantity: number, total: number | null) {
-  const percentage = getPercentage(quantity, total);
-  return percentage.toFixed(0) + '%';
-}
 
 type UsageProps = {
   /**
@@ -526,7 +516,13 @@ export function UsageTotals({
     reserved !== null && (reserved === UNLIMITED_RESERVED || reserved > 0);
 
   return (
-    <SubscriptionCard data-test-id={`usage-card-${category}`}>
+    <Container
+      background="primary"
+      border="primary"
+      radius="md"
+      data-test-id={`usage-card-${category}`}
+      padding="xl"
+    >
       <CardBody>
         <UsageProgress>
           <BaseRow>
@@ -788,7 +784,7 @@ export function UsageTotals({
             })}
         </Fragment>
       )}
-    </SubscriptionCard>
+    </Container>
   );
 }
 
@@ -1021,7 +1017,13 @@ export function CombinedUsageTotals({
   let categoryForUnusedOnDemand = firstCategory;
 
   return (
-    <SubscriptionCard data-test-id={`usage-card-${apiName}`}>
+    <Container
+      background="primary"
+      border="primary"
+      radius="md"
+      data-test-id={`usage-card-${apiName}`}
+      padding="xl"
+    >
       <CardBody>
         <UsageProgress>
           <BaseRow>
@@ -1273,13 +1275,9 @@ export function CombinedUsageTotals({
           })}
         </Fragment>
       )}
-    </SubscriptionCard>
+    </Container>
   );
 }
-
-const SubscriptionCard = styled(Card)`
-  padding: ${space(2)};
-`;
 
 const CardBody = styled('div')`
   display: grid;

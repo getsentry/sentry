@@ -13,10 +13,14 @@ import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {useIsCreatingProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
+import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
+import {
+  useCreateProjectAndRulesError,
+  useIsCreatingProjectAndRules,
+} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {createablePlatforms, getCategoryList} from 'sentry/data/platformPickerCategories';
+import {categoryList, createablePlatforms} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -83,7 +87,6 @@ const topDotNetFrameworks: PlatformKey[] = [
   'dotnet-wpf',
   'dotnet-winforms',
   'dotnet-xamarin',
-  'dotnet-uwp',
   'dotnet-gcpfunctions',
   'dotnet-awslambda',
 ];
@@ -136,6 +139,7 @@ export function FrameworkSuggestionModal({
   newOrg,
 }: FrameworkSuggestionModalProps) {
   const isCreatingProjectAndRules = useIsCreatingProjectAndRules();
+  const createProjectAndRulesError = useCreateProjectAndRulesError();
 
   const [selectedFramework, setSelectedFramework] = useState<
     OnboardingSelectedSDK | undefined
@@ -271,10 +275,6 @@ export function FrameworkSuggestionModal({
     documentElement.style.minHeight = '631px';
   }, [listEntriesWithVanilla.length]);
 
-  const categories = useMemo(() => {
-    return getCategoryList(organization);
-  }, [organization]);
-
   return (
     <Fragment>
       <Header>
@@ -284,6 +284,7 @@ export function FrameworkSuggestionModal({
         <TopFrameworksImage frameworks={listEntries} />
         <Heading>{t('Do you use a framework?')}</Heading>
         <Description>{languageDescriptions[selectedPlatform.key]}</Description>
+        <ProjectCreationErrorAlert error={createProjectAndRulesError} />
         <StyledPanel>
           <StyledPanelBody>
             <CollapsePanel
@@ -304,7 +305,7 @@ export function FrameworkSuggestionModal({
                     <PlatformList>
                       {items.map((platform, index) => {
                         const platformCategory =
-                          categories.find(category => {
+                          categoryList.find(category => {
                             return category.platforms?.has(platform.id);
                           })?.id ?? 'all';
 

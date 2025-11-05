@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from django.db.models.query import QuerySet
 
+from sentry import features
 from sentry.integrations.mixins.issues import where_should_sync
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
@@ -19,7 +20,9 @@ from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbo
 from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.silo.base import region_silo_function
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -31,6 +34,14 @@ if TYPE_CHECKING:
 class AssigneeInboundSyncMethod(StrEnum):
     EMAIL = "email"
     EXTERNAL_ACTOR = "external_actor"
+
+
+def should_sync_assignee_inbound(
+    organization: Organization | RpcOrganization, provider: str
+) -> bool:
+    if provider == "github":
+        return features.has("organizations:integrations-github-project-management", organization)
+    return True
 
 
 def _get_user_id(projects_by_user: dict[int, set[int]], group: Group) -> int | None:
@@ -60,6 +71,9 @@ def _handle_deassign(
     groups: QuerySet[Group], integration: RpcIntegration | Integration
 ) -> QuerySet[Group]:
     for group in groups:
+        if not should_sync_assignee_inbound(group.organization, integration.provider):
+            continue
+
         GroupAssignee.objects.deassign(
             group,
             assignment_source=AssignmentSource.from_integration(integration),
@@ -78,16 +92,36 @@ def _handle_assign(
     users_by_id = {user.id: user for user in users}
     projects_by_user = Project.objects.get_by_users(users)
 
+    logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
+
     for group in affected_groups:
+        if not should_sync_assignee_inbound(group.organization, integration.provider):
+            continue
+
         user_id = _get_user_id(projects_by_user, group)
         user = users_by_id.get(user_id) if user_id is not None else None
         if user:
+            logger.info(
+                "sync_group_assignee_inbound._handle_assign.assigning.group",
+                extra={
+                    "group_id": group.id,
+                    "user_id": user.id,
+                },
+            )
             GroupAssignee.objects.assign(
                 group,
                 user,
                 assignment_source=AssignmentSource.from_integration(integration),
             )
             groups_assigned.append(group)
+        else:
+            logger.info(
+                "sync_group_assignee_inbound._handle_assign.user_not_found",
+                extra={
+                    "group_id": group.id,
+                    "user_id": user_id,
+                },
+            )
 
     return groups_assigned
 
@@ -111,6 +145,7 @@ def sync_group_assignee_inbound_by_external_actor(
             "external_user_name": external_user_name,
             "issue_key": external_issue_key,
             "method": AssigneeInboundSyncMethod.EXTERNAL_ACTOR.value,
+            "assign": assign,
         }
 
         if not affected_groups:
@@ -122,7 +157,7 @@ def sync_group_assignee_inbound_by_external_actor(
 
         external_actors = ExternalActor.objects.filter(
             provider=EXTERNAL_PROVIDERS_REVERSE[ExternalProviderEnum(integration.provider)].value,
-            external_name=external_user_name,
+            external_name__iexact=external_user_name,
             integration_id=integration.id,
             user_id__isnull=False,
         ).values_list("user_id", flat=True)
@@ -130,11 +165,16 @@ def sync_group_assignee_inbound_by_external_actor(
         user_ids = [
             external_actor for external_actor in external_actors if external_actor is not None
         ]
+        log_context["user_ids"] = user_ids
+        logger.info("sync_group_assignee_inbound_by_external_actor.user_ids", extra=log_context)
+
         users = user_service.get_many_by_id(ids=user_ids)
 
         groups_assigned = _handle_assign(affected_groups, integration, users)
 
         if len(groups_assigned) != len(affected_groups):
+            log_context["groups_assigned_count"] = len(groups_assigned)
+            log_context["affected_groups_count"] = len(affected_groups)
             lifecycle.record_halt(
                 ProjectManagementHaltReason.SYNC_INBOUND_ASSIGNEE_NOT_FOUND, extra=log_context
             )
@@ -166,6 +206,7 @@ def sync_group_assignee_inbound(
             "email": email,
             "issue_key": external_issue_key,
             "method": AssigneeInboundSyncMethod.EMAIL.value,
+            "assign": assign,
         }
         if not affected_groups:
             logger.info("no-affected-groups", extra=log_context)

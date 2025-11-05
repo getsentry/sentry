@@ -1,75 +1,43 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import Feature from 'sentry/components/acl/feature';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {getFormattedDate} from 'sentry/utils/dates';
-import {unreachable} from 'sentry/utils/unreachable';
+import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
 import {
   BuildDetailsSizeAnalysisState,
   type BuildDetailsAppInfo,
   type BuildDetailsSizeInfo,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
-import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {
+  getLabels,
   getPlatformIconFromPlatform,
   getReadableArtifactTypeLabel,
   getReadableArtifactTypeTooltip,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
 
-interface Labels {
-  appId: string;
-  buildConfiguration: string;
-  downloadSize: string;
-  installSize: string;
-  installSizeText: string;
-}
-
-function getLabels(platform: Platform | undefined): Labels {
-  switch (platform) {
-    case 'android':
-      return {
-        installSizeText: t('Uncompressed Size'),
-        appId: t('Package name'),
-        installSize: t('Size on disk not including AOT DEX'),
-        downloadSize: t('Bytes transferred over the network'),
-        buildConfiguration: t('Build configuration'),
-      };
-    case 'ios':
-    case 'macos':
-    case undefined:
-      return {
-        installSizeText: t('Install Size'),
-        appId: t('Bundle identifier'),
-        installSize: t('Unencrypted install size'),
-        downloadSize: t('Bytes transferred over the network'),
-        buildConfiguration: t('Build configuration'),
-      };
-    default:
-      return unreachable(platform);
-  }
-}
-
 interface BuildDetailsSidebarAppInfoProps {
   appInfo: BuildDetailsAppInfo;
   artifactId: string;
-  projectId: string;
+  projectId: string | null;
   sizeInfo?: BuildDetailsSizeInfo;
 }
 
 export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProps) {
-  const handleInstallClick = () => {
-    openInstallModal(props.projectId, props.artifactId);
-  };
-
   const labels = getLabels(props.appInfo.platform ?? undefined);
+
+  const datetimeFormat = getFormat({
+    seconds: true,
+    timeZone: true,
+  });
 
   return (
     <Flex direction="column" gap="xl">
@@ -84,16 +52,16 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         props.sizeInfo.state === BuildDetailsSizeAnalysisState.COMPLETED && (
           <Flex gap="sm">
             <Flex direction="column" gap="xs" flex={1}>
-              <Tooltip title={labels.installSize} position="left">
-                <Heading as="h4">{labels.installSizeText}</Heading>
+              <Tooltip title={labels.installSizeDescription} position="left">
+                <Heading as="h4">{labels.installSizeLabel}</Heading>
               </Tooltip>
               <Text size="md">
                 {formatBytesBase10(props.sizeInfo.install_size_bytes)}
               </Text>
             </Flex>
             <Flex direction="column" gap="xs" flex={1}>
-              <Tooltip title={labels.downloadSize} position="left">
-                <Heading as="h4">{t('Download Size')}</Heading>
+              <Tooltip title={labels.downloadSizeDescription} position="left">
+                <Heading as="h4">{labels.downloadSizeLabel}</Heading>
               </Tooltip>
               <Text size="md">
                 {formatBytesBase10(props.sizeInfo.download_size_bytes)}
@@ -134,7 +102,11 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
                 <IconClock />
               </InfoIcon>
               <Text>
-                {getFormattedDate(props.appInfo.date_added, 'MM/DD/YYYY [at] hh:mm A')}
+                {getFormattedDate(
+                  getUtcToSystem(props.appInfo.date_added),
+                  datetimeFormat,
+                  {local: true}
+                )}
               </Text>
             </Flex>
           </Tooltip>
@@ -151,18 +123,28 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
             </Text>
           </Flex>
         </Tooltip>
-        <Flex gap="2xs" align="center">
-          <InfoIcon>
-            <IconLink />
-          </InfoIcon>
-          <Text>
-            {props.appInfo.is_installable ? (
-              <InstallableLink onClick={handleInstallClick}>Installable</InstallableLink>
-            ) : (
-              'Not Installable'
-            )}
-          </Text>
-        </Flex>
+        <Feature features="organizations:preprod-build-distribution">
+          <Flex gap="2xs" align="center">
+            <InfoIcon>
+              <IconLink />
+            </InfoIcon>
+            <Text>
+              {props.projectId && props.appInfo.is_installable ? (
+                <InstallableLink
+                  onClick={() => {
+                    openInstallModal(props.projectId!, props.artifactId);
+                  }}
+                >
+                  Installable
+                </InstallableLink>
+              ) : (
+                <Tooltip title={labels.installUnavailableTooltip}>
+                  Not Installable
+                </Tooltip>
+              )}
+            </Text>
+          </Flex>
+        </Feature>
         {props.appInfo.build_configuration && (
           <Tooltip title={labels.buildConfiguration}>
             <Flex gap="2xs" align="center">
@@ -221,6 +203,6 @@ const InstallableLink = styled('button')`
   }
 `;
 
-const InlineCodeSnippet = styled(CodeSnippet)`
+const InlineCodeSnippet = styled(CodeBlock)`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
 `;

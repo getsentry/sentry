@@ -22,12 +22,13 @@ import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
   useTraceItemDetails,
   type TraceItemDetailsResponse,
+  type TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -317,7 +318,7 @@ function useAvgSpanDuration(
   span: TraceTree.EAPSpan,
   location: Location
 ): number | undefined {
-  const dataset = useExploreDataset();
+  const dataset = useSpansDataset();
 
   const eventView = useMemo(() => {
     const search = new MutableSearch('');
@@ -429,13 +430,20 @@ function EAPSpanNodeDetailsContent({
   const links = traceItemData.links;
   const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
 
+  const threadIdAttribute: TraceItemResponseAttribute | undefined = attributes.find(
+    attribute => attribute.name === 'thread.id'
+  );
+  const threadId: string | undefined =
+    typeof threadIdAttribute?.value === 'string' ? threadIdAttribute.value : undefined;
+
   const span = useMemo(() => {
     return {
       span_id: node.value.event_id,
       start_timestamp: node.value.start_timestamp,
       end_timestamp: node.value.end_timestamp,
+      thread_id: threadId,
     };
-  }, [node]);
+  }, [node, threadId]);
 
   const {profile, frames} = useSpanProfileDetails(
     organization,
@@ -496,7 +504,7 @@ function EAPSpanNodeDetailsContent({
 
         <LogDetails />
 
-        {organization.features.includes('trace-view-span-links') && links?.length ? (
+        {links?.length ? (
           <TraceSpanLinks
             tree={tree}
             node={node}
@@ -514,11 +522,7 @@ function EAPSpanNodeDetailsContent({
             organization={organization}
             project={project}
             event={eventTransaction}
-            span={{
-              span_id: node.value.event_id,
-              start_timestamp: node.value.start_timestamp,
-              end_timestamp: node.value.end_timestamp,
-            }}
+            span={span}
           />
         ) : null}
 

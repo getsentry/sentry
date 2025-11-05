@@ -17,7 +17,7 @@ const config = {
     // Internal packages.
     '^(sentry-locale|sentry-images)(/.*|$)',
     '',
-    '^ui(/.*|$)',
+    '^@sentry/scraps(/.*|$)',
     '',
     '^(app|sentry)(/.*|$)',
     '',

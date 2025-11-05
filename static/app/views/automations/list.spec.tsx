@@ -23,7 +23,9 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import AutomationsList from 'sentry/views/automations/list';
 
 describe('AutomationsList', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture({
+    features: ['workflow-engine-ui', 'search-query-builder-input-flow-changes'],
+  });
   const project = ProjectFixture({id: '1', slug: 'project-1'});
   const detector = MetricDetectorFixture({
     id: '1',
@@ -54,7 +56,7 @@ describe('AutomationsList', () => {
       url: '/organizations/org-slug/projects/',
       body: [project],
     });
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
     ProjectsStore.loadInitialData([project]);
   });
 
@@ -175,6 +177,7 @@ describe('AutomationsList', () => {
       // Click through menus to select action:slack
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'action'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'is'}));
       await userEvent.click(await screen.findByRole('option', {name: 'slack'}));
 
       await screen.findByText('Slack Automation');
@@ -216,10 +219,7 @@ describe('AutomationsList', () => {
         url: '/organizations/org-slug/detectors/',
         body: [detector],
       });
-      PageFiltersStore.onInitializeUrlState(
-        PageFiltersFixture({projects: [1]}),
-        new Set()
-      );
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
     });
 
     it('can select automations', async () => {
@@ -424,6 +424,7 @@ describe('AutomationsList', () => {
       // Click through menus to select action:slack
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'action'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'is'}));
       await userEvent.click(await screen.findByRole('option', {name: 'slack'}));
 
       // Wait for filtered results to load
@@ -442,11 +443,9 @@ describe('AutomationsList', () => {
       await userEvent.click(masterCheckbox);
 
       // Should show alert with option to select all query results
-      expect(
-        screen.getByText(/20 automations on this page selected/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/20 alerts on this page selected/)).toBeInTheDocument();
       const selectAllForQuery = screen.getByText(
-        /Select all 50 automations that match this search query/
+        /Select all 50 alerts that match this search query/
       );
       await userEvent.click(selectAllForQuery);
 
@@ -522,7 +521,7 @@ describe('AutomationsList', () => {
       const noActionsIcon = within(noActionsRow).getAllByRole('img')[0]!; // Get the first img (warning icon)
       await userEvent.hover(noActionsIcon);
       expect(
-        await screen.findByText('You must add an action for this automation to run.')
+        await screen.findByText('You must add an action for this alert to run.')
       ).toBeInTheDocument();
 
       // Test second automation (all disabled) - should show "Invalid" and danger tooltip
@@ -534,7 +533,7 @@ describe('AutomationsList', () => {
       await userEvent.hover(allDisabledIcon);
       expect(
         await screen.findByText(
-          'Automation is invalid because no actions can run. Actions need to be reconfigured.'
+          'Alert is invalid because no actions can run. Actions need to be reconfigured.'
         )
       ).toBeInTheDocument();
 

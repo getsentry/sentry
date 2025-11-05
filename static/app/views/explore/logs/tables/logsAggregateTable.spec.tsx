@@ -14,7 +14,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {type useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
+import {type useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 
 import {LogsAggregateTable} from './logsAggregateTable';
 
@@ -27,7 +27,7 @@ describe('LogsAggregateTable', () => {
   function LogsAggregateTableWithParamsProvider({
     aggregatesTableResult,
   }: {
-    aggregatesTableResult: ReturnType<typeof useLogsAggregatesQuery>;
+    aggregatesTableResult: ReturnType<typeof useLogsAggregatesTable>;
   }) {
     return (
       <LogsQueryParamsProvider
@@ -42,19 +42,16 @@ describe('LogsAggregateTable', () => {
   ProjectsStore.loadInitialData([project]);
 
   PageFiltersStore.init();
-  PageFiltersStore.onInitializeUrlState(
-    {
-      projects: [parseInt(project.id, 10)],
-      environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+  PageFiltersStore.onInitializeUrlState({
+    projects: [parseInt(project.id, 10)],
+    environments: [],
+    datetime: {
+      period: '14d',
+      start: null,
+      end: null,
+      utc: null,
     },
-    new Set()
-  );
+  });
   const initialRouterConfig = {
     location: {
       pathname: `/organizations/${organization.slug}/explore/logs/`,

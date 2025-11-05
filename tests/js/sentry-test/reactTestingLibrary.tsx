@@ -19,13 +19,13 @@ import {
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
-import {NuqsTestingAdapter} from 'nuqs/adapters/testing';
 import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -36,14 +36,13 @@ import {
 } from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {TestRouteContext} from 'sentry/views/routeContext';
 
 import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
 import {initializeOrg} from './initializeOrg';
+import {SentryNuqsTestingAdapter} from './nuqsTestingAdapter';
 
 interface ProviderOptions {
   /**
@@ -81,11 +80,12 @@ interface BaseRenderOptions<T extends boolean = boolean>
   deprecatedRouterMocks?: T;
 }
 
-type LocationConfig =
-  | string
-  | {pathname: string; query?: Record<string, string | number | string[]>};
+type LocationConfig = {
+  pathname: string;
+  query?: Record<string, string | number | string[]>;
+};
 
-type RouterConfig = {
+export type RouterConfig = {
   /**
    * Child routes
    */
@@ -173,24 +173,6 @@ function patchBrowserHistoryMocksEnabled(history: MemoryHistory, router: Injecte
   });
 }
 
-function NuqsTestingAdapterWithNavigate({children}: {children: React.ReactNode}) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  return (
-    <NuqsTestingAdapter
-      defaultOptions={{shallow: false}}
-      onUrlUpdate={({queryString, options: nuqsOptions}) => {
-        // Pass navigation events to the test router
-        const newParams = qs.parse(queryString);
-        const newLocation = {...location, query: newParams};
-        navigate(newLocation, {replace: nuqsOptions.history === 'replace'});
-      }}
-    >
-      {children}
-    </NuqsTestingAdapter>
-  );
-}
-
 function makeAllTheProviders(options: ProviderOptions) {
   const enableRouterMocks = options.deprecatedRouterMocks ?? false;
   const {organization, router} = initializeOrg({
@@ -235,9 +217,11 @@ function makeAllTheProviders(options: ProviderOptions) {
     return (
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
-          <NuqsTestingAdapterWithNavigate>
-            <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
-          </NuqsTestingAdapterWithNavigate>
+          <SentryNuqsTestingAdapter defaultOptions={{shallow: false}}>
+            <CommandPaletteProvider>
+              <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
+            </CommandPaletteProvider>
+          </SentryNuqsTestingAdapter>
         </QueryClientProvider>
       </CacheProvider>
     );
@@ -354,19 +338,22 @@ function parseLocationConfig(location: LocationConfig | undefined): InitialEntry
     return LocationFixture().pathname;
   }
 
-  if (typeof location === 'string') {
-    return location;
-  }
-
   if (location.query) {
-    const queryString = qs.stringify(location.query);
     return {
       pathname: location.pathname,
-      search: queryString ? `?${queryString}` : '',
+      search: parseQueryString(location.query),
     };
   }
 
   return location.pathname;
+}
+
+function parseQueryString(query: Record<string, string | number | string[]> | undefined) {
+  if (!query) {
+    return '';
+  }
+  const queryString = qs.stringify(query);
+  return queryString ? `?${queryString}` : '';
 }
 
 function getInitialRouterConfig<T extends boolean = true>(

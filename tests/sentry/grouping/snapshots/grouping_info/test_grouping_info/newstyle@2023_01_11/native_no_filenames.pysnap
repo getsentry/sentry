@@ -1,10 +1,10 @@
 ---
-created: '2025-09-24T22:53:05.205699+00:00'
+created: '2025-10-27T23:46:03.200491+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
 {
-  "app": {
+  "app_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -18,6 +18,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "name": "exception",
           "values": [
             {
+              "contributes": false,
+              "hint": "ignored because exception is synthetic",
+              "id": "type",
+              "name": null,
+              "values": [
+                "log_demo"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Holy shit everything is on fire!"
+              ]
+            },
+            {
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
@@ -458,24 +476,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "log_demo"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Holy shit everything is on fire!"
-              ]
             }
           ]
         }
@@ -501,13 +501,14 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "in-app exception stacktrace",
+    "contributes": true,
+    "description": "exception stacktrace — in-app frames",
     "hash": "418120a66f7031923031f5c52aca0724",
     "hint": null,
-    "key": "app",
+    "key": "app_exception_stacktrace",
     "type": "component"
   },
-  "system": {
+  "system_exception_stacktrace": {
     "component": {
       "contributes": true,
       "hint": null,
@@ -521,6 +522,24 @@ source: tests/sentry/grouping/test_grouping_info.py
           "name": "exception",
           "values": [
             {
+              "contributes": false,
+              "hint": "ignored because exception is synthetic",
+              "id": "type",
+              "name": null,
+              "values": [
+                "log_demo"
+              ]
+            },
+            {
+              "contributes": false,
+              "hint": "ignored because stacktrace takes precedence",
+              "id": "value",
+              "name": null,
+              "values": [
+                "Holy shit everything is on fire!"
+              ]
+            },
+            {
               "contributes": true,
               "hint": null,
               "id": "stacktrace",
@@ -961,24 +980,6 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 }
               ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because exception is synthetic",
-              "id": "type",
-              "name": null,
-              "values": [
-                "log_demo"
-              ]
-            },
-            {
-              "contributes": false,
-              "hint": "ignored because stacktrace takes precedence",
-              "id": "value",
-              "name": null,
-              "values": [
-                "Holy shit everything is on fire!"
-              ]
             }
           ]
         }
@@ -1004,10 +1005,11 @@ source: tests/sentry/grouping/test_grouping_info.py
         "threads:v1"
       ]
     },
-    "description": "exception stacktrace",
+    "contributes": true,
+    "description": "exception stacktrace — all frames",
     "hash": "bbcdb2e1d8df09ffe0fffd30fb361d4b",
     "hint": null,
-    "key": "system",
+    "key": "system_exception_stacktrace",
     "type": "component"
   }
 }

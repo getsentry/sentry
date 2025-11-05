@@ -101,7 +101,6 @@ export function QueryTransactionsTable({
   };
   const {columns, handleResizeColumn} = useQueryBasedColumnResize({
     columns: [...COLUMN_ORDER],
-    location,
   });
 
   return (

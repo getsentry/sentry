@@ -117,7 +117,6 @@ export default function MonitorCreateForm() {
             placeholder={t('Assign Ownership')}
             stacked
             inline={false}
-            menuPlacement="auto"
           />
           <TextField
             name="name"

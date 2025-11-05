@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from enum import StrEnum
 from typing import Annotated, Literal
@@ -16,6 +18,14 @@ class Platform(StrEnum):
     MACOS = "macos"
 
 
+class AppleAppInfo(BaseModel):
+    missing_dsym_binaries: list[str] = []
+
+
+class AndroidAppInfo(BaseModel):
+    has_proguard_mapping: bool = True
+
+
 class BuildDetailsAppInfo(BaseModel):
     app_id: str | None
     name: str | None
@@ -27,6 +37,8 @@ class BuildDetailsAppInfo(BaseModel):
     platform: Platform | None = None
     is_installable: bool
     build_configuration: str | None = None
+    apple_app_info: AppleAppInfo | None = None
+    android_app_info: AndroidAppInfo | None = None
 
 
 class BuildDetailsVcsInfo(BaseModel):
@@ -133,6 +145,27 @@ def transform_preprod_artifact_to_build_details(
 
     size_info = to_size_info(size_metrics)
 
+    platform = None
+    # artifact_type can be null before preprocessing has completed
+    if artifact.artifact_type is not None:
+        platform = platform_from_artifact_type(artifact.artifact_type)
+
+    apple_app_info = None
+    if platform == Platform.IOS or platform == Platform.MACOS:
+        apple_app_info = AppleAppInfo(
+            missing_dsym_binaries=(
+                artifact.extras.get("missing_dsym_binaries", []) if artifact.extras else []
+            )
+        )
+
+    android_app_info = None
+    if platform == Platform.ANDROID:
+        android_app_info = AndroidAppInfo(
+            has_proguard_mapping=(
+                artifact.extras.get("has_proguard_mapping", True) if artifact.extras else True
+            )
+        )
+
     app_info = BuildDetailsAppInfo(
         app_id=artifact.app_id,
         name=artifact.app_name,
@@ -150,6 +183,8 @@ def transform_preprod_artifact_to_build_details(
         build_configuration=(
             artifact.build_configuration.name if artifact.build_configuration else None
         ),
+        apple_app_info=apple_app_info,
+        android_app_info=android_app_info,
     )
 
     vcs_info = BuildDetailsVcsInfo(

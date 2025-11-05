@@ -1,17 +1,14 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 
-import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
+import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -25,8 +22,8 @@ import {
   HeadSortCell,
   useTableSortParams,
 } from 'sentry/views/insights/agents/components/headSortCell';
-import {useColumnOrder} from 'sentry/views/insights/agents/hooks/useColumnOrder';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -47,43 +44,30 @@ const EMPTY_ARRAY: never[] = [];
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'tool', name: t('Tool Name'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 120},
-  {key: 'count_if(span.status,equals,unknown)', name: t('Errors'), width: 120},
+  {key: 'count_if(span.status,equals,internal_error)', name: t('Errors'), width: 120},
   {key: 'avg(span.duration)', name: t('Avg'), width: 100},
   {key: 'p95(span.duration)', name: t('P95'), width: 100},
 ];
 
 const rightAlignColumns = new Set([
   'count()',
-  'count_if(span.status,equals,unknown)',
+  'count_if(span.status,equals,internal_error)',
   'avg(span.duration)',
   'p95(span.duration)',
 ]);
 
 export function ToolsTable() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const organization = useOrganization();
 
-  const {columnOrder, onResizeColumn} = useColumnOrder(defaultColumnOrder);
+  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
+    columns: defaultColumnOrder,
+  });
 
   const fullQuery = useCombinedQuery(`span.op:gen_ai.execute_tool`);
 
-  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
-    navigate(
-      {
-        pathname,
-        query: {
-          ...previousQuery,
-          toolsCursor: cursor,
-        },
-      },
-      {replace: true, preventScrollReset: true}
-    );
-  };
+  const {cursor, setCursor} = useTableCursor();
 
   const {sortField, sortOrder} = useTableSortParams();
-
-  const cursor = decodeScalar(location.query?.toolsCursor);
 
   const toolsRequest = useSpans(
     {
@@ -93,7 +77,7 @@ export function ToolsTable() {
         'avg(span.duration)',
         'p95(span.duration)',
         'failure_rate()',
-        'count_if(span.status,equals,unknown)', // spans with status unknown are errors
+        'count_if(span.status,equals,internal_error)',
       ],
       sorts: [{field: sortField, kind: sortOrder}],
       search: fullQuery,
@@ -114,7 +98,7 @@ export function ToolsTable() {
       requests: Number(span['count()']),
       avg: Number(span['avg(span.duration)']),
       p95: Number(span['p95(span.duration)']),
-      errors: Number(span['count_if(span.status,equals,unknown)']),
+      errors: Number(span['count_if(span.status,equals,internal_error)']),
     }));
   }, [toolsRequest.data]);
 
@@ -135,7 +119,6 @@ export function ToolsTable() {
       return (
         <HeadSortCell
           sortKey={column.key}
-          cursorParamName="toolsCursor"
           forceCellGrow={column.key === 'tool'}
           align={rightAlignColumns.has(column.key) ? 'right' : undefined}
           onClick={handleSort}
@@ -167,12 +150,12 @@ export function ToolsTable() {
           grid={{
             renderBodyCell,
             renderHeadCell,
-            onResizeColumn,
+            onResizeColumn: handleResizeColumn,
           }}
         />
         {toolsRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
-      <Pagination pageLinks={toolsRequest.pageLinks} onCursor={handleCursor} />
+      <Pagination pageLinks={toolsRequest.pageLinks} onCursor={setCursor} />
     </Fragment>
   );
 }
@@ -202,7 +185,7 @@ const BodyCell = memo(function BodyCell({
         yAxes: ['avg(span.duration)'],
       },
     ],
-    query: `gen_ai.tool.name:${dataRow.tool}`,
+    query: `gen_ai.tool.name:"${dataRow.tool}"`,
     field: ['span.description', 'gen_ai.tool.output', 'span.duration', 'timestamp'],
   });
 
@@ -215,12 +198,12 @@ const BodyCell = memo(function BodyCell({
       return <DurationCell milliseconds={dataRow.avg} />;
     case 'p95(span.duration)':
       return <DurationCell milliseconds={dataRow.p95} />;
-    case 'count_if(span.status,equals,unknown)':
+    case 'count_if(span.status,equals,internal_error)':
       return (
         <ErrorCell
           value={dataRow.errors}
           target={getExploreUrl({
-            query: `${query} span.status:unknown gen_ai.tool.name:${dataRow.tool}`,
+            query: `${query} span.status:internal_error gen_ai.tool.name:"${dataRow.tool}"`,
             organization,
             selection,
             referrer: Referrer.TOOLS_TABLE,

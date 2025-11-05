@@ -55,7 +55,6 @@ export function McpResourcesTable() {
       AVG_DURATION,
       P95_DURATION,
     ],
-    cursorParamName: 'tableCursor',
     referrer: MCPReferrer.MCP_RESOURCE_TABLE,
   });
 
@@ -78,7 +77,6 @@ export function McpResourcesTable() {
           sortKey={column.key}
           align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
           forceCellGrow={column.key === SpanFields.MCP_RESOURCE_URI}
-          cursorParamName="tableCursor"
           onClick={handleSort}
         >
           {column.name}
@@ -88,11 +86,10 @@ export function McpResourcesTable() {
     [handleSort]
   );
 
+  type TableData = (typeof tableDataRequest.data)[number];
+
   const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<string>,
-      dataRow: (typeof tableDataRequest.data)[number]
-    ) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       switch (column.key) {
         case SpanFields.MCP_RESOURCE_URI:
           return <McpResourceCell resource={dataRow[SpanFields.MCP_RESOURCE_URI]} />;
@@ -118,7 +115,7 @@ export function McpResourcesTable() {
           return <div />;
       }
     },
-    [tableDataRequest, organization, query, selection]
+    [organization, query, selection]
   );
 
   return (
@@ -126,13 +123,12 @@ export function McpResourcesTable() {
       isLoading={tableDataRequest.isPending}
       error={tableDataRequest.error}
       data={tableDataRequest.data}
-      initialColumnOrder={defaultColumnOrder}
+      initialColumnOrder={defaultColumnOrder as Array<GridColumnOrder<keyof TableData>>}
       stickyHeader
       grid={{
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName="tableCursor"
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />

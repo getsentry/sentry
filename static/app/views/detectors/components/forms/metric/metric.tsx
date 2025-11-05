@@ -1,35 +1,43 @@
-import {useContext, useEffect, useMemo} from 'react';
+import {Fragment, useContext, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import toNumber from 'lodash/toNumber';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormContext from 'sentry/components/forms/formContext';
-import PriorityControl from 'sentry/components/workflowEngine/form/control/priorityControl';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
-import {
-  DataConditionType,
-  DetectorPriorityLevel,
-} from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+import type {
+  Detector,
+  MetricDetector,
+  MetricDetectorConfig,
+} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
+  Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
-import {TransactionsDatasetWarning} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
+import {
+  TRANSACTIONS_DATASET_DEPRECATION_MESSAGE,
+  TransactionsDatasetWarning,
+} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
+import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
+import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
@@ -39,6 +47,8 @@ import {
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
+import {ResolveSection} from 'sentry/views/detectors/components/forms/metric/resolveSection';
+import {useAutoMetricDetectorName} from 'sentry/views/detectors/components/forms/metric/useAutoMetricDetectorName';
 import {useInitialMetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/useInitialMetricDetectorFormData';
 import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric/useIntervalChoices';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
@@ -46,17 +56,19 @@ import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDete
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
-import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 function MetricDetectorForm() {
+  useAutoMetricDetectorName();
+
   return (
     <FormStack>
       <TransactionsDatasetWarningListener />
       <DetectSection />
-      <PrioritizeSection />
       <ResolveSection />
       <AssignSection />
+      <DescribeSection />
       <AutomateSection />
     </FormStack>
   );
@@ -150,72 +162,161 @@ function DetectionType() {
   );
 }
 
-function ResolveSection() {
-  const detectionType = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.detectionType
-  );
-  const conditionValue = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionValue
-  );
+function validateMediumThreshold({
+  form,
+}: {
+  form: MetricDetectorFormData;
+  id: string;
+}): Array<[string, string]> {
+  const mediumNum = toNumber(form.mediumThreshold);
+  const highNum = toNumber(form.highThreshold);
+  const {conditionType} = form;
+
+  if (!conditionType || !form.mediumThreshold || form.mediumThreshold === '') {
+    return [];
+  }
+
+  if (!Number.isFinite(mediumNum) || !Number.isFinite(highNum)) {
+    return [];
+  }
+
+  // For GREATER: medium should be lower than high
+  // For LESS: medium should be higher than high
+  const isValid =
+    conditionType === DataConditionType.GREATER
+      ? mediumNum < highNum
+      : mediumNum > highNum;
+
+  if (!isValid) {
+    const message =
+      conditionType === DataConditionType.GREATER
+        ? t('Medium threshold must be lower than high threshold (%s)', String(highNum))
+        : t('Medium threshold must be higher than high threshold (%s)', String(highNum));
+    return [[METRIC_DETECTOR_FORM_FIELDS.mediumThreshold, message]];
+  }
+
+  return [];
+}
+
+interface PriorityRowProps {
+  aggregate: string;
+  detectionType: 'static' | 'percent';
+  priority: 'high' | 'medium';
+  showComparisonAgo?: boolean;
+}
+
+function PriorityRow({
+  priority,
+  detectionType,
+  aggregate,
+  showComparisonAgo,
+}: PriorityRowProps) {
   const conditionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionType
   );
-  const conditionComparisonAgo = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo
-  );
-  const aggregate = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
-  );
-  const thresholdSuffix = getStaticDetectorThresholdSuffix(aggregate);
+  const thresholdSuffix = getMetricDetectorSuffix(detectionType, aggregate);
+  const isHigh = priority === 'high';
+  const isStatic = detectionType === 'static';
 
-  const description = getResolutionDescription(
-    detectionType === 'percent'
-      ? {
-          detectionType: 'percent',
-          conditionType,
-          conditionValue,
-          comparisonDelta: conditionComparisonAgo ?? 3600, // Default to 1 hour if not set
-          thresholdSuffix,
-        }
-      : detectionType === 'static'
-        ? {
-            detectionType: 'static',
-            conditionType,
-            conditionValue,
-            thresholdSuffix,
-          }
-        : {
-            detectionType: 'dynamic',
-            thresholdSuffix,
-          }
+  const conditionChoices: Array<[MetricDetectorFormData['conditionType'], string]> =
+    isStatic
+      ? [
+          [DataConditionType.GREATER, t('Above')],
+          [DataConditionType.LESS, t('Below')],
+        ]
+      : [
+          [DataConditionType.GREATER, t('higher')],
+          [DataConditionType.LESS, t('lower')],
+        ];
+
+  const thresholdFieldName = isHigh
+    ? METRIC_DETECTOR_FORM_FIELDS.highThreshold
+    : METRIC_DETECTOR_FORM_FIELDS.mediumThreshold;
+
+  const thresholdAriaLabel = isHigh ? t('High threshold') : t('Medium threshold');
+
+  const directionField = (
+    <DirectionField
+      aria-label={t('Threshold direction')}
+      name={METRIC_DETECTOR_FORM_FIELDS.conditionType}
+      hideLabel
+      inline
+      flexibleControlStateSize
+      choices={conditionChoices}
+      required={isHigh}
+      disabled={!isHigh}
+      defaultValue={conditionType}
+      preserveOnUnmount
+    />
   );
 
   return (
-    <Container>
-      <Section title={t('Resolve')} description={description} />
-    </Container>
-  );
-}
-
-function PrioritizeSection() {
-  const detectionType = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.detectionType
-  );
-  return (
-    <Container>
-      <Section
-        title={t('Prioritize')}
-        description={
-          detectionType === 'dynamic'
-            ? t('Sentry will automatically update priority.')
-            : t('Update issue priority when the following thresholds are met:')
-        }
-      >
-        {detectionType !== 'dynamic' && (
-          <PriorityControl minimumPriority={DetectorPriorityLevel.MEDIUM} />
+    <PriorityRowContainer>
+      <PriorityDot $priority={priority} />
+      <PriorityLabel>
+        {isHigh ? t('High priority') : t('Medium priority')}
+        {isHigh && <RequiredAsterisk>*</RequiredAsterisk>}
+      </PriorityLabel>
+      <Flex align="center" gap="md">
+        {isStatic ? (
+          <Fragment>
+            {directionField}
+            <ThresholdField
+              aria-label={thresholdAriaLabel}
+              flexibleControlStateSize
+              inline={false}
+              hideLabel
+              placeholder="0"
+              name={thresholdFieldName}
+              suffix={thresholdSuffix}
+              required={isHigh}
+              validate={isHigh ? undefined : validateMediumThreshold}
+              preserveOnUnmount
+            />
+          </Fragment>
+        ) : (
+          <Fragment>
+            <ChangePercentField
+              name={thresholdFieldName}
+              aria-label={thresholdAriaLabel}
+              placeholder="0"
+              suffix="%"
+              hideLabel
+              inline
+              required={isHigh}
+              validate={isHigh ? undefined : validateMediumThreshold}
+              preserveOnUnmount
+            />
+            {directionField}
+          </Fragment>
         )}
-      </Section>
-    </Container>
+        {showComparisonAgo && (
+          <Fragment>
+            <span>{t('than the previous')}</span>
+            <StyledSelectField
+              name={METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo}
+              hideLabel
+              inline
+              flexibleControlStateSize
+              choices={
+                [
+                  [5 * 60, '5 minutes'],
+                  [15 * 60, '15 minutes'],
+                  [60 * 60, '1 hour'],
+                  [24 * 60 * 60, '1 day'],
+                  [7 * 24 * 60 * 60, '1 week'],
+                  [30 * 24 * 60 * 60, '1 month'],
+                ] satisfies Array<
+                  [MetricDetectorFormData['conditionComparisonAgo'], string]
+                >
+              }
+              preserveOnUnmount
+              required
+            />
+          </Fragment>
+        )}
+      </Flex>
+    </PriorityRowContainer>
   );
 }
 
@@ -252,6 +353,7 @@ function IntervalPicker() {
       }
       name={METRIC_DETECTOR_FORM_FIELDS.interval}
       choices={intervalChoices}
+      disabled={dataset === DetectorDataset.TRANSACTIONS}
     />
   );
 }
@@ -259,16 +361,29 @@ function IntervalPicker() {
 function useDatasetChoices() {
   const organization = useOrganization();
 
+  const {detector} = useDetectorFormContext();
+  const savedDataset = (detector as MetricDetector | undefined)?.dataSources[0]?.queryObj
+    ?.snubaQuery?.dataset;
+  const isExistingTransactionsDetector =
+    Boolean(detector) &&
+    [Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(savedDataset as Dataset);
+  const shouldHideTransactionsDataset =
+    !isExistingTransactionsDetector && deprecateTransactionAlerts(organization);
+
   return useMemo(() => {
     const datasetChoices: Array<SelectValue<DetectorDataset>> = [
       {
         value: DetectorDataset.ERRORS,
         label: t('Errors'),
       },
-      {
-        value: DetectorDataset.TRANSACTIONS,
-        label: t('Transactions'),
-      },
+      ...(shouldHideTransactionsDataset
+        ? []
+        : [
+            {
+              value: DetectorDataset.TRANSACTIONS,
+              label: t('Transactions'),
+            },
+          ]),
       ...(organization.features.includes('visibility-explore-view')
         ? [{value: DetectorDataset.SPANS, label: t('Spans')}]
         : []),
@@ -285,7 +400,7 @@ function useDatasetChoices() {
     ];
 
     return datasetChoices;
-  }, [organization]);
+  }, [organization, shouldHideTransactionsDataset]);
 }
 
 function DetectSection() {
@@ -297,6 +412,8 @@ function DetectSection() {
   const aggregate = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
   );
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const isTransactionsDataset = dataset === DetectorDataset.TRANSACTIONS;
 
   return (
     <Container>
@@ -337,94 +454,71 @@ function DetectSection() {
               }
             }}
           />
-          <IntervalPicker />
+          <Tooltip
+            title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
+            isHoverable
+            disabled={!isTransactionsDataset}
+          >
+            <DisabledSection disabled={isTransactionsDataset}>
+              <IntervalPicker />
+            </DisabledSection>
+          </Tooltip>
         </DatasetRow>
-        <Visualize />
+        <Tooltip
+          title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
+          isHoverable
+          disabled={!isTransactionsDataset}
+        >
+          <DisabledSection disabled={isTransactionsDataset}>
+            <Visualize />
+          </DisabledSection>
+        </Tooltip>
+
         <DetectionType />
         <Flex direction="column">
           {(!detectionType || detectionType === 'static') && (
             <Flex direction="column">
-              <MutedText>{t('An issue will be created when query value is:')}</MutedText>
-              <Flex align="center" gap="md">
-                <DirectionField
-                  aria-label={t('Threshold direction')}
-                  name={METRIC_DETECTOR_FORM_FIELDS.conditionType}
-                  hideLabel
-                  inline
-                  flexibleControlStateSize
-                  choices={
-                    [
-                      [DataConditionType.GREATER, t('Above')],
-                      [DataConditionType.LESS, t('Below')],
-                    ] satisfies Array<[MetricDetectorFormData['conditionType'], string]>
-                  }
-                  required
-                  preserveOnUnmount
+              <DefineThresholdParagraph>
+                <Text bold>{t('Define threshold & set priority')}</Text>
+                <Text variant="muted">
+                  {t('An issue will be created when query value is:')}
+                </Text>
+              </DefineThresholdParagraph>
+              <PriorityRowsContainer>
+                <PriorityRow
+                  priority="high"
+                  detectionType="static"
+                  aggregate={aggregate}
                 />
-                <ThresholdField
-                  aria-label={t('Threshold')}
-                  flexibleControlStateSize
-                  inline={false}
-                  hideLabel
-                  placeholder="0"
-                  name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
-                  suffix={getStaticDetectorThresholdSuffix(aggregate)}
-                  required
-                  preserveOnUnmount
+                <PriorityRow
+                  priority="medium"
+                  detectionType="static"
+                  aggregate={aggregate}
                 />
-              </Flex>
+              </PriorityRowsContainer>
             </Flex>
           )}
           {detectionType === 'percent' && (
             <Flex direction="column">
-              <MutedText>{t('An issue will be created when query value is:')}</MutedText>
-              <Flex align="center" gap="md">
-                <ChangePercentField
-                  name={METRIC_DETECTOR_FORM_FIELDS.conditionValue}
-                  aria-label={t('Initial threshold')}
-                  placeholder="0"
-                  hideLabel
-                  inline
-                  required
-                  preserveOnUnmount
+              <DefineThresholdParagraph>
+                <Text bold>{t('Define threshold & set priority')}</Text>
+                <Text variant="muted">
+                  {t('An issue will be created when query value is:')}
+                </Text>
+              </DefineThresholdParagraph>
+              <PriorityRowsContainer>
+                <PriorityRow
+                  priority="high"
+                  detectionType="percent"
+                  aggregate={aggregate}
+                  showComparisonAgo
                 />
-                <span>{t('percent')}</span>
-                <DirectionField
-                  name={METRIC_DETECTOR_FORM_FIELDS.conditionType}
-                  hideLabel
-                  inline
-                  flexibleControlStateSize
-                  choices={
-                    [
-                      [DataConditionType.GREATER, t('higher')],
-                      [DataConditionType.LESS, t('lower')],
-                    ] satisfies Array<[MetricDetectorFormData['conditionType'], string]>
-                  }
-                  required
-                  preserveOnUnmount
+                <PriorityRow
+                  priority="medium"
+                  detectionType="percent"
+                  aggregate={aggregate}
                 />
-                <span>{t('than the previous')}</span>
-                <StyledSelectField
-                  name={METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo}
-                  hideLabel
-                  inline
-                  flexibleControlStateSize
-                  choices={
-                    [
-                      [5 * 60, '5 minutes'],
-                      [15 * 60, '15 minutes'],
-                      [60 * 60, '1 hour'],
-                      [24 * 60 * 60, '1 day'],
-                      [7 * 24 * 60 * 60, '1 week'],
-                      [30 * 24 * 60 * 60, '1 month'],
-                    ] satisfies Array<
-                      [MetricDetectorFormData['conditionComparisonAgo'], string]
-                    >
-                  }
-                  preserveOnUnmount
-                  required
-                />
-              </Flex>
+              </PriorityRowsContainer>
             </Flex>
           )}
           {detectionType === 'dynamic' && (
@@ -523,6 +617,7 @@ const DetectionTypeField = styled(SegmentedRadioField)`
     padding: 0;
   }
 `;
+
 const ThresholdField = styled(NumberField)`
   padding: 0;
   margin: 0;
@@ -530,7 +625,7 @@ const ThresholdField = styled(NumberField)`
 
   > div {
     padding: 0;
-    width: 10ch;
+    width: 18ch;
   }
 `;
 
@@ -545,10 +640,12 @@ const ChangePercentField = styled(NumberField)`
   }
 `;
 
-const MutedText = styled('p')`
-  color: ${p => p.theme.text};
-  padding-top: ${space(1)};
-  margin-bottom: ${space(1)};
+const DefineThresholdParagraph = styled('p')`
+  display: flex;
+  gap: ${p => p.theme.space.sm};
+  flex-direction: column;
+  margin-bottom: ${p => p.theme.space.sm};
+  padding-top: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.border};
 `;
 
@@ -564,4 +661,39 @@ const IntervalField = styled(SelectField)`
   padding: 0;
   margin-left: 0;
   border-bottom: none;
+`;
+
+const DisabledSection = styled('div')<{disabled: boolean}>`
+  ${p => (p.disabled ? `opacity: 0.6;` : '')}
+`;
+
+const PriorityRowsContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  margin-top: ${space(1)};
+`;
+
+const PriorityRowContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const PriorityDot = styled('div')<{$priority: 'high' | 'medium'}>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: ${p => (p.$priority === 'high' ? p.theme.red300 : p.theme.yellow400)};
+  flex-shrink: 0;
+`;
+
+const PriorityLabel = styled('span')`
+  min-width: 120px;
+  font-weight: ${p => p.theme.fontWeight.normal};
+`;
+
+const RequiredAsterisk = styled('span')`
+  color: ${p => p.theme.error};
+  margin-left: ${space(0.25)};
 `;

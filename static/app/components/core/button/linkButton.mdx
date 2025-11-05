@@ -33,9 +33,9 @@ import {
 } from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import APIReference from '!!type-loader!sentry/components/core/button/linkButton';
+import documentation from '!!type-loader!@sentry/scraps/button/linkButton';
 
-export const types = {LinkButton: APIReference.LinkButton};
+export {documentation};
 
 LinkButtons combine the visual appearance of buttons with navigation functionality. Use LinkButton when you need to navigate to a different URL or route while maintaining consistent button styling.
 

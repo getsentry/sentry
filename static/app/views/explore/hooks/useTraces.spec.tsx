@@ -48,19 +48,16 @@ describe('useTraces', () => {
     act(() => {
       ProjectsStore.loadInitialData([project]);
       PageFiltersStore.init();
-      PageFiltersStore.onInitializeUrlState(
-        {
-          projects: [project].map(p => parseInt(p.id, 10)),
-          environments: [],
-          datetime: {
-            period: '3d',
-            start: null,
-            end: null,
-            utc: null,
-          },
+      PageFiltersStore.onInitializeUrlState({
+        projects: [project].map(p => parseInt(p.id, 10)),
+        environments: [],
+        datetime: {
+          period: '3d',
+          start: null,
+          end: null,
+          utc: null,
         },
-        new Set()
-      );
+      });
     });
   });
 

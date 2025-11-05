@@ -267,7 +267,7 @@ export type SentryAppInstallation = {
   organization: {
     slug: string;
   };
-  status: 'installed' | 'pending';
+  status: 'installed' | 'pending' | 'pending_deletion';
   uuid: string;
   code?: string;
 };
