@@ -47,7 +47,7 @@ def generate_conduit_token(
             raise ValueError("CONDUIT_GATEWAY_PRIVATE_KEY not configured")
     try:
         conduit_private_key_decoded = base64.b64decode(conduit_private_key).decode("utf-8")
-    except binascii.Error as e:
+    except (binascii.Error, UnicodeDecodeError) as e:
         raise ValueError("CONDUIT_GATEWAY_PRIVATE_KEY is not valid base64") from e
 
     now = int(time.time())

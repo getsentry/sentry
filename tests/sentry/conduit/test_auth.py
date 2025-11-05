@@ -133,6 +133,19 @@ def test_generate_conduit_token_raises_when_invalid_base64():
         )
 
 
+def test_generate_conduit_token_raises_when_invalid_utf8():
+    """Should raise an error if the private key isn't valid UTF-8 after base64 decode."""
+    org_id = 123
+    channel_id = "ad342057-d66b-4ed4-ab01-3415dd2cb1ce"
+    invalid_utf8_base64 = base64.b64encode(b"\xff\xfe\xfd").decode()
+    with pytest.raises(ValueError, match="CONDUIT_GATEWAY_PRIVATE_KEY is not valid base64"):
+        generate_conduit_token(
+            org_id,
+            channel_id,
+            conduit_private_key=invalid_utf8_base64,
+        )
+
+
 def test_get_conduit_credentials_returns_all_credentials():
     """Should return a url, token, and channel_id."""
     gateway_url = "https://conduit.example.com"
