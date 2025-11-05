@@ -273,7 +273,8 @@ export function Chart({
         grid={{
           left: 2,
           right: 8,
-          containLabel: true,
+          bottom: 40,
+          containLabel: false,
         }}
         xAxis={{
           show: true,
