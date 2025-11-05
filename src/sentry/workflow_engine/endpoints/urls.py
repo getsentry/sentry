@@ -1,5 +1,6 @@
 from django.urls import re_path
 
+from .admin_debug_index import AdminWorkflowDetailEndpoint
 from .organization_available_action_index import OrganizationAvailableActionIndexEndpoint
 from .organization_data_condition_index import OrganizationDataConditionIndexEndpoint
 from .organization_detector_count import OrganizationDetectorCountEndpoint
@@ -14,17 +15,6 @@ from .organization_workflow_details import OrganizationWorkflowDetailsEndpoint
 from .organization_workflow_group_history import OrganizationWorkflowGroupHistoryEndpoint
 from .organization_workflow_index import OrganizationWorkflowIndexEndpoint
 from .organization_workflow_stats import OrganizationWorkflowStatsEndpoint
-
-# TODO @saponifi3d - Add the remaining API endpoints
-
-# Remaining Detector Endpoints
-#   - GET /detector w/ filters
-
-# Remaining Workflows Endpoints
-# - GET /workflow w/ filters
-# - POST /workflow
-# - PUT /workflow/:id
-# - DELETE /workflow/:id
 
 organization_urlpatterns = [
     re_path(
@@ -99,18 +89,11 @@ organization_urlpatterns = [
     ),
 ]
 
-"""
-TOOD - should this be a thing?
+# These URLs power /_admin/alerts
 admin_urlpatterns = [
     re_path(
         r"^/workflow/(?P<workflow_id>[^/]+)/$",
-        # OrganizationOpenPeriodsEndpoint.as_view(),
-        name="sentry-api-0-admin-workflows",
-    ),
-    re_path(
-        r"^/workflow_evaluation/$",
-        # OrganizationOpenPeriodsEndpoint.as_view(),
-        name="sentry-api-0-admin-workflow-evaluation",
+        AdminWorkflowDetailEndpoint.as_view(),
+        name="sentry-api-0-admin-workflow-details",
     ),
 ]
-"""
