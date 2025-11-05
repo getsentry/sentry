@@ -191,7 +191,7 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         auth = self._auth_header_for_get(url, params, "test-secret")
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
-        assert resp.data["organization"][git_org_name] == VALID_ORG_CONFIG
+        assert resp.data["organization"] == VALID_ORG_CONFIG
 
     @patch(
         "sentry.overwatch.endpoints.overwatch_rpc.settings.OVERWATCH_RPC_SHARED_SECRET",
@@ -266,9 +266,7 @@ class TestPreventPrReviewResolvedConfigsEndpoint(APITestCase):
         resp = self.client.get(url, params, HTTP_AUTHORIZATION=auth)
         assert resp.status_code == 200
         assert (
-            resp.data["organization"][git_org_name]["repo_overrides"]["my-repo"]["bug_prediction"][
-                "sensitivity"
-            ]
+            resp.data["organization"]["repo_overrides"]["my-repo"]["bug_prediction"]["sensitivity"]
             == "high"
         )
 
