@@ -11,7 +11,7 @@ type LinkBehavior = {
 
 const LinkBehaviorContext = createContext<LinkBehavior | null>(null);
 
-const defaultLinkBeahvior = {
+const defaultLinkBehavior = {
   component: RouterLink,
   behavior: props => props,
 } satisfies LinkBehavior;
@@ -21,10 +21,10 @@ export const LinkBehaviorContextProvider = LinkBehaviorContext.Provider;
 export const useLinkBehavior = (props: LinkProps) => {
   const linkBehavior = useContext(LinkBehaviorContext);
 
-  if (!linkBehavior) {
+  if (process.env.NODE_ENV === 'production' && !linkBehavior) {
     Sentry.logger.warn('LinkBehaviorContext not found');
   }
-  const {component, behavior} = linkBehavior ?? defaultLinkBeahvior;
+  const {component, behavior} = linkBehavior ?? defaultLinkBehavior;
 
   return {Component: component, behavior: () => behavior(props)};
 };
