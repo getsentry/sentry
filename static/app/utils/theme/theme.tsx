@@ -10,7 +10,7 @@
 import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import color from 'color';
-import type {Transition} from 'framer-motion';
+import {spring, type Transition} from 'framer-motion';
 
 // palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
 const CHART_PALETTE = [
@@ -253,8 +253,12 @@ const generateTokens = (colors: Colors) => ({
   },
 });
 
-type MotionName = 'smooth' | 'snap' | 'enter' | 'exit';
+type SimpleMotionName = 'smooth' | 'snap' | 'enter' | 'exit';
+type PhysicsTransitionName = 'spring';
+
 type MotionDuration = 'fast' | 'moderate' | 'slow';
+
+type MotionCurve = [number, number, number, number];
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -264,16 +268,16 @@ const motionDurations: Record<MotionDuration, number> = {
   slow: 240,
 };
 
-const motionCurves: Record<MotionName, [number, number, number, number]> = {
+const motionCurves: Record<SimpleMotionName, MotionCurve> = {
   smooth: [0.72, 0, 0.16, 1],
   snap: [0.8, -0.4, 0.5, 1],
   enter: [0.24, 1, 0.32, 1],
   exit: [0.64, 0, 0.8, 0],
 };
 
-const withDuration = (
+const motionCurveWithDuration = (
   durations: Record<MotionDuration, number>,
-  easing: [number, number, number, number]
+  easing: MotionCurve
 ): [MotionDefinition, Record<MotionDuration, Transition>] => {
   const motion: MotionDefinition = {
     fast: `${durations.fast}ms cubic-bezier(${easing.join(', ')})`,
@@ -299,22 +303,83 @@ const withDuration = (
   return [motion, framerMotion];
 };
 
+const motionTransitionWithDuration = (
+  transitionDefinitions: Record<MotionDuration, Transition>
+): [MotionDefinition, Record<MotionDuration, Transition>] => {
+  const motion = {
+    fast: `${spring({
+      keyframes: [0, 1],
+      ...transitionDefinitions.fast,
+    })}`,
+    moderate: `${spring({
+      keyframes: [0, 1],
+      ...transitionDefinitions.moderate,
+    })}`,
+    slow: `${spring({
+      keyframes: [0, 1],
+      ...transitionDefinitions.slow,
+    })}`,
+  };
+
+  return [motion, transitionDefinitions];
+};
+
+const motionTransitions: Record<
+  PhysicsTransitionName,
+  Record<MotionDuration, Transition>
+> = {
+  spring: {
+    fast: {
+      type: 'spring',
+      stiffness: 1400,
+      damping: 50,
+    },
+    moderate: {
+      type: 'spring',
+      stiffness: 1000,
+      damping: 50,
+    },
+    slow: {
+      type: 'spring',
+      stiffness: 600,
+      damping: 50,
+    },
+  },
+};
+
 function generateMotion() {
-  const [smoothMotion, smoothFramer] = withDuration(motionDurations, motionCurves.smooth);
-  const [snapMotion, snapFramer] = withDuration(motionDurations, motionCurves.snap);
-  const [enterMotion, enterFramer] = withDuration(motionDurations, motionCurves.enter);
-  const [exitMotion, exitFramer] = withDuration(motionDurations, motionCurves.exit);
+  const [smoothMotion, smoothFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.smooth
+  );
+  const [snapMotion, snapFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.snap
+  );
+  const [enterMotion, enterFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.enter
+  );
+  const [exitMotion, exitFramer] = motionCurveWithDuration(
+    motionDurations,
+    motionCurves.exit
+  );
+  const [springMotion, springFramer] = motionTransitionWithDuration(
+    motionTransitions.spring
+  );
 
   return {
     smooth: smoothMotion,
     snap: snapMotion,
     enter: enterMotion,
     exit: exitMotion,
+    spring: springMotion,
     framer: {
       smooth: smoothFramer,
       snap: snapFramer,
       enter: enterFramer,
       exit: exitFramer,
+      spring: springFramer,
     },
   };
 }
