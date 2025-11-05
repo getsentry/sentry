@@ -51,7 +51,6 @@ describe('useMetricSamplesTable', () => {
           fields: [],
           limit: 100,
           ingestionDelaySeconds: 0,
-          enabled: true,
         }),
       {
         additionalWrapper: MockMetricQueryParamsContext,
@@ -69,7 +68,7 @@ describe('useMetricSamplesTable', () => {
     );
 
     await waitFor(() => {
-      expect(mockHighAccuracyRequest).toHaveBeenCalledTimes(1);
+      expect(mockHighAccuracyRequest).toHaveBeenCalledTimes(2);
     });
     expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
