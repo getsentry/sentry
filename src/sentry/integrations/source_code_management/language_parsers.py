@@ -76,7 +76,9 @@ class LanguageParser(ABC):
         return functions
 
     @classmethod
-    def _get_function_name_conditions(cls, stackframe_level: int, function_names: list[str]):
+    def _get_function_name_conditions(
+        cls, stackframe_level: int, function_names: list[str]
+    ) -> list[Condition]:
         """
         For some languages we need a special case of matching both for the function name itself and for
         {function_prefix} + the function name, because sometimes Snuba stores the function name as
@@ -103,7 +105,9 @@ class LanguageParser(ABC):
         return function_name_conditions
 
     @classmethod
-    def _get_function_name_functions(cls, stackframe_level: int, function_names: list[str]):
+    def _get_function_name_functions(
+        cls, stackframe_level: int, function_names: list[str]
+    ) -> list[Function]:
         """
         This is used in the multi_if. We need to account for the special cases in some languages order to
         properly fetch the function name -- "className+{function_prefix}+functionName" or simply "functionName" depending

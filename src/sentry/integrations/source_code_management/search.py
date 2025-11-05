@@ -24,7 +24,7 @@ from sentry.organizations.services.organization import RpcOrganization
 T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
 
-class SourceCodeSearchSerializer(serializers.Serializer):
+class SourceCodeSearchSerializer(serializers.Serializer[dict[str, str]]):
     field = serializers.CharField(required=True)
     query = serializers.CharField(required=True)
 
@@ -66,7 +66,7 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
         event: SCMIntegrationInteractionType,
         organization_id: int,
         integration_id: int,
-    ):
+    ) -> SCMIntegrationInteractionEvent:
         # XXX (mifu67): self.integration_provider is None for the GithubSharedSearchEndpoint,
         # which is used by both GitHub and GitHub Enterprise.
         provider_name = (

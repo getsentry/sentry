@@ -451,7 +451,7 @@ module = [
     "sentry.integrations.slack.threads.*",
     "sentry.integrations.slack.unfurl.*",
     "sentry.integrations.slack.views.*",
-    "sentry.integrations.source_code_management.repository",
+    "sentry.integrations.source_code_management.*",
     "sentry.integrations.utils.sync",
     "sentry.integrations.vsts.actions.*",
     "sentry.integrations.vsts.handlers.*",
