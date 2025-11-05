@@ -490,21 +490,16 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def test_exclude_metric_issue(self) -> None:
         self.login_as(user=self.user)
 
-        error_group = self.create_group()
-        metric_issue_group = self.create_group(type=MetricIssue.type_id)
+        self.create_group()
+        self.create_group(type=MetricIssue.type_id)
 
         response = self.client.put(
             f"{self.path}?status=unresolved&query=is:unresolved",
             data={"status": "resolved"},
             format="json",
         )
-        assert response.status_code == 200, response.data
-
-        error_group.refresh_from_db()
-        metric_issue_group.refresh_from_db()
-
-        assert error_group.status == GroupStatus.RESOLVED
-        assert metric_issue_group.status == GroupStatus.UNRESOLVED
+        assert response.status_code == 400, response.data
+        assert response.data["detail"] == "Cannot manually resolve one or more issues."
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     def test_resolve_with_integration(self, mock_sync_status_outbound: MagicMock) -> None:
