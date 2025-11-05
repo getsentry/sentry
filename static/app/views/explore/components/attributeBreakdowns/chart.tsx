@@ -10,7 +10,7 @@ import BaseChart from 'sentry/components/charts/baseChart';
 import {Flex} from 'sentry/components/core/layout';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import type {SuspectAttributesResult} from 'sentry/views/explore/hooks/useSuspectAttributes';
+import type {AttributeBreakdownsResult} from 'sentry/views/explore/hooks/useAttributeBreakdowns';
 
 const MAX_BAR_WIDTH = 20;
 const HIGH_CARDINALITY_THRESHOLD = 20;
@@ -21,7 +21,7 @@ const MAX_CHART_SERIES_LENGTH = 40;
 const SELECTED_SERIES_NAME = 'selected';
 const BASELINE_SERIES_NAME = 'baseline';
 
-type CohortData = SuspectAttributesResult['rankedAttributes'][number]['cohort1'];
+type CohortData = AttributeBreakdownsResult['rankedAttributes'][number]['cohort1'];
 
 function calculatePopulationPercentage(cohort: CohortData, cohortTotal: number): number {
   if (cohortTotal === 0) return 0;
@@ -103,7 +103,7 @@ export function Chart({
   cohort1Total,
   cohort2Total,
 }: {
-  attribute: SuspectAttributesResult['rankedAttributes'][number];
+  attribute: AttributeBreakdownsResult['rankedAttributes'][number];
   cohort1Total: number;
   cohort2Total: number;
   theme: Theme;
@@ -177,24 +177,15 @@ export function Chart({
         throw new Error('selectedParam or baselineParam is not defined');
       }
 
-      const selectedPercentage = Number(selectedParam?.data);
-      const baselinePercentage = Number(baselineParam?.data);
-
-      const isDifferent = selectedPercentage.toFixed(1) !== baselinePercentage.toFixed(1);
-
-      const status = isDifferent
-        ? {adjective: 'different', message: 'This is suspicious.'}
-        : {adjective: 'similar', message: 'Nothing unusual here.'};
-
       const name = selectedParam?.name ?? baselineParam?.name ?? '';
       const truncatedName =
         name.length > TOOLTIP_MAX_VALUE_LENGTH
           ? `${name.slice(0, TOOLTIP_MAX_VALUE_LENGTH)}...`
           : name;
 
-      return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2;">${truncatedName} <span style="color: ${theme.textColor};">is <strong>${status.adjective}</strong> ${isDifferent ? 'between' : 'across'} selected and baseline data. ${status.message}</span></div>`;
+      return `<div style="max-width: 200px; white-space: normal; word-wrap: break-word; line-height: 1.2; color: black;">${truncatedName}</div>`;
     },
-    [theme.textColor]
+    []
   );
 
   const chartXAxisLabelFormatter = useCallback(
@@ -273,7 +264,8 @@ export function Chart({
         grid={{
           left: 2,
           right: 8,
-          containLabel: true,
+          bottom: 40,
+          containLabel: false,
         }}
         xAxis={{
           show: true,
