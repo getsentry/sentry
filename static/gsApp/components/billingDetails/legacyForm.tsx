@@ -40,6 +40,10 @@ type Props = {
    */
   wrapper: (children: any) => React.ReactElement;
   /**
+   * Extra button to render in the form footer.
+   */
+  extraButton?: React.ReactNode;
+  /**
    * Additional form field props.
    */
   fieldProps?: FieldGroupProps;
@@ -121,6 +125,7 @@ function LegacyBillingDetailsForm({
   isDetailed = true,
   wrapper,
   fieldProps,
+  extraButton,
 }: Props) {
   const {isLoaded} = useLoadScript(GOOGLE_MAPS_LOAD_OPTIONS);
 
@@ -286,6 +291,7 @@ function LegacyBillingDetailsForm({
       onSubmitError={onSubmitError}
       initialData={transformedInitialData}
       footerStyle={footerStyle}
+      extraButton={extraButton}
     >
       <FieldWrapper>
         {isDetailed && (

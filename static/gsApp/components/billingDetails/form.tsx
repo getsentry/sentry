@@ -248,6 +248,7 @@ function BillingDetailsForm({
         wrapper={wrapper}
         submitLabel={submitLabel}
         fieldProps={fieldProps}
+        extraButton={extraButton}
       />
     );
   }
