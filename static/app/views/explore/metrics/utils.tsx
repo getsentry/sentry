@@ -1,9 +1,7 @@
 import type {ReactNode} from 'react';
-import qs from 'query-string';
 
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {RateUnit} from 'sentry/utils/discover/fields';
@@ -15,16 +13,9 @@ import type {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {TraceSamplesTableStatColumns} from 'sentry/views/explore/metrics/constants';
-import type {
-  BaseMetricQuery,
-  TraceMetric,
-} from 'sentry/views/explore/metrics/metricQuery';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {
-  defaultMetricQuery,
-  encodeMetricQueryParams,
-} from 'sentry/views/explore/metrics/metricQuery';
-import {
-  TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
   type SampleTableColumnKey,
 } from 'sentry/views/explore/metrics/types';
@@ -94,54 +85,6 @@ export function getMetricsUnit(
   return unitFromField;
 }
 
-type BaseGetMetricsUrlParams = {
-  id?: number;
-  interval?: string;
-  metricQueries?: BaseMetricQuery[];
-  referrer?: string;
-  selection?: PageFilters;
-  title?: string;
-};
-
-export function getMetricsUrl(
-  params: BaseGetMetricsUrlParams & {organization: Organization}
-): string;
-export function getMetricsUrl(
-  params: BaseGetMetricsUrlParams & {organization: string}
-): string;
-export function getMetricsUrl({
-  organization,
-  selection,
-  metricQueries,
-  id,
-  interval,
-  referrer,
-  title,
-}: BaseGetMetricsUrlParams & {organization: Organization | string}) {
-  const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
-  const {environments, projects} = selection ?? {};
-
-  const queryParams = {
-    project: projects,
-    environment: environments,
-    statsPeriod,
-    start,
-    end,
-    utc,
-    metric: metricQueries?.map(metricQuery => encodeMetricQueryParams(metricQuery)),
-    id,
-    interval,
-    referrer,
-    title,
-  };
-
-  const orgSlug = typeof organization === 'string' ? organization : organization.slug;
-  return (
-    makeMetricsPathname({organizationSlug: orgSlug, path: '/'}) +
-    `?${qs.stringify(queryParams, {skipNull: true})}`
-  );
-}
-
 export function getMetricsUrlFromSavedQueryUrl({
   savedQuery,
   organization,
@@ -189,24 +132,6 @@ export function getMetricsUrlFromSavedQueryUrl({
       projects: savedQuery.projects ? [...savedQuery.projects] : [],
     },
   });
-}
-
-export function getVisibleColumns(
-  columns: SampleTableColumnKey[]
-): TraceMetricKnownFieldKey[] {
-  return columns.filter(
-    c =>
-      Object.values(TraceMetricKnownFieldKey).includes(c as TraceMetricKnownFieldKey) &&
-      c !== TraceMetricKnownFieldKey.METRIC_VALUE
-  ) as TraceMetricKnownFieldKey[];
-}
-
-export function getVisibleStatColumns(
-  columns: SampleTableColumnKey[]
-): VirtualTableSampleColumnKey[] {
-  return columns.filter(c =>
-    Object.values(VirtualTableSampleColumnKey).includes(c as VirtualTableSampleColumnKey)
-  ) as VirtualTableSampleColumnKey[];
 }
 
 export function getMetricTableColumnType(

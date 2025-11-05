@@ -31,7 +31,7 @@ import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
-export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
+const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 const MILLISECONDS_PER_SECOND = 1000;
 
 interface UseMetricSamplesTableOptions {
