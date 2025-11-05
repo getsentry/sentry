@@ -73,8 +73,7 @@ export default function DetectorsList() {
   const location = useLocation();
   const navigate = useNavigate();
   const {selection, isReady} = usePageFilters();
-  const {detectorFilter, assigneeFilter, renderVisualization, emptyState} =
-    useMonitorViewContext();
+  const {detectorFilter, assigneeFilter, emptyState} = useMonitorViewContext();
 
   const {
     sort: sorts,
@@ -180,7 +179,6 @@ export default function DetectorsList() {
                   sort={sort}
                   queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
                   allResultsVisible={allResultsVisible()}
-                  renderVisualization={renderVisualization}
                 />
               )}
             </VisuallyCompleteWithData>
@@ -238,13 +236,13 @@ function TableHeader() {
 function Actions() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const {monitorsLinkPrefix, detectorFilter} = useMonitorViewContext();
+  const {detectorFilter} = useMonitorViewContext();
 
   // Pass the first selected project id that is not the all access project
   const project = selection.projects.find(pid => pid !== ALL_ACCESS_PROJECTS);
 
   // If detectorFilter is set, pass it as a query param to skip type selection
-  const createPath = makeMonitorCreatePathname(organization.slug, monitorsLinkPrefix);
+  const createPath = makeMonitorCreatePathname(organization.slug);
 
   const createQuery = detectorFilter
     ? {project, detectorType: detectorFilter}

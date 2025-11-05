@@ -544,6 +544,18 @@ def taskbroker_send_tasks(
     default=False,
     help="A potential workaround for Broker Handle Destroyed during shutdown (see arroyo option).",
 )
+@click.option(
+    "--profile-consumer-join",
+    is_flag=True,
+    default=False,
+    help="Adds a ProcessingStrategy to the start of a consumer that records a transaction of the consumer's join() method.",
+)
+@click.option(
+    "--enable-autocommit",
+    is_flag=True,
+    default=False,
+    help="Enable Kafka autocommit mode with 1s commit interval. Offsets are stored via store_offsets and rdkafka commits them automatically.",
+)
 @configuration
 def basic_consumer(
     consumer_name: str,
@@ -551,6 +563,7 @@ def basic_consumer(
     topic: str | None,
     kafka_slice_id: int | None,
     quantized_rebalance_delay_secs: int | None,
+    enable_autocommit: bool,
     **options: Any,
 ) -> None:
     """
@@ -588,6 +601,7 @@ def basic_consumer(
         topic=topic,
         kafka_slice_id=kafka_slice_id,
         add_global_tags=True,
+        enable_autocommit=enable_autocommit,
         **options,
     )
 
@@ -633,6 +647,7 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
             stale_threshold_sec=None,
             healthcheck_file_path=None,
             enforce_schema=True,
+            profile_consumer_join=False,
         )
         for consumer_name in consumer_names
     ]

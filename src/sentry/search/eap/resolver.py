@@ -1064,7 +1064,7 @@ class SearchResolver:
             resolved_arguments=resolved_arguments,
             snuba_params=self.params,
             query_result_cache=self._query_result_cache,
-            extrapolation_override=self.config.disable_aggregate_extrapolation,
+            search_config=self.config,
         )
 
         resolved_context = None
