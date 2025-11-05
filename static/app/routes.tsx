@@ -2685,10 +2685,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/admin/adminOverview')),
     },
     {
-      path: 'buffer/',
-      component: make(() => import('sentry/views/admin/adminBuffer')),
-    },
-    {
       path: 'relays/',
       component: make(() => import('sentry/views/admin/adminRelays')),
       deprecatedRouteProps: true,
@@ -2702,10 +2698,6 @@ function buildRoutes(): RouteObject[] {
       path: 'projects/',
       component: make(() => import('sentry/views/admin/adminProjects')),
       deprecatedRouteProps: true,
-    },
-    {
-      path: 'queue/',
-      component: make(() => import('sentry/views/admin/adminQueue')),
     },
     {
       path: 'settings/',
