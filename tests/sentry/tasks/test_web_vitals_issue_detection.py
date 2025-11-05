@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from unittest.mock import patch
 
 import pytest
@@ -16,20 +17,104 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
 
+    @contextmanager
+    def mock_seer_ack(self):
+        with (
+            patch(
+                "sentry.tasks.web_vitals_issue_detection.get_seer_org_acknowledgement"
+            ) as mock_ack,
+        ):
+            mock_ack.return_value = True
+            yield {"mock_ack": mock_ack}
+
+    @contextmanager
+    def mock_code_mapping(self):
+        with (
+            patch(
+                "sentry.tasks.web_vitals_issue_detection.get_autofix_repos_from_project_code_mappings"
+            ) as mock_repos,
+        ):
+            mock_repos.return_value = [
+                {
+                    "provider": "integrations:github",
+                    "owner": "test-owner",
+                    "name": "test-repo",
+                }
+            ]
+            yield {"mock_repos": mock_repos}
+
     @patch("sentry.tasks.web_vitals_issue_detection.detect_web_vitals_issues_for_project.delay")
-    def test_run_detection_dispatches_sub_tasks(self, mock_delay):
+    def test_run_detection_dispatches_sub_tasks_when_enabled(self, mock_delay):
         project = self.create_project()
 
-        with self.options(
-            {
-                "issue-detection.web-vitals-detection.enabled": True,
-                "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
-            }
+        with (
+            self.mock_seer_ack(),
+            self.mock_code_mapping(),
+            self.options(
+                {
+                    "issue-detection.web-vitals-detection.enabled": True,
+                    "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
+                }
+            ),
+            self.feature("organizations:gen-ai-features"),
         ):
             run_web_vitals_issue_detection()
 
         assert mock_delay.called
         assert mock_delay.call_args[0][0] == project.id
+
+    @patch("sentry.tasks.web_vitals_issue_detection.detect_web_vitals_issues_for_project.delay")
+    def test_run_detection_skips_when_seer_not_acknowledged(self, mock_delay):
+        project = self.create_project()
+
+        with (
+            self.mock_code_mapping(),
+            self.options(
+                {
+                    "issue-detection.web-vitals-detection.enabled": True,
+                    "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
+                }
+            ),
+            self.feature("organizations:gen-ai-features"),
+        ):
+            run_web_vitals_issue_detection()
+
+        assert not mock_delay.called
+
+    @patch("sentry.tasks.web_vitals_issue_detection.detect_web_vitals_issues_for_project.delay")
+    def test_run_detection_skips_when_no_github_code_mappings(self, mock_delay):
+        project = self.create_project()
+
+        with (
+            self.mock_seer_ack(),
+            self.options(
+                {
+                    "issue-detection.web-vitals-detection.enabled": True,
+                    "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
+                }
+            ),
+            self.feature("organizations:gen-ai-features"),
+        ):
+            run_web_vitals_issue_detection()
+
+        assert not mock_delay.called
+
+    @patch("sentry.tasks.web_vitals_issue_detection.detect_web_vitals_issues_for_project.delay")
+    def test_run_detection_skips_when_not_allowlisted(self, mock_delay):
+        with (
+            self.mock_seer_ack(),
+            self.mock_code_mapping(),
+            self.options(
+                {
+                    "issue-detection.web-vitals-detection.enabled": True,
+                    "issue-detection.web-vitals-detection.projects-allowlist": [],
+                }
+            ),
+            self.feature("organizations:gen-ai-features"),
+        ):
+            run_web_vitals_issue_detection()
+
+        assert not mock_delay.called
 
     @pytest.mark.snuba
     @patch("sentry.web_vitals.issue_platform_adapter.produce_occurrence_to_kafka")
@@ -110,12 +195,15 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         self.store_spans(spans, is_eap=True)
 
         with (
+            self.mock_seer_ack(),
+            self.mock_code_mapping(),
             self.options(
                 {
                     "issue-detection.web-vitals-detection.enabled": True,
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
+            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -209,12 +297,15 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         )
 
         with (
+            self.mock_seer_ack(),
+            self.mock_code_mapping(),
             self.options(
                 {
                     "issue-detection.web-vitals-detection.enabled": True,
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
+            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -251,12 +342,15 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         self.store_spans(spans, is_eap=True)
 
         with (
+            self.mock_seer_ack(),
+            self.mock_code_mapping(),
             self.options(
                 {
                     "issue-detection.web-vitals-detection.enabled": True,
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
+            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
@@ -330,12 +424,15 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         self.store_spans(spans, is_eap=True)
 
         with (
+            self.mock_seer_ack(),
+            self.mock_code_mapping(),
             self.options(
                 {
                     "issue-detection.web-vitals-detection.enabled": True,
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
+            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
