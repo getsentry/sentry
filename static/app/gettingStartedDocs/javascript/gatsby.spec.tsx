@@ -213,4 +213,11 @@ describe('javascript-gatsby onboarding docs', () => {
   // - Sentry.feedbackIntegration() is included when feedback is selected
   // - colorScheme: "system" is configured
   // - Feedback configuration options are applied
+
+  it('has metrics onboarding configuration', () => {
+    expect(docs.metricsOnboarding).toBeDefined();
+    expect(docs.metricsOnboarding?.install).toBeDefined();
+    expect(docs.metricsOnboarding?.configure).toBeDefined();
+    expect(docs.metricsOnboarding?.verify).toBeDefined();
+  });
 });

@@ -18,4 +18,11 @@ describe('javascript-remix onboarding docs', () => {
       screen.getByText(textWithMarkupMatcher(/npx @sentry\/wizard@latest -i remix/))
     ).toBeInTheDocument();
   });
+
+  it('has metrics onboarding configuration', () => {
+    expect(docs.metricsOnboarding).toBeDefined();
+    expect(docs.metricsOnboarding?.install).toBeDefined();
+    expect(docs.metricsOnboarding?.configure).toBeDefined();
+    expect(docs.metricsOnboarding?.verify).toBeDefined();
+  });
 });

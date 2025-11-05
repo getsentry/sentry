@@ -156,4 +156,11 @@ describe('javascript-ember onboarding docs', () => {
       screen.queryByText(textWithMarkupMatcher(/Sentry\.logger\.info/))
     ).not.toBeInTheDocument();
   });
+
+  it('has metrics onboarding configuration', () => {
+    expect(docs.metricsOnboarding).toBeDefined();
+    expect(docs.metricsOnboarding?.install).toBeDefined();
+    expect(docs.metricsOnboarding?.configure).toBeDefined();
+    expect(docs.metricsOnboarding?.verify).toBeDefined();
+  });
 });

@@ -154,4 +154,11 @@ describe('javascript-angular onboarding docs', () => {
 
     expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
   });
+
+  it('has metrics onboarding configuration', () => {
+    expect(docs.metricsOnboarding).toBeDefined();
+    expect(docs.metricsOnboarding?.install).toBeDefined();
+    expect(docs.metricsOnboarding?.configure).toBeDefined();
+    expect(docs.metricsOnboarding?.verify).toBeDefined();
+  });
 });
