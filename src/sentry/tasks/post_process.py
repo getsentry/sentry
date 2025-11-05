@@ -14,9 +14,6 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from data_forwarding.amazon_sqs.forwarder import AmazonSQSForwarder
-from data_forwarding.segment.forwarder import SegmentForwarder
-from data_forwarding.splunk.forwarder import SplunkForwarder
 from sentry import features, options, projectoptions
 from sentry.exceptions import PluginError
 from sentry.integrations.types import DataForwarderProviderSlug, IntegrationProviderSlug
@@ -1314,6 +1311,9 @@ def process_data_forwarding(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
+    from data_forwarding.amazon_sqs.forwarder import AmazonSQSForwarder
+    from data_forwarding.segment.forwarder import SegmentForwarder
+    from data_forwarding.splunk.forwarder import SplunkForwarder
     from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 
     event = job["event"]

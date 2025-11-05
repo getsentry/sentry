@@ -3733,6 +3733,24 @@ class ProcessDataForwardingTest(BasePostProgressGroupMixin, SnubaTestCase):
         },
     }
 
+    def create_event(self, data, project_id, assert_no_errors=True):
+        return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
+
+    def call_post_process_group(
+        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+    ):
+        if cache_key is None:
+            cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=is_new,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            cache_key=cache_key,
+            group_id=event.group_id,
+            project_id=event.project_id,
+        )
+        return cache_key
+
     def setup_forwarder(self, provider, is_enabled=True, **config_overrides):
         config = self.DEFAULT_FORWARDER_CONFIGS[provider].copy()
         config.update(config_overrides)
@@ -3752,13 +3770,11 @@ class ProcessDataForwardingTest(BasePostProgressGroupMixin, SnubaTestCase):
 
         return data_forwarder, data_forwarder_project
 
-    def create_test_event(self):
-        return self.store_event(
+    def test_process_data_forwarding_no_forwarders(self):
+        event = self.create_event(
             data={"message": "test message", "level": "error"},
             project_id=self.project.id,
         )
-
-    def run_post_process(self, event):
         self.call_post_process_group(
             is_new=True,
             is_regression=False,
@@ -3766,16 +3782,20 @@ class ProcessDataForwardingTest(BasePostProgressGroupMixin, SnubaTestCase):
             event=event,
         )
 
-    def test_process_data_forwarding_no_forwarders(self):
-        event = self.create_test_event()
-        self.run_post_process(event)
-
     @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
     def test_process_data_forwarding_sqs_enabled(self, mock_forward):
         mock_forward.return_value = True
         _, data_forwarder_project = self.setup_forwarder(DataForwarderProviderSlug.SQS)
-        event = self.create_test_event()
-        self.run_post_process(event)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
 
         assert mock_forward.call_count == 1
         call_args = mock_forward.call_args
@@ -3789,8 +3809,16 @@ class ProcessDataForwardingTest(BasePostProgressGroupMixin, SnubaTestCase):
         _, data_forwarder_project = self.setup_forwarder(
             DataForwarderProviderSlug.SQS, s3_bucket="my-sentry-events-bucket"
         )
-        event = self.create_test_event()
-        self.run_post_process(event)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
 
         # Verify the forwarder was called
         assert mock_forward.call_count == 1
@@ -3804,8 +3832,16 @@ class ProcessDataForwardingTest(BasePostProgressGroupMixin, SnubaTestCase):
     def test_process_data_forwarding_splunk_enabled(self, mock_forward):
         mock_forward.return_value = True
         self.setup_forwarder(DataForwarderProviderSlug.SPLUNK)
-        event = self.create_test_event()
-        self.run_post_process(event)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
 
         assert mock_forward.call_count == 1
 
@@ -3813,16 +3849,32 @@ class ProcessDataForwardingTest(BasePostProgressGroupMixin, SnubaTestCase):
     def test_process_data_forwarding_segment_enabled(self, mock_forward):
         mock_forward.return_value = True
         self.setup_forwarder(DataForwarderProviderSlug.SEGMENT)
-        event = self.create_test_event()
-        self.run_post_process(event)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
 
         assert mock_forward.call_count == 1
 
     @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
     def test_process_data_forwarding_disabled_forwarder(self, mock_forward):
         self.setup_forwarder(DataForwarderProviderSlug.SQS, is_enabled=False)
-        event = self.create_test_event()
-        self.run_post_process(event)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
 
         assert mock_forward.call_count == 0
 
@@ -3836,8 +3888,16 @@ class ProcessDataForwardingTest(BasePostProgressGroupMixin, SnubaTestCase):
 
         self.setup_forwarder(DataForwarderProviderSlug.SQS)
         self.setup_forwarder(DataForwarderProviderSlug.SPLUNK)
-        event = self.create_test_event()
-        self.run_post_process(event)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
 
         assert mock_sqs_forward.call_count == 1
         assert mock_splunk_forward.call_count == 1
