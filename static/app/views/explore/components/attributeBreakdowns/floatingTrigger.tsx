@@ -81,7 +81,7 @@ export function FloatingTrigger({
       <List>
         <ListItem onClick={handleZoomIn}>{t('Zoom in')}</ListItem>
         <ListItem onClick={handleFindAttributeBreakdowns}>
-          {t('Find Attribute Breakdowns')}
+          {t('Compare Attribute Breakdowns')}
         </ListItem>
       </List>
     </div>,

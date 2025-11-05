@@ -70,7 +70,7 @@ function EmptyState() {
       </Flex>
       <Text>
         {t(
-          "Drag to select an area on the chart and click 'Find Attribute Breakdowns' to analyze differences between selected and unselected (baseline) data. Attributes that differ most in frequency appear first, making it easier to identify key differences:"
+          "Drag to select an area on the chart and click 'Compare Attribute Breakdowns' to analyze differences between selected and unselected (baseline) data. Attributes that differ most in frequency appear first, making it easier to identify key differences:"
         )}
       </Text>
       <IllustrationWrapper>
