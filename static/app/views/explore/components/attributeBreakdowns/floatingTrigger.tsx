@@ -58,12 +58,12 @@ export function FloatingTrigger({
     boxSelectOptions.clearSelection();
   }, [boxSelectOptions, router]);
 
-  const handleFindSuspectAttributes = useCallback(() => {
+  const handleFindAttributeBreakdowns = useCallback(() => {
     setChartSelection({
       boxSelectOptions,
       chartInfo,
     });
-    setTab(Tab.SUSPECT_ATTRIBUTES);
+    setTab(Tab.ATTRIBUTE_BREAKDOWNS);
   }, [boxSelectOptions, chartInfo, setChartSelection, setTab]);
 
   if (!triggerPosition) return null;
@@ -80,8 +80,8 @@ export function FloatingTrigger({
     >
       <List>
         <ListItem onClick={handleZoomIn}>{t('Zoom in')}</ListItem>
-        <ListItem onClick={handleFindSuspectAttributes}>
-          {t('Find Suspect Attributes')}
+        <ListItem onClick={handleFindAttributeBreakdowns}>
+          {t('Find Attribute Breakdowns')}
         </ListItem>
       </List>
     </div>,
