@@ -478,6 +478,8 @@ def process_workflows(
         fire_actions,
     )
 
+    detectors = [detector] if detector else []
+
     try:
         if isinstance(event_data.event, GroupEvent):
             event_detectors = get_detectors_by_event(event_data)
@@ -485,6 +487,8 @@ def process_workflows(
                 event_detectors.event_type_detector = detector
             else:
                 detector = event_detectors.get_preferred_detector()
+
+            detectors = event_detectors.get_all_detectors()
 
         if detector is None:
             raise ValueError("Unable to determine the detector for the event")
@@ -519,9 +523,7 @@ def process_workflows(
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
-    workflows = _get_associated_workflows(
-        event_detectors.get_all_detectors(), environment, event_data
-    )
+    workflows = _get_associated_workflows(detectors, environment, event_data)
     if not workflows:
         # If there aren't any workflows, there's nothing to evaluate
         return set()
