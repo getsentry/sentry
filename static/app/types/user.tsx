@@ -53,7 +53,6 @@ export interface User extends Omit<AvatarUser, 'options'> {
     language: string;
     prefersChonkUI: boolean;
     prefersIssueDetailsStreamlinedUI: boolean | null;
-    prefersNextjsInsightsOverview: boolean;
     stacktraceOrder: StacktraceOrder;
     theme: 'system' | 'light' | 'dark';
     timezone: string;
