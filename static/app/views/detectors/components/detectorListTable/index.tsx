@@ -58,7 +58,7 @@ export function HeaderCell({
   sortKey,
   ...props
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   divider?: boolean;
   sortKey?: string;
 } & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
