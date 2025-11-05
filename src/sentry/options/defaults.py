@@ -342,9 +342,8 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 register(
-    "deletions.group-history.use-bulk-deletion",
+    "deletions.group-hashes-metadata.update-seer-matched-grouphash-ids",
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -629,14 +628,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout configuration for Arroyo ConfluentProducer
-# Controls the rollout of individual Kafka producers by name
-register(
-    "arroyo.producer.confluent-producer-rollout",
-    type=Dict,
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)

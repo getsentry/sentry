@@ -124,6 +124,7 @@ type BaseDetector = Readonly<{
   createdBy: string | null;
   dateCreated: string;
   dateUpdated: string;
+  description: string | null;
   enabled: boolean;
   id: string;
   lastTriggered: string;
@@ -190,6 +191,7 @@ export interface BaseDetectorUpdatePayload {
   projectId: Detector['projectId'];
   type: Detector['type'];
   workflowIds: string[];
+  description?: string | null;
   enabled?: boolean;
 }
 
