@@ -310,6 +310,9 @@ describe('DetectorEdit', () => {
       await userEvent.click(title);
       await userEvent.keyboard('Foo{enter}');
 
+      const description = screen.getByRole('textbox', {name: 'description'});
+      await userEvent.type(description, 'This is my metric monitor description');
+
       // Pick errors dataset
       await userEvent.click(screen.getByText('Spans'));
       await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Errors'}));
@@ -350,6 +353,7 @@ describe('DetectorEdit', () => {
                 },
               ],
               name: 'Foo',
+              description: 'This is my metric monitor description',
               owner: null,
               projectId: '2',
               type: 'metric_issue',
@@ -472,6 +476,9 @@ describe('DetectorEdit', () => {
       await userEvent.click(title);
       await userEvent.keyboard('Uptime Monitor{enter}');
 
+      const description = screen.getByRole('textbox', {name: 'description'});
+      await userEvent.type(description, 'This is my uptime monitor description');
+
       await userEvent.type(
         screen.getByRole('textbox', {name: 'URL'}),
         'https://uptime.example.com'
@@ -503,6 +510,7 @@ describe('DetectorEdit', () => {
               },
             ],
             name: 'New MonitorUptime Monitor',
+            description: 'This is my uptime monitor description',
             projectId: '2',
             type: 'uptime_domain_failure',
           }),
@@ -666,6 +674,39 @@ describe('DetectorEdit', () => {
                 }),
               }),
             ]),
+          }),
+        })
+      );
+    });
+
+    it('submits crons config with changes', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: CronDetectorFixture({id: '999'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+
+      const description = screen.getByRole('textbox', {name: 'description'});
+      await userEvent.type(description, 'This is my cron monitor description');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalled();
+      });
+
+      expect(mockCreateDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: 'monitor_check_in_failure',
+            name: 'New Monitor',
+            description: 'This is my cron monitor description',
           }),
         })
       );

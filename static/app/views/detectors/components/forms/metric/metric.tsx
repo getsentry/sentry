@@ -36,6 +36,7 @@ import {
 } from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
+import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
@@ -67,6 +68,7 @@ function MetricDetectorForm() {
       <DetectSection />
       <ResolveSection />
       <AssignSection />
+      <DescribeSection />
       <AutomateSection />
     </FormStack>
   );
