@@ -10,7 +10,10 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {DataForwarder} from 'sentry/views/settings/organizationDataForwarding/types';
+import {
+  ProviderLabels,
+  type DataForwarder,
+} from 'sentry/views/settings/organizationDataForwarding/types';
 
 export function useHasDataForwardingAccess() {
   const organization = useOrganization();
@@ -25,43 +28,69 @@ export function useHasDataForwardingAccess() {
 }
 
 const makeDataForwarderQueryKey = (params: {orgSlug: string}): ApiQueryKey => [
-  `/organizations/${params.orgSlug}/data-forwarders/`,
+  `/organizations/${params.orgSlug}/forwarding/`,
 ];
 
 export function useDataForwarders({
   params,
   options,
 }: {
-  options: Partial<UseApiQueryOptions<DataForwarder[]>>;
   params: {orgSlug: string};
+  options?: Partial<UseApiQueryOptions<DataForwarder[]>>;
 }) {
   return useApiQuery<DataForwarder[]>(makeDataForwarderQueryKey(params), {
     staleTime: 30000,
+
     ...options,
   });
 }
 
-export function useMutateDataForwarder({
-  params,
+export function useDataForwarder({
+  orgSlug,
 }: {
-  params: {dataForwarderId: string; orgSlug: string};
+  orgSlug: string;
+}): DataForwarder | undefined {
+  const {data: dataForwarders = []} = useDataForwarders({params: {orgSlug}});
+  return dataForwarders[0];
+}
+
+const makeDataForwarderMutationQueryKey = (params: {
+  dataForwarderId: string;
+  orgSlug: string;
+}): ApiQueryKey => [
+  `/organizations/${params.orgSlug}/forwarding/${params.dataForwarderId}/`,
+];
+
+/**
+ * Mutate a DataForwarder. If an ID is provided, it will be updated otherwise a new one will be created.
+ */
+export function useMutateDataForwarder({
+  params: {orgSlug, dataForwarderId},
+}: {
+  params: {orgSlug: string; dataForwarderId?: string};
 }) {
   const api = useApi({persistInFlight: false});
   const queryClient = useQueryClient();
+  const method = dataForwarderId ? 'PUT' : 'POST';
+  const listQueryKey = makeDataForwarderQueryKey({orgSlug});
+  const [endpoint] = dataForwarderId
+    ? makeDataForwarderMutationQueryKey({dataForwarderId, orgSlug})
+    : listQueryKey;
   return useMutation<DataForwarder, RequestError, DataForwarder>({
-    mutationFn: data =>
-      api.requestPromise(
-        `/organizations/${params.orgSlug}/data-forwarders/${params.dataForwarderId}/`,
-        {method: 'PUT', data}
-      ),
+    mutationFn: data => api.requestPromise(endpoint, {method, data}),
     onSuccess: (dataForwarder: DataForwarder) => {
       addSuccessMessage(
-        tct('[provider] data forwarder updated', {provider: dataForwarder.provider})
+        tct('[provider] data forwarder [action]', {
+          provider: ProviderLabels[dataForwarder.provider],
+          action: dataForwarderId ? t('updated') : t('created'),
+        })
       );
-      queryClient.invalidateQueries({queryKey: makeDataForwarderQueryKey(params)});
+      queryClient.invalidateQueries({queryKey: [endpoint]});
     },
-    onError: _error => {
-      addErrorMessage(t('Failed to update data forwarder'));
+    onError: error => {
+      const displayError =
+        JSON.stringify(error.responseJSON) ?? t('Failed to update data forwarder');
+      addErrorMessage(displayError);
     },
   });
 }
@@ -76,7 +105,7 @@ export function useDeleteDataForwarder({
   return useMutation<void, RequestError, {dataForwarderId: string; orgSlug: string}>({
     mutationFn: ({dataForwarderId, orgSlug}) =>
       api.requestPromise(
-        `/organizations/${orgSlug}/data-forwarders/${dataForwarderId}/`,
+        makeDataForwarderMutationQueryKey({dataForwarderId, orgSlug})[0],
         {method: 'DELETE'}
       ),
     onSuccess: () => {

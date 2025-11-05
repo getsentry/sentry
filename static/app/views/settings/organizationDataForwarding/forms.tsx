@@ -1,15 +1,23 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {DataForwarderProviderSlug} from 'sentry/views/settings/organizationDataForwarding/types';
+import {
+  DataForwarderProviderSlug,
+  type DataForwarder,
+} from 'sentry/views/settings/organizationDataForwarding/types';
 
 export function getDataForwarderFormGroups({
   provider,
+  organization,
+  dataForwarder,
   projects,
 }: {
+  organization: Organization;
   projects: Project[];
   provider: DataForwarderProviderSlug;
+  dataForwarder?: DataForwarder;
 }): JsonFormObject[] {
   let providerFormGroups: JsonFormObject[] = [];
   switch (provider) {
@@ -25,21 +33,42 @@ export function getDataForwarderFormGroups({
     default:
       return [];
   }
-  return [ENABLEMENT_FORM, ...providerFormGroups, getProjectConfigurationForm(projects)];
+  return [
+    getEnablementForm({organization, dataForwarder}),
+    ...providerFormGroups,
+    getProjectConfigurationForm(projects),
+  ];
 }
 
-const ENABLEMENT_FORM: JsonFormObject = {
-  title: t('Enablement'),
-  fields: [
-    {
-      name: 'is_enabled',
-      label: 'Enable data forwarding',
-      type: 'boolean',
-      defaultValue: false,
-      help: 'Will be disabled until the initial setup is complete.',
-      disabled: true,
-    },
-  ],
+const getEnablementForm = ({
+  organization,
+  dataForwarder,
+}: {
+  organization: Organization;
+  dataForwarder?: DataForwarder;
+}): JsonFormObject => {
+  const featureSet = new Set(organization.features);
+  const hasAccess =
+    featureSet.has('data-forwarding-revamp-access') && featureSet.has('data-forwarding');
+  const hasCompleteSetup = dataForwarder;
+
+  return {
+    title: t('Enablement'),
+    fields: [
+      {
+        name: 'is_enabled',
+        label: t('Enable data forwarding'),
+        type: 'boolean',
+        defaultValue: false,
+        help: hasCompleteSetup
+          ? t('Will override everything to shut-off data forwarding.')
+          : hasAccess
+            ? t('Will be disabled until the initial setup is complete.')
+            : t('Data forwarding is not available to your organization.'),
+        disabled: !hasAccess || !hasCompleteSetup,
+      },
+    ],
+  };
 };
 
 function getProjectConfigurationForm(projects: Project[]): JsonFormObject {
@@ -128,7 +157,7 @@ const SEGMENT_GLOBAL_CONFIGURATION_FORM: JsonFormObject = {
   title: t('Global Configuration'),
   fields: [
     {
-      name: 'segment_write_key',
+      name: 'write_key',
       label: 'Write Key',
       type: 'text',
       required: true,
