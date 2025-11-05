@@ -8,8 +8,8 @@ import boto3
 import orjson
 from botocore.client import Config
 from botocore.exceptions import ClientError, ParamValidationError
-
 from data_forwarding.base import BaseDataForwarder
+
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.services.eventstore.models import Event

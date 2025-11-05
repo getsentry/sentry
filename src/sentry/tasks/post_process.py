@@ -16,7 +16,7 @@ from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features, options, projectoptions
 from sentry.exceptions import PluginError
-from sentry.integrations.types import DataForwarderProviderSlug, IntegrationProviderSlug
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
@@ -1311,12 +1311,13 @@ def process_data_forwarding(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from data_forwarding.amazon_sqs.forwarder import AmazonSQSForwarder
-    from data_forwarding.segment.forwarder import SegmentForwarder
-    from data_forwarding.splunk.forwarder import SplunkForwarder
-    from sentry.integrations.models.data_forwarder_project import DataForwarderProject
-
     event = job["event"]
+
+    if not features.has("organizations:process-data-forwarding", event.project.organization):
+        return
+
+    from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
+    from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 
     data_forwarder_projects = DataForwarderProject.objects.filter(
         project_id=event.project_id,
@@ -1327,16 +1328,10 @@ def process_data_forwarding(job: PostProcessJob) -> None:
     if not data_forwarder_projects.exists():
         return
 
-    forwarder_classes = {
-        DataForwarderProviderSlug.SEGMENT.value: SegmentForwarder,
-        DataForwarderProviderSlug.SQS.value: AmazonSQSForwarder,
-        DataForwarderProviderSlug.SPLUNK.value: SplunkForwarder,
-    }
-
     for data_forwarder_project in data_forwarder_projects:
         provider = data_forwarder_project.data_forwarder.provider
         # GroupEvent is compatible with Event for all operations forwarders need
-        forwarder_classes[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
+        FORWARDER_REGISTRY[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
         metrics.incr("data_forwarding.forward_event", tags={"provider": provider})
 
 
