@@ -1,5 +1,5 @@
 ---
-created: '2025-11-03T21:48:48.077798+00:00'
+created: '2025-11-05T19:32:39.457336+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -142,17 +142,17 @@ app:
           frame (non app frame)
             function*
               "abort"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "raise"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             filename*
               "crashpad_client_win.cc"
             function*
               "crashpad::`anonymous namespace'::HandleAbortSignal"
 --------------------------------------------------------------------------
 system:
-  hash: "15526a7b64e9b5dc6d89e7ebec864260"
+  hash: "7388d8aa6c112020d5c3e7b180fd0b88"
   contributing component: exception
   hint: None
   root_component:
@@ -290,10 +290,10 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "abort"
-          frame*
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "raise"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             filename*
               "crashpad_client_win.cc"
             function*

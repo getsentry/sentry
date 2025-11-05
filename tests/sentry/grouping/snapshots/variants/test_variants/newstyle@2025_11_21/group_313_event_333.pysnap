@@ -1,5 +1,5 @@
 ---
-created: '2025-11-03T21:48:47.979385+00:00'
+created: '2025-11-05T19:32:39.332131+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -188,18 +188,18 @@ app:
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "__report_load"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "__abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "__pthread_kill"
 --------------------------------------------------------------------------
 system:
-  hash: "8be5979a334287a1b47457228f1d4612"
+  hash: "e678e9c9f08b5e0f9987605f0f5dbae5"
   contributing component: exception
   hint: None
   root_component:
@@ -383,12 +383,12 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__report_load"
-          frame*
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "__abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "__pthread_kill"
