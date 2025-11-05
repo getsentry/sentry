@@ -20,6 +20,8 @@ import RecurringCredits from 'getsentry/views/subscriptionPage/recurringCredits'
 
 import SubscriptionHeader from './subscriptionHeader';
 
+const MAX_PANEL_WIDTH = '1000px';
+
 type Props = {
   location: Location;
   organization: Organization;
@@ -65,13 +67,13 @@ function BillingInformation({organization, subscription, location}: Props) {
           isNewBillingUI={isNewBillingUI}
           ftcLocation={FTCConsentLocation.BILLING_DETAILS}
           budgetTerm={subscription.planDetails.budgetTerm}
-          maxPanelWidth="600px"
+          maxPanelWidth={MAX_PANEL_WIDTH}
         />
         <BillingDetailsPanel
           organization={organization}
           subscription={subscription}
           isNewBillingUI={isNewBillingUI}
-          maxPanelWidth="600px"
+          maxPanelWidth={MAX_PANEL_WIDTH}
         />
       </SubscriptionPageContainer>
     );
@@ -92,14 +94,14 @@ function BillingInformation({organization, subscription, location}: Props) {
               ftcLocation={FTCConsentLocation.BILLING_DETAILS}
               budgetTerm={subscription.planDetails.budgetTerm}
               shouldExpandInitially
-              maxPanelWidth="600px"
+              maxPanelWidth={MAX_PANEL_WIDTH}
             />
             <BillingDetailsPanel
               organization={organization}
               subscription={subscription}
               isNewBillingUI={isNewBillingUI}
               shouldExpandInitially
-              maxPanelWidth="600px"
+              maxPanelWidth={MAX_PANEL_WIDTH}
             />
           </Flex>
         ) : (
