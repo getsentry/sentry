@@ -1338,10 +1338,14 @@ def process_data_forwarding(job: PostProcessJob) -> None:
         try:
             # GroupEvent is compatible with Event for all operations forwarders need
             forwarder_classes[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
+            metrics.incr(
+                "data_forwarding.forward_event",
+                tags={"provider": provider},
+            )
         except Exception:
-            logger.exception(
+            metrics.incr(
                 "data_forwarding.forward_event.error",
-                extra={"provider": provider, "project_id": event.project_id},
+                tags={"provider": provider},
             )
 
 
