@@ -139,17 +139,13 @@ def fetch_metric_issue_open_periods(
 ) -> list[Any]:
     detector_id = open_period_identifier
     try:
-        if features.has(
-            "organizations:workflow-engine-single-process-metric-issues",
-            organization,  # Metric issue single processing
-        ):
-            # temporarily fetch the alert rule ID from the detector ID
-            alert_rule_detector = AlertRuleDetector.objects.filter(
-                detector_id=open_period_identifier, alert_rule_id__isnull=False
-            ).first()
-            if alert_rule_detector is not None:
-                # open_period_identifier is a metric detector ID -> get the alert rule ID
-                open_period_identifier = alert_rule_detector.alert_rule_id
+        # temporarily fetch the alert rule ID from the detector ID
+        alert_rule_detector = AlertRuleDetector.objects.filter(
+            detector_id=open_period_identifier, alert_rule_id__isnull=False
+        ).first()
+        if alert_rule_detector is not None:
+            # open_period_identifier is a metric detector ID -> get the alert rule ID
+            open_period_identifier = alert_rule_detector.alert_rule_id
 
         if features.has(
             "organizations:new-metric-issue-charts",
