@@ -203,7 +203,9 @@ function Controls({
     const toolTipMessage = isSaving
       ? DASHBOARD_SAVING_MESSAGE
       : hasEditAccess
-        ? hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+        ? hasUnsavedFilters
+          ? UNSAVED_FILTERS_MESSAGE
+          : null
         : t('You do not have permission to edit this dashboard');
 
     return (
