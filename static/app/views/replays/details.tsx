@@ -5,7 +5,6 @@ import invariant from 'invariant';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
-import useReplayTableSort from 'sentry/components/replays/table/useReplayTableSort';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,6 +17,7 @@ import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -47,22 +47,23 @@ export default function ReplayDetails() {
   });
   const {replay, replayRecord} = readerResult;
 
-  const {sortQuery} = useReplayTableSort();
-
-  const query = useLocationQuery({
+  const {playlistStart, ...query} = useLocationQuery({
     fields: {
       cursor: decodeScalar,
       environment: decodeList,
       project: decodeList,
+      sort: decodeScalar,
       query: decodeScalar,
-      start: decodeScalar,
+      playlistStart: decodeScalar,
       statsPeriod: decodeScalar,
       utc: decodeScalar,
-      started_at: decodeScalar,
     },
   });
+  const {getParamValue} = useUrlParams('sort');
+  const sortQuery = getParamValue();
+
   const queryKey = useReplayListQueryKey({
-    options: {query: {...query, sort: sortQuery}},
+    options: {query: {...query, start: playlistStart, sort: sortQuery}},
     organization,
     queryReferrer: 'replayList',
   });
