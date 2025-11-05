@@ -56,7 +56,7 @@ function metricOptionsQueryKey({
       }
     });
   } else {
-    query.statsPeriod = '1h'; // Default to a much smaller time window if not searching.
+    query.statsPeriod = '24h'; // Default to a much smaller time window if not searching.
   }
 
   return [`/organizations/${orgSlug}/events/`, {query}];
