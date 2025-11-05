@@ -64,7 +64,7 @@ const Anchor = styled('a', {
 export const Link = styled((props: LinkProps) => {
   const {Component, behavior} = useLinkBehavior(props);
 
-  if (props.disabled || Component === 'a') {
+  if (props.disabled) {
     return <Anchor {...props} />;
   }
 

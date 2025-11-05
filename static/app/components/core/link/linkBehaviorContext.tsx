@@ -1,12 +1,13 @@
 import {createContext, useContext, type FunctionComponent} from 'react';
+import {Link as RouterLink} from 'react-router-dom';
 
 import type {LinkProps} from './link';
 
 const LinkBehaviorContext = createContext<{
   behavior: (props: LinkProps) => LinkProps;
-  component: FunctionComponent<LinkProps> | 'a';
+  component: FunctionComponent<LinkProps>;
 }>({
-  component: 'a',
+  component: RouterLink,
   behavior: props => props,
 });
 
