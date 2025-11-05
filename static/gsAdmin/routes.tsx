@@ -1,6 +1,7 @@
 import type {SentryRouteObject} from 'sentry/router/types';
 import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
 
+import AlertsDebug from 'admin/views/alertsDebug';
 import BeaconDetails from 'admin/views/beaconDetails';
 import Beacons from 'admin/views/beacons';
 import BillingAdmins from 'admin/views/billingAdmins';
@@ -48,6 +49,10 @@ function buildRoutes() {
       {
         index: true,
         component: Home,
+      },
+      {
+        path: 'alerts/',
+        component: AlertsDebug,
       },
       {
         path: 'beacons/',
