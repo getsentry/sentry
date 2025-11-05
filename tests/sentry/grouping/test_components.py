@@ -3,6 +3,7 @@ from typing import Any
 
 import pytest
 
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.component import (
     BaseGroupingComponent,
     ChainedExceptionGroupingComponent,
@@ -12,6 +13,7 @@ from sentry.grouping.component import (
     StacktraceGroupingComponent,
     ThreadsGroupingComponent,
 )
+from sentry.grouping.strategies.configurations import FALL_2025_GROUPING_CONFIG
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 
@@ -379,3 +381,28 @@ class ComponentTest(TestCase):
             "value", recursive=True, only_contributing=True
         )
         assert not contributing_error_value_component
+
+    # TODO: Once we're fully transitioned off of the `newstyle:2023-01-11` config, this test can
+    # be deleted
+    def test_configs_put_exception_subcomponents_in_expected_order(self) -> None:
+        self.event.data["exception"]["values"][0]["stacktrace"] = {"frames": []}
+
+        self.project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
+        variants = self.event.get_grouping_variants()
+        exception_component = variants["app"].root_component.values[0]
+        assert isinstance(exception_component, ExceptionGroupingComponent)
+        assert [subcomponent.id for subcomponent in exception_component.values] == [
+            "stacktrace",
+            "type",
+            "value",
+        ]
+
+        self.project.update_option("sentry:grouping_config", FALL_2025_GROUPING_CONFIG)
+        variants = self.event.get_grouping_variants()
+        exception_component = variants["app"].root_component.values[0]
+        assert isinstance(exception_component, ExceptionGroupingComponent)
+        assert [subcomponent.id for subcomponent in exception_component.values] == [
+            "stacktrace",
+            "type",
+            "value",
+        ]
