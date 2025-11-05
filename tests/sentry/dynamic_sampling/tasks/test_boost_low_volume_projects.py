@@ -325,3 +325,38 @@ class TestPartitionByMeasure(TestCase):
             assert SamplingMeasure.TRANSACTIONS in result
             assert SamplingMeasure.SPANS not in result
             assert result[SamplingMeasure.TRANSACTIONS] == [org.id]
+
+    def test_partition_by_measure_returns_sorted_output_multiple_orgs(self) -> None:
+        orgs = [self.create_organization(f"test-org{i}") for i in range(10)]
+        org_ids = [org.id for org in reversed(orgs)]
+
+        with self.options(
+            {
+                "dynamic-sampling.check_span_feature_flag": True,
+                "dynamic-sampling.measure.spans": [orgs[2].id, orgs[7].id, orgs[5].id],
+            }
+        ):
+            result = partition_by_measure(org_ids)
+
+            assert result[SamplingMeasure.SPANS] == sorted([orgs[2].id, orgs[7].id, orgs[5].id])
+            expected_transaction_orgs = sorted(
+                [org.id for org in orgs if org.id not in [orgs[2].id, orgs[7].id, orgs[5].id]]
+            )
+            assert result[SamplingMeasure.TRANSACTIONS] == expected_transaction_orgs
+
+    def test_partition_by_measure_returns_sorted_when_feature_disabled(self) -> None:
+        org1 = self.create_organization("test-org1")
+        org2 = self.create_organization("test-org2")
+        org3 = self.create_organization("test-org3")
+
+        org_ids = [org3.id, org1.id, org2.id]
+
+        with self.options(
+            {
+                "dynamic-sampling.check_span_feature_flag": False,
+            }
+        ):
+            result = partition_by_measure(org_ids)
+
+            assert result[SamplingMeasure.TRANSACTIONS] == sorted(org_ids)
+            assert SamplingMeasure.SPANS not in result
