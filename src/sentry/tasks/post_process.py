@@ -1336,7 +1336,8 @@ def process_data_forwarding(job: PostProcessJob) -> None:
 
     for data_forwarder_project in data_forwarder_projects:
         provider = data_forwarder_project.data_forwarder.provider
-        success = forwarder_classes[provider].forward_event(event, data_forwarder_project)
+        # GroupEvent is compatible with Event for all operations forwarders need
+        success = forwarder_classes[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
         metrics.incr(
             "data_forwarding.forward_event",
             tags={
