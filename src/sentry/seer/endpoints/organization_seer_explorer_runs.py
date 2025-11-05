@@ -6,7 +6,6 @@ from typing import Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -14,7 +13,6 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
 from sentry.seer.explorer.client import get_seer_runs
-from sentry.seer.seer_setup import has_seer_access_with_detail
 
 logger = logging.getLogger(__name__)
 
@@ -37,26 +35,21 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Get a list of explorer runs triggered by the requesting user.
+
+        Query Parameters:
+            category_key: Optional category key to filter by (e.g., "bug-fixer", "researcher")
+            category_value: Optional category value to filter by (e.g., "issue-123", "a5b32")
         """
-        if not features.has("organizations:seer-explorer", organization, actor=request.user):
-            return Response({"detail": "Feature flag not enabled"}, status=403)
 
-        has_seer_access, detail = has_seer_access_with_detail(organization, actor=request.user)
-        if not has_seer_access:
-            return Response({"detail": detail}, status=403)
+        category_key = request.GET.get("category_key")
+        category_value = request.GET.get("category_value")
 
-        if not organization.flags.allow_joinleave:
-            return Response(
-                {
-                    "detail": "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely."
-                },
-                status=403,
-            )
-
-        def make_seer_runs_request(offset: int, limit: int) -> dict[str, Any]:
+        def _make_seer_runs_request(offset: int, limit: int) -> dict[str, Any]:
             runs = get_seer_runs(
                 organization=organization,
                 user=request.user,
+                category_key=category_key,
+                category_value=category_value,
                 offset=offset,
                 limit=limit,
             )
@@ -65,6 +58,6 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
 
         return self.paginate(
             request=request,
-            paginator=GenericOffsetPaginator(data_fn=make_seer_runs_request),
+            paginator=GenericOffsetPaginator(data_fn=_make_seer_runs_request),
             default_per_page=100,
         )

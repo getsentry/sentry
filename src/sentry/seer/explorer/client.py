@@ -96,9 +96,10 @@ def start_seer_run(
         "user_org_context": collect_user_org_context(user, organization),
     }
 
-    if category_key is not None:
+    if category_key or category_value:
+        if not category_key or not category_value:
+            raise ValueError("category_key and category_value must be provided together")
         payload["category_key"] = category_key
-    if category_value is not None:
         payload["category_value"] = category_value
 
     body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)

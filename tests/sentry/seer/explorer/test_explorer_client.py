@@ -116,6 +116,36 @@ class TestStartSeerRun(TestCase):
         assert body["category_key"] == "bug-fixer"
         assert body["category_value"] == "issue-123"
 
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    def test_start_seer_run_category_key_only_raises_error(self, mock_access):
+        """Test that ValueError is raised when only category_key is provided"""
+        mock_access.return_value = (True, None)
+
+        with pytest.raises(
+            ValueError, match="category_key and category_value must be provided together"
+        ):
+            start_seer_run(
+                organization=self.organization,
+                prompt="Test query",
+                user=self.user,
+                category_key="bug-fixer",
+            )
+
+    @patch("sentry.seer.explorer.client.has_seer_explorer_access_with_detail")
+    def test_start_seer_run_category_value_only_raises_error(self, mock_access):
+        """Test that ValueError is raised when only category_value is provided"""
+        mock_access.return_value = (True, None)
+
+        with pytest.raises(
+            ValueError, match="category_key and category_value must be provided together"
+        ):
+            start_seer_run(
+                organization=self.organization,
+                prompt="Test query",
+                user=self.user,
+                category_value="issue-123",
+            )
+
 
 class TestContinueSeerRun(TestCase):
     def setUp(self):

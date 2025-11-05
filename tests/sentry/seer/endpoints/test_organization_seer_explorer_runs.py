@@ -63,6 +63,8 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
         assert call_args.kwargs["user"].id == self.user.id
         assert call_args.kwargs["limit"] == 101  # Default per_page of 100 + 1 for has_more
         assert call_args.kwargs["offset"] == 0
+        assert call_args.kwargs["category_key"] is None
+        assert call_args.kwargs["category_value"] is None
 
     def test_get_cursor_pagination(self) -> None:
         # Mock seer response for offset 0, limit 3.
@@ -101,6 +103,8 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
         assert call_args.kwargs["user"].id == self.user.id
         assert call_args.kwargs["limit"] == 3  # +1 for has_more
         assert call_args.kwargs["offset"] == 0
+        assert call_args.kwargs["category_key"] is None
+        assert call_args.kwargs["category_value"] is None
 
         # Second page - mock seer response for offset 2, limit 3.
         self.get_seer_runs.return_value = [
@@ -131,11 +135,111 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
         assert call_args.kwargs["user"].id == self.user.id
         assert call_args.kwargs["limit"] == 3  # +1 for has_more
         assert call_args.kwargs["offset"] == 2
+        assert call_args.kwargs["category_key"] is None
+        assert call_args.kwargs["category_value"] is None
 
     def test_get_with_seer_error(self) -> None:
         self.get_seer_runs.side_effect = requests.HTTPError("API Error")
         response = self.client.get(self.url)
         assert response.status_code == 500
+
+    def test_get_with_category_key_filter(self) -> None:
+        self.get_seer_runs.return_value = [
+            ExplorerRun(
+                run_id=1,
+                title="Run 1",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+                category_key="bug-fixer",
+                category_value=None,
+            ),
+        ]
+        response = self.client.get(self.url + "?category_key=bug-fixer")
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert len(data) == 1
+        assert data[0]["run_id"] == 1
+
+        call_args = self.get_seer_runs.call_args
+        assert call_args.kwargs["category_key"] == "bug-fixer"
+        assert call_args.kwargs["category_value"] is None
+
+    def test_get_with_category_value_filter(self) -> None:
+        self.get_seer_runs.return_value = [
+            ExplorerRun(
+                run_id=2,
+                title="Run 2",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+                category_key=None,
+                category_value="issue-123",
+            ),
+        ]
+        response = self.client.get(self.url + "?category_value=issue-123")
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert len(data) == 1
+        assert data[0]["run_id"] == 2
+
+        call_args = self.get_seer_runs.call_args
+        assert call_args.kwargs["category_key"] is None
+        assert call_args.kwargs["category_value"] == "issue-123"
+
+    def test_get_with_both_category_filters(self) -> None:
+        self.get_seer_runs.return_value = [
+            ExplorerRun(
+                run_id=3,
+                title="Run 3",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+                category_key="bug-fixer",
+                category_value="issue-123",
+            ),
+        ]
+        response = self.client.get(self.url + "?category_key=bug-fixer&category_value=issue-123")
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert len(data) == 1
+        assert data[0]["run_id"] == 3
+
+        call_args = self.get_seer_runs.call_args
+        assert call_args.kwargs["category_key"] == "bug-fixer"
+        assert call_args.kwargs["category_value"] == "issue-123"
+
+    def test_get_with_category_filters_and_pagination(self) -> None:
+        self.get_seer_runs.return_value = [
+            ExplorerRun(
+                run_id=1,
+                title="Run 1",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+                category_key="bug-fixer",
+                category_value="issue-123",
+            ),
+            ExplorerRun(
+                run_id=2,
+                title="Run 2",
+                last_triggered_at=datetime.now(),
+                created_at=datetime.now(),
+                category_key="bug-fixer",
+                category_value="issue-123",
+            ),
+        ]
+        cursor = str(Cursor(0, 0))
+        response = self.client.get(
+            self.url
+            + "?category_key=bug-fixer&category_value=issue-123&per_page=2&cursor="
+            + cursor
+        )
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert len(data) == 2
+
+        call_args = self.get_seer_runs.call_args
+        assert call_args.kwargs["category_key"] == "bug-fixer"
+        assert call_args.kwargs["category_value"] == "issue-123"
+        assert call_args.kwargs["limit"] == 3  # +1 for has_more
+        assert call_args.kwargs["offset"] == 0
 
 
 class TestOrganizationSeerExplorerRunsEndpointFeatureFlags(APITestCase):
