@@ -10,6 +10,7 @@ from sentry.eventstream.base import GroupState
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import namespaces
@@ -88,7 +89,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
 @retry(
     timeouts=True,
     exclude=EventNotFoundError,
-    ignore=Group.DoesNotExist,
+    ignore=(Group.DoesNotExist, Project.DoesNotExist),
     on_silent=DataConditionGroup.DoesNotExist,
 )
 def process_workflows_event(
