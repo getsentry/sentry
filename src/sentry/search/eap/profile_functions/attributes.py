@@ -74,11 +74,6 @@ PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="function",
-            internal_name="name",
-            search_type="string",
-        ),
-        ResolvedAttribute(
             public_alias="package",
             internal_name="package",
             search_type="string",
