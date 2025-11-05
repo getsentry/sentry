@@ -18,8 +18,12 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
+
+SEER_MODELS_CACHE_KEY = "seer:models:list"
+SEER_MODELS_CACHE_TIMEOUT = 60 * 10  # 10 minutes
 
 
 class SeerTimeoutError(APIException):
@@ -69,6 +73,10 @@ class SeerModelsEndpoint(Endpoint):
         Returns the list of AI models that are currently used in production in Seer.
         This endpoint does not require authentication and can be used to discover which models Seer uses.
         """
+        cached_data = cache.get(SEER_MODELS_CACHE_KEY)
+        if cached_data is not None:
+            return Response(cached_data, status=200)
+
         path = "/v1/models"
 
         try:
@@ -83,6 +91,7 @@ class SeerModelsEndpoint(Endpoint):
             response.raise_for_status()
 
             data = response.json()
+            cache.set(SEER_MODELS_CACHE_KEY, data, SEER_MODELS_CACHE_TIMEOUT)
             return Response(data, status=200)
 
         except requests.exceptions.Timeout:
