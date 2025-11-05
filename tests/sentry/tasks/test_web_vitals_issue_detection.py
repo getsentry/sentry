@@ -262,3 +262,88 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
             run_web_vitals_issue_detection()
 
             assert mock_produce_occurrence_to_kafka.call_count == 0
+
+    @pytest.mark.snuba
+    @patch("sentry.web_vitals.issue_platform_adapter.produce_occurrence_to_kafka")
+    def test_run_detection_selects_trace_closest_to_p75_web_vital_value(
+        self, mock_produce_occurrence_to_kafka
+    ):
+        project = self.create_project()
+
+        spans = [
+            self.create_span(
+                project=project,
+                extra_data={
+                    "sentry_tags": {
+                        "op": "ui.webvitals.lcp",
+                        "transaction": "/home",
+                    },
+                },
+                start_ts=self.ten_mins_ago,
+                duration=100,
+                measurements={
+                    "score.ratio.lcp": {"value": 0.1},
+                    "lcp": {"value": 100},
+                },
+            )
+            for _ in range(7)
+        ]
+
+        p75_span = self.create_span(
+            project=project,
+            extra_data={
+                "sentry_tags": {
+                    "op": "ui.webvitals.lcp",
+                    "transaction": "/home",
+                },
+            },
+            start_ts=self.ten_mins_ago,
+            duration=100,
+            measurements={
+                "score.ratio.lcp": {"value": 0.5},
+                "lcp": {"value": 2000},
+            },
+        )
+        spans.append(p75_span)
+
+        spans.extend(
+            [
+                self.create_span(
+                    project=project,
+                    extra_data={
+                        "sentry_tags": {
+                            "op": "ui.webvitals.lcp",
+                            "transaction": "/home",
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                    duration=100,
+                    measurements={
+                        "score.ratio.lcp": {"value": 0.2},
+                        "lcp": {"value": 3500},
+                    },
+                )
+                for _ in range(2)
+            ]
+        )
+
+        self.store_spans(spans, is_eap=True)
+
+        with (
+            self.options(
+                {
+                    "issue-detection.web-vitals-detection.enabled": True,
+                    "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
+                }
+            ),
+            TaskRunner(),
+        ):
+            run_web_vitals_issue_detection()
+
+            assert mock_produce_occurrence_to_kafka.call_count == 1
+            call_args_list = mock_produce_occurrence_to_kafka.call_args_list
+            assert call_args_list[0].kwargs["event_data"]["tags"]["lcp"] == "2000.0"
+            assert (
+                call_args_list[0].kwargs["event_data"]["contexts"]["trace"]["trace_id"]
+                == p75_span["trace_id"]
+            )

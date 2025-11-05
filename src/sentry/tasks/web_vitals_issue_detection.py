@@ -7,13 +7,13 @@ from sentry import options
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.explorer.index_data import get_trace_for_transaction
 from sentry.seer.explorer.utils import normalize_description
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.web_vitals.issue_platform_adapter import send_web_vitals_issue_to_platform
+from sentry.web_vitals.query import get_trace_by_web_vital_measurement
 from sentry.web_vitals.types import WebVitalIssueDetectionType, WebVitalIssueGroupData
 
 logger = logging.getLogger("sentry.tasks.web_vitals_issue_detection")
@@ -73,8 +73,14 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
         project_id, limit=TRANSACTIONS_PER_PROJECT_LIMIT
     )
     for web_vital_issue_group in web_vital_issue_groups:
-        # TODO: Fetch the p75 trace instead
-        trace = get_trace_for_transaction(web_vital_issue_group["transaction"], project_id)
+        p75_vital_value = web_vital_issue_group["value"]
+        trace = get_trace_by_web_vital_measurement(
+            web_vital_issue_group["transaction"],
+            project_id,
+            web_vital_issue_group["vital"],
+            p75_vital_value,
+            start_time_delta=DEFAULT_START_TIME_DELTA,
+        )
         if trace:
             send_web_vitals_issue_to_platform(web_vital_issue_group, trace_id=trace.trace_id)
 
