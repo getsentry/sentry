@@ -1307,6 +1307,46 @@ def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
     return True
 
 
+def process_data_forwarding(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    from data_forwarding.amazon_sqs.forwarder import AmazonSQSForwarder
+    from data_forwarding.segment.forwarder import SegmentForwarder
+    from data_forwarding.splunk.forwarder import SplunkForwarder
+    from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+    from sentry.integrations.types import DataForwarderProviderSlug
+
+    event = job["event"]
+
+    data_forwarder_projects = DataForwarderProject.objects.filter(
+        project_id=event.project_id,
+        is_enabled=True,
+        data_forwarder__is_enabled=True,
+    ).select_related("data_forwarder")
+
+    if not data_forwarder_projects.exists():
+        return
+
+    forwarder_classes = {
+        DataForwarderProviderSlug.SEGMENT: SegmentForwarder,
+        DataForwarderProviderSlug.SQS: AmazonSQSForwarder,
+        DataForwarderProviderSlug.SPLUNK: SplunkForwarder,
+    }
+
+    for data_forwarder_project in data_forwarder_projects:
+        provider = data_forwarder_project.data_forwarder.provider
+        success = forwarder_classes[provider].forward_event(event, data_forwarder_project)
+        metrics.incr(
+            "data_forwarding.forward_event",
+            tags={
+                "provider": provider,
+                "project_id": event.project_id,
+                "success": success,
+            },
+        )
+
+
 def process_plugins(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
@@ -1670,6 +1710,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_workflow_engine_issue_alerts,
         process_service_hooks,
         process_resource_change_bounds,
+        process_data_forwarding,
         process_plugins,
         process_code_mappings,
         process_similarity,
@@ -1698,4 +1739,5 @@ GENERIC_POST_PROCESS_PIPELINE = [
     kick_off_seer_automation,
     process_rules,
     process_resource_change_bounds,
+    process_data_forwarding,
 ]
