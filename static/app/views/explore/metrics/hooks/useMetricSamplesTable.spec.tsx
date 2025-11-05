@@ -68,7 +68,7 @@ describe('useMetricSamplesTable', () => {
     );
 
     await waitFor(() => {
-      expect(mockHighAccuracyRequest).toHaveBeenCalledTimes(2);
+      expect(mockHighAccuracyRequest).toHaveBeenCalledTimes(1);
     });
     expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',

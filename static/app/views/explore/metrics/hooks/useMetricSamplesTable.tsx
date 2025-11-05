@@ -199,7 +199,7 @@ export function useMetricSamplesTable({
   return useProgressiveQuery<typeof useMetricSamplesTableImpl>({
     queryHookImplementation: useMetricSamplesTableImpl,
     queryHookArgs: {
-      disabled,
+      enabled: !disabled,
       limit,
       traceMetric,
       fields,
@@ -211,19 +211,18 @@ export function useMetricSamplesTable({
     },
     queryOptions: {
       canTriggerHighAccuracy,
-      disableExtrapolation: true,
     },
   });
 }
 
 function useMetricSamplesTableImpl({
-  disabled,
+  enabled,
   limit,
   traceMetric,
   fields,
   ingestionDelaySeconds = INGESTION_DELAY,
   queryExtras,
-}: UseMetricSamplesTableOptions): MetricSamplesTableResult {
+}: UseMetricSamplesTableOptions & {enabled: boolean}): MetricSamplesTableResult {
   const {queryKey, other} = useMetricsQueryKey({
     limit,
     traceMetric,
@@ -234,7 +233,7 @@ function useMetricSamplesTableImpl({
   });
 
   const result = useApiQuery<{data: any[]; meta?: EventsMetaType}>(queryKey, {
-    enabled: !disabled,
+    enabled,
     staleTime: getStaleTimeForEventView(other.eventView),
   });
 
