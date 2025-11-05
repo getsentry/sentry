@@ -51,7 +51,6 @@ describe('useMetricSamplesTable', () => {
           fields: [],
           limit: 100,
           ingestionDelaySeconds: 0,
-          enabled: true,
         }),
       {
         additionalWrapper: MockMetricQueryParamsContext,
