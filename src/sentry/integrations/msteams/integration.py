@@ -17,14 +17,9 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.messaging.metrics import (
-    MessagingInteractionEvent,
-    MessagingInteractionType,
-)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.card_builder.block import AdaptiveCard
-from sentry.integrations.msteams.metrics import record_lifecycle_termination_level
-from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
+from sentry.integrations.msteams.metrics import translate_msteams_api_error
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.provider import IntegrationNotificationClient
@@ -32,7 +27,6 @@ from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import json
 
 from .card_builder.installation import (
     build_personal_installation_confirmation_message,
@@ -93,24 +87,11 @@ class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient)
     def send_notification(
         self, target: IntegrationNotificationTarget, payload: AdaptiveCard
     ) -> None:
-        with MessagingInteractionEvent(
-            interaction_type=MessagingInteractionType.SEND_NOTIFICATION,
-            spec=MsTeamsMessagingSpec(),
-        ).capture() as lifecycle:
-            client = self.get_client()
-            try:
-                client.send_card(conversation_id=target.resource_id, card=payload)
-            except ApiError as e:
-                lifecycle.add_extras(
-                    {
-                        "target": json.dumps(target.to_dict()),
-                        "error_code": e.code if hasattr(e, "code") else None,
-                        "msg": str(e),
-                        "conversation_id": target.resource_id,
-                    }
-                )
-                record_lifecycle_termination_level(lifecycle, e)
-                raise
+        client = self.get_client()
+        try:
+            client.send_card(conversation_id=target.resource_id, card=payload)
+        except ApiError as e:
+            translate_msteams_api_error(e)
 
 
 class MsTeamsIntegrationProvider(IntegrationProvider):

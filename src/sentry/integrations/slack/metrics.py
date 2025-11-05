@@ -7,6 +7,7 @@ from sentry.integrations.slack.utils.errors import (
     unpack_slack_api_error,
 )
 from sentry.integrations.utils.metrics import EventLifecycle
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 
 # Utils
 SLACK_UTILS_GET_USER_LIST_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.utils.users.success"
@@ -16,11 +17,20 @@ SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.utils.ch
 
 
 def record_lifecycle_termination_level(lifecycle: EventLifecycle, error: SlackApiError) -> None:
-    if (
-        (reason := unpack_slack_api_error(error))
-        and reason is not None
-        and reason in SLACK_SDK_HALT_ERROR_CATEGORIES
-    ):
-        lifecycle.record_halt(reason.message)
+    try:
+        translate_slack_api_error(error)
+    except IntegrationConfigurationError as e:
+        lifecycle.record_halt(e)
+    except IntegrationError as e:
+        lifecycle.record_failure(e)
+
+
+def translate_slack_api_error(error: SlackApiError) -> None:
+    reason = unpack_slack_api_error(error)
+    if reason is not None:
+        if reason in SLACK_SDK_HALT_ERROR_CATEGORIES:
+            raise IntegrationConfigurationError(reason.message) from error
+        else:
+            raise IntegrationError(reason.message) from error
     else:
-        lifecycle.record_failure(error)
+        raise IntegrationError(str(error)) from error

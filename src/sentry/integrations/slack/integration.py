@@ -18,16 +18,11 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.messaging.metrics import (
-    MessagingInteractionEvent,
-    MessagingInteractionType,
-)
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
-from sentry.integrations.slack.metrics import record_lifecycle_termination_level
+from sentry.integrations.slack.metrics import translate_slack_api_error
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.provider import IntegrationNotificationClient
@@ -37,7 +32,6 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 _logger = logging.getLogger("sentry.integrations.slack")
@@ -107,27 +101,13 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
     def send_notification(
         self, target: IntegrationNotificationTarget, payload: SlackRenderable
     ) -> None:
-        with MessagingInteractionEvent(
-            interaction_type=MessagingInteractionType.SEND_NOTIFICATION,
-            spec=SlackMessagingSpec(),
-        ).capture() as lifecycle:
-            client = self.get_client()
-            try:
-                client.chat_postMessage(
-                    channel=target.resource_id, blocks=payload["blocks"], text=payload["text"]
-                )
-            except SlackApiError as e:
-                lifecycle.add_extras(
-                    {
-                        "target": json.dumps(target.to_dict()),
-                        "error_code": e.response.status_code if e.response else None,
-                        "msg": str(e),
-                        "data": e.response.data if e.response else None,
-                        "url": e.response.api_url if e.response else None,
-                    }
-                )
-                record_lifecycle_termination_level(lifecycle, e)
-                raise
+        client = self.get_client()
+        try:
+            client.chat_postMessage(
+                channel=target.resource_id, blocks=payload["blocks"], text=payload["text"]
+            )
+        except SlackApiError as e:
+            translate_slack_api_error(e)
 
 
 class SlackIntegrationProvider(IntegrationProvider):
