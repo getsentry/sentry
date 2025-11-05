@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class SemverVersion(
     namedtuple(
         "SemverVersion",
-        "major minor patch revision prerelease_case prerelease build_number",
+        "major minor patch revision prerelease_case prerelease build_number build_code",
     )
 ):
     pass

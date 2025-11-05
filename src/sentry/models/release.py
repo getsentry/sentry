@@ -307,6 +307,7 @@ class Release(Model):
         "prerelease_case",
         "prerelease",
         "build_number",
+        "build_code",
     ]
 
     def __eq__(self, other: object) -> bool:
@@ -407,6 +408,7 @@ class Release(Model):
             1 if self.prerelease == "" else 0,
             self.prerelease,
             self.build_number,
+            self.build_code,
         )
 
     @classmethod
