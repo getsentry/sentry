@@ -788,47 +788,49 @@ function Visualize({error, setError}: VisualizeProps) {
                               }}
                             />
                           )}
-                          {hasDrillDownFlows && isTableWidget && (
-                            <Button
-                              borderless
-                              icon={<IconLink />}
-                              aria-label={t('Link field')}
-                              size="zero"
-                              onClick={() => {
-                                openLinkToDashboardModal({
-                                  onLink: dashboardId => {
-                                    if (
-                                      fields[index]?.kind === FieldValueKind.FIELD &&
-                                      fields[index]?.field
-                                    ) {
-                                      const newLinkedDashboards: LinkedDashboard[] = [
-                                        ...linkedDashboards,
-                                        {dashboardId, field: fields[index].field},
-                                      ];
-                                      dispatch({
-                                        type: BuilderStateAction.SET_LINKED_DASHBOARDS,
-                                        payload: newLinkedDashboards,
-                                      });
-                                    }
-                                  },
-                                  currentLinkedDashboard: linkedDashboards.find(
-                                    linkedDashboard => {
+                          {hasDrillDownFlows &&
+                            isTableWidget &&
+                            fields[index]?.kind === FieldValueKind.FIELD && (
+                              <Button
+                                borderless
+                                icon={<IconLink />}
+                                aria-label={t('Link field')}
+                                size="zero"
+                                onClick={() => {
+                                  openLinkToDashboardModal({
+                                    onLink: dashboardId => {
                                       if (
                                         fields[index]?.kind === FieldValueKind.FIELD &&
                                         fields[index]?.field
                                       ) {
-                                        return (
-                                          linkedDashboard.field === fields[index].field
-                                        );
+                                        const newLinkedDashboards: LinkedDashboard[] = [
+                                          ...linkedDashboards,
+                                          {dashboardId, field: fields[index].field},
+                                        ];
+                                        dispatch({
+                                          type: BuilderStateAction.SET_LINKED_DASHBOARDS,
+                                          payload: newLinkedDashboards,
+                                        });
                                       }
-                                      return false;
-                                    }
-                                  ),
-                                  source,
-                                });
-                              }}
-                            />
-                          )}
+                                    },
+                                    currentLinkedDashboard: linkedDashboards.find(
+                                      linkedDashboard => {
+                                        if (
+                                          fields[index]?.kind === FieldValueKind.FIELD &&
+                                          fields[index]?.field
+                                        ) {
+                                          return (
+                                            linkedDashboard.field === fields[index].field
+                                          );
+                                        }
+                                        return false;
+                                      }
+                                    ),
+                                    source,
+                                  });
+                                }}
+                              />
+                            )}
                           <Button
                             borderless
                             icon={<IconDelete />}
