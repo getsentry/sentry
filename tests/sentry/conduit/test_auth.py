@@ -114,11 +114,10 @@ def test_generate_conduit_token_raises_when_missing():
     """Should raise an error if the private key is not configured."""
     org_id = 123
     channel_id = "ad342057-d66b-4ed4-ab01-3415dd2cb1ce"
-    with pytest.raises(ValueError, match="CONDUIT_GATEWAY_PRIVATE_KEY is not valid base64"):
+    with pytest.raises(ValueError, match="CONDUIT_GATEWAY_PRIVATE_KEY not configured"):
         generate_conduit_token(
             org_id,
             channel_id,
-            conduit_private_key=RS256_KEY,
         )
 
 
@@ -126,10 +125,11 @@ def test_generate_conduit_token_raises_when_invalid_base64():
     """Should raise an error if the private key isn't valid base64."""
     org_id = 123
     channel_id = "ad342057-d66b-4ed4-ab01-3415dd2cb1ce"
-    with pytest.raises(ValueError, match="CONDUIT_GATEWAY_PRIVATE_KEY not configured"):
+    with pytest.raises(ValueError, match="CONDUIT_GATEWAY_PRIVATE_KEY is not valid base64"):
         generate_conduit_token(
             org_id,
             channel_id,
+            conduit_private_key=RS256_KEY,
         )
 
 
