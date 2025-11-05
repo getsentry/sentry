@@ -28,7 +28,7 @@ export type ManageReposPanelProps = {
   isEditingOrgDefaults: boolean;
   onClose: () => void;
   org: OrganizationIntegration;
-  allRepos?: Array<{id: string; name: string}>;
+  allRepos?: Repository[];
   onFocusRepoSelector?: () => void;
   repo?: Repository | null;
 };
@@ -97,15 +97,20 @@ function ManageReposPanel({
     );
   }
 
+  // If organization is an empty object (Record<string, never>), use default_org_config
   const orgConfig =
-    githubConfigData.organization?.[org.name] ?? githubConfigData.default_org_config;
+    githubConfigData.organization && Object.keys(githubConfigData.organization).length > 0
+      ? (githubConfigData.organization as PreventAIConfig)
+      : githubConfigData.default_org_config;
+
+  const githubRepoId = repo?.externalId;
 
   const {doesUseOrgDefaults, repoConfig} = isEditingOrgDefaults
     ? {doesUseOrgDefaults: true, repoConfig: orgConfig.org_defaults}
-    : getRepoConfig(orgConfig, repo?.id ?? '');
+    : getRepoConfig(orgConfig, githubRepoId ?? '');
 
   const repoNamesWithOverrides = allRepos
-    .filter(r => orgConfig.repo_overrides?.hasOwnProperty(r.id))
+    .filter(r => orgConfig.repo_overrides?.hasOwnProperty(r.externalId))
     .map(r => getRepoNameWithoutOrg(r.name));
 
   return (
@@ -202,7 +207,7 @@ function ManageReposPanel({
                       feature: 'use_org_defaults',
                       gitOrgName: org.name,
                       originalConfig: orgConfig,
-                      repoId: repo?.id,
+                      repoId: githubRepoId,
                       enabled: !doesUseOrgDefaults,
                     });
                   }}
@@ -244,7 +249,7 @@ function ManageReposPanel({
                         enabled: newValue,
                         gitOrgName: org.name,
                         originalConfig: orgConfig,
-                        repoId: repo?.id,
+                        repoId: githubRepoId,
                       });
                     }}
                     aria-label="Enable PR Review"
@@ -277,7 +282,7 @@ function ManageReposPanel({
                               enabled: true,
                               gitOrgName: org.name,
                               originalConfig: orgConfig,
-                              repoId: repo?.id,
+                              repoId: githubRepoId,
                               sensitivity: option.value,
                             })
                           }
@@ -323,7 +328,7 @@ function ManageReposPanel({
                         enabled: newValue,
                         gitOrgName: org.name,
                         originalConfig: orgConfig,
-                        repoId: repo?.id,
+                        repoId: githubRepoId,
                       });
                     }}
                     aria-label="Enable Test Generation"
@@ -362,7 +367,7 @@ function ManageReposPanel({
                         enabled: newValue,
                         gitOrgName: org.name,
                         originalConfig: orgConfig,
-                        repoId: repo?.id,
+                        repoId: githubRepoId,
                       });
                     }}
                     aria-label="Enable Error Prediction"
@@ -395,7 +400,7 @@ function ManageReposPanel({
                               enabled: true,
                               gitOrgName: org.name,
                               originalConfig: orgConfig,
-                              repoId: repo?.id,
+                              repoId: githubRepoId,
                               sensitivity: option.value,
                             })
                           }
@@ -434,7 +439,7 @@ function ManageReposPanel({
                               enabled: true,
                               gitOrgName: org.name,
                               originalConfig: orgConfig,
-                              repoId: repo?.id,
+                              repoId: githubRepoId,
                             });
                           }}
                           aria-label="Auto Run on Opened Pull Requests"
@@ -467,7 +472,7 @@ function ManageReposPanel({
                               enabled: true,
                               gitOrgName: org.name,
                               originalConfig: orgConfig,
-                              repoId: repo?.id,
+                              repoId: githubRepoId,
                             });
                           }}
                           aria-label="Run When Mentioned"

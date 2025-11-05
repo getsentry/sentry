@@ -19,6 +19,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import {DataCategory} from 'sentry/types/core';
 
 import triggerProvisionSubscription from 'admin/components/provisionSubscriptionAction';
+import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 
 describe('provisionSubscriptionAction', () => {
@@ -1547,19 +1548,17 @@ describe('provisionSubscriptionAction', () => {
           onDemandInvoicedManual: 'DISABLE',
           plan: 'am3_business_ent',
           reservedAttachments: 1,
-          reservedBudgets: [
-            {budget: 2400000, categories: ['seerAutofix', 'seerScanner']},
-          ],
-          reservedCpeSeerAutofix: 0,
-          reservedCpeSeerScanner: 0,
+          // CPE value of 0 does not create a reserved budget
+          reservedBudgets: [],
           reservedErrors: 50000,
           reservedLogBytes: 5,
           reservedMonitorSeats: 1,
           reservedProfileDuration: 0,
           reservedProfileDurationUI: 0,
           reservedReplays: 75000,
-          reservedSeerAutofix: -2,
-          reservedSeerScanner: -2,
+          // CPE value of 0 does not modify the reserved field from its initial value
+          reservedSeerAutofix: 0,
+          reservedSeerScanner: 0,
           reservedSpans: 10000000,
           reservedUptime: 250,
           retainOnDemandBudget: false,
@@ -1985,5 +1984,189 @@ describe('provisionSubscriptionAction', () => {
     expect(
       screen.getByRole('spinbutton', {name: 'Reserved Transactions'})
     ).toBeInTheDocument();
+  });
+
+  describe('Reserved CPE field validation', () => {
+    it('should set reserved to RESERVED_BUDGET_QUOTA when CPE has a valid positive value', async () => {
+      const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
+      triggerProvisionSubscription({
+        subscription: am3Sub,
+        orgId: am3Sub.slug,
+        onSuccess,
+        billingConfig: mockBillingConfig,
+      });
+
+      await loadModal();
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Plan'}),
+        'Enterprise (Business) with Dynamic Sampling (am3)'
+      );
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Billing Interval'}),
+        'Annual'
+      );
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Billing Type'}),
+        'Invoiced'
+      );
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
+        'Disable'
+      );
+
+      await clickCheckbox('Apply Changes To Current Subscription');
+
+      // Set valid CPE values
+      typeNumForField('Reserved Cost-Per-Event Accepted Spans', '0.00005');
+      typeNumForField('Reserved Cost-Per-Event Stored Spans', '0.00003');
+
+      // Fill in other required fields
+      typeNumForField('Reserved Replays', '75000');
+      typeNumForField('Reserved Uptime Monitors', '250');
+      typeNumForField('Reserved Issue Fixes', '0');
+      typeNumForField('Reserved Issue Scans', '0');
+      typeNumForMatchingFields('Price for', '0', false);
+      typeNumForField('Price for Accepted Spans (Dynamic Sampling ARR)', '10000');
+      typeNumForField('Dynamic Sampling Budget', '10000');
+      typeNumForField('Price for PCSS', '500');
+      typeNumForField('Annual Contract Value', '10500');
+
+      const updateMock = MockApiClient.addMockResponse({
+        url: `/customers/${mockOrg.slug}/provision-subscription/`,
+        method: 'POST',
+        body: {},
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
+
+      // Verify reserved is set to RESERVED_BUDGET_QUOTA when CPE has a valid value
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledWith(
+          `/customers/${mockOrg.slug}/provision-subscription/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              reservedSpans: RESERVED_BUDGET_QUOTA,
+              reservedSpansIndexed: RESERVED_BUDGET_QUOTA,
+            }),
+          })
+        );
+      });
+    }, 15_000);
+
+    it('should not modify reserved when CPE is zero', async () => {
+      const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
+      triggerProvisionSubscription({
+        subscription: am3Sub,
+        orgId: am3Sub.slug,
+        onSuccess,
+        billingConfig: mockBillingConfig,
+      });
+
+      await loadModal();
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Plan'}),
+        'Enterprise (Business) (am3)'
+      );
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Billing Interval'}),
+        'Annual'
+      );
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Billing Type'}),
+        'Invoiced'
+      );
+
+      await clickCheckbox('Apply Changes To Current Subscription');
+
+      // Set CPE to zero
+      typeNumForField('Reserved Cost-Per-Event Issue Fixes', '0');
+      typeNumForField('Reserved Cost-Per-Event Issue Scans', '0');
+
+      // Fill in other required fields
+      typeNumForField('Reserved Replays', '75000');
+      typeNumForField('Reserved Uptime Monitors', '250');
+      typeNumForMatchingFields('Price for', '0', false);
+      typeNumForField('Price for PCSS', '500');
+      typeNumForField('Annual Contract Value', '500');
+
+      const updateMock = MockApiClient.addMockResponse({
+        url: `/customers/${mockOrg.slug}/provision-subscription/`,
+        method: 'POST',
+        body: {},
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
+
+      // Verify reserved stays at initial value when CPE is 0
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledWith(
+          `/customers/${mockOrg.slug}/provision-subscription/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              reservedSeerAutofix: 0,
+              reservedSeerScanner: 0,
+              reservedBudgets: [],
+            }),
+          })
+        );
+      });
+    }, 15_000);
+
+    it('should clear reserved when CPE is removed after setting valid value', async () => {
+      const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
+      triggerProvisionSubscription({
+        subscription: am3Sub,
+        orgId: am3Sub.slug,
+        onSuccess,
+        billingConfig: mockBillingConfig,
+      });
+
+      await loadModal();
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Plan'}),
+        'Enterprise (Business) with Dynamic Sampling (am3)'
+      );
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Billing Interval'}),
+        'Annual'
+      );
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Billing Type'}),
+        'Invoiced'
+      );
+
+      await clickCheckbox('Apply Changes To Current Subscription');
+
+      const cpeField = screen.getByLabelText('Reserved Cost-Per-Event Accepted Spans');
+      const reservedField = screen.getByLabelText('Reserved Accepted Spans');
+
+      // Set a valid CPE value
+      fireEvent.change(cpeField, {target: {value: '0.00005'}});
+
+      // Reserved field should be set to RESERVED_BUDGET_QUOTA
+      await waitFor(() => {
+        expect(reservedField).toHaveValue(RESERVED_BUDGET_QUOTA);
+      });
+      expect(reservedField).toBeDisabled();
+
+      // Clear the CPE field
+      fireEvent.change(cpeField, {target: {value: ''}});
+
+      // Reserved field should be cleared from RESERVED_BUDGET_QUOTA
+      await waitFor(() => {
+        expect(reservedField).not.toHaveValue(RESERVED_BUDGET_QUOTA);
+      });
+      expect(reservedField).toBeEnabled();
+    }, 15_000);
   });
 });
