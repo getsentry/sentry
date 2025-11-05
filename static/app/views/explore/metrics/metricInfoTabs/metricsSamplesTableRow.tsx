@@ -1,5 +1,6 @@
-import {Fragment, useRef, useState, type ReactNode} from 'react';
+import {useRef, useState, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
@@ -51,6 +52,7 @@ interface SampleTableRowProps {
   row: TraceMetricEventsResponseItem;
   telemetryData: ReturnType<typeof useTraceTelemetry>['data'];
   embedded?: boolean;
+  ref?: (element: HTMLElement | null) => void;
 }
 
 function FieldCellWrapper({
@@ -104,6 +106,7 @@ export function SampleTableRow({
   columns,
   meta,
   embedded = false,
+  ref,
 }: SampleTableRowProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -275,7 +278,7 @@ export function SampleTableRow({
   };
 
   return (
-    <Fragment>
+    <TableRowContainer ref={ref}>
       <StickyTableRow isSticky={isExpanded}>
         {columns.map((field, i) => {
           const isValueColumn = field === TraceMetricKnownFieldKey.METRIC_VALUE;
@@ -290,7 +293,10 @@ export function SampleTableRow({
               embedded={embedded}
             >
               {isValueColumn ? (
-                <Tooltip showOnlyOnOverflow title={row.value}>
+                <Tooltip
+                  showOnlyOnOverflow
+                  title={row[TraceMetricKnownFieldKey.METRIC_VALUE]}
+                >
                   {cellContent}
                 </Tooltip>
               ) : (
@@ -305,6 +311,13 @@ export function SampleTableRow({
           <MetricDetails dataRow={row} ref={measureRef} />
         </ExpandedRowContainer>
       )}
-    </Fragment>
+    </TableRowContainer>
   );
 }
+
+const TableRowContainer = styled('div')`
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-auto-rows: min-content;
+  grid-column: 1 / -1;
+`;
