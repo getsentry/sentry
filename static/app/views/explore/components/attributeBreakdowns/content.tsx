@@ -18,6 +18,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getUserTimezone} from 'sentry/utils/dates';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
@@ -147,8 +148,11 @@ function ContentImpl({
     const endTimestamp = Math.ceil(x2 / 60_000) * 60_000;
     startTimestamp = Math.min(startTimestamp, endTimestamp - 60_000);
 
-    const startDate = moment(startTimestamp).format('MMM D YYYY HH:mm');
-    const endDate = moment(endTimestamp).format('MMM D YYYY HH:mm');
+    const userTimezone = getUserTimezone() || moment.tz.guess();
+    const startDate = moment
+      .tz(startTimestamp, userTimezone)
+      .format('MMM D YYYY h:mm A z');
+    const endDate = moment.tz(endTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
 
     // Check if yAxis is a percentile function (only these functions should include "and is greater than or equal to")
     const yAxisLower = chartInfo.yAxis.toLowerCase();
