@@ -248,15 +248,26 @@ export function PreprodOnboarding({
               <Heading as="h3" size="lg" style={{marginBottom: theme.space.xl}}>
                 {t('Prerequisites')}
               </Heading>
-              <Text as="p" size="md">
-                {tct(
-                  'You need a Sentry organization auth token to upload builds. [link:Generate one here] and set it as [code:SENTRY_AUTH_TOKEN] in your environment.',
-                  {
-                    link: <Link to={`/settings/${organizationSlug}/auth-tokens/`} />,
-                    code: <code />,
-                  }
-                )}
-              </Text>
+              <List symbol="bullet">
+                <ListItem>
+                  {tct('Opt in to [link:Early Adopter Features]', {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/organization/early-adopter-features/" />
+                    ),
+                  })}
+                </ListItem>
+                <ListItem>
+                  <Text as="p" size="md">
+                    {tct(
+                      'You need a Sentry organization auth token to upload builds. [link:Generate one here] and set it as [code:SENTRY_AUTH_TOKEN] in your environment.',
+                      {
+                        link: <Link to={`/settings/${organizationSlug}/auth-tokens/`} />,
+                        code: <code />,
+                      }
+                    )}
+                  </Text>
+                </ListItem>
+              </List>
             </Container>
 
             <Flex direction="column" gap="md">
