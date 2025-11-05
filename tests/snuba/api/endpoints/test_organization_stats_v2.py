@@ -33,11 +33,16 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         self.project3 = self.create_project(organization=self.org2)
 
         self.user2 = self.create_user(is_superuser=False)
+        self.user3 = self.create_user(is_superuser=False)
         self.create_member(user=self.user2, organization=self.organization, role="member", teams=[])
         self.create_member(user=self.user2, organization=self.org3, role="member", teams=[])
         self.project4 = self.create_project(
             name="users2sproj",
             teams=[self.create_team(organization=self.org, members=[self.user2])],
+        )
+        self.project5 = self.create_project(
+            name="users3sproj",
+            teams=[self.create_team(organization=self.org, members=[self.user3])],
         )
 
         self.store_outcomes(
@@ -89,7 +94,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             {
                 "org_id": self.org.id,
                 "timestamp": self._now - timedelta(hours=1),
-                "project_id": self.project4.id,
+                "project_id": self.project5.id,
                 "outcome": Outcome.ACCEPTED,
                 "reason": "none",
                 "category": DataCategory.ERROR,
@@ -296,7 +301,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 isoformat_z(floor_to_utc_day(self._now)),
             ],
             "groups": [
-                {"by": {}, "series": {"sum(quantity)": [0, 6]}, "totals": {"sum(quantity)": 6}}
+                {"by": {}, "series": {"sum(quantity)": [0, 8]}, "totals": {"sum(quantity)": 8}}
             ],
             "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
             "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
@@ -324,8 +329,8 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             "groups": [
                 {
                     "by": {},
-                    "series": {"sum(quantity)": [0, 0, 0, 6, 0]},
-                    "totals": {"sum(quantity)": 6},
+                    "series": {"sum(quantity)": [0, 0, 0, 8, 0]},
+                    "totals": {"sum(quantity)": 8},
                 }
             ],
             "start": isoformat_z(
@@ -356,7 +361,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 isoformat_z(floor_to_utc_day(self._now)),
             ],
             "groups": [
-                {"by": {}, "series": {"sum(quantity)": [0, 7]}, "totals": {"sum(quantity)": 7}}
+                {"by": {}, "series": {"sum(quantity)": [0, 9]}, "totals": {"sum(quantity)": 9}}
             ],
         }
 
@@ -461,6 +466,10 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 {
                     "by": {"project": self.project2.id},
                     "totals": {"sum(quantity)": 1},
+                },
+                {
+                    "by": {"project": self.project5.id},
+                    "totals": {"sum(quantity)": 2},
                 },
             ],
         }
