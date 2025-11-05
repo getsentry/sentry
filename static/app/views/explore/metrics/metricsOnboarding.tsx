@@ -64,29 +64,12 @@ function OnboardingPanel({
           <div>
             <HeaderWrapper>
               <HeaderText>
-                <Title>{t('Measure What Matters with Metrics')}</Title>
+                <Title>{t('Measure what matters with Metrics')}</Title>
                 <SubTitle>
                   {t(
-                    'Track custom business metrics and monitor application performance with powerful aggregation and visualization capabilities.'
+                    'Track application metrics with powerful aggregation and visualization capabilities. Metrics will be connected to your errors, logs and spans enabling easier debugging'
                   )}
                 </SubTitle>
-                <BulletList>
-                  <li>
-                    {t(
-                      'Send custom metrics to track business KPIs and technical indicators'
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      'Create dashboards and alerts based on metric queries and aggregations'
-                    )}
-                  </li>
-                  <li>
-                    {t(
-                      'Analyze metrics alongside errors, traces, and logs for full context'
-                    )}
-                  </li>
-                </BulletList>
               </HeaderText>
               <Image src={connectDotsImg} />
             </HeaderWrapper>
@@ -299,16 +282,6 @@ const SubTitle = styled('div')`
 const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const BulletList = styled('ul')`
-  list-style-type: disc;
-  padding-left: 20px;
-  margin-bottom: ${space(2)};
-
-  li {
-    margin-bottom: ${space(1)};
-  }
 `;
 
 const HeaderWrapper = styled('div')`
