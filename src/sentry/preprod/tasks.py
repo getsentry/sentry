@@ -643,7 +643,7 @@ def detect_expired_preprod_artifacts() -> None:
     if updated_artifact_ids:
         for artifact_id in updated_artifact_ids:
             sentry_sdk.capture_message(
-                f"PreprodArtifact expired: artifact_id={artifact_id}",
+                "PreprodArtifact expired",
                 level="error",
                 extras={
                     "artifact_id": artifact_id,
