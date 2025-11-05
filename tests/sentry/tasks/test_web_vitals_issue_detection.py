@@ -424,12 +424,15 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         self.store_spans(spans, is_eap=True)
 
         with (
+            self.mock_seer_ack(),
+            self.mock_code_mapping(),
             self.options(
                 {
                     "issue-detection.web-vitals-detection.enabled": True,
                     "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
                 }
             ),
+            self.feature("organizations:gen-ai-features"),
             TaskRunner(),
         ):
             run_web_vitals_issue_detection()
