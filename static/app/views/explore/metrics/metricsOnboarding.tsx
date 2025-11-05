@@ -53,9 +53,11 @@ type OnboardingProps = {
 function OnboardingPanel({
   project,
   children,
+  isUnsupportedPlatform = false,
 }: {
   children: React.ReactNode;
   project: Project;
+  isUnsupportedPlatform?: boolean;
 }) {
   return (
     <Panel>
@@ -70,12 +72,13 @@ function OnboardingPanel({
                     'Track application metrics with powerful aggregation and visualization capabilities. Metrics will be connected to your errors, logs and spans enabling easier debugging'
                   )}
                 </SubTitle>
+                {isUnsupportedPlatform && <div>{children}</div>}
               </HeaderText>
               <Image src={connectDotsImg} />
             </HeaderWrapper>
             <Divider />
-            <Body>
-              <Setup>{children}</Setup>
+            <Body $isUnsupportedPlatform={isUnsupportedPlatform}>
+              {!isUnsupportedPlatform && <Setup>{children}</Setup>}
               <Preview>
                 <BodyTitle>{t('Preview a Sentry Metric')}</BodyTitle>
                 <Arcade
@@ -180,8 +183,9 @@ function Onboarding({organization, project}: OnboardingProps) {
   }
 
   if (!currentPlatform || !metricsDocs || !dsn || !projectKeyId) {
+    // This currently covers all non-supported platforms as `doesNotSupportMetrics` is empty.
     return (
-      <OnboardingPanel project={project}>
+      <OnboardingPanel project={project} isUnsupportedPlatform>
         <div>
           {tct(
             "We're working to bring Metrics support to [platform]. Stay updated by joining the discussion!",
@@ -319,11 +323,18 @@ const Preview = styled('div')`
   padding: ${space(4)};
 `;
 
-const Body = styled('div')`
+const Body = styled('div')<{$isUnsupportedPlatform?: boolean}>`
   display: grid;
   position: relative;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
+
+  ${p =>
+    p.$isUnsupportedPlatform &&
+    `
+    grid-auto-flow: row;
+    grid-auto-columns: unset;
+  `}
 
   h4 {
     margin-bottom: 0;
