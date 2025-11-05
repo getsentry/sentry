@@ -281,8 +281,8 @@ def get_detectors_by_groupevents_bulk(
             result.update(mapping)
 
             # events with missing detectors can be picked up by the issue stream detector
-            for project_id, events in detector_id_to_events.items():
-                if project_id not in found_detector_ids:
+            for detector_id, events in detector_id_to_events.items():
+                if detector_id not in found_detector_ids:
                     issue_stream_events.extend(events)
 
             missing_detector_ids.update(set(detector_id_to_events.keys()) - found_detector_ids)
