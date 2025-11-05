@@ -66,7 +66,7 @@ export const StyledSimpleTableRowCell = styled(SimpleTable.RowCell)<{
   embedded?: boolean;
   hasPadding?: boolean;
 }>`
-  padding: ${p => p.theme.space['2xs']};
+  padding: ${p => (p.hasPadding ? p.theme.space.xs : 0)};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 

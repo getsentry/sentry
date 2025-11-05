@@ -75,6 +75,7 @@ function FieldCellWrapper({
         key={`stat-${index}`}
         data-column-name={field}
         embedded={embedded}
+        hasPadding
       >
         {children}
       </NumericSimpleTableRowCell>
@@ -86,6 +87,7 @@ function FieldCellWrapper({
         key={index}
         style={{minWidth: VALUE_COLUMN_MIN_WIDTH}}
         embedded={embedded}
+        hasPadding
       >
         <Tooltip showOnlyOnOverflow title={row[TraceMetricKnownFieldKey.METRIC_VALUE]}>
           {children}
@@ -320,4 +322,8 @@ const TableRowContainer = styled('div')`
   grid-template-columns: subgrid;
   grid-auto-rows: min-content;
   grid-column: 1 / -1;
+
+  :not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
 `;

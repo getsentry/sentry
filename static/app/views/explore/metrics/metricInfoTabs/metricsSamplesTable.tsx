@@ -27,7 +27,7 @@ const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
 const MAX_TELEMETRY_WIDTH = 40;
 
-export const SAMPLES_PANEL_MIN_WIDTH = 305;
+export const SAMPLES_PANEL_MIN_WIDTH = 310;
 
 interface MetricsSamplesTableProps {
   embedded?: boolean;
