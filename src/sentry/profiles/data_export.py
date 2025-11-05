@@ -38,7 +38,7 @@ def export_profiles_data(
         logger.info("Found organization", extra={"organization.slug": organization.slug})
     except Organization.DoesNotExist:
         logger.exception("Could not find organization", extra={"organization.id": organization_id})
-        return None
+        raise
 
     job = create_transfer_job(
         gcp_project_id=gcp_project_id,
