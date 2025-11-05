@@ -22,7 +22,7 @@ export interface MonitorViewContextValue {
    */
   additionalColumns?: MonitorListAdditionalColumn[];
   assigneeFilter?: string;
-  detectorFilter?: DetectorType;
+  detectorFilter?: Exclude<DetectorType, 'issue_stream'>;
   emptyState?: React.ReactNode;
   renderVisualization?: (params: RenderVisualizationParams) => React.ReactNode;
   showTimeRangeSelector?: boolean;
