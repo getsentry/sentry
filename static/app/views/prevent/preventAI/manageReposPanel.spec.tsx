@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PreventAIConfigFixture} from 'sentry-fixture/prevent';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -58,8 +59,8 @@ describe('ManageReposPanel', () => {
   };
 
   const mockAllRepos = [
-    {id: 'repo-1', name: 'org-1/repo-1'},
-    {id: 'repo-2', name: 'org-1/repo-2'},
+    RepositoryFixture({id: 'repo-1', name: 'org-1/repo-1'}),
+    RepositoryFixture({id: 'repo-2', name: 'org-1/repo-2'}),
   ];
 
   const defaultProps: ManageReposPanelProps = {
@@ -132,7 +133,7 @@ describe('ManageReposPanel', () => {
 
   it('shows feature toggles with correct initial state when repo has overrides', async () => {
     const configWithOverride = PreventAIConfigFixture();
-    configWithOverride.repo_overrides['repo-1'] = {
+    configWithOverride.repo_overrides['ext-1'] = {
       vanilla: {
         enabled: true,
         triggers: {on_command_phrase: false, on_ready_for_review: true},
@@ -175,7 +176,7 @@ describe('ManageReposPanel', () => {
     };
 
     const configWithOverride = PreventAIConfigFixture();
-    configWithOverride.repo_overrides['repo-1'] = PreventAIConfigFixture().org_defaults;
+    configWithOverride.repo_overrides['ext-1'] = PreventAIConfigFixture().org_defaults;
 
     MockApiClient.addMockResponse({
       url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
@@ -201,7 +202,7 @@ describe('ManageReposPanel', () => {
 
   it('shows feature toggles when repo has overrides', async () => {
     const configWithOverride = PreventAIConfigFixture();
-    configWithOverride.repo_overrides['repo-1'] = {
+    configWithOverride.repo_overrides['ext-1'] = {
       bug_prediction: {
         enabled: true,
         triggers: {on_command_phrase: true, on_ready_for_review: false},
@@ -250,7 +251,7 @@ describe('ManageReposPanel', () => {
     repoOverride.vanilla.enabled = true;
     repoOverride.bug_prediction.enabled = true;
     repoOverride.bug_prediction.sensitivity = 'high';
-    configWithOverride.repo_overrides['repo-1'] = repoOverride;
+    configWithOverride.repo_overrides['ext-1'] = repoOverride;
 
     MockApiClient.addMockResponse({
       url: `/organizations/${mockOrganization.slug}/prevent/ai/github/config/org-1/`,
@@ -301,7 +302,7 @@ describe('ManageReposPanel', () => {
       enabled: false,
       gitOrgName: 'org-1',
       originalConfig: PreventAIConfigFixture(),
-      repoId: 'repo-1',
+      repoId: 'ext-1',
     });
   });
 
@@ -320,7 +321,7 @@ describe('ManageReposPanel', () => {
 
   it('toggle is checked when repo has custom overrides', async () => {
     const configWithOverride = PreventAIConfigFixture();
-    configWithOverride.repo_overrides['repo-1'] = {
+    configWithOverride.repo_overrides['ext-1'] = {
       bug_prediction: {
         enabled: false,
         triggers: {on_command_phrase: false, on_ready_for_review: false},
@@ -368,7 +369,7 @@ describe('ManageReposPanel', () => {
           },
         },
         repo_overrides: {
-          'repo-1': {
+          'ext-1': {
             bug_prediction: {
               enabled: false,
               triggers: {on_command_phrase: false, on_ready_for_review: false},
@@ -408,7 +409,7 @@ describe('ManageReposPanel', () => {
           },
         },
         repo_overrides: {
-          'repo-1': {
+          'ext-1': {
             bug_prediction: {
               enabled: false,
               triggers: {on_command_phrase: true, on_ready_for_review: false},
@@ -424,7 +425,7 @@ describe('ManageReposPanel', () => {
           },
         },
       };
-      expect(getRepoConfig(orgConfig, 'repo-1')).toEqual({
+      expect(getRepoConfig(orgConfig, 'ext-1')).toEqual({
         doesUseOrgDefaults: false,
         repoConfig: {
           bug_prediction: {
@@ -462,7 +463,7 @@ describe('ManageReposPanel', () => {
         },
         repo_overrides: {},
       };
-      expect(getRepoConfig(orgConfig, 'repo-2')).toEqual({
+      expect(getRepoConfig(orgConfig, 'ext-2')).toEqual({
         doesUseOrgDefaults: true,
         repoConfig: orgConfig.org_defaults,
       });
