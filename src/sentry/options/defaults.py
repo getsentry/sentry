@@ -342,7 +342,12 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
+register(
+    "deletions.group-hashes-metadata.update-seer-matched-grouphash-ids",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "cleanup.abort_execution",
@@ -623,6 +628,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -662,6 +668,8 @@ register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIOR
 register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # if a region is in this list, it's safe to forward to codecov
 register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# if a region is in this list, it's safe to forward to overwatch
+register("overwatch.enabled-regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -3175,13 +3183,6 @@ register(
 )
 
 register(
-    "workflow_engine.sentry-app-actions-outbox",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "workflow_engine.num_cohorts",
     type=Int,
     default=1,
@@ -3583,6 +3584,14 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Allow list for projects with LLM issue detection enabled
+register(
+    "issue-detection.llm-detection.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # The allowlist of organization IDs for which deletion from EAP is enabled.
 register(
     "eventstream.eap.deletion_enabled.organization_allowlist",
@@ -3599,6 +3608,20 @@ register(
         "sentry_app_slug": [],
         "installation_uuid": [],
     },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Which issue categories should we send issue.created webhooks for
+register(
+    "sentry-apps.expanded-webhook-categories",
+    type=Sequence,
+    default=[
+        1,  # ERROR
+        4,  # CRON
+        6,  # FEEDBACK
+        7,  # UPTIME
+        10,  # OUTAGE
+    ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3627,7 +3650,6 @@ register(
 )
 
 # Sets the sample rate for profiles collected via the JoinProfiler arroyo strategy
-# TODO: add the JoinProfiler arroyo strategy
 register(
     "consumer.join.profiling.rate",
     type=Float,
