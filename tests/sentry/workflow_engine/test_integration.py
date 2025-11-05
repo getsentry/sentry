@@ -41,6 +41,7 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
             name_prefix="e2e-test",
             detector_type="metric_issue",
         )
+        self.issue_stream_detector = self.create_detector(project=self.project, type="issue_stream")
 
         detector_conditions = self.create_data_condition_group()
         self.create_data_condition(
@@ -207,6 +208,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             name_prefix="e2e-test",
             detector_type="error",
         )
+        self.issue_stream_detector = self.create_detector(project=self.project, type="issue_stream")
         self.workflow_triggers.conditions.all().delete()
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
 
