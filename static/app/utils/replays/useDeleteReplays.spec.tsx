@@ -9,7 +9,7 @@ import useDeleteReplays from 'sentry/utils/replays/hooks/useDeleteReplays';
 describe('useDeleteReplays', () => {
   describe('queryOptionsToPayload', () => {
     const project = ProjectFixture();
-    const projectSlug = project.slug;
+    // const projectSlug = project.slug;
 
     beforeEach(() => {
       const configstate = ConfigStore.getState();
@@ -33,7 +33,7 @@ describe('useDeleteReplays', () => {
 
     it('should parse a an empty queryOptions into default 14d rangeStart & rangeEnd', () => {
       const {result} = renderHookWithProviders(useDeleteReplays, {
-        initialProps: {projectSlug},
+        initialProps: {project},
       });
 
       expect(result.current.queryOptionsToPayload(['1', '2'], {})).toEqual({
@@ -46,7 +46,7 @@ describe('useDeleteReplays', () => {
 
     it('should parse a statsPeriod into rangeStart & rangeEnd', () => {
       const {result} = renderHookWithProviders(useDeleteReplays, {
-        initialProps: {projectSlug},
+        initialProps: {project},
       });
 
       expect(
@@ -63,7 +63,7 @@ describe('useDeleteReplays', () => {
 
     it('should parse a start & end into rangeStart & rangeEnd', () => {
       const {result} = renderHookWithProviders(useDeleteReplays, {
-        initialProps: {projectSlug},
+        initialProps: {project},
       });
 
       // Users timezone: 2:41 becomes 6:41 UTC

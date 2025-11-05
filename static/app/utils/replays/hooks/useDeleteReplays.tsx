@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import {
   getUtcValue,
   normalizeDateTimeParams,
