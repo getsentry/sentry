@@ -19,7 +19,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -167,10 +166,7 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
 
   // Project selection from GlobalSelectionHeader
   get projectIds(): number[] {
-    const selection_projects = this.props.selection.projects.length
-      ? this.props.selection.projects
-      : [ALL_ACCESS_PROJECTS];
-    return selection_projects;
+    return this.props.selection.projects;
   }
 
   get isSingleProject(): boolean {
