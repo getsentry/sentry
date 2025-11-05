@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.257556+00:00'
+created: '2025-11-03T21:48:48.245903+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,6 +10,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "ArithmeticException"
+        value*
+          "/ by zero"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             module*
@@ -396,10 +400,6 @@ app:
               "application.java"
             function*
               "home"
-        type*
-          "ArithmeticException"
-        value*
-          "/ by zero"
 --------------------------------------------------------------------------
 default:
   hash: null
@@ -411,12 +411,16 @@ default:
         "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause"
 --------------------------------------------------------------------------
 system:
-  hash: "ef2555bf7958ada8eefafbfdaed1c409"
+  hash: "6c27831782d10c44d7d0a01ef3f9c71e"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "ArithmeticException"
+        value (ignored because stacktrace takes precedence)
+          "/ by zero"
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
@@ -803,7 +807,3 @@ system:
               "application.java"
             function*
               "home"
-        type*
-          "ArithmeticException"
-        value (ignored because stacktrace takes precedence)
-          "/ by zero"
