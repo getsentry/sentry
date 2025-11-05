@@ -916,6 +916,18 @@ class TestGetDetectorsByEvent(TestCase):
         )
         assert result.get_preferred_detector() == self.issue_stream_detector
 
+    def test_no_detector(self) -> None:
+        self.detector.delete()
+        self.issue_stream_detector.delete()
+
+        group_event = GroupEvent.from_event(self.event, self.group)
+        group_event.occurrence = None
+
+        event_data = WorkflowEventData(event=group_event, group=self.group)
+
+        with pytest.raises(Detector.DoesNotExist):
+            get_detectors_by_event(event_data)
+
 
 class TestGetDetectorsByGroupEventsBulk(TestCase):
     def setUp(self) -> None:
