@@ -406,15 +406,17 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
     ) -> None:
         """Test that Overwatch is notified when an organization is deleted"""
         org = self.create_organization(name="test")
+        org_id = org.id
         org_slug = org.slug
 
         org.update(status=OrganizationStatus.PENDING_DELETION)
         self.ScheduledDeletion.schedule(instance=org, days=0)
 
         with self.tasks():
-            run_scheduled_deletions()
+            with self.captureOnCommitCallbacks(execute=True):
+                run_scheduled_deletions()
 
-        assert not Organization.objects.filter(id=org.id).exists()
+        assert not Organization.objects.filter(id=org_id).exists()
 
         # Verify the Overwatch notification task was called with org id and slug
-        mock_notify_overwatch_organization_deleted.delay.assert_called_once_with(org.id, org_slug)
+        mock_notify_overwatch_organization_deleted.delay.assert_called_once_with(org_id, org_slug)
