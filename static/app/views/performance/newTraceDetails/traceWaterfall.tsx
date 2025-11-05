@@ -507,10 +507,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     if (index === -1 || !node) {
       const hasScrollComponent = !!(path || eventId);
       if (hasScrollComponent) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-view-scroll-to-node-error']);
-          scope.captureMessage('Failed to scroll to node in trace tree');
-        });
+        Sentry.logger.warn('Failed to scroll to node in trace tree');
       }
 
       return;
