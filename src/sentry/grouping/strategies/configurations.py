@@ -67,6 +67,8 @@ FALL_2025_GROUPING_CONFIG = "newstyle:2025-11-21"
 register_grouping_config(
     id=FALL_2025_GROUPING_CONFIG,
     base="newstyle:2023-01-11",
-    initial_context={},
+    initial_context={
+        "use_legacy_exception_subcomponent_order": False,
+    },
     enhancements_base="all-platforms:2025-11-21",
 )
