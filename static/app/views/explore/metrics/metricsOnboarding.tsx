@@ -327,8 +327,6 @@ const Preview = styled('div')<{isUnsupportedPlatform?: boolean}>`
     `
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
   `}
 `;
 
@@ -343,7 +341,6 @@ const Body = styled('div')<{isUnsupportedPlatform?: boolean}>`
     `
     grid-auto-flow: row;
     grid-auto-columns: unset;
-    justify-content: center;
   `}
 
   h4 {
@@ -372,10 +369,10 @@ const Divider = styled('hr')`
 `;
 
 const Arcade = styled('iframe')`
-  width: 750px;
+  width: 653px;
   max-width: 100%;
   margin-top: ${space(3)};
-  height: 522px;
+  height: 375px;
   border: 0;
 `;
 
