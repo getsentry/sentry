@@ -1,6 +1,5 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -9,27 +8,13 @@ import {
   getAIRulesForCodeEditorStep,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {
-  getCrashReportJavaScriptInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
+
 import {
   getImportInstrumentSnippet,
   getInstallCodeBlock,
-  getNodeAgentMonitoringOnboarding,
-  getNodeLogsOnboarding,
-  getNodeMcpOnboarding,
-  getNodeProfilingOnboarding,
   getSdkInitSnippet,
-} from 'sentry/utils/gettingStartedDocs/node';
-
-type Params = DocsParams;
+} from './utils';
 
 const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet()}
@@ -44,12 +29,12 @@ const server = createServer((req, res) => {
 server.listen(3000, "127.0.0.1");
 `;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct("In this quick guide you'll use [strong:npm] or [strong:yarn] to set up:", {
       strong: <strong />,
     }),
-  install: (params: Params) => [
+  install: params => [
     {
       type: StepType.INSTALL,
       content: [
@@ -61,7 +46,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: params => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -246,7 +231,7 @@ logger.fatal("Database connection pool exhausted", {
 `,
     }),
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -301,7 +286,7 @@ try {
       ],
     },
   ],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [];
 
     if (params.isLogsSelected) {
@@ -318,143 +303,3 @@ try {
     return steps;
   },
 };
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/node/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const performanceOnboarding: OnboardingConfig = {
-  introduction: () =>
-    t(
-      "Adding Performance to your Node project is simple. Make sure you've got these basics down."
-    ),
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: tct('Install our Node.js SDK using [code:npm] or [code:yarn]', {
-            code: <code />,
-          }),
-        },
-        getInstallCodeBlock(params),
-      ],
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Sentry should be initialized as early in your app as possible. It is essential that you call [code:Sentry.init] before you require any other modules in your application—otherwise, auto-instrumentation of these modules will [strong:not] work.',
-            {code: <code />, strong: <strong />}
-          ),
-        },
-        {
-          type: 'text',
-          text: tct(
-            'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs] and make sure to import it in your apps entrypoint before anything else.',
-            {code: <code />}
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              filename: 'instrument.(js|mjs)',
-              language: 'javascript',
-              code: getSdkInitSnippet(params, 'node'),
-            },
-          ],
-        },
-        {
-          type: 'text',
-          text: tct(
-            'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
-            {
-              code: <code />,
-              linkTracingOptions: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/configuration/options/#tracing-options" />
-              ),
-              linkTracesSampler: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/configuration/sampling/" />
-              ),
-              linkSampleTransactions: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/configuration/sampling/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Node application.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/automatic-instrumentation/" />
-              ),
-            }
-          ),
-        },
-        {
-          type: 'text',
-          text: tct(
-            'You have the option to manually construct a transaction using [link:custom instrumentation].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/custom-instrumentation/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  replayOnboardingJsLoader,
-  performanceOnboarding,
-  crashReportOnboarding,
-  feedbackOnboardingJsLoader,
-  profilingOnboarding: getNodeProfilingOnboarding({
-    profilingLifecycle: 'manual',
-  }),
-  logsOnboarding: getNodeLogsOnboarding({
-    docsPlatform: 'node',
-    packageName: '@sentry/node',
-  }),
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
-  mcpOnboarding: getNodeMcpOnboarding(),
-};
-
-export default docs;
