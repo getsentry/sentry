@@ -88,7 +88,6 @@ def notify_overwatch_organization_deleted(
     }
     payload = json.dumps(payload_data).encode("utf-8")
 
-    # Generate HMAC signature
     signature = hmac.new(
         settings.OVERWATCH_WEBHOOK_SECRET.encode("utf-8"),
         payload,

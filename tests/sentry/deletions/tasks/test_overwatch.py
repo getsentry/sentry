@@ -31,7 +31,6 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
     def test_region_not_enabled(
         self, mock_metrics: Any, mock_logger: Any, mock_get_local_region: Any
     ) -> None:
-        """Test that nothing happens when local region is not in enabled list"""
         mock_get_local_region.return_value = self.mock_region
 
         with self.options({"overwatch.enabled-regions": []}):
@@ -54,7 +53,6 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
     def test_no_webhook_secret(
         self, mock_metrics: Any, mock_logger: Any, mock_get_local_region: Any
     ) -> None:
-        """Test that a warning is logged when secret is not configured"""
         mock_get_local_region.return_value = self.mock_region
 
         with self.options({"overwatch.enabled-regions": ["us"]}):
@@ -80,7 +78,6 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
     def test_successful_notification(
         self, mock_metrics: Any, mock_logger: Any, mock_get_local_region: Any
     ) -> None:
-        """Test successful notification to the local region"""
         mock_get_local_region.return_value = self.mock_region
 
         responses.add(
@@ -92,11 +89,9 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
         with self.options({"overwatch.enabled-regions": ["us"]}):
             notify_overwatch_organization_deleted(self.organization_id, self.organization_slug)
 
-        # Verify the request was made
         assert len(responses.calls) == 1
         request = responses.calls[0].request
 
-        # Verify the payload
         payload = json.loads(request.body)
         assert payload == {
             "event_type": "organization_delete",
@@ -105,7 +100,6 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
             "region": "us",
         }
 
-        # Verify the signature header
         expected_signature = hmac.new(
             b"test-secret",
             request.body,
@@ -114,7 +108,6 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
         assert request.headers["x-sentry-overwatch-signature"] == expected_signature
         assert request.headers["content-type"] == "application/json;charset=utf-8"
 
-        # Verify logging
         mock_logger.info.assert_called_once_with(
             "overwatch.organization_deleted.success",
             extra={
@@ -125,7 +118,6 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
             },
         )
 
-        # Verify metrics
         mock_metrics.incr.assert_called_once_with(
             "overwatch.organization_deleted.sent",
             amount=1,
@@ -142,7 +134,6 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
     def test_missing_region_url(
         self, mock_metrics: Any, mock_logger: Any, mock_get_local_region: Any
     ) -> None:
-        """Test handling when OVERWATCH_REGION_URL is not configured"""
         mock_get_local_region.return_value = self.mock_region
 
         with self.options({"overwatch.enabled-regions": ["us"]}):
@@ -157,7 +148,6 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
             },
         )
 
-        # Verify failure metric
         mock_metrics.incr.assert_called_once_with(
             "overwatch.organization_deleted.sent",
             amount=1,
@@ -175,7 +165,6 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
     def test_request_failure(
         self, mock_metrics: Any, mock_logger: Any, mock_get_local_region: Any
     ) -> None:
-        """Test handling of HTTP request failures"""
         mock_get_local_region.return_value = self.mock_region
 
         responses.add(
@@ -187,14 +176,12 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
         with self.options({"overwatch.enabled-regions": ["us"]}):
             notify_overwatch_organization_deleted(self.organization_id, self.organization_slug)
 
-        # Verify error logging
         mock_logger.exception.assert_called_once()
         call_args = mock_logger.exception.call_args
         assert call_args[0][0] == "overwatch.organization_deleted.failed"
         assert call_args[1]["extra"]["organization_id"] == self.organization_id
         assert call_args[1]["extra"]["region_name"] == "us"
 
-        # Verify failure metric
         mock_metrics.incr.assert_called_once_with(
             "overwatch.organization_deleted.sent",
             amount=1,
@@ -208,7 +195,6 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
     @responses.activate
     @patch("sentry.deletions.tasks.overwatch.get_local_region")
     def test_request_timeout(self, mock_get_local_region: Any) -> None:
-        """Test that requests have a timeout configured"""
         import requests
 
         mock_get_local_region.return_value = self.mock_region
@@ -220,7 +206,6 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
         )
 
         with self.options({"overwatch.enabled-regions": ["us"]}):
-            # Should not raise, timeout is caught
             notify_overwatch_organization_deleted(self.organization_id, self.organization_slug)
 
         assert len(responses.calls) == 1
@@ -232,7 +217,6 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
     @responses.activate
     @patch("sentry.deletions.tasks.overwatch.get_local_region")
     def test_signature_with_special_characters(self, mock_get_local_region: Any) -> None:
-        """Test that signature is correctly generated with special characters in secret"""
         mock_get_local_region.return_value = self.mock_region
 
         responses.add(
@@ -264,20 +248,17 @@ class NotifyOverwatchOrganizationDeletedTest(TestCase):
     def test_get_local_region_error(
         self, mock_metrics: Any, mock_logger: Any, mock_get_local_region: Any
     ) -> None:
-        """Test handling when get_local_region raises an exception"""
         mock_get_local_region.side_effect = Exception("Region not configured")
 
         with self.options({"overwatch.enabled-regions": ["us"]}):
             notify_overwatch_organization_deleted(self.organization_id, self.organization_slug)
 
-        # Verify error logging
         mock_logger.exception.assert_called_once()
         call_args = mock_logger.exception.call_args
         assert call_args[0][0] == "overwatch.organization_deleted.region_error"
         assert call_args[1]["extra"]["organization_id"] == self.organization_id
         assert call_args[1]["extra"]["error"] == "Region not configured"
 
-        # No metrics should be recorded
         mock_metrics.incr.assert_not_called()
 
     @override_settings(

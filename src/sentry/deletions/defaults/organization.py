@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from django.db import router, transaction
 
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.deletions.tasks.overwatch import notify_overwatch_organization_deleted
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.organizations.services.organization_actions.impl import (
     update_organization_with_outbox_message,
@@ -71,7 +72,6 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         return relations
 
     def delete_instance(self, instance: Organization) -> None:
-        from sentry.deletions.tasks.overwatch import notify_overwatch_organization_deleted
 
         org_id = instance.id
         org_slug = instance.slug
