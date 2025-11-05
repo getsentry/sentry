@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PreventAIConfigFixture} from 'sentry-fixture/prevent';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -58,8 +59,8 @@ describe('ManageReposPanel', () => {
   };
 
   const mockAllRepos = [
-    {id: 'repo-1', name: 'org-1/repo-1'},
-    {id: 'repo-2', name: 'org-1/repo-2'},
+    RepositoryFixture({id: 'repo-1', name: 'org-1/repo-1'}),
+    RepositoryFixture({id: 'repo-2', name: 'org-1/repo-2'}),
   ];
 
   const defaultProps: ManageReposPanelProps = {

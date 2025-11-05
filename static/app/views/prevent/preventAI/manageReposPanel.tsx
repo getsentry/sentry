@@ -28,7 +28,7 @@ export type ManageReposPanelProps = {
   isEditingOrgDefaults: boolean;
   onClose: () => void;
   org: OrganizationIntegration;
-  allRepos?: Array<{id: string; name: string}>;
+  allRepos?: Repository[];
   onFocusRepoSelector?: () => void;
   repo?: Repository | null;
 };
@@ -110,7 +110,7 @@ function ManageReposPanel({
     : getRepoConfig(orgConfig, githubRepoId ?? '');
 
   const repoNamesWithOverrides = allRepos
-    .filter(r => orgConfig.repo_overrides?.hasOwnProperty(r.id))
+    .filter(r => orgConfig.repo_overrides?.hasOwnProperty(r.externalId))
     .map(r => getRepoNameWithoutOrg(r.name));
 
   return (
