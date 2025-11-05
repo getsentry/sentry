@@ -28,24 +28,28 @@ def _get_all_related_redirects_query(
     )
 
 
-def get_all_merged_group_ids(group_ids: Sequence[str | int]) -> set[str | int]:
+def get_all_merged_group_ids(
+    group_ids: Sequence[str | int], threshold=SIZE_THRESHOLD_FOR_CLICKHOUSE
+) -> set[str | int]:
     with sentry_sdk.start_span(op="get_all_merged_group_ids") as span:
         group_id_set = set(group_ids)
         all_related_rows = _get_all_related_redirects_query(group_id_set)
 
-        out = None
+        threshold_breaker_set = None
 
         for r in all_related_rows:
             group_id_set.update(r)
 
-            if len(group_id_set) >= SIZE_THRESHOLD_FOR_CLICKHOUSE:
+            # We only want to set the threshold_breaker the first time that we cross
+            # the threshold.
+            if threshold_breaker_set is None and len(group_id_set) >= threshold:
                 # Because we're incrementing the size of group_id_set by either one or two
                 # each iteration, it's fine if we're a bit over. That's negligible compared
                 # to the scale-of-thousands Clickhouse threshold.
-                out = group_id_set.copy()
+                threshold_breaker_set = group_id_set.copy()
+                break
 
-        if out is None:
-            out = group_id_set
+        out = group_id_set if threshold_breaker_set is None else threshold_breaker_set
 
         span.set_data("true_group_id_len", len(group_id_set))
         span.set_data("returned_group_id_len", len(out))
