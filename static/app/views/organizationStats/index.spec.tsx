@@ -75,15 +75,7 @@ describe('OrganizationStats', () => {
    * Base + Error Handling
    */
   it('renders the base view', async () => {
-    render(<OrganizationStats />, {
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/stats/',
-          query: {project: [ALL_ACCESS_PROJECTS.toString()]},
-        },
-      },
-    });
+    render(<OrganizationStats />, {organization});
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
 
@@ -253,12 +245,6 @@ describe('OrganizationStats', () => {
     OrganizationStore.onUpdate(newOrg, {replace: true});
     render(<OrganizationStats />, {
       organization: newOrg,
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/stats/',
-          query: {project: [ALL_ACCESS_PROJECTS.toString()]},
-        },
-      },
     });
 
     expect(await screen.findByText('All Projects')).toBeInTheDocument();
