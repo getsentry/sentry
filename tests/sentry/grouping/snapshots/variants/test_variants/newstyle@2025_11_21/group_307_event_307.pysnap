@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:18:52.912997+00:00'
+created: '2025-11-03T21:48:47.919501+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,6 +10,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / EXC_I386_GPFLT"
+        value*
+          "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
         stacktrace (ignored because it contains no in-app frames)
           frame (non app frame)
             function*
@@ -59,10 +63,6 @@ app:
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "__dynamic_cast"
-        type (ignored because exception is synthetic)
-          "EXC_BAD_ACCESS / EXC_I386_GPFLT"
-        value*
-          "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
 --------------------------------------------------------------------------
 system:
   hash: "aeed765d29d1a60cb094f66d2cd8efb2"
@@ -71,6 +71,10 @@ system:
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / EXC_I386_GPFLT"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
@@ -120,7 +124,3 @@ system:
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "__dynamic_cast"
-        type (ignored because exception is synthetic)
-          "EXC_BAD_ACCESS / EXC_I386_GPFLT"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"

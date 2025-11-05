@@ -1,15 +1,19 @@
 ---
-created: '2025-10-29T21:18:51.127940+00:00'
+created: '2025-11-03T21:48:46.491792+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "161ce02ecc5d6685a72e8e520ab726b3"
+  hash: "9c580bff7b008113595f9f1e0ef1962f"
   contributing component: exception
   hint: None
   root_component:
     app*
       exception*
+        type*
+          "FailedToFetchError"
+        value (ignored because stacktrace takes precedence)
+          "FailedToFetchError: Charlie didn't bring the ball back!"
         stacktrace*
           frame (marked out of app by stack trace rule (function:runApp -app))
             filename*
@@ -39,18 +43,18 @@ app:
               "playFetch"
             context_line*
               "raise FailedToFetchError('Charlie didn't bring the ball back!');"
-        type*
-          "FailedToFetchError"
-        value (ignored because stacktrace takes precedence)
-          "FailedToFetchError: Charlie didn't bring the ball back!"
 --------------------------------------------------------------------------
 system:
-  hash: "c5e4b4a9ad1803c4d4ca7feee5e430ae"
+  hash: "27e4433059022647e4d83d344cbf738c"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "FailedToFetchError"
+        value (ignored because stacktrace takes precedence)
+          "FailedToFetchError: Charlie didn't bring the ball back!"
         stacktrace*
           frame (ignored by stack trace rule (function:runApp -group))
             filename*
@@ -80,7 +84,3 @@ system:
               "playFetch"
             context_line*
               "raise FailedToFetchError('Charlie didn't bring the ball back!');"
-        type*
-          "FailedToFetchError"
-        value (ignored because stacktrace takes precedence)
-          "FailedToFetchError: Charlie didn't bring the ball back!"
