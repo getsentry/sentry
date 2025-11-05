@@ -53,9 +53,11 @@ type OnboardingProps = {
 function OnboardingPanel({
   project,
   children,
+  isUnsupportedPlatform = false,
 }: {
   children: React.ReactNode;
   project: Project;
+  isUnsupportedPlatform?: boolean;
 }) {
   return (
     <Panel>
@@ -70,13 +72,14 @@ function OnboardingPanel({
                     'Track application metrics with powerful aggregation and visualization capabilities. Metrics will be connected to your errors, logs and spans enabling easier debugging'
                   )}
                 </SubTitle>
+                {isUnsupportedPlatform && <div>{children}</div>}
               </HeaderText>
               <Image src={connectDotsImg} />
             </HeaderWrapper>
             <Divider />
-            <Body>
-              <Setup>{children}</Setup>
-              <Preview>
+            <Body isUnsupportedPlatform={isUnsupportedPlatform}>
+              {!isUnsupportedPlatform && <Setup>{children}</Setup>}
+              <Preview isUnsupportedPlatform={isUnsupportedPlatform}>
                 <BodyTitle>{t('Preview a Sentry Metric')}</BodyTitle>
                 <Arcade
                   src="https://demo.arcade.software/wNDJOXTJw64xiuVi7Hp6?embed"
@@ -149,6 +152,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     return <LoadingIndicator />;
   }
 
+  // This will not be hit until `withoutMetricsSupport` is filled out.
   if (doesNotSupportMetrics) {
     return (
       <OnboardingPanel project={project}>
@@ -171,7 +175,7 @@ function Onboarding({organization, project}: OnboardingProps) {
               });
             }}
           >
-            {t('Go to Documentation')}
+            {t('Join the discussion')}
           </LinkButton>
         </div>
       </OnboardingPanel>
@@ -179,19 +183,21 @@ function Onboarding({organization, project}: OnboardingProps) {
   }
 
   if (!currentPlatform || !metricsDocs || !dsn || !projectKeyId) {
+    // This currently covers all non-supported platforms as `doesNotSupportMetrics` is empty.
     return (
-      <OnboardingPanel project={project}>
+      <OnboardingPanel project={project} isUnsupportedPlatform>
         <div>
           {tct(
-            "Fiddlesticks. The metrics onboarding checklist isn't available for your [project] project yet, but for now, go to Sentry docs for installation details.",
-            {project: project.slug}
+            "We're working to bring Metrics support to [platform]. Stay updated by joining the discussion!",
+
+            {platform: <strong>{currentPlatform?.name || project.slug}</strong>}
           )}
         </div>
         <br />
         <div>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/product/metrics/"
+            href={METRICS_GH_DISCUSSION_LINK}
             external
             onClick={() => {
               trackAnalytics('metrics.onboarding_platform_docs_viewed', {
@@ -200,7 +206,7 @@ function Onboarding({organization, project}: OnboardingProps) {
               });
             }}
           >
-            {t('Go to Documentation')}
+            {t('Join the discussion')}
           </LinkButton>
         </div>
       </OnboardingPanel>
@@ -313,15 +319,29 @@ const Setup = styled('div')`
   }
 `;
 
-const Preview = styled('div')`
+const Preview = styled('div')<{isUnsupportedPlatform?: boolean}>`
   padding: ${space(4)};
+
+  ${p =>
+    p.isUnsupportedPlatform &&
+    `
+    display: flex;
+    flex-direction: column;
+  `}
 `;
 
-const Body = styled('div')`
+const Body = styled('div')<{isUnsupportedPlatform?: boolean}>`
   display: grid;
   position: relative;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
+
+  ${p =>
+    p.isUnsupportedPlatform &&
+    `
+    grid-auto-flow: row;
+    grid-auto-columns: unset;
+  `}
 
   h4 {
     margin-bottom: 0;
@@ -349,10 +369,10 @@ const Divider = styled('hr')`
 `;
 
 const Arcade = styled('iframe')`
-  width: 750px;
+  width: 653px;
   max-width: 100%;
   margin-top: ${space(3)};
-  height: 522px;
+  height: 375px;
   border: 0;
 `;
 
