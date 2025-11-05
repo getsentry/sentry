@@ -27,7 +27,7 @@ preprod: 0018_add_preprod_artifact_app_icon_id_field
 
 prevent: 0002_alter_integration_id_not_null
 
-releases: 0002_delete_dual_written_commit_tables
+releases: 0003_real_delete_dual_written_commit_tables
 
 replays: 0006_add_bulk_delete_job
 
