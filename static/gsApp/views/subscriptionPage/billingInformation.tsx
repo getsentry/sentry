@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -20,8 +21,6 @@ import RecurringCredits from 'getsentry/views/subscriptionPage/recurringCredits'
 
 import SubscriptionHeader from './subscriptionHeader';
 
-const MAX_PANEL_WIDTH = '1000px';
-
 type Props = {
   location: Location;
   organization: Organization;
@@ -34,6 +33,8 @@ type Props = {
 function BillingInformation({organization, subscription, location}: Props) {
   const isNewBillingUI = hasNewBillingUI(organization);
   const hasBillingPerms = organization.access?.includes('org:billing');
+  const theme = useTheme();
+  const maxPanelWidth = theme.breakpoints.lg;
 
   if (subscription?.isSelfServePartner) {
     return <Redirect to={`/settings/${organization.slug}/billing/overview/`} />;
@@ -67,13 +68,13 @@ function BillingInformation({organization, subscription, location}: Props) {
           isNewBillingUI={isNewBillingUI}
           ftcLocation={FTCConsentLocation.BILLING_DETAILS}
           budgetTerm={subscription.planDetails.budgetTerm}
-          maxPanelWidth={MAX_PANEL_WIDTH}
+          maxPanelWidth={maxPanelWidth}
         />
         <BillingDetailsPanel
           organization={organization}
           subscription={subscription}
           isNewBillingUI={isNewBillingUI}
-          maxPanelWidth={MAX_PANEL_WIDTH}
+          maxPanelWidth={maxPanelWidth}
         />
       </SubscriptionPageContainer>
     );
@@ -94,14 +95,14 @@ function BillingInformation({organization, subscription, location}: Props) {
               ftcLocation={FTCConsentLocation.BILLING_DETAILS}
               budgetTerm={subscription.planDetails.budgetTerm}
               shouldExpandInitially
-              maxPanelWidth={MAX_PANEL_WIDTH}
+              maxPanelWidth={maxPanelWidth}
             />
             <BillingDetailsPanel
               organization={organization}
               subscription={subscription}
               isNewBillingUI={isNewBillingUI}
               shouldExpandInitially
-              maxPanelWidth={MAX_PANEL_WIDTH}
+              maxPanelWidth={maxPanelWidth}
             />
           </Flex>
         ) : (
