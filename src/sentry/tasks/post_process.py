@@ -19,7 +19,6 @@ from data_forwarding.segment.forwarder import SegmentForwarder
 from data_forwarding.splunk.forwarder import SplunkForwarder
 from sentry import features, options, projectoptions
 from sentry.exceptions import PluginError
-from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug, IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -1315,6 +1314,8 @@ def process_data_forwarding(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
+    from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+
     event = job["event"]
 
     data_forwarder_projects = DataForwarderProject.objects.filter(
@@ -1335,14 +1336,7 @@ def process_data_forwarding(job: PostProcessJob) -> None:
     for data_forwarder_project in data_forwarder_projects:
         provider = data_forwarder_project.data_forwarder.provider
         # GroupEvent is compatible with Event for all operations forwarders need
-        success = forwarder_classes[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
-        metrics.incr(
-            "data_forwarding.forward_event",
-            tags={
-                "provider": provider,
-                "success": success,
-            },
-        )
+        forwarder_classes[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
 
 
 def process_plugins(job: PostProcessJob) -> None:
