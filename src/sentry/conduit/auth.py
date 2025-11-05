@@ -46,7 +46,7 @@ def generate_conduit_token(
         if conduit_private_key is None:
             raise ValueError("CONDUIT_GATEWAY_PRIVATE_KEY not configured")
     try:
-        conduit_private_key = base64.b64decode(conduit_private_key)
+        conduit_private_key_bytes = base64.b64decode(conduit_private_key)
     except binascii.Error as e:
         raise ValueError("CONDUIT_GATEWAY_PRIVATE_KEY is not valid base64") from e
 
@@ -61,7 +61,7 @@ def generate_conduit_token(
         "iss": issuer,
         "aud": audience,
     }
-    return jwt.encode(payload, conduit_private_key, algorithm="RS256")
+    return jwt.encode(payload, conduit_private_key_bytes, algorithm="RS256")
 
 
 def get_conduit_credentials(
