@@ -164,14 +164,14 @@ class SentryVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_If(self, node: ast.If) -> None:
-        if "tests/" in self.filename or "testutils/" in self.filename:
+        is_test_file = "tests/" in self.filename or "testutils/" in self.filename
+        if is_test_file:
             self._branching_depth += 1
-            try:
-                self.generic_visit(node)
-            finally:
-                self._branching_depth -= 1
-        else:
-            self.generic_visit(node)
+
+        self.generic_visit(node)
+
+        if is_test_file:
+            self._branching_depth -= 1
 
     def visit_Assert(self, node: ast.Assert) -> None:
         if (

@@ -249,10 +249,17 @@ def test_example() -> None:
     if result:
         assert result.value == 5
 """
-    # Should error in test files
     errors = _run(src, filename="tests/test_example.py")
     assert errors == ["t.py:4:8: S015 Tests should not use branching logic around asserts."]
 
+
+def test_S015_only_in_test_files() -> None:
+    src = """\
+def test_example() -> None:
+    result = get_result()
+    if result:
+        assert result.value == 5
+"""
     # Should not error in non-test files
     assert _run(src, filename="src/sentry/example.py") == []
 
