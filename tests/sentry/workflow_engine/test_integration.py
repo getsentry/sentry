@@ -95,7 +95,6 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
 
 
 class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_workflow_engine__data_source__to_metric_issue_workflow(self) -> None:
         """
         This test ensures that a data_source can create the correct event in Issue Platform
@@ -112,7 +111,6 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
             mock_producer.assert_called_once()
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_workflow_engine__data_source__different_type(self) -> None:
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
@@ -124,7 +122,6 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
             assert detectors == []
             mock_producer.assert_not_called()
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_workflow_engine__data_source__no_detectors(self) -> None:
         self.detector.delete()
 
@@ -142,7 +139,6 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
 class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest):
     @with_feature("organizations:issue-metric-issue-post-process-group")
-    @with_feature("organizations:workflow-engine-process-metric-issue-workflows")
     def test_workflow_engine__workflows(self) -> None:
         """
         This test ensures that the workflow engine is correctly hooked up to tasks/post_process.py.

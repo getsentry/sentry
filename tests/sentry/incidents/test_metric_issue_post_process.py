@@ -10,7 +10,6 @@ from sentry.models.group import Group
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.services import eventstore
 from sentry.tasks.post_process import post_process_group
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.features import Feature
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Detector
@@ -32,7 +31,6 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
             {
                 "organizations:issue-metric-issue-ingest": True,
                 "organizations:issue-metric-issue-post-process-group": True,
-                "organizations:workflow-engine-single-process-metric-issues": True,
             }
         ):
             yield
@@ -201,7 +199,6 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         self.call_post_process_group(occurrence)
         assert mock_trigger.call_count == 2  # both actions
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_resolution_from_critical(self, mock_trigger: MagicMock) -> None:
         value = self.critical_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
@@ -232,7 +229,6 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
                 sample_rate=1.0,
             )
 
-    @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_resolution_from_warning(self, mock_trigger: MagicMock) -> None:
         value = self.warning_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
