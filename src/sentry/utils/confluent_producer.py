@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from arroyo.backends.kafka import ConfluentProducer
 from confluent_kafka import Producer
 
 
@@ -17,4 +18,4 @@ def get_confluent_producer(
     Returns:
         confluent_kafka Producer
     """
-    return Producer(configuration)
+    return ConfluentProducer(configuration)
