@@ -158,6 +158,7 @@ const AlertDebugResults = ({results}: {results: any}) => (
 );
 
 function AlertDetails({workflowId}: {workflowId: number}) {
+  // TODO figure out how to h4x the organization information?
   const {data: automation, isPending} = useAutomationQuery(workflowId.toString());
 
   if (isPending) {
@@ -205,7 +206,6 @@ function AlertsDebug() {
         />
       </form>
 
-      {workflowId && <AlertDetails workflowId={workflowId} />}
       {workflowId && <AlertDebugForm onSubmit={updateApi} workflowId={workflowId} />}
       {results && <AlertDebugResults results={results} />}
     </div>
