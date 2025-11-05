@@ -14,6 +14,7 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -143,6 +144,11 @@ export function MetricDetectorDetailsSidebar({detector}: DetectorDetailsSidebarP
       <Section title={t('Resolve')}>
         <DetectorResolve detector={detector} />
       </Section>
+      {detector.description && (
+        <Section title={t('Describe')}>
+          <StyledMarkedText text={detector.description} />
+        </Section>
+      )}
       <DetectorExtraDetails>
         <DetectorExtraDetails.DateCreated detector={detector} />
         <DetectorExtraDetails.CreatedBy detector={detector} />
@@ -171,4 +177,12 @@ const PriorityCondition = styled('div')`
   justify-self: flex-end;
   font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.textColor};
+`;
+
+const StyledMarkedText = styled(MarkedText)`
+  word-wrap: break-word;
+
+  p {
+    margin: 0;
+  }
 `;
