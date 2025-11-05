@@ -69,13 +69,13 @@ function FieldCellWrapper({
   embedded?: boolean;
 }) {
   const columnType = getMetricTableColumnType(field);
+  const hasPadding = field !== VirtualTableSampleColumnKey.EXPAND_ROW;
   if (columnType === 'stat') {
     return (
       <NumericSimpleTableRowCell
         key={`stat-${index}`}
         data-column-name={field}
         embedded={embedded}
-        hasPadding
       >
         {children}
       </NumericSimpleTableRowCell>
@@ -87,7 +87,6 @@ function FieldCellWrapper({
         key={index}
         style={{minWidth: VALUE_COLUMN_MIN_WIDTH}}
         embedded={embedded}
-        hasPadding
       >
         <Tooltip showOnlyOnOverflow title={row[TraceMetricKnownFieldKey.METRIC_VALUE]}>
           {children}
@@ -96,7 +95,7 @@ function FieldCellWrapper({
     );
   }
   return (
-    <StyledSimpleTableRowCell key={index} embedded={embedded}>
+    <StyledSimpleTableRowCell key={index} embedded={embedded} noPadding={!hasPadding}>
       {children}
     </StyledSimpleTableRowCell>
   );

@@ -67,13 +67,13 @@ function FieldHeaderCellWrapper({
 }) {
   const columnType = getMetricTableColumnType(field);
   const label = getFieldLabel(field);
+  const hasPadding = field !== VirtualTableSampleColumnKey.EXPAND_ROW;
 
   if (columnType === 'stat') {
     return (
       <NumericSimpleTableHeaderCell
         key={`stat-${index}`}
         divider={false}
-        style={{width: '32px', padding: '0px'}}
         data-column-name={field}
       >
         <Tooltip title={label} skipWrapper>
@@ -88,7 +88,10 @@ function FieldHeaderCellWrapper({
       <StyledSimpleTableHeaderCell
         key={index}
         sort={sort}
-        style={{justifyContent: 'flex-end'}}
+        style={{
+          justifyContent: 'flex-end',
+          paddingRight: 'calc(12px + 15px)', // 12px is the padding of the cell, 15px is the width of the scrollbar.
+        }}
       >
         <Tooltip showOnlyOnOverflow title={label}>
           {children}
@@ -98,7 +101,7 @@ function FieldHeaderCellWrapper({
   }
 
   return (
-    <StyledSimpleTableHeaderCell key={index} sort={sort}>
+    <StyledSimpleTableHeaderCell key={index} sort={sort} noPadding={!hasPadding}>
       <Tooltip showOnlyOnOverflow title={label}>
         {children}
       </Tooltip>
