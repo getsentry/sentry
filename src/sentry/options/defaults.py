@@ -342,6 +342,12 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "deletions.group-hashes-metadata.update-seer-matched-grouphash-ids",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "deletions.group-history.use-bulk-deletion",
