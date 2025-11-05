@@ -6,7 +6,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './node';
+import docs from '.';
 
 describe('node onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
