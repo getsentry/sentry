@@ -59,6 +59,7 @@ DIRECT_GROUP_RELATED_MODELS = (
 )
 
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
+    models.Activity,
     models.UserReport,
     models.EventAttachment,
     NotificationMessage,
