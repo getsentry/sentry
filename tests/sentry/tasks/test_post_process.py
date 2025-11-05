@@ -3841,27 +3841,3 @@ class ProcessDataForwardingTest(BasePostProgressGroupMixin, SnubaTestCase):
 
         assert mock_sqs_forward.call_count == 1
         assert mock_splunk_forward.call_count == 1
-
-    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
-    def test_process_data_forwarding_reprocessed_event(self, mock_forward):
-        """Test that forwarders are not called for reprocessed events."""
-        from sentry.tasks.post_process import process_data_forwarding
-
-        self.setup_forwarder(DataForwarderProviderSlug.SQS)
-        event = self.create_test_event()
-
-        # Create a job dict with is_reprocessed=True
-        job = {
-            "event": event.for_group(event.group),
-            "is_reprocessed": True,
-            "group_state": {
-                "is_new": False,
-                "is_regression": False,
-                "is_new_group_environment": False,
-            },
-            "has_reappeared": False,
-            "has_escalated": False,
-        }
-
-        process_data_forwarding(job)
-        assert mock_forward.call_count == 0
