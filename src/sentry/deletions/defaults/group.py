@@ -63,6 +63,8 @@ _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
     models.EventAttachment,
     NotificationMessage,
 )
+if options.get("deletions.activity.delete-in-bulk"):
+    _GROUP_RELATED_MODELS += (models.Activity,)
 
 
 class EventsBaseDeletionTask(BaseDeletionTask[Group]):
