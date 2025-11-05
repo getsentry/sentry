@@ -3901,3 +3901,29 @@ class ProcessDataForwardingTest(BasePostProgressGroupMixin, SnubaTestCase):
 
         assert mock_sqs_forward.call_count == 1
         assert mock_splunk_forward.call_count == 1
+
+    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
+    @patch("data_forwarding.splunk.forwarder.SplunkForwarder.forward_event")
+    def test_process_data_forwarding_one_forwarder_fails(
+        self, mock_splunk_forward, mock_sqs_forward
+    ):
+        """Test that when one forwarder fails, other forwarders still execute."""
+        mock_sqs_forward.side_effect = Exception("SQS connection failed")
+        mock_splunk_forward.return_value = True
+
+        self.setup_forwarder(DataForwarderProviderSlug.SQS)
+        self.setup_forwarder(DataForwarderProviderSlug.SPLUNK)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Both forwarders should be called despite SQS failure
+        assert mock_sqs_forward.call_count == 1
+        assert mock_splunk_forward.call_count == 1

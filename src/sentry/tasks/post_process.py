@@ -1335,8 +1335,14 @@ def process_data_forwarding(job: PostProcessJob) -> None:
 
     for data_forwarder_project in data_forwarder_projects:
         provider = data_forwarder_project.data_forwarder.provider
-        # GroupEvent is compatible with Event for all operations forwarders need
-        forwarder_classes[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
+        try:
+            # GroupEvent is compatible with Event for all operations forwarders need
+            forwarder_classes[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
+        except Exception:
+            logger.exception(
+                "data_forwarding.forward_event.error",
+                extra={"provider": provider, "project_id": event.project_id},
+            )
 
 
 def process_plugins(job: PostProcessJob) -> None:
