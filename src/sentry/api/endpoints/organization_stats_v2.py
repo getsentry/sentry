@@ -216,7 +216,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         return QueryDefinition.from_query_dict(request.GET, params)
 
     def _get_projects_for_orgstats_query(self, request: Request, organization):
-        # look at the raw project_id filter passed in, if its -1
+        # look at the raw project_id filter passed in, if its empty
         # and project_id is not in groupBy filter, treat it as an
         # org wide query and don't pass project_id in to QueryDefinition
         req_proj_ids = self.get_requested_project_ids_unchecked(request)
@@ -229,10 +229,11 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
             return [p.id for p in projects]
 
     def _is_org_total_query(self, request: Request, project_ids):
-        # ALL_ACCESS_PROJECTS ({-1}) signals that stats should aggregate across
-        # all projects rather than filtering to specific project IDs
-        return project_ids == ALL_ACCESS_PROJECTS and "project" not in request.GET.get(
-            "groupBy", []
+        return all(
+            [
+                not project_ids or project_ids == ALL_ACCESS_PROJECTS,
+                "project" not in request.GET.get("groupBy", []),
+            ]
         )
 
     @contextmanager
