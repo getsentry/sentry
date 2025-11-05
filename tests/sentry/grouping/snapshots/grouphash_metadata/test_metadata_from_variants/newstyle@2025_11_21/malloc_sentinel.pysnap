@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:19:58.320113+00:00'
+created: '2025-11-03T21:52:54.990338+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -24,12 +24,14 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "70b7b816193e06eb5d6649989fbaf605"
+    hash: "ca6e8f30e1e7b088514deb26ec59b379"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "SIGABRT"
           stacktrace*
             frame*
               function*
@@ -51,5 +53,3 @@ contributing variants:
             frame*
               function*
                 "abort"
-          type*
-            "SIGABRT"

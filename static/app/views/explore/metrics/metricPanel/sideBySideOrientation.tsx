@@ -8,7 +8,7 @@ import type {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMe
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
 import MetricInfoTabs from 'sentry/views/explore/metrics/metricInfoTabs';
-import {SAMPLES_PANEL_MIN_WIDTH} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab';
+import {SAMPLES_PANEL_MIN_WIDTH} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {HideContentButton} from 'sentry/views/explore/metrics/metricPanel/hideContentButton';
 import {PanelPositionSelector} from 'sentry/views/explore/metrics/metricPanel/panelPositionSelector';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
