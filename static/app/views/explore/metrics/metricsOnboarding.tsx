@@ -64,7 +64,7 @@ function OnboardingPanel({
           <div>
             <HeaderWrapper>
               <HeaderText>
-                <Title>{t('Measure what matters with Metrics)}</Title>
+                <Title>{t('Measure what matters with Metrics')}</Title>
                 <SubTitle>
                   {t(
                     'Track application metrics with powerful aggregation and visualization capabilities. Metrics will be connected to your errors, logs and spans enabling easier debugging'
