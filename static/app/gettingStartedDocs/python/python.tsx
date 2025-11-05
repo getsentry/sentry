@@ -474,7 +474,7 @@ export const mcpOnboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: t('Configure Sentry for MCP low-level monitoring:'),
+          text: t('Configure Sentry for MCP low-level server monitoring:'),
         },
         {
           type: 'code',
@@ -544,7 +544,7 @@ async def call_tool(name: str, arguments) -> list[TextContent]:
       content: [
         {
           type: 'text',
-          text: t('Configure Sentry for MCP low-level monitoring:'),
+          text: t('Configure Sentry for MCP SDK FastMCP monitoring:'),
         },
         {
           type: 'code',
@@ -573,7 +573,52 @@ sentry_sdk.init(
           language: 'python',
           code: `
 from mcp.server.fastmcp import FastMCP
-# from fastmcp import FastMCP if you are using the standalone version
+
+mcp = FastMCP("mcp-server")
+
+@mcp.tool()
+async def calculate_sum(a: int, b: int) -> int:
+    """Add two numbers together."""
+    return a + b
+`,
+        },
+      ],
+    };
+
+    const mcpFastMcpStandaloneStep: OnboardingStep = {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: t('Configure Sentry for FastMCP monitoring:'),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import sentry_sdk
+from sentry_sdk.integrations.mcp import MCPIntegration
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses to/from MCP servers;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+    integrations=[
+        MCPIntegration(),
+    ],
+)`,
+        },
+        {
+          type: 'text',
+          text: t('Set up your FastMCP server:'),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+from fastmcp import FastMCP
 
 mcp = FastMCP("mcp-server")
 
@@ -611,6 +656,9 @@ sentry_sdk.init(
     const selected = (params.platformOptions as any)?.integration ?? 'mcp_fastmcp';
     if (selected === 'mcp_fastmcp') {
       return [mcpFastMcpStep];
+    }
+    if (selected === 'fastmcp') {
+      return [mcpFastMcpStandaloneStep];
     }
     if (selected === 'manual') {
       return [manualStep];
