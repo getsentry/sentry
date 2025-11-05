@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from datetime import timedelta
 from unittest.mock import patch
 
+from django.db.models.signals import post_save
+
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     DEFAULT_EXPIRY_TIME,
@@ -15,18 +17,48 @@ from sentry.issues.grouptype import (
     get_group_type_by_slug,
     get_group_types_by_category,
 )
+from sentry.models.project import Project
+from sentry.receivers.project_detectors import create_project_detectors
+from sentry.receivers.rules import create_default_rules
+from sentry.signals import project_created
 from sentry.testutils.cases import TestCase
 
 
 class BaseGroupTypeTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
+        # Create a fresh registry for testing grouptype behavior in isolation
         self.registry_patcher = patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry())
         self.registry_patcher.__enter__()
+
+        # Disconnect signals that create error detectors/rules on project creation
+        # since dual write is always enabled now. Tests inheriting from this class
+        # define their own test grouptypes which may conflict with ErrorGroupType's type_id.
+        post_save.disconnect(
+            create_project_detectors,
+            sender=Project,
+            dispatch_uid="create_project_detectors",
+        )
+        project_created.disconnect(
+            create_default_rules,
+            dispatch_uid="create_default_rules",
+        )
 
     def tearDown(self) -> None:
         super().tearDown()
         self.registry_patcher.__exit__(None, None, None)
+        # Reconnect the signals
+        post_save.connect(
+            create_project_detectors,
+            sender=Project,
+            dispatch_uid="create_project_detectors",
+            weak=False,
+        )
+        project_created.connect(
+            create_default_rules,
+            dispatch_uid="create_default_rules",
+            weak=False,
+        )
 
 
 class GroupTypeTest(BaseGroupTypeTest):

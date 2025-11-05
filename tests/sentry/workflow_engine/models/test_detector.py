@@ -89,21 +89,23 @@ class DetectorTest(BaseWorkflowTest):
 
     def test_get_error_detector_for_project__success(self) -> None:
         """Test successful retrieval of error detector for project"""
-        error_detector = self.create_detector(
-            project_id=self.project.id, type=ErrorGroupType.slug, name="Error Detector"
-        )
-
+        # Error detector is automatically created on project creation (dual write always enabled)
         result = Detector.get_error_detector_for_project(self.project.id)
 
-        assert result == error_detector
         assert result.type == ErrorGroupType.slug
         assert result.project_id == self.project.id
 
     def test_get_error_detector_for_project__not_found(self) -> None:
+        # Delete the auto-created error detector to test the not found case
+        Detector.objects.filter(project_id=self.project.id, type=ErrorGroupType.slug).delete()
+
         with pytest.raises(Detector.DoesNotExist):
             Detector.get_error_detector_for_project(self.project.id)
 
     def test_get_error_detector_for_project__wrong_type(self) -> None:
+        # Delete the auto-created error detector so we can test with only a non-error detector
+        Detector.objects.filter(project_id=self.project.id, type=ErrorGroupType.slug).delete()
+
         self.create_detector(
             project_id=self.project.id,
             type=MetricIssue.slug,  # Use a different registered type
@@ -114,9 +116,8 @@ class DetectorTest(BaseWorkflowTest):
             Detector.get_error_detector_for_project(self.project.id)
 
     def test_get_error_detector_for_project__caching(self) -> None:
-        error_detector = self.create_detector(
-            project_id=self.project.id, type=ErrorGroupType.slug, name="Error Detector"
-        )
+        # Error detector is automatically created on project creation (dual write always enabled)
+        error_detector = Detector.objects.get(project_id=self.project.id, type=ErrorGroupType.slug)
 
         # First call - cache miss
         with (
