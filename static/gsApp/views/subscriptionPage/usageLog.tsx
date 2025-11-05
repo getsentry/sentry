@@ -216,7 +216,7 @@ function UsageLog({location, subscription}: Props) {
                       </Fragment>
                     }
                   >
-                    <Container paddingBottom="xl" maxWidth="600px">
+                    <Container paddingBottom="xl" maxWidth="800px">
                       <Text variant="muted" size="md">
                         {formatEntryMessage(entry.note)}
                       </Text>
