@@ -181,16 +181,13 @@ def filter_recently_fired_workflow_actions(
         workflow_ids.add(workflow_id)
 
     # Map workflow_id to preferred detector
-    detector_workflows = (
-        DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids)
-        .select_related("detector")
-        .order_by("workflow_id", "id")
-    )
+    detector_workflows = DetectorWorkflow.objects.filter(
+        workflow_id__in=workflow_ids, detector__in=detectors
+    ).select_related("detector")
 
     workflow_id_to_detectors: dict[int, list[Detector]] = defaultdict(list)
     for dw in detector_workflows:
-        if dw.detector in detectors:
-            workflow_id_to_detectors[dw.workflow_id].append(dw.detector)
+        workflow_id_to_detectors[dw.workflow_id].append(dw.detector)
 
     workflow_id_to_preferred_detector: dict[int, Detector] = {
         workflow_id: get_preferred_detector(
