@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from typing import Any, cast
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.services.eventstore.models import GroupEvent
@@ -36,8 +37,9 @@ def create_workflow_fire_histories(
     """
     # Extract workflow_id and detector_id from the annotated actions
     # Each action has been annotated with workflow_id and detector_id in filter_recently_fired_workflow_actions
-    workflow_id_to_detector_id = dict(
-        actions_to_fire.values_list("workflow_id", "detector_id").distinct()
+    # these are added at runtime, cast to avoid type errors
+    workflow_id_to_detector_id: dict[int, int] = dict(
+        cast(Any, actions_to_fire).values_list("workflow_id", "detector_id").distinct()
     )
 
     event_id = (

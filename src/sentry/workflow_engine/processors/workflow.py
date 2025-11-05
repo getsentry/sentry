@@ -411,7 +411,7 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
 @scopedstats.timer()
 def _get_associated_workflows(
     detectors: list[Detector], environment: Environment | None, event_data: WorkflowEventData
-) -> list[Workflow]:
+) -> set[Workflow]:
     """
     This is a wrapper method to get the workflows associated with a detector and environment.
     Used in process_workflows to wrap the query + logging into a single method

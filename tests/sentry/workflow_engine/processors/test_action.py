@@ -51,7 +51,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
 
         triggered_actions = filter_recently_fired_workflow_actions(
-            set(DataConditionGroup.objects.all()), self.event_data
+            [self.detector], set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action}
         assert {getattr(action, "workflow_id") for action in triggered_actions} == {
@@ -84,7 +84,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         status_3.update(date_updated=timezone.now() - timedelta(days=2))
 
         triggered_actions = filter_recently_fired_workflow_actions(
-            set(DataConditionGroup.objects.all()), self.event_data
+            [self.detector], set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action, action_3}
 
@@ -102,7 +102,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         self.create_workflow_data_condition_group(workflow, action_group)
 
         triggered_actions = filter_recently_fired_workflow_actions(
-            set(DataConditionGroup.objects.all()), self.event_data
+            [self.detector], set(DataConditionGroup.objects.all()), self.event_data
         )
         # dedupes action if both workflows will fire it
         assert set(triggered_actions) == {self.action}
@@ -126,7 +126,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         status.update(date_updated=timezone.now() - timedelta(hours=1))
 
         triggered_actions = filter_recently_fired_workflow_actions(
-            set(DataConditionGroup.objects.all()), self.event_data
+            [self.detector], set(DataConditionGroup.objects.all()), self.event_data
         )
         # fires one action for the workflow that can fire it
         assert set(triggered_actions) == {self.action}

@@ -56,10 +56,13 @@ def get_preferred_detector(detectors: list[Detector], type: str) -> Detector:
     )
     event_type_detector = next((detector for detector in detectors if detector.type == type), None)
 
-    if event_type_detector is None:
+    if event_type_detector is not None:
+        return event_type_detector
+
+    if issue_stream_detector is not None:
         return issue_stream_detector
 
-    return event_type_detector
+    raise ValueError(f"No detector found for type: {type}")
 
 
 def _ensure_detector(project: Project, type: str) -> Detector:
