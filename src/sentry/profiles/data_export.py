@@ -1,6 +1,8 @@
 import logging
 from datetime import timedelta
 
+from google.cloud.storage_transfer_v1 import TransferJob
+
 from sentry.models.organization import Organization
 from sentry.replays.data_export import create_transfer_job, request_create_transfer_job
 
@@ -18,7 +20,7 @@ def export_profiles_data(
     blob_export_job_duration: timedelta = EXPORT_JOB_DURATION_DEFAULT,
     source_bucket: str = EXPORT_JOB_SOURCE_BUCKET,
     pubsub_topic_name: str | None = None,
-) -> None:
+) -> TransferJob:
     logger.info(
         "Starting profiles export...",
         extra={
