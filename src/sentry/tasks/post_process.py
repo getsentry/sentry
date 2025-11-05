@@ -14,9 +14,13 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
+from data_forwarding.amazon_sqs.forwarder import AmazonSQSForwarder
+from data_forwarding.segment.forwarder import SegmentForwarder
+from data_forwarding.splunk.forwarder import SplunkForwarder
 from sentry import features, options, projectoptions
 from sentry.exceptions import PluginError
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+from sentry.integrations.types import DataForwarderProviderSlug, IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
@@ -1311,12 +1315,6 @@ def process_data_forwarding(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    from data_forwarding.amazon_sqs.forwarder import AmazonSQSForwarder
-    from data_forwarding.segment.forwarder import SegmentForwarder
-    from data_forwarding.splunk.forwarder import SplunkForwarder
-    from sentry.integrations.models.data_forwarder_project import DataForwarderProject
-    from sentry.integrations.types import DataForwarderProviderSlug
-
     event = job["event"]
 
     data_forwarder_projects = DataForwarderProject.objects.filter(
@@ -1336,16 +1334,9 @@ def process_data_forwarding(job: PostProcessJob) -> None:
 
     for data_forwarder_project in data_forwarder_projects:
         provider = data_forwarder_project.data_forwarder.provider
+
         # GroupEvent is compatible with Event for all operations forwarders need
-        success = forwarder_classes[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
-        metrics.incr(
-            "data_forwarding.forward_event",
-            tags={
-                "provider": provider,
-                "project_id": event.project_id,
-                "success": success,
-            },
-        )
+        forwarder_classes[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
 
 
 def process_plugins(job: PostProcessJob) -> None:
