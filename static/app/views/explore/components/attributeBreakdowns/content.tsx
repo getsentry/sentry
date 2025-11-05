@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
 
@@ -17,11 +18,13 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getUserTimezone} from 'sentry/utils/dates';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import useAttributeBreakdowns from 'sentry/views/explore/hooks/useAttributeBreakdowns';
 import type {BoxSelectOptions} from 'sentry/views/explore/hooks/useChartBoxSelect';
+import {prettifyAggregation} from 'sentry/views/explore/utils';
 
 import {Chart} from './chart';
 import {useChartSelection} from './chartSelectionContext';
@@ -29,6 +32,7 @@ import {SortingToggle, type SortingMethod} from './sortingToggle';
 
 const CHARTS_COLUMN_COUNT = 3;
 const CHARTS_PER_PAGE = CHARTS_COLUMN_COUNT * 4;
+const PERCENTILE_FUNCTION_PREFIXES = ['p50', 'p75', 'p90', 'p95', 'p99', 'avg'];
 
 function FeedbackButton() {
   const openForm = useFeedbackForm();
@@ -133,6 +137,44 @@ function ContentImpl({
     setPage(0);
   }, [filteredRankedAttributes]);
 
+  const selectionHint = useMemo(() => {
+    if (!boxSelectOptions.xRange) {
+      return null;
+    }
+
+    const [x1, x2] = boxSelectOptions.xRange;
+
+    let startTimestamp = Math.floor(x1 / 60_000) * 60_000;
+    const endTimestamp = Math.ceil(x2 / 60_000) * 60_000;
+    startTimestamp = Math.min(startTimestamp, endTimestamp - 60_000);
+
+    const userTimezone = getUserTimezone() || moment.tz.guess();
+    const startDate = moment
+      .tz(startTimestamp, userTimezone)
+      .format('MMM D YYYY h:mm A z');
+    const endDate = moment.tz(endTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
+
+    // Check if yAxis is a percentile function (only these functions should include "and is greater than or equal to")
+    const yAxisLower = chartInfo.yAxis.toLowerCase();
+    const isPercentileFunction = PERCENTILE_FUNCTION_PREFIXES.some(prefix =>
+      yAxisLower.startsWith(prefix)
+    );
+
+    const formattedFunction = prettifyAggregation(chartInfo.yAxis) ?? chartInfo.yAxis;
+
+    return {
+      selection: isPercentileFunction
+        ? t(
+            `Selection is data between %s - %s and is greater than or equal to %s`,
+            startDate,
+            endDate,
+            formattedFunction
+          )
+        : t(`Selection is data between %s - %s`, startDate, endDate),
+      baseline: t('Baseline is all other spans from your query'),
+    };
+  }, [boxSelectOptions.xRange, chartInfo.yAxis]);
+
   return (
     <Flex direction="column" gap="xl" padding="xl">
       {isLoading ? (
@@ -152,6 +194,14 @@ function ContentImpl({
             />
             <SortingToggle value={sortingMethod} onChange={setSortingMethod} />
           </ControlsContainer>
+          {selectionHint && (
+            <SelectionHintContainer>
+              <SelectionHint color={theme.chart.getColorPalette(0)?.[0]}>
+                {selectionHint.selection}
+              </SelectionHint>
+              <SelectionHint color="#A29FAA">{selectionHint.baseline}</SelectionHint>
+            </SelectionHintContainer>
+          )}
           {filteredRankedAttributes.length > 0 ? (
             <Fragment>
               <ChartsGrid>
@@ -268,4 +318,28 @@ const PaginationContainer = styled('div')`
   display: flex;
   justify-content: end;
   align-items: center;
+`;
+
+const SelectionHintContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+  margin-bottom: ${space(1)};
+`;
+
+const SelectionHint = styled(Text)<{color?: string}>`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.sm};
+
+  &::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: ${p => p.color || p.theme.gray400};
+    margin-right: ${space(0.5)};
+    flex-shrink: 0;
+  }
 `;
