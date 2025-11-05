@@ -8,7 +8,7 @@ from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils import redis
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
+from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,8 @@ def backfill_issue_stream_detector_workflows(
         "detectorworkflow_set"
     )
 
-    for error_detector in RangeQuerySetWrapperWithProgressBarApprox(error_detectors):
+    count = 0
+    for error_detector in RangeQuerySetWrapper(error_detectors):
         issue_stream_detector, _ = Detector.objects.get_or_create(
             type="issue_stream",
             project_id=error_detector.project_id,
@@ -50,6 +51,18 @@ def backfill_issue_stream_detector_workflows(
             ignore_conflicts=True,
         )
         redis_client.set(backfill_key, error_detector.id, ex=60 * 60 * 24 * 7)
+
+        count += 1
+
+        if count % 1000 == 0:
+            logger.info(
+                "Progress update",
+                extra={
+                    "count": count,
+                    "current_detector_id": error_detector.id,
+                },
+            )
+            redis_client.set(backfill_key, error_detector.id, ex=60 * 60 * 24 * 7)
 
 
 class Migration(CheckedMigration):
