@@ -28,7 +28,6 @@ import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
@@ -207,14 +206,13 @@ function Details({detector}: {detector: Detector}) {
 
 export function DetectorLink({detector, className, openInNewTab}: DetectorLinkProps) {
   const org = useOrganization();
-  const {monitorsLinkPrefix} = useMonitorViewContext();
   const project = useProjectFromId({project_id: detector.projectId});
 
   return (
     <TitleCell
       className={className}
       name={detector.name}
-      link={makeMonitorDetailsPathname(org.slug, detector.id, monitorsLinkPrefix)}
+      link={makeMonitorDetailsPathname(org.slug, detector.id)}
       systemCreated={
         detectorTypeIsUserCreateable(detector.type)
           ? undefined

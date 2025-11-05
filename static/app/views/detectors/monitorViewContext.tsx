@@ -16,8 +16,6 @@ export interface RenderVisualizationParams {
 }
 
 export interface MonitorViewContextValue {
-  automationsLinkPrefix: string;
-  monitorsLinkPrefix: string;
   /**
    * Additional columns to render after the default columns and before the visualization column.
    * These appear to the right of the default columns and to the left of the visualization.
@@ -31,8 +29,6 @@ export interface MonitorViewContextValue {
 }
 
 const DEFAULT_MONITOR_VIEW_CONTEXT: MonitorViewContextValue = {
-  monitorsLinkPrefix: 'monitors',
-  automationsLinkPrefix: 'monitors/alerts',
   assigneeFilter: undefined,
   detectorFilter: undefined,
   showTimeRangeSelector: false,
