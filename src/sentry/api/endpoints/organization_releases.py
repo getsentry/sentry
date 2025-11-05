@@ -381,7 +381,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
-            queryset = queryset.annotate_prerelease_column().annotate_build_number_column()
+            queryset = queryset.annotate_prerelease_column()
 
             order_by = [F(col).desc(nulls_last=True) for col in Release.SEMVER_COLS]
             # TODO: Adding this extra sort order breaks index usage. Index usage is already broken
@@ -553,7 +553,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
-            queryset = queryset.annotate_prerelease_column().annotate_build_number_column()
+            queryset = queryset.annotate_prerelease_column()
 
             order_by = [F(col).desc(nulls_last=True) for col in Release.SEMVER_COLS]
             # TODO: Adding this extra sort order breaks index usage. Index usage is already broken

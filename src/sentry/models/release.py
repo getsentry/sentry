@@ -101,9 +101,6 @@ class ReleaseModelManager(BaseManager["Release"]):
     def annotate_prerelease_column(self):
         return self.get_queryset().annotate_prerelease_column()
 
-    def annotate_build_number_column(self):
-        return self.get_queryset().annotate_build_number_column()
-
     def filter_to_semver(self) -> ReleaseQuerySet:
         return self.get_queryset().filter_to_semver()
 
@@ -309,7 +306,6 @@ class Release(Model):
         "revision",
         "prerelease_case",
         "prerelease",
-        "build_number_case",
         "build_number",
     ]
 
@@ -410,7 +406,6 @@ class Release(Model):
             self.revision,
             1 if self.prerelease == "" else 0,
             self.prerelease,
-            1 if self.build_number is None else 0,
             self.build_number,
         )
 
