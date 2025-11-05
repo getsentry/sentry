@@ -1,5 +1,5 @@
 ---
-created: '2025-10-30T17:09:41.050365+00:00'
+created: '2025-11-05T19:33:07.672605+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -1150,7 +1150,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1181,7 +1181,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -2390,8 +2390,8 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 },
                 {
-                  "contributes": true,
-                  "hint": null,
+                  "contributes": false,
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -2422,7 +2422,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -2481,7 +2481,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "contributes": true,
     "description": "exception stacktrace — all frames",
-    "hash": "15526a7b64e9b5dc6d89e7ebec864260",
+    "hash": "7388d8aa6c112020d5c3e7b180fd0b88",
     "hint": null,
     "key": "system_exception_stacktrace",
     "type": "component"

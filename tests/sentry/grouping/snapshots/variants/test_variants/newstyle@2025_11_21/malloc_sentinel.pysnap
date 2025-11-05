@@ -1,5 +1,5 @@
 ---
-created: '2025-11-03T21:48:48.738331+00:00'
+created: '2025-11-05T19:32:40.210139+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -101,7 +101,7 @@ app:
               "__pthread_kill"
 --------------------------------------------------------------------------
 system:
-  hash: "ca6e8f30e1e7b088514deb26ec59b379"
+  hash: "44fcfaf834a1238bfaa22fcfabeea65f"
   contributing component: exception
   hint: None
   root_component:
@@ -187,12 +187,12 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "malloc_vreport"
-          frame*
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "pthread_kill"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "__pthread_kill"

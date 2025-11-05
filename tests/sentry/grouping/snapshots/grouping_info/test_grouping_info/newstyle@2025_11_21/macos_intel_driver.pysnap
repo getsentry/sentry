@@ -1,5 +1,5 @@
 ---
-created: '2025-10-30T17:09:41.596863+00:00'
+created: '2025-11-05T19:33:08.326389+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -1118,7 +1118,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1149,7 +1149,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1178,7 +1178,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1209,7 +1209,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1240,7 +1240,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1271,7 +1271,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1302,7 +1302,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1333,7 +1333,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1364,7 +1364,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1395,7 +1395,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1426,7 +1426,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1457,7 +1457,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1488,7 +1488,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1519,7 +1519,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1550,7 +1550,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1581,7 +1581,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1612,7 +1612,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1643,7 +1643,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1674,7 +1674,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1705,7 +1705,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1736,7 +1736,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1767,7 +1767,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1798,7 +1798,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1829,7 +1829,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "non app frame",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1860,7 +1860,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -1891,7 +1891,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
+                  "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3066,8 +3066,8 @@ source: tests/sentry/grouping/test_grouping_info.py
                   ]
                 },
                 {
-                  "contributes": true,
-                  "hint": null,
+                  "contributes": false,
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3127,7 +3127,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3158,7 +3158,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3251,7 +3251,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3282,7 +3282,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3313,7 +3313,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3344,7 +3344,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3375,7 +3375,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3406,7 +3406,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3437,7 +3437,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3499,7 +3499,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3530,7 +3530,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3561,7 +3561,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3592,7 +3592,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3623,7 +3623,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3654,7 +3654,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3685,7 +3685,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3716,7 +3716,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3747,7 +3747,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3778,7 +3778,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3809,7 +3809,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3840,7 +3840,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 },
                 {
                   "contributes": false,
-                  "hint": "ignored by stack trace rule (category:throw ^-group)",
+                  "hint": "ignored by stack trace rule (category:throw ^-group -group)",
                   "id": "frame",
                   "name": null,
                   "values": [
@@ -3897,7 +3897,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "contributes": true,
     "description": "exception stacktrace — all frames",
-    "hash": "36be6e0b6123ef6ecfbef62f5cb88406",
+    "hash": "22760595718fcd37489c365e30a5e166",
     "hint": null,
     "key": "system_exception_stacktrace",
     "type": "component"

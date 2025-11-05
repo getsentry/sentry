@@ -1,5 +1,5 @@
 ---
-created: '2025-11-03T21:48:47.901646+00:00'
+created: '2025-11-05T19:32:39.222649+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -138,30 +138,30 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "std::terminate"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "std::__terminate"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "demangling_terminate_handler"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "abort_message"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "__abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "__pthread_kill"
 --------------------------------------------------------------------------
 system:
-  hash: "49b6f72b6635cb43190c57ee56b026b0"
+  hash: "12f18dcb1efe33b32c7afe5004addaaa"
   contributing component: exception
   hint: None
   root_component:
@@ -295,24 +295,24 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "std::terminate"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "std::__terminate"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "demangling_terminate_handler"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "abort_message"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "__abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "__pthread_kill"

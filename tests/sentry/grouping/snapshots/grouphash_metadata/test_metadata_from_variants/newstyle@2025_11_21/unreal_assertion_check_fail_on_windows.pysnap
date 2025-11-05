@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:19:59.468084+00:00'
+created: '2025-11-05T19:33:32.603639+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -123,7 +123,7 @@ contributing variants:
               function*
                 "USentryPlaygroundUtils::Terminate"
   system*
-    hash: "d0669f63f03ddaec66ac8b9f4e3e449d"
+    hash: "69925caf2921426d8587558ce078b9e2"
     contributing component: exception
     hint: None
     root_component:
@@ -241,6 +241,3 @@ contributing variants:
             frame*
               function*
                 "FWindowsErrorOutputDevice::Serialize"
-            frame*
-              function*
-                "RaiseException"

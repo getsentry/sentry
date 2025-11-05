@@ -1,5 +1,5 @@
 ---
-created: '2025-11-03T21:48:49.542317+00:00'
+created: '2025-11-05T19:32:41.119824+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -151,12 +151,12 @@ app:
           frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
             function*
               "FWindowsErrorOutputDevice::Serialize"
-          frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "RaiseException"
 --------------------------------------------------------------------------
 system:
-  hash: "d0669f63f03ddaec66ac8b9f4e3e449d"
+  hash: "69925caf2921426d8587558ce078b9e2"
   contributing component: exception
   hint: None
   root_component:
@@ -303,6 +303,6 @@ system:
           frame*
             function*
               "FWindowsErrorOutputDevice::Serialize"
-          frame*
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "RaiseException"

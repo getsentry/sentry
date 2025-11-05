@@ -337,7 +337,7 @@ category:driver | [ category:driver ] category=internals
 
 # abort() and exception raising is technically the culprit for crashes, but not
 # the thing we want to show.
-category:throw ^-group
+category:throw ^-group -group ^-app -app
 
 # On Windows, _purecall internally aborts when the function pointer is invalid.
 # We want to treat this the same as a segfault happening before calling
