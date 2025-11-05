@@ -129,7 +129,7 @@ describe('useMetricSamplesTable', () => {
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: 'metric.name:test.metric metric.type:counter',
+          query: '',
           caseInsensitive: undefined,
           dataset: 'tracemetrics',
           disableAggregateExtrapolation: undefined,
@@ -150,6 +150,8 @@ describe('useMetricSamplesTable', () => {
           referrer: 'api.explore.metric-samples-table',
           sampling: SAMPLING_MODE.NORMAL,
           sort: '-timestamp',
+          metricName: 'test.metric',
+          metricType: 'counter',
         }),
       })
     );

@@ -7,7 +7,6 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -23,10 +22,7 @@ import {
   useMetricsFrozenSearch,
   useMetricsFrozenTracePeriod,
 } from 'sentry/views/explore/metrics/metricsFrozenContext';
-import {
-  TraceMetricKnownFieldKey,
-  type TraceMetricEventsResponseItem,
-} from 'sentry/views/explore/metrics/types';
+import {type TraceMetricEventsResponseItem} from 'sentry/views/explore/metrics/types';
 import {
   useQueryParamsQuery,
   useQueryParamsSortBys,
@@ -92,14 +88,8 @@ function useMetricsQueryKey({
   const queryString = useMemo(() => {
     const queryStr = query;
     const frozenSearchStr = frozenSearch?.formatString() ?? '';
-    const traceMetricFilter = traceMetric?.name
-      ? MutableSearch.fromQueryObject({
-          [`${TraceMetricKnownFieldKey.METRIC_NAME}`]: [traceMetric.name],
-          [`${TraceMetricKnownFieldKey.METRIC_TYPE}`]: [traceMetric.type],
-        }).formatString()
-      : '';
 
-    const parts = [frozenSearchStr, queryStr, traceMetricFilter].filter(Boolean);
+    const parts = [frozenSearchStr, queryStr].filter(Boolean);
 
     if (parts.length === 0) {
       return '';
@@ -109,7 +99,7 @@ function useMetricsQueryKey({
     }
 
     return parts.join(' ');
-  }, [query, frozenSearch, traceMetric]);
+  }, [query, frozenSearch]);
 
   const adjustedDatetime = useMemo(() => {
     const baseDatetime = frozenTracePeriod
@@ -168,6 +158,8 @@ function useMetricsQueryKey({
       orderby: orderby.length > 0 ? orderby : undefined,
       per_page: limit,
       referrer,
+      metricName: traceMetric?.name,
+      metricType: traceMetric?.type,
       sampling: queryExtras?.samplingMode ?? SAMPLING_MODE.NORMAL,
       caseInsensitive: queryExtras?.caseInsensitive,
       disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation
