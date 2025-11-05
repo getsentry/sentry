@@ -107,6 +107,16 @@ const storeConfig: PageFiltersStoreDefinition = {
    * Initializes the page filters store data
    */
   onInitializeUrlState(newSelection, persist = true) {
+    // Do a deep comparison. Shallow comparison would compare the `projects`
+    // array by identity rather than the projects inside, and falsely report
+    // that they're different. In this case, we care about the specific values,
+    // and that comparison is still much cheaper than the unnecessary re-render
+    // that updating the store would cause. This method is called pretty rarely,
+    // and it might be possible to call it even less.
+    if (valueIsEqual(this.state.selection, newSelection, true)) {
+      return;
+    }
+
     this.state = {
       ...this.state,
       isReady: true,
