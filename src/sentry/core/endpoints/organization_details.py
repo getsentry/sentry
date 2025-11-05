@@ -1152,10 +1152,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
         measure = SamplingMeasure.TRANSACTIONS
-        if options.get("dynamic-sampling.check_span_feature_flag"):
-            span_org_ids = options.get("dynamic-sampling.measure.spans") or []
-            if org_id in span_org_ids:
-                measure = SamplingMeasure.SPANS
+        if options.get("dynamic-sampling.check_span_feature_flag") and features.has(
+            "organizations:dynamic-sampling-spans", organization
+        ):
+            measure = SamplingMeasure.SPANS
 
         projects_with_tx_count_and_rates = []
         for chunk in query_project_counts_by_org(
