@@ -3,6 +3,7 @@ import {useCallback, useRef} from 'react';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {decodeSorts} from 'sentry/utils/queryString';
 import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,8 +22,12 @@ export default function useReplayTableSort({
   const defaultSortRef = useRef(defaultSort);
   const organization = useOrganization();
 
-  const {getParamValue, setParamValue} = useUrlParams(queryParamKey, '-started_at');
+  const {getParamValue, setParamValue} = useUrlParams(queryParamKey);
+
   const sortQuery = getParamValue();
+  if (isEmptyObject(sortQuery)) {
+    setParamValue(encodeSort(defaultSort));
+  }
   const sortType = decodeSorts(sortQuery).at(0) ?? defaultSortRef.current;
 
   const handleSortClick = useCallback(
