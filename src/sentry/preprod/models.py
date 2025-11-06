@@ -187,7 +187,7 @@ class PreprodArtifact(DefaultFieldsModel):
                 extra={
                     "head_sha": self.commit_comparison.head_sha,
                     "organization_id": self.project.organization_id,
-                    "base_commit_comparisons": base_commit_comparisons,
+                    "base_commit_comparison_ids": [c.id for c in base_commit_comparisons],
                 },
             )
             sentry_sdk.capture_message(
