@@ -39,7 +39,7 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {GENERATIONS_COUNT_FIELD} from 'sentry/views/insights/aiGenerations/views/utils/constants';
 
-export const GENERATIONS_AGGREGATES: Array<SelectOption<AggregationKey>> = [
+const GENERATIONS_AGGREGATES: Array<SelectOption<AggregationKey>> = [
   {
     label: t('count'),
     value: AggregationKey.COUNT,

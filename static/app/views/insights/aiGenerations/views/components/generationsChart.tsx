@@ -93,7 +93,7 @@ export function GenerationsChart() {
   );
 }
 
-export function ChartWidget({
+function ChartWidget({
   visualize,
   onChartTypeChange,
 }: {

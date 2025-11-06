@@ -195,7 +195,7 @@ function PageWithProviders() {
 export default PageWithProviders;
 
 // TODO: This needs streamlining over the explore pages
-export const SidebarCollapseButton = withChonk(
+const SidebarCollapseButton = withChonk(
   styled(Button)<{sidebarOpen: boolean}>`
     ${p =>
       p.sidebarOpen &&
