@@ -26,11 +26,15 @@ export function SentryLinkBehaviorProvider({children}: {children: React.ReactNod
               to: normalizedTo,
               onMouseEnter: e => {
                 onMouseEnter?.(e);
-                preload(routeConfig, normalizedTo);
+                if (routeConfig) {
+                  preload(routeConfig, normalizedTo);
+                }
               },
               onFocus: e => {
                 onFocus?.(e);
-                preload(routeConfig, normalizedTo);
+                if (routeConfig) {
+                  preload(routeConfig, normalizedTo);
+                }
               },
               ...props,
             };
