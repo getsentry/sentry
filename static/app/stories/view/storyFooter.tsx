@@ -71,10 +71,11 @@ function findPreviousAndNextStory(
 
   function processNode(node: StoryTreeNode) {
     for (const key in node.children) {
-      queue.push(node.children[key]!);
+      processNode(node.children[key]!);
     }
-
-    queue.push(node);
+    if (!Object.keys(node.children).length) {
+      queue.push(node);
+    }
   }
 
   for (const node of stories) {
@@ -87,8 +88,8 @@ function findPreviousAndNextStory(
 
     if (node.filesystemPath === story.filename) {
       return {
-        prev: queue[i - 1] ?? undefined,
-        next: queue[i + 1] ?? undefined,
+        prev: queue[i - 1],
+        next: queue[i + 1],
       };
     }
   }
