@@ -24,7 +24,6 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -304,13 +303,8 @@ export function Visualize() {
   const lockSpanOptions =
     dataset === DetectorDataset.SPANS && aggregate === AggregationKey.COUNT;
 
-  const hasVisibleParameters =
-    Boolean(aggregateMetadata?.parameters?.length) &&
-    dataset !== DetectorDataset.SPANS &&
-    dataset !== DetectorDataset.LOGS;
-
   return (
-    <AggregateContainer hasParameters={hasVisibleParameters}>
+    <Flex direction="column" gap="md">
       <Flex gap="md" align="end">
         <FieldContainer>
           <div>
@@ -389,50 +383,21 @@ export function Visualize() {
           );
         })}
       </Flex>
-
-      {/* Only show filter inline when no additional parameters */}
-      {!hasVisibleParameters && (
-        <Flex flex={1} gap="md">
-          <DetectorQueryFilterBuilder />
-        </Flex>
-      )}
-
-      {/* Show filter on separate row when parameters are visible */}
-      {hasVisibleParameters && (
-        <Flex flex={1} gap="md">
-          <DetectorQueryFilterBuilder />
-        </Flex>
-      )}
-    </AggregateContainer>
+    </Flex>
   );
 }
-
-const AggregateContainer = styled('div')<{hasParameters: boolean}>`
-  display: grid;
-  grid-template-columns: ${p => (p.hasParameters ? '1fr' : '1fr 2fr')};
-  grid-template-rows: ${p => (p.hasParameters ? 'auto auto' : 'auto')};
-  align-items: start;
-  gap: ${space(2)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)} ${space(2)};
-  background-color: ${p => p.theme.backgroundSecondary};
-
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
-  }
-`;
 
 const FieldContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
   flex: 1;
+  max-width: 425px;
 `;
 
 const StyledAggregateSelect = styled(CompactSelect)`
   width: 100%;
+  max-width: 425px;
   & > button {
     width: 100%;
     font-weight: normal;
@@ -441,6 +406,7 @@ const StyledAggregateSelect = styled(CompactSelect)`
 
 const StyledVisualizeSelect = styled(CompactSelect)`
   width: 100%;
+  max-width: 425px;
   & > button {
     width: 100%;
     font-weight: normal;
