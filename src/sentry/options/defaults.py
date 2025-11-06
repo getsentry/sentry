@@ -2173,6 +2173,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
 )
 
+# List of organization IDs that should be using spans for rebalancing in dynamic sampling.
+register(
+    "dynamic-sampling.measure.spans",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # === Hybrid cloud subsystem options ===
 # UI rollout
 register(
