@@ -348,6 +348,12 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "deletions.activity.delete-in-bulk",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "cleanup.abort_execution",
@@ -2171,6 +2177,14 @@ register(
     "dynamic-sampling.check_span_feature_flag",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
+# List of organization IDs that should be using spans for rebalancing in dynamic sampling.
+register(
+    "dynamic-sampling.measure.spans",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # === Hybrid cloud subsystem options ===
