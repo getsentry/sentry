@@ -60,9 +60,10 @@ x-sentry-service-config:
       description: Service powering Sentry's uptime detection features
       remote:
         repo_name: uptime-checker
-        branch: feat-devservices  # temporary
+        branch: feat-devservices # temporary
         # branch: main
         repo_link: https://github.com/getsentry/uptime-checker.git
+        mode: containerized
     vroom:
       description: Sentry's profiling service, processing and deriving data about your profiles
       remote:
