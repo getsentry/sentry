@@ -29,7 +29,6 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type RowProps = {
@@ -65,7 +64,7 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   );
 }
 
-function ProjectServiceHooks() {
+export default function ProjectServiceHooks() {
   const organization = useOrganization();
   const {projectId} = useParams<{projectId: string}>();
   const api = useApi({persistInFlight: true});
@@ -182,5 +181,3 @@ function ProjectServiceHooks() {
     </Fragment>
   );
 }
-
-export default withOrganization(ProjectServiceHooks);

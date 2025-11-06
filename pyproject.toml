@@ -565,7 +565,7 @@ module = [
     "sentry.prevent.*",
     "sentry.profiles.*",
     "sentry.projects.*",
-    "sentry.ratelimits.leaky_bucket",
+    "sentry.ratelimits.*",
     "sentry.relay.config.metric_extraction",
     "sentry.relay.types.*",
     "sentry.release_health.release_monitor.*",
