@@ -1,12 +1,11 @@
-import {matchRoutes, type To} from 'react-router-dom';
+import {matchRoutes, type RouteObject, type To} from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 
 export const PRELOAD_HANDLE = '_preload';
 
-export async function preload(to: To) {
+export function preload(routeConfig: RouteObject[], to: To) {
   // Try to match the route and preload if it has a preload method
   try {
-    const routeConfig = (await import('sentry/router/routes')).routes();
     const matches = matchRoutes(routeConfig, to);
 
     if (matches && matches.length > 0) {
