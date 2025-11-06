@@ -405,11 +405,11 @@ class Release(Model):
     @property
     def semver_tuple(self) -> SemverVersion:
         if self.build_number is None and self.build_code is not None:
-            build_number_case = 2
+            build_code_case = 2
         elif self.build_number is not None:
-            build_number_case = 1
+            build_code_case = 1
         else:
-            build_number_case = 0
+            build_code_case = 0
 
         return SemverVersion(
             self.major,
@@ -418,7 +418,7 @@ class Release(Model):
             self.revision,
             1 if self.prerelease == "" else 0,
             self.prerelease,
-            build_number_case,
+            build_code_case,
             self.build_number,
             self.build_code,
         )
