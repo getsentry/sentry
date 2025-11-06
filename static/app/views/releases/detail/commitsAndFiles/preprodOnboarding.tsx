@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 
-import sizeAnalysisPreview from 'sentry-images/features/preprod-fullscreen-treemap.png';
+import sizeAnalysisPreview from 'sentry-images/spot/releases-tour-commits.svg';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Image} from 'sentry/components/core/image';
@@ -65,10 +65,10 @@ export function PreprodOnboarding(props: PreprodOnboardingProps) {
   return (
     <Panel>
       <PanelBody>
-        <Flex justify="between" align="center" padding="3xl" gap="xl">
+        <Flex justify="between" align="start" width="100%" padding="3xl" gap="xl">
           <Container flex={1}>
             <Heading as="h1" size="2xl">
-              {t('Upload Builds to Sentry')}
+              {t('Upload Mobile Builds to Sentry')}
             </Heading>
             <Text as="p" size="md" style={{marginBottom: theme.space.md}}>
               {t('Monitor & reduce your app size and distribute pre-release builds')}
@@ -82,7 +82,7 @@ export function PreprodOnboarding(props: PreprodOnboardingProps) {
               </ListItem>
               <ListItem>{t('Distribute pre-release builds to your team')}</ListItem>
             </List>
-            <Flex gap="md" wrap="wrap">
+            <Flex gap="md" wrap="wrap" style={{marginTop: theme.space.lg}}>
               <LinkButton href={PRODUCT_DOC_URL} external priority="primary" size="md">
                 {t('Product Docs')}
               </LinkButton>
@@ -93,17 +93,12 @@ export function PreprodOnboarding(props: PreprodOnboardingProps) {
               ) : null}
             </Flex>
           </Container>
-          <Container
-            flex={1}
-            display={{xs: 'none', md: 'block'}}
-            radius="md"
-            overflow="hidden"
-            style={{boxShadow: theme.dropShadowHeavy}}
-          >
+          <Container display={{xs: 'none', md: 'block'}}>
             <Image
               src={sizeAnalysisPreview}
-              alt={t('Size analysis treemap preview')}
-              style={{pointerEvents: 'none'}}
+              alt={t('Size analysis illustration')}
+              height="120px"
+              style={{pointerEvents: 'none', overflow: 'hidden'}}
             />
           </Container>
         </Flex>
