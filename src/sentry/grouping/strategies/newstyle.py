@@ -734,8 +734,10 @@ def filter_exceptions_for_exception_groups(
     # applies where it didn't used to, which in turn changes how some exception groups are hashed.
     # As a temporary stopgap, until we can build a system akin to the grouping config transition
     # system to compensate for the change, we're just emulating the old behavior.
-    if event.platform == "python" and get_path(event.data, "sdk", "version", default="").startswith(
-        "3"
+    if (
+        event.platform == "python"
+        and get_path(event.data, "sdk", "version", default="").startswith("3")
+        and context.get("use_python_sdk_version_2_to_3_hack")
     ):
         return exceptions
 
