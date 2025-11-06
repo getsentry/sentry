@@ -26,14 +26,14 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveIndex(
-            model_name="datasource",
-            name="workflow_en_type_66eafc_idx",
-        ),
         migrations.AddConstraint(
             model_name="datasource",
             constraint=models.UniqueConstraint(
                 fields=("type", "source_id"), name="unique_type_source_id"
             ),
+        ),
+        migrations.RemoveIndex(
+            model_name="datasource",
+            name="workflow_en_type_66eafc_idx",
         ),
     ]
