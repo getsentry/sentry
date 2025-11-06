@@ -526,6 +526,76 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Releases'})).toBeInTheDocument();
     });
+
+    it('creates detector with dynamic detection and no resolution thresholds', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '456'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: metricRouterConfig,
+      });
+
+      const title = await screen.findByText('New Monitor');
+      await userEvent.click(title);
+      await userEvent.keyboard('Dynamic{enter}');
+
+      // Select dynamic detection type
+      await userEvent.click(screen.getByRole('radio', {name: 'Dynamic'}));
+
+      // Set sensitivity to High
+      await userEvent.click(
+        screen.getByRole('textbox', {name: 'Level of responsiveness'})
+      );
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'High'}));
+
+      // Set threshold type to Above
+      await userEvent.click(
+        screen.getByRole('textbox', {name: 'Direction of anomaly movement'})
+      );
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Above'}));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'Dynamic',
+              type: 'metric_issue',
+              projectId: project.id,
+              owner: null,
+              workflowIds: [],
+              // Dynamic detection should have empty conditions (no resolution thresholds)
+              conditionGroup: {
+                conditions: [],
+                logicType: 'any',
+              },
+              config: {
+                detectionType: 'dynamic',
+                sensitivity: 'high',
+                thresholdPeriod: 1,
+              },
+              dataSources: [
+                {
+                  aggregate: 'count(span.duration)',
+                  dataset: 'events_analytics_platform',
+                  eventTypes: ['trace_item_span'],
+                  query: '',
+                  queryType: 1,
+                  timeWindow: 3600,
+                  environment: null,
+                },
+              ],
+            }),
+          })
+        );
+      });
+    });
   });
 
   describe('Uptime Detector', () => {
