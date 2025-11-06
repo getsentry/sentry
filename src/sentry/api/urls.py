@@ -195,6 +195,9 @@ from sentry.flags.endpoints.secrets import (
     OrganizationFlagsWebHookSigningSecretEndpoint,
     OrganizationFlagsWebHookSigningSecretsEndpoint,
 )
+from sentry.incidents.endpoints.organization_alert_rule_anomaly_data import (
+    OrganizationAlertRuleAnomalyDataEndpoint,
+)
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
 )
@@ -1376,6 +1379,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/alert-rules/(?P<alert_rule_id>[^/]+)/$",
         OrganizationAlertRuleDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-alert-rule-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/alert-rules/(?P<alert_rule_id>[^/]+)/anomaly-data/$",
+        OrganizationAlertRuleAnomalyDataEndpoint.as_view(),
+        name="sentry-api-0-organization-alert-rule-anomaly-data",
     ),
     re_path(  # fetch combined metric and issue alert rules
         r"^(?P<organization_id_or_slug>[^/]+)/combined-rules/$",
