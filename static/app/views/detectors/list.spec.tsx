@@ -159,7 +159,7 @@ describe('DetectorsList', () => {
       const mockDetectorsRequestErrorType = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
         body: [ErrorDetectorFixture({name: 'Error Detector'})],
-        match: [MockApiClient.matchQuery({query: 'type:error'})],
+        match: [MockApiClient.matchQuery({query: '!type:issue_stream type:error'})],
       });
 
       render(<DetectorsList />, {organization});
@@ -191,7 +191,11 @@ describe('DetectorsList', () => {
             owner: ActorFixture({id: testUser.id, name: testUser.email, type: 'user'}),
           }),
         ],
-        match: [MockApiClient.matchQuery({query: 'assignee:test@example.com'})],
+        match: [
+          MockApiClient.matchQuery({
+            query: '!type:issue_stream assignee:test@example.com',
+          }),
+        ],
       });
 
       render(<DetectorsList />, {organization});
@@ -484,7 +488,11 @@ describe('DetectorsList', () => {
         headers: {
           'X-Hits': '50',
         },
-        match: [MockApiClient.matchQuery({query: 'assignee:test@example.com'})],
+        match: [
+          MockApiClient.matchQuery({
+            query: '!type:issue_stream assignee:test@example.com',
+          }),
+        ],
       });
 
       // Click through menus to select assignee
