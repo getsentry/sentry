@@ -1,15 +1,22 @@
 ---
-created: '2025-10-29T21:18:51.007416+00:00'
+created: '2025-11-03T21:48:46.409409+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "4ef1fb44d656c3be2a146971f2a222dc"
+  hash: "3bb283edd206ca9069e3da4ce9c11869"
   contributing component: exception
   hint: None
   root_component:
     app*
       exception*
+        type*
+          "<redacted>"
+        ns_error*
+          domain*
+            "<redacted>"
+          code*
+            2
         stacktrace*
           frame (marked out of app by the client)
             function*
@@ -122,6 +129,14 @@ app:
           frame (marked in-app by the client but ignored due to recursion)
             function*
               "stripped_application_code"
+--------------------------------------------------------------------------
+system:
+  hash: "ab329c350a2abfdf4798139a4aee0d8b"
+  contributing component: exception
+  hint: None
+  root_component:
+    system*
+      exception*
         type*
           "<redacted>"
         ns_error*
@@ -129,14 +144,6 @@ app:
             "<redacted>"
           code*
             2
---------------------------------------------------------------------------
-system:
-  hash: "47481871aa8d5ab5729cf2db78ce3032"
-  contributing component: exception
-  hint: None
-  root_component:
-    system*
-      exception*
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
@@ -249,10 +256,3 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-        type*
-          "<redacted>"
-        ns_error*
-          domain*
-            "<redacted>"
-          code*
-            2

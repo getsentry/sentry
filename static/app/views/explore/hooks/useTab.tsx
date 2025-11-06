@@ -13,7 +13,7 @@ const SPANS_TABLE_KEY = 'table';
 export enum Tab {
   SPAN = 'span',
   TRACE = 'trace',
-  SUSPECT_ATTRIBUTES = 'suspect_attributes',
+  ATTRIBUTE_BREAKDOWNS = 'attribute_breakdowns',
 }
 
 export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
@@ -35,8 +35,8 @@ export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
     if (table === 'trace') {
       return Tab.TRACE;
     }
-    if (table === 'suspect_attributes') {
-      return Tab.SUSPECT_ATTRIBUTES;
+    if (table === 'attribute_breakdowns') {
+      return Tab.ATTRIBUTE_BREAKDOWNS;
     }
 
     return Tab.SPAN;
@@ -53,8 +53,8 @@ export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
         SPANS_TABLE_KEY,
         newTab === Tab.TRACE
           ? 'trace'
-          : newTab === Tab.SUSPECT_ATTRIBUTES
-            ? 'suspect_attributes'
+          : newTab === Tab.ATTRIBUTE_BREAKDOWNS
+            ? 'attribute_breakdowns'
             : null
       );
 

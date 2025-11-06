@@ -66,7 +66,7 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
 
         resp = self.client.get(self.url)
         assert resp.status_code == 200
-        assert resp.data["organization"][self.git_org] == VALID_ORG_CONFIG
+        assert resp.data["organization"] == VALID_ORG_CONFIG
 
     def test_get_returns_404_when_integration_not_found(self):
         """Test GET endpoint returns 404 when GitHub integration doesn't exist."""
@@ -88,7 +88,7 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
         """Test PUT endpoint creates a new configuration entry."""
         resp = self.client.put(self.url, data=VALID_ORG_CONFIG, format="json")
         assert resp.status_code == 200
-        assert resp.data["organization"][self.git_org] == VALID_ORG_CONFIG
+        assert resp.data["organization"] == VALID_ORG_CONFIG
 
         config = PreventAIConfiguration.objects.get(
             organization_id=self.org.id, integration_id=self.integration.id
@@ -191,8 +191,6 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
         resp = self.client.get(self.url)
         assert resp.status_code == 200
         assert (
-            resp.data["organization"][self.git_org]["repo_overrides"]["my-repo"]["bug_prediction"][
-                "sensitivity"
-            ]
+            resp.data["organization"]["repo_overrides"]["my-repo"]["bug_prediction"]["sensitivity"]
             == "high"
         )

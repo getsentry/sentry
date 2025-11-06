@@ -1,5 +1,5 @@
 ---
-created: '2025-10-30T17:09:41.186883+00:00'
+created: '2025-11-03T21:49:32.537725+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -3976,7 +3976,7 @@ source: tests/sentry/grouping/test_grouping_info.py
     },
     "contributes": true,
     "description": "chained exception stacktraces — all frames",
-    "hash": "1959b227a7cf6acf7f3fd401b5d9f09b",
+    "hash": "db7a5bf0e72c22eb770a3be8940782c6",
     "hint": null,
     "key": "system_chained_exception_stacktrace",
     "type": "component"

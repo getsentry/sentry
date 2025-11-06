@@ -92,6 +92,8 @@ def _handle_assign(
     users_by_id = {user.id: user for user in users}
     projects_by_user = Project.objects.get_by_users(users)
 
+    logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
+
     for group in affected_groups:
         if not should_sync_assignee_inbound(group.organization, integration.provider):
             continue
@@ -99,12 +101,27 @@ def _handle_assign(
         user_id = _get_user_id(projects_by_user, group)
         user = users_by_id.get(user_id) if user_id is not None else None
         if user:
+            logger.info(
+                "sync_group_assignee_inbound._handle_assign.assigning.group",
+                extra={
+                    "group_id": group.id,
+                    "user_id": user.id,
+                },
+            )
             GroupAssignee.objects.assign(
                 group,
                 user,
                 assignment_source=AssignmentSource.from_integration(integration),
             )
             groups_assigned.append(group)
+        else:
+            logger.info(
+                "sync_group_assignee_inbound._handle_assign.user_not_found",
+                extra={
+                    "group_id": group.id,
+                    "user_id": user_id,
+                },
+            )
 
     return groups_assigned
 
@@ -128,6 +145,7 @@ def sync_group_assignee_inbound_by_external_actor(
             "external_user_name": external_user_name,
             "issue_key": external_issue_key,
             "method": AssigneeInboundSyncMethod.EXTERNAL_ACTOR.value,
+            "assign": assign,
         }
 
         if not affected_groups:
@@ -147,11 +165,16 @@ def sync_group_assignee_inbound_by_external_actor(
         user_ids = [
             external_actor for external_actor in external_actors if external_actor is not None
         ]
+        log_context["user_ids"] = user_ids
+        logger.info("sync_group_assignee_inbound_by_external_actor.user_ids", extra=log_context)
+
         users = user_service.get_many_by_id(ids=user_ids)
 
         groups_assigned = _handle_assign(affected_groups, integration, users)
 
         if len(groups_assigned) != len(affected_groups):
+            log_context["groups_assigned_count"] = len(groups_assigned)
+            log_context["affected_groups_count"] = len(affected_groups)
             lifecycle.record_halt(
                 ProjectManagementHaltReason.SYNC_INBOUND_ASSIGNEE_NOT_FOUND, extra=log_context
             )
@@ -183,6 +206,7 @@ def sync_group_assignee_inbound(
             "email": email,
             "issue_key": external_issue_key,
             "method": AssigneeInboundSyncMethod.EMAIL.value,
+            "assign": assign,
         }
         if not affected_groups:
             logger.info("no-affected-groups", extra=log_context)

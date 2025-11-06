@@ -16,6 +16,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
@@ -105,6 +106,9 @@ export default function SeerSection({
   const issueTypeDoesntHaveSeer =
     !issueTypeConfig.autofix && !issueTypeConfig.issueSummary;
 
+  const organization = useOrganization();
+  const removeConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
+
   if (
     (!aiConfig.areAiFeaturesAllowed || issueTypeDoesntHaveSeer) &&
     !aiConfig.hasResources
@@ -140,7 +144,8 @@ export default function SeerSection({
       preventCollapse={!hasStreamlinedUI}
     >
       <SeerSectionContainer>
-        {(aiConfig.orgNeedsGenAiAcknowledgement || !aiConfig.hasAutofixQuota) &&
+        {(aiConfig.orgNeedsGenAiAcknowledgement ||
+          (!removeConsentFlow && !aiConfig.hasAutofixQuota)) &&
         !aiConfig.isAutofixSetupLoading ? (
           <SeerWelcomeEntrypoint />
         ) : aiConfig.hasAutofix || aiConfig.hasSummary ? (

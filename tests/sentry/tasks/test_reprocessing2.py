@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 
-from sentry.attachments import attachment_cache
+from sentry.attachments import get_attachments_for_event
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager
 from sentry.grouping.enhancer import EnhancementsConfig
@@ -29,7 +29,6 @@ from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.utils.cache import cache_key_for_event
 
 pytestmark = [requires_snuba]
 
@@ -384,8 +383,7 @@ def test_attachments_and_userfeedback(
         extra.setdefault("processing_counter", 0)
         extra["processing_counter"] += 1
 
-        cache_key = cache_key_for_event(data)
-        attachments = attachment_cache.get(cache_key)
+        attachments = get_attachments_for_event(data)
         extra.setdefault("attachments", []).append([attachment.type for attachment in attachments])
 
         return data
