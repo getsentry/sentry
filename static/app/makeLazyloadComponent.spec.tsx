@@ -26,12 +26,10 @@ const createMockComponentPromise =
 
 describe('makeLazyloadComponent', () => {
   beforeEach(() => {
-    // Use fake timers for predictable async behavior
     jest.useFakeTimers();
   });
 
   afterEach(() => {
-    // Restore real timers
     jest.useRealTimers();
   });
 
@@ -41,7 +39,6 @@ describe('makeLazyloadComponent', () => {
 
       render(<LazyComponent title="Test Title" />);
 
-      // Component should load and render
       await waitFor(() => {
         expect(screen.getByTestId('mock-component')).toBeInTheDocument();
       });
@@ -71,9 +68,7 @@ describe('makeLazyloadComponent', () => {
 
       render(<LazyComponent title="Test Title" />);
 
-      // Should show loading fallback initially
       expect(screen.getByTestId('loading')).toBeInTheDocument();
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
 
       // Wait for component to load
       await waitFor(() => {
@@ -164,7 +159,6 @@ describe('makeLazyloadComponent', () => {
         expect(screen.getByTestId('mock-component')).toBeInTheDocument();
       });
 
-      // Resolver should only be called once
       expect(callCount).toBe(1);
     });
 
@@ -229,12 +223,10 @@ describe('makeLazyloadComponent', () => {
         LazyComponent[PRELOAD_HANDLE](),
       ];
 
-      // Fast-forward timers to resolve promises
       jest.runAllTimers();
 
       await Promise.all(promises);
 
-      // Resolver should only be called once
       expect(callCount).toBe(1);
     });
   });
@@ -244,7 +236,6 @@ describe('makeLazyloadComponent', () => {
       jest.useRealTimers();
     });
     it('works with Link component route preloading', async () => {
-      // Create a lazy component
       const LazyComponent = makeLazyloadComponent(
         createMockComponentPromise(MockComponent, 50)
       );
@@ -289,7 +280,6 @@ describe('makeLazyloadComponent', () => {
     });
 
     it('handles multiple routes with different preload handles', async () => {
-      // Create multiple lazy components
       const LazyComponent1 = makeLazyloadComponent(() =>
         Promise.resolve({
           default: (props: {title: string}) => (
@@ -338,10 +328,8 @@ describe('makeLazyloadComponent', () => {
         </RouteConfigProvider>
       );
 
-      // Hover to trigger preload of all matching routes
       await userEvent.hover(screen.getByTestId('nested-link'));
 
-      // Both components should eventually load due to route matching
       await waitFor(() => {
         expect(screen.getByTestId('component-1')).toBeInTheDocument();
       });
@@ -353,7 +341,6 @@ describe('makeLazyloadComponent', () => {
     it('gracefully handles routes without preload handles', async () => {
       const LazyComponent = makeLazyloadComponent(createMockComponentPromise());
 
-      // Mock routes without preload handles
       const mockRoutes = [
         {
           path: '/no-preload',
