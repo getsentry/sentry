@@ -1662,7 +1662,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
     # Check if automation has already been queued or completed for this group
     # seer_autofix_last_triggered is set when trigger_autofix is successfully started.
-    # Use cache with short TTL to hold lock for a short while since seer_autofix_last_triggered will be set within minutes
+    # Use cache with short TTL to hold lock for a short since it takes a few minutes to set seer_autofix_last_triggeredes
     cache_key = f"seer_automation_queued:{group.id}"
     if cache.get(cache_key) or group.seer_autofix_last_triggered is not None:
         return
