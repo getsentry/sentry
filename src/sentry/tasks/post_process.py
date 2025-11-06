@@ -1306,7 +1306,7 @@ def process_data_forwarding(job: PostProcessJob) -> None:
 
     event = job["event"]
 
-    if not features.has("organizations:data-forwarding-v2", event.project.organization):
+    if not features.has("organizations:data-forwarding-revamp-access", event.project.organization):
         return
 
     from sentry.integrations.data_forwarding import FORWARDER_REGISTRY

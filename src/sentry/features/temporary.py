@@ -126,8 +126,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Note: organizations:data-forwarding is a permanent, plan-based flag that enables access to the actual feature.
     #       This flag will only be used to access the new UI/UX and endpoints before release.
     manager.add("organizations:data-forwarding-revamp-access", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable v2 of data forwarding implementation in post process
-    manager.add("organizations:data-forwarding-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables synthesis of device.class in ingest
     manager.add("organizations:device-class-synthesis", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable device.class as a selectable column
