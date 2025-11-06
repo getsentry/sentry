@@ -8,8 +8,8 @@ import {
 } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 
-import type {SentryRouteObject} from 'sentry/components/route';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import type {SentryRouteObject} from 'sentry/router/types';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
