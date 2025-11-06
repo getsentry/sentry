@@ -1,4 +1,4 @@
-import type {LocationDescriptor, LocationState} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import type {TooltipProps} from 'sentry/components/core/tooltip';
 
@@ -111,11 +111,6 @@ interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
    * Determines if the link should replace the current history entry.
    */
   replace?: boolean;
-
-  /**
-   * The state to pass to the link.
-   */
-  state?: LocationState | undefined;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention

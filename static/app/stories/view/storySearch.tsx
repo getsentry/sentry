@@ -220,14 +220,11 @@ function SearchComboBox(props: SearchComboBoxProps) {
     if (!node) {
       return;
     }
-    const {state, ...to} = node.location;
-    navigate(
-      {
-        ...to,
-        pathname: normalizeUrl(`/organizations/${organization.slug}${to.pathname}`),
-      },
-      {replace: true, state}
-    );
+    navigate({
+      pathname: normalizeUrl(
+        `/organizations/${organization.slug}/stories/${node.category}/${node.slug}`
+      ),
+    });
   };
 
   const state = useComboBoxState({

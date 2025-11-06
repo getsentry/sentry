@@ -1,14 +1,12 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import type {LocationDescriptorObject} from 'history';
-import kebabCase from 'lodash/kebabCase';
 
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {IconChevron} from 'sentry/icons';
+import {useStoryParams} from 'sentry/stories/view';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export class StoryTreeNode {
@@ -17,7 +15,7 @@ export class StoryTreeNode {
   public path: string;
   public filesystemPath: string;
   public category: StoryCategory;
-  public location: LocationDescriptorObject;
+  public slug: string | undefined = undefined;
 
   public visible = true;
   public expanded = false;
@@ -27,22 +25,19 @@ export class StoryTreeNode {
 
   constructor(name: string, path: string, filesystemPath: string) {
     this.name = name;
-    this.label = normalizeFilename(name);
     this.path = path;
     this.filesystemPath = filesystemPath;
+    this.label = normalizeFilename(name);
     this.category = inferFileCategory(filesystemPath);
-    this.location = this.getLocation();
-  }
 
-  private getLocation(): LocationDescriptorObject {
-    const state = {storyPath: this.filesystemPath};
     if (this.category === 'shared') {
-      return {pathname: '/stories/', query: {name: this.filesystemPath}, state};
+      const [_app, ...segments] = this.filesystemPath.split('/');
+      // Remove the filename from the path
+      segments.pop()!;
+      this.slug = `${segments.map(segment => segment.toLowerCase()).join('/')}/${this.label.replaceAll(' ', '-').toLowerCase()}`;
+    } else {
+      this.slug = `${this.label.replaceAll(' ', '-').toLowerCase()}`;
     }
-    return {
-      pathname: `/stories/${this.category}/${kebabCase(this.label)}`,
-      state,
-    };
   }
 
   find(predicate: (node: StoryTreeNode) => boolean): StoryTreeNode | undefined {
@@ -287,11 +282,11 @@ export function useStoryTree(
   options: {
     query: string;
     representation: 'filesystem' | 'category';
-    type?: 'flat' | 'nested';
+    type: 'flat' | 'nested';
   }
 ) {
-  const location = useLocation();
-  const initialName = useRef(location.state?.storyPath ?? location.query.name);
+  const {storySlug} = useStoryParams();
+  const initialSlug = useRef(storySlug ?? null);
 
   const tree = useMemo(() => {
     const root = new StoryTreeNode('root', '', '');
@@ -380,9 +375,9 @@ export function useStoryTree(
     }
 
     // If the user navigates to a story, expand to its location in the tree
-    if (initialName.current) {
+    if (initialSlug.current) {
       for (const {node, path} of root) {
-        if (node.filesystemPath === initialName.current) {
+        if (node.slug === initialSlug.current) {
           for (const p of path) {
             p.expanded = true;
           }
@@ -399,8 +394,8 @@ export function useStoryTree(
     const root = tree.find(node => node.name === 'app') ?? tree;
 
     if (!options.query) {
-      if (initialName.current) {
-        initialName.current = null;
+      if (initialSlug.current) {
+        initialSlug.current = null;
       }
 
       // If there is no initial query and no story is selected, the sidebar
@@ -519,13 +514,11 @@ export function StoryTree({nodes, ...htmlProps}: Props) {
 
 function Folder(props: {node: StoryTreeNode}) {
   const [expanded, setExpanded] = useState(props.node.expanded);
-  const location = useLocation();
+  const {storySlug} = useStoryParams();
+
   const hasActiveChild = useMemo(() => {
-    const child = props.node.find(
-      n => n.filesystemPath === (location.state?.storyPath ?? location.query.name)
-    );
-    return !!child;
-  }, [location, props.node]);
+    return !!props.node.find(n => n.slug === storySlug);
+  }, [storySlug, props.node]);
 
   if (hasActiveChild && !props.node.expanded) {
     props.node.expanded = true;
@@ -563,9 +556,9 @@ function Folder(props: {node: StoryTreeNode}) {
               return null;
             }
             return Object.keys(child.children).length === 0 ? (
-              <File key={child.path} node={child} />
+              <File key={child.slug} node={child} />
             ) : (
-              <Folder key={child.path} node={child} />
+              <Folder key={child.slug} node={child} />
             );
           })}
         </StoryList>
@@ -575,20 +568,18 @@ function Folder(props: {node: StoryTreeNode}) {
 }
 
 function File(props: {node: StoryTreeNode}) {
-  const location = useLocation();
   const organization = useOrganization();
-  const {state, ...to} = props.node.location;
-  const active =
-    props.node.filesystemPath === (location.state?.storyPath ?? location.query.name);
+  const {storySlug} = useStoryParams();
+  const active = storySlug === props.node.slug;
 
   return (
     <li>
       <FolderLink
         to={{
-          ...to,
-          pathname: normalizeUrl(`/organizations/${organization.slug}${to.pathname}`),
+          pathname: normalizeUrl(
+            `/organizations/${organization.slug}/stories/${props.node.category}/${props.node.slug}`
+          ),
         }}
-        state={state}
         aria-current={active ? 'page' : undefined}
         active={active}
       >

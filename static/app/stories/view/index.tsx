@@ -4,8 +4,11 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {StorySidebar} from 'sentry/stories/view/storySidebar';
-import {useStoryRedirect} from 'sentry/stories/view/useStoryRedirect';
+import {
+  StorySidebar,
+  useStoryBookFilesByCategory,
+} from 'sentry/stories/view/storySidebar';
+import {StoryTreeNode, type StoryCategory} from 'sentry/stories/view/storyTree';
 import {useLocation} from 'sentry/utils/useLocation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
@@ -16,13 +19,23 @@ import {StoryHeader} from './storyHeader';
 import {useStoryDarkModeTheme} from './useStoriesDarkMode';
 import {useStoriesLoader} from './useStoriesLoader';
 
-export default function Stories() {
+export function useStoryParams(): {storyCategory?: StoryCategory; storySlug?: string} {
   const location = useLocation();
-  return isLandingPage(location) ? <StoriesLanding /> : <StoryDetail />;
+  // Match: /stories/:category/(one/optional/or/more/path/segments)
+  const match = location.pathname.match(/^\/stories\/([^/]+)\/(.+)/);
+  return {
+    storyCategory: match?.[1] as StoryCategory | undefined,
+    storySlug: match?.[2] ?? undefined,
+  };
 }
 
-function isLandingPage(location: ReturnType<typeof useLocation>) {
-  return /\/stories\/?$/.test(location.pathname) && !location.query.name;
+export default function Stories() {
+  const location = useLocation();
+  return isLandingPage(location) && !location.query.name ? (
+    <StoriesLanding />
+  ) : (
+    <StoryDetail />
+  );
 }
 
 function StoriesLanding() {
@@ -36,13 +49,37 @@ function StoriesLanding() {
 }
 
 function StoryDetail() {
-  useStoryRedirect();
+  const location = useLocation();
+  const {storyCategory, storySlug} = useStoryParams();
+  const stories = useStoryBookFilesByCategory();
 
-  const location = useLocation<{name: string; query?: string}>();
+  let storyNode = getStoryFromParams(stories, {
+    category: storyCategory,
+    slug: storySlug,
+  });
 
-  const file = location.state?.storyPath ?? location.query.name;
+  // If we don't have a story node, try to find it by the filesystem path
+  if (!storyNode && location.query.name) {
+    const nodes = Object.values(stories).flat();
+    const queue = [...nodes];
+
+    while (queue.length > 0) {
+      const node = queue.pop();
+      if (!node) break;
+
+      if (node.filesystemPath === location.query.name) {
+        storyNode = node;
+        break;
+      }
+
+      for (const key in node.children) {
+        queue.push(node.children[key]!);
+      }
+    }
+  }
+
   const story = useStoriesLoader({
-    files: file ? [file] : [],
+    files: storyNode ? [storyNode.filesystemPath] : [],
   });
 
   return (
@@ -91,6 +128,38 @@ function StoriesLayout(props: PropsWithChildren) {
       </RouteAnalyticsContextProvider>
     </Fragment>
   );
+}
+
+function isLandingPage(location: ReturnType<typeof useLocation>) {
+  return /^\/stories\/?$/.test(location.pathname);
+}
+
+function getStoryFromParams(
+  stories: ReturnType<typeof useStoryBookFilesByCategory>,
+  context: {category?: StoryCategory; slug?: string}
+): StoryTreeNode | undefined {
+  const nodes = stories[context.category as keyof typeof stories] ?? [];
+
+  if (!nodes || nodes.length === 0) {
+    return undefined;
+  }
+
+  const queue = [...nodes];
+
+  while (queue.length > 0) {
+    const node = queue.pop();
+    if (!node) break;
+
+    if (node.slug === context.slug) {
+      return node;
+    }
+
+    for (const key in node.children) {
+      queue.push(node.children[key]!);
+    }
+  }
+
+  return undefined;
 }
 
 function GlobalStoryStyles() {

@@ -18,20 +18,15 @@ export function StoryFooter() {
   const pagination = findPreviousAndNextStory(story, stories);
   const organization = useOrganization();
 
-  const {state: prevState, ...prevTo} = pagination?.prev?.location ?? {};
-  const {state: nextState, ...nextTo} = pagination?.next?.location ?? {};
-
   return (
     <Flex align="center" justify="between" gap="xl">
       {pagination?.prev && (
         <Card
           to={{
-            ...prevTo,
             pathname: normalizeUrl(
-              `/organizations/${organization.slug}${pagination.prev.location.pathname}`
+              `/organizations/${organization.slug}/stories/${pagination.prev.category}/${pagination.prev.slug}`
             ),
           }}
-          state={prevState}
           icon={<IconArrow direction="left" />}
         >
           <Text variant="muted" as="div">
@@ -46,12 +41,10 @@ export function StoryFooter() {
         <Card
           data-flip
           to={{
-            ...nextTo,
             pathname: normalizeUrl(
-              `/organizations/${organization.slug}${nextTo.pathname}`
+              `/organizations/${organization.slug}/stories/${pagination.next.category}/${pagination.next.slug}`
             ),
           }}
-          state={nextState}
           icon={<IconArrow direction="right" />}
         >
           <Text variant="muted" as="div" align="right">
@@ -74,16 +67,25 @@ function findPreviousAndNextStory(
   prev?: StoryTreeNode;
 } | null {
   const stories = Object.values(categories).flat();
-  const currentIndex = stories.findIndex(s => s.filesystemPath === story.filename);
+  const queue = [...stories];
 
-  if (currentIndex === -1) {
-    return null;
+  while (queue.length > 0) {
+    const node = queue.pop();
+    if (!node) break;
+
+    if (node.filesystemPath === story.filename) {
+      return {
+        prev: queue[queue.length - 1] ?? undefined,
+        next: queue[queue.length + 1] ?? undefined,
+      };
+    }
+
+    for (const key in node.children) {
+      queue.push(node.children[key]!);
+    }
   }
 
-  return {
-    prev: stories[currentIndex - 1] ?? undefined,
-    next: stories[currentIndex + 1] ?? undefined,
-  };
+  return null;
 }
 
 const Card = styled(LinkButton)`
