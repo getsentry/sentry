@@ -7,16 +7,15 @@ import responses
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.msteams.integration import MsTeamsIntegration, MsTeamsIntegrationProvider
-from sentry.integrations.types import EventLifecycleOutcome
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
-from sentry.shared_integrations.exceptions import ApiError
-from sentry.testutils.asserts import assert_count_of_metric
+from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.utils import json
 from sentry.utils.signing import sign
 
 team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
@@ -144,11 +143,8 @@ class MsTeamsIntegrationSendNotificationTest(TestCase):
             organization_id=self.organization.id,
         )
 
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.msteams.client.MsTeamsClient.send_card")
-    def test_send_notification_success(
-        self, mock_send_card: MagicMock, mock_record: MagicMock
-    ) -> None:
+    def test_send_notification_success(self, mock_send_card: MagicMock) -> None:
         from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 
         payload: AdaptiveCard = {
@@ -161,16 +157,24 @@ class MsTeamsIntegrationSendNotificationTest(TestCase):
         self.installation.send_notification(target=self.target, payload=payload)
 
         mock_send_card.assert_called_once_with(conversation_id="conversation123", card=payload)
-        assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 1)
 
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.msteams.client.MsTeamsClient.send_card")
-    def test_send_notification_api_error(
-        self, mock_send_card: MagicMock, mock_record: MagicMock
-    ) -> None:
+    def test_send_notification_api_error(self, mock_send_card: MagicMock) -> None:
         from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 
-        mock_send_card.side_effect = ApiError("MS Teams API error", code=400)
+        error_payload = json.dumps(
+            {
+                "error": {
+                    "code": "ConversationBlockedByUser",
+                    "message": "User blocked the conversation with the bot.",
+                },
+            }
+        )
+
+        mock_send_card.side_effect = ApiError(
+            text=error_payload,
+            code=400,
+        )
         payload: AdaptiveCard = {
             "type": "AdaptiveCard",
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -178,7 +182,7 @@ class MsTeamsIntegrationSendNotificationTest(TestCase):
             "body": [],
         }
 
-        with pytest.raises(ApiError):
+        with pytest.raises(IntegrationConfigurationError) as e:
             self.installation.send_notification(target=self.target, payload=payload)
 
-        assert_count_of_metric(mock_record, EventLifecycleOutcome.FAILURE, 1)
+        assert str(e.value) == error_payload

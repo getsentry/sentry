@@ -32,7 +32,7 @@ def translate_msteams_api_error(error: ApiError) -> None:
         raise IntegrationConfigurationError(error.text) from error
     elif error.json:
         if error.json.get("error", {}).get("code") in MSTEAMS_HALT_ERROR_CODES:
-            raise IntegrationConfigurationError(error) from error
+            raise IntegrationConfigurationError(error.text) from error
         else:
             raise IntegrationError(error.text) from error
     else:
