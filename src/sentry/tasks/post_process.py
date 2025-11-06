@@ -16,7 +16,6 @@ from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features, options, projectoptions
 from sentry.exceptions import PluginError
-from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -1305,9 +1304,14 @@ def process_data_forwarding(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
+    from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
     from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 
     event = job["event"]
+
+    if not features.has("organizations:data-forwarding", event.project.organization):
+        return
+
     data_forwarder_projects = DataForwarderProject.objects.filter(
         project_id=event.project_id,
         is_enabled=True,
