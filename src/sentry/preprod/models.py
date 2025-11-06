@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from enum import IntEnum
 
+import sentry_sdk
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -187,6 +188,13 @@ class PreprodArtifact(DefaultFieldsModel):
                     "head_sha": self.commit_comparison.head_sha,
                     "organization_id": self.project.organization_id,
                     "base_commit_comparisons": base_commit_comparisons,
+                },
+            )
+            sentry_sdk.capture_message(
+                "Multiple base commitcomparisons found",
+                level="error",
+                extras={
+                    "sha": self.commit_comparison.head_sha,
                 },
             )
             # Take first (oldest) commit comparison
