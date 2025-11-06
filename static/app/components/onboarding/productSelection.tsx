@@ -560,7 +560,7 @@ export function ProductSelection({
         <Product
           label={t('Metrics')}
           description={t(
-            'Structured application metrics for debugging and troubleshooting. Automatically gets associated with errors and traces.'
+            'Custom metrics for tracking application performance and usage, automatically trace-connected.'
           )}
           docLink="https://docs.sentry.io/product/explore/metrics/"
           onClick={() => handleClickProduct(ProductSolution.METRICS)}
