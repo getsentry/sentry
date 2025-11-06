@@ -1,7 +1,6 @@
 import logging
 
 import sentry_sdk
-from django.db import IntegrityError
 from django.db.models.signals import post_save
 
 from sentry import features
@@ -18,7 +17,7 @@ def create_project_detectors(instance, created, **kwargs):
                 "organizations:workflow-engine-issue-alert-dual-write", instance.organization
             ):
                 ensure_default_detectors(instance)
-        except IntegrityError as e:
+        except Exception as e:
             sentry_sdk.capture_exception(e)
 
 
