@@ -21,6 +21,7 @@ import {
 import {UptimeChecksTable} from 'sentry/views/alerts/rules/uptime/uptimeChecksTable';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
+import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
@@ -124,6 +125,7 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
             </Section>
           </Grid>
           <DetectorDetailsAssignee owner={detector.owner} />
+          <DetectorDetailsDescription description={detector.description} />
           <DetectorExtraDetails>
             <KeyValueTableRow
               keyName={t('Interval')}
