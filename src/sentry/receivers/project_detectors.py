@@ -5,7 +5,10 @@ from django.db.models.signals import post_save
 
 from sentry import features
 from sentry.models.project import Project
-from sentry.workflow_engine.processors.detector import ensure_default_detectors
+from sentry.workflow_engine.processors.detector import (
+    UnableToAcquireLockApiError,
+    ensure_default_detectors,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +20,7 @@ def create_project_detectors(instance, created, **kwargs):
                 "organizations:workflow-engine-issue-alert-dual-write", instance.organization
             ):
                 ensure_default_detectors(instance)
-        except Exception as e:
+        except UnableToAcquireLockApiError as e:
             sentry_sdk.capture_exception(e)
 
 
