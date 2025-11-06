@@ -9,7 +9,7 @@ import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {SENTRY_RELEASE_VERSION, USE_REACT_QUERY_DEVTOOL} from 'sentry/constants';
-import {routes} from 'sentry/routes';
+import {routes} from 'sentry/router/routes';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 
 function buildRouter() {
