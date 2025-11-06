@@ -1,8 +1,8 @@
 import orjson
 import responses
 
-from data_forwarding.segment.forwarder import SegmentForwarder
 from sentry import VERSION
+from sentry.integrations.data_forwarding.segment.forwarder import SegmentForwarder
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
