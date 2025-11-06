@@ -104,7 +104,7 @@ PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS = {
             search_type="integer",
         ),
         ResolvedAttribute(
-            public_alias="thread_id",
+            public_alias="thread.id",
             internal_name="thread_id",
             search_type="string",
         ),
