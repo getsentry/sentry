@@ -1427,7 +1427,7 @@ class RpcGetReplaySummaryLogsTestCase(
             id=feedback_event_id,
             title="User Feedback",
             message=feedback_data["contexts"]["feedback"]["message"],
-            timestamp=float(feedback_data["timestamp"]) * 1000,
+            timestamp=float(feedback_data["timestamp"]),
             category="feedback",
         )
 
