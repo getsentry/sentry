@@ -8,7 +8,7 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, type FlexProps} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   makeAutofixQueryKey,
@@ -551,11 +551,9 @@ const ProjectScoreEmptyLoadingElement = styled('div')`
   height: 160px;
 `;
 
-const Content = styled(Flex)`
-  gap: ${p => p.theme.space.xs};
-  position: relative;
-  margin: ${p => p.theme.space.md} 0;
-`;
+function Content(props: FlexProps) {
+  return <Flex gap="xs" position="relative" margin="md 0" {...props} />;
+}
 
 const SeerSuggestionGrid = styled('div')`
   min-height: 40px;

@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Link} from 'sentry/components/core/link';
@@ -55,34 +57,27 @@ export default function SentryApplicationRow({
           </SentryAppDetails>
         </SentryAppBox>
 
-        <Box>
+        <div>
           <SentryApplicationRowButtons
             organization={organization}
             app={app}
             onClickRemove={onRemoveApp}
             onClickPublish={handlePublish}
           />
-        </Box>
+        </div>
       </StyledFlex>
     </SentryAppItem>
   );
 }
-
-const Flex = styled('div')`
-  display: flex;
-`;
-
-const Box = styled('div')``;
 
 const SentryAppItem = styled(PanelItem)`
   flex-direction: column;
   padding: 5px;
 `;
 
-const StyledFlex = styled(Flex)`
-  justify-content: center;
-  padding: 10px;
-`;
+function StyledFlex(props: FlexProps) {
+  return <Flex justify="center" padding="md" {...props} />;
+}
 
 const SentryAppBox = styled('div')`
   padding-left: 15px;
@@ -100,16 +95,12 @@ const SentryAppName = styled('div')<{hideStatus: boolean}>`
   margin-top: ${p => (p.hideStatus ? '10px' : '0px')};
 `;
 
-const CenterFlex = styled(Flex)`
-  align-items: center;
-`;
-
 type PublishStatusProps = {status: SentryApp['status']; theme?: any};
 
 const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
-  <CenterFlex>
+  <Flex align="center">
     <div {...props}>{status}</div>
-  </CenterFlex>
+  </Flex>
 ))`
   color: ${(props: PublishStatusProps) =>
     props.status === 'published' ? props.theme.success : props.theme.gray300};

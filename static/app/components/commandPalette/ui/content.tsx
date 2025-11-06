@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useLayoutEffect, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 import {Item, Section} from '@react-stately/collections';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -10,6 +10,7 @@ import {COMMAND_PALETTE_GROUP_KEY_CONFIG} from 'sentry/components/commandPalette
 import {CommandPaletteList} from 'sentry/components/commandPalette/ui/list';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/useCommandPaletteState';
 import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
+import type {Theme} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -21,23 +22,31 @@ type CommandPaletteActionMenuItem = MenuListItemProps & {
 };
 
 function actionToMenuItem(
-  action: CommandPaletteActionWithKey
+  action: CommandPaletteActionWithKey,
+  theme: Theme
 ): CommandPaletteActionMenuItem {
   return {
     key: action.key,
     label: action.display.label,
     details: action.display.details,
     leadingItems: action.display.icon ? (
-      <IconWrap align="center" justify="center">
+      <Flex
+        align="center"
+        justify="center"
+        width={theme.iconSizes.md}
+        height={theme.iconSizes.md}
+      >
         {action.display.icon}
-      </IconWrap>
+      </Flex>
     ) : undefined,
-    children: action.type === 'group' ? action.actions.map(actionToMenuItem) : [],
+    children:
+      action.type === 'group' ? action.actions.map(a => actionToMenuItem(a, theme)) : [],
     hideCheck: true,
   };
 }
 
 export function CommandPaletteContent() {
+  const theme = useTheme();
   const {actions, selectedAction, selectAction, clearSelection, query, setQuery} =
     useCommandPaletteState();
   const navigate = useNavigate();
@@ -50,7 +59,7 @@ export function CommandPaletteContent() {
         ? (COMMAND_PALETTE_GROUP_KEY_CONFIG[action.groupingKey]?.label ?? '')
         : '';
       const list = itemsBySection.get(sectionLabel) ?? [];
-      list.push(actionToMenuItem(action));
+      list.push(actionToMenuItem(action, theme));
       itemsBySection.set(sectionLabel, list);
     }
 
@@ -64,7 +73,7 @@ export function CommandPaletteContent() {
         };
       })
       .filter(section => section.children.length > 0);
-  }, [actions]);
+  }, [actions, theme]);
 
   const handleSelect = useCallback(
     (action: CommandPaletteActionWithKey) => {
@@ -132,8 +141,3 @@ export function CommandPaletteContent() {
     </Fragment>
   );
 }
-
-const IconWrap = styled(Flex)`
-  width: ${p => p.theme.iconSizes.md};
-  height: ${p => p.theme.iconSizes.md};
-`;

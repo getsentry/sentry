@@ -98,7 +98,7 @@ export function AppSizeInsightsSidebar({
         ariaLabel={t('App size insights details')}
       >
         <Flex height="100%" direction="column">
-          <Header padding="xl" align="center" justify="between">
+          <Flex padding="xl" align="center" justify="between" borderBottom="primary">
             <Flex align="center" gap="sm">
               <Heading as="h2" size="xl">
                 {t('Insights')}
@@ -116,7 +116,7 @@ export function AppSizeInsightsSidebar({
               aria-label={t('Close sidebar')}
               onClick={onClose}
             />
-          </Header>
+          </Flex>
 
           <Flex flex={1} position="relative" overflow="hidden">
             <ResizeHandle
@@ -162,10 +162,6 @@ const Backdrop = styled(motion.div)`
   background: rgba(0, 0, 0, 0.5);
   z-index: 9999;
   pointer-events: auto;
-`;
-
-const Header = styled(Flex)`
-  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const ResizeHandle = styled(Flex)`

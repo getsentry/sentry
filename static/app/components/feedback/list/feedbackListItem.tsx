@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, type FlexProps} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';
@@ -202,9 +202,9 @@ const LinkedFeedbackCard = styled(Link)`
   align-items: center;
 `;
 
-const Row = styled(Flex)`
-  place-items: center;
-`;
+function Row(props: FlexProps) {
+  return <Flex place-items="center" {...props} />;
+}
 
 const BottomGrid = styled('div')`
   display: grid;

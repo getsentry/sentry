@@ -1,8 +1,9 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -264,10 +265,15 @@ const SortableThreadSelectorGridCell = styled(ThreadSelectorGridCell)`
   }
 `;
 
-const HeaderText = styled(Flex)`
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: ${space(0.5)};
-  padding: 0 ${space(0.5)};
-`;
+function HeaderText(props: FlexProps) {
+  return (
+    <Flex
+      gap="xs"
+      display="flex"
+      align="center"
+      justify="start"
+      padding="0 xs"
+      {...props}
+    />
+  );
+}

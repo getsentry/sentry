@@ -192,7 +192,7 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
             openInNewTab
           />
         </Section>
-        <ButtonWrapper justify="between">
+        <ButtonWrapper justify="between" borderTop="primary" padding="lg">
           <LinkButton
             size="sm"
             icon={<IconAdd />}

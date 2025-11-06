@@ -7,15 +7,18 @@ import {Container, type ContainerElement, type ContainerProps} from './container
 import {getSpacing, rc, type Responsive, type SpacingSize} from './styles';
 
 const omitFlexProps = new Set<keyof FlexLayoutProps | 'as'>([
+  'align',
   'as',
   'direction',
+  'display',
   'flex',
   'gap',
-  'display',
-  'align',
   'justify',
+  'placeItems',
   'wrap',
 ]);
+
+type PlaceItems = 'start' | 'end' | 'center' | 'baseline' | 'stretch';
 
 interface FlexLayoutProps {
   /**
@@ -39,6 +42,7 @@ interface FlexLayoutProps {
    * Specifies the spacing between flex items.
    */
   gap?: Responsive<SpacingSize | `${SpacingSize} ${SpacingSize}`>;
+
   /**
    * Aligns flex items along the block axis of the current line of flex items.
    * Uses CSS justify-content property.
@@ -46,6 +50,11 @@ interface FlexLayoutProps {
   justify?: Responsive<
     'start' | 'end' | 'center' | 'between' | 'around' | 'evenly' | 'left' | 'right'
   >;
+  /**
+   * Shorthand property for align-items and justify-items.
+   *
+   */
+  placeItems?: Responsive<PlaceItems | `${PlaceItems} ${PlaceItems}`>;
   /**
    * Specifies the wrapping behavior of the flex items.
    */
@@ -70,6 +79,7 @@ export const Flex = styled(Container, {
   ${p => rc('flex-direction', p.direction, p.theme)};
   ${p => rc('flex-wrap', p.wrap, p.theme)};
   ${p => rc('flex', p.flex, p.theme)};
+  ${p => rc('place-items', p.placeItems, p.theme)};
   ${p =>
     rc('justify-content', p.justify, p.theme, (value, _breakpoint, _theme) => {
       switch (value) {

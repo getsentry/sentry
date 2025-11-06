@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack, type FlexProps} from 'sentry/components/core/layout';
 import {Select} from 'sentry/components/core/select';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
@@ -234,16 +234,13 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
   );
 }
 
-const Step = styled(Flex)`
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
-`;
+function Step(props: FlexProps) {
+  return <Stack gap="sm" {...props} />;
+}
 
-const StepLead = styled(Flex)`
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  margin-bottom: ${p => p.theme.space.xs};
-`;
+function StepLead(props: FlexProps) {
+  return <Flex align="center" gap="xs" marginBottom="xs" {...props} />;
+}
 
 const EmbeddedSelectField = styled(Select)`
   padding: 0;

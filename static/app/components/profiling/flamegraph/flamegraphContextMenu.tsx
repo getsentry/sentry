@@ -642,10 +642,10 @@ function ProfileIdsSubMenu(props: {
           setIsOpen(true);
         }}
       >
-        <FullWidthFlex justify="between" align="center">
+        <Flex justify="between" align="center" width="100%">
           <div>{t('Appears in %s profiles', props.profileIds.length)}</div>
           <IconChevron direction="right" size="xs" />
-        </FullWidthFlex>
+        </Flex>
       </ProfilingContextMenuItemButton>
       {isOpen &&
         props.subMenuPortalRef &&
@@ -712,7 +712,3 @@ function ProfileIdsSubMenu(props: {
     </Fragment>
   );
 }
-
-const FullWidthFlex = styled(Flex)`
-  width: 100%;
-`;

@@ -73,12 +73,6 @@ function BuildButton({buildDetails, icon, label, onRemove}: BuildButtonProps) {
 }
 
 const ComparisonContainer = styled(Flex)`
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: ${p => p.theme.space.lg};
-  width: 100%;
-
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
     gap: ${p => p.theme.space.md};
@@ -107,7 +101,13 @@ export function SizeCompareSelectedBuilds({
   onTriggerComparison,
 }: SizeCompareSelectedBuildsProps) {
   return (
-    <ComparisonContainer>
+    <ComparisonContainer
+      wrap="wrap"
+      align="center"
+      justify="center"
+      gap="lg"
+      width="100%"
+    >
       <BuildButton
         buildDetails={headBuildDetails}
         icon={<IconLock size="xs" locked />}

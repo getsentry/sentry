@@ -6,7 +6,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex, type FlexProps} from 'sentry/components/core/layout/flex';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
@@ -588,11 +588,9 @@ const DetailsLink = styled(Link)`
   line-height: 0;
 `;
 
-const DropdownContainer = styled(Flex)`
-  position: relative;
-  flex-direction: column;
-  justify-content: center;
-`;
+function DropdownContainer(props: FlexProps) {
+  return <Flex position="relative" direction="column" justify="center" {...props} />;
+}
 
 const TabularNumber = styled('div')`
   font-variant-numeric: tabular-nums;
