@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:18:51.148957+00:00'
+created: '2025-11-03T21:48:46.509651+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,6 +10,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "FailedToFetchError"
+        value*
+          "FailedToFetchError: Charlie didn't bring the ball back!"
         stacktrace (ignored because it contains no contributing frames)
           frame (marked out of app by stack trace rule (function:runApp -app))
             filename*
@@ -32,18 +36,18 @@ app:
               "recordMetrics"
             context_line*
               "return withMetrics(handler, metricName, tags);"
-        type*
-          "FailedToFetchError"
-        value*
-          "FailedToFetchError: Charlie didn't bring the ball back!"
 --------------------------------------------------------------------------
 system:
-  hash: "fe92cff6711f8a0a30cabb8b9245b1d6"
+  hash: "9b3e1c08a50257c5ad760f1f3205a48b"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "FailedToFetchError"
+        value (ignored because stacktrace takes precedence)
+          "FailedToFetchError: Charlie didn't bring the ball back!"
         stacktrace*
           frame (ignored by stack trace rule (function:runApp -group))
             filename*
@@ -66,7 +70,3 @@ system:
               "recordMetrics"
             context_line*
               "return withMetrics(handler, metricName, tags);"
-        type*
-          "FailedToFetchError"
-        value (ignored because stacktrace takes precedence)
-          "FailedToFetchError: Charlie didn't bring the ball back!"
