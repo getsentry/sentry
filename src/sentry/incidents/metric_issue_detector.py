@@ -158,7 +158,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         if "condition_group" in attrs:
             conditions = attrs.get("condition_group", {}).get("conditions")
-            if len(conditions) > 2:
+            if len(conditions) > 3:
                 raise serializers.ValidationError("Too many conditions")
 
         return attrs
