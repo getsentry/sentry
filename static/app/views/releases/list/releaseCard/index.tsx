@@ -8,6 +8,7 @@ import moment from 'moment-timezone';
 import Collapsible from 'sentry/components/collapsible';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -128,9 +129,9 @@ function ReleaseCard({
               query: {project: getReleaseProjectId(release, selection)},
             }}
           >
-            <VersionWrapper>
+            <Flex align="center">
               <StyledVersion version={version} tooltipRawVersion anchor={false} />
-            </VersionWrapper>
+            </Flex>
           </GlobalSelectionLink>
           {commitCount > 0 && (
             <ReleaseCardCommits release={release} withHeading={false} />
@@ -282,11 +283,6 @@ function ReleaseCard({
     </StyledPanel>
   );
 }
-
-const VersionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 
 const StyledVersion = styled(Version)`
   ${p => p.theme.overflowEllipsis};
