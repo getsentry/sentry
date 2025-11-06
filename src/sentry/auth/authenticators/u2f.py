@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from base64 import urlsafe_b64encode
 from functools import cached_property
 from time import time
@@ -26,6 +27,8 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri
 
 from .base import ActivationChallengeResult, AuthenticatorInterface
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.users.models.authenticator import Authenticator
@@ -222,10 +225,18 @@ class U2fInterface(AuthenticatorInterface):
     def validate_response(
         self, request: HttpRequest, challenge: bytes | None, response: dict[str, Any]
     ) -> bool:
+        state = request.session.get("webauthn_authentication_state")
+        if state is None:
+            logger.warning(
+                "u2f_authentication.missing_session_state",
+                extra={"user_id": getattr(request.user, "id", None)},
+            )
+            return False
+
         try:
             credentials = self.credentials()
             self.webauthn_authentication_server.authenticate_complete(
-                state=request.session.get("webauthn_authentication_state"),
+                state=state,
                 credentials=credentials,
                 credential_id=websafe_decode(response["keyHandle"]),
                 client_data=ClientData(websafe_decode(response["clientData"])),

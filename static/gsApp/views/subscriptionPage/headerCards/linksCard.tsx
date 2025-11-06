@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {IconList, IconSubscribed, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -25,29 +24,26 @@ function LinksCard({organization}: {organization: Organization}) {
                 priority="link"
                 icon={<IconList />}
                 to="/settings/billing/receipts/"
+                size="xs"
               >
-                <Text size="sm" variant="accent">
-                  {t('View all receipts')}
-                </Text>
+                {t('View all receipts')}
               </LinkButton>
               <LinkButton
                 priority="link"
                 icon={<IconTimer />}
                 to="/settings/billing/activity-logs/"
+                size="xs"
               >
-                <Text size="sm" variant="accent">
-                  {t('View activity')}
-                </Text>
+                {t('View activity')}
               </LinkButton>
               {hasSpendNotifications && (
                 <LinkButton
                   priority="link"
                   icon={<IconSubscribed />}
                   to="/settings/billing/notifications/"
+                  size="xs"
                 >
-                  <Text size="sm" variant="accent">
-                    {t('Manage spend notifications')}
-                  </Text>
+                  {t('Manage spend notifications')}
                 </LinkButton>
               )}
             </Fragment>
@@ -56,10 +52,9 @@ function LinksCard({organization}: {organization: Organization}) {
               priority="link"
               icon={<IconTimer />}
               to="/settings/billing/activity-logs/"
+              size="xs"
             >
-              <Text size="sm" variant="accent">
-                {t('View activity')}
-              </Text>
+              {t('View activity')}
             </LinkButton>
           )}
         </Flex>,
