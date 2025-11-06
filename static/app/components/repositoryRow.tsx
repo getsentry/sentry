@@ -5,6 +5,7 @@ import {cancelDeleteRepository, hideRepository} from 'sentry/actionCreators/inte
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -96,7 +97,7 @@ function RepositoryRow({
     <Access access={['org:integrations']}>
       {({hasAccess}) => (
         <StyledPanelItem status={repository.status}>
-          <RepositoryTitleAndUrl>
+          <Flex direction="column">
             <RepositoryTitle>
               <strong>{repository.name}</strong>
               {!isActive && <small> &mdash; {getStatusLabel(repository)}</small>}
@@ -122,7 +123,7 @@ function RepositoryRow({
                 </small>
               )}
             </div>
-          </RepositoryTitleAndUrl>
+          </Flex>
           {renderDeleteButton(hasAccess)}
         </StyledPanelItem>
       )}
@@ -151,11 +152,6 @@ const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
 
 const StyledButton = styled(Button)`
   margin-left: ${space(1)};
-`;
-
-const RepositoryTitleAndUrl = styled('div')`
-  display: flex;
-  flex-direction: column;
 `;
 
 const RepositoryTitle = styled('div')`
