@@ -1691,7 +1691,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if is_seer_scanner_rate_limited(project, group.organization):
         return
 
-    # Check cache again to prevent race condition since seer_autofix_last_triggered takes a few minutes to set
+    # Check cache to prevent race condition since it takes a few minutes to set seer_autofix_last_triggered
     if not cache.add(cache_key, True, timeout=3600):  # 1 hour
         return
 
