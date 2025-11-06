@@ -61,6 +61,9 @@ register_grouping_config(
         # Preserve a long-standing bug, wherein our "non-URL frame" test actually looks for frames
         # *with* URLs
         "handle_js_single_frame_url_origin_backwards": True,
+        # Continue using a hack we implemented to compensate for changes between version 2 and
+        # version 3 of the python SDK
+        "use_python_sdk_version_2_to_3_hack": True,
     },
     enhancements_base="all-platforms:2023-01-11",
     fingerprinting_bases=["javascript@2024-02-02"],
