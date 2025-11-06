@@ -517,6 +517,7 @@ function Folder(props: {node: StoryTreeNode}) {
   const {storySlug} = useStoryParams();
 
   const hasActiveChild = useMemo(() => {
+    // eslint-disable-next-line unicorn/prefer-array-some
     return !!props.node.find(n => n.slug === storySlug);
   }, [storySlug, props.node]);
 
