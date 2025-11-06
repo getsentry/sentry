@@ -98,9 +98,7 @@ export function getDetectorDetails({
         organization,
       }),
       // TODO(issues): Update this to mention detectors when that language is user-facing
-      description: t(
-        'This issue was created by an uptime monitoring alert rule after detecting 3 consecutive failed checks.'
-      ),
+      description: t('This issue was created by an uptime monitoring alert rule.'),
     };
   }
   return {};
