@@ -54,13 +54,13 @@ function getActionDescription(action: Action): string {
           action.config.targetDisplay ? ` #${action.config.targetDisplay}` : ''
         );
       }
-      return t('Notify %s', action.config.targetDisplay ?? t('member'));
+      return t('Notify %s', action.config.targetDisplay || t('member'));
     }
     case ActionType.SENTRY_APP:
     case ActionType.WEBHOOK:
       return t(
         'Notify via %s',
-        action.config.targetDisplay ?? ActionMetadata[action.type]?.name
+        action.config.targetDisplay || ActionMetadata[action.type]?.name
       );
     default:
       return t(
