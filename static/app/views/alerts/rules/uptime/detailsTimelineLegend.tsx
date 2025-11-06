@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
@@ -103,8 +104,6 @@ const CheckLegendItem = styled('li')`
   grid-column: 1 / -1;
 `;
 
-const LegendText = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
+function LegendText(props: FlexProps) {
+  return <Flex gap="md" align="center" {...props} />;
+}
