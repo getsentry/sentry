@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import {
@@ -320,11 +321,13 @@ const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
     `}
 `;
 
-const ReplayCountHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
+function ReplayCountHeader({children}: {children: React.ReactNode}) {
+  return (
+    <Flex align="center" gap="md">
+      {children}
+    </Flex>
+  );
+}
 
 const ReplayHeader = styled('div')`
   display: flex;
