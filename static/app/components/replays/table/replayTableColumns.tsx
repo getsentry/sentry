@@ -526,7 +526,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     const referrer = getRouteStringFromRoutes(routes);
     const eventView = EventView.fromLocation(location);
 
-    // This is a fix to get the 'sort' query string to work without explicitly dirtying the URL with fields params
+    // EventView only fetches sort from location if the corresponding fields are also in the URL
     const sort = location.query.sort ?? encodeSort(DEFAULT_SORT);
     const replayDetailsPathname = makeReplaysPathname({
       path: `/${replay.id}/`,
