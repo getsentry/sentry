@@ -20,7 +20,7 @@ import {
 } from 'sentry/views/insights/agents/components/common';
 import {
   HeadSortCell,
-  useTableSortParams,
+  useTableSort,
 } from 'sentry/views/insights/agents/components/headSortCell';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
@@ -67,7 +67,7 @@ export function ToolsTable() {
 
   const {cursor, setCursor} = useTableCursor();
 
-  const {sortField, sortOrder} = useTableSortParams();
+  const {tableSort} = useTableSort();
 
   const toolsRequest = useSpans(
     {
@@ -79,7 +79,7 @@ export function ToolsTable() {
         'failure_rate()',
         'count_if(span.status,equals,internal_error)',
       ],
-      sorts: [{field: sortField, kind: sortOrder}],
+      sorts: [tableSort],
       search: fullQuery,
       limit: 10,
       cursor,
@@ -119,6 +119,7 @@ export function ToolsTable() {
       return (
         <HeadSortCell
           sortKey={column.key}
+          currentSort={tableSort}
           forceCellGrow={column.key === 'tool'}
           align={rightAlignColumns.has(column.key) ? 'right' : undefined}
           onClick={handleSort}
@@ -127,7 +128,7 @@ export function ToolsTable() {
         </HeadSortCell>
       );
     },
-    [handleSort]
+    [handleSort, tableSort]
   );
 
   const renderBodyCell = useCallback(
