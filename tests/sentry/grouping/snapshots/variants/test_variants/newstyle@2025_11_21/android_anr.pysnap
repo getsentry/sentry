@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:18:50.883099+00:00'
+created: '2025-11-03T21:48:46.305498+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,6 +10,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "ApplicationNotResponding"
+        value* (stripped event-specific values)
+          "Application Not Responding for at least <int> ms."
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             module*
@@ -767,10 +771,6 @@ app:
               "sourcefile"
             function*
               "getChildAt"
-        type*
-          "ApplicationNotResponding"
-        value* (stripped event-specific values)
-          "Application Not Responding for at least <int> ms."
       threads (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
@@ -789,12 +789,16 @@ app:
               "getThreadStackTrace"
 --------------------------------------------------------------------------
 system:
-  hash: "2552498cfe69a6ddf1dcdde5440ce9c3"
+  hash: "b4626f44de843f1f586ff2648425c4f0"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "ApplicationNotResponding"
+        value (ignored because stacktrace takes precedence)
+          "Application Not Responding for at least <int> ms."
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
@@ -1552,10 +1556,6 @@ system:
               "sourcefile"
             function*
               "getChildAt"
-        type*
-          "ApplicationNotResponding"
-        value (ignored because stacktrace takes precedence)
-          "Application Not Responding for at least <int> ms."
       threads (ignored because system exception takes precedence)
         stacktrace*
           frame*

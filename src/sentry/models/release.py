@@ -745,7 +745,7 @@ class Release(Model):
             from sentry.models.releasecommit import ReleaseCommit
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
 
-            ReleaseHeadCommit.objects.get(
+            ReleaseHeadCommit.objects.filter(
                 organization_id=self.organization_id, release=self
             ).delete()
             ReleaseCommit.objects.filter(

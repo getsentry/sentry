@@ -150,9 +150,9 @@ export function SampleTableRow({
         end: selection.datetime.end,
         statsPeriod: selection.datetime.period,
       },
-      timestamp,
       location: strippedLocation,
-      source: TraceViewSources.TRACE_METRICS,
+      timestamp,
+      source: TraceViewSources.TRACES, // TODO: Should be TraceViewSources.TRACE_METRICS later after the trace view changes
       spanId: shouldGoToSpans ? spanIdToUse : undefined,
       // tab: shouldGoToSpans ? TraceLayoutTabKeys.WATERFALL : TraceLayoutTabKeys.METRICS, // TODO: Add metrics tab to trace view
       tab: TraceLayoutTabKeys.WATERFALL,
