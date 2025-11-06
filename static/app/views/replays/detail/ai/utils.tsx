@@ -35,8 +35,6 @@ export interface SummaryResponse {
 }
 
 export type TimeRanges = Array<{
-  error: boolean;
-  feedback: boolean;
   period_end: number;
   period_start: number;
   period_title: string;
