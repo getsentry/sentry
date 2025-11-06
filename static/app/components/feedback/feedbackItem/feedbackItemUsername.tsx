@@ -32,10 +32,9 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   const user = name && email && !isSameNameAndEmail ? `${name} <${email}>` : nameOrEmail;
 
   const summary = feedbackIssue.metadata.summary;
-  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
   const isAiSummaryEnabled =
     areAiFeaturesAllowed &&
-    (setupAcknowledgement.orgHasAcknowledged || skipConsentFlow) &&
+    setupAcknowledgement.orgHasAcknowledged &&
     organization.features.includes('user-feedback-ai-titles');
 
   const userNodeId = useId();
