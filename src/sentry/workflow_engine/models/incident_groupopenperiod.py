@@ -149,7 +149,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             raise Exception("No source_id found in evidence_data for metric issue")
 
         calculated_start_date = calculate_event_date_from_update_date(
-            open_period.date_started, snuba_query
+            open_period.date_started, snuba_query.time_window
         )
 
         incident = create_incident(
@@ -336,7 +336,7 @@ def update_incident_based_on_open_period_status_change(
             )
             return
         calculated_date_closed = calculate_event_date_from_update_date(
-            open_period.date_ended, snuba_query
+            open_period.date_ended, snuba_query.time_window
         )
         update_incident_status(
             incident,
