@@ -8,7 +8,8 @@ from sentry import features
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.project import Project
 from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.types import ERROR_DETECTOR_NAME
+from sentry.workflow_engine.types import ERROR_DETECTOR_NAME, ISSUE_STREAM_DETECTOR_NAME
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,12 @@ def create_project_detectors(instance, created, **kwargs):
             ):
                 Detector.objects.create(
                     name=ERROR_DETECTOR_NAME, type=ErrorGroupType.slug, project=instance, config={}
+                )
+                Detector.objects.create(
+                    name=ISSUE_STREAM_DETECTOR_NAME,
+                    type=IssueStreamGroupType.slug,
+                    project=instance,
+                    config={},
                 )
                 logger.info("project.detector-created", extra={"project_id": instance.id})
         except IntegrityError as e:
