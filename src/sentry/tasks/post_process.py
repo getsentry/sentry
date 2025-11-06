@@ -1691,7 +1691,8 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if is_seer_scanner_rate_limited(project, group.organization):
         return
 
-    # Check cache to prevent race condition since it takes a few minutes to set seer_autofix_last_triggered
+    # cache.add uses Redis SETNX which atomically sets the key only if it doesn't exist
+    # Returns False if another process already set the key, ensuring only one process proceeds
     if not cache.add(cache_key, True, timeout=3600):  # 1 hour
         return
 
