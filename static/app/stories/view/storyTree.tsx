@@ -1,7 +1,5 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import type {LocationDescriptorObject} from 'history';
-import kebabCase from 'lodash/kebabCase';
 
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
@@ -17,7 +15,7 @@ export class StoryTreeNode {
   public path: string;
   public filesystemPath: string;
   public category: StoryCategory;
-  public location: LocationDescriptorObject;
+  public slug: string;
 
   public visible = true;
   public expanded = false;
@@ -27,22 +25,23 @@ export class StoryTreeNode {
 
   constructor(name: string, path: string, filesystemPath: string) {
     this.name = name;
-    this.label = normalizeFilename(name);
     this.path = path;
     this.filesystemPath = filesystemPath;
+    this.label = normalizeFilename(name);
     this.category = inferFileCategory(filesystemPath);
-    this.location = this.getLocation();
-  }
 
-  private getLocation(): LocationDescriptorObject {
-    const state = {storyPath: this.filesystemPath};
     if (this.category === 'shared') {
-      return {pathname: '/stories/', query: {name: this.filesystemPath}, state};
+      const segments = this.path.split('/');
+      const filename = segments.pop();
+
+      if (filename === undefined) {
+        this.slug = '';
+      }
+
+      this.slug = `${segments.join('/')}/${this.label.replaceAll(' ', '-').toLowerCase()}`;
     }
-    return {
-      pathname: `/stories/${this.category}/${kebabCase(this.label)}`,
-      state,
-    };
+
+    this.slug = `${this.label.replaceAll(' ', '-').toLowerCase()}`;
   }
 
   find(predicate: (node: StoryTreeNode) => boolean): StoryTreeNode | undefined {
@@ -575,17 +574,16 @@ function Folder(props: {node: StoryTreeNode}) {
 function File(props: {node: StoryTreeNode}) {
   const location = useLocation();
   const organization = useOrganization();
-  const {state, ...to} = props.node.location;
   const active = props.node.filesystemPath === location.query.name;
 
   return (
     <li>
       <FolderLink
         to={{
-          ...to,
-          pathname: normalizeUrl(`/organizations/${organization.slug}${to.pathname}`),
+          pathname: normalizeUrl(
+            `/organizations/${organization.slug}/stories/${props.node.category}/${props.node.slug}`
+          ),
         }}
-        state={state}
         aria-current={active ? 'page' : undefined}
         active={active}
       >

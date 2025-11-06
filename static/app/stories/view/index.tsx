@@ -1,8 +1,6 @@
 import {Fragment, type PropsWithChildren} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
-import kebabCase from 'lodash/kebabCase';
 
 import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -10,7 +8,7 @@ import {
   StorySidebar,
   useStoryBookFilesByCategory,
 } from 'sentry/stories/view/storySidebar';
-import type {StoryCategory, StoryTreeNode} from 'sentry/stories/view/storyTree';
+import {StoryTreeNode, type StoryCategory} from 'sentry/stories/view/storyTree';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import OrganizationContainer from 'sentry/views/organizationContainer';
@@ -27,10 +25,6 @@ export default function Stories() {
   return isLandingPage(location) ? <StoriesLanding /> : <StoryDetail />;
 }
 
-function isLandingPage(location: ReturnType<typeof useLocation>) {
-  return /^\/stories\/?$/.test(location.pathname);
-}
-
 function StoriesLanding() {
   return (
     <StoriesLayout>
@@ -41,29 +35,13 @@ function StoriesLanding() {
   );
 }
 
-function getStoryFromParams(
-  stories: ReturnType<typeof useStoryBookFilesByCategory>,
-  context: {storySlug: string; storyType: StoryCategory}
-): StoryTreeNode | undefined {
-  const {storyType: category, storySlug} = context;
-  const nodes =
-    category && category in stories ? stories[category as keyof typeof stories] : [];
-
-  for (const node of nodes) {
-    const match = node.find(n => kebabCase(n.label) === storySlug);
-    if (match) {
-      return match;
-    }
-  }
-
-  Sentry.logger.error(`Story not found: ${storySlug} in category ${category}`);
-  return undefined;
-}
-
 function StoryDetail() {
-  const params = useParams<{storySlug: string; storyType: StoryCategory}>();
+  const params = useParams<{storyCategory: StoryCategory; storySlug: string}>();
   const stories = useStoryBookFilesByCategory();
-  const storyNode = getStoryFromParams(stories, params);
+  const storyNode = getStoryFromParams(stories, {
+    category: params.storyCategory,
+    slug: params.storySlug,
+  });
 
   const story = useStoriesLoader({
     files: storyNode ? [storyNode.filesystemPath] : [],
@@ -115,6 +93,38 @@ function StoriesLayout(props: PropsWithChildren) {
       </RouteAnalyticsContextProvider>
     </Fragment>
   );
+}
+
+function isLandingPage(location: ReturnType<typeof useLocation>) {
+  return /^\/stories\/?$/.test(location.pathname);
+}
+
+function getStoryFromParams(
+  stories: ReturnType<typeof useStoryBookFilesByCategory>,
+  context: {category: StoryCategory; slug: string}
+): StoryTreeNode | undefined {
+  const nodes = stories[context.category as keyof typeof stories] ?? [];
+
+  if (!nodes || nodes.length === 0) {
+    return undefined;
+  }
+
+  const queue = [...nodes];
+
+  while (queue.length > 0) {
+    const node = queue.pop();
+    if (!node) break;
+
+    if (node.slug === context.slug) {
+      return node;
+    }
+
+    for (const key in node.children) {
+      queue.push(node.children[key]!);
+    }
+  }
+
+  return undefined;
 }
 
 function GlobalStoryStyles() {

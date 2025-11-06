@@ -18,17 +18,13 @@ export function StoryFooter() {
   const pagination = findPreviousAndNextStory(story, stories);
   const organization = useOrganization();
 
-  const prevTo = pagination?.prev?.location ?? {};
-  const nextTo = pagination?.next?.location ?? {};
-
   return (
     <Flex align="center" justify="between" gap="xl">
       {pagination?.prev && (
         <Card
           to={{
-            ...prevTo,
             pathname: normalizeUrl(
-              `/organizations/${organization.slug}${pagination.prev.location.pathname}`
+              `/organizations/${organization.slug}/stories/${pagination.prev.category}/${pagination.prev.slug}`
             ),
           }}
           icon={<IconArrow direction="left" />}
@@ -45,9 +41,8 @@ export function StoryFooter() {
         <Card
           data-flip
           to={{
-            ...nextTo,
             pathname: normalizeUrl(
-              `/organizations/${organization.slug}${nextTo.pathname}`
+              `/organizations/${organization.slug}/stories/${pagination.next.category}/${pagination.next.slug}`
             ),
           }}
           icon={<IconArrow direction="right" />}
