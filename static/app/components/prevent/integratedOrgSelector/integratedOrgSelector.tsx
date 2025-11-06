@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -27,6 +27,7 @@ const DEFAULT_ORG_LABEL = 'Select GitHub Org';
 function OrgFooterMessage() {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const cleanupRef = useRef<() => void | null>(null);
 
   const handleAddIntegration = (_integration: Integration) => {
     navigate(`/${organization.slug}/tests`);
@@ -49,13 +50,26 @@ function OrgFooterMessage() {
     const handleMessage = (message: MessageEvent) => {
       if (message.source === dialog && message.data?.success) {
         window.removeEventListener('message', handleMessage);
+        cleanupRef.current = null;
         if (message.data.data) {
           handleAddIntegration(message.data.data);
         }
       }
     };
     window.addEventListener('message', handleMessage);
+
+    cleanupRef.current = () => {
+      window.removeEventListener('message', handleMessage);
+      cleanupRef.current = null;
+    };
   };
+
+  // Cleanup the event listener if it hasn't been cleaned up yet
+  useEffect(() => {
+    return () => {
+      cleanupRef.current?.();
+    };
+  }, []);
 
   const {data: integrationInfo, isPending: isIntegrationInfoPending} =
     useApiQuery<IntegrationInformation>(

@@ -1,3 +1,5 @@
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
@@ -47,6 +49,13 @@ const mockApiCall = () => {
     url: `/organizations/org-slug/prevent/owner/2/repositories/tokens/`,
     method: 'GET',
     body: mockRepositoryTokensResponse,
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/config/integrations/`,
+    method: 'GET',
+    body: {
+      providers: [GitHubIntegrationProviderFixture()],
+    },
   });
 };
 
@@ -184,6 +193,7 @@ describe('TokensPage', () => {
     });
 
     it('passes sortBy parameter to API when valid sort is provided', async () => {
+      mockApiCall();
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/integrations/`,
         method: 'GET',
