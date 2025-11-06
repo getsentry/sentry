@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -77,6 +78,14 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         **kwargs,
     ):
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
+
+        if not features.has("organizations:data-forwarding-revamp-access", kwargs["organization"]):
+            raise PermissionDenied
+
+        if request.method == "PUT" and not features.has(
+            "organizations:data-forwarding", kwargs["organization"]
+        ):
+            raise PermissionDenied
 
         try:
             data_forwarder = DataForwarder.objects.get(
