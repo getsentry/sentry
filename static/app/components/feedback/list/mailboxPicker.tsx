@@ -28,45 +28,54 @@ export default function MailboxPicker({onChange, value}: Props) {
   const hasSpamFeature = organization.features.includes('user-feedback-spam-ingest');
   const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
 
+  const getSpamTooltip = () => {
+    if (!hasSpamFeature || isSelfHosted) {
+      return undefined;
+    }
+
+    if (!skipConsentFlow && !setupAcknowledgement.orgHasAcknowledged) {
+      return tct(
+        'Generative AI Features and Seer access are required for auto spam detection. Check that [linkGenAI:Generative AI Features] are toggled on, then view the [linkSeer:Seer settings page] for more information.',
+        {
+          linkSeer: <Link to={`/settings/${organization.slug}/seer/`} />,
+          linkGenAI: (
+            <Link
+              to={{
+                pathname: `/settings/${organization.slug}/`,
+                hash: 'hideAiFeatures',
+              }}
+            />
+          ),
+        }
+      );
+    }
+
+    if (!areAiFeaturesAllowed) {
+      return tct(
+        'Generative AI Features are required for auto spam detection. Check that [linkGenAI:Generative AI Features] are toggled on.',
+        {
+          linkGenAI: (
+            <Link
+              to={{
+                pathname: `/settings/${organization.slug}/`,
+                hash: 'hideAiFeatures',
+              }}
+            />
+          ),
+        }
+      );
+    }
+
+    return undefined;
+  };
+
   const MAILBOXES = [
     {key: 'unresolved', label: t('Inbox')},
     {key: 'resolved', label: t('Resolved')},
     {
       key: 'ignored',
       label: t('Spam'),
-      // only show an AI info tooltip if the org has auto spam detection available,
-      // but not the correct AI flags or seer acknowledgement.
-      tooltip:
-        hasSpamFeature && !areAiFeaturesAllowed && !isSelfHosted
-          ? !skipConsentFlow && !setupAcknowledgement.orgHasAcknowledged
-            ? tct(
-                'Generative AI Features and Seer access are required for auto spam detection. Check that [linkGenAI:Generative AI Features] are toggled on, then view the [linkSeer:Seer settings page] for more information.',
-                {
-                  linkSeer: <Link to={`/settings/${organization.slug}/seer/`} />,
-                  linkGenAI: (
-                    <Link
-                      to={{
-                        pathname: `/settings/${organization.slug}/`,
-                        hash: 'hideAiFeatures',
-                      }}
-                    />
-                  ),
-                }
-              )
-            : tct(
-                'Generative AI Features are required for auto spam detection. Check that [linkGenAI:Generative AI Features] are toggled on.',
-                {
-                  linkGenAI: (
-                    <Link
-                      to={{
-                        pathname: `/settings/${organization.slug}/`,
-                        hash: 'hideAiFeatures',
-                      }}
-                    />
-                  ),
-                }
-              )
-          : undefined,
+      tooltip: getSpamTooltip(),
     },
   ];
 
