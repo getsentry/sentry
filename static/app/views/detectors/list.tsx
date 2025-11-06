@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -16,10 +17,6 @@ import {t} from 'sentry/locale';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
@@ -29,6 +26,7 @@ import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
+import {useDetectorListSort} from 'sentry/views/detectors/utils/useDetectorListSort';
 
 interface DetectorHeadingInfo {
   description: string;
@@ -72,24 +70,20 @@ const DETECTOR_TYPE_HEADING_MAPPING: Record<
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
-
-  const location = useLocation();
-  const navigate = useNavigate();
   const {selection, isReady} = usePageFilters();
   const {detectorFilter, assigneeFilter, emptyState} = useMonitorViewContext();
 
-  const {
-    sort: sorts,
-    query,
-    cursor,
-  } = useLocationQuery({
-    fields: {
-      sort: decodeSorts,
-      query: decodeScalar,
-      cursor: decodeScalar,
-    },
-  });
-  const sort = sorts[0] ?? {kind: 'desc', field: 'latestGroup'};
+  const [sort] = useDetectorListSort();
+  const [query, setQuery] = useQueryState(
+    'query',
+    parseAsString.withDefault('').withOptions({
+      history: 'push',
+    })
+  );
+  const [cursor, setCursor] = useQueryState(
+    'cursor',
+    parseAsString.withOptions({history: 'push'})
+  );
 
   // Build the query with detector type and assignee filters if provided
   // Map DetectorType values to query values (e.g., 'monitor_check_in_failure' -> 'cron')
@@ -107,9 +101,9 @@ export default function DetectorsList() {
     getResponseHeader,
   } = useDetectorsQuery(
     {
-      cursor,
+      cursor: cursor ?? undefined,
       query: finalQuery,
-      sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
+      sortBy: sort ? `${sort.kind === 'asc' ? '' : '-'}${sort.field}` : undefined,
       projects: selection.projects,
       limit: DETECTOR_LIST_PAGE_LIMIT,
     },
@@ -164,7 +158,7 @@ export default function DetectorsList() {
           description={pageDescription}
           docsUrl={docsUrl}
         >
-          <TableHeader />
+          <TableHeader query={query} setQuery={setQuery} />
           <div>
             <VisuallyCompleteWithData
               hasData={(detectors?.length ?? 0) > 0}
@@ -179,7 +173,6 @@ export default function DetectorsList() {
                   isPending={isLoading}
                   isError={isError}
                   isSuccess={isSuccess}
-                  sort={sort}
                   queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
                   allResultsVisible={allResultsVisible()}
                 />
@@ -188,10 +181,7 @@ export default function DetectorsList() {
             <Pagination
               pageLinks={pageLinks}
               onCursor={newCursor => {
-                navigate({
-                  pathname: location.pathname,
-                  query: {...location.query, cursor: newCursor},
-                });
+                setCursor(newCursor ?? null);
               }}
             />
           </div>
@@ -201,23 +191,14 @@ export default function DetectorsList() {
   );
 }
 
-function TableHeader() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const {detectorFilter, assigneeFilter, showTimeRangeSelector} = useMonitorViewContext();
-  const query = typeof location.query.query === 'string' ? location.query.query : '';
-
-  const onSearch = (searchQuery: string) => {
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, query: searchQuery, cursor: undefined},
-    });
-  };
-
-  // Exclude filter keys when they're set in context
-  const excludeKeys = [detectorFilter && 'type', assigneeFilter && 'assignee'].filter(
-    v => v !== undefined
-  );
+function TableHeader({
+  query,
+  setQuery,
+}: {
+  query: string;
+  setQuery: (query: string) => void;
+}) {
+  const {showTimeRangeSelector} = useMonitorViewContext();
 
   return (
     <Flex gap="xl">
@@ -226,11 +207,7 @@ function TableHeader() {
         {showTimeRangeSelector && <DatePageFilter />}
       </PageFilterBar>
       <div style={{flexGrow: 1}}>
-        <DetectorSearch
-          initialQuery={query}
-          onSearch={onSearch}
-          excludeKeys={excludeKeys}
-        />
+        <DetectorSearch initialQuery={query} onSearch={setQuery} />
       </div>
     </Flex>
   );
