@@ -4,11 +4,11 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {t, tct} from 'sentry/locale';
 import {
   getInstallCodeBlock,
   getSdkInitSnippet,
-} from 'sentry/utils/gettingStartedDocs/node';
+} from 'sentry/gettingStartedDocs/node/node/utils';
+import {t, tct} from 'sentry/locale';
 
 const getSdkSetupSnippet = (params: DocsParams) => `
 "use strict";

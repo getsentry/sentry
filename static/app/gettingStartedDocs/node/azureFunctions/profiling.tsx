@@ -1,3 +1,3 @@
-import {getNodeProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/node';
+import {getNodeProfilingOnboarding} from 'sentry/gettingStartedDocs/node/node/utils';
 
 export const profiling = getNodeProfilingOnboarding();
