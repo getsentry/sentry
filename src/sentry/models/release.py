@@ -101,8 +101,8 @@ class ReleaseModelManager(BaseManager["Release"]):
     def annotate_prerelease_column(self):
         return self.get_queryset().annotate_prerelease_column()
 
-    def annotate_build_number_column(self):
-        return self.get_queryset().annotate_build_number_column()
+    def annotate_build_code_column(self):
+        return self.get_queryset().annotate_build_code_column()
 
     def filter_to_semver(self) -> ReleaseQuerySet:
         return self.get_queryset().filter_to_semver()
