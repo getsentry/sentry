@@ -89,7 +89,7 @@ PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="function.self_duration",
+            public_alias="function.self_time",
             internal_name="self_time_ns",
             search_type="integer",
         ),
@@ -99,7 +99,7 @@ PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS = {
             search_type="integer",
         ),
         ResolvedAttribute(
-            public_alias="function.total_duration",
+            public_alias="function.duration",
             internal_name="total_time_ns",
             search_type="integer",
         ),

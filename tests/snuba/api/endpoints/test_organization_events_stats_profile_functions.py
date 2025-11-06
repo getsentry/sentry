@@ -35,7 +35,7 @@ class OrganizationEventsStatsProfileFunctionsEndpointTest(OrganizationEventsEndp
                 "start": self.start,
                 "end": self.end,
                 "interval": "1h",
-                "yAxis": "sum(function.self_duration)",
+                "yAxis": "sum(function.self_time)",
                 "query": "function:foo",
                 "project": self.project.id,
                 "dataset": self.dataset,

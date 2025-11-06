@@ -15,8 +15,8 @@ class OrganizationEventsProfileFunctionsEndpointTest(OrganizationEventsEndpointT
 
         response = self.do_request(
             {
-                "field": ["function", "function.self_duration"],
-                "orderby": "function.self_duration",
+                "field": ["function", "function.self_time"],
+                "orderby": "function.self_time",
                 "query": "function:foo",
                 "dataset": self.dataset,
             }
@@ -27,7 +27,7 @@ class OrganizationEventsProfileFunctionsEndpointTest(OrganizationEventsEndpointT
                 "id": mock.ANY,
                 "project.name": self.project.slug,
                 "function": "foo",
-                "function.self_duration": 1,
+                "function.self_time": 1,
             },
         ]
 
@@ -40,9 +40,9 @@ class OrganizationEventsProfileFunctionsEndpointTest(OrganizationEventsEndpointT
 
         response = self.do_request(
             {
-                "field": ["function", "sum(function.self_duration)"],
+                "field": ["function", "sum(function.self_time)"],
                 "query": "function:foo",
-                "orderby": "sum(function.self_duration)",
+                "orderby": "sum(function.self_time)",
                 "dataset": self.dataset,
             }
         )
@@ -51,6 +51,6 @@ class OrganizationEventsProfileFunctionsEndpointTest(OrganizationEventsEndpointT
         assert response.data["data"] == [
             {
                 "function": "foo",
-                "sum(function.self_duration)": 1,
+                "sum(function.self_time)": 1,
             },
         ]
