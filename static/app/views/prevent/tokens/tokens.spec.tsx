@@ -193,11 +193,18 @@ describe('TokensPage', () => {
     });
 
     it('passes sortBy parameter to API when valid sort is provided', async () => {
-      mockApiCall();
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/integrations/`,
         method: 'GET',
         body: mockIntegrations,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/config/integrations/`,
+        method: 'GET',
+        body: {
+          providers: [GitHubIntegrationProviderFixture()],
+        },
       });
 
       const mockTokensCall = MockApiClient.addMockResponse({
