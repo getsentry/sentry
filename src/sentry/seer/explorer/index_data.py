@@ -163,6 +163,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
         sampling_mode="NORMAL",
     )
 
+    trace_id = None
     for row in traces_result.get("data", []):
         trace_id = row.get("trace")
         if trace_id:
