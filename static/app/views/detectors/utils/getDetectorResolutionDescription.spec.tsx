@@ -20,7 +20,7 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'static',
         conditionType: DataConditionType.GREATER,
-        conditionValue: 100,
+        highThreshold: 100,
         thresholdSuffix: '%',
       });
 
@@ -33,7 +33,7 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'static',
         conditionType: DataConditionType.LESS,
-        conditionValue: 50,
+        highThreshold: 50,
         thresholdSuffix: 'ms',
       });
 
@@ -46,7 +46,7 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'static',
         conditionType: DataConditionType.GREATER,
-        conditionValue: 100,
+        highThreshold: 100,
         thresholdSuffix: '',
       });
 
@@ -61,7 +61,7 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: DataConditionType.GREATER,
-        conditionValue: 25,
+        highThreshold: 25,
         comparisonDelta: 3600, // 1 hour
         thresholdSuffix: '%',
       });
@@ -75,7 +75,7 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: undefined,
-        conditionValue: 25,
+        highThreshold: 25,
         comparisonDelta: 3600,
         thresholdSuffix: '%',
       });
@@ -87,7 +87,7 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: DataConditionType.GREATER,
-        conditionValue: undefined,
+        highThreshold: undefined,
         comparisonDelta: 3600,
         thresholdSuffix: '%',
       });
@@ -99,7 +99,7 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: DataConditionType.LESS,
-        conditionValue: 15,
+        highThreshold: 15,
         comparisonDelta: 7200, // 2 hours
         thresholdSuffix: '%',
       });
@@ -113,7 +113,7 @@ describe('getDetectorResolutionDescription', () => {
       const result = getResolutionDescription({
         detectionType: 'percent',
         conditionType: DataConditionType.GREATER,
-        conditionValue: 20,
+        highThreshold: 20,
         comparisonDelta: 300, // 5 minutes
         thresholdSuffix: '%',
       });

@@ -16,6 +16,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
+    check_repository_integrations_status,
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
@@ -781,3 +782,418 @@ class TestSeerRpcMethods(APITestCase):
 
         # Verify that the task was called for each valid event
         assert mock_delay.call_count == len(seer_events)
+
+    def test_check_repository_integrations_status_empty_list(self) -> None:
+        """Test with empty input list"""
+        result = check_repository_integrations_status(repository_integrations=[])
+        assert result == {"statuses": []}
+
+    def test_check_repository_integrations_status_single_existing_repo(self) -> None:
+        """Test when a single repository exists and is active"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": integration.id,
+                    "external_id": "123",
+                    "provider": "github",
+                }
+            ]
+        )
+
+        assert result == {"statuses": [True]}
+
+    def test_check_repository_integrations_status_single_non_existing_repo(self) -> None:
+        """Test when repository does not exist"""
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": 999,
+                    "external_id": "nonexistent",
+                    "provider": "github",
+                }
+            ]
+        )
+
+        assert result == {"statuses": [False]}
+
+    def test_check_repository_integrations_status_mixed_existing_and_non_existing(self) -> None:
+        """Test with a mix of existing and non-existing repositories"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        # Create two repositories
+        Repository.objects.create(
+            name="test/repo1",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+        Repository.objects.create(
+            name="test/repo2",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        # Check 4 repos: 2 exist, 2 don't
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": integration.id,
+                    "external_id": "123",
+                    "provider": "github",
+                },  # exists
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": integration.id,
+                    "external_id": "999",
+                    "provider": "github",
+                },  # doesn't exist
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": integration.id,
+                    "external_id": "456",
+                    "provider": "github",
+                },  # exists
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": 888,
+                    "external_id": "123",
+                    "provider": "github",
+                },  # wrong integration_id
+            ]
+        )
+
+        assert result == {"statuses": [True, False, True, False]}
+
+    def test_check_repository_integrations_status_inactive_repo(self) -> None:
+        """Test that inactive repositories are not matched"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        # Create a repository with DISABLED status
+        Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+            status=ObjectStatus.DISABLED,
+            integration_id=integration.id,
+        )
+
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": integration.id,
+                    "external_id": "123",
+                    "provider": "github",
+                }
+            ]
+        )
+
+        assert result == {"statuses": [False]}
+
+    def test_check_repository_integrations_status_wrong_organization_id(self) -> None:
+        """Test that repositories from different organizations are not matched"""
+        org2 = self.create_organization(owner=self.user)
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        # Create repository in org1
+        Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        # Try to find it with org2's ID
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": org2.id,
+                    "integration_id": integration.id,
+                    "external_id": "123",
+                    "provider": "github",
+                }
+            ]
+        )
+
+        assert result == {"statuses": [False]}
+
+    def test_check_repository_integrations_status_wrong_integration_id(self) -> None:
+        """Test that repositories with different integration_id are not matched"""
+        integration1 = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        integration2 = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:2"
+        )
+
+        # Create repository with integration1
+        Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration1.id,
+        )
+
+        # Try to find it with integration2's ID
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": integration2.id,
+                    "external_id": "123",
+                    "provider": "github",
+                }
+            ]
+        )
+
+        assert result == {"statuses": [False]}
+
+    def test_check_repository_integrations_status_wrong_external_id(self) -> None:
+        """Test that repositories with different external_id are not matched"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        # Create repository with external_id="123"
+        Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        # Try to find it with external_id="456"
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": integration.id,
+                    "external_id": "456",
+                    "provider": "github",
+                }
+            ]
+        )
+
+        assert result == {"statuses": [False]}
+
+    def test_check_repository_integrations_status_multiple_all_exist(self) -> None:
+        """Test when all queried repositories exist"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        # Create 3 repositories
+        Repository.objects.create(
+            name="test/repo1",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="111",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+        Repository.objects.create(
+            name="test/repo2",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="222",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+        Repository.objects.create(
+            name="test/repo3",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="333",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": integration.id,
+                    "external_id": "111",
+                    "provider": "github",
+                },
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": integration.id,
+                    "external_id": "222",
+                    "provider": "github",
+                },
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": integration.id,
+                    "external_id": "333",
+                    "provider": "github",
+                },
+            ]
+        )
+
+        assert result == {"statuses": [True, True, True]}
+
+    def test_check_repository_integrations_status_multiple_orgs(self) -> None:
+        """Test with repositories from multiple organizations"""
+        org2 = self.create_organization(owner=self.user)
+        integration1 = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        integration2 = self.create_integration(
+            organization=org2, provider="github", external_id="github:2"
+        )
+
+        # Create repository in org1
+        Repository.objects.create(
+            name="test/repo1",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration1.id,
+        )
+
+        # Create repository in org2
+        Repository.objects.create(
+            name="test/repo2",
+            organization_id=org2.id,
+            provider="integrations:github",
+            external_id="456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration2.id,
+        )
+
+        # Check both repositories
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": integration1.id,
+                    "external_id": "123",
+                    "provider": "github",
+                },
+                {
+                    "organization_id": org2.id,
+                    "integration_id": integration2.id,
+                    "external_id": "456",
+                    "provider": "github",
+                },
+            ]
+        )
+
+        assert result == {"statuses": [True, True]}
+
+    def test_check_repository_integrations_status_unsupported_provider(self) -> None:
+        """Test that repositories with unsupported providers are not matched"""
+        integration = self.create_integration(
+            organization=self.organization, provider="gitlab", external_id="gitlab:1"
+        )
+
+        # Create repository with unsupported provider (GitLab)
+        Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:gitlab",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        # Try to find it - should return False because GitLab is not in SEER_SUPPORTED_SCM_PROVIDERS
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": integration.id,
+                    "external_id": "123",
+                    "provider": "gitlab",
+                }
+            ]
+        )
+
+        assert result == {"statuses": [False]}
+
+    def test_check_repository_integrations_status_mixed_supported_and_unsupported_providers(
+        self,
+    ) -> None:
+        """Test with a mix of supported and unsupported provider repositories"""
+        github_integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        gitlab_integration = self.create_integration(
+            organization=self.organization, provider="gitlab", external_id="gitlab:1"
+        )
+
+        # Create GitHub repository (supported)
+        Repository.objects.create(
+            name="test/repo-github",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="111",
+            status=ObjectStatus.ACTIVE,
+            integration_id=github_integration.id,
+        )
+
+        # Create GitLab repository (unsupported)
+        Repository.objects.create(
+            name="test/repo-gitlab",
+            organization_id=self.organization.id,
+            provider="integrations:gitlab",
+            external_id="222",
+            status=ObjectStatus.ACTIVE,
+            integration_id=gitlab_integration.id,
+        )
+
+        # Check both - GitHub should be found, GitLab should not
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": github_integration.id,
+                    "external_id": "111",
+                    "provider": "github",
+                },  # GitHub - supported
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": gitlab_integration.id,
+                    "external_id": "222",
+                    "provider": "gitlab",
+                },  # GitLab - unsupported
+            ]
+        )
+
+        assert result == {"statuses": [True, False]}

@@ -900,7 +900,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
-    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.groupowner",
     "sentry.tasks.llm_issue_detection",
     "sentry.tasks.merge",
@@ -3198,7 +3197,7 @@ if ngrok_host and SILO_DEVSERVER:
     SENTRY_FEATURES["system:multi-region"] = True
 
 CONDUIT_GATEWAY_PRIVATE_KEY: str | None = os.getenv("CONDUIT_GATEWAY_PRIVATE_KEY")
-CONDUIT_GATEWAY_URL: str = os.getenv("CONDUIT_GATEWAY_URL", "https://conduit.sentry.io")
+CONDUIT_GATEWAY_URL: str = os.getenv("CONDUIT_GATEWAY_URL", "http://127.0.0.1:9096")
 CONDUIT_GATEWAY_JWT_ISSUER: str = os.getenv("CONDUIT_GATEWAY_JWT_ISSUER", "sentry.io")
 CONDUIT_GATEWAY_JWT_AUDIENCE: str = os.getenv("CONDUIT_GATEWAY_JWT_AUDIENCE", "conduit")
 

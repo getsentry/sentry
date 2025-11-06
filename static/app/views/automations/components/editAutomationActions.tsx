@@ -13,7 +13,6 @@ import {
   useUpdateAutomation,
 } from 'sentry/views/automations/hooks';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 interface EditAutomationActionsProps {
   automation: Automation;
@@ -21,7 +20,6 @@ interface EditAutomationActionsProps {
 
 export function EditAutomationActions({automation}: EditAutomationActionsProps) {
   const organization = useOrganization();
-  const {automationsLinkPrefix} = useMonitorViewContext();
   const navigate = useNavigate();
   const {mutateAsync: deleteAutomation, isPending: isDeleting} =
     useDeleteAutomationMutation();
@@ -50,16 +48,10 @@ export function EditAutomationActions({automation}: EditAutomationActionsProps) 
       priority: 'danger',
       onConfirm: async () => {
         await deleteAutomation(automation.id);
-        navigate(makeAutomationBasePathname(organization.slug, automationsLinkPrefix));
+        navigate(makeAutomationBasePathname(organization.slug));
       },
     });
-  }, [
-    deleteAutomation,
-    automation.id,
-    navigate,
-    organization.slug,
-    automationsLinkPrefix,
-  ]);
+  }, [deleteAutomation, automation.id, navigate, organization.slug]);
 
   return (
     <div>
