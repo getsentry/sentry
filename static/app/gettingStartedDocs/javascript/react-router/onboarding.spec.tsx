@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './react-router';
+import docs from '.';
 
 describe('javascript-react-router onboarding docs', () => {
   it('renders onboarding docs correctly', () => {

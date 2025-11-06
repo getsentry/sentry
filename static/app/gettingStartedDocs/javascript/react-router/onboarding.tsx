@@ -2,143 +2,15 @@ import {Fragment} from 'react';
 
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportJavaScriptInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-  getFeedbackConfigOptions,
-  getFeedbackConfigureDescription,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  getReplayConfigOptions,
-  getReplayConfigureDescription,
-  getReplayVerifyStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
-import {
-  getJavascriptFullStackOnboarding,
-  getJavascriptLogsFullStackOnboarding,
-} from 'sentry/utils/gettingStartedDocs/javascript';
-import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
-type Params = DocsParams;
+import {getClientSetupSnippet} from './utils';
 
-const getClientSetupSnippet = (params: Params) => {
-  const logsSnippet = params.isLogsSelected
-    ? `
-  // Enable logs to be sent to Sentry
-  enableLogs: true,`
-    : '';
-
-  const performanceSnippet = params.isPerformanceSelected
-    ? `
-  tracesSampleRate: 1.0, // Capture 100% of the transactions
-  // Set \`tracePropagationTargets\` to declare which URL(s) should have trace propagation enabled
-  tracePropagationTargets: [/^\\//, /^https:\\/\\/yourserver\\.io\\/api/],`
-    : '';
-
-  const replaySnippet = params.isReplaySelected
-    ? `
-  replaysSessionSampleRate: 0.1, // Capture 10% of all sessions
-  replaysOnErrorSampleRate: 1.0, // Capture 100% of sessions with an error`
-    : '';
-
-  const integrationsList = [];
-
-  if (params.isPerformanceSelected) {
-    integrationsList.push(`
-    // Tracing
-    Sentry.reactRouterTracingIntegration(),`);
-  }
-
-  if (params.isReplaySelected) {
-    integrationsList.push(`
-    // Session Replay
-    Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`);
-  }
-
-  if (params.isFeedbackSelected) {
-    integrationsList.push(`
-    // User Feedback
-    Sentry.feedbackIntegration({
-      // Additional SDK configuration goes in here, for example:
-      colorScheme: "system",
-      ${getFeedbackConfigOptions(params.feedbackOptions)}
-    }),`);
-  }
-
-  const integrationsCode =
-    integrationsList.length > 0
-      ? `
-  integrations: [${integrationsList.join('')}
-  ],`
-      : '';
-
-  return `
-import * as Sentry from "@sentry/react-router";
-import { startTransition, StrictMode } from "react";
-import { hydrateRoot } from "react-dom/client";
-import { HydratedRouter } from "react-router/dom";
-
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  // Adds request headers and IP for users, for more info visit:
-  // https://docs.sentry.io/platforms/javascript/guides/react-router/configuration/options/#sendDefaultPii
-  sendDefaultPii: true,${integrationsCode}${logsSnippet}${performanceSnippet}${replaySnippet}
-});
-
-startTransition(() => {
-  hydrateRoot(
-    document,
-    <StrictMode>
-      <HydratedRouter />
-    </StrictMode>
-  );
-});`;
-};
-
-const getRootErrorBoundarySnippet = () => `
-import * as Sentry from "@sentry/react-router";
-
-export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let message = "Oops!";
-  let details = "An unexpected error occurred.";
-  let stack: string | undefined;
-
-  if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error";
-    details =
-      error.status === 404
-        ? "The requested page could not be found."
-        : error.statusText || details;
-  } else if (error && error instanceof Error) {
-    // you only want to capture non 404-errors that reach the boundary
-    Sentry.captureException(error);
-    if (import.meta.env.DEV) {
-      details = error.message;
-      stack = error.stack;
-    }
-  }
-
-  return (
-    <main>
-      <h1>{message}</h1>
-      <p>{details}</p>
-      {stack && (
-        <pre>
-          <code>{stack}</code>
-        </pre>
-      )}
-    </main>
-  );
-}`;
-
-const getServerSetupSnippet = (params: Params) => {
+function getServerSetupSnippet(params: DocsParams) {
   const logsSnippet = params.isLogsSelected
     ? `
   // Enable logs to be sent to Sentry
@@ -184,7 +56,43 @@ Sentry.init({
   // https://docs.sentry.io/platforms/javascript/guides/react-router/configuration/options/#sendDefaultPii
   sendDefaultPii: true,${integrationsCode}${logsSnippet}${performanceSnippet}${profilingSnippet}
 });`;
-};
+}
+
+const getRootErrorBoundarySnippet = () => `
+import * as Sentry from "@sentry/react-router";
+
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  let message = "Oops!";
+  let details = "An unexpected error occurred.";
+  let stack: string | undefined;
+
+  if (isRouteErrorResponse(error)) {
+    message = error.status === 404 ? "404" : "Error";
+    details =
+      error.status === 404
+        ? "The requested page could not be found."
+        : error.statusText || details;
+  } else if (error && error instanceof Error) {
+    // you only want to capture non 404-errors that reach the boundary
+    Sentry.captureException(error);
+    if (import.meta.env.DEV) {
+      details = error.message;
+      stack = error.stack;
+    }
+  }
+
+  return (
+    <main>
+      <h1>{message}</h1>
+      <p>{details}</p>
+      {stack && (
+        <pre>
+          <code>{stack}</code>
+        </pre>
+      )}
+    </main>
+  );
+}`;
 
 const getServerEntrySnippet = () => `
 import * as Sentry from '@sentry/react-router';
@@ -210,7 +118,7 @@ export const handleError: HandleErrorFunction = (error, { request }) => {
   }
 };`;
 
-const getVerifySnippet = (params: Params) => {
+const getVerifySnippet = (params: DocsParams) => {
   const logsCode = params.isLogsSelected
     ? `
   // Send a log before throwing the error
@@ -238,7 +146,7 @@ const getPackageJsonScriptsSnippet = () => `
   }
 }`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () => (
     <Fragment>
       <p>{t("In this guide you'll set up the Sentry React Router SDK")}</p>
@@ -288,7 +196,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -418,146 +326,3 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-const replayOnboarding: OnboardingConfig = {
-  install: (params: Params) => onboarding.install(params),
-  configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getReplayConfigureDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/react-router/session-replay/',
-          }),
-        },
-        {
-          type: 'code',
-          language: 'tsx',
-          code: getClientSetupSnippet(params),
-        },
-      ],
-    },
-  ],
-  verify: getReplayVerifyStep(),
-  nextSteps: () => [],
-};
-
-const feedbackOnboarding: OnboardingConfig = {
-  install: (params: Params) => onboarding.install(params),
-  configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getFeedbackConfigureDescription({
-            linkConfig:
-              'https://docs.sentry.io/platforms/javascript/guides/react-router/user-feedback/configuration/',
-            linkButton:
-              'https://docs.sentry.io/platforms/javascript/guides/react-router/user-feedback/configuration/#bring-your-own-button',
-          }),
-        },
-        {
-          type: 'code',
-          language: 'tsx',
-          code: getClientSetupSnippet(params),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/react-router/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const performanceOnboarding: OnboardingConfig = {
-  introduction: () =>
-    t(
-      'Adding Performance to your React Router project is simple. Make sure you have these basics down.'
-    ),
-  install: onboarding.install,
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            "Configuration should happen as early as possible in your application's lifecycle."
-          ),
-        },
-        {
-          type: 'code',
-          language: 'tsx',
-          code: getClientSetupSnippet(params),
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your React Router application.',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react-router/tracing/instrumentation/automatic-instrumentation/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
-  nextSteps: () => [],
-};
-
-const profilingOnboarding = getJavascriptFullStackOnboarding({
-  packageName: '@sentry/react-router',
-  browserProfilingLink:
-    'https://docs.sentry.io/platforms/javascript/guides/react-router/profiling/browser-profiling/',
-  nodeProfilingLink:
-    'https://docs.sentry.io/platforms/javascript/guides/react-router/profiling/node-profiling/',
-});
-
-const docs: Docs = {
-  onboarding,
-  replayOnboarding,
-  feedbackOnboardingNpm: feedbackOnboarding,
-  crashReportOnboarding,
-  performanceOnboarding,
-  profilingOnboarding,
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    packageName: '@sentry/react-router',
-    configFileName: 'instrument.server.mjs',
-  }),
-  logsOnboarding: getJavascriptLogsFullStackOnboarding({
-    docsPlatform: 'react-router',
-    packageName: '@sentry/react-router',
-  }),
-};
-
-export default docs;
