@@ -12,7 +12,7 @@ interface Props {
   queryParamKey?: string;
 }
 
-const DEFAULT_SORT = {field: 'started_at', kind: 'asc'} as const;
+const DEFAULT_SORT = {field: 'started_at', kind: 'desc'} as const;
 
 export default function useReplayTableSort({
   defaultSort = DEFAULT_SORT,
@@ -21,7 +21,10 @@ export default function useReplayTableSort({
   const defaultSortRef = useRef(defaultSort);
   const organization = useOrganization();
 
-  const {getParamValue, setParamValue} = useUrlParams(queryParamKey, '-started_at');
+  const {getParamValue, setParamValue} = useUrlParams(
+    queryParamKey,
+    encodeSort(DEFAULT_SORT)
+  );
   const sortQuery = getParamValue();
   const sortType = decodeSorts(sortQuery).at(0) ?? defaultSortRef.current;
 
