@@ -27,7 +27,7 @@ export default function MetricDetectorsList() {
           description={DESCRIPTION}
           docsUrl={DOCS_URL}
         >
-          <DetectorListHeader />
+          <DetectorListHeader showTypeFilter={false} />
           <DetectorListContent {...detectorListQuery} />
         </WorkflowEngineListLayout>
       </PageFiltersContainer>

@@ -157,7 +157,7 @@ export default function CronDetectorsList() {
             description={DESCRIPTION}
             docsUrl={DOCS_URL}
           >
-            <DetectorListHeader showTimeRangeSelector />
+            <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
             <DetectorListContent
               {...detectorListQuery}
               emptyState={<CronsLandingPanel />}

@@ -27,7 +27,7 @@ export default function ErrorDetectorsList() {
           description={DESCRIPTION}
           docsUrl={DOCS_URL}
         >
-          <DetectorListHeader />
+          <DetectorListHeader showTypeFilter={false} />
           <DetectorListContent {...detectorListQuery} />
         </WorkflowEngineListLayout>
       </PageFiltersContainer>
