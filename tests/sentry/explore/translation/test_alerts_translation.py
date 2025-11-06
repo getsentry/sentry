@@ -21,12 +21,18 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.seer.anomaly_detection.store_data import SeerMethod
-from sentry.seer.anomaly_detection.types import StoreDataResponse
+from sentry.seer.anomaly_detection.types import (
+    AnomalyDetectionSeasonality,
+    AnomalyDetectionSensitivity,
+    AnomalyDetectionThresholdType,
+    StoreDataResponse,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -578,19 +584,29 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         self.create_data_condition(
             condition_group=detector_data_condition_group,
-            type=Condition.GREATER_OR_EQUAL,
-            comparison=1,
+            type=Condition.ANOMALY_DETECTION,
+            comparison={
+                "sensitivity": AnomalyDetectionSensitivity.HIGH,
+                "seasonality": AnomalyDetectionSeasonality.AUTO,
+                "threshold_type": AnomalyDetectionThresholdType.ABOVE,
+            },
+            condition_result=DetectorPriorityLevel.HIGH,
         )
 
         detector = self.create_detector(
             name="Test Detector",
             type=MetricIssue.slug,
             project=self.project,
-            config={"detection_type": AlertRuleDetectionType.DYNAMIC.value},
+            config={
+                "detection_type": AlertRuleDetectionType.DYNAMIC.value,
+                "sensitivity": AnomalyDetectionSensitivity.HIGH,
+                "seasonality": AnomalyDetectionSeasonality.AUTO,
+                "threshold_type": AnomalyDetectionThresholdType.ABOVE,
+            },
             workflow_condition_group=detector_data_condition_group,
         )
 
-        data_source.detectors.add(detector)
+        data_source.detectors.set([detector])
 
         translate_detector_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
@@ -673,19 +689,29 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         self.create_data_condition(
             condition_group=detector_data_condition_group,
-            type=Condition.GREATER_OR_EQUAL,
-            comparison=1,
+            type=Condition.ANOMALY_DETECTION,
+            comparison={
+                "sensitivity": AnomalyDetectionSensitivity.HIGH,
+                "seasonality": AnomalyDetectionSeasonality.AUTO,
+                "threshold_type": AnomalyDetectionThresholdType.ABOVE,
+            },
+            condition_result=DetectorPriorityLevel.HIGH,
         )
 
         detector = self.create_detector(
             name="Test Detector",
             type=MetricIssue.slug,
             project=self.project,
-            config={"detection_type": AlertRuleDetectionType.DYNAMIC.value},
+            config={
+                "detection_type": AlertRuleDetectionType.DYNAMIC.value,
+                "sensitivity": AnomalyDetectionSensitivity.HIGH,
+                "seasonality": AnomalyDetectionSeasonality.AUTO,
+                "threshold_type": AnomalyDetectionThresholdType.ABOVE,
+            },
             workflow_condition_group=detector_data_condition_group,
         )
 
-        data_source.detectors.add(detector)
+        data_source.detectors.set([detector])
 
         original_dataset = snuba_query.dataset
 
