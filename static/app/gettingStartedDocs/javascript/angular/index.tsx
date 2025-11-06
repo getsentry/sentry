@@ -1,5 +1,5 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlags';
+import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
 
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
@@ -16,7 +16,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding: crashReport,
   platformOptions,
   profilingOnboarding: profiling,
-  featureFlagOnboarding,
+  featureFlagOnboarding: featureFlag,
   logsOnboarding: logs,
 };
 
