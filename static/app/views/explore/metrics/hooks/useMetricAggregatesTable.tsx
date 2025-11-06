@@ -12,6 +12,7 @@ import {
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -32,6 +33,8 @@ interface MetricAggregatesTableResult {
   result: ReturnType<typeof useSpansQuery<any[]>>;
 }
 
+const COUNT_AGGREGATE = `count(${TraceMetricKnownFieldKey.METRIC_NAME})`;
+
 export function useMetricAggregatesTable({
   enabled,
   limit,
@@ -41,7 +44,10 @@ export function useMetricAggregatesTable({
   const canTriggerHighAccuracy = useCallback(
     (result: ReturnType<typeof useMetricAggregatesTableImp>['result']) => {
       const canGoToHigherAccuracyTier = result.meta?.dataScanned === 'partial';
-      const hasData = defined(result.data) && result.data.length > 0;
+      const hasData =
+        defined(result.data) &&
+        (result.data.length > 1 ||
+          (result.data.length === 1 && Boolean(result.data[0][COUNT_AGGREGATE])));
       return !hasData && canGoToHigherAccuracyTier;
     },
     []
@@ -97,7 +103,7 @@ function useMetricAggregatesTableImp({
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Metric Aggregates',
-      fields,
+      fields: [...fields, COUNT_AGGREGATE],
       orderby: sortBys.map(formatSort),
       query,
       version: 2,
