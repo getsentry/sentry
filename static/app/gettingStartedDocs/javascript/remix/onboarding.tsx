@@ -1,5 +1,5 @@
-import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import {ExternalLink} from 'sentry/components/core/link';
+import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import type {
   DocsParams,
   OnboardingConfig,
@@ -8,7 +8,6 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
 import {getInstallContent} from './utils';
-
 
 export const onboarding: OnboardingConfig = {
   introduction: () => (
