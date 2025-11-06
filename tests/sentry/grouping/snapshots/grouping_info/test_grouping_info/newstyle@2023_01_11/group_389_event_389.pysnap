@@ -1,5 +1,5 @@
 ---
-created: '2025-11-05T23:19:06.036538+00:00'
+created: '2025-11-06T19:57:57.680767+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -76,7 +76,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -107,7 +107,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -138,7 +138,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -324,7 +324,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native package:/usr/lib/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -405,7 +405,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -436,7 +436,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -467,7 +467,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -498,7 +498,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -684,7 +684,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:internals -group)",
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
                     "id": "frame",
                     "name": null,
                     "values": [

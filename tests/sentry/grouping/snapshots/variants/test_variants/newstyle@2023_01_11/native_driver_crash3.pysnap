@@ -1,5 +1,5 @@
 ---
-created: '2025-10-07T20:41:49.146361+00:00'
+created: '2025-11-05T23:11:21.196971+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -53,14 +53,14 @@ system:
           frame*
             function*
               "NOutermost::CDeviceChild::LUCBeginLayerDestruction"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "CContext::LUCBeginLayerDestruction"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
           frame
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "OpenAdapter12"
           frame

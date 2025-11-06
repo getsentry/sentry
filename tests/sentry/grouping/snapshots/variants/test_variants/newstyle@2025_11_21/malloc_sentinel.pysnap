@@ -1,5 +1,5 @@
 ---
-created: '2025-11-05T19:32:40.210139+00:00'
+created: '2025-11-05T23:11:16.759438+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -112,7 +112,7 @@ system:
         value (ignored because stacktrace takes precedence)
           "<redacted>"
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "_pthread_start"
           frame*
@@ -175,7 +175,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "std::__1::basic_string<T>::~basic_string"
           frame*
@@ -184,15 +184,15 @@ system:
           frame*
             function*
               "malloc_report"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "malloc_vreport"
-          frame (ignored by stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
             function*
               "pthread_kill"
-          frame (ignored by stack trace rule (category:throw ^-group -group))
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
             function*
               "__pthread_kill"

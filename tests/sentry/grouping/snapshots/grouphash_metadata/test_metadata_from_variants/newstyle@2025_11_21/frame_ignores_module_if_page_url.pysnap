@@ -1,23 +1,35 @@
 ---
-created: '2025-10-29T21:19:56.766977+00:00'
+created: '2025-11-06T19:58:28.818184+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
-hash_basis: fallback
+hash_basis: stacktrace
 hashing_metadata: {
-  "fallback_reason": "no_contributing_frames"
+  "num_stacktraces": 1,
+  "stacktrace_location": "top-level",
+  "stacktrace_type": "system"
 }
 ---
 metrics with tags: {
   "grouping.grouphashmetadata.event_hash_basis": {
-    "hash_basis": "fallback",
+    "hash_basis": "stacktrace",
     "is_hybrid_fingerprint": "False"
   },
-  "grouping.grouphashmetadata.event_hashing_metadata.fallback": {
-    "fallback_reason": "no_contributing_frames"
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "top-level",
+    "stacktrace_type": "system"
   }
 }
 ---
 contributing variants:
-  fallback*
-    hash: "d41d8cd98f00b204e9800998ecf8427e"
+  system*
+    hash: "a7a536723f7289f3ab7cbb444b7058ac"
+    contributing component: stacktrace
+    hint: None
+    root_component:
+      system*
+        stacktrace*
+          frame*
+            module*
+              "foo/bar/baz"
