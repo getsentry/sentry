@@ -640,24 +640,6 @@ class ExampleIntegrationProvider(IntegrationProvider):
 
 ## Python Development
 
-### Python Environment
-
-**ALWAYS ensure the development environment is active before any Python operation**: Sentry uses `direnv` to automatically manage the development environment, including virtualenv activation and essential environment variables.
-
-For terminal commands, the environment is typically already active if direnv is properly configured. However, if you encounter issues or need to explicitly activate the environment:
-
-```bash
-# Activate via direnv (preferred - sets up full dev environment)
-eval "$(direnv export bash)"
-
-# Or fallback to direct virtualenv activation if direnv unavailable
-source .venv/bin/activate
-```
-
-Before running any Python command (e.g. `python -c`), Python package (e.g. `pytest`, `mypy`), or a Python script, ensure the environment is active. This applies to ALL Python operations without exception.
-
-Note: The `.envrc` file configures the full development environment including virtualenv, PATH additions, and environment variables like `PYTHONUNBUFFERED` and `NODE_OPTIONS`.
-
 ### Python Typing Best Practices
 
 This section covers Sentry's Python typing conventions and best practices. These guidelines are based on the [official Python typing recommendations](https://typing.python.org/en/latest/reference/best_practices.html) and our team's experience.
