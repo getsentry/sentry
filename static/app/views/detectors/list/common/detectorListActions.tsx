@@ -11,6 +11,9 @@ import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
 interface DetectorListActionsProps {
   children?: React.ReactNode;
+  /**
+   * Pass a detector type to skip type selection on the create monitor page
+   */
   detectorType?: DetectorType;
 }
 
@@ -19,7 +22,6 @@ export function DetectorListActions({detectorType, children}: DetectorListAction
   const {selection} = usePageFilters();
 
   const createPath = makeMonitorCreatePathname(organization.slug);
-  // If detectorFilter is set, pass it as a query param to skip type selection
   const project = selection.projects.find(pid => pid !== ALL_ACCESS_PROJECTS);
   const createQuery = detectorType ? {project, detectorType} : {project};
 

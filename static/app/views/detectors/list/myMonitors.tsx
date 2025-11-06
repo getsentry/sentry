@@ -2,9 +2,9 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
 import {t} from 'sentry/locale';
-import {DetectorListActions} from 'sentry/views/detectors/list/common/actions';
+import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
 import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
-import {DetectorListHeader} from 'sentry/views/detectors/list/common/header';
+import {DetectorListHeader} from 'sentry/views/detectors/list/common/detectorListHeader';
 import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetectorListQuery';
 
 const TITLE = t('My Monitors');

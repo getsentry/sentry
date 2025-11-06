@@ -17,9 +17,9 @@ import type {CronDetector, Detector} from 'sentry/types/workflowEngine/detectors
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {HeaderCell} from 'sentry/views/detectors/components/detectorListTable';
-import {DetectorListActions} from 'sentry/views/detectors/list/common/actions';
+import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
 import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
-import {DetectorListHeader} from 'sentry/views/detectors/list/common/header';
+import {DetectorListHeader} from 'sentry/views/detectors/list/common/detectorListHeader';
 import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetectorListQuery';
 import {
   MonitorViewContext,
