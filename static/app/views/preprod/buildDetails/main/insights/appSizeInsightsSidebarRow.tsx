@@ -14,7 +14,9 @@ import {t, tn} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {openAlternativeIconsInsightModal} from 'sentry/views/preprod/buildDetails/main/insights/alternativeIconsInsightInfoModal';
+import {openMinifyLocalizedStringsModal} from 'sentry/views/preprod/buildDetails/main/insights/minifyLocalizedStringsModal';
 import {openOptimizeImagesModal} from 'sentry/views/preprod/buildDetails/main/insights/optimizeImagesModal';
+import {openStripDebugSymbolsModal} from 'sentry/views/preprod/buildDetails/main/insights/stripDebugSymbolsModal';
 import type {
   FileSavingsResultGroup,
   OptimizableImageFile,
@@ -39,6 +41,8 @@ export function formatUpside(percentage: number): string {
 const INSIGHTS_WITH_MORE_INFO_MODAL = [
   'image_optimization',
   'alternate_icons_optimization',
+  'localized_strings_minify',
+  'strip_binary',
 ];
 
 const DEFAULT_ITEMS_PER_PAGE = 20;
@@ -71,6 +75,10 @@ export function AppSizeInsightsSidebarRow({
       openAlternativeIconsInsightModal();
     } else if (insight.key === 'image_optimization') {
       openOptimizeImagesModal(platform);
+    } else if (insight.key === 'localized_strings_minify') {
+      openMinifyLocalizedStringsModal();
+    } else if (insight.key === 'strip_binary') {
+      openStripDebugSymbolsModal();
     }
   };
 

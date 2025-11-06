@@ -1,19 +1,11 @@
-import {
-  matchRoutes,
-  Link as RouterLink,
-  type LinkProps as ReactRouterLinkProps,
-  type To,
-} from 'react-router-dom';
+import {type LinkProps as ReactRouterLinkProps} from 'react-router-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptor} from 'history';
 
-import {PRELOAD_HANDLE} from 'sentry/constants/routes';
-import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
+import {useLinkBehavior} from './linkBehaviorContext';
 
 export interface LinkProps
   extends React.RefAttributes<HTMLAnchorElement>,
@@ -65,107 +57,20 @@ const getLinkStyles = ({
 `;
 
 const Anchor = styled('a', {
-  shouldForwardProp: prop =>
-    typeof prop === 'string' && isPropValid(prop) && prop !== 'disabled',
+  shouldForwardProp: prop => isPropValid(prop) && prop !== 'disabled',
 })<{disabled?: LinkProps['disabled']}>`
   ${getLinkStyles}
 `;
 
-// Allow route configuration to be injected for testing
-let routeConfigProvider: (() => Promise<any>) | null = null;
+export const Link = styled((props: LinkProps) => {
+  const {Component, behavior} = useLinkBehavior(props);
 
-export const setRouteConfigProvider = (provider: (() => Promise<any>) | null) => {
-  routeConfigProvider = provider;
-};
-
-const preload = async (to: To) => {
-  // Skip preloading in test environment unless explicitly configured
-  if (process.env.NODE_ENV === 'test' && !routeConfigProvider) {
-    return;
+  if (props.disabled) {
+    return <Anchor {...props} />;
   }
 
-  // Try to match the route and preload if it has a preload method
-  try {
-    const getRoutes =
-      routeConfigProvider || (() => import('sentry/routes').then(m => m.routes()));
-    const routeConfig = await getRoutes();
-    const matches = matchRoutes(routeConfig, to);
-
-    if (matches && matches.length > 0) {
-      // Preload all matching routes, not just the last one
-      for (const match of matches) {
-        const routeHandle = match.route.handle;
-
-        // Check if the handle has a preload method
-        if (
-          routeHandle &&
-          typeof routeHandle === 'object' &&
-          PRELOAD_HANDLE in routeHandle
-        ) {
-          routeHandle[PRELOAD_HANDLE]?.().catch((error: unknown) => {
-            Sentry.withScope(scope => {
-              scope.setLevel('warning');
-              Sentry.captureException(error, {
-                tags: {
-                  component: 'Link',
-                  operation: 'preload',
-                },
-                extra: {
-                  to,
-                  route: match.route.path,
-                },
-              });
-            });
-          });
-        }
-      }
-    }
-  } catch (error) {
-    Sentry.withScope(scope => {
-      scope.setLevel('warning');
-      Sentry.captureException(error, {
-        tags: {
-          component: 'Link',
-          operation: 'route_matching',
-        },
-        extra: {
-          to,
-        },
-      });
-    });
-  }
-};
-
-/**
- * A context-aware version of Link (from react-router) that falls
- * back to <a> if there is no router present
- */
-export const Link = styled(
-  ({disabled, to, onMouseEnter, onFocus, ...props}: LinkProps) => {
-    const location = useLocation();
-
-    if (disabled || !location) {
-      return <Anchor {...props} />;
-    }
-
-    const normalizedTo = locationDescriptorToTo(normalizeUrl(to, location));
-
-    return (
-      <RouterLink
-        to={normalizedTo}
-        onMouseEnter={e => {
-          onMouseEnter?.(e);
-          void preload(normalizedTo);
-        }}
-        onFocus={e => {
-          onFocus?.(e);
-          void preload(normalizedTo);
-        }}
-        {...props}
-      />
-    );
-  }
-)`
+  return <Component {...behavior()} />;
+})`
   ${getLinkStyles}
 `;
 

@@ -5,6 +5,7 @@ from typing import Any
 from django.db import router, transaction
 from django.forms import ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
@@ -912,11 +913,15 @@ def dual_delete_migrated_alert_rule(alert_rule: AlertRule) -> None:
     if alert_rule_workflow:
         workflow: Workflow = alert_rule_workflow.workflow
         with transaction.atomic(router.db_for_write(Detector)):
+            detector.update(status=ObjectStatus.PENDING_DELETION)
+            workflow.update(status=ObjectStatus.PENDING_DELETION)
             RegionScheduledDeletion.schedule(instance=detector, days=0)
             RegionScheduledDeletion.schedule(instance=workflow, days=0)
 
     else:
-        RegionScheduledDeletion.schedule(instance=detector, days=0)
+        with transaction.atomic(router.db_for_write(Detector)):
+            detector.update(status=ObjectStatus.PENDING_DELETION)
+            RegionScheduledDeletion.schedule(instance=detector, days=0)
 
     return
 

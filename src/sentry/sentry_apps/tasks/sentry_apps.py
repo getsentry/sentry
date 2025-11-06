@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, SupportsInt, cast
+from typing import Any, Protocol, SupportsInt, cast
 
 import sentry_sdk
 from django.urls import reverse
@@ -149,7 +149,9 @@ def _webhook_event_data(
     return event_context
 
 
-class WebhookGroupResponse(BaseGroupSerializerResponse):
+# inherits from BaseGroupSerializerResponse
+# we use protocol instead of TypedDict inheritance to avoid mypy crash in SCC
+class WebhookGroupResponse(Protocol):
     web_url: str
     project_url: str
     url: str
@@ -158,21 +160,20 @@ class WebhookGroupResponse(BaseGroupSerializerResponse):
 def _webhook_issue_data(
     group: Group, serialized_group: BaseGroupSerializerResponse
 ) -> WebhookGroupResponse:
-
-    webhook_payload = WebhookGroupResponse(
-        url=group.get_absolute_api_url(),
-        web_url=group.get_absolute_url(),
-        project_url=group.project.get_absolute_url(),
+    webhook_payload = {
+        "url": group.get_absolute_api_url(),
+        "web_url": group.get_absolute_url(),
+        "project_url": group.project.get_absolute_url(),
         **serialized_group,
-    )
-    return webhook_payload
+    }
+    return cast(WebhookGroupResponse, webhook_payload)
 
 
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
-    processing_deadline_duration=30,
+    processing_deadline_duration=5,
     silo_mode=SiloMode.REGION,
 )
 @retry_decorator
@@ -697,7 +698,7 @@ def get_webhook_data(
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
     compression_type=CompressionType.ZSTD,
-    processing_deadline_duration=30,
+    processing_deadline_duration=5,
     silo_mode=SiloMode.REGION,
 )
 @retry_decorator
