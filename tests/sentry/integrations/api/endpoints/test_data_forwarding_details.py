@@ -19,7 +19,12 @@ class DataForwardingDetailsEndpointTest(APITestCase):
         """
         Override get_response to always add the required feature flag.
         """
-        with self.feature({"organizations:data-forwarding-revamp-access": True}):
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": True,
+                "organizations:data-forwarding": True,
+            }
+        ):
             return super().get_response(*args, **kwargs)
 
 
@@ -27,16 +32,39 @@ class DataForwardingDetailsEndpointTest(APITestCase):
 class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
     method = "PUT"
 
-    def test_without_feature_flag_access(self) -> None:
+    def test_without_revamp_feature_flag_access(self) -> None:
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "old_key"},
             is_enabled=True,
         )
-        response = self.client.put(
-            reverse(self.endpoint, args=(self.organization.slug, data_forwarder.id))
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": False,
+                "organizations:data-forwarding": True,
+            }
+        ):
+            response = self.client.put(
+                reverse(self.endpoint, args=(self.organization.slug, data_forwarder.id))
+            )
+            assert response.status_code == 403
+
+    def test_without_data_forwarding_feature_flag_access(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "old_key"},
+            is_enabled=True,
         )
-        assert response.status_code == 403
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": True,
+                "organizations:data-forwarding": False,
+            }
+        ):
+            response = self.client.put(
+                reverse(self.endpoint, args=(self.organization.slug, data_forwarder.id))
+            )
+            assert response.status_code == 403
 
     def test_update_data_forwarder(self) -> None:
         data_forwarder = self.create_data_forwarder(
@@ -479,16 +507,39 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
 class DataForwardingDetailsDeleteTest(DataForwardingDetailsEndpointTest):
     method = "DELETE"
 
-    def test_without_feature_flag_access(self) -> None:
+    def test_without_revamp_feature_flag_access(self) -> None:
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
             config={"write_key": "old_key"},
             is_enabled=True,
         )
-        response = self.client.delete(
-            reverse(self.endpoint, args=(self.organization.slug, data_forwarder.id))
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": False,
+                "organizations:data-forwarding": True,
+            }
+        ):
+            response = self.client.delete(
+                reverse(self.endpoint, args=(self.organization.slug, data_forwarder.id))
+            )
+            assert response.status_code == 403
+
+    def test_without_data_forwarding_feature_flag_access(self) -> None:
+        data_forwarder = self.create_data_forwarder(
+            provider=DataForwarderProviderSlug.SEGMENT,
+            config={"write_key": "old_key"},
+            is_enabled=True,
         )
-        assert response.status_code == 403
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": True,
+                "organizations:data-forwarding": False,
+            }
+        ):
+            response = self.client.delete(
+                reverse(self.endpoint, args=(self.organization.slug, data_forwarder.id))
+            )
+            assert response.status_code == 204
 
     def test_delete_data_forwarder(self) -> None:
         data_forwarder = self.create_data_forwarder(

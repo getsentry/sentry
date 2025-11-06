@@ -79,6 +79,14 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     ):
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
+        if not features.has("organizations:data-forwarding-revamp-access", kwargs["organization"]):
+            raise PermissionDenied
+
+        if request.method == "PUT" and not features.has(
+            "organizations:data-forwarding", kwargs["organization"]
+        ):
+            raise PermissionDenied
+
         try:
             data_forwarder = DataForwarder.objects.get(
                 id=data_forwarder_id,
@@ -287,9 +295,6 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     def put(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> Response:
-        if not features.has("organizations:data-forwarding-revamp-access", organization):
-            return self.respond(status=status.HTTP_403_FORBIDDEN)
-
         # org:write users can update the main data forwarder configuration
         if request.access.has_scope("org:write"):
             return self._update_data_forwarder_config(request, organization, data_forwarder)
@@ -327,8 +332,5 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     def delete(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> Response:
-        if not features.has("organizations:data-forwarding-revamp-access", organization):
-            return self.respond(status=status.HTTP_403_FORBIDDEN)
-
         data_forwarder.delete()
         return self.respond(status=status.HTTP_204_NO_CONTENT)
