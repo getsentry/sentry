@@ -18,6 +18,7 @@ def count_processor(count_value: int | None) -> int:
 TRACE_METRICS_ALWAYS_PRESENT_ATTRIBUTES = [
     AttributeKey(name="sentry.metric_name", type=AttributeKey.Type.TYPE_STRING),
     AttributeKey(name="sentry.metric_type", type=AttributeKey.Type.TYPE_STRING),
+    AttributeKey(name="sentry.value", type=AttributeKey.Type.TYPE_DOUBLE),
 ]
 
 TRACE_METRICS_AGGREGATE_DEFINITIONS = {
