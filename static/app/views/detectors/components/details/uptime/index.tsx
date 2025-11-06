@@ -1,8 +1,11 @@
 import {useCallback, useState} from 'react';
 
 import {CodeBlock} from 'sentry/components/core/code';
+import {Grid} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import Placeholder from 'sentry/components/placeholder';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t, tn} from 'sentry/locale';
@@ -20,6 +23,9 @@ import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
+import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
+import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
+import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
 
 type UptimeDetectorDetailsProps = {
   detector: UptimeDetector;
@@ -28,6 +34,12 @@ type UptimeDetectorDetailsProps = {
 
 export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetailsProps) {
   const dataSource = detector.dataSources[0];
+
+  const {data: uptimeSummaries} = useUptimeMonitorSummaries({
+    detectorIds: [detector.id],
+  });
+  const summary =
+    uptimeSummaries === undefined ? undefined : (uptimeSummaries?.[detector.id] ?? null);
 
   // Only display the missed window legend when there are visible missed window
   // check-ins in the timeline
@@ -81,6 +93,36 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
           <Section title={t('Legend')}>
             <DetailsTimelineLegend showMissedLegend={showMissedLegend} />
           </Section>
+          <Grid columns="max-content max-content" gap="3xl">
+            <Section title={t('Duration')}>
+              {summary === undefined ? (
+                <Text size="xl">
+                  <Placeholder width="60px" height="1lh" />
+                </Text>
+              ) : summary === null ? (
+                '-'
+              ) : (
+                <UptimeDuration size="xl" summary={summary} />
+              )}
+            </Section>
+            <Section title={t('Uptime')}>
+              {summary === undefined ? (
+                <Text size="xl">
+                  <Placeholder width="60px" height="1lh" />
+                </Text>
+              ) : summary === null ? (
+                '-'
+              ) : (
+                <UptimePercent
+                  size="xl"
+                  summary={summary}
+                  note={t(
+                    'The total calculated uptime of this monitors over the last 90 days.'
+                  )}
+                />
+              )}
+            </Section>
+          </Grid>
           <DetectorDetailsAssignee owner={detector.owner} />
           <DetectorExtraDetails>
             <KeyValueTableRow
