@@ -3,6 +3,8 @@ import {Fragment, useRef, useState} from 'react';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {Radio} from 'sentry/components/core/radio';
+import {CodeBlock} from 'sentry/components/core/code/codeBlock';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
 
 import PageHeader from 'admin/components/pageHeader';
 
@@ -153,23 +155,45 @@ const AlertDebugResults = ({results}: {results: any}) => (
   </div>
 );
 
-/*
-function AlertDetails({workflowId}: {workflowId: number}) {
-  // TODO - link this to the /admin/workflow/:id API.
-  const {data: automation, isPending} = useAPIQuery();
+// eslint-disable-next-line
+const AlertDetails = ({workflow}: {workflow: Automation}) => (
+  <div>
+    <h4>{workflow.name}</h4>
 
-  if (isPending) {
-    return 'loading...';
-  }
+    {workflow.detectorIds.length && (
+      <Fragment>
+        <h6>Connected Monitors</h6>
+        <CodeBlock language="javascript">
+          {JSON.stringify(workflow)}
+        </CodeBlock>
+        <ul>
+          {workflow.detectorIds.map(detectorId => (
+            <li key={detectorId}>
+              <a href="#">{detectorId}</a>
+            </li>
+          ))}
+        </ul>
+      </Fragment>
+    )}
+  </div>
+);
 
-  return (
-    <div>
-      <div>workflow id: {workflowId}</div>
-      <div>data: {JSON.stringify(automation)}</div>
-    </div>
-  );
-}
-*/
+const MOCK_WORKFLOW: Automation = {
+  id: '1234',
+  name: 'Mock Alert',
+  createdBy: 'Josh',
+  dateCreated: Date.now().toString(),
+  dateUpdated: Date.now().toString(),
+  lastTriggered: Date.now().toString(),
+  config: {
+    frequency: 10,
+  },
+  detectorIds: ['33', '732', '8'],
+  enabled: true,
+  environment: 'DEBUGGING -- TEST FIXTURE',
+  actionFilters: [],
+  triggers: null,
+};
 
 function AlertsDebug() {
   const [results, setResults] = useState<AlertDebugFormData>();
@@ -177,6 +201,7 @@ function AlertsDebug() {
 
   // TOOD make this be workflow and track with react query?
   const [workflowId, setWorkflowId] = useState<number>();
+  const [workflow, setWorkflow] = useState<Automation>();
 
   const updateApi = (data: AlertDebugFormData) => {
     // todo - send data to server rather than UI
@@ -186,7 +211,14 @@ function AlertsDebug() {
   const getAlert = (e: React.FormEvent) => {
     e.preventDefault();
     if (workflowRef.current) {
-      setWorkflowId(Number(workflowRef.current.value));
+      const currentWorkflowId = workflowRef.current.value;
+      setWorkflowId(Number(currentWorkflowId));
+
+      // TODO - update this to get data from the API in another component?
+      setWorkflow({
+        ...MOCK_WORKFLOW,
+        id: currentWorkflowId,
+      });
     }
   };
 
@@ -204,6 +236,12 @@ function AlertsDebug() {
         />
       </form>
 
+      {workflow && (
+        <div style={{marginTop: 16}}>
+          <AlertDetails workflow={workflow} />
+          <div style={{width: "100%", borderBottom: "1px solid #E0DCE5", margin: "64px 0"}} />
+        </div>
+      )}
       {workflowId && <AlertDebugForm onSubmit={updateApi} workflowId={workflowId} />}
       {results && <AlertDebugResults results={results} />}
     </div>
