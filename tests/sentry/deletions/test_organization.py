@@ -1,6 +1,9 @@
+from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
 
+from sentry.deletions.defaults.organization import OrganizationDeletionTask
+from sentry.deletions.manager import DeletionTaskManager
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.incidents.grouptype import MetricIssue
@@ -397,14 +400,16 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert not Workflow.objects.filter(id=workflow.id).exists()
 
     def test_overwatch_notification_on_deletion(self) -> None:
-        """Test that Overwatch notification is called when delete_instance is invoked"""
-        from sentry.deletions.defaults.organization import OrganizationDeletionTask
+        """Test that Overwatch notification is scheduled when organization is deleted"""
 
         org = self.create_organization(name="test")
         org_id = org.id
         org_slug = org.slug
 
-        deletion_task = OrganizationDeletionTask()
+        manager = DeletionTaskManager()
+        deletion_task = OrganizationDeletionTask(
+            manager=manager, model=Organization, query={"id": org_id}
+        )
 
         with patch(
             "sentry.deletions.defaults.organization.notify_overwatch_organization_deleted"
@@ -412,8 +417,8 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
             with patch(
                 "sentry.deletions.defaults.organization.transaction.on_commit"
             ) as mock_on_commit:
-                # Make on_commit execute the callback immediately for this specific call
-                def execute_callback(callback, using=None):
+
+                def execute_callback(callback: Any, using: Any = None) -> None:
                     callback()
 
                 mock_on_commit.side_effect = execute_callback
