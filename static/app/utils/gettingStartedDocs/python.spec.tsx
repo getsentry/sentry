@@ -107,6 +107,12 @@ describe('getPythonLogsOnboarding', () => {
 });
 
 describe('getPythonMetricsOnboarding', () => {
+  const mockParams = {
+    dsn: {
+      public: 'https://test@example.com/123',
+    },
+  };
+
   it('generates metrics onboarding config with default parameters', () => {
     const result = getPythonMetricsOnboarding();
 
@@ -115,6 +121,13 @@ describe('getPythonMetricsOnboarding', () => {
     expect(installSteps).toHaveLength(1);
     expect(installSteps[0].type).toBe('install');
     expect(installSteps[0].content).toHaveLength(2);
+
+    // Test configure step
+    const configureSteps = result.configure(mockParams);
+    expect(configureSteps).toHaveLength(1);
+    expect(configureSteps[0].type).toBe('configure');
+    expect(configureSteps[0].content[1].code).toContain('sentry_sdk.init');
+    expect(configureSteps[0].content[1].code).toContain(mockParams.dsn.public);
 
     // Test verify step
     const verifySteps = result.verify({isLogsSelected: true});
@@ -126,7 +139,7 @@ describe('getPythonMetricsOnboarding', () => {
     expect(conditionalContent[1].code).toContain('metrics.count');
   });
 
-  it('generates logs onboarding config with custom parameters', () => {
+  it('generates metrics onboarding config with custom parameters', () => {
     const result = getPythonLogsOnboarding({
       packageName: 'custom-sentry-sdk',
       minimumVersion: '3.0.0',
