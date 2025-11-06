@@ -2,7 +2,8 @@ import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';

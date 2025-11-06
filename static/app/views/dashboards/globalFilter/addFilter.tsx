@@ -76,7 +76,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
     ? Object.entries(filterKeys).flatMap(([_, tag]) => {
         const fieldDefinition = getFieldDefinitionForDataset(tag, selectedDataset);
         const valueType = fieldDefinition?.valueType;
-        if (!valueType || UNSUPPORTED_FIELD_VALUE_TYPES.includes(valueType)) {
+        if (valueType && UNSUPPORTED_FIELD_VALUE_TYPES.includes(valueType)) {
           return [];
         }
         fieldDefinitionMap.set(tag.key, fieldDefinition);
@@ -127,8 +127,9 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
 
             let defaultFilterValue = '';
             const fieldDefinition = fieldDefinitionMap.get(selectedFilterKey.key) ?? null;
+            const valueType = fieldDefinition?.valueType;
 
-            if (fieldDefinition?.valueType !== FieldValueType.STRING) {
+            if (valueType && valueType !== FieldValueType.STRING) {
               defaultFilterValue = getInitialFilterText(
                 selectedFilterKey.key,
                 fieldDefinition,

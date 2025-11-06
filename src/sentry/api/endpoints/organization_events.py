@@ -29,6 +29,10 @@ from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.search.eap.trace_metrics.config import (
+    TraceMetricsSearchResolverConfig,
+    get_trace_metric_from_request,
+)
 from sentry.search.eap.types import AdditionalQueries, FieldsACL, SearchResolverConfig
 from sentry.snuba import (
     discover,
@@ -527,7 +531,12 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     )
                 elif scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
-                    return SearchResolverConfig(
+                    metric_name, metric_type, metric_unit = get_trace_metric_from_request(request)
+
+                    return TraceMetricsSearchResolverConfig(
+                        metric_name=metric_name,
+                        metric_type=metric_type,
+                        metric_unit=metric_unit,
                         use_aggregate_conditions=use_aggregate_conditions,
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,

@@ -2,6 +2,7 @@ import logging
 
 from sentry.api.serializers import Serializer, register
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,9 @@ def get_input_channel_id(action_type, target_identifier=None):
 class AlertRuleTriggerActionSerializer(Serializer):
 
     def serialize(self, obj, attrs, user, **kwargs):
+        # Mark that we're using legacy AlertRuleTriggerAction models
+        report_used_legacy_models()
+
         from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 
         priority = (

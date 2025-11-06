@@ -49,35 +49,33 @@ export function renderResolutionReason({
     activity => activity.type === GroupActivityType.SET_RESOLVED_IN_RELEASE
   );
 
-  if (statusDetails.inNextRelease) {
-    // Resolved in next release has current_release_version (semver only)
-    if (relevantActivity && 'current_release_version' in relevantActivity.data) {
-      const version = (
-        <VersionHoverCard
-          organization={organization}
-          projectSlug={project.slug}
-          releaseVersion={relevantActivity.data.current_release_version}
-        >
-          <VersionComponent
-            version={relevantActivity.data.current_release_version}
-            projectId={project.id}
-          />
-        </VersionHoverCard>
-      );
-      return statusDetails.actor
-        ? tct(
-            '[actor] marked this issue as resolved in versions greater than [version].',
-            {
-              actor,
-              version,
-            }
-          )
-        : tct(
-            'This issue has been marked as resolved in versions greater than [version].',
-            {version}
-          );
-    }
+  // Resolved in next release has current_release_version (semver only)
+  if (relevantActivity && 'current_release_version' in relevantActivity.data) {
+    const releaseVersion =
+      statusDetails.inRelease ?? relevantActivity.data.current_release_version;
+    const version = (
+      <VersionHoverCard
+        organization={organization}
+        projectSlug={project.slug}
+        releaseVersion={releaseVersion}
+      >
+        <VersionComponent version={releaseVersion} projectId={project.id} />
+      </VersionHoverCard>
+    );
+    return statusDetails.actor
+      ? tct('[actor] marked this issue as resolved in versions greater than [version].', {
+          actor,
+          version,
+        })
+      : tct(
+          'This issue has been marked as resolved in versions greater than [version].',
+          {
+            version,
+          }
+        );
+  }
 
+  if (statusDetails.inNextRelease) {
     return actor
       ? tct('[actor] marked this issue as resolved in the upcoming release.', {
           actor,
