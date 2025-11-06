@@ -1,6 +1,7 @@
 import logging
+import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from sentry import eventstore
 from sentry.api import client
@@ -14,6 +15,8 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.replays.post_process import process_raw_response
+from sentry.replays.query import query_replay_instance
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
@@ -507,3 +510,44 @@ def get_issue_details(
         "project_id": int(serialized_group["project"]["id"]),
         "project_slug": serialized_group["project"]["slug"],
     }
+
+
+def get_replay_metadata(
+    *, replay_id: str, project_id: int, start: datetime | None = None, end: datetime | None = None
+) -> dict[str, Any] | None:
+    """
+    Get the metadata for a replay through an aggregate replay event query.
+
+    Args:
+        replay_id: The ID of the replay.
+        project_id: The ID of the project the replay belongs to.
+        start: The start time of the search range. Defaults to 90d ago.
+        end: The end time of the search range. Defaults to now.
+
+        For accurate results, the replay should start and end within the search range.
+
+    Returns:
+        A dict containing the metadata for the replay, or None if it's not found.
+        The return type is ReplayDetailsResponse.
+    """
+    try:
+        replay_id = str(uuid.UUID(replay_id))
+    except ValueError:
+        return None
+
+    default_start, default_end = default_start_end_dates()  # Default last 90d.
+    start = start or default_start
+    end = end or default_end
+
+    snuba_response = query_replay_instance(
+        project_id=project_id,
+        replay_id=replay_id,
+        start=start,
+        end=end,
+    )
+
+    response = process_raw_response(
+        snuba_response,
+        fields=[],
+    )
+    return cast(dict[str, Any], response[0]) if response else None
