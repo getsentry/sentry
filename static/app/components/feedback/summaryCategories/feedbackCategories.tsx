@@ -49,13 +49,19 @@ export default function FeedbackCategories() {
   const navigate = useNavigate();
   const organization = useOrganization();
 
+  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
+
   const hasWildcardOperators = organization.features.includes(
     'search-query-builder-wildcard-operators'
   );
 
   useEffect(() => {
     // Analytics for the rendered state. Should match the conditions below.
-    if (isPending || isOrgSeerSetupPending || !setupAcknowledgement.orgHasAcknowledged) {
+    if (
+      isPending ||
+      isOrgSeerSetupPending ||
+      (!skipConsentFlow && !setupAcknowledgement.orgHasAcknowledged)
+    ) {
       return;
     }
     if (isError) {
@@ -81,6 +87,7 @@ export default function FeedbackCategories() {
     isError,
     tooFewFeedbacks,
     categories,
+    skipConsentFlow,
     setupAcknowledgement.orgHasAcknowledged,
     isPending,
     isOrgSeerSetupPending,
@@ -103,7 +110,7 @@ export default function FeedbackCategories() {
     tooFewFeedbacks ||
     !categories ||
     categories.length === 0 ||
-    !setupAcknowledgement.orgHasAcknowledged
+    (!skipConsentFlow && !setupAcknowledgement.orgHasAcknowledged)
   ) {
     return null;
   }

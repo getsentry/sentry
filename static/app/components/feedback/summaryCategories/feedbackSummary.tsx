@@ -19,12 +19,14 @@ export default function FeedbackSummary() {
     useOrganizationSeerSetup();
   const organization = useOrganization();
 
+  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
+
   useEffect(() => {
     // Analytics for the rendered state. Should match the conditions below.
     if (isPending || isOrgSeerSetupPending) {
       return;
     }
-    if (!setupAcknowledgement.orgHasAcknowledged) {
+    if (!skipConsentFlow && !setupAcknowledgement.orgHasAcknowledged) {
       trackAnalytics('feedback.summary.seer-cta-rendered', {
         organization,
       });
@@ -46,6 +48,7 @@ export default function FeedbackSummary() {
     isError,
     tooFewFeedbacks,
     setupAcknowledgement.orgHasAcknowledged,
+    skipConsentFlow,
     isPending,
     isOrgSeerSetupPending,
   ]);
@@ -54,7 +57,7 @@ export default function FeedbackSummary() {
     return <LoadingPlaceholder />;
   }
 
-  if (!setupAcknowledgement.orgHasAcknowledged) {
+  if (!skipConsentFlow && !setupAcknowledgement.orgHasAcknowledged) {
     return (
       <SummaryContent>
         {tct(

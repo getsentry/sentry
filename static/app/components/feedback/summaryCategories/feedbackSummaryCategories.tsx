@@ -1,14 +1,17 @@
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link/link';
+
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {Disclosure} from 'sentry/components/core/disclosure';
 import {Flex} from 'sentry/components/core/layout';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
 import FeedbackSummary from 'sentry/components/feedback/summaryCategories/feedbackSummary';
 import {IconThumb} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -75,7 +78,19 @@ export default function FeedbackSummaryCategories() {
           }
         >
           <Flex gap="xs" align="center">
-            {t('Summary')} <FeatureBadge type="new" />
+            <Tooltip
+              title={tct(
+                `Powered by generative AI. Learn more about our [link:AI privacy principles].`,
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/" />
+                  ),
+                }
+              )}
+            >
+              {t('Summary')}
+            </Tooltip>
+            <FeatureBadge type="new" />
           </Flex>
         </Disclosure.Title>
         <Disclosure.Content>
