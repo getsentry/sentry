@@ -3,7 +3,7 @@ from unittest.mock import patch
 import orjson
 from botocore.exceptions import ClientError
 
-from data_forwarding.amazon_sqs.forwarder import AmazonSQSForwarder
+from sentry.integrations.data_forwarding.amazon_sqs.forwarder import AmazonSQSForwarder
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
