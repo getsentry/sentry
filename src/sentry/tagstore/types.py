@@ -131,8 +131,10 @@ class TagValueSerializerResponse(TagValueSerializerResponseOptional):
     name: str
     value: str
     count: int
-    lastSeen: str
-    firstSeen: str
+    # Empty values do not have last seen timestamps.
+    lastSeen: str | None
+    # Empty values do not have first seen timestamps.
+    firstSeen: str | None
 
 
 @register(GroupTagValue)
