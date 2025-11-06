@@ -328,7 +328,7 @@ def normalize_stacktraces_for_grouping(
         stripped_querystring = False
         for frames in stacktrace_frames:
             for frame in frames:
-                _update_frame(frame, platform)
+                _trim_function_name(frame, platform)
 
                 # Restore the original in_app value before applying in-app stacktrace rules. This
                 # lets us run grouping enhancers on the stacktrace multiple times, as would happen
@@ -386,7 +386,7 @@ def normalize_stacktraces_for_grouping(
     data["metadata"] = event_metadata
 
 
-def _update_frame(frame: dict[str, Any], platform: str | None) -> None:
+def _trim_function_name(frame: dict[str, Any], platform: str | None) -> None:
 
     if frame.get("raw_function") is not None:
         return
