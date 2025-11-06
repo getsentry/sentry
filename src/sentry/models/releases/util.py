@@ -41,7 +41,7 @@ class SemverFilter:
 
 
 class ReleaseQuerySet(BaseQuerySet["Release"]):
-    def annotate_prerelease_column(self):
+    def annotate_prerelease_column(self) -> Self:
         """
         Adds a `prerelease_case` column to the queryset which is used to properly sort
         by prerelease. We treat an empty (but not null) prerelease as higher than any
@@ -53,7 +53,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
             )
         )
 
-    def annotate_build_code_column(self):
+    def annotate_build_code_column(self) -> Self:
         """
         Adds a `build_code_case` column to the queryset which is used to properly sort
         by build number to match compare_version behavior:
@@ -127,7 +127,11 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
 
         Typically we build a `SemverFilter` via `sentry.search.events.filter.parse_semver`
         """
-        qs = self.filter(organization_id=organization_id).annotate_prerelease_column().annotate_build_code_column()  # type: ignore[attr-defined]
+        qs = (
+            self.filter(organization_id=organization_id)
+            .annotate_prerelease_column()
+            .annotate_build_code_column()
+        )
 
         query_func = "exclude" if semver_filter.negated else "filter"
 

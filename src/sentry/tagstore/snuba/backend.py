@@ -1051,9 +1051,9 @@ class SnubaTagStorage(TagStorage):
                     "release_id", flat=True
                 ),
             )
-            .annotate_prerelease_column()
+            .annotate_prerelease_column()  # type: ignore[attr-defined]
             .annotate_build_code_column()
-        )  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
+        )
 
     def _get_tag_values_for_semver(
         self,
