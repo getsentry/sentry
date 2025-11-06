@@ -166,7 +166,7 @@ function PaygCard({
                     }}
                   />
                 </Currency>
-                <Flex justify="between" align="center">
+                <Flex justify="between" align="center" gap="xl sm" wrap="wrap">
                   <Flex gap="sm" align="center">
                     <Button priority="primary" onClick={() => handleSubmit()}>
                       {t('Save')}
@@ -198,7 +198,7 @@ function PaygCard({
               </Flex>,
             ]
           : [
-              <Flex justify="between" align="start" key="title" width="100%">
+              <Flex justify="between" align="start" key="title" width="100%" gap="sm">
                 <Heading as="h2" size="lg">
                   {displayBudgetName(subscription.planDetails, {title: true})}
                 </Heading>

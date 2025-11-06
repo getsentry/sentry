@@ -1,15 +1,19 @@
 ---
-created: '2025-10-29T21:18:54.455969+00:00'
+created: '2025-11-03T21:48:49.370019+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "eb87c1031dba55b67df86fb9fff59dc6"
+  hash: "ef42635ff82b83bc711ed7c65b7cb189"
   contributing component: exception
   hint: None
   root_component:
     app*
       exception*
+        type*
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
         stacktrace*
           frame (non app frame)
             function*
@@ -32,18 +36,18 @@ app:
           frame (non app frame)
             function*
               "log::__private_api_log"
-        type*
-          "log_demo"
-        value (ignored because stacktrace takes precedence)
-          "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: "cb57cfc73cc622c2ac1386c9ea531fb9"
+  hash: "193a67f0b7f8b5a69f29dc6a259d47c3"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
         stacktrace*
           frame*
             function*
@@ -66,7 +70,3 @@ system:
           frame*
             function*
               "log::__private_api_log"
-        type*
-          "log_demo"
-        value (ignored because stacktrace takes precedence)
-          "Holy shit everything is on fire!"
