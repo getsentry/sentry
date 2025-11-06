@@ -1,15 +1,11 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueDetailsEventNavigation} from './issueDetailsEventNavigation';
 
 describe('IssueDetailsEventNavigation', () => {
-  const {organization, router} = initializeOrg();
   const group = GroupFixture({id: 'group-id'});
   const testEvent = EventFixture({
     id: 'event-id',
@@ -29,68 +25,87 @@ describe('IssueDetailsEventNavigation', () => {
     group,
   };
 
+  const initialRouterConfig = {
+    location: {
+      pathname: `/organizations/org-slug/issues/${group.id}/events/event-id/`,
+    },
+    route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+  };
+
   beforeEach(() => {
     jest.resetAllMocks();
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
+      url: `/organizations/org-slug/issues/${group.id}/tags/`,
       body: [],
     });
   });
 
   describe('recommended event tabs', () => {
     it('can navigate to the oldest event', async () => {
-      render(<IssueDetailsEventNavigation {...defaultProps} isSmallNav />, {
-        router,
-        deprecatedRouterMocks: true,
-      });
+      const {router} = render(
+        <IssueDetailsEventNavigation {...defaultProps} isSmallNav />,
+        {
+          initialRouterConfig,
+        }
+      );
 
       await userEvent.click(await screen.findByRole('tab', {name: 'First'}));
 
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
-        query: {referrer: 'oldest-event'},
-      });
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
+          query: {referrer: 'oldest-event'},
+        })
+      );
     });
 
     it('can navigate to the latest event', async () => {
-      render(<IssueDetailsEventNavigation {...defaultProps} isSmallNav />, {
-        router,
-        deprecatedRouterMocks: true,
-      });
+      const {router} = render(
+        <IssueDetailsEventNavigation {...defaultProps} isSmallNav />,
+        {
+          initialRouterConfig,
+        }
+      );
 
       await userEvent.click(await screen.findByRole('tab', {name: 'Latest'}));
 
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/issues/group-id/events/latest/',
-        query: {referrer: 'latest-event'},
-      });
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/group-id/events/latest/',
+          query: {referrer: 'latest-event'},
+        })
+      );
     });
 
     it('can navigate to the recommended event', async () => {
-      const recommendedEventRouter = RouterFixture({
-        params: {eventId: 'latest'},
-        location: LocationFixture({
-          pathname: `/organizations/org-slug/issues/group-id/events/latest/`,
-        }),
-      });
+      const recommendedEventRouterConfig = {
+        location: {
+          pathname: `/organizations/org-slug/issues/${group.id}/events/latest/`,
+        },
+        route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+      };
 
-      render(<IssueDetailsEventNavigation {...defaultProps} isSmallNav />, {
-        router: recommendedEventRouter,
-        deprecatedRouterMocks: true,
-      });
+      const {router} = render(
+        <IssueDetailsEventNavigation {...defaultProps} isSmallNav />,
+        {
+          initialRouterConfig: recommendedEventRouterConfig,
+        }
+      );
 
       await userEvent.click(await screen.findByRole('tab', {name: 'Rec.'}));
 
-      expect(recommendedEventRouter.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
-        query: {referrer: 'recommended-event'},
-      });
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
+          query: {referrer: 'recommended-event'},
+        })
+      );
     });
   });
 
   it('can navigate next/previous events', async () => {
     render(<IssueDetailsEventNavigation {...defaultProps} />, {
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
 
     expect(await screen.findByRole('button', {name: 'Previous Event'})).toHaveAttribute(
@@ -117,7 +132,7 @@ describe('IssueDetailsEventNavigation', () => {
       body: EventFixture(),
     });
     render(<IssueDetailsEventNavigation {...defaultProps} event={event} />, {
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
 
     expect(mockNextEvent).not.toHaveBeenCalled();
