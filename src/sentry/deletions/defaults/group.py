@@ -260,9 +260,8 @@ def update_group_hash_metadata_in_batches(hash_ids: Sequence[int]) -> int:
     if not metadata_ids:
         return 0
 
-    batch_size = options.get(
-        "deletions.group-hashes-metadata.update-seer-matched-grouphash-ids-batch-size", 1000
-    )
+    option_batch_size = options.get("deletions.group-hash-metadata.batch-size", 1000)
+    batch_size = max(1, option_batch_size)
     total_updated = 0
     for i in range(0, len(metadata_ids), batch_size):
         batch = metadata_ids[i : i + batch_size]

@@ -343,7 +343,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "deletions.group-hashes-metadata.update-seer-matched-grouphash-ids-batch-size",
+    "deletions.group-hash-metadata.batch-size",
     default=1000,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
