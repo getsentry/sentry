@@ -1,5 +1,5 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlags';
+import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
 
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
