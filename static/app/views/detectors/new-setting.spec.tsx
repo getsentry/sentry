@@ -187,6 +187,11 @@ describe('DetectorEdit', () => {
                     conditionResult: 75,
                     type: 'gt',
                   },
+                  {
+                    comparison: 100,
+                    conditionResult: 0,
+                    type: 'lt',
+                  },
                 ],
                 logicType: 'any',
               },
@@ -269,6 +274,11 @@ describe('DetectorEdit', () => {
                     conditionResult: 75,
                     type: 'gt',
                   },
+                  {
+                    comparison: 100,
+                    conditionResult: 0,
+                    type: 'lt',
+                  },
                 ],
                 logicType: 'any',
               },
@@ -336,7 +346,10 @@ describe('DetectorEdit', () => {
           expect.objectContaining({
             data: expect.objectContaining({
               conditionGroup: {
-                conditions: [{comparison: 100, conditionResult: 75, type: 'gt'}],
+                conditions: [
+                  {comparison: 100, conditionResult: 75, type: 'gt'},
+                  {comparison: 100, conditionResult: 0, type: 'lt'},
+                ],
                 logicType: 'any',
               },
               config: {detectionType: 'static', thresholdPeriod: 1},
@@ -412,6 +425,70 @@ describe('DetectorEdit', () => {
                 // Manual resolution condition at OK
                 {
                   comparison: 80,
+                  conditionResult: 0,
+                  type: 'lt',
+                },
+              ],
+            },
+          }),
+        })
+      );
+    });
+
+    it('uses medium threshold for default resolution when both high and medium are set', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '789'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: metricRouterConfig,
+      });
+
+      // Set High threshold to 100
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '100'
+      );
+
+      // Set Medium threshold to 50
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'Medium threshold'}),
+        '50'
+      );
+
+      // Don't select Custom - should use default resolution (which should use MEDIUM)
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalled();
+      });
+
+      expect(mockCreateDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: 'metric_issue',
+            conditionGroup: {
+              logicType: 'any',
+              conditions: [
+                // High priority condition
+                {
+                  comparison: 100,
+                  conditionResult: 75,
+                  type: 'gt',
+                },
+                // Medium priority condition
+                {
+                  comparison: 50,
+                  conditionResult: 50,
+                  type: 'gt',
+                },
+                // Default resolution condition uses MEDIUM threshold (50) with swapped operator
+                {
+                  comparison: 50,
                   conditionResult: 0,
                   type: 'lt',
                 },
