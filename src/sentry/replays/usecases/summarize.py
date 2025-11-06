@@ -500,8 +500,6 @@ def rpc_get_replay_summary_logs(
     project_id: int,
     replay_id: str,
     num_segments: int,
-    replay_start: datetime | None = None,
-    replay_end: datetime | None = None,
 ) -> dict[str, Any]:
     """
     RPC call for Seer. Downloads a replay's segment data, queries associated errors, and parses this into summary logs.
@@ -509,14 +507,10 @@ def rpc_get_replay_summary_logs(
 
     project = Project.objects.get(id=project_id)
 
-    # Default to last 90 days. If start/end are provided, fudge by 1 minute to account for clock skew and clamp to 90d.
+    # Look for the replay in the last 90 days.
     start, end = default_start_end_dates()
-    if replay_start:
-        start = max(replay_start - timedelta(minutes=1), datetime.now(UTC) - timedelta(days=90))
-    if replay_end:
-        end = min(replay_end + timedelta(minutes=1), datetime.now(UTC))
 
-    # Fetch the replay's error and trace IDs from the replay_id.
+    # Fetch the replay's error and trace IDs from the replay_id, as well as the start and end times.
     snuba_response = query_replay_instance(
         project_id=project.id,
         replay_id=replay_id,
@@ -539,6 +533,17 @@ def rpc_get_replay_summary_logs(
     trace_ids = processed_response[0].get("trace_ids", [])
     platform = processed_response[0].get("platform")
     is_mobile_replay = platform in MOBILE if platform else False
+
+    # Use the replay's start and end times to clamp the error queries. Fuzz 10s for clockskew.
+    replay_start = processed_response[0].get("started_at")
+    replay_end = processed_response[0].get("finished_at")
+    if replay_start:
+        start = max(
+            datetime.fromisoformat(replay_start) - timedelta(seconds=10),
+            datetime.now(UTC) - timedelta(days=90),
+        )
+    if replay_end:
+        end = min(datetime.fromisoformat(replay_end) + timedelta(seconds=10), datetime.now(UTC))
 
     # Fetch same-trace errors.
     trace_connected_errors = fetch_trace_connected_errors(
@@ -578,5 +583,4 @@ def rpc_get_replay_summary_logs(
 
     # Combine replay and error data and parse into logs.
     logs = get_summary_logs(segment_data, error_events, project.id, is_mobile_replay)
-
     return {"logs": logs}

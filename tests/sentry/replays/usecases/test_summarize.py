@@ -1095,7 +1095,7 @@ class RpcGetReplaySummaryLogsTestCase(
 
         # Create a direct error event that is not trace connected.
         direct_event_id = uuid.uuid4().hex
-        direct_error_timestamp = now.timestamp() - 2
+        direct_error_timestamp = (now - timedelta(minutes=5)).timestamp()
         self.store_event(
             data={
                 "event_id": direct_event_id,
@@ -1122,7 +1122,7 @@ class RpcGetReplaySummaryLogsTestCase(
 
         # Create a trace connected error event
         connected_event_id = uuid.uuid4().hex
-        connected_error_timestamp = now.timestamp() - 1
+        connected_error_timestamp = (now - timedelta(minutes=3)).timestamp()
         project_2 = self.create_project()
         self.store_event(
             data={
@@ -1147,100 +1147,11 @@ class RpcGetReplaySummaryLogsTestCase(
             project_id=project_2.id,
         )
 
-        # Store the replay with both error IDs and trace IDs
-        self.store_replay(
-            error_ids=[direct_event_id],
-            trace_ids=[trace_id],
-        )
-
-        data = [
-            {
-                "type": 5,
-                "timestamp": float(now.timestamp()),
-                "data": {
-                    "tag": "breadcrumb",
-                    "payload": {"category": "console", "message": "hello"},
-                },
-            }
-        ]
-        self.save_recording_segment(0, json.dumps(data).encode())
-
-        response = rpc_get_replay_summary_logs(
-            self.project.id,
-            self.replay_id,
-            1,
-        )
-
-        logs = response["logs"]
-        assert len(logs) == 3
-        assert any("ZeroDivisionError" in log for log in logs)
-        assert any("division by zero" in log for log in logs)
-        assert any("ConnectionError" in log for log in logs)
-        assert any("Failed to connect to database" in log for log in logs)
-
-    def test_rpc_explicit_start_end(self) -> None:
-        """This test is to ensure that the start/end times are correctly applied to the query."""
-        now = datetime.now(UTC)
-        trace_id = uuid.uuid4().hex
-        span_id = "1" + uuid.uuid4().hex[:15]
-
-        # Create a direct error event that is not trace connected.
-        direct_event_id = uuid.uuid4().hex
-        direct_error_timestamp = (now - timedelta(minutes=15)).timestamp()
-        self.store_event(
-            data={
-                "event_id": direct_event_id,
-                "timestamp": direct_error_timestamp,
-                "exception": {
-                    "values": [
-                        {
-                            "type": "ZeroDivisionError",
-                            "value": "division by zero",
-                        }
-                    ]
-                },
-                "contexts": {
-                    "replay": {"replay_id": self.replay_id},
-                    "trace": {
-                        "type": "trace",
-                        "trace_id": uuid.uuid4().hex,
-                        "span_id": span_id,
-                    },
-                },
-            },
-            project_id=self.project.id,
-        )
-
-        # Create a trace connected error event
-        connected_event_id = uuid.uuid4().hex
-        connected_error_timestamp = (now - timedelta(minutes=10)).timestamp()
-        project_2 = self.create_project()
-        self.store_event(
-            data={
-                "event_id": connected_event_id,
-                "timestamp": connected_error_timestamp,
-                "exception": {
-                    "values": [
-                        {
-                            "type": "ConnectionError",
-                            "value": "Failed to connect to database",
-                        }
-                    ]
-                },
-                "contexts": {
-                    "trace": {
-                        "type": "trace",
-                        "trace_id": trace_id,
-                        "span_id": span_id,
-                    }
-                },
-            },
-            project_id=project_2.id,
-        )
-
-        # Store the replay with both error IDs and trace IDs
+        # Store the replay with both error IDs and trace IDs in the time range
+        self.store_replay(dt=now - timedelta(minutes=10), segment_id=0, trace_ids=[trace_id])
         self.store_replay(
             dt=now - timedelta(minutes=1),
+            segment_id=1,
             error_ids=[direct_event_id],
             trace_ids=[trace_id],
         )
@@ -1248,7 +1159,7 @@ class RpcGetReplaySummaryLogsTestCase(
         data = [
             {
                 "type": 5,
-                "timestamp": float(now.timestamp()),
+                "timestamp": (now - timedelta(minutes=1)).timestamp() * 1000,
                 "data": {
                     "tag": "breadcrumb",
                     "payload": {"category": "console", "message": "hello"},
@@ -1257,36 +1168,12 @@ class RpcGetReplaySummaryLogsTestCase(
         ]
         self.save_recording_segment(0, json.dumps(data).encode())
 
-        # Replay out of range
         response = rpc_get_replay_summary_logs(
             self.project.id,
             self.replay_id,
             1,
-            replay_start=now - timedelta(days=30),
-            replay_end=now - timedelta(days=29),
         )
-        assert not response["logs"]
 
-        # Replay is in range but errors are not.
-        response = rpc_get_replay_summary_logs(
-            self.project.id,
-            self.replay_id,
-            1,
-            replay_start=now - timedelta(minutes=5),
-            replay_end=now,
-        )
-        logs = response["logs"]
-        assert len(logs) == 1
-        assert "hello" in logs[0]
-
-        # All events are in range.
-        response = rpc_get_replay_summary_logs(
-            self.project.id,
-            self.replay_id,
-            1,
-            replay_start=now - timedelta(days=90),
-            replay_end=now,
-        )
         logs = response["logs"]
         assert len(logs) == 3
         assert any("ZeroDivisionError" in log for log in logs)
@@ -1300,14 +1187,14 @@ class RpcGetReplaySummaryLogsTestCase(
         If the feedback is in Snuba (guaranteed for SDK v8.0.0+),
         it should be de-duped like in the duplicate_feedback test below."""
 
-        now = datetime.now(UTC)
+        dt = datetime.now(UTC) - timedelta(minutes=3)
         feedback_event_id = uuid.uuid4().hex
 
         self.store_event(
             data={
                 "type": "feedback",
                 "event_id": feedback_event_id,
-                "timestamp": now.timestamp(),
+                "timestamp": dt.timestamp(),
                 "contexts": {
                     "feedback": {
                         "contact_email": "josh.ferge@sentry.io",
@@ -1320,12 +1207,12 @@ class RpcGetReplaySummaryLogsTestCase(
             },
             project_id=self.project.id,
         )
-        self.store_replay()
+        self.store_replay(dt=dt)
 
         data = [
             {
                 "type": 5,
-                "timestamp": float(now.timestamp()),
+                "timestamp": dt.timestamp(),
                 "data": {
                     "tag": "breadcrumb",
                     "payload": {
@@ -1357,11 +1244,11 @@ class RpcGetReplaySummaryLogsTestCase(
         # Create regular error event - errors dataset
         event_id_1 = uuid.uuid4().hex
         trace_id_1 = uuid.uuid4().hex
-        timestamp_1 = (now - timedelta(minutes=2)).timestamp()
+        dt_1 = now - timedelta(minutes=5)
         self.store_event(
             data={
                 "event_id": event_id_1,
-                "timestamp": timestamp_1,
+                "timestamp": dt_1.timestamp(),
                 "exception": {
                     "values": [
                         {
@@ -1384,12 +1271,12 @@ class RpcGetReplaySummaryLogsTestCase(
         # Create feedback event - issuePlatform dataset
         event_id_2 = uuid.uuid4().hex
         trace_id_2 = uuid.uuid4().hex
-        timestamp_2 = (now - timedelta(minutes=5)).timestamp()
+        dt_2 = now - timedelta(minutes=2)
 
         feedback_data = {
             "type": "feedback",
             "event_id": event_id_2,
-            "timestamp": timestamp_2,
+            "timestamp": dt_2.timestamp(),
             "contexts": {
                 "feedback": {
                     "contact_email": "test@example.com",
@@ -1411,12 +1298,13 @@ class RpcGetReplaySummaryLogsTestCase(
         )
 
         # Store the replay with all trace IDs
-        self.store_replay(trace_ids=[trace_id_1, trace_id_2])
+        self.store_replay(dt=dt_1, segment_id=0, trace_ids=[trace_id_1])
+        self.store_replay(dt=dt_2, segment_id=1, trace_ids=[trace_id_2])
 
         data = [
             {
                 "type": 5,
-                "timestamp": 0.0,
+                "timestamp": dt_1.timestamp() * 1000 + 3000,
                 "data": {
                     "tag": "breadcrumb",
                     "payload": {"category": "console", "message": "hello"},
@@ -1434,14 +1322,14 @@ class RpcGetReplaySummaryLogsTestCase(
         logs = response["logs"]
         assert len(logs) == 3
 
-        # Verify that feedback event is included
-        assert "Great website" in logs[1]
-        assert "User submitted feedback" in logs[1]
-
         # Verify that regular error event is included
-        assert "ValueError" in logs[2]
-        assert "Invalid input" in logs[2]
-        assert "User experienced an error" in logs[2]
+        assert "ValueError" in logs[1]
+        assert "Invalid input" in logs[1]
+        assert "User experienced an error" in logs[1]
+
+        # Verify that feedback event is included
+        assert "Great website" in logs[2]
+        assert "User submitted feedback" in logs[2]
 
     @patch("sentry.replays.usecases.summarize.fetch_feedback_details")
     def test_rpc_with_trace_errors_duplicate_feedback(
@@ -1506,7 +1394,8 @@ class RpcGetReplaySummaryLogsTestCase(
             feedback_data_2, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
 
-        self.store_replay(trace_ids=[trace_id, trace_id_2])
+        self.store_replay(dt=now - timedelta(minutes=10), segment_id=0, trace_ids=[trace_id])
+        self.store_replay(dt=now - timedelta(minutes=1), segment_id=1, trace_ids=[trace_id_2])
 
         # mock SDK feedback event with same event_id as the first feedback event
         data = [
