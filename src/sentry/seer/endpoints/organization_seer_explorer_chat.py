@@ -12,7 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.explorer.client import continue_seer_run, get_seer_run, start_seer_run
+from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,8 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             return Response({"session": None}, status=404)
 
         try:
-            state = get_seer_run(run_id=int(run_id), organization=organization, user=request.user)
+            client = SeerExplorerClient(organization, request.user)
+            state = client.get_run(run_id=int(run_id))
             return Response({"session": state.dict()})
         except ValueError:
             return Response({"session": None}, status=404)
@@ -107,22 +108,19 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         on_page_context = validated_data.get("on_page_context")
 
         # Use client to start or continue run
+        client = SeerExplorerClient(organization, request.user)
         if run_id:
             # Continue existing conversation
-            result_run_id = continue_seer_run(
+            result_run_id = client.continue_run(
                 run_id=int(run_id),
-                organization=organization,
                 prompt=query,
-                user=request.user,
                 insert_index=insert_index,
                 on_page_context=on_page_context,
             )
         else:
             # Start new conversation
-            result_run_id = start_seer_run(
-                organization=organization,
+            result_run_id = client.start_run(
                 prompt=query,
-                user=request.user,
                 on_page_context=on_page_context,
             )
         return Response({"run_id": result_run_id})

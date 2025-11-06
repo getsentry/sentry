@@ -5,7 +5,7 @@ Pydantic models for Seer Explorer client.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -50,6 +50,8 @@ class SeerRunState(BaseModel):
     blocks: list[MemoryBlock]
     status: Literal["processing", "completed", "error"]
     updated_at: str
+    artifact: dict[str, Any] | BaseModel | None = None
+    artifact_reason: str | None = None
 
     class Config:
         extra = "allow"
