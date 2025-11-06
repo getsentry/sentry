@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.incidents.utils.process_update_helpers import calculate_event_date_from_update_date
 from sentry.models.groupopenperiod import GroupOpenPeriod, get_last_checked_for_open_period
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.types.group import PriorityLevel
@@ -61,10 +62,15 @@ class GroupOpenPeriodSerializer(Serializer):
     def serialize(
         self, obj: GroupOpenPeriod, attrs: Mapping[str, Any], user, **kwargs
     ) -> GroupOpenPeriodResponse:
+        time_window = kwargs.get("time_window", 0)
         return GroupOpenPeriodResponse(
             id=str(obj.id),
-            start=obj.date_started,
-            end=obj.date_ended,
+            start=calculate_event_date_from_update_date(obj.date_started, time_window),
+            end=(
+                calculate_event_date_from_update_date(obj.date_ended, time_window)
+                if obj.date_ended is not None
+                else None
+            ),
             isOpen=obj.date_ended is None,
             lastChecked=get_last_checked_for_open_period(obj.group),
             activities=attrs.get("activities"),
