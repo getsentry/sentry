@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Iterable
 
 import sentry_sdk
 from django.db.models import Q, QuerySet
@@ -29,7 +29,7 @@ def _get_all_related_redirects_query(
 
 
 def get_all_merged_group_ids(
-    group_ids: Sequence[str | int], threshold=SIZE_THRESHOLD_FOR_CLICKHOUSE
+    group_ids: Iterable[str | int], threshold=SIZE_THRESHOLD_FOR_CLICKHOUSE
 ) -> set[str | int]:
     with sentry_sdk.start_span(op="get_all_merged_group_ids") as span:
         group_id_set = set(group_ids)
@@ -47,7 +47,6 @@ def get_all_merged_group_ids(
                 # each iteration, it's fine if we're a bit over. That's negligible compared
                 # to the scale-of-thousands Clickhouse threshold.
                 threshold_breaker_set = group_id_set.copy()
-                break
 
         out = group_id_set if threshold_breaker_set is None else threshold_breaker_set
 
