@@ -9,7 +9,10 @@ from sentry.incidents.logic import enable_disable_subscriptions
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.seer.anomaly_detection.delete_rule import delete_data_in_seer_for_detector
-from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
+from sentry.seer.anomaly_detection.store_data_workflow_engine import (
+    send_new_detector_data,
+    update_detector_data,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.models import (
@@ -308,6 +311,27 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         if data_source is not None:
             self.update_data_source(instance, data_source)
 
+        # Handle anomaly detection changes
+        detection_type = instance.config.get("detection_type")
+        if (
+            (
+                not detection_type == AlertRuleDetectionType.DYNAMIC
+                and validated_data.get("config", {}).get("detection_type")
+                == AlertRuleDetectionType.DYNAMIC
+            )
+            or (
+                detection_type == AlertRuleDetectionType.DYNAMIC
+                and data_source.query != validated_data.get("dataSources", {}).get("query")
+                # and (data_source.query is not None or data_source.aggregate is not None)
+            )
+            or (
+                detection_type == AlertRuleDetectionType.DYNAMIC
+                and data_source.aggregate != validated_data.get("dataSources", {}).get("aggregate")
+            )
+        ):
+            # detector has been changed to become a dynamic detector OR the snubaquery has changed on a dynamic detector
+            update_detector_data(instance, data_source)
+
         instance.save()
 
         schedule_update_project_config(instance)
@@ -325,10 +349,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             try:
                 send_new_detector_data(detector)
             except Exception:
-                # Sending historical data failed; Detector won't be save, but we
+                # Sending historical data failed; Detector won't be saved, but we
                 # need to clean up database state that has already been created.
                 detector.workflow_condition_group.delete()
-
                 raise
 
         schedule_update_project_config(detector)

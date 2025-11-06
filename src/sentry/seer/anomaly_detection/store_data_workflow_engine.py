@@ -30,7 +30,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 from sentry.workflow_engine.models import DataCondition, DataSource, DataSourceDetector, Detector
-from sentry.workflow_engine.types import DetectorException
+from sentry.workflow_engine.types import DetectorException, SnubaQueryDataSourceType
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,67 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
+
+
+def update_detector_data(detector: Detector, data_source: SnubaQueryDataSourceType) -> None:
+    try:
+        data_source = DataSourceDetector.objects.get(detector_id=detector.id).data_source
+    except DataSourceDetector.DoesNotExist:
+        raise Exception("Could not update detector, data source detector not found.")
+    try:
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+    except QuerySubscription.DoesNotExist:
+        raise Exception("Could not update detector, query subscription not found.")
+    try:
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
+    except SnubaQuery.DoesNotExist:
+        raise Exception("Could not update detector, snuba query not found.")
+    try:
+        data_condition = DataCondition.objects.get(
+            condition_group=detector.workflow_condition_group
+        )
+    except (DataCondition.DoesNotExist, DataCondition.MultipleObjectsReturned):
+        # there should only ever be one data condition for a dynamic metric detector, we dont actually expect a MultipleObjectsReturned
+        dcg_id = (
+            detector.workflow_condition_group.id
+            if detector.workflow_condition_group is not None
+            else None
+        )
+        raise DetectorException(
+            f"Could not create detector, data condition {dcg_id} not found or too many found."
+        )
+    # use setattr to avoid saving the detector until the Seer call has successfully finished,
+    # otherwise the detector would be in a bad state
+    for k, v in data_source.items():
+        setattr(data_source, k, v)
+
+    for k, v in data_source.items():
+        if k == "dataset":
+            v = v.value
+        elif k == "time_window":
+            time_window = data_source.get("time_window")
+            v = (
+                int(time_window.total_seconds())
+                if time_window is not None
+                else snuba_query.time_window
+            )
+        elif k == "event_types":
+            continue
+        setattr(snuba_query, k, v)
+
+    try:
+        handle_send_historical_data_to_seer(
+            detector,
+            data_source,
+            data_condition,
+            snuba_query,
+            detector.project,
+            SeerMethod.UPDATE,
+            data_source.event_types,
+        )
+    except (TimeoutError, MaxRetryError, ParseError, ValidationError):
+        raise ValidationError("Couldn't send data to Seer, unable to update detector")
+    metrics.incr("anomaly_detection_monitor.updated")
 
 
 def send_new_detector_data(detector: Detector) -> None:
