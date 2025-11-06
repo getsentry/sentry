@@ -1,126 +1,17 @@
 import {ExternalLink} from 'sentry/components/core/link';
-import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
-import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import {widgetCalloutBlock} from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
-import {tracePropagationBlock} from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
   ContentBlock,
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {
-  getCrashReportJavaScriptInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-  getFeedbackConfigOptions,
-  getFeedbackConfigureDescription,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  getReplayConfigOptions,
-  getReplayConfigureDescription,
-  getReplayVerifyStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
 import {t, tct} from 'sentry/locale';
-import {
-  getJavascriptLogsFullStackOnboarding,
-  getJavascriptProfilingOnboarding,
-} from 'sentry/utils/gettingStartedDocs/javascript';
-import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
-type Params = DocsParams;
+import {getSdkClientSetupSnippet, installSnippetBlock} from './utils';
 
-const getIntegrations = (params: Params): string[] => {
-  const integrations = [];
-  if (params.isPerformanceSelected) {
-    integrations.push(`solidRouterBrowserTracingIntegration()`);
-  }
-
-  if (params.isProfilingSelected) {
-    integrations.push(`Sentry.browserProfilingIntegration()`);
-  }
-
-  if (params.isReplaySelected) {
-    integrations.push(
-      `Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)})`
-    );
-  }
-
-  if (params.isFeedbackSelected) {
-    integrations.push(
-      `
-        Sentry.feedbackIntegration({
-          // Additional SDK configuration goes in here, for example:
-          colorScheme: "system",
-          ${getFeedbackConfigOptions(params.feedbackOptions)}
-        })`
-    );
-  }
-
-  return integrations;
-};
-
-const getDynamicParts = (params: Params): string[] => {
-  const dynamicParts: string[] = [];
-
-  if (params.isPerformanceSelected) {
-    dynamicParts.push(`
-      // Tracing
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions
-      // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
-  }
-
-  if (params.isReplaySelected) {
-    dynamicParts.push(`
-      // Session Replay
-      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-      replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
-  }
-
-  if (params.isProfilingSelected) {
-    dynamicParts.push(`
-        // Set profilesSampleRate to 1.0 to profile every transaction.
-        // Since profilesSampleRate is relative to tracesSampleRate,
-        // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
-        // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
-        // results in 25% of transactions being profiled (0.5*0.5=0.25)
-        profilesSampleRate: 1.0`);
-  }
-
-  return dynamicParts;
-};
-
-const getSdkClientSetupSnippet = (params: Params) => {
-  const config = buildSdkConfig({
-    params,
-    staticParts: [
-      `dsn: "${params.dsn.public}"`,
-      `// Setting this option to true will send default PII data to Sentry.
-      // For example, automatic IP address collection on events
-      sendDefaultPii: true`,
-    ],
-    getIntegrations,
-    getDynamicParts,
-  });
-
+function getSdkServerSetupSnippet(params: DocsParams) {
   return `
-import * as Sentry from "@sentry/solidstart";
-${params.isPerformanceSelected ? 'import { solidRouterBrowserTracingIntegration } from "@sentry/solidstart/solidrouter";' : ''}
-import { mount, StartClient } from "@solidjs/start/client";
-
-Sentry.init({
-  ${config}
-});
-
-mount(() => <StartClient />, document.getElementById("app"));
-`;
-};
-
-const getSdkServerSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/solidstart";
 
 Sentry.init({
@@ -149,6 +40,7 @@ Sentry.init({
   sendDefaultPii: true,
 });
 `;
+}
 
 const getSdkMiddlewareSetup = () => `
 import { sentryBeforeResponseMiddleware } from '@sentry/solidstart/middleware';
@@ -206,28 +98,7 @@ const getVerifySnippet = () => `
   Throw error
 </button>`;
 
-const installSnippetBlock: ContentBlock = {
-  type: 'code',
-  tabs: [
-    {
-      label: 'npm',
-      language: 'bash',
-      code: 'npm install --save @sentry/solidstart',
-    },
-    {
-      label: 'yarn',
-      language: 'bash',
-      code: 'yarn add @sentry/solidstart',
-    },
-    {
-      label: 'pnpm',
-      language: 'bash',
-      code: `pnpm add @sentry/solidstart`,
-    },
-  ],
-};
-
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
       "In this quick guide you'll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:",
@@ -252,7 +123,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -435,151 +306,3 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-const replayOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'You need a minimum version 8.9.1 of [code:@sentry/solid] in order to use Session Replay. You do not need to install any additional packages.',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        installSnippetBlock,
-      ],
-    },
-  ],
-  configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getReplayConfigureDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/solid/session-replay/',
-          }),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: getSdkClientSetupSnippet(params),
-            },
-          ],
-        },
-        tracePropagationBlock,
-      ],
-    },
-  ],
-  verify: getReplayVerifyStep(),
-  nextSteps: () => [],
-};
-
-const feedbackOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/solid]) installed, minimum version 7.85.0.',
-            {
-              code: <code />,
-            }
-          ),
-        },
-        installSnippetBlock,
-      ],
-    },
-  ],
-  configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getFeedbackConfigureDescription({
-            linkConfig:
-              'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/configuration/',
-            linkButton:
-              'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/configuration/#bring-your-own-button',
-          }),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: getSdkClientSetupSnippet(params),
-            },
-          ],
-        },
-        {
-          type: 'custom',
-          content: crashReportCallout({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-        widgetCalloutBlock({
-          link: 'https://docs.sentry.io/platforms/javascript/guides/solid/user-feedback/#user-feedback-widget',
-        }),
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const profilingOnboarding = getJavascriptProfilingOnboarding({
-  installSnippetBlock,
-  docsLink:
-    'https://docs.sentry.io/platforms/javascript/guides/solidstart/profiling/browser-profiling/',
-});
-
-const docs: Docs = {
-  onboarding,
-  feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboarding,
-  crashReportOnboarding,
-  featureFlagOnboarding: featureFlag,
-  profilingOnboarding,
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    packageName: '@sentry/solidstart',
-    configFileName: 'instrument.server.mjs',
-  }),
-  logsOnboarding: getJavascriptLogsFullStackOnboarding({
-    docsPlatform: 'solidstart',
-    packageName: '@sentry/solidstart',
-  }),
-};
-
-export default docs;
