@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
@@ -12,8 +13,11 @@ import {
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
 import {
   HeadSortCell,
@@ -65,6 +69,7 @@ function getLastInputMessage(messages?: string) {
 
 const REQUIRED_FIELDS = [
   SpanFields.SPAN_STATUS,
+  SpanFields.PROJECT,
   SpanFields.TIMESTAMP,
   SpanFields.TRACE,
   SpanFields.SPAN_ID,
@@ -79,6 +84,9 @@ export function GenerationsTable() {
   const {cursor} = useTableCursor();
   const {tableSort} = useTableSort(DEFAULT_SORT);
   const [fields] = useFieldsQueryParam();
+  const location = useLocation();
+  const organization = useOrganization();
+  const theme = useTheme();
 
   const fieldsToQuery = useMemo(() => {
     return [
@@ -89,7 +97,7 @@ export function GenerationsTable() {
     ];
   }, [fields]);
 
-  const {data, isLoading, error, pageLinks, isPlaceholderData} = useSpans(
+  const {data, meta, isLoading, error, pageLinks, isPlaceholderData} = useSpans(
     {
       search: query,
       fields: [...REQUIRED_FIELDS, ...fieldsToQuery] as any,
@@ -188,13 +196,19 @@ export function GenerationsTable() {
       if (column.key === SpanFields.TIMESTAMP) {
         return (
           <TextAlignRight>
-            <TimeSince unitStyle="extraShort" date={new Date(dataRow.timestamp!)} />
+            <TimeSince unitStyle="short" date={new Date(dataRow.timestamp!)} />
           </TextAlignRight>
         );
       }
-      return <div>{dataRow[column.key]}</div>;
+      const fieldRenderer = getFieldRenderer(column.key, meta!);
+      return fieldRenderer(dataRow, {
+        location,
+        organization,
+        theme,
+        projectSlug: dataRow.project,
+      });
     },
-    [openTraceViewDrawer]
+    [openTraceViewDrawer, meta, location, organization, theme]
   );
 
   const renderHeadCell = useCallback(
