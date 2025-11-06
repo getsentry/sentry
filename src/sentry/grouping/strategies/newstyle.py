@@ -657,7 +657,7 @@ def chained_exception(
     # Filter the exceptions according to rules for handling exception groups.
     try:
         exceptions = filter_exceptions_for_exception_groups(
-            all_exceptions, exception_components_by_exception, event
+            all_exceptions, exception_components_by_exception, event, context
         )
     except Exception:
         # We shouldn't have exceptions here. But if we do, just record it and continue with the
@@ -722,6 +722,7 @@ def filter_exceptions_for_exception_groups(
     exceptions: list[SingleException],
     exception_components: dict[int, dict[str, ExceptionGroupingComponent]],
     event: Event,
+    context: GroupingContext,
 ) -> list[SingleException]:
     # This function only filters exceptions if there are at least two exceptions.
     if len(exceptions) <= 1:
