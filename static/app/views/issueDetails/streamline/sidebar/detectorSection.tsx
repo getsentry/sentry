@@ -55,7 +55,7 @@ export function getDetectorDetails({
         }),
         // TODO(issues): We can probably enrich this description with details from the alert itself.
         description: t(
-          'This issue was created by a metric alert detector. View the detector details to learn more.'
+          'This issue was created by a metric monitor. View the monitor details to learn more.'
         ),
       };
     }
@@ -66,7 +66,7 @@ export function getDetectorDetails({
       detectorId,
       detectorPath: makeMonitorDetailsPathname(organization.slug, detectorId),
       description: t(
-        'This issue was created by a metric alert detector. View the detector details to learn more.'
+        'This issue was created by a metric monitor. View the monitor details to learn more.'
       ),
     };
   }
