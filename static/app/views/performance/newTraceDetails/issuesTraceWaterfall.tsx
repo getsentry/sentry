@@ -258,10 +258,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     if (index === -1 || !node) {
       const hasScrollComponent = !!props.event.eventID;
       if (hasScrollComponent) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-view-issesu-scroll-to-node-error']);
-          scope.captureMessage('Failed to scroll to node in issues trace tree');
-        });
+        Sentry.logger.warn('Failed to scroll to node in issues trace tree');
       }
 
       return;
