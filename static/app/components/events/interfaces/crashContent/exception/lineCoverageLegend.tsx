@@ -8,25 +8,31 @@ import {Coverage} from 'sentry/types/integrations';
 export function LineCoverageLegend() {
   return (
     <Flex gap="2xl" align="center" direction="row" wrap="wrap">
-      <LegendEntry paddingRight="md" borderRight="success">
+      <SolidLegendEntry paddingRight="md" borderRight="success">
         <Text size="sm" wrap="nowrap">
           {COVERAGE_TEXT[Coverage.COVERED]}
         </Text>
-      </LegendEntry>
-      <LegendEntry paddingRight="md" borderRight="danger">
+      </SolidLegendEntry>
+      <SolidLegendEntry paddingRight="md" borderRight="danger">
         <Text size="sm" wrap="nowrap">
           {COVERAGE_TEXT[Coverage.NOT_COVERED]}
         </Text>
-      </LegendEntry>
-      <LegendEntry paddingRight="md" borderRight="warning">
+      </SolidLegendEntry>
+      <DashedLegendEntry paddingRight="md" borderRight="warning">
         <Text size="sm" wrap="nowrap">
           {COVERAGE_TEXT[Coverage.PARTIAL]}
         </Text>
-      </LegendEntry>
+      </DashedLegendEntry>
     </Flex>
   );
 }
 
-const LegendEntry = styled(Container)`
+const SolidLegendEntry = styled(Container)`
   border-right-width: 3px;
+  border-right-style: solid;
+`;
+
+const DashedLegendEntry = styled(Container)`
+  border-right-width: 3px;
+  border-right-style: dashed;
 `;
