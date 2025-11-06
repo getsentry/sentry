@@ -9,18 +9,17 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import projectSecurityAndPrivacyGroups from 'sentry/data/forms/projectSecurityAndPrivacyGroups';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import useOrganization from 'sentry/utils/useOrganization';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-type Props = {
-  organization: Organization;
-  project: Project;
-};
+export default function ProjectSecurityAndPrivacy() {
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
 
-export default function ProjectSecurityAndPrivacy({organization, project}: Props) {
   function handleUpdateProject(data: Project) {
     // This will update our project global state
     ProjectsStore.onUpdateSuccess(data);

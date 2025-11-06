@@ -35,6 +35,7 @@ describe('ProjectTags', () => {
   it('renders', () => {
     render(<ProjectTags />, {
       organization: org,
+      outletContext: {project},
       initialRouterConfig: {
         location: {
           pathname: `/settings/projects/${project.slug}/tags/`,
@@ -59,6 +60,7 @@ describe('ProjectTags', () => {
 
     render(<ProjectTags />, {
       organization: org,
+      outletContext: {project},
       initialRouterConfig: {
         location: {
           pathname: `/settings/projects/${project.slug}/tags/`,
@@ -72,6 +74,7 @@ describe('ProjectTags', () => {
   it('disables delete button for users without access', async () => {
     render(<ProjectTags />, {
       organization: OrganizationFixture({access: []}),
+      outletContext: {project},
       initialRouterConfig: {
         location: {
           pathname: `/settings/projects/${project.slug}/tags/`,
@@ -88,6 +91,7 @@ describe('ProjectTags', () => {
   it('deletes tag', async () => {
     render(<ProjectTags />, {
       organization: org,
+      outletContext: {project},
       initialRouterConfig: {
         location: {
           pathname: `/settings/projects/${project.slug}/tags/`,

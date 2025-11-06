@@ -8,23 +8,18 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {hasTempestAccess} from 'sentry/utils/tempest/features';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 import {RequestSdkAccessButton} from 'sentry/views/settings/project/tempest/RequestSdkAccessButton';
 
 import DevKitSettings from './DevKitSettings';
 import PlayStationSettings from './PlayStationSettings';
-
-interface Props {
-  organization: Organization;
-  project: Project;
-}
 
 type Tab = 'retail' | 'devkit-crashes';
 
@@ -35,7 +30,9 @@ const TAB_LABELS: Record<Tab, string> = {
 
 const PS5_WARNING_DISMISS_KEY = 'tempest-ps5-warning-dismissed';
 
-export default function TempestSettings({organization, project}: Props) {
+export default function TempestSettings() {
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
   const location = useLocation();
   const navigate = useNavigate();
   const {dismiss: dismissPS5Warning, isDismissed: isPS5WarningDismissed} =

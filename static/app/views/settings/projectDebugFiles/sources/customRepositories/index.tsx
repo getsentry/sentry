@@ -15,10 +15,10 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import Repository from './repository';
 import {dropDownItems, expandKeys, getRequestMessages} from './utils';
@@ -29,17 +29,16 @@ type Props = {
   location: Location;
   organization: Organization;
   project: Project;
-  router: InjectedRouter;
 };
 
-function CustomRepositories({
+export default function CustomRepositories({
   api,
   organization,
   customRepositories: repositories,
   project,
-  router,
   location,
 }: Props) {
+  const navigate = useNavigate();
   const orgSlug = organization.slug;
 
   const persistData = useCallback(
@@ -95,14 +94,14 @@ function CustomRepositories({
   );
 
   const handleCloseModal = useCallback(() => {
-    router.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
         customRepository: undefined,
       },
     });
-  }, [location, router]);
+  }, [location, navigate]);
 
   const openDebugFileSourceDialog = useCallback(() => {
     const {customRepository} = location.query;
@@ -155,7 +154,7 @@ function CustomRepositories({
   }
 
   function handleEditRepository(repoId: CustomRepo['id']) {
-    router.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
@@ -220,5 +219,3 @@ function CustomRepositories({
     </Feature>
   );
 }
-
-export default CustomRepositories;

@@ -16,7 +16,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import type {Artifact, Release} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
@@ -24,6 +23,8 @@ import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {DebugIdBundleDeleteButton} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDeleteButton';
@@ -100,27 +101,30 @@ function ArtifactsTableRow({
   );
 }
 
-type Props = RouteComponentProps<{bundleId: string; orgId: string; projectId: string}> & {
+type Props = {
+  bundleId: string;
   project: Project;
 };
 
-export function SourceMapsDetails({params, location, router, project}: Props) {
+export function SourceMapsDetails({bundleId, project}: Props) {
   const api = useApi();
   const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // query params
   const query = decodeScalar(location.query.query);
-  const cursor = location.query.cursor ?? '';
+  const cursor = decodeScalar(location.query.cursor);
 
   // endpoints
   const artifactsEndpoint = `/projects/${organization.slug}/${
     project.slug
-  }/releases/${encodeURIComponent(params.bundleId)}/files/`;
+  }/releases/${encodeURIComponent(bundleId)}/files/`;
   const debugIdBundlesArtifactsEndpoint = `/projects/${organization.slug}/${
     project.slug
-  }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/`;
+  }/artifact-bundles/${encodeURIComponent(bundleId)}/files/`;
 
-  const isDebugIdBundle = isUUID(params.bundleId);
+  const isDebugIdBundle = isUUID(bundleId);
 
   const {
     data: artifactsData,
@@ -201,7 +205,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
 
   const {mutate: deleteDebugIdArtifacts} = useDeleteDebugIdBundle({
     onSuccess: () =>
-      router.push(`/settings/${organization.slug}/projects/${project.slug}/source-maps/`),
+      navigate(`/settings/${organization.slug}/projects/${project.slug}/source-maps/`),
   });
 
   const handleDeleteDebugIdBundle = useCallback(() => {
@@ -216,26 +220,24 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
 
   const handleSearch = useCallback(
     (newQuery: string) => {
-      router.push({
+      navigate({
         ...location,
         query: {...location.query, cursor: undefined, query: newQuery},
       });
     },
-    [router, location]
+    [navigate, location]
   );
 
   return (
     <Fragment>
       <SettingsPageHeader
-        title={isDebugIdBundle ? params.bundleId : t('Release Bundle')}
+        title={isDebugIdBundle ? bundleId : t('Release Bundle')}
         action={
           isDebugIdBundle && (
             <DebugIdBundleDeleteButton size="sm" onDelete={handleDeleteDebugIdBundle} />
           )
         }
-        subtitle={
-          !isDebugIdBundle && <VersionAndDetails>{params.bundleId}</VersionAndDetails>
-        }
+        subtitle={!isDebugIdBundle && <VersionAndDetails>{bundleId}</VersionAndDetails>}
       />
       {isDebugIdBundle && debugIdBundlesArtifactsData && (
         <DetailsPanel>
@@ -275,7 +277,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
           ? (debugIdBundlesArtifactsData?.files ?? []).map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
                 project.slug
-              }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/${
+              }/artifact-bundles/${encodeURIComponent(bundleId)}/files/${
                 data.id
               }/?download=1`;
 
@@ -309,9 +311,7 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
           : artifactsData?.map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
                 project.slug
-              }/releases/${encodeURIComponent(params.bundleId)}/files/${
-                data.id
-              }/?download=1`;
+              }/releases/${encodeURIComponent(bundleId)}/files/${data.id}/?download=1`;
 
               return (
                 <ArtifactsTableRow

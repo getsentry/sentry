@@ -3,30 +3,21 @@ import {Fragment, useEffect} from 'react';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useParams} from 'sentry/utils/useParams';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import ProjectPlugins from './projectPlugins';
 import {useTogglePluginMutation} from './useTogglePluginMutation';
 
-type Props = RouteComponentProps<{projectId: string}> & {
-  organization: Organization;
-  project: Project;
-};
+export default function ProjectPluginsContainer() {
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
 
-export default function ProjectPluginsContainer({
-  organization,
-  project,
-  ...props
-}: Props) {
-  const {projectId} = useParams<{projectId: string}>();
-  const pluginsQueryKey = `/projects/${organization.slug}/${projectId}/plugins/`;
+  const pluginsQueryKey = `/projects/${organization.slug}/${project.slug}/plugins/`;
 
   const {
     data: plugins = [],
@@ -56,7 +47,7 @@ export default function ProjectPluginsContainer({
   }, [plugins, organization]);
 
   const togglePluginMutation = useTogglePluginMutation({
-    projectSlug: projectId,
+    projectSlug: project.slug,
   });
 
   const title = t('Legacy Integrations');
@@ -68,7 +59,6 @@ export default function ProjectPluginsContainer({
       <ProjectPermissionAlert project={project} />
 
       <ProjectPlugins
-        {...props}
         organization={organization}
         project={project}
         onChange={(pluginId, shouldEnable) =>

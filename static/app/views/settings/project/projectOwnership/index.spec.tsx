@@ -10,7 +10,7 @@ import ProjectOwnership from 'sentry/views/settings/project/projectOwnership';
 jest.mock('sentry/actionCreators/modal');
 
 describe('Project Ownership', () => {
-  const {organization, project, routerProps} = initializeOrg();
+  const {organization, project} = initializeOrg();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -45,7 +45,10 @@ describe('Project Ownership', () => {
 
   describe('without codeowners', () => {
     it('renders', async () => {
-      render(<ProjectOwnership {...routerProps} project={project} />);
+      render(<ProjectOwnership />, {
+        organization,
+        outletContext: {project},
+      });
       expect(await screen.findByText('No ownership rules found')).toBeInTheDocument();
       // Does not render codeowners for orgs without 'integrations-codeowners' feature
       expect(
@@ -54,8 +57,9 @@ describe('Project Ownership', () => {
     });
 
     it('renders allows users to edit ownership rules', async () => {
-      render(<ProjectOwnership {...routerProps} project={project} />, {
+      render(<ProjectOwnership />, {
         organization: OrganizationFixture({access: ['project:read']}),
+        outletContext: {project},
       });
 
       expect(await screen.findByTestId('project-permission-alert')).toBeInTheDocument();
@@ -71,8 +75,9 @@ describe('Project Ownership', () => {
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
       });
-      render(<ProjectOwnership {...routerProps} project={project} />, {
+      render(<ProjectOwnership />, {
         organization: org,
+        outletContext: {project},
       });
 
       // Renders button
@@ -98,7 +103,10 @@ describe('Project Ownership', () => {
         },
       });
 
-      render(<ProjectOwnership {...routerProps} project={project} />);
+      render(<ProjectOwnership />, {
+        organization,
+        outletContext: {project},
+      });
 
       // Switch to Assign To Issue Owner
       await userEvent.click(await screen.findByText('Auto-assign to suspect commits'));
