@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Flex, type FlexProps} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -163,10 +163,8 @@ function UserStats({
   );
 }
 
-const VitalsHeading = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
+function VitalsHeading(props: FlexProps) {
+  return <Flex justify="between" align="center" {...props} />;
+}
 
 export default UserStats;
