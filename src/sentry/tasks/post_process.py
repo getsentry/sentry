@@ -20,7 +20,6 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
-from sentry.models.group import Group
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
@@ -46,6 +45,7 @@ from sentry.utils.services import build_instance_from_options_of_type
 if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
     from sentry.issues.ownership.grammar import Rule
+    from sentry.models.group import Group
     from sentry.models.groupinbox import InboxReasonDetails
     from sentry.models.project import Project
     from sentry.models.team import Team
@@ -1648,12 +1648,12 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
     # Atomic check-and-set to prevent race conditions
     # Only queue if automation hasn't been queued yet
+    from sentry.models.group import Group
+
     rows_updated = Group.objects.filter(id=group.id, seer_automation_queued=False).update(
         seer_automation_queued=True
     )
-
-    if rows_updated == 0:
-        # Another process already queued automation for this group
+    if rows_updated == 0:  # If True, another process already queued automation for this group
         return
 
     start_seer_automation.delay(group.id)
