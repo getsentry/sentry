@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from enum import IntEnum
 
 from django.db import models
@@ -13,6 +14,8 @@ from sentry.db.models.fields.bounded import (
 )
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.models.commitcomparison import CommitComparison
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_model
@@ -167,13 +170,27 @@ class PreprodArtifact(DefaultFieldsModel):
         if not self.commit_comparison:
             return PreprodArtifact.objects.none()
 
-        try:
-            base_commit_comparison = CommitComparison.objects.get(
-                head_sha=self.commit_comparison.base_sha,
-                organization_id=self.project.organization_id,
-            )
-        except CommitComparison.DoesNotExist:
+        base_commit_comparisons_qs = CommitComparison.objects.filter(
+            head_sha=self.commit_comparison.base_sha,
+            organization_id=self.project.organization_id,
+        ).order_by("date_added")
+        base_commit_comparisons = list(base_commit_comparisons_qs)
+
+        if len(base_commit_comparisons) == 0:
             return PreprodArtifact.objects.none()
+        elif len(base_commit_comparisons) == 1:
+            base_commit_comparison = base_commit_comparisons[0]
+        else:
+            logger.warning(
+                "preprod.models.get_base_artifact_for_commit.multiple_base_commit_comparisons",
+                extra={
+                    "head_sha": self.commit_comparison.head_sha,
+                    "organization_id": self.project.organization_id,
+                    "base_commit_comparisons": base_commit_comparisons,
+                },
+            )
+            # Take first (oldest) commit comparison
+            base_commit_comparison = base_commit_comparisons[0]
 
         return PreprodArtifact.objects.filter(
             commit_comparison=base_commit_comparison,
