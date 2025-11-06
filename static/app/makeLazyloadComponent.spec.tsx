@@ -1,7 +1,8 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Link, setRouteConfigProvider} from 'sentry/components/core/link/link';
+import {Link} from 'sentry/components/core/link/link';
 import {PRELOAD_HANDLE} from 'sentry/router/preload';
+import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
 
 import {makeLazyloadComponent} from './makeLazyloadComponent';
 
@@ -27,13 +28,9 @@ describe('makeLazyloadComponent', () => {
   beforeEach(() => {
     // Use fake timers for predictable async behavior
     jest.useFakeTimers();
-    // Reset route config provider before each test
-    setRouteConfigProvider(null);
   });
 
   afterEach(() => {
-    // Clean up route config provider after each test
-    setRouteConfigProvider(null);
     // Restore real timers
     jest.useRealTimers();
   });
@@ -263,17 +260,16 @@ describe('makeLazyloadComponent', () => {
         },
       ];
 
-      // Set up route config provider for testing
-      setRouteConfigProvider(() => Promise.resolve(mockRoutes));
-
       // Render a Link that should trigger preloading
       render(
-        <div>
-          <Link to="/test-route" data-test-id="test-link">
-            Go to test route
-          </Link>
-          <LazyComponent title="Test Component" />
-        </div>
+        <RouteConfigProvider value={mockRoutes}>
+          <div>
+            <Link to="/test-route" data-test-id="test-link">
+              Go to test route
+            </Link>
+            <LazyComponent title="Test Component" />
+          </div>
+        </RouteConfigProvider>
       );
 
       const link = screen.getByTestId('test-link');
@@ -330,16 +326,16 @@ describe('makeLazyloadComponent', () => {
         },
       ];
 
-      setRouteConfigProvider(() => Promise.resolve(mockRoutes));
-
       render(
-        <div>
-          <Link to="/parent/child" data-test-id="nested-link">
-            Go to nested route
-          </Link>
-          <LazyComponent1 title="Component 1" />
-          <LazyComponent2 title="Component 2" />
-        </div>
+        <RouteConfigProvider value={mockRoutes}>
+          <div>
+            <Link to="/parent/child" data-test-id="nested-link">
+              Go to nested route
+            </Link>
+            <LazyComponent1 title="Component 1" />
+            <LazyComponent2 title="Component 2" />
+          </div>
+        </RouteConfigProvider>
       );
 
       // Hover to trigger preload of all matching routes
@@ -368,15 +364,15 @@ describe('makeLazyloadComponent', () => {
         },
       ];
 
-      setRouteConfigProvider(() => Promise.resolve(mockRoutes));
-
       render(
-        <div>
-          <Link to="/no-preload" data-test-id="no-preload-link">
-            No preload route
-          </Link>
-          <LazyComponent title="Test Component" />
-        </div>
+        <RouteConfigProvider value={mockRoutes}>
+          <div>
+            <Link to="/no-preload" data-test-id="no-preload-link">
+              No preload route
+            </Link>
+            <LazyComponent title="Test Component" />
+          </div>
+        </RouteConfigProvider>
       );
 
       // Should not throw when hovering
@@ -391,16 +387,16 @@ describe('makeLazyloadComponent', () => {
     it('handles route config provider errors gracefully', async () => {
       const LazyComponent = makeLazyloadComponent(createMockComponentPromise());
 
-      // Set up a failing route config provider
-      setRouteConfigProvider(() => Promise.reject(new Error('Route config failed')));
-
+      // For this test, we'll use empty routes to simulate no route config
       render(
-        <div>
-          <Link to="/error-route" data-test-id="error-link">
-            Error route
-          </Link>
-          <LazyComponent title="Test Component" />
-        </div>
+        <RouteConfigProvider value={[]}>
+          <div>
+            <Link to="/error-route" data-test-id="error-link">
+              Error route
+            </Link>
+            <LazyComponent title="Test Component" />
+          </div>
+        </RouteConfigProvider>
       );
 
       // Should not throw when hovering, even with failing route config
