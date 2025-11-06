@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
@@ -102,6 +103,7 @@ function CheckInBodyCell({
   traceSampling: boolean;
 }) {
   const theme = useTheme();
+  const organization = useOrganization();
 
   const {
     timestamp,
@@ -197,7 +199,7 @@ function CheckInBodyCell({
         <TraceCell>
           <Link
             to={{
-              pathname: `/performance/trace/${traceId}/`,
+              pathname: `/organizations/${organization.slug}/performance/trace/${traceId}/`,
               query: {
                 includeUptime: '1',
                 timestamp: new Date(timestamp).getTime() / 1000,

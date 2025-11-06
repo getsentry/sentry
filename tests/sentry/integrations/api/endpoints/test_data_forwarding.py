@@ -1,3 +1,5 @@
+from django.urls import reverse
+
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.testutils.cases import APITestCase
@@ -12,9 +14,42 @@ class DataForwardingIndexEndpointTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
+    def get_response(self, *args, **kwargs):
+        """
+        Override get_response to always add the required feature flag.
+        """
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": True,
+                "organizations:data-forwarding": True,
+            }
+        ):
+            return super().get_response(*args, **kwargs)
+
 
 @region_silo_test
 class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
+
+    def test_without_revamp_feature_flag_access(self) -> None:
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": False,
+                "organizations:data-forwarding": True,
+            }
+        ):
+            response = self.client.get(reverse(self.endpoint, args=(self.organization.slug,)))
+            assert response.status_code == 403
+
+    def test_without_data_forwarding_feature_flag_access(self) -> None:
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": True,
+                "organizations:data-forwarding": False,
+            }
+        ):
+            response = self.client.get(reverse(self.endpoint, args=(self.organization.slug,)))
+            assert response.status_code == 200
+
     def test_get_single_data_forwarder(self) -> None:
         data_forwarder = self.create_data_forwarder(
             provider=DataForwarderProviderSlug.SEGMENT,
@@ -122,6 +157,26 @@ class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
 @region_silo_test
 class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
     method = "POST"
+
+    def test_without_revamp_feature_flag_access(self) -> None:
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": False,
+                "organizations:data-forwarding": True,
+            }
+        ):
+            response = self.client.post(reverse(self.endpoint, args=(self.organization.slug,)))
+            assert response.status_code == 403
+
+    def test_without_data_forwarding_feature_flag_access(self) -> None:
+        with self.feature(
+            {
+                "organizations:data-forwarding-revamp-access": True,
+                "organizations:data-forwarding": False,
+            }
+        ):
+            response = self.client.post(reverse(self.endpoint, args=(self.organization.slug,)))
+            assert response.status_code == 403
 
     def test_create_segment_data_forwarder(self) -> None:
         payload = {
