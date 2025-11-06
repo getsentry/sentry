@@ -111,6 +111,8 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
 
         detector_id_param = request.GET.get("detectorId")
         group_id_param = request.GET.get("groupId")
+        # determines the time we need to subtract off of each timestamp before returning the data
+        bucket_size_param = request.GET.get("bucketSize", 0)
 
         if not detector_id_param and not group_id_param:
             raise ValidationError({"detail": "Must provide either detectorId or groupId"})
@@ -145,6 +147,6 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
             request=request,
             queryset=open_periods,
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, time_window=int(bucket_size_param)),
             count_hits=True,
         )
