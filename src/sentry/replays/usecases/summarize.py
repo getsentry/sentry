@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Generator, Iterator
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
@@ -12,11 +12,7 @@ from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
 from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import (
-    get_replay_range,
-    query_replay_instance,
-    query_trace_connected_events,
-)
+from sentry.replays.query import query_replay_instance, query_trace_connected_events
 from sentry.replays.usecases.ingest.event_parser import EventType
 from sentry.replays.usecases.ingest.event_parser import (
     get_timestamp_ms as get_replay_event_timestamp_ms,
@@ -501,7 +497,11 @@ def _parse_url(s: str, trunc_length: int) -> str:
 
 @sentry_sdk.trace
 def rpc_get_replay_summary_logs(
-    project_id: int, replay_id: str, num_segments: int
+    project_id: int,
+    replay_id: str,
+    num_segments: int,
+    replay_start: datetime | None = None,
+    replay_end: datetime | None = None,
 ) -> dict[str, Any]:
     """
     RPC call for Seer. Downloads a replay's segment data, queries associated errors, and parses this into summary logs.
@@ -509,8 +509,12 @@ def rpc_get_replay_summary_logs(
 
     project = Project.objects.get(id=project_id)
 
-    # Last 90 days. We don't support date filters in /summarize/.
+    # Default to last 90 days. If start/end are provided, fudge by 1 minute to account for clock skew and clamp to 90d.
     start, end = default_start_end_dates()
+    if replay_start:
+        start = max(replay_start - timedelta(minutes=1), datetime.now(UTC) - timedelta(days=90))
+    if replay_end:
+        end = min(replay_end + timedelta(minutes=1), datetime.now(UTC))
 
     # Fetch the replay's error and trace IDs from the replay_id.
     snuba_response = query_replay_instance(
@@ -535,12 +539,6 @@ def rpc_get_replay_summary_logs(
     trace_ids = processed_response[0].get("trace_ids", [])
     platform = processed_response[0].get("platform")
     is_mobile_replay = platform in MOBILE if platform else False
-
-    result = get_replay_range(
-        organization_id=project.organization.id, project_id=project.id, replay_id=replay_id
-    )
-    if result:
-        start, end = result
 
     # Fetch same-trace errors.
     trace_connected_errors = fetch_trace_connected_errors(

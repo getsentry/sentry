@@ -1033,7 +1033,12 @@ class RpcGetReplaySummaryLogsTestCase(
         self.replay_id = uuid.uuid4().hex
 
     def store_replay(self, dt: datetime | None = None, **kwargs: Any) -> None:
-        replay = mock_replay(dt or datetime.now(UTC), self.project.id, self.replay_id, **kwargs)
+        replay = mock_replay(
+            dt or datetime.now(UTC) - timedelta(minutes=1),
+            self.project.id,
+            self.replay_id,
+            **kwargs,
+        )
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
         )
@@ -1166,6 +1171,122 @@ class RpcGetReplaySummaryLogsTestCase(
             1,
         )
 
+        logs = response["logs"]
+        assert len(logs) == 3
+        assert any("ZeroDivisionError" in log for log in logs)
+        assert any("division by zero" in log for log in logs)
+        assert any("ConnectionError" in log for log in logs)
+        assert any("Failed to connect to database" in log for log in logs)
+
+    def test_rpc_explicit_start_end(self) -> None:
+        """This test is to ensure that the start/end times are correctly applied to the query."""
+        now = datetime.now(UTC)
+        trace_id = uuid.uuid4().hex
+        span_id = "1" + uuid.uuid4().hex[:15]
+
+        # Create a direct error event that is not trace connected.
+        direct_event_id = uuid.uuid4().hex
+        direct_error_timestamp = (now - timedelta(minutes=15)).timestamp()
+        self.store_event(
+            data={
+                "event_id": direct_event_id,
+                "timestamp": direct_error_timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ZeroDivisionError",
+                            "value": "division by zero",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "replay": {"replay_id": self.replay_id},
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": uuid.uuid4().hex,
+                        "span_id": span_id,
+                    },
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        # Create a trace connected error event
+        connected_event_id = uuid.uuid4().hex
+        connected_error_timestamp = (now - timedelta(minutes=10)).timestamp()
+        project_2 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": connected_event_id,
+                "timestamp": connected_error_timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ConnectionError",
+                            "value": "Failed to connect to database",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": span_id,
+                    }
+                },
+            },
+            project_id=project_2.id,
+        )
+
+        # Store the replay with both error IDs and trace IDs
+        self.store_replay(
+            dt=now - timedelta(minutes=1),
+            error_ids=[direct_event_id],
+            trace_ids=[trace_id],
+        )
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp()),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            }
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        # Replay out of range
+        response = rpc_get_replay_summary_logs(
+            self.project.id,
+            self.replay_id,
+            1,
+            replay_start=now - timedelta(days=30),
+            replay_end=now - timedelta(days=29),
+        )
+        assert not response["logs"]
+
+        # Replay is in range but errors are not.
+        response = rpc_get_replay_summary_logs(
+            self.project.id,
+            self.replay_id,
+            1,
+            replay_start=now - timedelta(minutes=5),
+            replay_end=now,
+        )
+        logs = response["logs"]
+        assert len(logs) == 1
+        assert "hello" in logs[0]
+
+        # All events are in range.
+        response = rpc_get_replay_summary_logs(
+            self.project.id,
+            self.replay_id,
+            1,
+            replay_start=now - timedelta(days=90),
+            replay_end=now,
+        )
         logs = response["logs"]
         assert len(logs) == 3
         assert any("ZeroDivisionError" in log for log in logs)
