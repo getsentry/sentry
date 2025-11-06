@@ -411,6 +411,9 @@ class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponen
         """
         Convert to a dictionary, first rearranging the values so they show up in the order we want
         in grouping info.
+
+        TODO: Once we're fully transitioned off of the `newstyle:2023-01-11` config, this method can
+        be deleted
         """
         ordered_values: Any = []
 
