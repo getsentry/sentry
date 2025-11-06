@@ -47,14 +47,14 @@ export default function ReplayDetails() {
   });
   const {replay, replayRecord} = readerResult;
 
-  const {playlistStart, ...query} = useLocationQuery({
+  const {playlistEnd, ...query} = useLocationQuery({
     fields: {
       cursor: decodeScalar,
       environment: decodeList,
       project: decodeList,
       sort: decodeScalar,
       query: decodeScalar,
-      playlistStart: decodeScalar,
+      playlistEnd: decodeScalar,
       statsPeriod: decodeScalar,
       utc: decodeScalar,
     },
@@ -63,7 +63,7 @@ export default function ReplayDetails() {
   const sortQuery = getParamValue();
 
   const queryKey = useReplayListQueryKey({
-    options: {query: {...query, start: playlistStart, sort: sortQuery}},
+    options: {query: {...query, end: playlistEnd, sort: sortQuery}},
     organization,
     queryReferrer: 'replayList',
   });
