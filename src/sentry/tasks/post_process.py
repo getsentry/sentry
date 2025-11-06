@@ -1304,10 +1304,13 @@ def process_data_forwarding(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
+    event = job["event"]
+
+    if not features.has("organizations:data-forwarding", event.project.organization):
+        return
+
     from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
     from sentry.integrations.models.data_forwarder_project import DataForwarderProject
-
-    event = job["event"]
 
     data_forwarder_projects = DataForwarderProject.objects.filter(
         project_id=event.project_id,
