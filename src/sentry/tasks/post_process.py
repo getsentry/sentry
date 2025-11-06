@@ -1590,7 +1590,12 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
 
-    # Only run if automation hasn't been triggered yet
+    # Only run on issues with no existing scan
+    # TODO: Remove this check when we fully rely on seer_autofix_last_triggered after V0
+    if group.seer_fixability_score is not None:
+        return
+
+    # Check if automation already triggered
     if group.seer_autofix_last_triggered is not None:
         return
 

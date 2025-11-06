@@ -2885,6 +2885,38 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
 
         mock_start_seer_automation.assert_not_called()
 
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    def test_kick_off_seer_automation_skips_with_existing_fixability_score(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Set seer_fixability_score but not seer_autofix_last_triggered
+        # This simulates a case where scanner ran but score was too low to trigger autofix
+        group = event.group
+        group.seer_fixability_score = 0.3  # Low score
+        group.save()
+        assert group.seer_autofix_last_triggered is None
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Should not call automation since fixability score already exists
+        mock_start_seer_automation.assert_not_called()
+
     @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.has_available_reserved_budget")
     @patch("sentry.seer.seer_setup.get_seer_org_acknowledgement")
