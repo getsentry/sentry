@@ -16,7 +16,6 @@ import {IconAdd, IconBuilding, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
@@ -26,14 +25,10 @@ const DEFAULT_ORG_LABEL = 'Select GitHub Org';
 
 function OrgFooterMessage() {
   const organization = useOrganization();
-  const navigate = useNavigate();
 
-  const handleAddIntegration = useCallback(
-    (_integration: IntegrationWithConfig) => {
-      navigate(`/${organization.slug}/tests`);
-    },
-    [navigate, organization.slug]
-  );
+  const handleAddIntegration = useCallback((_integration: IntegrationWithConfig) => {
+    window.location.reload();
+  }, []);
 
   const {data: integrationInfo, isPending: isIntegrationInfoPending} =
     useApiQuery<IntegrationInformation>(
