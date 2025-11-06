@@ -1300,6 +1300,44 @@ def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
     return True
 
 
+def process_data_forwarding(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    event = job["event"]
+
+    if not features.has("organizations:data-forwarding-revamp-access", event.project.organization):
+        return
+
+    from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
+    from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+
+    data_forwarder_projects = DataForwarderProject.objects.filter(
+        project_id=event.project_id,
+        is_enabled=True,
+        data_forwarder__is_enabled=True,
+    ).select_related("data_forwarder")
+
+    for data_forwarder_project in data_forwarder_projects:
+        provider = data_forwarder_project.data_forwarder.provider
+        try:
+            # GroupEvent is compatible with Event for all operations forwarders need
+            FORWARDER_REGISTRY[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
+            metrics.incr(
+                "data_forwarding.forward_event",
+                tags={"provider": provider},
+            )
+        except Exception:
+            metrics.incr(
+                "data_forwarding.forward_event.error",
+                tags={"provider": provider},
+            )
+            logger.exception(
+                "data_forwarding.forward_event.error",
+                extra={"provider": provider, "project_id": event.project_id},
+            )
+
+
 def process_plugins(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
@@ -1663,6 +1701,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_workflow_engine_issue_alerts,
         process_service_hooks,
         process_resource_change_bounds,
+        process_data_forwarding,
         process_plugins,
         process_code_mappings,
         process_similarity,
@@ -1691,4 +1730,5 @@ GENERIC_POST_PROCESS_PIPELINE = [
     kick_off_seer_automation,
     process_rules,
     process_resource_change_bounds,
+    process_data_forwarding,
 ]

@@ -20,6 +20,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
+from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_platforms
 from sentry.issues.grouptype import (
     FeedbackGroup,
@@ -3712,3 +3713,243 @@ class PostProcessGroupFeedbackTest(
         )
 
         assert not mock_delay.called
+
+
+class ProcessDataForwardingTest(BasePostProgressGroupMixin, SnubaTestCase):
+    DEFAULT_FORWARDER_CONFIGS = {
+        DataForwarderProviderSlug.SQS: {
+            "queue_url": "https://sqs.us-east-1.amazonaws.com/123456789/test-queue",
+            "region": "us-east-1",
+            "access_key": "test-key",
+            "secret_key": "test-secret",
+        },
+        DataForwarderProviderSlug.SPLUNK: {
+            "instance_url": "https://splunk.example.com",
+            "token": "test-token",
+            "index": "main",
+        },
+        DataForwarderProviderSlug.SEGMENT: {
+            "write_key": "test-write-key",
+        },
+    }
+
+    def create_event(self, data, project_id, assert_no_errors=True):
+        return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
+
+    def call_post_process_group(
+        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+    ):
+        if cache_key is None:
+            cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=is_new,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            cache_key=cache_key,
+            group_id=event.group_id,
+            project_id=event.project_id,
+        )
+        return cache_key
+
+    def setup_forwarder(self, provider, is_enabled=True, **config_overrides):
+        config = self.DEFAULT_FORWARDER_CONFIGS[provider].copy()
+        config.update(config_overrides)
+
+        data_forwarder = self.create_data_forwarder(
+            organization=self.project.organization,
+            provider=provider.value,  # Convert enum to string value
+            config=config,
+            is_enabled=is_enabled,
+        )
+
+        data_forwarder_project = self.create_data_forwarder_project(
+            data_forwarder=data_forwarder,
+            project=self.project,
+            is_enabled=True,
+        )
+
+        return data_forwarder, data_forwarder_project
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    def test_process_data_forwarding_no_forwarders(self):
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
+    def test_process_data_forwarding_sqs_enabled(self, mock_forward):
+        mock_forward.return_value = True
+        _, data_forwarder_project = self.setup_forwarder(DataForwarderProviderSlug.SQS)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assert mock_forward.call_count == 1
+        call_args = mock_forward.call_args
+        assert call_args[0][1] == data_forwarder_project
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
+    def test_process_data_forwarding_sqs_with_s3_bucket(self, mock_forward):
+        """Test SQS forwarder with S3 bucket configured for large payloads."""
+        mock_forward.return_value = True
+
+        _, data_forwarder_project = self.setup_forwarder(
+            DataForwarderProviderSlug.SQS, s3_bucket="my-sentry-events-bucket"
+        )
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Verify the forwarder was called
+        assert mock_forward.call_count == 1
+        call_args = mock_forward.call_args
+        assert call_args[0][1] == data_forwarder_project
+
+        # Verify the config includes S3 bucket
+        assert call_args[0][1].get_config()["s3_bucket"] == "my-sentry-events-bucket"
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    @patch("data_forwarding.splunk.forwarder.SplunkForwarder.forward_event")
+    def test_process_data_forwarding_splunk_enabled(self, mock_forward):
+        mock_forward.return_value = True
+        self.setup_forwarder(DataForwarderProviderSlug.SPLUNK)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assert mock_forward.call_count == 1
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    @patch("data_forwarding.segment.forwarder.SegmentForwarder.forward_event")
+    def test_process_data_forwarding_segment_enabled(self, mock_forward):
+        mock_forward.return_value = True
+        self.setup_forwarder(DataForwarderProviderSlug.SEGMENT)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assert mock_forward.call_count == 1
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
+    def test_process_data_forwarding_disabled_forwarder(self, mock_forward):
+        self.setup_forwarder(DataForwarderProviderSlug.SQS, is_enabled=False)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assert mock_forward.call_count == 0
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
+    @patch("data_forwarding.splunk.forwarder.SplunkForwarder.forward_event")
+    def test_process_data_forwarding_multiple_forwarders(
+        self, mock_splunk_forward, mock_sqs_forward
+    ):
+        mock_sqs_forward.return_value = True
+        mock_splunk_forward.return_value = True
+
+        self.setup_forwarder(DataForwarderProviderSlug.SQS)
+        self.setup_forwarder(DataForwarderProviderSlug.SPLUNK)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        assert mock_sqs_forward.call_count == 1
+        assert mock_splunk_forward.call_count == 1
+
+    @with_feature("organizations:data-forwarding-revamp-access")
+    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
+    @patch("data_forwarding.splunk.forwarder.SplunkForwarder.forward_event")
+    def test_process_data_forwarding_one_forwarder_fails(
+        self, mock_splunk_forward, mock_sqs_forward
+    ):
+        """Test that when one forwarder fails, other forwarders still execute."""
+        mock_sqs_forward.side_effect = Exception("SQS connection failed")
+        mock_splunk_forward.return_value = True
+
+        self.setup_forwarder(DataForwarderProviderSlug.SQS)
+        self.setup_forwarder(DataForwarderProviderSlug.SPLUNK)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Both forwarders should be called despite SQS failure
+        assert mock_sqs_forward.call_count == 1
+        assert mock_splunk_forward.call_count == 1
+
+    @patch("data_forwarding.amazon_sqs.forwarder.AmazonSQSForwarder.forward_event")
+    def test_process_data_forwarding_revamp_access_flag_disabled(self, mock_forward):
+        """Test that data forwarding is skipped when the revamp-access feature flag is disabled."""
+        self.setup_forwarder(DataForwarderProviderSlug.SQS)
+        event = self.create_event(
+            data={"message": "test message", "level": "error"},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # should not be called when feature flag is disabled
+        assert mock_forward.call_count == 0
