@@ -32,6 +32,14 @@ class WorkflowGroupsPaginatedTest(TestCase):
             project_id=self.project.id,
             type=MetricIssue.slug,
         )
+        self.create_detector_workflow(
+            detector=self.detector_1,
+            workflow=self.workflow,
+        )
+        DetectorGroup.objects.create(
+            detector=self.detector_1,
+            group=self.group,
+        )
         for i in range(3):
             self.history.append(
                 WorkflowFireHistory(
@@ -46,6 +54,14 @@ class WorkflowGroupsPaginatedTest(TestCase):
             project_id=self.project.id,
             type=MetricIssue.slug,
         )
+        self.create_detector_workflow(
+            detector=self.detector_2,
+            workflow=self.workflow,
+        )
+        DetectorGroup.objects.create(
+            detector=self.detector_2,
+            group=self.group_2,
+        )
         self.history.append(
             WorkflowFireHistory(
                 detector=self.detector_2,
@@ -58,6 +74,14 @@ class WorkflowGroupsPaginatedTest(TestCase):
         self.detector_3 = self.create_detector(
             project_id=self.project.id,
             type=MetricIssue.slug,
+        )
+        self.create_detector_workflow(
+            detector=self.detector_3,
+            workflow=self.workflow,
+        )
+        DetectorGroup.objects.create(
+            detector=self.detector_3,
+            group=self.group_3,
         )
         for i in range(2):
             self.history.append(
