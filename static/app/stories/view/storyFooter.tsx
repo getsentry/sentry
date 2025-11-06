@@ -67,21 +67,29 @@ function findPreviousAndNextStory(
   prev?: StoryTreeNode;
 } | null {
   const stories = Object.values(categories).flat();
-  const queue = [...stories];
+  const queue: StoryTreeNode[] = [];
 
-  while (queue.length > 0) {
-    const node = queue.pop();
+  function processNode(node: StoryTreeNode) {
+    for (const key in node.children) {
+      queue.push(node.children[key]!);
+    }
+
+    queue.push(node);
+  }
+
+  for (const node of stories) {
+    processNode(node);
+  }
+
+  for (let i = 0; i < queue.length; i++) {
+    const node = queue[i];
     if (!node) break;
 
     if (node.filesystemPath === story.filename) {
       return {
-        prev: queue[queue.length - 1] ?? undefined,
-        next: queue[queue.length + 1] ?? undefined,
+        prev: queue[i - 1] ?? undefined,
+        next: queue[i + 1] ?? undefined,
       };
-    }
-
-    for (const key in node.children) {
-      queue.push(node.children[key]!);
     }
   }
 

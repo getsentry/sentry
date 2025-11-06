@@ -87,6 +87,7 @@ export function useStoryBookFilesByCategory(): Record<
       product: [],
       shared: [],
     };
+
     for (const file of files) {
       const category = inferFileCategory(file);
       switch (category) {
