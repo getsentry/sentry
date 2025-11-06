@@ -327,4 +327,97 @@ describe('Performance GridEditable Table', () => {
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getAllByRole('columnheader')).toHaveLength(7);
   });
+
+  it('disables context menu for empty trace values', async () => {
+    const initialData = initializeData();
+
+    // Mock data with an empty trace value
+    const dataWithEmptyTrace = [
+      {
+        id: 'deadbeef',
+        'user.display': 'uhoh@example.com',
+        'transaction.duration': 400,
+        'project.id': 1,
+        timestamp: '2020-05-21T15:31:18+00:00',
+        trace: null, // Empty trace value
+        'span_ops_breakdown.relative': '',
+        'spans.browser': 100,
+        'spans.db': 30,
+        'spans.http': 170,
+        'spans.resource': 100,
+        'spans.total.time': 400,
+      },
+    ];
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      headers: {
+        Link:
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
+      },
+      body: {
+        meta: {
+          fields: {
+            id: 'string',
+            'user.display': 'string',
+            'transaction.duration': 'duration',
+            'project.id': 'integer',
+            timestamp: 'date',
+            trace: 'string',
+          },
+        },
+        data: dataWithEmptyTrace,
+      },
+      match: [
+        (_url, options) => {
+          return (
+            options.query?.field?.includes('trace') &&
+            options.query?.field?.includes('user.display')
+          );
+        },
+      ],
+    });
+
+    fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
+
+    const eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: 'transactionName',
+        fields,
+        query,
+        projects: [],
+        orderby: '-timestamp',
+      },
+      initialData.router.location
+    );
+
+    render(
+      <EventsTable
+        theme={theme}
+        eventView={eventView}
+        organization={organization}
+        routes={initialData.router.routes}
+        location={initialData.router.location}
+        setError={() => {}}
+        columnTitles={transactionsListTitles}
+        transactionName={transactionName}
+      />
+    );
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    // The trace column should show "(no value)"
+    expect(screen.getByText('(no value)')).toBeInTheDocument();
+
+    // The trace cell should not have a context menu (no cell-action-container)
+    const cells = screen.queryAllByTestId('cell-action-container');
+    expect(cells).toHaveLength(4);
+    const traceCellWithAction = cells.find(cell =>
+      cell.textContent?.includes('(no value)')
+    );
+    expect(traceCellWithAction).toBeUndefined();
+  });
 });

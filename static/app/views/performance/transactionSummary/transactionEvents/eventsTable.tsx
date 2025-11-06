@@ -226,6 +226,11 @@ export default function EventsTable({
         return rendered;
       }
 
+      // Disable context menu for empty trace values
+      if (field === 'trace' && !dataRow.trace) {
+        return rendered;
+      }
+
       const cellActionHandler = handleCellAction(column);
 
       if (field === 'id' || field === 'trace') {
