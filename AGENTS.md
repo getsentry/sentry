@@ -847,9 +847,9 @@ from typing import overload
 def process(data: str) -> str: ...
 
 @overload
-def process(data: bytes) -> bytes: ...
+def process(data: bytes) -> str: ...
 
-def process(data: str | bytes) -> str | bytes:
+def process(data: str | bytes) -> str:
     return data.decode() if isinstance(data, bytes) else data
 ```
 
