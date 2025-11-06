@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export default function ReplayListItem({replay, onClick}: Props) {
+  const theme = useTheme();
   const organization = useOrganization();
   const project = useProjectFromId({project_id: replay.project_id ?? undefined});
 
@@ -36,9 +38,9 @@ export default function ReplayListItem({replay, onClick}: Props) {
   if (replay.is_archived) {
     return (
       <Flex gap="md" align="center" justify="center">
-        <ArchivedWrapper>
+        <Flex justify="center" align="center" width={theme.space['2xl']}>
           <IconDelete color="gray500" size="md" />
-        </ArchivedWrapper>
+        </Flex>
 
         <Flex direction="column" gap="xs">
           <DisplayName>{t('Deleted Replay')}</DisplayName>
@@ -103,12 +105,6 @@ export default function ReplayListItem({replay, onClick}: Props) {
 const CardSpacing = styled('div')`
   position: relative;
   padding: ${space(0.5)} ${space(0.5)} 0 ${space(0.5)};
-`;
-
-const ArchivedWrapper = styled(Flex)`
-  width: ${p => p.theme.space['2xl']};
-  align-items: center;
-  justify-content: center;
 `;
 
 const SubText = styled('div')`

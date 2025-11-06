@@ -1,7 +1,8 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
+
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {GroupInfoSummary} from 'sentry/components/events/groupingInfo/groupingSummary';
 import {useEventGroupingInfo} from 'sentry/components/events/groupingInfo/useEventGroupingInfo';
@@ -70,7 +71,7 @@ export default function GroupingInfo({
 
   return (
     <Fragment>
-      <ConfigHeader>
+      <Flex justify="between" gap="md" marginBottom="2xs">
         {hasStreamlinedUI && (
           <GroupInfoSummary
             event={event}
@@ -86,8 +87,8 @@ export default function GroupingInfo({
             {feedbackComponent}
           </div>
         )}
-      </ConfigHeader>
-      <ToggleContainer>
+      </Flex>
+      <Flex justify="start" paddingBottom="lg">
         <SegmentedControl
           aria-label={t('Filter by contribution')}
           size="xs"
@@ -99,7 +100,7 @@ export default function GroupingInfo({
           </SegmentedControl.Item>
           <SegmentedControl.Item key="all">{t('All Values')}</SegmentedControl.Item>
         </SegmentedControl>
-      </ToggleContainer>
+      </Flex>
       {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
       {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
       {hasPerformanceGrouping || isSuccess
@@ -112,27 +113,12 @@ export default function GroupingInfo({
                   variant={variant}
                   showNonContributing={showNonContributing}
                 />
-                {index < filteredVariants.length - 1 && <VariantDivider />}
+                {index < filteredVariants.length - 1 && (
+                  <Separator orientation="horizontal" />
+                )}
               </Fragment>
             ))
         : null}
     </Fragment>
   );
 }
-
-const ConfigHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space['2xs']};
-`;
-
-const ToggleContainer = styled(Flex)`
-  justify-content: flex-start;
-  padding-bottom: ${p => p.theme.space.lg};
-`;
-
-const VariantDivider = styled('hr')`
-  padding-top: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.border};
-`;

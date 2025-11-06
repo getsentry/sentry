@@ -192,7 +192,7 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
             openInNewTab
           />
         </Section>
-        <ButtonWrapper justify="between">
+        <ButtonWrapper justify="between" borderTop="primary" padding="xl">
           <LinkButton
             size="sm"
             icon={<IconAdd />}
@@ -235,9 +235,7 @@ const DrawerContent = styled('div')`
 `;
 
 const ButtonWrapper = styled(Flex)`
-  border-top: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space.lg};
-  margin: -${p => p.theme.space.lg};
+  margin: -${p => p.theme.space.xl};
 `;
 
 const StyledSection = styled(Section)`
