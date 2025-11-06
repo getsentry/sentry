@@ -362,9 +362,7 @@ export function LogsTabContent({
               error={tableData.error}
             />
           </OverChartButtonGroup>
-          {!tableData.isPending && tableData.isEmpty && (
-            <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
-          )}
+          <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
           <LogsDownSamplingAlert
             timeseriesResult={timeseriesResult}
             tableResult={infiniteLogsQueryResult}
