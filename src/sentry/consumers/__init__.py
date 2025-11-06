@@ -468,6 +468,7 @@ def get_stream_processor(
     shutdown_strategy_before_consumer: bool = False,
     add_global_tags: bool = False,
     profile_consumer_join: bool = False,
+    enable_autocommit: bool = False,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -525,6 +526,7 @@ def get_stream_processor(
             group_id=group_id,
             auto_offset_reset=auto_offset_reset,
             strict_offset_reset=strict_offset_reset,
+            enable_auto_commit=enable_autocommit,
         )
 
         if max_poll_interval_ms is not None:
@@ -536,6 +538,10 @@ def get_stream_processor(
 
         if group_instance_id is not None:
             consumer_config["group.instance.id"] = group_instance_id
+
+        if enable_autocommit:
+            # Set commit interval to 1 second (1000ms)
+            consumer_config["auto.commit.interval.ms"] = 1000
 
         return consumer_config
 

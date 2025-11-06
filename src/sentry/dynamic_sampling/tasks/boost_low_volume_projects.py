@@ -311,6 +311,12 @@ def query_project_counts_by_org(
     else:
         granularity = Granularity(60)
 
+    metrics.incr(
+        "dynamic_sampling.query_project_counts_by_org.count",
+        amount=len(org_ids),
+        tags={"measure": str(measure.value)},
+    )
+
     org_ids = list(org_ids)
     project_ids = list(
         Project.objects.filter(organization_id__in=org_ids, status=ObjectStatus.ACTIVE).values_list(
