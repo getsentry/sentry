@@ -53,7 +53,16 @@ function DataConditionGroupFixture(
   params: Partial<MetricConditionGroup> = {}
 ): MetricConditionGroup {
   return {
-    conditions: [DataConditionFixture()],
+    conditions: [
+      // HIGH priority condition
+      DataConditionFixture(),
+      // OK (resolution) condition - uses same comparison value with swapped operator
+      DataConditionFixture({
+        id: '2',
+        type: DataConditionType.LESS_OR_EQUAL,
+        conditionResult: DetectorPriorityLevel.OK,
+      }),
+    ],
     id: '1',
     logicType: DataConditionGroupLogicType.ANY,
     ...params,
