@@ -292,12 +292,13 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
     default="unknown",
 )
 @click.option(
-    "--health-check-file-path",
-    help="Full path of the health check file if health check is to be enabled",
+    "--health-check-redis-cluster",
+    help="The Redis cluster name to store health check state in. If not provided, health checks are disabled",
+    default=None,
 )
 @click.option(
     "--health-check-sec-per-touch",
-    help="The number of seconds before touching the health check file",
+    help="The number of seconds before updating the health check in Redis",
     default=taskworker_constants.DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
 )
 @log_options()
@@ -322,7 +323,7 @@ def run_taskworker(
     result_queue_maxsize: int,
     rebalance_after: int,
     processing_pool_name: str,
-    health_check_file_path: str | None,
+    health_check_redis_cluster: str | None,
     health_check_sec_per_touch: float,
     **options: Any,
 ) -> None:
@@ -331,6 +332,11 @@ def run_taskworker(
     """
     from sentry.taskworker.client.client import make_broker_hosts
     from sentry.taskworker.worker import TaskWorker
+    from sentry.utils.redis import redis_clusters
+
+    health_check_redis_client = None
+    if health_check_redis_cluster:
+        health_check_redis_client = redis_clusters.get(health_check_redis_cluster)
 
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
@@ -345,7 +351,7 @@ def run_taskworker(
             result_queue_maxsize=result_queue_maxsize,
             rebalance_after=rebalance_after,
             processing_pool_name=processing_pool_name,
-            health_check_file_path=health_check_file_path,
+            health_check_redis_client=health_check_redis_client,
             health_check_sec_per_touch=health_check_sec_per_touch,
             **options,
         )

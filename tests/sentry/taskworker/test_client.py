@@ -1,10 +1,7 @@
 import dataclasses
-import random
-import string
 import time
 from collections import defaultdict
 from collections.abc import Callable
-from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -166,21 +163,20 @@ def test_health_check_is_debounced() -> None:
     )
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        health_check_path = Path(f"/tmp/{''.join(random.choices(string.ascii_letters, k=16))}")
+        mock_redis = Mock()
         client = TaskworkerClient(
             ["localhost-0:50051"],
-            health_check_settings=HealthCheckSettings(health_check_path, 1),
+            health_check_settings=HealthCheckSettings(mock_redis, 1),
         )
-        client._health_check_settings.file_path = Mock()  # type: ignore[union-attr]
 
         _ = client.get_task()
         _ = client.get_task()
-        assert client._health_check_settings.file_path.touch.call_count == 1  # type: ignore[union-attr]
+        assert mock_redis.set.call_count == 1
 
         with patch("sentry.taskworker.client.client.time") as mock_time:
             mock_time.time.return_value = time.time() + 1
             _ = client.get_task()
-            assert client._health_check_settings.file_path.touch.call_count == 2  # type: ignore[union-attr]
+            assert mock_redis.set.call_count == 2
 
 
 @django_db_all
@@ -211,7 +207,7 @@ def test_get_task_ok() -> None:
 
 
 @django_db_all
-def test_get_task_writes_to_health_check_file() -> None:
+def test_get_task_writes_to_health_check_redis() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
@@ -229,13 +225,17 @@ def test_get_task_writes_to_health_check_file() -> None:
 
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        health_check_path = Path(f"/tmp/{''.join(random.choices(string.ascii_letters, k=16))}")
+        mock_redis = Mock()
         client = TaskworkerClient(
             ["localhost-0:50051"],
-            health_check_settings=HealthCheckSettings(health_check_path, 3),
+            health_check_settings=HealthCheckSettings(mock_redis, 3),
         )
         _ = client.get_task()
-        assert health_check_path.exists()
+        assert mock_redis.set.call_count == 1
+        # Verify it was called with the right arguments (key, timestamp, ex=ttl)
+        call_args = mock_redis.set.call_args
+        assert call_args[0][0].startswith("tw:health:")
+        assert "ex" in call_args[1]
 
 
 @django_db_all
@@ -329,7 +329,7 @@ def test_get_task_failure() -> None:
 
 
 @django_db_all
-def test_update_task_writes_to_health_check_file() -> None:
+def test_update_task_writes_to_health_check_redis() -> None:
     channel = MockChannel()
     channel.add_response(
         "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
@@ -346,18 +346,21 @@ def test_update_task_writes_to_health_check_file() -> None:
     )
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        health_check_path = Path(f"/tmp/{''.join(random.choices(string.ascii_letters, k=16))}")
+        mock_redis = Mock()
         client = TaskworkerClient(
             make_broker_hosts("localhost:50051", num_brokers=1),
             health_check_settings=HealthCheckSettings(
-                health_check_path, DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH
+                mock_redis, DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH
             ),
         )
         _ = client.update_task(
             ProcessingResult("abc123", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0),
             FetchNextTask(namespace=None),
         )
-        assert health_check_path.exists()
+        assert mock_redis.set.call_count == 1
+        call_args = mock_redis.set.call_args
+        assert call_args[0][0].startswith("tw:health:")
+        assert "ex" in call_args[1]
 
 
 @django_db_all

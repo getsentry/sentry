@@ -9,7 +9,6 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkContext, SpawnContext
 from multiprocessing.process import BaseProcess
-from pathlib import Path
 from typing import Any
 
 import grpc
@@ -61,7 +60,7 @@ class TaskWorker:
         rebalance_after: int = DEFAULT_REBALANCE_AFTER,
         processing_pool_name: str | None = None,
         process_type: str = "spawn",
-        health_check_file_path: str | None = None,
+        health_check_redis_client: Any = None,
         health_check_sec_per_touch: float = DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
         **kwargs: dict[str, Any],
     ) -> None:
@@ -77,8 +76,8 @@ class TaskWorker:
             max_tasks_before_rebalance=rebalance_after,
             health_check_settings=(
                 None
-                if health_check_file_path is None
-                else HealthCheckSettings(Path(health_check_file_path), health_check_sec_per_touch)
+                if health_check_redis_client is None
+                else HealthCheckSettings(health_check_redis_client, health_check_sec_per_touch)
             ),
             rpc_secret=app.config["rpc_secret"],
             grpc_config=options.get("taskworker.grpc_service_config"),

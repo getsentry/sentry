@@ -2,15 +2,17 @@ import hashlib
 import hmac
 import logging
 import random
+import socket
 import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import grpc
 from google.protobuf.message import Message
+from redis.client import StrictRedis
+from rediscluster import RedisCluster
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     FetchNextTask,
     GetTaskRequest,
@@ -116,7 +118,7 @@ class HostTemporarilyUnavailable(Exception):
 
 @dataclass
 class HealthCheckSettings:
-    file_path: Path
+    redis_client: RedisCluster[str] | StrictRedis[str]
     touch_interval_sec: float
 
 
@@ -182,7 +184,12 @@ class TaskworkerClient:
             ):
                 return
 
-            self._health_check_settings.file_path.touch()
+            # Write health check to Redis with a TTL of 2x the touch interval
+            # to allow for some grace period
+            hostname = socket.gethostname()
+            key = f"tw:health:{hostname}"
+            ttl = int(self._health_check_settings.touch_interval_sec * 2)
+            self._health_check_settings.redis_client.set(key, str(cur_time), ex=ttl)
             metrics.incr(
                 "taskworker.client.health_check.touched",
             )
