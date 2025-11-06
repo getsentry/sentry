@@ -642,25 +642,366 @@ class ExampleIntegrationProvider(IntegrationProvider):
 
 ### Python Environment
 
-**ALWAYS activate the virtualenv before any Python operation**: Before running any Python command (e.g. `python -c`), Python package (e.g. `pytest`, `mypy`), or Python script, you MUST first activate the virtualenv with `source .venv/bin/activate`. This applies to ALL Python operations without exception.
+**ALWAYS ensure the development environment is active before any Python operation**: Sentry uses `direnv` to automatically manage the development environment, including virtualenv activation and essential environment variables.
 
-### Python Typing
+For terminal commands, the environment is typically already active if direnv is properly configured. However, if you encounter issues or need to explicitly activate the environment:
 
-#### Recommended Practices
+```bash
+# Activate via direnv (preferred - sets up full dev environment)
+eval "$(direnv export bash)"
 
-For function signatures, always use abstract types (e.g. `Sequence` over `list`) for input parameters and use specific return types (e.g. `list` over `Sequence`).
-
-```python
-# Good: Abstract input types, specific return types
-def process_items(items: Sequence[Item]) -> list[ProcessedItem]:
-    return [process(item) for item in items]
-
-# Avoid: Specific input types, abstract return types
-def process_items(items: list[Item]) -> Sequence[ProcessedItem]:
-    return [process(item) for item in items]
+# Or fallback to direct virtualenv activation if direnv unavailable
+source .venv/bin/activate
 ```
 
-Always import a type from the module `collections.abc` rather than the `typing` module if it is available (e.g. `from collections.abc import Sequence` rather than `from typing import Sequence`).
+Before running any Python command (e.g. `python -c`), Python package (e.g. `pytest`, `mypy`), or a Python script, ensure the environment is active. This applies to ALL Python operations without exception.
+
+Note: The `.envrc` file configures the full development environment including virtualenv, PATH additions, and environment variables like `PYTHONUNBUFFERED` and `NODE_OPTIONS`.
+
+### Python Typing Best Practices
+
+This section covers Sentry's Python typing conventions and best practices. These guidelines are based on the [official Python typing recommendations](https://typing.python.org/en/latest/reference/best_practices.html) and our team's experience.
+
+#### Type Aliases
+
+Use `TypeAlias` for type aliases, but not for regular aliases or constants.
+
+**Good:**
+
+```python
+_IntList: TypeAlias = list[int]
+g = os.stat
+Path = pathlib.Path
+ERROR = errno.EEXIST
+```
+
+**Bad:**
+
+```python
+_IntList = list[int]
+g: TypeAlias = os.stat
+Path: TypeAlias = pathlib.Path
+ERROR: TypeAlias = errno.EEXIST
+```
+
+#### Using `Any` and `object`
+
+Use `Any` when a type cannot be expressed appropriately with the current type system or using the correct type is unergonomic.
+
+Use `object` when a function accepts every possible object as an argument (e.g., only passed to `str()` or `repr()`). Similarly, if the return value of a callback is ignored, annotate it with `object`.
+
+```python
+def call_cb_if_int(cb: Callable[[int], object], o: object) -> None:
+    if isinstance(o, int):
+        cb(o)
+```
+
+#### Arguments and Return Types
+
+**For function arguments**, prefer protocols and abstract types (`Mapping`, `Sequence`, `Iterable`, etc.) over concrete implementations. This provides better flexibility and immutability guarantees.
+
+**For return values**, use concrete types (`list`, `dict`, etc.) for concrete implementations. The return values of protocols and abstract base classes must be judged case-by-case.
+
+**Good:**
+
+```python
+def map_it(input: Iterable[str]) -> list[int]: ...
+def create_map() -> dict[str, int]: ...
+def to_string(o: object) -> str: ...  # accepts any object
+```
+
+**Bad:**
+
+```python
+def map_it(input: list[str]) -> list[int]: ...
+def create_map() -> MutableMapping[str, int]: ...
+def to_string(o: Any) -> str: ...
+```
+
+**Acceptable (case-by-case):**
+
+```python
+class MyProto(Protocol):
+    def foo(self) -> list[int]: ...  # concrete return is fine
+    def bar(self) -> Mapping[str, str]: ...  # abstract return for flexibility
+```
+
+**Why use `Mapping`/`Sequence` for arguments?**
+
+- They're immutable, so mypy catches unintended modifications
+- They accept more types (e.g., tuples work where `list` would fail)
+- Use `MutableMapping`/`MutableSequence` if you need to modify
+
+#### Union Return Types
+
+Avoid complex union return types when possible, as they require `isinstance()` checks at call sites. Simple unions (2-3 well-understood types) are acceptable when they represent the natural return possibilities.
+
+**Acceptable:**
+
+```python
+def parse_value(s: str) -> str | int:  # clear, limited choices
+    return int(s) if s.isdigit() else s
+```
+
+**Avoid:**
+
+```python
+def process(x: str) -> dict | list | str | None | Exception:  # too complex
+    ...
+```
+
+For complex cases, use `Any` or `X | Any`, or refactor to simplify the return contract.
+
+#### Union Syntax (Shorthand)
+
+Use shorthand syntax for unions instead of `Union` or `Optional`. Place `None` as the last element.
+
+**Good:**
+
+```python
+def foo(x: str | int) -> None: ...
+def bar(x: str | None) -> int | None: ...
+```
+
+**Bad:**
+
+```python
+def foo(x: Union[str, int]) -> None: ...
+def bar(x: Optional[str]) -> Optional[int]: ...
+def baz(x: None | str) -> None: ...  # None should be last
+```
+
+#### Type Simplifications
+
+- Use `float` instead of `int | float` (float accepts int)
+- Use `None` instead of `Literal[None]`
+
+#### Built-in Generics
+
+Use built-in generics (`list`, `dict`, `type`, etc.) instead of typing module aliases.
+
+**Good:**
+
+```python
+from collections.abc import Iterable
+
+def foo(x: type[MyClass]) -> list[str]: ...
+def bar(x: Iterable[str]) -> None: ...
+```
+
+**Bad:**
+
+```python
+from typing import Iterable, List, Type
+
+def foo(x: Type[MyClass]) -> List[str]: ...
+def bar(x: Iterable[str]) -> None: ...
+```
+
+#### Using `Self` Type
+
+Use `Self` (Python 3.11+) for methods returning the instance's own type.
+
+```python
+from typing import Self
+
+class Builder:
+    def set_value(self, value: str) -> Self:
+        self.value = value
+        return self
+```
+
+**Alternative for older patterns:** Use `from __future__ import annotations` to reference the class name:
+
+```python
+from __future__ import annotations
+
+class Builder:
+    def set_value(self, value: str) -> Builder:
+        self.value = value
+        return self
+```
+
+#### Protocols
+
+Use `Protocol` for structural subtyping when you need duck-typed interfaces.
+
+```python
+from typing import Protocol
+
+class Drawable(Protocol):
+    def draw(self) -> None: ...
+
+def render(obj: Drawable) -> None:
+    obj.draw()  # works with any object that has a draw() method
+```
+
+#### Function Overloads
+
+Use `@overload` to specify multiple call signatures for a single function.
+
+```python
+from typing import overload
+
+@overload
+def process(data: str) -> str: ...
+
+@overload
+def process(data: bytes) -> bytes: ...
+
+def process(data: str | bytes) -> str | bytes:
+    return data.decode() if isinstance(data, bytes) else data
+```
+
+#### Type Variables and Generics
+
+Use `TypeVar` for generic functions and classes that preserve type relationships.
+
+```python
+from typing import TypeVar
+
+T = TypeVar('T')
+
+def first(items: list[T]) -> T | None:
+    return items[0] if items else None
+
+# With constraints
+AnyStr = TypeVar('AnyStr', str, bytes)
+
+def concat(a: AnyStr, b: AnyStr) -> AnyStr:
+    return a + b
+```
+
+#### Literal Types
+
+Use `Literal` to specify exact values as types.
+
+```python
+from typing import Literal
+
+def set_log_level(level: Literal["debug", "info", "warning", "error"]) -> None:
+    ...
+
+# Type aliases for common literals
+LogLevel: TypeAlias = Literal["debug", "info", "warning", "error"]
+```
+
+#### Avoiding `cast` and `type: ignore`
+
+**Avoid `cast` except when absolutely necessary.** It defeats type checking and can hide bugs. Only use when:
+
+- Working with complex generics that mypy can't infer correctly
+- Narrowing types from `Any` returned by truly untyped third-party libraries
+- You've exhausted other options like assertions, `isinstance()` checks, or `TypeGuard`
+
+**Avoid `# type: ignore` as much as possible.** These should only be needed for:
+
+- Annotating truly untyped third-party libraries (e.g., `pytest` fixtures)
+- Functions intentionally designed to accept any type (e.g., `is_number`)
+
+Prefer more specific ignores like `# type: ignore[arg-type]` over blanket `# type: ignore`.
+
+#### Specificity vs. Generality
+
+Specific types are generally better than vague ones. If function signatures become unwieldy:
+
+- Consider extracting a custom type or `TypedDict`
+- Refactor the function to simplify what it does
+- Define the function as a `Generic`
+
+However, use `Mapping`/`Sequence` over `dict`/`list` for arguments when the function doesn't need mutability. This balances specificity with flexibility.
+
+#### Type Checking Tooling
+
+**Running mypy locally:**
+
+```bash
+# Check specific file or directory
+mypy src/sentry/api/endpoints/
+
+# Full codebase check
+mypy src/sentry/
+```
+
+**Pre-commit integration:**
+
+Type checking runs automatically via pre-commit hooks. To run manually:
+
+```bash
+pre-commit run mypy --all-files
+```
+
+**Configuration:** Mypy settings are in `pyproject.toml` under `[tool.mypy]`.
+
+**CI/CD:** Type checking is enforced in CI. All PRs must pass mypy checks before merging.
+
+### Type Checking Gotchas
+
+#### TypedDict Limitations
+
+You can't do `isinstance()` checks on `TypedDict`. If you need to accept multiple TypedDict types, use `Literal` discriminators with manual checks. Consider using `NamedTuple` or `dataclasses` instead, which support runtime type checking and are generally easier to work with.
+
+```python
+from typing import Literal, TypedDict
+
+class ErrorResponse(TypedDict):
+    type: Literal["error"]
+    message: str
+
+class SuccessResponse(TypedDict):
+    type: Literal["success"]
+    data: dict
+
+def handle_response(response: ErrorResponse | SuccessResponse) -> None:
+    if response["type"] == "error":  # discriminate by literal field
+        print(response["message"])
+```
+
+#### Self-Referencing Types
+
+Python's type checker has issues with classes that reference themselves as a type. Use `from __future__ import annotations` at the top of the file:
+
+```python
+from __future__ import annotations
+from dataclasses import dataclass
+
+@dataclass
+class Node:
+    value: int
+    next: Node | None = None  # works with __future__ import
+
+    def copy(self) -> Node:
+        return Node(self.value, self.next)
+```
+
+#### Avoiding Import Cycles
+
+If type imports create circular dependencies, use `TYPE_CHECKING` to import types only during type checking:
+
+```python
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sentry.models import Organization  # only imported for type checking
+
+def process_org(org: Organization) -> None:  # works due to __future__ annotations
+    ...
+```
+
+**Note:** This requires `from __future__ import annotations` to use the string-quoted type.
+
+#### Generic Class Variance
+
+Be aware of variance issues with generic classes. Use `TypeVar` with variance modifiers when needed:
+
+```python
+from typing import TypeVar
+
+T_co = TypeVar('T_co', covariant=True)  # read-only
+T_contra = TypeVar('T_contra', contravariant=True)  # write-only
+```
+
+See [mypy's common issues guide](https://mypy.readthedocs.io/en/stable/common_issues.html) for more troubleshooting.
 
 ### Python Tests
 
