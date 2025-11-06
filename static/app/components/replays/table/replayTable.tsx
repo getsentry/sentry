@@ -1,5 +1,4 @@
 import type {RefObject} from 'react';
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -42,17 +41,6 @@ export default function ReplayTable({
 }: Props) {
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
-
-  const end = useMemo(() => {
-    const latestReplayTimestampMs = replays.reduce(
-      (acc: number, replay) => Math.max(replay.started_at?.getTime() ?? 0, acc),
-      0
-    );
-
-    return replays.length > 0
-      ? new Date(latestReplayTimestampMs).toISOString()
-      : undefined;
-  }, [replays]);
 
   if (isPending) {
     return (
@@ -124,7 +112,6 @@ export default function ReplayTable({
               <column.Component
                 columnIndex={columnIndex}
                 replay={replay}
-                end={end ?? ''}
                 rowIndex={rowIndex}
                 showDropdownFilters={showDropdownFilters}
               />

@@ -17,6 +17,7 @@ import NumericDropdownFilter from 'sentry/components/replays/table/filters/numer
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import ScoreBar from 'sentry/components/scoreBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {IconNot} from 'sentry/icons';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
 import {IconFire} from 'sentry/icons/iconFire';
@@ -508,7 +509,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
-  Component: ({replay, end}) => {
+  Component: ({replay}) => {
     const routes = useRoutes();
     const location = useLocation();
     const organization = useOrganization();
@@ -533,13 +534,20 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       organization,
     });
 
+    const {statsPeriod, ...eventViewQuery} = eventView.generateQueryStringObject();
+
+    if (statsPeriod && typeof statsPeriod === 'string') {
+      const {start, end} = parseStatsPeriod(statsPeriod);
+      eventViewQuery.start = start;
+      eventViewQuery.end = end;
+    }
+
     const detailsTab = () => {
       return {
         pathname: replayDetailsPathname,
         query: {
           referrer,
-          ...eventView.generateQueryStringObject(),
-          playlistEnd: end,
+          ...eventViewQuery,
           sort,
         },
       };

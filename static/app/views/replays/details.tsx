@@ -17,7 +17,6 @@ import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -47,23 +46,21 @@ export default function ReplayDetails() {
   });
   const {replay, replayRecord} = readerResult;
 
-  const {playlistEnd, ...query} = useLocationQuery({
+  const query = useLocationQuery({
     fields: {
       cursor: decodeScalar,
       environment: decodeList,
       project: decodeList,
       sort: decodeScalar,
       query: decodeScalar,
-      playlistEnd: decodeScalar,
-      statsPeriod: decodeScalar,
+      start: decodeScalar,
+      end: decodeScalar,
       utc: decodeScalar,
     },
   });
-  const {getParamValue} = useUrlParams('sort');
-  const sortQuery = getParamValue();
 
   const queryKey = useReplayListQueryKey({
-    options: {query: {...query, end: playlistEnd, sort: sortQuery}},
+    options: {query},
     organization,
     queryReferrer: 'replayList',
   });
