@@ -330,6 +330,13 @@ def normalize_stacktraces_for_grouping(
             for frame in frames:
                 _update_frame(frame, platform)
 
+                # Restore the original in_app value before applying in-app stacktrace rules. This
+                # lets us run grouping enhancers on the stacktrace multiple times, as would happen
+                # during a grouping config transition, for example.
+                orig_in_app = get_path(frame, "data", "orig_in_app")
+                if orig_in_app is not None:
+                    frame["in_app"] = None if orig_in_app == -1 else bool(orig_in_app)
+
                 # Track the incoming `in_app` value, before we make any changes. This is different
                 # from the `orig_in_app` value which may be set by
                 # `apply_category_and_updated_in_app_to_frames`, because it's not tied to the value
@@ -380,13 +387,6 @@ def normalize_stacktraces_for_grouping(
 
 
 def _update_frame(frame: dict[str, Any], platform: str | None) -> None:
-    """Restore the original in_app value before the first grouping
-    enhancers have been run. This allows to re-apply grouping
-    enhancers on the original frame data.
-    """
-    orig_in_app = get_path(frame, "data", "orig_in_app")
-    if orig_in_app is not None:
-        frame["in_app"] = None if orig_in_app == -1 else bool(orig_in_app)
 
     if frame.get("raw_function") is not None:
         return
