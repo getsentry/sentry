@@ -545,6 +545,74 @@ def test_project_config_with_all_biases_enabled(
 
 
 @django_db_all
+@region_silo_test
+@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
+@freeze_time("2022-10-21 18:50:25.000000+00:00")
+def test_project_config_with_trace_health_checks_enabled(
+    eval_dynamic_factor_lr, default_project, default_team
+):
+    eval_dynamic_factor_lr.return_value = 1.5
+
+    default_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": "boostEnvironments", "active": False},
+            {"id": "ignoreHealthChecks", "active": True},
+            {"id": "boostLatestRelease", "active": False},
+            {"id": "boostKeyTransactions", "active": False},
+            {"id": "boostLowVolumeTransactions", "active": False},
+            {"id": "boostReplayId", "active": False},
+        ],
+    )
+    default_project.add_team(default_team)
+    old_date = datetime.now(tz=timezone.utc) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+    default_project.organization.date_added = old_date
+    default_project.date_added = old_date
+
+    with Feature(
+        {
+            "organizations:dynamic-sampling": True,
+            "organizations:ds-health-checks-trace-based": True,
+        }
+    ):
+        with patch(
+            "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+            return_value=0.1,
+        ):
+            project_cfg = get_project_config(default_project)
+
+    cfg = project_cfg.to_dict()
+    _validate_project_config(cfg["config"])
+    dynamic_sampling = get_path(cfg, "config", "sampling")
+    assert dynamic_sampling == {
+        "version": 2,
+        "rules": [
+            {
+                "samplingValue": {"type": "sampleRate", "value": 0.02},
+                "type": "trace",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "trace.transaction",
+                            "value": HEALTH_CHECK_GLOBS,
+                        }
+                    ],
+                },
+                "id": 1002,
+            },
+            {
+                "samplingValue": {"type": "sampleRate", "value": 0.1},
+                "type": "trace",
+                "condition": {"op": "and", "inner": []},
+                "id": 1000,
+            },
+        ],
+    }
+
+
+@django_db_all
 @pytest.mark.parametrize("transaction_metrics", ("with_metrics", "without_metrics"))
 @region_silo_test
 def test_project_config_with_breakdown(
