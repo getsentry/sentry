@@ -42,6 +42,9 @@ import {
 import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
 import type {PickableDays} from 'sentry/views/explore/utils';
 
+// eslint-disable-next-line no-restricted-imports,boundaries/element-types
+import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
+
 type OnboardingProps = {
   organization: Organization;
   project: Project;
@@ -401,6 +404,7 @@ export function LogsTabOnboarding({
           </StyledPageFilterBar>
         </ExploreFilterSection>
         <OnboardingContainer>
+          <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
           <Onboarding project={project} organization={organization} />
         </OnboardingContainer>
       </Layout.Main>
