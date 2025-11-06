@@ -6,6 +6,7 @@ import throttle from 'lodash/throttle';
 import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
+import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
 import {
@@ -112,7 +113,13 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
           <QueryClientProvider client={queryClient}>
             <ThemeAndStyleProvider>
               <CommandPaletteProvider>
-                <SimpleRouter element={<Component {...props} />} />
+                <SimpleRouter
+                  element={
+                    <ScrapsProviders>
+                      <Component {...props} />
+                    </ScrapsProviders>
+                  }
+                />
               </CommandPaletteProvider>
             </ThemeAndStyleProvider>
           </QueryClientProvider>

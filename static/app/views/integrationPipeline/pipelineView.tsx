@@ -5,6 +5,7 @@ import {wrapCreateBrowserRouterV6} from '@sentry/react';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import Indicators from 'sentry/components/indicators';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
+import {ScrapsProviders} from 'sentry/scrapsProviders';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -43,7 +44,11 @@ function buildRouter(Component: React.ComponentType, props: any) {
   const router = sentryCreateBrowserRouter([
     {
       path: '*',
-      element: <Component {...props} props={props} />,
+      element: (
+        <ScrapsProviders>
+          <Component {...props} props={props} />
+        </ScrapsProviders>
+      ),
     },
   ]);
   DANGEROUS_SET_REACT_ROUTER_6_HISTORY(router);
