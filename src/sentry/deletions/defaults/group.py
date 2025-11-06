@@ -1,3 +1,17 @@
+"""
+Group deletion configuration.
+
+This module defines which models should be deleted when a group is deleted and how
+they should be handled during reprocessing operations.
+
+IMPORTANT: When adding a new model with a group_id foreign key, you MUST add it to
+one of the model lists below, or tests will fail. See:
+  - tests/sentry/deletions/test_validate_group_related_models.py
+
+For guidance on which list to use, see the comments on DIRECT_GROUP_RELATED_MODELS
+and ADDITIONAL_GROUP_RELATED_MODELS below.
+"""
+
 from __future__ import annotations
 
 import logging
