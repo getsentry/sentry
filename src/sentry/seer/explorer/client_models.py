@@ -5,9 +5,11 @@ Pydantic models for Seer Explorer client.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Generic, Literal, TypeVar
 
 from pydantic import BaseModel
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class ToolCall(BaseModel):
@@ -43,14 +45,15 @@ class MemoryBlock(BaseModel):
         extra = "allow"
 
 
-class SeerRunState(BaseModel):
+class SeerRunState(BaseModel, Generic[T]):
     """State of a Seer Explorer session."""
 
     run_id: int
     blocks: list[MemoryBlock]
     status: Literal["processing", "completed", "error"]
     updated_at: str
-    artifact: dict[str, Any] | BaseModel | None = None
+    raw_artifact: dict[str, Any] | None = None
+    artifact: T | None = None
     artifact_reason: str | None = None
 
     class Config:

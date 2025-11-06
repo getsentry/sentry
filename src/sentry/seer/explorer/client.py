@@ -239,14 +239,14 @@ class SeerExplorerClient(Generic[T]):
         else:
             state = fetch_run_status(run_id, self.organization)
 
-        # Automatically reconstruct artifact if schema was provided
-        if state.artifact and self.artifact_schema:
+        # Automatically parse raw_artifact into typed artifact if schema was provided
+        if state.raw_artifact and self.artifact_schema:
             try:
-                state.artifact = self.artifact_schema.parse_obj(state.artifact)
+                state.artifact = self.artifact_schema.parse_obj(state.raw_artifact)
             except ValidationError as e:
-                # Log but don't fail - keep raw dict
+                # Log but don't fail - keep artifact as None
                 logger.warning(
-                    "Failed to reconstruct artifact",
+                    "Failed to parse artifact",
                     extra={
                         "run_id": run_id,
                         "error": str(e),

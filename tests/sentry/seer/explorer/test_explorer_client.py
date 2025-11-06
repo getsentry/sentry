@@ -307,7 +307,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
             blocks=[],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
-            artifact={"bug_count": 5, "severity": "high"},  # Raw dict from API
+            raw_artifact={"bug_count": 5, "severity": "high"},  # Raw dict from API
             artifact_reason="Successfully generated",
         )
         mock_fetch.return_value = mock_state
@@ -335,7 +335,7 @@ class TestSeerExplorerClientArtifacts(TestCase):
             blocks=[],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
-            artifact=None,
+            raw_artifact=None,
             artifact_reason="Generation failed",
         )
         mock_fetch.return_value = mock_state
