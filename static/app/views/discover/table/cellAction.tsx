@@ -401,6 +401,12 @@ function CellAction({
                     e.preventDefault();
                   }
                 }}
+                hasLinks={
+                  // TODO - hack, ideally we don't directly access the DOM and use a ref instead, ideally we can determin if the cell type has a link
+                  !!document
+                    .getElementById(triggerProps.id ?? '')
+                    ?.getElementsByTagName('a')?.[0]
+                }
               >
                 {children}
               </ActionMenuTriggerV2>
@@ -479,10 +485,10 @@ const ActionMenuTrigger = styled(Button)`
   }
 `;
 
-const ActionMenuTriggerV2 = styled('div')`
+const ActionMenuTriggerV2 = styled('div')<{hasLinks?: boolean}>`
   a,
   span {
-    color: ${p => p.theme.textColor};
+    color: ${p => (p.hasLinks ? p.theme.linkColor : p.theme.textColor)};
   }
   :hover {
     cursor: pointer;

@@ -35,6 +35,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 logger = logging.getLogger(__name__)
 
@@ -255,6 +256,9 @@ class AlertRuleSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> AlertRuleSerializerResponse:
+        # Mark that we're using legacy AlertRule models
+        report_used_legacy_models()
+
         from sentry.incidents.endpoints.utils import translate_threshold
         from sentry.incidents.logic import translate_aggregate_field
 
@@ -470,6 +474,8 @@ class CombinedRuleSerializer(Serializer):
     ) -> MutableMapping[Any, Any]:
         updated_attrs = {**attrs}
         if isinstance(obj, AlertRule):
+            # Mark that we're using legacy AlertRule models
+            report_used_legacy_models()
             updated_attrs["type"] = "alert_rule"
         elif isinstance(obj, Rule):
             updated_attrs["type"] = "rule"

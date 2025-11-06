@@ -94,7 +94,11 @@ from django.db import router
 from sentry import models, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
-from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
+from sentry.models.files.utils import get_storage
+from sentry.models.project import Project
+from sentry.objectstore import get_attachments_client
+from sentry.options.rollout import in_random_rollout
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.services.eventstore.processing import event_processing_store
@@ -214,13 +218,15 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     # Step 1: Copy attachments into attachment cache. Note that we can only
     # consider minidumps because filestore just stays as-is after reprocessing
     # (we simply update group_id on the EventAttachment models in post_process)
+    project = Project.objects.get_from_cache(id=project_id)
     cache_key = cache_key_for_event(data)
     attachment_objects = []
     for attachment_id, attachment in enumerate(attachments):
-        with sentry_sdk.start_span(op="reprocess_event._copy_attachment_into_cache") as span:
+        with sentry_sdk.start_span(op="reprocess_event._maybe_copy_attachment_into_cache") as span:
             span.set_data("attachment_id", attachment.id)
             attachment_objects.append(
-                _copy_attachment_into_cache(
+                _maybe_copy_attachment_into_cache(
+                    project=project,
                     attachment_id=attachment_id,
                     attachment=attachment,
                     cache_key=cache_key,
@@ -390,40 +396,72 @@ def buffered_delete_old_primary_hash(
         )
 
 
-def _copy_attachment_into_cache(
-    attachment_id: int, attachment: EventAttachment, cache_key: str, cache_timeout: int
+def _maybe_copy_attachment_into_cache(
+    project: Project,
+    attachment_id: int,
+    attachment: EventAttachment,
+    cache_key: str,
+    cache_timeout: int,
 ) -> CachedAttachment:
-    with attachment.getfile() as fp:
-        chunk_index = 0
-        size = 0
-        while True:
-            chunk = fp.read(settings.SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE)
-            if not chunk:
-                break
+    stored_id = None
+    chunks = None
 
-            size += len(chunk)
+    if in_random_rollout("objectstore.enable_for.attachments"):
+        blob_path = attachment.blob_path or ""
+        if blob_path.startswith(V2_PREFIX):
+            # in case the attachment is already stored in objectstore, there is nothing to do
+            stored_id = blob_path.removeprefix(V2_PREFIX)
+        else:
+            # otherwise, we store it in objectstore
+            with attachment.getfile() as fp:
+                stored_id = (
+                    get_attachments_client()
+                    .for_project(project.organization_id, project.id)
+                    .put(fp)
+                )
+            # but we then also make that storage permanent, as otherwise
+            # the codepaths won’t be cleaning up this stored file.
+            # essentially this means we are moving the file from the previous storage
+            # into objectstore at this point.
+            attachment.blob_path = V2_PREFIX + stored_id
+            attachment.save()
+            if blob_path.startswith(V1_PREFIX):
+                storage = get_storage()
+                storage.delete(blob_path)
 
-            attachment_cache.set_chunk(
-                key=cache_key,
-                id=attachment_id,
-                chunk_index=chunk_index,
-                chunk_data=chunk,
-                timeout=cache_timeout,
-            )
-            chunk_index += 1
+    else:
+        # when not using objectstore, store chunks in the attachment cache
+        with attachment.getfile() as fp:
+            chunk_index = 0
+            size = 0
+            while True:
+                chunk = fp.read(settings.SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE)
+                if not chunk:
+                    break
 
-    assert size == attachment.size
+                size += len(chunk)
+
+                attachment_cache.set_chunk(
+                    key=cache_key,
+                    id=attachment_id,
+                    chunk_index=chunk_index,
+                    chunk_data=chunk,
+                    timeout=cache_timeout,
+                )
+                chunk_index += 1
+
+        assert size == attachment.size
+        chunks = chunk_index
 
     return CachedAttachment(
         key=cache_key,
         id=attachment_id,
         name=attachment.name,
-        # XXX: Not part of eventattachment model, but not strictly
-        # necessary for processing
-        content_type=None,
+        content_type=attachment.content_type,
         type=attachment.type,
-        chunks=chunk_index,
-        size=size,
+        size=attachment.size,
+        stored_id=stored_id,
+        chunks=chunks,
     )
 
 
