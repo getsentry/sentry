@@ -160,6 +160,12 @@ describe('LogsTabContent', () => {
       method: 'GET',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/stats_v2/`,
+      method: 'GET',
+      body: {},
+    });
   });
 
   it('should call APIs as expected', async () => {

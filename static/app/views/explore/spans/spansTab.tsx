@@ -109,6 +109,7 @@ export function SpansTabOnboarding({
         <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <OnboardingContentSection>
+        <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
         <Onboarding project={project} organization={organization} />
       </OnboardingContentSection>
     </Layout.Body>
@@ -438,22 +439,6 @@ function SpanTabContentSection({
     interval,
   });
 
-  const resultsLength =
-    {
-      aggregate: aggregatesTableResult.result.data?.length,
-      samples: spansTableResult.result.data?.length,
-      traces: tracesTableResult.result.data?.data?.length,
-    }[queryType] ?? 0;
-
-  const hasResults = !!resultsLength;
-
-  const resultsLoading =
-    queryType === 'aggregate'
-      ? aggregatesTableResult.result.isPending
-      : queryType === 'samples'
-        ? spansTableResult.result.isPending
-        : tracesTableResult.result.isPending;
-
   const error = defined(timeseriesResult.error)
     ? null // if the timeseries errors, we prefer to show that error in the chart
     : queryType === 'samples'
@@ -495,9 +480,7 @@ function SpanTabContentSection({
         </ActionButtonsGroup>
       </OverChartButtonGroup>
       {defined(id) && <DroppedFieldsAlert />}
-      {!resultsLoading && !hasResults && (
-        <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
-      )}
+      <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       <ExtrapolationEnabledAlert />
       {defined(error) && (
         <Alert.Container>
