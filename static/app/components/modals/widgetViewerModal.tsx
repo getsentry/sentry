@@ -88,7 +88,10 @@ import {
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
-import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {
+  getWidgetExploreUrl,
+  getWidgetTableRowExploreUrlFunction,
+} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -466,6 +469,8 @@ function WidgetViewerModal(props: Props) {
       fields,
       widget,
       tableWidget,
+      dashboardFilters,
+      modalSelection,
       setChartUnmodified,
       widths,
       location,
@@ -493,6 +498,8 @@ function WidgetViewerModal(props: Props) {
       fields,
       widget,
       tableWidget,
+      dashboardFilters,
+      modalSelection,
       setChartUnmodified,
       widths,
       location,
@@ -971,10 +978,12 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
 }
 
 interface ViewerTableV2Props {
+  dashboardFilters: DashboardFilters | undefined;
   eventView: EventView;
   fields: string[];
   loading: boolean;
   location: Location;
+  modalSelection: PageFilters;
   navigate: ReactRouter3Navigate;
   organization: Organization;
   projects: Project[];
@@ -1002,6 +1011,8 @@ function ViewerTableV2({
   eventView,
   theme,
   projects,
+  dashboardFilters,
+  modalSelection,
 }: ViewerTableV2Props) {
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const links = parseLinkHeader(pageLinks ?? null);
@@ -1144,6 +1155,17 @@ function ViewerTableV2({
           } satisfies RenderFunctionBaggage;
         }}
         allowedCellActions={cellActions}
+        onTriggerCellAction={(action, _value, dataRow) => {
+          if (action === Actions.OPEN_ROW_IN_EXPLORE) {
+            const getExploreUrl = getWidgetTableRowExploreUrlFunction(
+              modalSelection,
+              widget,
+              organization,
+              dashboardFilters
+            );
+            navigate(getExploreUrl(dataRow));
+          }
+        }}
       />
       {!(
         tableWidget.queries[0]!.orderby.match(/^-?release$/) &&
