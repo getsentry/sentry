@@ -222,8 +222,8 @@ export function createConditions(
   // Use custom value if provided, otherwise use MEDIUM threshold if available, else HIGH threshold
   const resolutionConditionType =
     data.conditionType === DataConditionType.GREATER
-      ? DataConditionType.LESS
-      : DataConditionType.GREATER;
+      ? DataConditionType.LESS_OR_EQUAL
+      : DataConditionType.GREATER_OR_EQUAL;
 
   const resolutionComparison =
     data.resolutionStrategy === 'custom' &&
