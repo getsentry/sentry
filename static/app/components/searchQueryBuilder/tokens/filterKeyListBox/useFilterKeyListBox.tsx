@@ -157,6 +157,7 @@ function useFilterKeySections({
   const previousNumSections = usePrevious(numSections);
   useEffect(() => {
     if (previousNumSections !== numSections) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setSelectedSection(sections[0]!.value);
     }
   }, [numSections, previousNumSections, sections]);
@@ -181,6 +182,9 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   });
 
   const organization = useOrganization();
+  const hasAskSeerConsentFlowChanges = organization.features.includes(
+    'ask-seer-consent-flow-update'
+  );
 
   const filterKeyMenuItems = useMemo(() => {
     const recentFilterItems = makeRecentFilterItems({recentFilters});
@@ -188,7 +192,11 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     const askSeerItem = [];
     if (enableAISearch) {
       askSeerItem.push(
-        gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
+        hasAskSeerConsentFlowChanges
+          ? createAskSeerItem()
+          : gaveSeerConsent
+            ? createAskSeerItem()
+            : createAskSeerConsentItem()
       );
     }
 
@@ -221,6 +229,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     filterKeys,
     gaveSeerConsent,
     getFieldDefinition,
+    hasAskSeerConsentFlowChanges,
     recentFilters,
     recentSearches,
     sectionedItems,

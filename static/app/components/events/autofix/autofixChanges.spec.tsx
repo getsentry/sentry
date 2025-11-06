@@ -17,7 +17,7 @@ jest.mock('sentry/components/events/autofix/useAutofixSetup', () => ({
 }));
 
 const mockUpdateInsightCard = jest.fn();
-jest.mock('sentry/components/events/autofix/autofixInsightCards', () => ({
+jest.mock('sentry/components/events/autofix/hooks/useUpdateInsightCard', () => ({
   useUpdateInsightCard: () => ({
     mutate: mockUpdateInsightCard,
   }),

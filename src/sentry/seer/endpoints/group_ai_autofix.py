@@ -3,20 +3,34 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import orjson
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.autofix_examples import AutofixExamples
+from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.models.repository import Repository
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix import trigger_autofix
-from sentry.seer.autofix.utils import get_autofix_state
+from sentry.seer.autofix.types import AutofixPostResponse, AutofixStateResponse
+from sentry.seer.autofix.utils import AutofixStoppingPoint, get_autofix_state
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
@@ -24,43 +38,128 @@ from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
-from rest_framework.request import Request
+
+class AutofixRequestSerializer(CamelSnakeSerializer):
+    event_id = serializers.CharField(
+        required=False,
+        help_text="Run issue fix on a specific event. If not provided, the recommended event for the issue will be used.",
+    )
+    instruction = serializers.CharField(
+        required=False,
+        help_text="Optional custom instruction to guide the issue fix process.",
+        allow_blank=True,
+    )
+    pr_to_comment_on_url = serializers.URLField(
+        required=False, help_text="URL of a pull request where the issue fix should add comments."
+    )
+    stopping_point = serializers.ChoiceField(
+        required=False,
+        choices=["root_cause", "solution", "code_changes", "open_pr"],
+        help_text="Where the issue fix process should stop. If not provided, will run to root cause.",
+    )
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Seer"])
 class GroupAutofixEndpoint(GroupAiEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.EXPERIMENTAL,
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.IP: RateLimit(limit=25, window=60),
-            RateLimitCategory.USER: RateLimit(limit=25, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60 * 60),  # 1 hour
-        },
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=1024, window=60),
-            RateLimitCategory.USER: RateLimit(limit=1024, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=8192, window=60),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.IP: RateLimit(limit=25, window=60),
+                RateLimitCategory.USER: RateLimit(limit=25, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60 * 60),  # 1 hour
+            },
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=1024, window=60),
+                RateLimitCategory.USER: RateLimit(limit=1024, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=8192, window=60),
+            },
+        }
+    )
 
+    @extend_schema(
+        operation_id="Start Seer Issue Fix",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+        ],
+        request=AutofixRequestSerializer,
+        responses={
+            202: inline_sentry_response_serializer("AutofixPostResponse", AutofixPostResponse),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=AutofixExamples.AUTOFIX_POST_RESPONSE,
+    )
     def post(self, request: Request, group: Group) -> Response:
-        data = orjson.loads(request.body)
+        """
+        Trigger a Seer Issue Fix run for a specific issue.
+
+        The issue fix process can:
+        - Identify the root cause of the issue
+        - Propose a solution
+        - Generate code changes
+        - Create a pull request with the fix
+
+        The process runs asynchronously, and you can get the state using the GET endpoint.
+        """
+        serializer = AutofixRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        data = serializer.validated_data
+
+        stopping_point = data.get("stopping_point")
+        stopping_point = AutofixStoppingPoint(stopping_point) if stopping_point else None
 
         return trigger_autofix(
             group=group,
             # This event_id is the event that the user is looking at when they click the "Fix" button
-            event_id=data.get("event_id", None),
+            event_id=data.get("event_id"),
             user=request.user,
-            instruction=data.get("instruction", None),
-            pr_to_comment_on_url=data.get("pr_to_comment_on_url", None),
+            instruction=data.get("instruction"),
+            pr_to_comment_on_url=data.get("pr_to_comment_on_url"),
+            stopping_point=stopping_point,
         )
 
+    @extend_schema(
+        operation_id="Retrieve Seer Issue Fix State",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("AutofixStateResponse", AutofixStateResponse),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=AutofixExamples.AUTOFIX_GET_RESPONSE,
+    )
     def get(self, request: Request, group: Group) -> Response:
+        """
+        Retrieve the current detailed state of an issue fix process for a specific issue including:
+
+        - Current status
+        - Steps performed and their outcomes
+        - Repository information and permissions
+        - Root Cause Analysis
+        - Proposed Solution
+        - Generated code changes
+
+        This endpoint although documented is still experimental and the payload may change in the future.
+        """
+
         access_check_cache_key = f"autofix_access_check:{group.id}"
         access_check_cache_value = cache.get(access_check_cache_key)
 

@@ -76,7 +76,7 @@ export function CronRulesEdit({onChangeTitle, project, organization}: Props) {
   }
 
   return (
-    <Layout.Main fullWidth>
+    <Layout.Main width="full">
       <MonitorForm
         monitor={monitor}
         apiMethod="PUT"

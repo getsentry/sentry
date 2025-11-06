@@ -6,10 +6,10 @@ import resolutionImage from 'sentry-images/spot/releases-tour-resolution.svg';
 import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CodeBlock} from 'sentry/components/core/code';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex, Stack} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
@@ -246,8 +246,10 @@ sentry-cli releases finalize "$VERSION"`;
               {t('Add New Integration')}
             </Button>
           )}
-          triggerLabel={selectedApp ? undefined : t('Select Integration')}
-          triggerProps={{prefix: selectedApp ? t('Token From') : undefined}}
+          triggerProps={{
+            prefix: selectedApp ? t('Token From') : undefined,
+            children: selectedApp ? undefined : t('Select Integration'),
+          }}
           onChange={option => {
             const app = apps.find(i => i.slug === option.value)!;
             setSelectedApp(app);
@@ -255,14 +257,14 @@ sentry-cli releases finalize "$VERSION"`;
           }}
         />
 
-        <CodeSnippet
+        <CodeBlock
           dark
           language="bash"
           hideCopyButton={!token || !selectedApp}
           onCopy={trackQuickstartCopy}
         >
           {setupExample}
-        </CodeSnippet>
+        </CodeBlock>
       </Stack>
     </Panel>
   );

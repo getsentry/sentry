@@ -16,6 +16,7 @@ import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButt
 import NumericDropdownFilter from 'sentry/components/replays/table/filters/numericDropdownFilter';
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import ScoreBar from 'sentry/components/scoreBar';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconNot} from 'sentry/icons';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
 import {IconFire} from 'sentry/icons/iconFire';
@@ -173,6 +174,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
 export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
   Header: () => (
     <Tooltip
+      isHoverable
       title={tct(
         'A dead click is a user click that does not result in any page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
         {
@@ -216,6 +218,7 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
 export const ReplayCountErrorsColumn: ReplayTableColumn = {
   Header: () => (
     <Tooltip
+      isHoverable
       title={tct(
         'The error count only reflects errors generated within the Replay SDK. [inboundFilters:Inbound Filters] may have prevented those errors from being saved. [perfIssue:Performance] and other [replayIssue:error] types may have been added afterwards.',
         {
@@ -266,6 +269,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
 export const ReplayCountRageClicksColumn: ReplayTableColumn = {
   Header: () => (
     <Tooltip
+      isHoverable
       title={tct(
         'A rage click is 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds. Requires SDK version >= [minSDK]. [link:Learn more.]',
         {
@@ -595,38 +599,19 @@ const TabularNumber = styled('div')`
 `;
 
 const CellLink = styled(Link)`
-  margin: -${p => p.theme.space.xl};
-  padding: ${p => p.theme.space.xl};
-  flex-grow: 1;
+  ${SimpleTable.rowLinkStyle}
 
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: -1;
-  }
+  flex-grow: 1;
 `;
 
 const PlayPauseButtonContainer = styled(Flex)`
+  ${SimpleTable.rowLinkStyle}
+
   z-index: 1; /* Raise above any ReplaySessionColumn in the row */
-  display: flex;
   flex-direction: column;
   justify-content: center;
 
-  margin: 0 -${space(2)} 0 -${space(1)};
-
-  cursor: pointer;
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-  }
+  margin: 0 -${p => p.theme.space.xl} 0 -${p => p.theme.space.md};
 `;
 
 const CheckboxHeaderContainer = styled(Flex)`

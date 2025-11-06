@@ -9,16 +9,9 @@ import {getFrameGroups} from './utils';
 type Props = {
   component: EventGroupComponent;
   showNonContributing: boolean;
-  collapsed?: boolean;
-  onCollapsedChange?: (collapsed: boolean) => void;
 };
 
-function GroupingComponentStacktrace({
-  component,
-  showNonContributing,
-  onCollapsedChange,
-  collapsed = false,
-}: Props) {
+function GroupingComponentStacktrace({component, showNonContributing}: Props) {
   return (
     <Fragment>
       {getFrameGroups(component, showNonContributing).map((group, index) => (
@@ -31,8 +24,7 @@ function GroupingComponentStacktrace({
               showNonContributing={showNonContributing}
             />
           ))}
-          collapsed={collapsed}
-          onCollapsedChange={onCollapsedChange}
+          initialCollapsed={!showNonContributing}
         />
       ))}
     </Fragment>

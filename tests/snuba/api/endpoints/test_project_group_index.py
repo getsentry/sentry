@@ -76,6 +76,18 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         assert "Error parsing search query" in response.data["detail"]
 
+    def test_invalid_sort_query_parameter(self) -> None:
+        self.create_group(last_seen=before_now(seconds=1))
+        self.login_as(user=self.user)
+
+        response = self.client.get(f"{self.path}?sort=-lastSeen", format="json")
+        assert response.status_code == 400
+        assert "Sort key '-lastSeen' not supported" in response.data["detail"]
+
+        response = self.client.get(f"{self.path}?sort=invalidSort", format="json")
+        assert response.status_code == 400
+        assert "Sort key 'invalidSort' not supported" in response.data["detail"]
+
     def test_simple_pagination(self) -> None:
         event1 = self.store_event(
             data={

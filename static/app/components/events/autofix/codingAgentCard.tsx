@@ -74,6 +74,10 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
     }
   };
 
+  const hasButtons = Boolean(
+    codingAgentState.agent_url || codingAgentState.results?.some(result => result.pr_url)
+  );
+
   return (
     <React.Fragment>
       <VerticalLine />
@@ -91,35 +95,6 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                     )}
                     {getProviderName(codingAgentState.provider)}
                   </HeaderText>
-                  <ButtonBar>
-                    {codingAgentState.agent_url && (
-                      <ExternalLink href={codingAgentState.agent_url}>
-                        <Button
-                          size="sm"
-                          icon={<IconOpen />}
-                          analyticsEventName="Autofix: Open Coding Agent"
-                          analyticsEventKey="autofix.coding_agent.open"
-                        >
-                          {t('Open in Cursor')}
-                        </Button>
-                      </ExternalLink>
-                    )}
-                    {codingAgentState.results
-                      ?.filter(result => result.pr_url)
-                      .map(({pr_url}) => (
-                        <ExternalLink key={pr_url} href={pr_url ?? ''}>
-                          <Button
-                            size="sm"
-                            icon={<IconOpen />}
-                            analyticsEventName="Autofix: Open Coding Agent PR"
-                            analyticsEventKey="autofix.coding_agent.open_pr"
-                            priority="primary"
-                          >
-                            {t('View Pull Request')}
-                          </Button>
-                        </ExternalLink>
-                      ))}
-                  </ButtonBar>
                 </HeaderWrapper>
 
                 <Content>
@@ -175,6 +150,42 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                     </DetailRow>
                   </CardContent>
                 </Content>
+                {hasButtons && (
+                  <React.Fragment>
+                    <BottomDivider />
+                    <BottomButtonContainer>
+                      <ButtonBar>
+                        {codingAgentState.agent_url && (
+                          <ExternalLink href={codingAgentState.agent_url}>
+                            <Button
+                              size="sm"
+                              icon={<IconOpen />}
+                              analyticsEventName="Autofix: Open Coding Agent"
+                              analyticsEventKey="autofix.coding_agent.open"
+                            >
+                              {t('Open in Cursor')}
+                            </Button>
+                          </ExternalLink>
+                        )}
+                        {codingAgentState.results
+                          ?.filter(result => result.pr_url)
+                          .map(({pr_url}) => (
+                            <ExternalLink key={pr_url} href={pr_url ?? ''}>
+                              <Button
+                                size="sm"
+                                icon={<IconOpen />}
+                                analyticsEventName="Autofix: Open Coding Agent PR"
+                                analyticsEventKey="autofix.coding_agent.open_pr"
+                                priority="primary"
+                              >
+                                {t('View Pull Request')}
+                              </Button>
+                            </ExternalLink>
+                          ))}
+                      </ButtonBar>
+                    </BottomButtonContainer>
+                  </React.Fragment>
+                )}
               </StyledCard>
             </motion.div>
           </AnimatePresence>
@@ -188,8 +199,8 @@ export default CodingAgentCard;
 
 const VerticalLine = styled('div')`
   width: 0;
-  height: ${p => p.theme.space['3xl']};
-  border-left: 2px solid ${p => p.theme.subText};
+  height: ${p => p.theme.space.xl};
+  border-left: 1px solid ${p => p.theme.border};
   margin-left: 16px;
   margin-bottom: -1px;
 `;
@@ -222,6 +233,7 @@ const StyledCard = styled('div')`
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding-left: ${p => p.theme.space.xl};
   padding-right: ${p => p.theme.space.xl};
+  background: ${p => p.theme.background};
 `;
 
 const HeaderWrapper = styled('div')`
@@ -311,4 +323,15 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   width: ${p => p.size}px;
   margin: 0;
   margin-bottom: ${p => p.theme.space['2xs']};
+`;
+
+const BottomDivider = styled('div')`
+  border-top: 1px solid ${p => p.theme.innerBorder};
+`;
+
+const BottomButtonContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  padding-top: ${p => p.theme.space.xl};
+  padding-bottom: ${p => p.theme.space.xl};
 `;

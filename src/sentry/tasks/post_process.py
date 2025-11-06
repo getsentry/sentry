@@ -27,7 +27,6 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import ingest_errors_postprocess_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
@@ -471,8 +470,9 @@ def update_existing_attachments(job):
 
 def fetch_buffered_group_stats(group):
     """
-    Fetches buffered increments to `times_seen` for this group and adds them to the current
-    `times_seen`.
+    Populates `times_seen_pending` with the number of buffered increments to `times_seen`
+    for this group. `times_seen_with_pending` can subsequently be used as the total times seen,
+    including the pending buffer updates.
     """
     from sentry import buffer
     from sentry.models.group import Group
@@ -505,13 +505,9 @@ def should_update_escalating_metrics(event: Event) -> bool:
 
 @instrumented_task(
     name="sentry.issues.tasks.post_process.post_process_group",
-    time_limit=120,
-    soft_time_limit=110,
+    namespace=ingest_errors_postprocess_tasks,
+    processing_deadline_duration=120,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=ingest_errors_postprocess_tasks,
-        processing_deadline_duration=120,
-    ),
 )
 def post_process_group(
     is_new,
@@ -1021,6 +1017,16 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         return
 
 
+def _should_single_process_event(job: PostProcessJob) -> bool:
+    org = job["event"].project.organization
+
+    return (
+        features.has("organizations:workflow-engine-single-process-workflows", org)
+        and job["event"].group.type
+        in options.get("workflow_engine.issue_alert.group.type_id.rollout")
+    ) or job["event"].group.type in options.get("workflow_engine.issue_alert.group.type_id.ga")
+
+
 def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
     """
     Call for process_workflow_engine with the issue alert feature flag
@@ -1028,12 +1034,8 @@ def process_workflow_engine_issue_alerts(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    org = job["event"].project.organization
-
     # process workflow engine if we are single processing or dual processing for a specific org
-    if features.has("organizations:workflow-engine-single-process-workflows", org) or features.has(
-        "organizations:workflow-engine-process-workflows", org
-    ):
+    if _should_single_process_event(job):
         process_workflow_engine(job)
 
 
@@ -1044,13 +1046,6 @@ def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    org = job["event"].project.organization
-    if not (
-        features.has("organizations:workflow-engine-process-metric-issue-workflows", org)
-        or features.has("organizations:workflow-engine-single-process-metric-issues", org)
-    ):
-        return
-
     process_workflow_engine(job)
 
 
@@ -1058,14 +1053,8 @@ def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    org = job["event"].project.organization
-
-    if (
-        features.has("organizations:workflow-engine-single-process-workflows", org)
-        and job["event"].group.type
-        in options.get("workflow_engine.issue_alert.group.type_id.rollout")
-    ) or job["event"].group.type in options.get("workflow_engine.issue_alert.group.type_id.ga"):
-        # we are only processing through the workflow engine
+    if _should_single_process_event(job):
+        # we are only processing through workflow engine
         return
 
     metrics.incr(
@@ -1096,10 +1085,9 @@ def process_rules(job: PostProcessJob) -> None:
         # objects back and forth isn't super efficient
         callback_and_futures = rp.apply()
 
-        if not features.has("organizations:workflow-engine-trigger-actions", org):
-            for callback, futures in callback_and_futures:
-                has_alert = True
-                safe_execute(callback, group_event, futures)
+        for callback, futures in callback_and_futures:
+            has_alert = True
+            safe_execute(callback, group_event, futures)
 
     job["has_alert"] = has_alert
     return
@@ -1200,7 +1188,7 @@ def process_commits(job: PostProcessJob) -> None:
 
                     process_commit_context.delay(
                         event_id=event.event_id,
-                        event_platform=event.platform,
+                        event_platform=event.platform or "",
                         event_frames=event_frames,
                         group_id=event.group_id,
                         project_id=event.project_id,
@@ -1268,6 +1256,9 @@ def process_service_hooks(job: PostProcessJob) -> None:
 
 
 def process_resource_change_bounds(job: PostProcessJob) -> None:
+    if not should_process_resource_change_bounds(job):
+        return
+
     if job["is_reprocessed"]:
         return
 
@@ -1287,6 +1278,26 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
         process_resource_change_bound.delay(
             action="created", sender="Group", instance_id=event.group_id
         )
+
+
+def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
+    # Feature flag check for expanded sentry apps webhooks
+    has_expanded_sentry_apps_webhooks = features.has(
+        "organizations:expanded-sentry-apps-webhooks", job["event"].project.organization
+    )
+    group_category = job["event"].group.issue_category
+
+    if group_category != GroupCategory.ERROR and not has_expanded_sentry_apps_webhooks:
+        return False
+
+    supported_group_categories = [
+        GroupCategory(category)
+        for category in options.get("sentry-apps.expanded-webhook-categories")
+    ]
+    if group_category not in supported_group_categories:
+        return False
+
+    return True
 
 
 def process_plugins(job: PostProcessJob) -> None:
@@ -1551,10 +1562,10 @@ def detect_new_escalation(job: PostProcessJob):
 
 
 def detect_base_urls_for_uptime(job: PostProcessJob):
-    from sentry.uptime.detectors.detector import detect_base_url_for_project
+    from sentry.uptime.autodetect.detector import autodetect_base_url_for_project
 
     url = get_path(job["event"].data, "request", "url")
-    detect_base_url_for_project(job["event"].project, url)
+    autodetect_base_url_for_project(job["event"].project, url)
 
 
 def check_if_flags_sent(job: PostProcessJob) -> None:
@@ -1617,7 +1628,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if lock.locked():
         return
 
-    seer_enabled = get_seer_org_acknowledgement(group.organization.id)
+    seer_enabled = get_seer_org_acknowledgement(group.organization)
     if not seer_enabled:
         return
 
@@ -1667,6 +1678,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         feedback_filter_decorator(process_snoozes),
         feedback_filter_decorator(process_inbox_adds),
         feedback_filter_decorator(process_rules),
+        feedback_filter_decorator(process_resource_change_bounds),
     ],
     GroupCategory.METRIC_ALERT: [
         process_workflow_engine_metric_issues,
@@ -1678,4 +1690,5 @@ GENERIC_POST_PROCESS_PIPELINE = [
     process_inbox_adds,
     kick_off_seer_automation,
     process_rules,
+    process_resource_change_bounds,
 ]

@@ -73,7 +73,7 @@ export function useIntegrationExternalIssues({
       // Roll up all configurations into a single integration item
       results.integrations.push({
         displayName: getIntegrationDisplayName(providerKey),
-        key: providerKey,
+        key: `integration-${providerKey}`,
         displayIcon,
         actions,
       });
@@ -84,7 +84,7 @@ export function useIntegrationExternalIssues({
       ...configurations
         .filter(config => config.externalIssues.length > 0)
         .map<GroupIntegrationIssueResult['linkedIssues'][number]>(config => ({
-          key: config.externalIssues[0]!.id,
+          key: `integration-linked-${config.externalIssues[0]!.id}`,
           displayName: config.externalIssues[0]!.key,
           displayIcon,
           url: config.externalIssues[0]!.url,

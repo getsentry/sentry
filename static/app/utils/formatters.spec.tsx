@@ -219,13 +219,13 @@ describe('formatSpanOperation', () => {
 });
 
 describe('formatPercentRate', () => {
-  it('formats positive numbers', () => {
+  it('formats positive rates with + sign', () => {
     expect(formatPercentRate(0.1)).toBe('+0.10%');
     expect(formatPercentRate(1)).toBe('+1.00%');
     expect(formatPercentRate(10)).toBe('+10.00%');
   });
 
-  it('formats negative numbers', () => {
+  it('formats negative rates', () => {
     expect(formatPercentRate(-0.1)).toBe('-0.10%');
     expect(formatPercentRate(-1)).toBe('-1.00%');
     expect(formatPercentRate(-10)).toBe('-10.00%');
@@ -233,6 +233,32 @@ describe('formatPercentRate', () => {
 
   it('formats zero', () => {
     expect(formatPercentRate(0)).toBe('0.00%');
+  });
+
+  it('shows "<+{minimumValue}%" for small positive values when minimumValue is provided', () => {
+    expect(formatPercentRate(0.001, {minimumValue: 0.01})).toBe('<+0.01%');
+    expect(formatPercentRate(0.009, {minimumValue: 0.01})).toBe('<+0.01%');
+  });
+
+  it('shows "<-{minimumValue}%" for small negative values when minimumValue is provided', () => {
+    expect(formatPercentRate(-0.001, {minimumValue: 0.01})).toBe('<-0.01%');
+    expect(formatPercentRate(-0.009, {minimumValue: 0.01})).toBe('<-0.01%');
+  });
+
+  it('does not show "<{minimumValue}%" for values >= minimumValue', () => {
+    expect(formatPercentRate(0.01, {minimumValue: 0.01})).toBe('+0.01%');
+    expect(formatPercentRate(-0.01, {minimumValue: 0.01})).toBe('-0.01%');
+    expect(formatPercentRate(0.1, {minimumValue: 0.01})).toBe('+0.10%');
+  });
+
+  it('handles edge case of exactly zero with minimumValue', () => {
+    expect(formatPercentRate(0, {minimumValue: 0.01})).toBe('0.00%');
+  });
+
+  it('uses custom minimumValue', () => {
+    expect(formatPercentRate(0.001, {minimumValue: 0.05})).toBe('<+0.05%');
+    expect(formatPercentRate(-0.03, {minimumValue: 0.05})).toBe('<-0.05%');
+    expect(formatPercentRate(0.05, {minimumValue: 0.05})).toBe('+0.05%');
   });
 });
 

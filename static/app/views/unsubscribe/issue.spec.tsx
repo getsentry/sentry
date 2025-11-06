@@ -1,10 +1,8 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import UnsubscribeIssue from 'sentry/views/unsubscribe/issue';
 
 describe('UnsubscribeIssue', () => {
-  const params = {orgId: 'acme', id: '9876'};
   let mockUpdate: jest.Mock;
   let mockGet: jest.Mock;
 
@@ -27,19 +25,15 @@ describe('UnsubscribeIssue', () => {
   });
 
   it('loads data from the API based on URL parameters', async () => {
-    const {router, routerProps} = initializeOrg({
-      router: {
-        location: {query: {_: 'signature-value'}},
-        params,
+    render(<UnsubscribeIssue />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/unsubscribe/acme/issue/9876/',
+          query: {_: 'signature-value'},
+        },
+        route: '/unsubscribe/:orgId/issue/:id/',
       },
     });
-    render(
-      <UnsubscribeIssue {...routerProps} location={router.location} params={params} />,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
-    );
 
     expect(await screen.findByText('selected issue')).toBeInTheDocument();
     expect(screen.getByText('workflow notifications')).toBeInTheDocument();
@@ -48,19 +42,15 @@ describe('UnsubscribeIssue', () => {
   });
 
   it('makes an API request when the form is submitted', async () => {
-    const {router, routerProps} = initializeOrg({
-      router: {
-        location: {query: {_: 'signature-value'}},
-        params,
+    render(<UnsubscribeIssue />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/unsubscribe/acme/issue/9876/',
+          query: {_: 'signature-value'},
+        },
+        route: '/unsubscribe/:orgId/issue/:id/',
       },
     });
-    render(
-      <UnsubscribeIssue {...routerProps} location={router.location} params={params} />,
-      {
-        router,
-        deprecatedRouterMocks: true,
-      }
-    );
 
     expect(await screen.findByText('selected issue')).toBeInTheDocument();
     const button = screen.getByRole('button', {name: 'Unsubscribe'});

@@ -1,9 +1,8 @@
 from sentry import analytics
-from sentry.analytics import Event, eventclass
 
 
-@eventclass("organization.removed")
-class OrganizationRemoved(Event):
+@analytics.eventclass("organization.removed")
+class OrganizationRemoved(analytics.Event):
     organization_id: int
     slug: str
     user_id: int | None = None

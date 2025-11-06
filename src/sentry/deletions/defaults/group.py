@@ -1,3 +1,17 @@
+"""
+Group deletion configuration.
+
+This module defines which models should be deleted when a group is deleted and how
+they should be handled during reprocessing operations.
+
+IMPORTANT: When adding a new model with a group_id foreign key, you MUST add it to
+one of the model lists below, or tests will fail. See:
+  - tests/sentry/deletions/test_validate_group_related_models.py
+
+For guidance on which list to use, see the comments on DIRECT_GROUP_RELATED_MODELS
+and ADDITIONAL_GROUP_RELATED_MODELS below.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -7,15 +21,19 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry import models, options
+from sentry.db.models.base import Model
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
+from sentry.utils import metrics
+from sentry.utils.query import RangeQuerySetWrapper
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 from ..manager import DeletionTaskManager
@@ -24,10 +42,17 @@ logger = logging.getLogger(__name__)
 
 GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
+GROUP_HASH_ITERATIONS = 10000
 
-# Group models that relate only to groups and not to events. We assume those to
-# be safe to delete/mutate within a single transaction for user-triggered
-# actions (delete/reprocess/merge/unmerge)
+# Group models that relate only to groups and not to events. These models are
+# transferred during reprocessing operations because they represent group-level
+# metadata that should follow the group when events are reprocessed.
+#
+# Add a model to this list if it meets ALL of these criteria:
+# 1. NO event_id field - represents group state, not individual event data
+# 2. Should be TRANSFERRED during reprocessing - the metadata is about the group itself
+#    (e.g., assignments, bookmarks, resolutions, history) and should move with it
+# 3. Safe to bulk update with group_id changes during merge/unmerge operations
 DIRECT_GROUP_RELATED_MODELS = (
     # prioritize GroupHash
     models.GroupHash,
@@ -50,15 +75,35 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupOwner,
     models.GroupEmailThread,
     models.GroupSubscription,
-    models.GroupHistory,
+    models.GroupReaction,
     RuleFireHistory,
 )
 
-_GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
+# Additional group-related models that require special handling during reprocessing.
+# Unlike DIRECT_GROUP_RELATED_MODELS which are migrated in bulk, these models need
+# per-event processing or should not be transferred at all.
+#
+# Add a model to this list if it meets ANY of these criteria:
+# 1. Has an event_id field - per-event data that must be migrated during event
+#    reprocessing pipeline, not as a group bulk operation (UserReport, EventAttachment)
+# 2. Should NOT be transferred during reprocessing - transient or notification data
+#    that doesn't represent core group state (NotificationMessage)
+ADDITIONAL_GROUP_RELATED_MODELS = (
     models.UserReport,
     models.EventAttachment,
     NotificationMessage,
 )
+_GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + ADDITIONAL_GROUP_RELATED_MODELS
+
+
+def get_group_related_models() -> Sequence[type[Model]]:
+    """
+    Returns the tuple of models related to groups that should be deleted.
+    Checks options at runtime to allow dynamic configuration.
+    """
+    if options.get("deletions.activity.delete-in-bulk"):
+        return _GROUP_RELATED_MODELS + (models.Activity,)
+    return _GROUP_RELATED_MODELS
 
 
 class EventsBaseDeletionTask(BaseDeletionTask[Group]):
@@ -172,7 +217,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         group_ids = [group.id for group in instance_list]
         # Remove child relations for all groups first.
         child_relations: list[BaseRelation] = []
-        for model in _GROUP_RELATED_MODELS:
+        for model in get_group_related_models():
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
@@ -210,23 +255,77 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
 
 
+def delete_project_group_hashes(project_id: int) -> None:
+    groups = []
+    for group in RangeQuerySetWrapper(
+        Group.objects.filter(project_id=project_id), step=GROUP_CHUNK_SIZE
+    ):
+        groups.append(group)
+
+    error_groups, issue_platform_groups = separate_by_group_category(groups)
+    error_group_ids = [group.id for group in error_groups]
+    delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
+
+    issue_platform_group_ids = [group.id for group in issue_platform_groups]
+    delete_group_hashes(project_id, issue_platform_group_ids)
+
+
+def update_group_hash_metadata_in_batches(hash_ids: Sequence[int]) -> int:
+    """
+    Update seer_matched_grouphash to None for GroupHashMetadata rows
+    that reference the given hash_ids, in batches to avoid timeouts.
+
+    This function performs the update in smaller batches to reduce lock
+    contention and prevent statement timeouts when many rows need updating.
+
+    Returns the total number of rows updated.
+    """
+    # First, get all the IDs that need updating
+    metadata_ids = list(
+        GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids).values_list(
+            "id", flat=True
+        )
+    )
+
+    if not metadata_ids:
+        return 0
+
+    option_batch_size = options.get("deletions.group-hash-metadata.batch-size", 1000)
+    batch_size = max(1, option_batch_size)
+    total_updated = 0
+    for i in range(0, len(metadata_ids), batch_size):
+        batch = metadata_ids[i : i + batch_size]
+        updated = GroupHashMetadata.objects.filter(id__in=batch).update(seer_matched_grouphash=None)
+        total_updated += updated
+
+    metrics.incr(
+        "deletions.group_hash_metadata.rows_updated",
+        amount=total_updated,
+        sample_rate=1.0,
+    )
+    logger.info(
+        "update_group_hash_metadata_in_batches.complete",
+        extra={
+            "hash_ids_count": len(hash_ids),
+            "total_updated": total_updated,
+        },
+    )
+
+    return total_updated
+
+
 def delete_group_hashes(
     project_id: int,
     group_ids: Sequence[int],
     seer_deletion: bool = False,
 ) -> None:
-    hashes_batch_size = options.get("deletions.group-hashes-batch-size")
-
     # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
-    hashes_batch_size = max(1, hashes_batch_size)
+    hashes_batch_size = max(1, options.get("deletions.group-hashes-batch-size"))
 
     # Set a reasonable upper bound on iterations to prevent infinite loops.
-    # This replaces the expensive COUNT(*) query that was causing database timeouts.
     # The loop will naturally terminate when no more hashes are found.
-    max_iterations = 10000
     iterations = 0
-
-    while iterations < max_iterations:
+    while iterations < GROUP_HASH_ITERATIONS:
         qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
             "id", "hash"
         )[:hashes_batch_size]
@@ -244,9 +343,25 @@ def delete_group_hashes(
             logger.warning("Error scheduling task to delete hashes from seer")
         finally:
             hash_ids = [gh[0] for gh in hashes_chunk]
+            # GroupHashMetadata rows can reference GroupHash rows via seer_matched_grouphash_id.
+            # Before deleting these GroupHash rows, we need to either:
+            # 1. Update seer_matched_grouphash to None first (to avoid foreign key constraint errors), OR
+            # 2. Delete the GroupHashMetadata rows entirely (they'll be deleted anyway)
+            # If we update the columns first, the deletion of the grouphash metadata rows will have less work to do,
+            # thus, improving the performance of the deletion.
+            if options.get("deletions.group-hashes-metadata.update-seer-matched-grouphash-ids"):
+                update_group_hash_metadata_in_batches(hash_ids)
+            GroupHashMetadata.objects.filter(grouphash_id__in=hash_ids).delete()
             GroupHash.objects.filter(id__in=hash_ids).delete()
 
         iterations += 1
+
+    if iterations == GROUP_HASH_ITERATIONS:
+        metrics.incr("deletions.group_hashes.max_iterations_reached", sample_rate=1.0)
+        logger.warning(
+            "Group hashes batch deletion reached the maximum number of iterations. "
+            "Investigate if we need to change the GROUP_HASH_ITERATIONS value."
+        )
 
 
 def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Group], list[Group]]:

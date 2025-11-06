@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {Field} from 'sentry/components/forms/types';
@@ -44,10 +45,6 @@ const ORG_DISABLED_REASON = t(
   "This option is enforced by your organization's settings and cannot be customized per-project."
 );
 
-const PlatformWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin-right: ${space(1)};
 `;
@@ -57,9 +54,9 @@ export const fields = {
     name: 'name',
     type: 'string',
     required: true,
-    label: t('Name'),
+    label: t('Slug'),
     placeholder: t('my-awesome-project'),
-    help: t('A name for this project'),
+    help: t('A unique ID used to identify this project'),
     transformInput: slugify,
     getData: (data: {name?: string}) => {
       return {
@@ -71,7 +68,7 @@ export const fields = {
     saveOnBlur: false,
     saveMessageAlertType: 'warning',
     saveMessage: t(
-      "Changing a project's name will also change the project slug. This can break your build scripts! Please proceed carefully."
+      "Changing a project's slug can break your build scripts! Please proceed carefully."
     ),
   },
 
@@ -82,10 +79,10 @@ export const fields = {
     options: platforms.map(({id, name}) => ({
       value: id,
       label: (
-        <PlatformWrapper key={id}>
+        <Flex key={id} align="center">
           <StyledPlatformIcon platform={id} />
           {name}
-        </PlatformWrapper>
+        </Flex>
       ),
     })),
     help: t('The primary platform for this project'),
@@ -148,9 +145,9 @@ export const fields = {
       examples: (
         <Hovercard
           body={
-            <CodeSnippet hideCopyButton>
+            <CodeBlock hideCopyButton>
               {`https://example.com\n*.example.com\n*:80\n*`}
-            </CodeSnippet>
+            </CodeBlock>
           }
         >
           <Button priority="link" size="xs">
@@ -211,7 +208,12 @@ export const fields = {
         'Role required to download debug information files, proguard mappings and source maps. Overrides [organizationSettingsLink: organization settings].',
         {
           organizationSettingsLink: (
-            <Link to={`/settings/${organization.slug}/#debugFilesRole`} />
+            <Link
+              to={{
+                pathname: `/settings/${organization.slug}/`,
+                hash: 'debugFilesRole',
+              }}
+            />
           ),
         }
       ),

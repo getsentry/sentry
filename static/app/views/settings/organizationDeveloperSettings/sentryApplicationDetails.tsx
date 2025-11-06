@@ -163,9 +163,7 @@ export default function SentryApplicationDetails(props: Props) {
   const {appSlug} = props.params;
   const {router, location} = props;
   const organization = useOrganization();
-  const [form] = useState<SentryAppFormModel>(
-    () => new SentryAppFormModel({mapFormErrors})
-  );
+  const [form] = useState<SentryAppFormModel>(() => new SentryAppFormModel());
 
   const isEditingApp = !!appSlug;
 
@@ -410,6 +408,7 @@ export default function SentryApplicationDetails(props: Props) {
           onSubmitSuccess={handleSubmitSuccess}
           onSubmitError={handleSubmitError}
           onFieldChange={onFieldChange}
+          mapFormErrors={mapFormErrors}
         >
           <Observer>
             {() => {

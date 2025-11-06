@@ -29,14 +29,14 @@ import {
 import Form from './form';
 import handleError, {ErrorType} from './handleError';
 import Modal from './modal';
-import {fetchSourceGroupData, saveToSourceGroupData} from './utils';
+import {useSourceGroupData} from './utils';
 
 type FormProps = React.ComponentProps<typeof Form>;
 type Values = FormProps['values'];
 type EventId = NonNullable<FormProps['eventId']>;
 type SourceSuggestions = FormProps['sourceSuggestions'];
 
-type Props = ModalRenderProps & {
+export type ModalManagerProps = ModalRenderProps & {
   api: Client;
   attributeResults: AttributeResults;
   endpoint: string;
@@ -49,6 +49,14 @@ type Props = ModalRenderProps & {
   projectId?: Project['id'];
 };
 
+type ModalManagerWithLocalStorageProps = ModalManagerProps & {
+  saveToSourceGroupData: (
+    eventId: EventId,
+    sourceSuggestions?: SourceSuggestions
+  ) => void;
+  sourceGroupData: {eventId: string; sourceSuggestions: SourceSuggestions};
+};
+
 type State = {
   dataset: AllowedDataScrubbingDatasets;
   errors: FormProps['errors'];
@@ -59,14 +67,14 @@ type State = {
   values: Values;
 };
 
-class ModalManager extends Component<Props, State> {
+class ModalManager extends Component<ModalManagerWithLocalStorageProps, State> {
   state = this.getDefaultState();
 
   componentDidMount() {
     this.handleValidateForm();
   }
 
-  componentDidUpdate(_prevProps: Props, prevState: State) {
+  componentDidUpdate(_prevProps: ModalManagerWithLocalStorageProps, prevState: State) {
     if (!isEqual(prevState.values, this.state.values)) {
       this.handleValidateForm();
     }
@@ -75,12 +83,12 @@ class ModalManager extends Component<Props, State> {
       this.loadSourceSuggestions();
     }
     if (prevState.eventId.status !== this.state.eventId.status) {
-      saveToSourceGroupData(this.state.eventId, this.state.sourceSuggestions);
+      this.props.saveToSourceGroupData(this.state.eventId, this.state.sourceSuggestions);
     }
   }
 
   getDefaultState(): Readonly<State> {
-    const {eventId, sourceSuggestions} = fetchSourceGroupData();
+    const {eventId, sourceSuggestions} = this.props.sourceGroupData;
     const values = this.getInitialValues();
     // Create a temporary rule-like object for dataset determination
     const tempRule = {...values, id: 0} as Rule;
@@ -346,4 +354,16 @@ class ModalManager extends Component<Props, State> {
   }
 }
 
-export default ModalManager;
+function ModalManagerWithLocalStorage(props: ModalManagerProps) {
+  const {sourceGroupData, saveToSourceGroupData} = useSourceGroupData();
+
+  return (
+    <ModalManager
+      {...props}
+      sourceGroupData={sourceGroupData}
+      saveToSourceGroupData={saveToSourceGroupData}
+    />
+  );
+}
+
+export default ModalManagerWithLocalStorage;

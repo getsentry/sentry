@@ -1,7 +1,6 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -14,7 +13,6 @@ import {
 
 import * as modal from 'sentry/actionCreators/modal';
 import * as LineChart from 'sentry/components/charts/lineChart';
-import {DatasetSource} from 'sentry/utils/discover/types';
 import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -32,22 +30,28 @@ jest.mock('sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization'
 jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', () => {
-  const {router, organization} = initializeOrg({
+  const {organization} = initializeOrg({
     organization: OrganizationFixture({
       features: ['dashboards-edit', 'discover-basic'],
     }),
-    router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
 
-  const renderWithProviders = (component: React.ReactNode) =>
+  const renderWithProviders = (component: React.ReactNode, features: string[] = []) =>
     render(
       <DashboardsMEPProvider>
         <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
       </DashboardsMEPProvider>,
       {
-        organization,
-        router,
-        deprecatedRouterMocks: true,
+        organization: {
+          ...organization,
+          features: [...organization.features, ...features],
+        },
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/42/',
+          },
+        },
       }
     );
 
@@ -74,6 +78,36 @@ describe('Dashboards > WidgetCard', () => {
         name: 'default',
         orderby: '',
       },
+    ],
+  };
+
+  const transactionQueryWidget: Widget = {
+    title: 'Transactions',
+    description: 'Valid widget description',
+    interval: '5m',
+    displayType: DisplayType.LINE,
+    widgetType: WidgetType.TRANSACTIONS,
+    queries: [
+      {
+        conditions: 'event.type:transaction',
+        fields: ['count()', 'failure_count()'],
+        aggregates: ['count()', 'failure_count()'],
+        columns: [],
+        name: 'transactions',
+        orderby: '',
+      },
+      {
+        conditions: '',
+        fields: ['count()', 'failure_count()'],
+        aggregates: ['count()', 'failure_count()'],
+        columns: [],
+        name: 'default',
+        orderby: '',
+      },
+    ],
+    exploreUrls: [
+      '/organizations/org-slug/explore/traces/results1',
+      '/organizations/org-slug/explore/traces/results2',
     ],
   };
   const selection = {
@@ -583,7 +617,8 @@ describe('Dashboards > WidgetCard', () => {
         },
       ],
     };
-    renderWithProviders(
+
+    const {router} = renderWithProviders(
       <WidgetCard
         api={api}
         widget={widget}
@@ -602,8 +637,8 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     await userEvent.click(await screen.findByLabelText('Open Full-Screen View'));
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/dashboard/42/widget/10/'
     );
   });
 
@@ -809,18 +844,18 @@ describe('Dashboards > WidgetCard', () => {
     expect(await screen.findByText('Indexed')).toBeInTheDocument();
   });
 
-  it('displays the discover split warning icon when the dataset source is forced', async () => {
-    const testWidget = {
-      ...WidgetFixture(),
-      datasetSource: DatasetSource.FORCED,
-      widgetType: WidgetType.ERRORS,
-    };
-
+  it('displays the transaction deprecation warning and explore links for transaction widgets', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
-        widget={testWidget}
+        organization={{
+          ...organization,
+          features: [
+            ...organization.features,
+            'transaction-widget-deprecation-explore-view',
+          ],
+        }}
+        widget={transactionQueryWidget}
         selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
@@ -831,13 +866,11 @@ describe('Dashboards > WidgetCard', () => {
         widgetLimitReached={false}
         isPreview
         widgetLegendState={widgetLegendState}
-      />
+      />,
+      // passed feature flag in context because the hook for the warning does not have org passed in
+      ['transaction-widget-deprecation-explore-view']
     );
 
-    await userEvent.hover(screen.getByLabelText('Widget warnings'));
-
-    expect(
-      await screen.findByText(/We're splitting our datasets up/)
-    ).toBeInTheDocument();
+    expect(await screen.findByLabelText('Widget warnings')).toBeInTheDocument();
   });
 });

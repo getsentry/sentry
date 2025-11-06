@@ -27,7 +27,6 @@ type Props = ViewProps & {
   currentFilter: SpanOperationBreakdownFilter;
   organization: OrganizationSummary;
   queryExtra: Query;
-  withoutZerofill: boolean;
   queryExtras?: Record<string, string>;
 };
 
@@ -45,7 +44,6 @@ function DurationChart({
   statsPeriod,
   queryExtra,
   currentFilter,
-  withoutZerofill,
   start: propsStart,
   end: propsEnd,
   queryExtras,
@@ -140,7 +138,6 @@ function DurationChart({
         includePrevious={false}
         yAxis={yAxis}
         partial
-        withoutZerofill={withoutZerofill}
         referrer="api.insights.transaction-summary.duration-chart"
         queryExtras={queryExtras}
       >

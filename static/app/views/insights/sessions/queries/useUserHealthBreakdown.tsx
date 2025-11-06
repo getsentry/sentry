@@ -50,6 +50,7 @@ export default function useUserHealthBreakdown({
   const statusData = {
     crashed: getCountStatusSeries('crashed', userData.groups),
     errored: getCountStatusSeries('errored', userData.groups),
+    unhandled: getCountStatusSeries('unhandled', userData.groups),
     abnormal: getCountStatusSeries('abnormal', userData.groups),
     healthy: getCountStatusSeries('healthy', userData.groups),
   };

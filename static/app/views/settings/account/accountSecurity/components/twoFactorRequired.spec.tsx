@@ -4,10 +4,9 @@ import {AccountEmailsFixture} from 'sentry-fixture/accountEmails';
 import {AuthenticatorsFixture} from 'sentry-fixture/authenticators';
 import {OrganizationsFixture} from 'sentry-fixture/organizations';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/';
+import AccountSecurity from 'sentry/views/settings/account/accountSecurity/';
 import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 
 const ENDPOINT = '/users/me/authenticators/';
@@ -33,41 +32,46 @@ describe('TwoFactorRequired', () => {
     });
   });
 
-  const {routerProps} = initializeOrg();
-
-  const baseProps = {
-    authenticators: null,
-    countEnrolled: 0,
-    deleteDisabled: false,
-    handleRefresh: () => {},
-    hasVerifiedEmail: false,
-    onDisable: () => {},
-    orgsRequire2fa: [],
-    ...routerProps,
-  };
-
   it('renders empty', async () => {
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: [],
     });
 
-    render(
-      <AccountSecurityWrapper>
-        <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>
-    );
+    render(<AccountSecurityWrapper />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/settings/account/security/',
+        },
+        route: '/settings/account/security/',
+        children: [
+          {
+            index: true,
+            element: <AccountSecurity />,
+          },
+        ],
+      },
+    });
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
   it('does not render when 2FA is disabled and no pendingInvite cookie', async () => {
-    render(
-      <AccountSecurityWrapper>
-        <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>
-    );
+    render(<AccountSecurityWrapper />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/settings/account/security/',
+        },
+        route: '/settings/account/security/',
+        children: [
+          {
+            index: true,
+            element: <AccountSecurity />,
+          },
+        ],
+      },
+    });
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
@@ -79,11 +83,20 @@ describe('TwoFactorRequired', () => {
       body: [AuthenticatorsFixture().Totp({isEnrolled: true})],
     });
 
-    render(
-      <AccountSecurityWrapper>
-        <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>
-    );
+    render(<AccountSecurityWrapper />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/settings/account/security/',
+        },
+        route: '/settings/account/security/',
+        children: [
+          {
+            index: true,
+            element: <AccountSecurity />,
+          },
+        ],
+      },
+    });
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
@@ -105,11 +118,20 @@ describe('TwoFactorRequired', () => {
       body: OrganizationsFixture({require2FA: true}),
     });
 
-    render(
-      <AccountSecurityWrapper>
-        <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>
-    );
+    render(<AccountSecurityWrapper />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/settings/account/security/',
+        },
+        route: '/settings/account/security/',
+        children: [
+          {
+            index: true,
+            element: <AccountSecurity />,
+          },
+        ],
+      },
+    });
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
@@ -123,11 +145,20 @@ describe('TwoFactorRequired', () => {
       body: OrganizationsFixture({require2FA: true}),
     });
 
-    render(
-      <AccountSecurityWrapper>
-        <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>
-    );
+    render(<AccountSecurityWrapper />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/settings/account/security/',
+        },
+        route: '/settings/account/security/',
+        children: [
+          {
+            index: true,
+            element: <AccountSecurity />,
+          },
+        ],
+      },
+    });
 
     expect(await screen.findByTestId('require-2fa')).toBeInTheDocument();
     Cookies.remove(INVITE_COOKIE);

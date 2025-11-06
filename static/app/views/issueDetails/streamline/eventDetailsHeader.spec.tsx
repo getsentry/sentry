@@ -25,7 +25,9 @@ jest.mock('sentry/views/issueDetails/utils', () => ({
 }));
 
 describe('EventDetailsHeader', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['search-query-builder-input-flow-changes'],
+  });
   const project = ProjectFixture({
     environments: ['production', 'staging', 'development'],
   });
@@ -57,14 +59,11 @@ describe('EventDetailsHeader', () => {
       body: [],
     });
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [],
-        environments: [],
-        datetime: {start: null, end: null, period: '14d', utc: null},
-      },
-      new Set(['environments'])
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
@@ -140,7 +139,8 @@ describe('EventDetailsHeader', () => {
 
     const search = await screen.findByPlaceholderText('Filter events\u2026');
     await userEvent.type(search, `${tagKey}:`, {delay: null});
-    await userEvent.keyboard(`${tagValue}{enter}{enter}`, {delay: null});
+    await userEvent.click(screen.getByRole('option', {name: 'is'}));
+    await userEvent.keyboard(`${tagValue}{enter}`, {delay: null});
     await waitFor(() => {
       expect(mockUseNavigate).toHaveBeenCalledWith(
         expect.objectContaining(locationQuery),

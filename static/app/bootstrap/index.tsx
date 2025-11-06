@@ -93,7 +93,7 @@ function preloadOrganizationData(config: Config) {
   // When running in 'dev-ui' mode we need to use /region/$region instead of
   // subdomains so that webpack/vercel can proxy requests.
   if (host && window.__SENTRY_DEV_UI) {
-    const domainpattern = /https?\:\/\/([^.]*)\.sentry.io/;
+    const domainpattern = /https?:\/\/([^.]*)\.sentry.io/;
     const domainmatch = host.match(domainpattern);
     if (domainmatch) {
       host = `/region/${domainmatch[1]}`;

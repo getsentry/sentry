@@ -1,5 +1,4 @@
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 
 const popularPlatformCategories: Set<PlatformKey> = new Set([
@@ -191,7 +190,7 @@ export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
   native: ['cpp', 'c++'],
 };
 
-const categoryList = [
+export const categoryList = [
   {id: 'popular', name: t('Popular'), platforms: popularPlatformCategories},
   {id: 'browser', name: t('Browser'), platforms: browser},
   {id: 'server', name: t('Server'), platforms: server},
@@ -202,8 +201,6 @@ const categoryList = [
     id: 'gaming',
     name: t('Gaming'),
     platforms: gaming,
-    display: (organization?: Organization) =>
-      organization?.features.includes('project-creation-games-tab') ?? false,
   },
   {
     id: 'all',
@@ -211,7 +208,3 @@ const categoryList = [
     platforms: createablePlatforms,
   },
 ];
-
-export function getCategoryList(organization?: Organization) {
-  return categoryList.filter(({display}) => display?.(organization) ?? true);
-}

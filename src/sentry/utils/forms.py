@@ -51,7 +51,7 @@ def field_to_config(name: str, field: forms.Field) -> _FieldConfig:
     return config
 
 
-def form_to_config(form: forms.Form) -> list[_FieldConfig]:
+def form_to_config(form: forms.Form | type[forms.Form]) -> list[_FieldConfig]:
     return [field_to_config(name, field) for name, field in form.base_fields.items()]
 
 

@@ -1,10 +1,12 @@
 import logging
 import time
+import uuid
 from datetime import timedelta
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.utils import timezone
+from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
 from sentry import nodestore
@@ -95,6 +97,11 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         # only return headers and body payload
         return produce_kwargs["headers"], payload2
+
+    def test_init_options(self):
+        # options in the constructor shouldn't cause errors
+        stream = KafkaEventStream(foo="bar")
+        assert stream
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test(self, mock_eventstream_insert: MagicMock) -> None:
@@ -285,7 +292,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert result["data"][0]["occurrence_id"] == group_event.occurrence.id
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_error_queue(self, mock_eventstream_insert: MagicMock) -> None:
+    def test_error(self, mock_eventstream_insert: MagicMock) -> None:
         now = timezone.now()
 
         event = self.__build_event(now)
@@ -311,12 +318,11 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
 
-        assert ("queue", b"post_process_errors") in headers
         assert "occurrence_id" not in dict(headers)
-        assert body["queue"] == "post_process_errors"
+        assert body
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_transaction_queue(self, mock_eventstream_insert: MagicMock) -> None:
+    def test_transaction(self, mock_eventstream_insert: MagicMock) -> None:
         event = self.__build_transaction_event()
         event.group_id = None
         event.groups = [self.group]
@@ -337,12 +343,11 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
 
-        assert ("queue", b"post_process_transactions") in headers
         assert "occurrence_id" not in dict(headers)
-        assert body["queue"] == "post_process_transactions"
+        assert body
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_issue_platform_queue(self, mock_eventstream_insert: MagicMock) -> None:
+    def test_issue_platform(self, mock_eventstream_insert: MagicMock) -> None:
         event = self.__build_transaction_event()
         event.group_id = None
         event.groups = [self.group]
@@ -365,10 +370,8 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         }
 
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
-
-        assert ("queue", b"post_process_issue_platform") in headers
         assert ("occurrence_id", group_event.occurrence.id.encode()) in headers
-        assert body["queue"] == "post_process_issue_platform"
+        assert body
 
     def test_insert_generic_event_contexts(self) -> None:
         create_default_projects()
@@ -412,3 +415,54 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             assert "contexts" in send_extra_data_data
             contexts_after_processing = send_extra_data_data["contexts"]
             assert contexts_after_processing == {**{"geo": geo_interface}}
+
+    def test_event_forwarding_to_items(self):
+        create_default_projects()
+        es = self.kafka_eventstream
+
+        # Prepare a generic event with a span item
+        profile_message = load_data("generic-event-profiling")
+        event_data = {
+            **profile_message["event"],
+            "contexts": {"trace": {"trace_id": uuid.uuid4().hex}},
+            "timestamp": timezone.now().isoformat(),
+        }
+        project_id = event_data.get("project_id", self.project.id)
+
+        occurrence, group_info = self.process_occurrence(
+            event_id=event_data["event_id"],
+            project_id=project_id,
+            event_data=event_data,
+        )
+        assert group_info is not None
+
+        event = Event(
+            event_id=occurrence.event_id,
+            project_id=project_id,
+            data=nodestore.backend.get(Event.generate_node_id(project_id, occurrence.event_id)),
+        )
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+
+        with self.options({"eventstream.eap_forwarding_rate": 1.0}):
+            with patch.object(es, "_send_item") as send:
+                es.insert(
+                    group_event,
+                    is_new=True,
+                    is_regression=True,
+                    is_new_group_environment=False,
+                    primary_hash="",
+                    skip_consume=False,
+                    received_timestamp=event_data["timestamp"],
+                )
+                send.assert_called_once()
+
+                trace_item = send.call_args[0][0]
+
+                assert trace_item.item_id == event.event_id.encode("utf-8")
+                assert trace_item.item_type == TRACE_ITEM_TYPE_OCCURRENCE
+                assert trace_item.trace_id == event_data["contexts"]["trace"]["trace_id"]
+                assert trace_item.project_id == event.project_id
+                assert trace_item.organization_id == event.project.organization_id
+                assert trace_item.retention_days == 90
+                assert trace_item.attributes["group_id"].int_value == group_info.group.id

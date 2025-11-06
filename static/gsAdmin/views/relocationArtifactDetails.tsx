@@ -1,4 +1,4 @@
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconFile} from 'sentry/icons/iconFile';
@@ -49,9 +49,9 @@ export default function RelocationArtifactDetails() {
       sections={[
         {
           content: (
-            <CodeSnippet dark filename={fileName} hideCopyButton icon={<IconFile />}>
+            <CodeBlock dark filename={fileName} hideCopyButton icon={<IconFile />}>
               {data?.contents ?? ''}
-            </CodeSnippet>
+            </CodeBlock>
           ),
         },
       ]}

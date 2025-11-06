@@ -181,7 +181,6 @@ function MonitorForm({
   const form = useRef(
     new FormModel({
       transformData: transformMonitorFormData,
-      mapFormErrors: mapMonitorFormErrors,
     })
   );
   const {projects} = useProjects();
@@ -255,6 +254,7 @@ function MonitorForm({
       }
       onSubmitSuccess={onSubmitSuccess}
       submitLabel={submitLabel}
+      mapFormErrors={mapMonitorFormErrors}
     >
       <StyledList symbol="colored-numeric">
         {monitor?.isUpserting && (
@@ -320,13 +320,6 @@ function MonitorForm({
           })}
         </ListItemSubText>
         <InputGroup noPadding>
-          {monitor !== undefined && (
-            <Alert type="info" showIcon={false}>
-              {t(
-                'Any changes you make to the execution schedule will only be applied after the next expected check-in.'
-              )}
-            </Alert>
-          )}
           <SelectField
             name="config.scheduleType"
             label={t('Schedule Type')}
@@ -358,6 +351,11 @@ function MonitorForm({
                       hideLabel
                       placeholder="* * * * *"
                       defaultValue={DEFAULT_CRONTAB}
+                      transformInput={(value: string) =>
+                        // Remove non-ASCII characters from crontab schedule
+                        // eslint-disable-next-line no-control-regex
+                        value.replace(/[^\x00-\x7F]/g, '')
+                      }
                       css={css`
                         input {
                           font-family: ${theme.text.familyMono};
@@ -492,7 +490,6 @@ function MonitorForm({
                 name="owner"
                 label={t('Owner')}
                 help={t('Automatically assign issues to a team or user.')}
-                menuPlacement="auto"
               />
             </PanelBody>
           </Panel>
@@ -527,7 +524,6 @@ function MonitorForm({
                       name="alertRule.targets"
                       memberOfProjectSlugs={projectSlug ? [projectSlug] : undefined}
                       multiple
-                      menuPlacement="auto"
                     />
                   );
                 }}
@@ -547,7 +543,6 @@ function MonitorForm({
                       name="alertRule.environment"
                       options={alertRuleEnvs}
                       disabled={disabled}
-                      menuPlacement="auto"
                       defaultValue=""
                       disabledReason={t(
                         'Please select which teams or members to notify first.'

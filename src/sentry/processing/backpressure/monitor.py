@@ -11,12 +11,7 @@ from sentry import options
 from sentry.processing.backpressure.health import UnhealthyReasons, record_consumer_health
 
 # from sentry import options
-from sentry.processing.backpressure.memory import (
-    Cluster,
-    ServiceMemory,
-    iter_cluster_memory_usage,
-    query_rabbitmq_memory_usage,
-)
+from sentry.processing.backpressure.memory import Cluster, ServiceMemory, iter_cluster_memory_usage
 from sentry.processing.backpressure.topology import ProcessingServices
 from sentry.utils import redis
 
@@ -28,12 +23,7 @@ class Redis:
     cluster: Cluster
 
 
-@dataclass
-class RabbitMq:
-    servers: list[str]
-
-
-Service = Union[Redis, RabbitMq, None]
+Service = Union[Redis, None]
 
 
 def check_service_memory(service: Service) -> Generator[ServiceMemory]:
@@ -45,10 +35,6 @@ def check_service_memory(service: Service) -> Generator[ServiceMemory]:
     if isinstance(service, Redis):
         yield from iter_cluster_memory_usage(service.cluster)
 
-    elif isinstance(service, RabbitMq):
-        for server in service.servers:
-            yield query_rabbitmq_memory_usage(server)
-
 
 def load_service_definitions() -> dict[str, Service]:
     services: dict[str, Service] = {}
@@ -59,12 +45,8 @@ def load_service_definitions() -> dict[str, Service]:
                 config={"cluster": cluster_id},
             )
             services[name] = Redis(cluster)
-
-        elif rabbitmq_urls := definition.get("rabbitmq"):
-            services[name] = RabbitMq(rabbitmq_urls)
-
         else:
-            services[name] = None
+            logger.error("Unknown service: %s", name)
 
     return services
 

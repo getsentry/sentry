@@ -216,6 +216,7 @@ function TimeInput({ref, disabled, time, setTime}: TimeInputProps) {
   const timeInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setLocalTime(time);
   }, [time]);
 

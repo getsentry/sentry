@@ -33,6 +33,7 @@ import {
   useSetQueryParamsGroupBys,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {
   isVisualizeFunction,
   MAX_VISUALIZES,
@@ -211,17 +212,71 @@ function VisualizeDropdown({
   const aggregateParam = visualize.parsedFunction?.arguments?.[0] ?? '';
 
   const fieldOptions = useMemo(() => {
-    return aggregateFunction === AggregationKey.COUNT
-      ? [{label: t('logs'), value: OurLogKnownFieldKey.MESSAGE}]
-      : aggregateFunction === AggregationKey.COUNT_UNIQUE
-        ? sortedStringKeys.map(key => ({
-            label: prettifyTagKey(key),
+    if (aggregateFunction === AggregationKey.COUNT) {
+      return [{label: t('logs'), value: OurLogKnownFieldKey.MESSAGE}];
+    }
+
+    return aggregateFunction === AggregationKey.COUNT_UNIQUE
+      ? [
+          ...sortedNumberKeys.map(key => {
+            const label = prettifyTagKey(key);
+            return {
+              label,
+              value: key,
+              textValue: key,
+              trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
+              showDetailsInOverlay: true,
+              details: (
+                <AttributeDetails
+                  column={key}
+                  kind={FieldKind.MEASUREMENT}
+                  label={label}
+                  traceItemType={TraceItemDataset.LOGS}
+                />
+              ),
+            };
+          }),
+          ...sortedStringKeys.map(key => {
+            const label = prettifyTagKey(key);
+            return {
+              label,
+              value: key,
+              textValue: key,
+              trailingItems: <TypeBadge kind={FieldKind.TAG} />,
+              showDetailsInOverlay: true,
+              details: (
+                <AttributeDetails
+                  column={key}
+                  kind={FieldKind.TAG}
+                  label={label}
+                  traceItemType={TraceItemDataset.LOGS}
+                />
+              ),
+            };
+          }),
+        ].toSorted((a, b) => {
+          const aLabel = prettifyTagKey(a.value);
+          const bLabel = prettifyTagKey(b.value);
+          return aLabel.localeCompare(bLabel);
+        })
+      : sortedNumberKeys.map(key => {
+          const label = prettifyTagKey(key);
+          return {
+            label,
             value: key,
-          }))
-        : sortedNumberKeys.map(key => ({
-            label: prettifyTagKey(key),
-            value: key,
-          }));
+            textValue: key,
+            trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
+            showDetailsInOverlay: true,
+            details: (
+              <AttributeDetails
+                column={key}
+                kind={FieldKind.MEASUREMENT}
+                label={label}
+                traceItemType={TraceItemDataset.LOGS}
+              />
+            ),
+          };
+        });
   }, [aggregateFunction, sortedStringKeys, sortedNumberKeys]);
 
   const onChangeAggregate = useCallback(
@@ -274,48 +329,46 @@ function ToolbarGroupBy({numberTags, stringTags}: LogsToolbarProps) {
           value: '',
           textValue: '\u2014',
         },
-        ...Object.keys(numberTags ?? {}).map(key => ({
-          label: prettifyTagKey(key),
-          value: key,
-          textValue: key,
-          trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
-          showDetailsInOverlay: true,
-          details: (
-            <AttributeDetails
-              column={key}
-              kind={FieldKind.MEASUREMENT}
-              label={key}
-              traceItemType={TraceItemDataset.LOGS}
-            />
-          ),
-        })),
-        ...Object.keys(stringTags ?? {}).map(key => ({
-          label: prettifyTagKey(key),
-          value: key,
-          textValue: key,
-          trailingItems: <TypeBadge kind={FieldKind.TAG} />,
-          showDetailsInOverlay: true,
-          details: (
-            <AttributeDetails
-              column={key}
-              kind={FieldKind.TAG}
-              label={key}
-              traceItemType={TraceItemDataset.LOGS}
-            />
-          ),
-        })),
+        ...Object.keys(numberTags ?? {}).map(key => {
+          const label = prettifyTagKey(key);
+          return {
+            label,
+            value: key,
+            textValue: key,
+            trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
+            showDetailsInOverlay: true,
+            details: (
+              <AttributeDetails
+                column={key}
+                kind={FieldKind.MEASUREMENT}
+                label={label}
+                traceItemType={TraceItemDataset.LOGS}
+              />
+            ),
+          };
+        }),
+        ...Object.keys(stringTags ?? {}).map(key => {
+          const label = prettifyTagKey(key);
+          return {
+            label,
+            value: key,
+            textValue: key,
+            trailingItems: <TypeBadge kind={FieldKind.TAG} />,
+            showDetailsInOverlay: true,
+            details: (
+              <AttributeDetails
+                column={key}
+                kind={FieldKind.TAG}
+                label={label}
+                traceItemType={TraceItemDataset.LOGS}
+              />
+            ),
+          };
+        }),
       ].toSorted((a, b) => {
         const aLabel = prettifyTagKey(a.value);
         const bLabel = prettifyTagKey(b.value);
-        if (aLabel < bLabel) {
-          return -1;
-        }
-
-        if (aLabel > bLabel) {
-          return 1;
-        }
-
-        return 0;
+        return aLabel.localeCompare(bLabel);
       }),
     [numberTags, stringTags]
   );
@@ -324,7 +377,7 @@ function ToolbarGroupBy({numberTags, stringTags}: LogsToolbarProps) {
     (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => {
       // automatically switch to aggregates mode when a group by is inserted/updated
       if (op === 'insert' || op === 'update') {
-        setGroupBys(columns); // TODO: auto switch to aggregates mode
+        setGroupBys(columns, Mode.AGGREGATE);
       } else {
         setGroupBys(columns);
       }

@@ -10,7 +10,6 @@ import {Link} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
-import DropdownButton from 'sentry/components/dropdownButton';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -297,6 +296,19 @@ function AuditLogList({
 
   const {displayStart, displayEnd} = getDisplayValues();
 
+  const currentValue = statsPeriod || allTime;
+  let displayLabel: React.ReactNode;
+
+  if (displayStart && displayEnd) {
+    // Show formatted absolute date range using display values (user's intended timezone)
+    displayLabel = getAbsoluteSummary(displayStart, displayEnd, utc);
+  } else if (start && end) {
+    // Fallback to regular start/end if display values not available
+    displayLabel = getAbsoluteSummary(start, end, utc);
+  } else if (currentValue === allTime) {
+    displayLabel = allTime;
+  }
+
   const headerActions = (
     <ButtonBar gap="xl">
       <TimeRangeSelector
@@ -309,25 +321,8 @@ function AuditLogList({
         }}
         utc={utc}
         maxPickableDays={getDaysSinceDate(organization.dateCreated)}
-        trigger={(triggerProps, isOpen) => {
-          const currentValue = statsPeriod || allTime;
-          let displayLabel: React.ReactNode;
-
-          if (displayStart && displayEnd) {
-            // Show formatted absolute date range using display values (user's intended timezone)
-            displayLabel = getAbsoluteSummary(displayStart, displayEnd, utc);
-          } else if (start && end) {
-            // Fallback to regular start/end if display values not available
-            displayLabel = getAbsoluteSummary(start, end, utc);
-          } else if (currentValue === allTime) {
-            displayLabel = allTime;
-          }
-
-          return (
-            <DropdownButton isOpen={isOpen} {...triggerProps}>
-              {displayLabel}
-            </DropdownButton>
-          );
+        triggerProps={{
+          children: displayLabel,
         }}
       />
       <EventSelector

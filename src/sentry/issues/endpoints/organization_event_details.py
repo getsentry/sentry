@@ -2,11 +2,12 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Function, Op
 
-from sentry import eventstore, features
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
@@ -19,6 +20,7 @@ from sentry.middleware import is_frontend_request
 from sentry.models.project import Project
 from sentry.search.events.builder.spans_metrics import SpansMetricsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
+from sentry.services import eventstore
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
@@ -130,6 +132,11 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         # get_filter_params().
         if not request.access.has_project_access(project):
             return Response(status=404)
+
+        referrer = request.GET.get("referrer")
+
+        if referrer is not None:
+            sentry_sdk.set_tag("referrer", referrer)
 
         # We return the requested event if we find a match regardless of whether
         # it occurred within the range specified

@@ -33,7 +33,7 @@ describe('PageOverview', () => {
         utc: null,
       },
     };
-    PageFiltersStore.onInitializeUrlState(pageFilters, new Set());
+    PageFiltersStore.onInitializeUrlState(pageFilters);
     const project = ProjectFixture({id: '1', slug: 'project-slug'});
     ProjectsStore.loadInitialData([project]);
 
@@ -65,7 +65,7 @@ describe('PageOverview', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
+      url: `/organizations/${organization.slug}/events-timeseries/`,
       body: {},
     });
     MockApiClient.addMockResponse({

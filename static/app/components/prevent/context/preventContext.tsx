@@ -5,6 +5,7 @@ export type PreventContextData = {
   preventPeriod: string;
   branch?: string | null;
   integratedOrgId?: string;
+  integratedOrgName?: string;
   lastVisitedOrgId?: string;
   repository?: string;
 };

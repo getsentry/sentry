@@ -256,13 +256,10 @@ def get_anomaly_data_from_seer(
         return None
 
     if not results.get("success"):
-        logger.error(
-            "Error when hitting Seer detect anomalies endpoint",
-            extra={
-                "error_message": results.get("message", ""),
-                **extra_data,
-            },
-        )
+        detailed_error_message = results.get("message", "<unknown>")
+        # We want Sentry to group them by error message.
+        msg = f"Error when hitting Seer detect anomalies endpoint: {detailed_error_message}"
+        logger.warning(msg, extra=extra_data)
         return None
 
     ts = results.get("timeseries")

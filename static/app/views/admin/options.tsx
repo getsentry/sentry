@@ -89,14 +89,6 @@ const definitions: Field[] = [
     defaultValue: () => ConfigStore.get('user').email,
   },
   {
-    key: 'system.rate-limit',
-    label: t('Rate Limit'),
-    placeholder: 'e.g. 500',
-    help: t(
-      'The maximum number of events the system should accept per minute. A value of 0 will disable the default rate limit.'
-    ),
-  },
-  {
     key: 'auth.allow-registration',
     label: t('Allow Registration'),
     help: t('Allow anyone to create an account and access this Sentry installation.'),

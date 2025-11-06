@@ -10,12 +10,12 @@ import type useOurLogFilters from 'sentry/views/replays/detail/ourlogs/useOurLog
 
 type Props = {
   logItems: OurLogsResponseItem[];
-  traceIds?: string[];
+  replayId?: string;
 } & ReturnType<typeof useOurLogFilters>;
 
 export function OurLogFilters({
   logItems,
-  traceIds,
+  replayId,
   getSeverityLevels,
   searchTerm,
   selectValues,
@@ -27,8 +27,10 @@ export function OurLogFilters({
   return (
     <StyledFiltersGrid>
       <CompactSelect
-        triggerProps={{prefix: t('Log Level')}}
-        triggerLabel={selectValues.length === 0 ? t('Any') : null}
+        triggerProps={{
+          prefix: t('Log Level'),
+          children: selectValues.length === 0 ? t('Any') : null,
+        }}
         multiple
         options={severityLevels}
         onChange={setSeverityLevel}
@@ -43,7 +45,7 @@ export function OurLogFilters({
         query={searchTerm}
         disabled={!logItems?.length}
       />
-      <OpenInLogsButton searchTerm={searchTerm} traceIds={traceIds} />
+      <OpenInLogsButton searchTerm={searchTerm} replayId={replayId} />
     </StyledFiltersGrid>
   );
 }

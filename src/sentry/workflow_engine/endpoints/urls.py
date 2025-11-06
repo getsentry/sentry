@@ -2,6 +2,7 @@ from django.urls import re_path
 
 from .organization_available_action_index import OrganizationAvailableActionIndexEndpoint
 from .organization_data_condition_index import OrganizationDataConditionIndexEndpoint
+from .organization_detector_count import OrganizationDetectorCountEndpoint
 from .organization_detector_details import OrganizationDetectorDetailsEndpoint
 from .organization_detector_index import OrganizationDetectorIndexEndpoint
 from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
@@ -40,6 +41,11 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/detectors/$",
         OrganizationDetectorIndexEndpoint.as_view(),
         name="sentry-api-0-organization-detector-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/detectors/count/$",
+        OrganizationDetectorCountEndpoint.as_view(),
+        name="sentry-api-0-organization-detector-count",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/workflows/(?P<workflow_id>\d+)/$",

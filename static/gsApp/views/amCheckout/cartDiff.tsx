@@ -1,27 +1,39 @@
 import React, {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import Color from 'color';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Stack} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {
+  AddOnCategory,
   OnDemandBudgetMode,
   type Plan,
   type SharedOnDemandBudget,
   type Subscription,
 } from 'getsentry/types';
-import {formatReservedWithUnits, isNewPayingCustomer} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  formatReservedWithUnits,
+  isNewPayingCustomer,
+} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
-import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
-import {parseOnDemandBudgetsFromSubscription} from 'getsentry/views/onDemandBudgets/utils';
+import {
+  getTotalBudget,
+  parseOnDemandBudgetsFromSubscription,
+} from 'getsentry/views/onDemandBudgets/utils';
 
 const DEFAULT_PAYG_BUDGET: SharedOnDemandBudget = {
   budgetMode: OnDemandBudgetMode.SHARED,
@@ -34,9 +46,11 @@ type CheckoutChange<K, V> = {
   newValue: V | null;
 };
 
-type PlanChange = CheckoutChange<'plan' | 'contractInterval', string>;
+type PlanChange = CheckoutChange<'plan', string>;
 
-type ProductChange = CheckoutChange<SelectableProduct, boolean>;
+type CycleChange = CheckoutChange<'contractInterval', string>;
+
+type ProductChange = CheckoutChange<AddOnCategory, boolean>;
 
 type ReservedChange = CheckoutChange<DataCategory, number>;
 
@@ -45,16 +59,18 @@ type SharedOnDemandChange = CheckoutChange<'sharedMaxBudget', number>;
 type PerCategoryOnDemandChange = CheckoutChange<DataCategory, number | null>;
 
 function AddedHighlight({value}: {value: string}) {
+  const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
   return (
-    <Added>
+    <Added prefersDarkMode={prefersDarkMode}>
       <span>{value}</span>
     </Added>
   );
 }
 
 function RemovedHighlight({value}: {value: string}) {
+  const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
   return (
-    <Removed>
+    <Removed prefersDarkMode={prefersDarkMode}>
       <span>{value}</span>
     </Removed>
   );
@@ -83,13 +99,15 @@ function PlanDiff({
   newPlan,
   planChanges,
   productChanges,
+  cycleChanges,
 }: {
   currentPlan: Plan;
+  cycleChanges: CycleChange[];
   newPlan: Plan;
   planChanges: PlanChange[];
   productChanges: ProductChange[];
 }) {
-  const changes = [...planChanges, ...productChanges];
+  const changes = [...planChanges, ...productChanges, ...cycleChanges];
   return (
     <ChangeSection data-test-id="plan-diff">
       <ChangeGrid>
@@ -101,14 +119,18 @@ function PlanDiff({
           }
           let formattingFunction = (value: any) => value;
           if (key === 'plan' || key === 'contractInterval') {
-            formattingFunction = (value: any) => (value ? capitalize(value) : null);
+            formattingFunction = (value: any) =>
+              value === 'annual'
+                ? t('Yearly')
+                : value
+                  ? t('%s', capitalize(value))
+                  : null;
           } else {
             formattingFunction = (value: any) =>
               value
                 ? toTitleCase(
-                    newPlan.availableReservedBudgetTypes[key]?.productCheckoutName ??
-                      currentPlan.availableReservedBudgetTypes[key]
-                        ?.productCheckoutName ??
+                    newPlan.addOnCategories[key]?.productName ??
+                      currentPlan.addOnCategories[key]?.productName ??
                       key,
                     {allowInnerUpperCase: true}
                   )
@@ -150,7 +172,6 @@ function ReservedDiff({
                   {getPlanCategoryName({
                     category: key,
                     plan: newValue === null ? currentPlan : newPlan,
-                    title: true,
                   })}
                 </ChangedCategory>
               }
@@ -186,14 +207,23 @@ function OnDemandDiff({
   return (
     <Fragment>
       {sharedOnDemandChanges.length > 0 && (
-        <ChangeSection data-test-id="shared-spend-cap-diff">
+        <ChangeSection data-test-id="shared-spend-limit-diff">
           <ChangeGrid>
             {sharedOnDemandChanges.map((change, index) => {
               const {key, currentValue, newValue} = change;
               let leftComponent = <div />;
               if (index === 0) {
                 leftComponent = (
-                  <ChangeSectionTitle>{t('Shared spend cap')}</ChangeSectionTitle>
+                  <ChangeSectionTitle>
+                    {tct('[budgetTerm] spend limit', {
+                      budgetTerm: displayBudgetName(
+                        newPlan,
+                        newPlan.budgetTerm === 'pay-as-you-go'
+                          ? {abbreviated: true}
+                          : {title: true}
+                      ),
+                    })}
+                  </ChangeSectionTitle>
                 );
               }
               return (
@@ -215,9 +245,9 @@ function OnDemandDiff({
         </ChangeSection>
       )}
       {perCategoryOnDemandChanges.length > 0 && (
-        <ChangeSection data-test-id="per-category-spend-cap-diff">
+        <ChangeSection data-test-id="per-category-spend-limit-diff">
           <ChangeSectionTitle hasBottomMargin>
-            {t('Per-category spend caps')}
+            {t('Per-product spend limits')}
           </ChangeSectionTitle>
           <ChangeGrid>
             {perCategoryOnDemandChanges.map(({key, currentValue, newValue}) => {
@@ -229,7 +259,6 @@ function OnDemandDiff({
                       {getPlanCategoryName({
                         category: key,
                         plan: newValue === null ? currentPlan : newPlan,
-                        title: true,
                       })}
                     </ChangedCategory>
                   }
@@ -273,36 +302,40 @@ function CartDiff({
   const newBudgetMode = newOnDemandBudget.budgetMode;
 
   const getPlanChanges = useCallback((): PlanChange[] => {
-    const changes: PlanChange[] = [];
     if (activePlan.name !== currentPlan.name) {
-      changes.push({
-        key: 'plan',
-        currentValue: currentPlan.name,
-        newValue: activePlan.name,
-      });
+      return [
+        {
+          key: 'plan',
+          currentValue: currentPlan.name,
+          newValue: activePlan.name,
+        },
+      ];
     }
+    return [];
+  }, [activePlan, currentPlan]);
 
+  const getCycleChanges = useCallback((): CycleChange[] => {
     if (activePlan.contractInterval !== currentPlan.contractInterval) {
-      changes.push({
-        key: 'contractInterval',
-        currentValue: currentPlan.contractInterval,
-        newValue: activePlan.contractInterval,
-      });
+      return [
+        {
+          key: 'contractInterval',
+          currentValue: currentPlan.contractInterval,
+          newValue: activePlan.contractInterval,
+        },
+      ];
     }
-
-    return changes;
+    return [];
   }, [activePlan, currentPlan]);
 
   const getProductChanges = useCallback((): ProductChange[] => {
-    // TODO(checkout v3): This will need to be updated to handle non-budget products
     const currentProducts =
-      subscription.reservedBudgets
-        ?.filter(budget => budget.reservedBudget > 0)
-        .map(budget => budget.apiName as unknown as SelectableProduct) ?? [];
+      Object.values(subscription.addOns ?? {})
+        .filter(addOnInfo => addOnInfo.enabled)
+        .map(addOnInfo => addOnInfo.apiName) ?? [];
 
-    const newProducts = Object.entries(formData.selectedProducts ?? {})
+    const newProducts = Object.entries(formData.addOns ?? {})
       .filter(([_, value]) => value.enabled)
-      .map(([key, _]) => key as unknown as SelectableProduct);
+      .map(([key, _]) => key as AddOnCategory);
 
     // we need to iterate over both in case either state has more products
     // than the other
@@ -327,14 +360,16 @@ function CartDiff({
     });
 
     return changes;
-  }, [formData.selectedProducts, subscription.reservedBudgets]);
+  }, [formData.addOns, subscription.addOns]);
 
   const getCategoryChanges = ({
     currentValues,
     newValues,
+    shouldIncludeZero = true,
   }: {
     currentValues: Partial<Record<DataCategory, number>>;
     newValues: Partial<Record<DataCategory, number>>;
+    shouldIncludeZero?: boolean;
   }): ReservedChange[] | PerCategoryOnDemandChange[] => {
     const nodes: ReservedChange[] | PerCategoryOnDemandChange[] = [];
 
@@ -343,7 +378,10 @@ function CartDiff({
       if (category in currentValues) {
         currentValue = currentValues[category as DataCategory] ?? null;
       }
-      if (newValue !== currentValue) {
+      if (!shouldIncludeZero && currentValue === 0) {
+        currentValue = null;
+      }
+      if (newValue !== currentValue && (shouldIncludeZero || newValue !== 0)) {
         nodes.push({
           key: category as DataCategory,
           currentValue,
@@ -354,7 +392,7 @@ function CartDiff({
 
     // in case there are categories in the current plan that are not in the new plan
     Object.entries(currentValues).forEach(([category, currentValue]) => {
-      if (!(category in newValues)) {
+      if (!(category in newValues) && (shouldIncludeZero || currentValue !== 0)) {
         nodes.push({
           key: category as DataCategory,
           currentValue,
@@ -367,10 +405,9 @@ function CartDiff({
   };
 
   const getReservedChanges = useCallback((): ReservedChange[] => {
-    // TODO(checkout v3): This will need to be updated to handle non-budget products
-    const productCategories = Object.values(
-      activePlan.availableReservedBudgetTypes
-    ).flatMap(productInfo => productInfo.dataCategories);
+    const productCategories = Object.values(activePlan.addOnCategories).flatMap(
+      addOnInfo => addOnInfo.dataCategories
+    );
 
     const currentReserved: Partial<Record<DataCategory, number>> = {};
     const relevantFormDataReserved = Object.fromEntries(
@@ -418,7 +455,9 @@ function CartDiff({
     if (
       isEqual(currentOnDemandBudget, newOnDemandBudget) ||
       (currentBudgetMode !== OnDemandBudgetMode.SHARED &&
-        newBudgetMode !== OnDemandBudgetMode.SHARED)
+        newBudgetMode !== OnDemandBudgetMode.SHARED) ||
+      (getTotalBudget(currentOnDemandBudget) === 0 &&
+        getTotalBudget(newOnDemandBudget) === 0)
     ) {
       return [];
     }
@@ -429,10 +468,18 @@ function CartDiff({
     ) {
       changes.push({
         key: 'sharedMaxBudget',
-        currentValue: currentOnDemandBudget.sharedMaxBudget,
+        currentValue:
+          // only show $0 PAYG changes if the budget is being changed to $0
+          currentOnDemandBudget.sharedMaxBudget === 0
+            ? null
+            : currentOnDemandBudget.sharedMaxBudget,
         newValue: newOnDemandBudget.sharedMaxBudget,
       });
-    } else if (currentBudgetMode === OnDemandBudgetMode.SHARED) {
+    } else if (
+      currentBudgetMode === OnDemandBudgetMode.SHARED &&
+      // only show $0 PAYG changes if the budget is being changed to $0
+      currentOnDemandBudget.sharedMaxBudget !== 0
+    ) {
       changes.push({
         key: 'sharedMaxBudget',
         currentValue: currentOnDemandBudget.sharedMaxBudget,
@@ -464,10 +511,12 @@ function CartDiff({
     return getCategoryChanges({
       currentValues: parsedCurrentOnDemandBudget,
       newValues: parsedNewOnDemandBudget,
+      shouldIncludeZero: currentBudgetMode === newBudgetMode,
     });
   }, [currentOnDemandBudget, newOnDemandBudget, currentBudgetMode, newBudgetMode]);
 
   const planChanges = useMemo(() => getPlanChanges(), [getPlanChanges]);
+  const cycleChanges = useMemo(() => getCycleChanges(), [getCycleChanges]);
   const productChanges = useMemo(() => getProductChanges(), [getProductChanges]);
   const reservedChanges = useMemo(() => getReservedChanges(), [getReservedChanges]);
   const sharedOnDemandChanges = useMemo(
@@ -483,6 +532,7 @@ function CartDiff({
     () => [
       ...planChanges,
       ...productChanges,
+      ...cycleChanges,
       ...reservedChanges,
       ...sharedOnDemandChanges,
       ...perCategoryOnDemandChanges,
@@ -490,6 +540,7 @@ function CartDiff({
     [
       planChanges,
       productChanges,
+      cycleChanges,
       reservedChanges,
       sharedOnDemandChanges,
       perCategoryOnDemandChanges,
@@ -501,31 +552,45 @@ function CartDiff({
   }
 
   return (
-    <CartDiffContainer data-test-id="cart-diff">
-      <Flex justify="between" align="center">
-        <Title>{tct('Changes ([numChanges])', {numChanges: allChanges.length})}</Title>
+    <Stack
+      data-test-id="cart-diff"
+      border="primary"
+      radius="lg"
+      align="start"
+      background="primary"
+      overflow="hidden"
+    >
+      <Stack
+        direction="row"
+        justify="between"
+        align="center"
+        width="100%"
+        padding="lg xl"
+      >
+        <Heading as="h3">{t('Changes')}</Heading>
         <Button
           aria-label={`${isOpen ? 'Hide' : 'Show'} changes`}
           onClick={() => onToggle(!isOpen)}
           borderless
+          size="zero"
           icon={<IconChevron direction={isOpen ? 'up' : 'down'} />}
         />
-      </Flex>
+      </Stack>
       {isOpen && (
-        <ChangesContainer>
-          {planChanges.length + productChanges.length > 0 && (
+        <Stack
+          width="100%"
+          padding="xl xl 0 xl"
+          maxHeight="240px"
+          overflowY="auto"
+          borderTop="primary"
+        >
+          {planChanges.length + productChanges.length + cycleChanges.length > 0 && (
             <PlanDiff
               currentPlan={currentPlan}
               newPlan={activePlan}
               planChanges={planChanges}
               productChanges={productChanges}
-            />
-          )}
-          {reservedChanges.length > 0 && (
-            <ReservedDiff
-              currentPlan={currentPlan}
-              newPlan={activePlan}
-              reservedChanges={reservedChanges}
+              cycleChanges={cycleChanges}
             />
           )}
           {sharedOnDemandChanges.length + perCategoryOnDemandChanges.length > 0 && (
@@ -536,34 +601,20 @@ function CartDiff({
               sharedOnDemandChanges={sharedOnDemandChanges}
             />
           )}
-        </ChangesContainer>
+          {reservedChanges.length > 0 && (
+            <ReservedDiff
+              currentPlan={currentPlan}
+              newPlan={activePlan}
+              reservedChanges={reservedChanges}
+            />
+          )}
+        </Stack>
       )}
-    </CartDiffContainer>
+    </Stack>
   );
 }
 
 export default CartDiff;
-
-const CartDiffContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const ChangesContainer = styled('div')`
-  & > div:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-  max-height: 300px;
-  overflow-y: scroll;
-`;
-
-const Title = styled('h1')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0;
-`;
 
 const Change = styled('div')`
   display: flex;
@@ -578,32 +629,37 @@ const Change = styled('div')`
   }
 `;
 
-const Added = styled(Change)`
-  background: #e0ffe3;
+const Added = styled(Change)<{prefersDarkMode?: boolean}>`
+  background: ${p => p.theme.green200};
 
   &::before {
     content: '+';
   }
 
   span {
-    background: #a8ecaa;
+    background: ${p =>
+      p.prefersDarkMode
+        ? Color(p.theme.green400).lighten(0.08).alpha(0.5).string()
+        : '#a8ecaa'};
   }
 `;
 
-const Removed = styled(Change)`
+const Removed = styled(Change)<{prefersDarkMode?: boolean}>`
   background: ${p => p.theme.red100};
 
   span {
-    background: #f7d4d3;
+    background: ${p => (p.prefersDarkMode ? p.theme.red400 : '#f7d4d3')};
   }
 `;
 
 const ChangedCategory = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
 `;
 
 const ChangeSection = styled('div')`
-  padding: ${p => p.theme.space.lg} 0;
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const ChangeGrid = styled('div')`
@@ -614,7 +670,7 @@ const ChangeGrid = styled('div')`
   align-items: center;
 `;
 
-const ChangeSectionTitle = styled('h2')<{hasBottomMargin?: boolean}>`
+const ChangeSectionTitle = styled(Text)<{hasBottomMargin?: boolean}>`
   font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   margin-bottom: ${p => (p.hasBottomMargin ? p.theme.space.xs : 0)};

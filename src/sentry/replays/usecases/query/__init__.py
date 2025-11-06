@@ -413,17 +413,13 @@ def make_full_aggregation_query(
     Arguments:
         fields -- if non-empty, used to query a subset of fields. Corresponds to the keys in QUERY_ALIAS_COLUMN_MAP.
     """
-    from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, compute_has_viewed, select_from_fields
+    from sentry.replays.query import select_from_fields
 
-    def _select_from_fields() -> list[Column | Function]:
-        if fields:
-            return select_from_fields(list(set(fields)), user_id=request_user_id)
-        else:
-            return list(QUERY_ALIAS_COLUMN_MAP.values()) + [compute_has_viewed(request_user_id)]
+    select = select_from_fields(fields, user_id=request_user_id)
 
     return Query(
         match=Entity("replays"),
-        select=_select_from_fields(),
+        select=select,
         where=[
             Condition(Column("project_id"), Op.IN, project_ids),
             # Replay-ids were pre-calculated so no having clause and no aggregating significant

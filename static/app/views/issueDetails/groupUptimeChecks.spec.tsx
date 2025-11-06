@@ -3,10 +3,9 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {UptimeCheckFixture} from 'sentry-fixture/uptimeCheck';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import GroupStore from 'sentry/stores/groupStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -29,9 +28,12 @@ describe('GroupUptimeChecks', () => {
   });
   const organization = OrganizationFixture();
   const project = ProjectFixture();
-  const router = RouterFixture({
-    params: {groupId: group.id},
-  });
+  const initialRouterConfig: RouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/issues/${group.id}/uptime-checks/`,
+    },
+    route: `/organizations/:orgId/issues/:groupId/uptime-checks/`,
+  };
 
   beforeEach(() => {
     GroupStore.init();
@@ -51,14 +53,11 @@ describe('GroupUptimeChecks', () => {
       url: `/organizations/${organization.slug}/detectors/123/`,
       body: UptimeDetectorFixture({id: '123'}),
     });
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [Number(project.id)],
-        environments: [],
-        datetime: {period: '24h', start: null, end: null, utc: null},
-      },
-      new Set()
-    );
+    PageFiltersStore.onInitializeUrlState({
+      projects: [Number(project.id)],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
   });
 
   it('renders the empty uptime check table', async () => {
@@ -69,8 +68,7 @@ describe('GroupUptimeChecks', () => {
 
     render(<GroupUptimeChecks />, {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     for (const column of ['Timestamp', 'Status', 'Duration', 'Trace', 'Region']) {
@@ -96,8 +94,7 @@ describe('GroupUptimeChecks', () => {
 
     render(<GroupUptimeChecks />, {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     expect(screen.queryByText('No matching uptime checks found')).not.toBeInTheDocument();
@@ -111,8 +108,8 @@ describe('GroupUptimeChecks', () => {
     expect(screen.getByText(getShortEventId(uptimeCheck.traceId))).toBeInTheDocument();
     expect(screen.getByText(uptimeCheck.regionName)).toBeInTheDocument();
 
-    // Span counts also need to load
-    expect(await screen.findByText('0 spans')).toBeInTheDocument();
+    // Span counts also need to load (includes 7 system spans)
+    expect(await screen.findByText('7 spans')).toBeInTheDocument();
   });
 
   it('indicates when there are spans in a trace', async () => {
@@ -132,14 +129,14 @@ describe('GroupUptimeChecks', () => {
 
     render(<GroupUptimeChecks />, {
       organization,
-      router,
-      deprecatedRouterMocks: true,
+      initialRouterConfig,
     });
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
 
     const traceId = getShortEventId(uptimeCheck.traceId);
 
-    expect(await screen.findByText('10 spans')).toBeInTheDocument();
+    // 10 user spans + 7 system spans = 17 total
+    expect(await screen.findByText('17 spans')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: traceId})).toBeInTheDocument();
   });
 });

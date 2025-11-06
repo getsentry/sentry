@@ -190,20 +190,18 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('Total: $0.00 / $3,000,000.00')).toBeInTheDocument();
 
     // CPE information
-    expect(screen.getByText('Pay-as-you-go Cost-Per-Event Errors:')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Cost-Per-Event Errors:')).toBeInTheDocument();
     expect(screen.getByText('$0.12345678')).toBeInTheDocument();
     expect(
-      screen.getByText('Pay-as-you-go Cost-Per-Event Performance units:')
+      screen.getByText('On-Demand Cost-Per-Event Performance units:')
     ).toBeInTheDocument();
     expect(screen.getByText('$1.00000000')).toBeInTheDocument();
-    expect(screen.getByText('Pay-as-you-go Cost-Per-Event Replays:')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Cost-Per-Event Replays:')).toBeInTheDocument();
     expect(screen.getByText('$0.50000000')).toBeInTheDocument();
-    expect(
-      screen.getByText('Pay-as-you-go Cost-Per-Event Attachments:')
-    ).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Cost-Per-Event Attachments:')).toBeInTheDocument();
     expect(screen.getByText('$0.20300000')).toBeInTheDocument();
     expect(
-      screen.getByText('Pay-as-you-go Cost-Per-Event Cron monitors:')
+      screen.getByText('On-Demand Cost-Per-Event Cron monitors:')
     ).toBeInTheDocument();
     expect(screen.getByText('$0.07550000')).toBeInTheDocument();
   });
@@ -638,5 +636,60 @@ describe('CustomerOverview', () => {
       const term = screen.getByText('Sample Rate (24h):');
       expect(term.nextElementSibling).toHaveTextContent('n/a');
     });
+  });
+
+  it('renders retention settings', () => {
+    const organization = OrganizationFixture({});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+    });
+
+    subscription.planDetails = {
+      ...subscription.planDetails,
+      retentions: {
+        [DataCategory.SPANS]: {standard: 1234567, downsampled: 7654321},
+        [DataCategory.LOG_BYTE]: {standard: 1470369, downsampled: 9630741},
+        [DataCategory.ERRORS]: {standard: 2581471, downsampled: 1741852},
+      },
+    };
+
+    subscription.categories.spans = MetricHistoryFixture({
+      ...subscription.categories.spans,
+      category: DataCategory.SPANS,
+      retention: {standard: 13579, downsampled: 24680},
+    });
+
+    subscription.categories.logBytes = MetricHistoryFixture({
+      ...subscription.categories.logBytes,
+      category: DataCategory.LOG_BYTE,
+      retention: {standard: 97531, downsampled: null},
+    });
+
+    subscription.categories.errors = MetricHistoryFixture({
+      ...subscription.categories.errors,
+      category: DataCategory.ERRORS,
+      retention: {standard: 36925, downsampled: 52963},
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('Retention Settings')).toBeInTheDocument();
+
+    // planDetails downsampled for span and logs in document, but not for errors
+    expect(screen.getByText('7654321')).toBeInTheDocument();
+    expect(screen.getByText('9630741')).toBeInTheDocument();
+    expect(screen.queryByText('1741852')).not.toBeInTheDocument();
+
+    // categories downsampled for span and logs in document, but not for errors
+    expect(screen.getByText('13579')).toBeInTheDocument();
+    expect(screen.getByText('null')).toBeInTheDocument();
+    expect(screen.queryByText('36925')).not.toBeInTheDocument();
   });
 });

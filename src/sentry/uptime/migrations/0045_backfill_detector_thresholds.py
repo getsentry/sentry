@@ -52,6 +52,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("uptime", "0044_remove_project_uptime_subscription"),
+        ("workflow_engine", "0085_crons_link_detectors_to_all_workflows"),
     ]
 
     operations = [

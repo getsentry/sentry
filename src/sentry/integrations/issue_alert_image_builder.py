@@ -10,6 +10,7 @@ from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
 from sentry.integrations.time_utils import get_approx_start_time, get_relative_time
 from sentry.integrations.types import ExternalProviderEnum
+from sentry.issue_detection.detectors import utils
 from sentry.issues.grouptype import (
     GroupType,
     PerformanceP95EndpointRegressionGroupType,
@@ -17,7 +18,6 @@ from sentry.issues.grouptype import (
 )
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
-from sentry.performance_issues.detectors import utils
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock

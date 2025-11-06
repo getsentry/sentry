@@ -47,14 +47,25 @@ export const getReplayVerifyStep = ({
   return () => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        "While you're testing, we recommend that you set [codeSampleRate] to [code:1.0]. This ensures that every user session will be sent to Sentry.",
-        {codeSampleRate: <code>{replaySessionSampleRateName}</code>, code: <code />}
-      ),
-      additionalInfo: tct(
-        'Once testing is complete, we recommend lowering this value in production. We still recommend keeping [codeErrorSampleRate] set to [code:1.0].',
-        {codeErrorSampleRate: <code>{replayOnErrorSampleRateName}</code>, code: <code />}
-      ),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            "While you're testing, we recommend that you set [codeSampleRate] to [code:1.0]. This ensures that every user session will be sent to Sentry.",
+            {codeSampleRate: <code>{replaySessionSampleRateName}</code>, code: <code />}
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Once testing is complete, we recommend lowering this value in production. We still recommend keeping [codeErrorSampleRate] set to [code:1.0].',
+            {
+              codeErrorSampleRate: <code>{replayOnErrorSampleRateName}</code>,
+              code: <code />,
+            }
+          ),
+        },
+      ],
     },
   ];
 };

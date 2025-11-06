@@ -52,10 +52,14 @@ describe('BuildYourPlan', () => {
         invoiceItems: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'GET',
+    });
   });
 
   function assertAllSubsteps(isNewCheckout: boolean) {
-    const substepTitles = ['Select additional products'];
+    const substepTitles = ['Detect and fix issues faster with our AI agent'];
 
     if (isNewCheckout) {
       substepTitles.forEach(title => {
@@ -94,7 +98,7 @@ describe('BuildYourPlan', () => {
   it('renders for checkout v3', async () => {
     renderCheckout(true);
 
-    expect(await screen.findByText('Build your plan')).toBeInTheDocument();
+    expect(await screen.findByText('Select a plan')).toBeInTheDocument();
     expect(screen.queryByTestId('body-choose-your-plan')).not.toBeInTheDocument();
     assertAllSubsteps(true);
   });
@@ -103,7 +107,7 @@ describe('BuildYourPlan', () => {
     renderCheckout(false);
 
     expect(await screen.findByTestId('body-choose-your-plan')).toBeInTheDocument();
-    expect(screen.queryByText('Build your plan')).not.toBeInTheDocument();
+    expect(screen.queryByText('Select a plan')).not.toBeInTheDocument();
     assertAllSubsteps(false);
   });
 

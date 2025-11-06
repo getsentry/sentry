@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useMemo} from 'react';
 
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
-import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
   STATIC_SEMVER_TAGS,
@@ -21,6 +20,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {getHasTag} from 'sentry/utils/tag';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';

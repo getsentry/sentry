@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
@@ -8,7 +6,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  getCrashReportGenericInstallStep,
+  getCrashReportGenericInstallSteps,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -77,27 +75,29 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: t('Add the Sentry dependency:'),
-      configurations: [
+      content: [
         {
-          partialLoading: params.sourcePackageRegistries.isLoading,
-          code: [
+          type: 'text',
+          text: t('Add the Sentry dependency:'),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
-              language: 'powershell',
               label: 'Package Manager',
-              value: 'packageManager',
+              language: 'powershell',
               code: getInstallSnippetPackageManager(params),
             },
             {
-              language: 'shell',
               label: '.NET Core CLI',
-              value: 'coreCli',
+              language: 'shell',
               code: getInstallSnippetCoreCli(params),
             },
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'You can combine this integration with a logging library like [strong:log4net, NLog, or Serilog] to include both request data as well as your logs as breadcrumbs. The logging ingrations also capture events when an error is logged.',
             {strong: <strong />}
           ),
@@ -108,28 +108,27 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: (
-        <Fragment>
-          <p>
-            {tct(
-              'All [code:ASP.NET Core] configurations are valid here. But one configuration in particular is relevant.',
-              {
-                code: <code />,
-              }
-            )}
-          </p>
-          <p>
-            {tct(
-              '[code:FlushOnCompletedRequest] ensures all events are flushed out. This is because the general ASP.NET Core hooks for when the process is exiting are not guaranteed to run in a serverless environment. This setting ensures that no event is lost if AWS recycles the process.',
-              {
-                code: <code />,
-              }
-            )}
-          </p>
-        </Fragment>
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            'All [code:ASP.NET Core] configurations are valid here. But one configuration in particular is relevant.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            '[code:FlushOnCompletedRequest] ensures all events are flushed out. This is because the general ASP.NET Core hooks for when the process is exiting are not guaranteed to run in a serverless environment. This setting ensures that no event is lost if AWS recycles the process.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
           language: 'csharp',
           code: getConfigureSnippet(params),
         },
@@ -139,41 +138,55 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'You can verify your setup by throwing an exception from a function:'
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: t('You can verify your setup by throwing an exception from a function:'),
+        },
+        {
+          type: 'code',
           language: 'csharp',
           code: getVerifySnippet(),
         },
         {
+          type: 'text',
+          text: t('And make a request to that lambda:'),
+        },
+        {
+          type: 'code',
           language: 'shell',
-          description: t('And make a request to that lambda:'),
           code: 'curl -X GET -I https://url.of.server.aws/api/bad',
         },
-      ],
-      additionalInfo: tct(
-        'Check out the [link:Sentry ASP.NET Core] documentation for the complete set of options.',
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/" />
+          type: 'text',
+          text: tct(
+            'Check out the [link:Sentry ASP.NET Core] documentation for the complete set of options.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
   ],
 };
 
 const crashReportOnboarding: OnboardingConfig = {
   introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  install: (params: Params) => getCrashReportGenericInstallSteps(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/dotnet/guides/aws-lambda/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/dotnet/guides/aws-lambda/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],

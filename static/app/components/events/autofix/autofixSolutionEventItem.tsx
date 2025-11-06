@@ -6,7 +6,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
-import AutofixInsightSources from 'sentry/components/events/autofix/autofixInsightSources';
+import AutofixInsightSources from 'sentry/components/events/autofix/insights/autofixInsightSources';
 import {type AutofixSolutionTimelineEvent} from 'sentry/components/events/autofix/types';
 import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {

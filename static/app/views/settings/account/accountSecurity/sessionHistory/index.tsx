@@ -8,11 +8,10 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternetProtocol} from 'sentry/types/user';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import SessionRow from './sessionRow';
@@ -20,7 +19,8 @@ import {tableLayout} from './utils';
 
 type IpListType = InternetProtocol[] | null;
 
-function SessionHistory({location}: RouteComponentProps) {
+export default function SessionHistory() {
+  const location = useLocation();
   const {
     data: ipList = [],
     isLoading,
@@ -89,10 +89,8 @@ function SessionHistory({location}: RouteComponentProps) {
 }
 
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
-
-export default SessionHistory;
 
 const SessionPanelHeader = styled(PanelHeader)`
   ${tableLayout}

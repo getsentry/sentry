@@ -1,6 +1,5 @@
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -35,7 +34,7 @@ class TestPagerDutyActionValidator(TestCase):
 
         self.valid_data = {
             "type": Action.Type.PAGERDUTY,
-            "config": {"targetIdentifier": "123", "targetType": ActionTarget.SPECIFIC.value},
+            "config": {"targetIdentifier": "123", "targetType": "specific"},
             "data": {},
             "integrationId": self.integration.id,
         }
@@ -55,7 +54,7 @@ class TestPagerDutyActionValidator(TestCase):
             data={
                 **self.valid_data,
                 "config": {
-                    "targetType": ActionTarget.SPECIFIC.value,
+                    "targetType": "specific",
                     "targetIdentifier": "54321",
                 },
             },

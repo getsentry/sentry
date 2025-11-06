@@ -176,7 +176,49 @@ describe('SeerDrawer', () => {
     expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
   });
 
-  it('renders initial state with Start Seer button', async () => {
+  it('renders issue summary if consent flow is removed and there is no autofix quota', async () => {
+    const orgWithConsentFlowRemoved = OrganizationFixture({
+      hideAiFeatures: false,
+      features: ['seer-billing', 'gen-ai-features', 'gen-ai-consent-flow-removal'],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        integration: {ok: false, reason: null},
+        githubWriteIntegration: {ok: false, repos: []},
+        billing: {hasAutofixQuota: false},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization: orgWithConsentFlowRemoved,
+    });
+
+    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    // Issue summary fields are rendered
+    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(screen.getByText('Test trace')).toBeInTheDocument();
+    expect(screen.getByText('Test possible cause')).toBeInTheDocument();
+    expect(screen.getByText('Test headline')).toBeInTheDocument();
+
+    // Should display the seer purchase flow
+    expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
+  });
+
+  it('renders initial state with Start Root Cause Analysis button', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
@@ -194,8 +236,8 @@ describe('SeerDrawer', () => {
 
     expect(screen.getByRole('heading', {name: 'Seer'})).toBeInTheDocument();
 
-    // Verify the Start Seer button is available
-    const startButton = screen.getByRole('button', {name: 'Start Seer'});
+    // Verify the Start Root Cause Analysis button is available
+    const startButton = screen.getByRole('button', {name: 'Start Root Cause Analysis'});
     expect(startButton).toBeInTheDocument();
   });
 
@@ -227,7 +269,7 @@ describe('SeerDrawer', () => {
     expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
     expect(screen.getByText('Set Up Integration')).toBeInTheDocument();
 
-    const startButton = screen.getByRole('button', {name: 'Start Seer'});
+    const startButton = screen.getByRole('button', {name: 'Start Root Cause Analysis'});
     expect(startButton).toBeInTheDocument();
   });
 
@@ -253,7 +295,7 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    const startButton = screen.getByRole('button', {name: 'Start Seer'});
+    const startButton = screen.getByRole('button', {name: 'Start Root Cause Analysis'});
     await userEvent.click(startButton);
 
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
@@ -431,7 +473,9 @@ describe('SeerDrawer', () => {
     );
 
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
-    expect(await screen.findByRole('button', {name: 'Start Seer'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Start Root Cause Analysis'})
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start Over'})).toBeDisabled();
   });
 
@@ -454,7 +498,9 @@ describe('SeerDrawer', () => {
     await userEvent.click(startOverButton);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', {name: 'Start Seer'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Start Root Cause Analysis'})
+      ).toBeInTheDocument();
     });
   });
 

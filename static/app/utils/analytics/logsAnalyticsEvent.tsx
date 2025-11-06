@@ -5,6 +5,7 @@ export enum LogsAnalyticsPageSource {
   EXPLORE_LOGS = 'explore',
   ISSUE_DETAILS = 'issue details',
   TRACE_DETAILS = 'trace details',
+  REPLAY_DETAILS = 'replay details',
 }
 
 export type LogsAnalyticsEventParameters = {

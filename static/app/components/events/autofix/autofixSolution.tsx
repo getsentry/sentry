@@ -11,6 +11,7 @@ import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
+import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
 import {
   AutofixStatus,
   AutofixStepType,
@@ -118,6 +119,7 @@ type AutofixSolutionProps = {
   runId: string;
   solution: AutofixSolutionTimelineEvent[];
   solutionSelected: boolean;
+  status: AutofixStatus;
   agentCommentThread?: CommentThread;
   changesDisabled?: boolean;
   customSolution?: string;
@@ -313,9 +315,7 @@ function CopySolutionButton({
   rootCause?: any;
 }) {
   const text = formatSolutionWithEvent(solution, customSolution, event, rootCause);
-  const {onClick, label} = useCopyToClipboard({
-    text,
-  });
+  const {copy} = useCopyToClipboard();
 
   if (isEditing) {
     return null;
@@ -324,9 +324,8 @@ function CopySolutionButton({
   return (
     <Button
       size="sm"
-      aria-label={label}
       title="Copy plan as Markdown / LLM prompt"
-      onClick={onClick}
+      onClick={() => copy(text, {successMessage: t('Solution copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Solution as Markdown"
       analyticsEventKey="autofix.solution.copy"
       icon={<IconCopy />}
@@ -341,6 +340,7 @@ function AutofixSolutionDisplay({
   description,
   groupId,
   runId,
+  status,
   previousDefaultStepIndex,
   previousInsightCount,
   customSolution,
@@ -593,7 +593,7 @@ function AutofixSolutionDisplay({
             <InstructionsInput
               type="text"
               name="additional-instructions"
-              placeholder={t('Add more instructions...')}
+              placeholder={t('Add to the solution plan...')}
               value={instructions}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setInstructions(e.target.value)
@@ -656,6 +656,9 @@ function AutofixSolutionDisplay({
             </Button>
           </Tooltip>
         </ButtonBar>
+        {status === AutofixStatus.COMPLETED && (
+          <AutofixStepFeedback stepType="solution" groupId={groupId} runId={runId} />
+        )}
       </BottomFooter>
     </SolutionContainer>
   );
@@ -695,6 +698,7 @@ const SolutionContainer = styled('div')`
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${p => p.theme.space.lg};
+  background: ${p => p.theme.background};
 `;
 
 const Content = styled('div')`
@@ -740,6 +744,8 @@ const InstructionsInputWrapper = styled('form')`
   display: flex;
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
+  margin-left: ${p => p.theme.space['3xl']};
+  width: 250px;
 `;
 
 const InstructionsInput = styled(Input)`
@@ -771,8 +777,9 @@ const BottomFooter = styled('div')`
   align-items: center;
   gap: ${p => p.theme.space.lg};
   padding: ${p => p.theme.space.xl} 0 0 0;
+  justify-content: flex-end;
 `;
 
 const AddInstructionWrapper = styled('div')`
-  flex: 1;
+  flex: 0;
 `;

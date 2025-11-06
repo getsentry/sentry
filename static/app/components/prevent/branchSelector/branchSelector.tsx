@@ -16,12 +16,17 @@ import {space} from 'sentry/styles/space';
 const ALL_BRANCHES = 'All Branches';
 
 export function BranchSelector() {
-  const {branch, integratedOrgId, repository, preventPeriod, changeContextValue} =
-    usePreventContext();
-  const [displayedBranches, setDisplayedBranches] = useState<string[]>([]);
+  const {
+    branch,
+    integratedOrgId,
+    integratedOrgName,
+    repository,
+    preventPeriod,
+    changeContextValue,
+  } = usePreventContext();
   const [searchValue, setSearchValue] = useState<string | undefined>();
 
-  const {data, isFetching, isLoading} = useInfiniteRepositoryBranches({
+  const {data, isFetching} = useInfiniteRepositoryBranches({
     term: searchValue,
   });
   const branches = data.branches;
@@ -31,13 +36,14 @@ export function BranchSelector() {
       const newBranch =
         selectedOption.value === ALL_BRANCHES ? null : selectedOption.value;
       changeContextValue({
+        integratedOrgName,
         integratedOrgId,
         repository,
         preventPeriod,
         branch: newBranch,
       });
     },
-    [changeContextValue, integratedOrgId, repository, preventPeriod]
+    [changeContextValue, integratedOrgName, integratedOrgId, repository, preventPeriod]
   );
 
   const handleOnSearch = useMemo(
@@ -48,14 +54,19 @@ export function BranchSelector() {
     [setSearchValue]
   );
 
+  const displayedBranches = useMemo(
+    () => (isFetching ? [] : (branches?.map(item => item.name) ?? [])),
+    [branches, isFetching]
+  );
+
   const options = useMemo((): Array<SelectOption<string>> => {
     if (isFetching) {
       return [];
     }
 
     const optionSet = new Set<string>([
-      ALL_BRANCHES,
-      ...(branch ? [branch] : []),
+      ...(searchValue ? [] : [ALL_BRANCHES]),
+      ...(branch && !searchValue ? [branch] : []),
       ...displayedBranches,
     ]);
 
@@ -68,14 +79,7 @@ export function BranchSelector() {
     };
 
     return [...optionSet].map(makeOption);
-  }, [branch, displayedBranches, isFetching]);
-
-  useEffect(() => {
-    // Only update displayedBranches if the hook returned something non-empty
-    if (!isFetching) {
-      setDisplayedBranches((branches ?? []).map(item => item.name));
-    }
-  }, [branches, isFetching]);
+  }, [branch, displayedBranches, isFetching, searchValue]);
 
   useEffect(() => {
     // Create a use effect to cancel handleOnSearch fn on unmount to avoid memory leaks
@@ -93,12 +97,7 @@ export function BranchSelector() {
       return (
         <ResetButton
           onClick={() => {
-            changeContextValue({
-              integratedOrgId,
-              repository,
-              preventPeriod,
-              branch: null,
-            });
+            handleChange({value: ALL_BRANCHES});
             closeOverlay();
           }}
           size="zero"
@@ -108,7 +107,7 @@ export function BranchSelector() {
         </ResetButton>
       );
     },
-    [branch, integratedOrgId, preventPeriod, repository, changeContextValue]
+    [branch, handleChange]
   );
 
   function getEmptyMessage() {
@@ -116,22 +115,25 @@ export function BranchSelector() {
       return t('Getting branches...');
     }
 
-    if (searchValue && !displayedBranches.length) {
-      return t('Sorry, no branches match your search query');
+    if (!displayedBranches.length) {
+      if (searchValue?.length) {
+        return t('No branches found. Please enter a different search term.');
+      }
+      return t('No branches found');
     }
 
-    return t('No branches found');
+    return undefined;
   }
 
   const disabled = !repository;
 
   return (
     <CompactSelect
-      loading={isLoading}
       searchable
       onSearch={handleOnSearch}
       disableSearchFilter
       searchPlaceholder={t('search by branch name')}
+      menuTitle={t('Filter to branch')}
       options={options}
       value={branch ?? ALL_BRANCHES}
       onChange={handleChange}
@@ -158,7 +160,7 @@ export function BranchSelector() {
           </DropdownButton>
         );
       }}
-      menuWidth={'22em'}
+      menuWidth="22em"
     />
   );
 }

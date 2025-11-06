@@ -41,7 +41,7 @@ describe('FullSpanDescription', () => {
     render(
       <FullSpanDescription
         group={groupId}
-        shortDescription={'SELECT users FRO*'}
+        shortDescription="SELECT users FRO*"
         moduleName={ModuleName.DB}
       />,
       {organization}

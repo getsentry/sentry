@@ -9,9 +9,9 @@ resources:
 import {Container, Flex} from 'sentry/components/core/layout';
 import * as Storybook from 'sentry/stories';
 
-import APIReference from '!!type-loader!sentry/components/core/layout/flex';
+import documentation from '!!type-loader!@sentry/scraps/layout/flex';
 
-export const types = {Flex: APIReference.Flex};
+export {documentation};
 
 The `Flex` component is a layout component that extends the `Container` component with CSS flexbox properties. It combines the powerful spacing, sizing, and styling capabilities of `Container` with flexible positioning and alignment controls.
 
@@ -75,7 +75,7 @@ The `Flex` component renders a `div` element by default, but you can specify the
 
 ### Flex Properties
 
-Flex extends the `Container` component by adding Flex specific properties like `direction`, `gap`, `justify`, `align`, `wrap`, `flex`, `inline` that influence the layout of its children.
+Flex extends the `Container` component by adding Flex specific properties like `direction`, `gap`, `justify`, `align`, `wrap`, `flex`, that influence the layout of its children.
 
 Simialarly to `Container`, `Flex` inherits all spacing props like `m`, `p`, `mt`, `mb`, `ml`, `mr`, `pt`, `pb`, `pl`, `pr` and implements responsive props so that the layout can be changed per breakpoint.
 

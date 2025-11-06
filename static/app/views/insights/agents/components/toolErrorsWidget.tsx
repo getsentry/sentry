@@ -6,6 +6,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {ExternalLink} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -15,8 +16,6 @@ import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQu
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
-import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {
@@ -26,6 +25,7 @@ import {
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
+import {SpanFields} from 'sentry/views/insights/types';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export default function ToolErrorsWidget() {
@@ -36,7 +36,9 @@ export default function ToolErrorsWidget() {
 
   const theme = useTheme();
 
-  const fullQuery = useCombinedQuery('span.op:gen_ai.execute_tool span.status:unknown');
+  const fullQuery = useCombinedQuery(
+    'span.op:gen_ai.execute_tool span.status:internal_error'
+  );
 
   const toolsRequest = useSpans(
     {
@@ -48,20 +50,20 @@ export default function ToolErrorsWidget() {
     Referrer.TOOL_ERRORS_WIDGET
   );
 
-  const timeSeriesRequest = useTopNSpanSeries(
+  const timeSeriesRequest = useFetchSpanTimeSeries(
     {
       ...pageFilterChartParams,
-      search: fullQuery,
-      fields: ['gen_ai.tool.name', 'count(span.duration)'],
+      query: fullQuery,
+      groupBy: [SpanFields.GEN_AI_TOOL_NAME],
       yAxis: ['count(span.duration)'],
       sort: {field: 'count(span.duration)', kind: 'desc'},
-      topN: 3,
+      topEvents: 3,
       enabled: !!toolsRequest.data,
     },
     Referrer.TOOL_ERRORS_WIDGET
   );
 
-  const timeSeries = timeSeriesRequest.data;
+  const timeSeries = timeSeriesRequest.data?.timeSeries || [];
 
   const isLoading = timeSeriesRequest.isLoading || toolsRequest.isLoading;
   const error = timeSeriesRequest.error || toolsRequest.error;
@@ -94,10 +96,8 @@ export default function ToolErrorsWidget() {
         showLegend: 'never',
         plottables: timeSeries.map(
           (ts, index) =>
-            new Bars(convertSeriesToTimeseries(ts), {
-              color:
-                ts.seriesName === 'Other' ? theme.chart.neutral : colorPalette[index],
-              alias: ts.seriesName, // Ensures that the tooltip shows the full series name
+            new Bars(ts, {
+              color: ts.meta.isOther ? theme.chart.neutral : colorPalette[index],
               stack: 'stack',
             })
         ),

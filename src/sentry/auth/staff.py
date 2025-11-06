@@ -37,7 +37,7 @@ COOKIE_PATH = getattr(settings, "STAFF_COOKIE_PATH", settings.SESSION_COOKIE_PAT
 COOKIE_HTTPONLY = getattr(settings, "STAFF_COOKIE_HTTPONLY", True)
 
 # the maximum time the session can stay alive
-MAX_AGE = timedelta(hours=2)
+MAX_AGE = timedelta(hours=1)
 
 ALLOWED_IPS = frozenset(getattr(settings, "STAFF_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 

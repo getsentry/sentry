@@ -87,7 +87,7 @@ export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
         );
 
         return (
-          <div key={i} className={`TraceIcon occurence`} style={{left: left * 100 + '%'}}>
+          <div key={i} className="TraceIcon occurence" style={{left: left * 100 + '%'}}>
             <TraceIcons.Icon event={occurence} />
           </div>
         );

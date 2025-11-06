@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Container} from 'sentry/components/core/layout';
 import {Radio} from 'sentry/components/core/radio';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -12,7 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import CreditCardSetup from 'getsentry/components/creditCardSetup';
+import CreditCardSetup from 'getsentry/components/creditCardEdit/setup';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {FTCConsentLocation} from 'getsentry/types';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
@@ -45,10 +46,11 @@ function AddPaymentMethod({
     const cardComponent = (
       <AddCardSetup
         organization={organization}
-        onSuccess={onPaymentAccepted}
+        onSuccessWithSubscription={onPaymentAccepted}
         buttonText="Continue"
         location={FTCConsentLocation.CHECKOUT}
-        budgetModeText={subscription.planDetails.budgetTerm}
+        budgetTerm={subscription.planDetails.budgetTerm}
+        analyticsEvent="checkout.updated_cc"
       />
     );
 
@@ -90,7 +92,7 @@ function AddPaymentMethod({
             <CardDetails>{t('Add new card')}</CardDetails>
           </Label>
         </CreditCardOption>
-        {!useExisting && cardComponent}
+        {!useExisting && <Container padding="xl">{cardComponent}</Container>}
       </PanelBody>
     );
   }

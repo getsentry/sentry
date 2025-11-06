@@ -1,21 +1,19 @@
 import {useCallback, useMemo, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Separator} from 'sentry/components/core/separator';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 
 import {PlanTier} from 'getsentry/types';
-import {isAmPlan} from 'getsentry/utils/billing';
+import {isAmPlan, isDeveloperPlan} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import VolumeSliders from 'getsentry/views/amCheckout/steps/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
-import {formatPrice, getShortInterval} from 'getsentry/views/amCheckout/utils';
+import {formatPrice, getBucket, getShortInterval} from 'getsentry/views/amCheckout/utils';
 
 function ReserveAdditionalVolume({
   organization,
@@ -33,7 +31,24 @@ function ReserveAdditionalVolume({
   | 'formData'
   | 'onUpdate'
 >) {
-  const [showSliders, setShowSliders] = useState(false);
+  // if the customer has any reserved volume above platform already, auto-show the sliders
+  const [showSliders, setShowSliders] = useState<boolean>(
+    isDeveloperPlan(subscription.planDetails)
+      ? false
+      : Object.values(subscription.categories ?? {})
+          .filter(
+            ({category}) =>
+              activePlan.checkoutCategories.includes(category) &&
+              category in activePlan.planCategories
+          )
+          .some(
+            ({category, reserved}) =>
+              getBucket({
+                buckets: activePlan.planCategories[category],
+                events: reserved ?? 0,
+              }).price > 0
+          )
+  );
   const reservedVolumeTotal = useMemo(() => {
     return Object.entries(formData.reserved).reduce((acc, [category, value]) => {
       const bucket = activePlan.planCategories?.[category as DataCategory]?.find(
@@ -73,16 +88,16 @@ function ReserveAdditionalVolume({
   );
 
   return (
-    <Flex
-      direction="column"
-      gap="xl"
-      padding="xl"
-      background="primary"
-      border="primary"
-      radius="lg"
-    >
-      <Flex gap="md" align="center" justify="between" width="100%" height="28px">
-        <Flex align="center" gap="md">
+    <Stack borderTop="primary">
+      <Flex
+        gap="md"
+        align="center"
+        justify="between"
+        width="100%"
+        background="secondary"
+        padding="xl xl"
+      >
+        <Stack gap="sm" align="start">
           <Button
             size="sm"
             priority="link"
@@ -93,26 +108,36 @@ function ReserveAdditionalVolume({
                 ? t('Hide reserved volume sliders')
                 : t('Show reserved volume sliders')
             }
-            onClick={() => setShowSliders(!showSliders)}
+            onClick={() => {
+              setShowSliders(!showSliders);
+              if (showSliders) {
+                trackGetsentryAnalytics('checkout.data_sliders_viewed', {
+                  organization,
+                  isNewCheckout: true,
+                });
+              }
+            }}
           >
             {t('Reserve additional volume')}
           </Button>
-          <Tag type="promotion">{t('save 20%')}</Tag>
-        </Flex>
+          <Text variant="muted">
+            {t('Prepay for usage by reserving volumes and save up to 20%')}
+          </Text>
+        </Stack>
         {reservedVolumeTotal > 0 && (
           <Container>
-            <Text size="2xl" bold density="compressed">
+            <Text size={{xs: 'lg', sm: 'xl'}} bold density="compressed">
               +${formatPrice({cents: reservedVolumeTotal})}
             </Text>
-            <Text size="lg" variant="muted">
+            <Text size={{xs: 'sm', sm: 'lg'}} variant="muted">
               /{getShortInterval(activePlan.billingInterval)}
             </Text>
           </Container>
         )}
       </Flex>
       {showSliders && (
-        <Flex direction="column" gap="md">
-          <Separator orientation="horizontal" border="primary" />
+        <Stack direction="column" borderTop="primary">
+          <Flex borderTop="primary" width="100%" />
           <VolumeSliders
             checkoutTier={checkoutTier}
             activePlan={activePlan}
@@ -124,9 +149,9 @@ function ReserveAdditionalVolume({
             isNewCheckout
             onReservedChange={debouncedReservedChange}
           />
-        </Flex>
+        </Stack>
       )}
-    </Flex>
+    </Stack>
   );
 }
 

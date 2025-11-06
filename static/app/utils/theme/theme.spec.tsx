@@ -1,22 +1,12 @@
 import {useTheme} from '@emotion/react';
-import {QueryClient} from '@tanstack/react-query';
 import {expectTypeOf} from 'expect-type';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
-
-import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-
-const wrapper = ({children}: {children?: React.ReactNode}) => (
-  <QueryClientProvider client={new QueryClient()}>
-    <ThemeAndStyleProvider>{children}</ThemeAndStyleProvider>
-  </QueryClientProvider>
-);
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 describe('theme', () => {
   describe('getColorPalette', () => {
     it('should return correct amount of colors', () => {
-      const {result} = renderHook(useTheme, {wrapper});
+      const {result} = renderHookWithProviders(useTheme);
 
       const theme = result.current;
 
@@ -24,7 +14,7 @@ describe('theme', () => {
     });
 
     it('should have strict types', () => {
-      const {result} = renderHook(useTheme, {wrapper});
+      const {result} = renderHookWithProviders(useTheme);
 
       const theme = result.current;
 

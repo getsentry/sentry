@@ -1,10 +1,11 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
+
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {
   EAPSpanSearchQueryBuilder,
@@ -12,10 +13,8 @@ import {
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -26,8 +25,9 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
-import {McpInsightsFeature} from 'sentry/views/insights/agents/utils/features';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
+import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
+import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -50,8 +50,6 @@ import McpTrafficByClientWidget from 'sentry/views/insights/mcp/components/mcpTr
 import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTransportWidget';
 import {WidgetGrid} from 'sentry/views/insights/mcp/components/styles';
 import {Onboarding} from 'sentry/views/insights/mcp/views/onboarding';
-import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
-import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const TableControl = SegmentedControl<ViewType>;
@@ -111,13 +109,17 @@ function McpOverviewPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const datePageFilterProps = limitMaxPickableDays(organization);
-  const [searchQuery, setSearchQuery] = useLocationSyncedState('query', decodeScalar);
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'query',
+    parseAsString.withOptions({history: 'replace'})
+  );
   const {view} = useLocationQuery({
     fields: {
       view: decodeViewType,
     },
   });
   const activeView = view ?? ViewType.TOOL;
+  const {unsetCursor} = useTableCursor();
 
   useEffect(() => {
     trackAnalytics('mcp-monitoring.page-view', {
@@ -139,8 +141,7 @@ function McpOverviewPage() {
           query: {
             ...location.query,
             view: newTable,
-            // Clear the tableCursor param when switching tables
-            tableCursor: undefined,
+            [TableUrlParams.CURSOR]: undefined,
           },
         },
         {replace: true}
@@ -157,15 +158,13 @@ function McpOverviewPage() {
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
   );
-  const hasMatchKeySuggestions = organization.features.includes(
-    'search-query-builder-match-key-suggestions'
-  );
 
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
       onSearch: (newQuery: string) => {
         setSearchQuery(newQuery);
+        unsetCursor();
       },
       searchSource: 'mcp-monitoring',
       numberTags,
@@ -173,15 +172,12 @@ function McpOverviewPage() {
       numberSecondaryAliases,
       stringSecondaryAliases,
       replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
-      matchKeySuggestions: hasMatchKeySuggestions
-        ? [
-            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
-            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
-          ]
-        : undefined,
+      matchKeySuggestions: [
+        {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+        {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+      ],
     }),
     [
-      hasMatchKeySuggestions,
       hasRawSearchReplacement,
       numberSecondaryAliases,
       numberTags,
@@ -189,6 +185,7 @@ function McpOverviewPage() {
       setSearchQuery,
       stringSecondaryAliases,
       stringTags,
+      unsetCursor,
     ]
   );
 
@@ -203,25 +200,21 @@ function McpOverviewPage() {
 
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
-      <AgentsPageHeader
-        module={ModuleName.MCP}
-        headerTitle={<Fragment>{getAIModuleTitle(organization)}</Fragment>}
-      />
       <ModuleFeature moduleName={ModuleName.MCP}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               <ModuleLayout.Full>
                 <ToolRibbon>
                   <PageFilterBar condensed>
                     <InsightsProjectSelector />
-                    <EnvironmentPageFilter />
+                    <InsightsEnvironmentSelector />
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (
-                    <QueryBuilderWrapper>
+                    <Flex flex={2}>
                       <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
-                    </QueryBuilderWrapper>
+                    </Flex>
                   )}
                 </ToolRibbon>
               </ModuleLayout.Full>
@@ -242,7 +235,7 @@ function McpOverviewPage() {
                         <McpTransportWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
-                    <ControlsWrapper>
+                    <Container paddingBottom="xl">
                       <TableControl
                         value={activeView}
                         onChange={handleTableSwitch}
@@ -258,7 +251,7 @@ function McpOverviewPage() {
                           {t('Prompts')}
                         </TableControlItem>
                       </TableControl>
-                    </ControlsWrapper>
+                    </Container>
                     <WidgetGrid>
                       <WidgetGrid.Position1>
                         <ViewTrafficWidget />
@@ -284,26 +277,12 @@ function McpOverviewPage() {
 
 function PageWithProviders() {
   return (
-    <McpInsightsFeature>
-      <ModulePageProviders moduleName={ModuleName.MCP}>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          <McpOverviewPage />
-        </TraceItemAttributeProvider>
-      </ModulePageProviders>
-    </McpInsightsFeature>
+    <ModulePageProviders moduleName={ModuleName.MCP}>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <McpOverviewPage />
+      </TraceItemAttributeProvider>
+    </ModulePageProviders>
   );
 }
-
-const QueryBuilderWrapper = styled('div')`
-  flex: 2;
-`;
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${space(1)};
-  padding-bottom: ${space(2)};
-`;
 
 export default PageWithProviders;

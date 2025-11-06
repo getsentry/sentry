@@ -77,7 +77,7 @@ describe('MonitorForm', () => {
         apiMethod="POST"
         apiEndpoint={apiEndpont}
         onSubmitSuccess={mockHandleSubmitSuccess}
-        submitLabel="Add Monitor"
+        submitLabel="Add Cron Monitor"
       />,
       {
         organization,
@@ -132,7 +132,7 @@ describe('MonitorForm', () => {
       method: 'POST',
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add Monitor'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Cron Monitor'}));
 
     const config = {
       checkinMargin: '5',
@@ -281,5 +281,25 @@ describe('MonitorForm', () => {
         },
       })
     );
+  });
+
+  it('filters non-ASCII characters from crontab schedule', async () => {
+    render(
+      <MonitorForm
+        apiMethod="POST"
+        apiEndpoint={`/organizations/${organization.slug}/monitors/`}
+        onSubmitSuccess={jest.fn()}
+      />,
+      {organization}
+    );
+
+    const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
+
+    // Type schedule with emoji and Unicode characters
+    await userEvent.clear(schedule);
+    await userEvent.type(schedule, '5 * * * *😀中文');
+
+    // Non-ASCII characters should be filtered out, leaving only valid ASCII
+    expect(schedule).toHaveValue('5 * * * *');
   });
 });

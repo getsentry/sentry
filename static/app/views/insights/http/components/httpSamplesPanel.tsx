@@ -13,6 +13,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {
   EMPTY_OPTION_VALUE,
   escapeFilterValue,
@@ -36,8 +37,6 @@ import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {
   DataTitles,
   getDurationChartTitle,
@@ -188,26 +187,28 @@ export function HTTPSamplesPanel() {
     isFetching: isDurationDataFetching,
     data: durationData,
     error: durationError,
-  } = useSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search,
+      query: search,
       yAxis: [`avg(span.self_time)`],
       enabled: isPanelOpen && query.panel === 'duration',
-      transformAliasToInputFormat: true,
     },
     Referrer.SAMPLES_PANEL_DURATION_CHART
   );
+
+  const timeSeries = durationData?.timeSeries || [];
+  const durationSeries = timeSeries.find(ts => ts.yAxis === 'avg(span.self_time)');
 
   const {
     isFetching: isResponseCodeDataLoading,
     data: responseCodeData,
     error: responseCodeError,
-  } = useTopNSpanSeries(
+  } = useFetchSpanTimeSeries(
     {
-      search,
-      fields: [SpanFields.SPAN_STATUS_CODE, 'count()'],
+      query: search,
+      groupBy: [SpanFields.SPAN_STATUS_CODE],
       yAxis: ['count()'],
-      topN: 5,
+      topEvents: 5,
       sort: {
         kind: 'desc',
         field: 'count()',
@@ -217,7 +218,22 @@ export function HTTPSamplesPanel() {
     Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART
   );
 
-  const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
+  const responseCodeTimeSeries = responseCodeData?.timeSeries || [];
+
+  const durationAxisMax = computeAxisMax([
+    durationSeries
+      ? {
+          seriesName: durationSeries.yAxis,
+          data: durationSeries.values.map(v => ({
+            name: v.timestamp,
+            value: v.value || 0,
+          })),
+        }
+      : {
+          seriesName: 'avg(span.self_time)',
+          data: [],
+        },
+  ]);
 
   const {
     data: spanSamplesData,
@@ -417,7 +433,7 @@ export function HTTPSamplesPanel() {
                     title={getDurationChartTitle('http')}
                     isLoading={isDurationDataFetching}
                     error={durationError}
-                    series={[durationData[`avg(span.self_time)`]]}
+                    timeSeries={durationSeries ? [durationSeries] : []}
                     samples={samplesPlottable}
                   />
                 </ModuleLayout.Full>
@@ -431,7 +447,7 @@ export function HTTPSamplesPanel() {
                     search={search}
                     referrer={Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART}
                     groupBy={[SpanFields.SPAN_STATUS_CODE]}
-                    series={Object.values(responseCodeData).filter(Boolean)}
+                    series={responseCodeTimeSeries}
                     isLoading={isResponseCodeDataLoading}
                     error={responseCodeError}
                   />

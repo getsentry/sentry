@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import moment from 'moment-timezone';
@@ -6,19 +7,20 @@ import moment from 'moment-timezone';
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
-import Panel from 'sentry/components/panels/panel';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
+import useMedia from 'sentry/utils/useMedia';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
+import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import {
   InvoiceItemType,
@@ -28,9 +30,13 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {
+  displayBudgetName,
   formatReservedWithUnits,
-  getPlanIcon,
-  getProductIcon,
+  getCreditApplied,
+  getCredits,
+  getFees,
+  getOnDemandItems,
+  getReservedBudgetCategoryForAddOn,
   hasPartnerMigrationFeature,
   isBizPlanFamily,
   isDeveloperPlan,
@@ -38,7 +44,7 @@ import {
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
 import CartDiff from 'getsentry/views/amCheckout/cartDiff';
-import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
+import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
 const PRICE_PLACEHOLDER_WIDTH = '70px';
@@ -55,7 +61,6 @@ interface CartProps {
   activePlan: Plan;
   formData: CheckoutFormData;
   formDataForPreview: CheckoutFormData;
-  hasCompleteBillingDetails: boolean;
   onSuccess: ({
     invoice,
     nextQueryParams,
@@ -106,6 +111,7 @@ interface ItemsSummaryProps extends BaseSummaryProps {}
 interface SubtotalSummaryProps extends BaseSummaryProps {
   previewDataLoading: boolean;
   renewalDate: Date | null;
+  subscription: Subscription;
 }
 
 interface TotalSummaryProps extends BaseSummaryProps {
@@ -122,16 +128,54 @@ interface TotalSummaryProps extends BaseSummaryProps {
   subscription: Subscription;
 }
 
-function ItemFlex({children}: {children: React.ReactNode}) {
+function ItemFlex({
+  children,
+  'data-test-id': dataTestId,
+}: {
+  children: React.ReactNode;
+  'data-test-id'?: string;
+}) {
   return (
-    <StyledFlex justify="between" align="start" gap="3xl">
+    <Flex
+      justify="between"
+      align="center"
+      gap="xl"
+      height="18px"
+      data-test-id={dataTestId}
+    >
       {children}
-    </StyledFlex>
+    </Flex>
+  );
+}
+
+function ItemWithPrice({
+  'data-test-id': dataTestId,
+  item,
+  price,
+  shouldBoldItem,
+  isCredit,
+}: {
+  item: React.ReactNode;
+  price: React.ReactNode;
+  shouldBoldItem: boolean;
+  'data-test-id'?: string;
+  isCredit?: boolean;
+}) {
+  return (
+    <ItemFlex data-test-id={dataTestId}>
+      <Text bold={shouldBoldItem}>{item}</Text>
+      <Text align="right" variant={isCredit ? 'success' : 'primary'}>
+        {price}
+      </Text>
+    </ItemFlex>
   );
 }
 
 function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
-  // TODO(checkout v3): This will need to be updated for non-budget products
+  const theme = useTheme();
+  const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
+  const isChonk = theme.isChonk;
+
   const additionalProductCategories = useMemo(
     () =>
       Object.values(activePlan.addOnCategories).flatMap(addOn => addOn.dataCategories),
@@ -140,241 +184,266 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
   const shortInterval = utils.getShortInterval(activePlan.billingInterval);
 
   return (
-    <SummarySection>
-      <ItemWithIcon data-test-id="summary-item-plan">
-        <IconContainer>{getPlanIcon(activePlan)}</IconContainer>
-        <Flex direction="column" gap="xs">
-          <ItemFlex>
-            <Text bold>{tct('[name] Plan', {name: activePlan.name})}</Text>
-            <Text>
-              {utils.displayPrice({cents: activePlan.totalPrice})}
-              {`/${shortInterval}`}
-            </Text>
-          </ItemFlex>
-          {activePlan.categories
-            .filter(
-              category =>
-                !additionalProductCategories.includes(category) &&
-                // only show PAYG-only categories for plans that can use PAYG for them
-                ((formData.reserved[category] ?? 0) > 0 || !isDeveloperPlan(activePlan))
-            )
-            .map(category => {
-              const reserved = formData.reserved[category] ?? 0;
-              const isPaygOnly = reserved === 0;
-              const eventBucket =
-                activePlan.planCategories[category] &&
-                activePlan.planCategories[category].length <= 1
-                  ? null
-                  : utils.getBucket({
-                      events: reserved,
-                      buckets: activePlan.planCategories[category],
-                    });
-              const price = eventBucket ? eventBucket.price : 0;
-              const formattedPrice = utils.displayPrice({
-                cents: price,
-              });
-              const formattedReserved = formatReservedWithUnits(reserved, category);
+    <Stack gap="2xl" padding="xl" borderTop="primary">
+      <Stack gap="md" data-test-id="summary-item-plan">
+        <ItemWithPrice
+          item={tct('[name] Plan', {name: activePlan.name})}
+          price={`${utils.displayPrice({cents: activePlan.totalPrice})}/${shortInterval}`}
+          shouldBoldItem
+        />
+        {activePlan.categories
+          .filter(
+            category =>
+              !additionalProductCategories.includes(category) &&
+              // only show PAYG-only categories for plans that can use PAYG for them
+              ((formData.reserved[category] ?? 0) > 0 || !isDeveloperPlan(activePlan))
+          )
+          .map(category => {
+            const reserved = formData.reserved[category] ?? 0;
+            const isPaygOnly = reserved === 0;
+            const eventBucket =
+              activePlan.planCategories[category] &&
+              activePlan.planCategories[category].length <= 1
+                ? null
+                : utils.getBucket({
+                    events: reserved,
+                    buckets: activePlan.planCategories[category],
+                  });
+            const price = eventBucket ? eventBucket.price : 0;
+            const formattedPrice = utils.displayPrice({
+              cents: price,
+            });
+            const formattedReserved = formatReservedWithUnits(reserved, category);
+            const hasPaygForCategory =
+              formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
+                ? (formData.onDemandBudget?.budgets?.[category] ?? 0) > 0
+                : (formData.onDemandBudget?.sharedMaxBudget ?? 0) > 0;
 
-              return (
-                <ItemFlex key={category}>
-                  <div>
-                    <Text>{isPaygOnly ? '' : `${formattedReserved} `}</Text>
-                    {reserved === 1 && category !== DataCategory.ATTACHMENTS
-                      ? getSingularCategoryName({
-                          plan: activePlan,
-                          category,
-                          capitalize: false,
-                        })
-                      : getPlanCategoryName({
-                          plan: activePlan,
-                          category,
-                          capitalize: isPaygOnly,
-                        })}
-                  </div>
-                  {price > 0 ? (
-                    <div>
-                      {formattedPrice}/{shortInterval}
-                    </div>
-                  ) : (
-                    isPaygOnly && (
-                      <Tag>
-                        {tct('Available with [budgetTerm]', {
-                          budgetTerm: activePlan.budgetTerm,
-                        })}
-                      </Tag>
-                    )
-                  )}
-                </ItemFlex>
-              );
-            })}
-        </Flex>
-      </ItemWithIcon>
-      {/* TODO(checkout-v3): This will need to be updated for non-budget products */}
-      {Object.values(activePlan.availableReservedBudgetTypes)
-        .filter(
-          budgetTypeInfo =>
-            formData.selectedProducts?.[
-              budgetTypeInfo.apiName as string as SelectableProduct
-            ]?.enabled
-        )
-        .map(budgetTypeInfo => {
-          const productIcon = getProductIcon(
-            budgetTypeInfo.apiName as string as SelectableProduct
-          );
-
-          return (
-            <ItemWithIcon
-              key={budgetTypeInfo.apiName}
-              data-test-id={`summary-item-product-${budgetTypeInfo.apiName}`}
-            >
-              <IconContainer>{productIcon}</IconContainer>
-              <Flex direction="column" gap="xs">
-                <ItemFlex>
-                  <strong>
-                    {toTitleCase(budgetTypeInfo.productCheckoutName, {
-                      allowInnerUpperCase: true,
-                    })}
-                  </strong>
-                  <div>
-                    {utils.displayPrice({
-                      cents: utils.getReservedPriceForReservedBudgetCategory({
+            return (
+              <Flex
+                height="18px"
+                width="100%"
+                align="center"
+                justify="between"
+                key={category}
+              >
+                <div>
+                  <Text>{isPaygOnly ? '' : `${formattedReserved} `}</Text>
+                  {reserved === 1 && category !== DataCategory.ATTACHMENTS
+                    ? getSingularCategoryName({
                         plan: activePlan,
-                        reservedBudgetCategory: budgetTypeInfo.apiName,
-                      }),
-                    })}
-                    /{shortInterval}
-                  </div>
-                </ItemFlex>
-                {budgetTypeInfo.defaultBudget && (
+                        category,
+                        capitalize: false,
+                      })
+                    : getPlanCategoryName({
+                        plan: activePlan,
+                        category,
+                        capitalize: isPaygOnly,
+                      })}
+                </div>
+                {price > 0 ? (
                   <div>
-                    {tct('Includes [includedBudget] monthly credits', {
-                      includedBudget: utils.displayPrice({
-                        cents: budgetTypeInfo.defaultBudget,
-                      }),
-                    })}
+                    {formattedPrice}/{shortInterval}
                   </div>
+                ) : isPaygOnly ? (
+                  hasPaygForCategory ? (
+                    <Tag>{t('Available')}</Tag>
+                  ) : (
+                    <Tooltip
+                      title={tct('This product is only available with [budgetTerm].', {
+                        budgetTerm:
+                          (activePlan.budgetTerm === 'pay-as-you-go' ? t('a') : t('an')) +
+                          ' ' +
+                          displayBudgetName(activePlan, {
+                            abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
+                            withBudget: true,
+                          }),
+                      })}
+                    >
+                      <Tag icon={<IconLock locked size="xs" />}>
+                        {(isChonk || activePlan.budgetTerm === 'pay-as-you-go') &&
+                        !isXSmallScreen ? (
+                          tct('Unlock with [budgetTerm]', {
+                            budgetTerm: displayBudgetName(activePlan, {
+                              title: true,
+                              abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
+                            }),
+                          })
+                        ) : (
+                          // "Unlock with on-demand" gets cut off in non-chonk theme
+                          <Text size="xs">
+                            {tct('Unlock with [budgetTerm]', {
+                              budgetTerm: displayBudgetName(activePlan, {
+                                title: true,
+                                abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
+                              }),
+                            })}
+                          </Text>
+                        )}
+                      </Tag>
+                    </Tooltip>
+                  )
+                ) : (
+                  <Text variant="muted">{t('Included')}</Text>
                 )}
               </Flex>
-            </ItemWithIcon>
+            );
+          })}
+      </Stack>
+      {Object.values(activePlan.addOnCategories)
+        .filter(addOnInfo => formData.addOns?.[addOnInfo.apiName]?.enabled)
+        .map(addOnInfo => {
+          const apiName = addOnInfo.apiName;
+          const productName = addOnInfo.productName;
+
+          // if it's a reserved budget add on, get the price; otherwise, we assume it's 0
+          const price = utils.getPrepaidPriceForAddOn({
+            plan: activePlan,
+            addOnCategory: apiName,
+          });
+          const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
+          const includedBudget = reservedBudgetCategory
+            ? (activePlan.availableReservedBudgetTypes[reservedBudgetCategory]
+                ?.defaultBudget ?? 0)
+            : 0;
+
+          return (
+            <Stack
+              gap="md"
+              key={apiName}
+              data-test-id={`summary-item-product-${apiName}`}
+            >
+              <ItemWithPrice
+                item={toTitleCase(productName, {
+                  allowInnerUpperCase: true,
+                })}
+                price={`${utils.displayPrice({
+                  cents: price,
+                })}/${shortInterval}`}
+                shouldBoldItem
+              />
+              {includedBudget && (
+                <div>
+                  {tct('Includes [formattedIncludedBudget] monthly credits', {
+                    formattedIncludedBudget: utils.displayPrice({
+                      cents: includedBudget,
+                    }),
+                  })}
+                </div>
+              )}
+            </Stack>
           );
         })}
-    </SummarySection>
+    </Stack>
   );
 }
 
 function SubtotalSummary({
   activePlan,
   previewDataLoading,
-  renewalDate,
   formData,
+  subscription,
 }: SubtotalSummaryProps) {
   const shortInterval = utils.getShortInterval(activePlan.billingInterval);
   const recurringSubtotal = useMemo(() => {
     return utils.getReservedPriceCents({
       plan: activePlan,
       reserved: formData.reserved,
-      selectedProducts: formData.selectedProducts,
+      addOns: formData.addOns,
     });
-  }, [activePlan, formData.reserved, formData.selectedProducts]);
+  }, [activePlan, formData.reserved, formData.addOns]);
   const isDefaultPaygAmount = useMemo(() => {
     const defaultAmount = isBizPlanFamily(activePlan)
       ? PAYG_BUSINESS_DEFAULT
       : PAYG_TEAM_DEFAULT;
     return formData.onDemandMaxSpend === defaultAmount;
   }, [activePlan, formData.onDemandMaxSpend]);
+  const shouldShowDefaultPaygTag = useMemo(
+    () => isDefaultPaygAmount && isDeveloperPlan(subscription.planDetails),
+    [subscription.planDetails, isDefaultPaygAmount]
+  );
 
   return (
-    <SummarySection>
-      {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.SHARED &&
-        !!formData.onDemandMaxSpend && (
-          <Item data-test-id="summary-item-spend-cap">
-            <ItemFlex>
-              <div>
-                {tct('[budgetTerm] spend cap', {
-                  budgetTerm: capitalize(activePlan.budgetTerm),
-                })}
-              </div>
-              <Flex direction="column" gap="sm" align="end">
-                <Text>
-                  $0-
-                  {utils.displayPrice({
-                    cents: formData.onDemandMaxSpend,
-                  })}
-                  /mo
-                </Text>
-                <AnimatePresence>
-                  {isDefaultPaygAmount && (
-                    <motion.div
-                      initial={{opacity: 0, y: -10}}
-                      animate={{opacity: 1, y: 0}}
-                      exit={{opacity: 0, y: -10}}
-                      transition={{
-                        type: 'spring',
-                        duration: 0.4,
-                        bounce: 0.1,
-                      }}
-                    >
-                      <Tag icon={<IconSentry size="xs" />} type="info">
-                        <Text size="xs">{t('Default Amount')}</Text>
-                      </Tag>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </Flex>
-            </ItemFlex>
-          </Item>
-        )}
-      {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
-        Object.entries(formData.onDemandBudget?.budgets ?? {})
-          .filter(([_, budget]) => budget > 0)
-          .map(([category, budget]) => {
-            return (
-              <Item key={category} data-test-id={`summary-item-spend-cap-${category}`}>
-                <ItemFlex>
-                  <div>
-                    {tct('[categoryName] [budgetTerm] spend cap', {
-                      categoryName: getPlanCategoryName({
-                        plan: activePlan,
-                        category: category as DataCategory,
-                      }),
-                      budgetTerm: activePlan.budgetTerm,
-                    })}
-                  </div>
-                  <Text>
-                    $0-
-                    {utils.displayPrice({
-                      cents: budget,
-                    })}
-                    /mo
-                  </Text>
-                </ItemFlex>
-              </Item>
-            );
-          })}
-      <Item data-test-id="summary-item-plan-total">
-        <ItemFlex>
-          <strong>{t('Plan Total')}</strong>
+    <Stack borderTop="primary" background="primary" width="100%" padding="xl" gap="2xl">
+      <Flex data-test-id="summary-item-plan-total" justify="between" align="center">
+        <Text size="lg" bold>
+          {t('Plan Total')}
+        </Text>
+        <Text align="right" size="lg" bold>
           {previewDataLoading ? (
             <Placeholder height="16px" width={PRICE_PLACEHOLDER_WIDTH} />
           ) : (
-            <span>
-              {utils.displayPrice({cents: recurringSubtotal})}/{shortInterval}
-            </span>
+            `${utils.displayPrice({cents: recurringSubtotal})}/${shortInterval}`
           )}
-        </ItemFlex>
-        {previewDataLoading ? (
-          <Placeholder height="14px" width="200px" />
-        ) : (
-          renewalDate && (
-            <RenewalDate>
-              {tct('Renews [date]', {
-                date: moment(renewalDate).format('MMM D, YYYY'),
+        </Text>
+      </Flex>
+      {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.SHARED &&
+        !!formData.onDemandMaxSpend && (
+          <Flex justify="between" align="start" data-test-id="summary-item-spend-limit">
+            <Text>
+              {tct('[budgetTerm] spend limit', {
+                budgetTerm: displayBudgetName(activePlan, {title: true}),
               })}
-            </RenewalDate>
-          )
+            </Text>
+            <Flex direction="column" gap="sm" align="end">
+              <Text align="right">
+                {tct('up to [pricePerMonth]', {
+                  pricePerMonth: `${utils.displayPrice({
+                    cents: formData.onDemandMaxSpend,
+                  })}/mo`,
+                })}
+              </Text>
+              <AnimatePresence>
+                {shouldShowDefaultPaygTag && (
+                  <motion.div
+                    initial={{opacity: 0, y: -10}}
+                    animate={{opacity: 1, y: 0}}
+                    exit={{opacity: 0, y: -10}}
+                    transition={{
+                      type: 'spring',
+                      duration: 0.4,
+                      bounce: 0.1,
+                    }}
+                  >
+                    <Tag icon={<IconSentry size="xs" />} type="info">
+                      <Text size="xs">{t('Default Amount')}</Text>
+                    </Tag>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Flex>
+          </Flex>
         )}
-      </Item>
-    </SummarySection>
+      {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY && (
+        <Stack gap="md">
+          <Text bold>
+            {tct('Per-product [budgetTerm] spend limits', {
+              budgetTerm: displayBudgetName(activePlan),
+            })}
+          </Text>
+          {Object.entries(formData.onDemandBudget?.budgets ?? {})
+            .filter(([_, budget]) => budget > 0)
+            .map(([category, budget]) => {
+              return (
+                <ItemWithPrice
+                  data-test-id={`summary-item-spend-limit-${category}`}
+                  key={category}
+                  item={getPlanCategoryName({
+                    plan: activePlan,
+                    category: category as DataCategory,
+                  })}
+                  price={tct('up to [pricePerMonth]', {
+                    pricePerMonth: `${utils.displayPrice({
+                      cents: budget,
+                    })}/mo`,
+                  })}
+                  shouldBoldItem={false}
+                />
+              );
+            })}
+        </Stack>
+      )}
+    </Stack>
   );
 }
 
@@ -442,134 +511,214 @@ function TotalSummary({
     }
 
     let subtext = null;
-    if (longInterval === 'yearly') {
-      subtext = tct(
-        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate]. Any additional usage will continue to be billed monthly.',
-        {
-          effectiveDateSubtext,
-          longInterval,
-          renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-        }
-      );
+    if (renewalDate) {
+      if (isDeveloperPlan(activePlan) || !totalOnDemandBudget) {
+        subtext = tct(
+          '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate].',
+          {
+            effectiveDateSubtext,
+            longInterval,
+            renewalDate: moment(renewalDate).format('MMM D, YYYY'),
+          }
+        );
+      } else {
+        subtext = tct(
+          '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate], plus any additional PAYG usage billed monthly (up to [onDemandMaxSpend]/mo).',
+          {
+            effectiveDateSubtext,
+            longInterval,
+            renewalDate: moment(renewalDate).format('MMM D, YYYY'),
+            onDemandMaxSpend: utils.displayPrice({
+              cents: totalOnDemandBudget,
+            }),
+          }
+        );
+      }
     } else {
-      subtext = tct(
-        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate], plus any additional usage[onDemandLimit].',
-        {
-          effectiveDateSubtext,
-          longInterval,
-          renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-          onDemandLimit: totalOnDemandBudget
-            ? tct(' (up to [onDemandMaxSpend]/month)', {
-                onDemandMaxSpend: utils.displayPrice({
-                  cents: totalOnDemandBudget,
-                }),
-              })
-            : '',
-        }
-      );
+      subtext = tct('Plan renews [longInterval].', {
+        longInterval,
+      });
     }
     return subtext;
   };
 
-  const fees = utils.getFees({invoiceItems: previewData?.invoiceItems ?? []});
-  const credits = utils.getCredits({invoiceItems: previewData?.invoiceItems ?? []});
-  const creditApplied = utils.getCreditApplied({
+  const fees = getFees({invoiceItems: previewData?.invoiceItems ?? []});
+  const onDemandItems = getOnDemandItems({invoiceItems: previewData?.invoiceItems ?? []});
+  const credits = getCredits({invoiceItems: previewData?.invoiceItems ?? []});
+  const creditApplied = getCreditApplied({
     creditApplied: previewData?.creditApplied ?? 0,
     invoiceItems: previewData?.invoiceItems ?? [],
   });
 
+  const buttonText = isMigratingPartner
+    ? t('Schedule changes')
+    : isDueToday && billedTotal > 0
+      ? t('Confirm and pay')
+      : t('Confirm');
+
   return (
-    <SummarySection>
-      {!previewDataLoading && isDueToday && (
+    <Stack border="primary" radius="lg" background="secondary" overflow="hidden">
+      <Stack padding="xl xl 0" gap="md">
         <Fragment>
-          {fees.map(item => {
-            const formattedPrice = utils.displayPrice({cents: item.amount});
-            return (
-              <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
-                <ItemFlex>
-                  <div>{item.description}</div>
-                  <div>{formattedPrice}</div>
-                </ItemFlex>
-              </Item>
-            );
-          })}
-          {!!creditApplied && (
-            <Item data-test-id="summary-item-credit_applied">
-              <ItemFlex>
-                <div>{t('Credit applied')}</div>
-                <Credit>{utils.displayPrice({cents: -creditApplied})}</Credit>
-              </ItemFlex>
-            </Item>
-          )}
-          {credits.map(item => {
-            const formattedPrice = utils.displayPrice({cents: item.amount});
-            return (
-              <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
-                <ItemFlex>
-                  <div>{item.description}</div>
-                  <div>{formattedPrice}</div>
-                </ItemFlex>
-              </Item>
-            );
-          })}
-        </Fragment>
-      )}
-      <Item data-test-id="summary-item-due-today">
-        <ItemFlex>
-          <DueToday>{t('Due today')}</DueToday>
-          {previewDataLoading ? (
-            <Placeholder height="24px" width={PRICE_PLACEHOLDER_WIDTH} />
-          ) : (
-            <DueTodayPrice>
-              {originalBilledTotal > billedTotal && (
-                <DueTodayAmountBeforeDiscount>
-                  {utils.displayPrice({
-                    cents: originalBilledTotal,
-                  })}{' '}
-                </DueTodayAmountBeforeDiscount>
+          {!previewDataLoading && (
+            <Fragment>
+              {fees.map(item => {
+                const formattedPrice = utils.displayPrice({cents: item.amount});
+                return (
+                  <Flex
+                    data-test-id={`summary-item-${item.type}`}
+                    key={item.type}
+                    justify="between"
+                    align="center"
+                    gap="xs"
+                  >
+                    <Text size="md" textWrap="pretty">
+                      {item.description}
+                    </Text>
+                    <Text align="right" variant="success">
+                      {formattedPrice}
+                    </Text>
+                  </Flex>
+                );
+              })}
+              {onDemandItems.length > 0 && (
+                <Flex
+                  data-test-id="summary-item-ondemand-total"
+                  justify="between"
+                  align="center"
+                  gap="xs"
+                >
+                  <Text size="md" textWrap="pretty">
+                    {tct('[budgetTerm] usage', {
+                      budgetTerm: displayBudgetName(activePlan, {title: true}),
+                    })}
+                  </Text>
+                  <Text align="right" variant="success">
+                    {utils.displayPrice({
+                      cents: onDemandItems.reduce((sum, item) => sum + item.amount, 0),
+                    })}
+                  </Text>
+                </Flex>
               )}
-              <DueTodayAmount>
-                {utils.displayPrice({
-                  cents: billedTotal,
-                })}
-              </DueTodayAmount>
-              <span> USD</span>
-            </DueTodayPrice>
+              {!!creditApplied && (
+                <Flex
+                  data-test-id="summary-item-credit_applied"
+                  justify="between"
+                  align="center"
+                  gap="xs"
+                >
+                  <Text size="md" textWrap="pretty">
+                    {t('Credit applied')}
+                  </Text>
+                  <Text align="right" variant="success">
+                    {utils.displayPrice({cents: -creditApplied})}
+                  </Text>
+                </Flex>
+              )}
+              {credits.map(item => {
+                const formattedPrice = utils.displayPrice({cents: item.amount});
+                return (
+                  <Flex
+                    data-test-id={`summary-item-${item.type}`}
+                    key={item.type}
+                    justify="between"
+                    align="center"
+                    gap="xs"
+                  >
+                    <Text size="md" textWrap="pretty">
+                      {item.description}
+                    </Text>
+                    <Text align="right" variant="success">
+                      {formattedPrice}
+                    </Text>
+                  </Flex>
+                );
+              })}
+            </Fragment>
           )}
-        </ItemFlex>
-      </Item>
-      <ButtonContainer>
-        {isMigratingPartner && (
+        </Fragment>
+        <Flex justify="between" align="center" data-test-id="summary-item-due-today">
+          <Text bold size="lg">
+            {isDueToday
+              ? t('Due today')
+              : tct('Due on [date]', {
+                  date: moment(effectiveDate).format('MMM D, YYYY'),
+                })}
+          </Text>
+          {previewDataLoading ? (
+            <Placeholder height="16px" width={PRICE_PLACEHOLDER_WIDTH} />
+          ) : (
+            <Flex align="end" gap="xs">
+              {isDueToday ? (
+                <Fragment>
+                  {originalBilledTotal > billedTotal && (
+                    <Text strikethrough variant="muted" size="xl">
+                      {utils.displayPrice({
+                        cents: originalBilledTotal,
+                      })}{' '}
+                    </Text>
+                  )}
+                  <Text size="xl" bold>
+                    {utils.displayPrice({
+                      cents: billedTotal,
+                    })}
+                  </Text>
+                </Fragment>
+              ) : (
+                <Text size="xl" bold>
+                  {utils.displayPrice({
+                    cents: billedTotal,
+                  })}
+                </Text>
+              )}
+              <Flex align="end" paddingBottom="2xs">
+                <Text size="md" bold variant="muted">
+                  USD
+                </Text>
+              </Flex>
+            </Flex>
+          )}
+        </Flex>
+      </Stack>
+      <Stack padding="xl" gap="md">
+        <Flex gap="sm" justify="between" align="center">
+          {isMigratingPartner && (
+            <StyledButton
+              aria-label={t('Migrate Now')}
+              priority="danger"
+              onClick={() => onSubmit(true)}
+              disabled={buttonDisabled || previewDataLoading}
+              icon={<IconLightning />}
+            >
+              {isSubmitting ? t('Checking out...') : t('Migrate Now')}
+            </StyledButton>
+          )}
           <StyledButton
-            aria-label={t('Migrate Now')}
-            priority="danger"
-            onClick={() => onSubmit(true)}
+            aria-label={buttonText}
+            priority="primary"
+            onClick={() => onSubmit()}
             disabled={buttonDisabled || previewDataLoading}
-            icon={<IconLightning />}
+            title={
+              buttonDisabled
+                ? t(
+                    'Please provide your billing information, including your business address and payment method'
+                  )
+                : null
+            }
+            icon={<IconLock locked />}
           >
-            {isSubmitting ? t('Checking out...') : t('Migrate Now')}
+            {isSubmitting ? t('Checking out...') : buttonText}
           </StyledButton>
+        </Flex>
+        {previewDataLoading ? (
+          <Placeholder height="40px" />
+        ) : (
+          <Text size="sm" variant="muted" align="center">
+            {getSubtext()}
+          </Text>
         )}
-        <StyledButton
-          aria-label={isMigratingPartner ? t('Schedule changes') : t('Confirm and pay')}
-          priority="primary"
-          onClick={() => onSubmit()}
-          disabled={buttonDisabled || previewDataLoading}
-          icon={<IconLock locked />}
-        >
-          {isSubmitting
-            ? t('Checking out...')
-            : isMigratingPartner
-              ? t('Schedule changes')
-              : t('Confirm and pay')}
-        </StyledButton>
-      </ButtonContainer>
-      {previewDataLoading ? (
-        <Placeholder height="40px" />
-      ) : (
-        <Subtext>{getSubtext()}</Subtext>
-      )}
-    </SummarySection>
+      </Stack>
+    </Stack>
   );
 }
 
@@ -580,7 +729,6 @@ function Cart({
   organization,
   referrer,
   formDataForPreview,
-  hasCompleteBillingDetails,
   onSuccess,
 }: CartProps) {
   const [previewState, setPreviewState] = useState<CartPreviewState>(NULL_PREVIEW_STATE);
@@ -590,10 +738,21 @@ function Cart({
   const [summaryIsOpen, setSummaryIsOpen] = useState(true);
   const [changesIsOpen, setChangesIsOpen] = useState(true);
   const api = useApi();
+  const {data: billingDetails} = useBillingDetails();
+  const hasCompleteBillingInfo = useMemo(
+    () => utils.hasBillingInfo(billingDetails, subscription, true),
+    [billingDetails, subscription]
+  );
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
 
   const fetchPreview = useCallback(async () => {
+    if (!hasCompleteBillingInfo) {
+      // NOTE: this should never be necessary because you cannot clear
+      // existing billing info, BUT YA NEVER KNOW
+      resetPreviewState();
+      return;
+    }
     await utils.fetchPreviewData(
       organization,
       api,
@@ -621,23 +780,15 @@ function Cart({
             .add(1, 'day')
             .toDate();
 
-          if (atPeriodEnd) {
-            setPreviewState(prev => ({
-              ...prev,
-              originalBilledTotal: 0,
-              billedTotal: 0,
-              effectiveDate: moment(effectiveAt).add(1, 'day').toDate(),
-              renewalDate,
-            }));
-          } else {
-            setPreviewState(prev => ({
-              ...prev,
-              originalBilledTotal: proratedAmount,
-              billedTotal: billedAmount,
-              effectiveDate: null,
-              renewalDate,
-            }));
-          }
+          setPreviewState(prev => ({
+            ...prev,
+            originalBilledTotal: proratedAmount,
+            billedTotal: billedAmount,
+            effectiveDate: atPeriodEnd
+              ? moment(effectiveAt).add(1, 'day').toDate()
+              : null,
+            renewalDate,
+          }));
         } else {
           resetPreviewState();
         }
@@ -647,7 +798,13 @@ function Cart({
         resetPreviewState();
       }
     );
-  }, [api, formDataForPreview, organization, subscription.contractPeriodEnd]);
+  }, [
+    api,
+    formDataForPreview,
+    organization,
+    subscription.contractPeriodEnd,
+    hasCompleteBillingInfo,
+  ]);
 
   useEffect(() => {
     fetchPreview();
@@ -710,8 +867,7 @@ function Cart({
   };
 
   return (
-    <CartContainer data-test-id="cart">
-      {errorMessage && <Alert type="error">{errorMessage}</Alert>}
+    <Stack data-test-id="cart" direction="column" gap="xl">
       <CartDiff
         activePlan={activePlan}
         formData={formData}
@@ -720,38 +876,45 @@ function Cart({
         onToggle={setChangesIsOpen}
         organization={organization}
       />
-      <PlanSummary>
-        <PlanSummaryHeader isOpen={summaryIsOpen}>
-          <Heading as="h2" textWrap="nowrap">
-            {t('Plan Summary')}
-          </Heading>
-          <Flex gap="xs" align="center">
-            <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
+      <Stack border="primary" radius="lg" background="primary" overflow="hidden">
+        <Stack align="start" width="100%" height="100%">
+          <Stack
+            direction="row"
+            justify="between"
+            align="center"
+            width="100%"
+            padding="lg xl"
+          >
+            <Heading as="h3" textWrap="nowrap">
+              {t('Plan Summary')}
+            </Heading>
             <Button
               aria-label={summaryIsOpen ? t('Hide plan summary') : t('Show plan summary')}
               onClick={() => setSummaryIsOpen(!summaryIsOpen)}
               borderless
-              size="xs"
+              size="zero"
               icon={<IconChevron direction={summaryIsOpen ? 'up' : 'down'} />}
             />
-          </Flex>
-        </PlanSummaryHeader>
-        {summaryIsOpen && (
-          <PlanSummaryContents data-test-id="plan-summary">
-            <ItemsSummary activePlan={activePlan} formData={formData} />
-            <SubtotalSummary
-              activePlan={activePlan}
-              formData={formData}
-              previewDataLoading={previewState.isLoading}
-              renewalDate={previewState.renewalDate}
-            />
-          </PlanSummaryContents>
-        )}
-      </PlanSummary>
+          </Stack>
+          {summaryIsOpen && (
+            <Flex direction="column" gap="lg" data-test-id="plan-summary" width="100%">
+              {errorMessage && <Alert type="error">{errorMessage}</Alert>}
+              <ItemsSummary activePlan={activePlan} formData={formData} />
+            </Flex>
+          )}
+          <SubtotalSummary
+            activePlan={activePlan}
+            formData={formData}
+            previewDataLoading={previewState.isLoading}
+            renewalDate={previewState.renewalDate}
+            subscription={subscription}
+          />
+        </Stack>
+      </Stack>
       <TotalSummary
         activePlan={activePlan}
         billedTotal={previewState.billedTotal}
-        buttonDisabled={!hasCompleteBillingDetails}
+        buttonDisabled={!hasCompleteBillingInfo}
         formData={formData}
         isSubmitting={isSubmitting}
         originalBilledTotal={previewState.originalBilledTotal}
@@ -763,139 +926,15 @@ function Cart({
         organization={organization}
         subscription={subscription}
       />
-    </CartContainer>
+    </Stack>
   );
 }
 
 export default Cart;
 
-const CartContainer = styled(Panel)`
-  display: flex;
-  flex-direction: column;
-  border-bottom: ${p => (p.theme.isChonk ? '3px' : '1px')} solid ${p => p.theme.border};
-  padding-bottom: ${p => p.theme.space.xl};
-
-  > *:first-child {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-`;
-
-const SummarySection = styled('div')`
-  display: flex;
-  flex-direction: column;
-  padding: 0 ${p => p.theme.space.xl};
-
-  & > *:not(:last-child) {
-    margin-bottom: ${p => p.theme.space.xl};
-  }
-
-  &:not(:first-child) {
-    padding-top: ${p => p.theme.space['2xl']};
-  }
-`;
-
-const PlanSummary = styled('div')`
-  &:not(:first-child) {
-    border-top: 1px solid ${p => p.theme.border};
-  }
-`;
-
-const PlanSummaryHeader = styled('div')<{isOpen: boolean}>`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-`;
-
-const PlanSummaryContents = styled('div')`
-  > *:last-child {
-    margin-top: ${p => p.theme.space.lg};
-    padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
-    border-top: 1px solid ${p => p.theme.border};
-  }
-`;
-
-const OrgSlug = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.subText};
-  flex-shrink: 1;
-  text-overflow: ellipsis;
-  text-wrap: nowrap;
-`;
-
-const Item = styled('div')`
-  line-height: normal;
-  align-items: start;
-`;
-
-const ItemWithIcon = styled(Item)`
-  display: grid;
-  grid-template-columns: min-content auto;
-  gap: ${p => p.theme.space.xs};
-`;
-
-const StyledFlex = styled(Flex)`
-  line-height: 100%;
-
-  > * {
-    margin-bottom: ${p => p.theme.space.xs};
-  }
-
-  &:not(:first-child) {
-    color: ${p => p.theme.subText};
-  }
-`;
-
-const IconContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-top: 1px;
-`;
-
-const RenewalDate = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-`;
-
-const DueToday = styled('div')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.lg};
-`;
-
-const DueTodayPrice = styled('div')`
-  font-size: ${p => p.theme.fontSize.md};
-`;
-
-const DueTodayAmount = styled('span')`
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize['2xl']};
-`;
-
-const DueTodayAmountBeforeDiscount = styled(DueTodayAmount)`
-  text-decoration: line-through;
-  color: ${p => p.theme.subText};
-`;
-
-const Credit = styled('div')`
-  color: ${p => p.theme.successText};
-`;
-
 const StyledButton = styled(Button)`
   display: flex;
-  gap: ${p => p.theme.space.sm};
   flex-grow: 1;
-`;
-
-const ButtonContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.sm};
-  justify-content: space-between;
   align-items: center;
-`;
-
-const Subtext = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  text-align: center;
+  justify-content: center;
 `;

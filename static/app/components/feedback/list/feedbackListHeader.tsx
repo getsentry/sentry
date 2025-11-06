@@ -2,18 +2,16 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
-import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import FeedbackListBulkSelection from 'sentry/components/feedback/list/feedbackListBulkSelection';
 import MailboxPicker from 'sentry/components/feedback/list/mailboxPicker';
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import useFeedbackHasNewItems from 'sentry/components/feedback/useFeedbackHasNewItems';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {useMailbox} from 'sentry/components/feedback/useMailbox';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
 
 interface Props
   extends Pick<
@@ -34,12 +32,7 @@ export default function FeedbackListHeader({
   selectAll,
   selectedIds,
 }: Props) {
-  const {mailbox} = useLocationQuery({
-    fields: {
-      mailbox: decodeMailbox,
-    },
-  });
-  const {setParamValue: setMailbox} = useUrlParams('mailbox');
+  const [mailbox, setMailbox] = useMailbox();
 
   const {listPrefetchQueryKey, resetListHeadTime} = useFeedbackQueryKeys();
   const hasNewItems = useFeedbackHasNewItems({listPrefetchQueryKey});

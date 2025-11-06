@@ -46,7 +46,7 @@ class AssignedNotificationAPITest(APITestCase):
         fallback_text = mock_post.call_args_list[index].kwargs["text"]
         assert fallback_text == msg
 
-        assert blocks[1]["elements"][0]["elements"][-1]["text"] == group.title
+        assert group.title in blocks[1]["text"]["text"]
         assert project.slug in blocks[-2]["elements"][0]["text"]
         channel = mock_post.call_args_list[index].kwargs["channel"]
         assert channel == str(user_id)
@@ -104,7 +104,7 @@ class AssignedNotificationAPITest(APITestCase):
         blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
         fallback_text = mock_post.call_args.kwargs["text"]
         assert fallback_text == f"Issue assigned to {user.get_display_name()} by themselves"
-        assert self.group.title in blocks[1]["elements"][0]["elements"][-1]["text"]
+        assert self.group.title in blocks[1]["text"]["text"]
         assert self.project.slug in blocks[-2]["elements"][0]["text"]
 
     @with_feature("organizations:suspect-commits-in-emails")

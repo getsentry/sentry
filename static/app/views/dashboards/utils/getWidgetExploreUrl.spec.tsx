@@ -242,7 +242,7 @@ describe('getWidgetExploreUrl', () => {
         ['groupBy', 'span.description'],
         ['interval', '30m'],
         ['mode', 'aggregate'],
-        ['query', '(span.description:test) release:\[\"1.0.0\",\"2.0.0\"\] '],
+        ['query', '(span.description:test) release:["1.0.0","2.0.0"] '],
         ['sort', '-avg(span.duration)'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],

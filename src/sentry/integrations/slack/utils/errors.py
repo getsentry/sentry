@@ -22,6 +22,7 @@ SLACK_SDK_ERROR_CATEGORIES = (
     RATE_LIMITED := SlackSdkErrorCategory("ratelimited"),
     RESTRICTED_ACTION := SlackSdkErrorCategory("restricted_action"),
     MESSAGE_LIMIT_EXCEEDED := SlackSdkErrorCategory("message_limit_exceeded"),
+    ORG_LOGIN_REQUIRED := SlackSdkErrorCategory("org_login_required"),
 )
 
 """
@@ -34,6 +35,7 @@ SLACK_SDK_HALT_ERROR_CATEGORIES = (
     RATE_LIMITED,
     RESTRICTED_ACTION,
     MESSAGE_LIMIT_EXCEEDED,
+    ORG_LOGIN_REQUIRED,
 )
 
 _CATEGORIES_BY_MESSAGE = {c.message: c for c in SLACK_SDK_ERROR_CATEGORIES}

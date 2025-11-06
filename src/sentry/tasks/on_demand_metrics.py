@@ -5,7 +5,6 @@ from collections.abc import Sequence
 from typing import Any
 
 import sentry_sdk
-from celery.exceptions import SoftTimeLimitExceeded
 from django.utils import timezone
 
 from sentry import features, options
@@ -29,7 +28,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import performance_tasks
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -88,16 +86,9 @@ class HighCardinalityWidgetException(Exception):
 
 @instrumented_task(
     name="sentry.tasks.on_demand_metrics.schedule_on_demand_check",
-    queue="on_demand_metrics",
-    max_retries=0,
-    soft_time_limit=60,
-    time_limit=120,
+    namespace=performance_tasks,
     expires=180,
-    taskworker_config=TaskworkerConfig(
-        namespace=performance_tasks,
-        expires=180,
-        processing_deadline_duration=120,
-    ),
+    processing_deadline_duration=120,
 )
 def schedule_on_demand_check() -> None:
     """
@@ -186,16 +177,9 @@ def schedule_on_demand_check() -> None:
 
 @instrumented_task(
     name="sentry.tasks.on_demand_metrics.process_widget_specs",
-    queue="on_demand_metrics",
-    max_retries=0,
-    soft_time_limit=60,
-    time_limit=120,
+    namespace=performance_tasks,
     expires=180,
-    taskworker_config=TaskworkerConfig(
-        namespace=performance_tasks,
-        expires=180,
-        processing_deadline_duration=120,
-    ),
+    processing_deadline_duration=120,
 )
 def process_widget_specs(widget_query_ids: list[int], **kwargs: Any) -> None:
     """
@@ -478,9 +462,6 @@ def check_field_cardinality(
                                 "widget_query.count": count,
                             },
                         )
-        except SoftTimeLimitExceeded as error:
-            scope.set_tag("widget_soft_deadline", True)
-            sentry_sdk.capture_exception(error)
         except Exception as error:
             sentry_sdk.capture_exception(error)
 

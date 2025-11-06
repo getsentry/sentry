@@ -1495,7 +1495,6 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
         actual = self.backend.get_num_sessions_per_project(
             project_ids=[self.project.id, self.project_2.id],
             environment_ids=None,
-            rollup=60,
             start=self._30_min_ago_dt,
             end=self.now_dt,
         )
@@ -1566,7 +1565,6 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
         actual = self.backend.get_num_sessions_per_project(
             project_ids=[project_1.id, project_2.id],
             environment_ids=[dev_env.id, prod_env.id],
-            rollup=60,
             start=self._2_h_ago_dt,
             end=self.now_dt,
         )
@@ -1578,7 +1576,6 @@ class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
             actual = self.backend.get_num_sessions_per_project(
                 project_ids=[project_1.id, project_2.id],
                 environment_ids=eids,
-                rollup=60,
                 start=self._2_h_ago_dt,
                 end=self.now_dt,
             )

@@ -23,6 +23,7 @@ from sentry.conf.types.kafka_definition import (
     validate_consumer_definition,
 )
 from sentry.consumers.dlq import DlqStaleMessagesStrategyFactoryWrapper, maybe_build_dlq_producer
+from sentry.consumers.profiler import JoinProfiler
 from sentry.consumers.validate_schema import ValidateSchema
 from sentry.eventstream.types import EventStreamEventType
 from sentry.ingest.types import ConsumerType
@@ -175,19 +176,6 @@ def ingest_events_options() -> list[click.Option]:
             ["--stop-at-timestamp", "stop_at_timestamp"],
             type=int,
             help="Unix timestamp after which to stop processing messages",
-        )
-    )
-    return options
-
-
-def ingest_transactions_options() -> list[click.Option]:
-    options = ingest_events_options()
-    options.append(
-        click.Option(
-            ["--no-celery-mode", "no_celery_mode"],
-            default=False,
-            is_flag=True,
-            help="Save event directly in consumer without celery",
         )
     )
     return options
@@ -357,7 +345,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-transactions": {
         "topic": Topic.INGEST_TRANSACTIONS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestTransactionsStrategyFactory",
-        "click_options": ingest_transactions_options(),
+        "click_options": ingest_events_options(),
         "dlq_topic": Topic.INGEST_TRANSACTIONS_DLQ,
         "stale_topic": Topic.INGEST_TRANSACTIONS_BACKLOG,
     },
@@ -479,6 +467,8 @@ def get_stream_processor(
     kafka_slice_id: int | None = None,
     shutdown_strategy_before_consumer: bool = False,
     add_global_tags: bool = False,
+    profile_consumer_join: bool = False,
+    enable_autocommit: bool = False,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -536,6 +526,7 @@ def get_stream_processor(
             group_id=group_id,
             auto_offset_reset=auto_offset_reset,
             strict_offset_reset=strict_offset_reset,
+            enable_auto_commit=enable_autocommit,
         )
 
         if max_poll_interval_ms is not None:
@@ -547,6 +538,10 @@ def get_stream_processor(
 
         if group_instance_id is not None:
             consumer_config["group.instance.id"] = group_instance_id
+
+        if enable_autocommit:
+            # Set commit interval to 1 second (1000ms)
+            consumer_config["auto.commit.interval.ms"] = 1000
 
         return consumer_config
 
@@ -606,6 +601,9 @@ def get_stream_processor(
         strategy_factory = HealthcheckStrategyFactoryWrapper(
             healthcheck_file_path, strategy_factory
         )
+
+    if profile_consumer_join:
+        strategy_factory = JoinProfilerStrategyFactoryWrapper(strategy_factory)
 
     if enable_dlq and consumer_definition.get("dlq_topic"):
         dlq_topic = consumer_definition["dlq_topic"]
@@ -687,3 +685,12 @@ class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory):
     def create_with_partitions(self, commit, partitions):
         rv = self.inner.create_with_partitions(commit, partitions)
         return Healthcheck(self.healthcheck_file_path, rv)
+
+
+class JoinProfilerStrategyFactoryWrapper(ProcessingStrategyFactory):
+    def __init__(self, inner: ProcessingStrategyFactory):
+        self.inner = inner
+
+    def create_with_partitions(self, commit, partitions):
+        rv = self.inner.create_with_partitions(commit, partitions)
+        return JoinProfiler(rv)

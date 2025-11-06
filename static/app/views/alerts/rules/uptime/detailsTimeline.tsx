@@ -29,7 +29,11 @@ export function DetailsTimeline({uptimeDetector, onStatsLoaded}: Props) {
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
 
-  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+  const timeWindowConfig = useTimeWindowConfig({
+    timelineWidth,
+    recomputeInterval: 60_000,
+    recomputeOnWindowFocus: true,
+  });
 
   const {data: uptimeStats} = useUptimeMonitorStats({
     detectorIds: [String(uptimeDetector.id)],

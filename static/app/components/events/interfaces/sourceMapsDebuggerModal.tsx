@@ -8,10 +8,10 @@ import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
@@ -2077,7 +2077,7 @@ const WizardInstructionParagraph = styled('p')`
   margin-bottom: ${space(1)};
 `;
 
-const InstructionCodeSnippet = styled(CodeSnippet)`
+const InstructionCodeSnippet = styled(CodeBlock)`
   margin: ${space(1)} 0 ${space(2)};
 `;
 

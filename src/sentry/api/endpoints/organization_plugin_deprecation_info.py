@@ -24,19 +24,20 @@ class OrganizationPluginDeprecationInfoEndpoint(OrganizationEndpoint):
         Returns a list of objects that are affected by a plugin deprecation. Objects could be issues or alert rules or both
         pparam: organization, plugin_slug
         """
-
+        # Plugins in the db are stored in lowercase but there is not guarantee that's how the customer will call the API
+        plugin = plugin_slug.lower()
         plugin_projects = Project.objects.filter(
             status=ObjectStatus.ACTIVE,
             organization=organization,
-            projectoption__key=f"{plugin_slug}:enabled",
+            projectoption__key=f"{plugin}:enabled",
             projectoption__value=True,
         ).distinct()
 
         url_prefix = generate_organization_url(organization.slug)
         affected_rules_urls = self.get_plugin_rules_urls(
-            plugin_projects, f"{url_prefix}/organizations/{organization.slug}", plugin_slug
+            plugin_projects, f"{url_prefix}/organizations/{organization.slug}", plugin
         )
-        affected_issue_urls = self.get_plugin_groups_urls(plugin_projects, plugin_slug, url_prefix)
+        affected_issue_urls = self.get_plugin_groups_urls(plugin_projects, plugin, url_prefix)
 
         return Response(
             {"affected_rules": affected_rules_urls, "affected_groups": affected_issue_urls}

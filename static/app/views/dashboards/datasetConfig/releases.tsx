@@ -26,7 +26,10 @@ import {
   getDerivedMetrics,
   mapDerivedMetricsToFields,
 } from 'sentry/views/dashboards/utils/transformSessionsResponseToTable';
-import {ReleaseSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
+import {
+  ReleaseSearchBar,
+  useReleasesSearchBarDataProvider,
+} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
   DerivedStatusFields,
   DISABLED_SORT,
@@ -105,6 +108,7 @@ export const ReleasesConfig: DatasetConfig<SessionApiResponse, SessionApiRespons
   filterYAxisOptions,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   SearchBar: ReleaseSearchBar,
+  useSearchBarDataProvider: useReleasesSearchBarDataProvider,
   getTableFieldOptions: getReleasesTableFieldOptions,
   getGroupByFieldOptions: (_organization: Organization) =>
     generateReleaseWidgetFieldOptions([] as SessionsMeta[], SESSIONS_TAGS),
@@ -268,6 +272,7 @@ function getReleasesTableFieldOptions(_organization: Organization) {
   return generateReleaseWidgetFieldOptions(Object.values(SESSIONS_FIELDS), SESSIONS_TAGS);
 }
 
+/** @internal exported for tests **/
 export function transformSessionsResponseToTable(
   data: SessionApiResponse,
   widgetQuery: WidgetQuery
@@ -306,6 +311,14 @@ function fieldsToDerivedMetrics(field: string): string {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return FIELD_TO_METRICS_EXPRESSION[field] ?? field;
 }
+
+const RATE_FUNCTIONS = [
+  'unhealthy_rate',
+  'abnormal_rate',
+  'errored_rate',
+  'unhandled_rate',
+  'crash_rate',
+];
 
 function getReleasesRequest(
   includeSeries: number,
@@ -349,8 +362,14 @@ function getReleasesRequest(
   }
 
   // Only time we need to use sessions API is when session.status is requested
-  // as a group by.
-  const useSessionAPI = query.columns.includes('session.status');
+  // as a group by, or we are using a rate function.
+  const useSessionAPI =
+    query.columns.includes('session.status') ||
+    Boolean(
+      query.fields?.some(field =>
+        RATE_FUNCTIONS.some(rateFunction => field.startsWith(rateFunction))
+      )
+    );
   const isCustomReleaseSorting = requiresCustomReleaseSorting(query);
   const isDescending = query.orderby.startsWith('-');
   const rawOrderby = trimStart(query.orderby, '-');

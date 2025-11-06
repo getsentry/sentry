@@ -237,7 +237,7 @@ export const DEFAULT_RELATIVE_PERIODS = {
 const DEFAULT_STATS_INFO = {
   showExternalStats: false,
   showInternalStats: true,
-  yAxisMinInterval: 100,
+  yAxisMinInterval: 10,
 };
 const GIGABYTE = 10 ** 9;
 const KILOBYTE = 10 ** 3;
@@ -375,8 +375,8 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.MONITOR,
     plural: DataCategory.MONITOR,
     singular: 'monitor',
-    displayName: 'monitor check-in',
-    titleName: t('Monitor Check-Ins'),
+    displayName: 'cron check-in',
+    titleName: t('Cron Check-Ins'),
     productName: t('Cron Monitoring'),
     uid: 10,
     isBilledCategory: false,
@@ -583,15 +583,24 @@ export const DATA_CATEGORY_INFO = {
       showExternalStats: false, // TODO(prevent): add external stats when ready
     },
   },
+  [DataCategoryExact.TRACE_METRIC]: {
+    name: DataCategoryExact.TRACE_METRIC,
+    plural: DataCategory.TRACE_METRICS,
+    singular: 'metric',
+    displayName: 'metric',
+    titleName: t('Metrics'),
+    productName: t('Metrics'),
+    uid: 33,
+    isBilledCategory: false,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+    },
+  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
-
-// Special Search characters
-export const NEGATION_OPERATOR = '!';
-export const SEARCH_WILDCARD = '*';
 
 // SmartSearchBar settings
 export const MAX_AUTOCOMPLETE_RECENT_SEARCHES = 3;
-export const MAX_AUTOCOMPLETE_RELEASES = 5;
 
 export const DEFAULT_PER_PAGE = 50;
 

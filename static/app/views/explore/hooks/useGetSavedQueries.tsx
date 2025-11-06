@@ -6,6 +6,8 @@ import {defined} from 'sentry/utils';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSaveQuery';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export type RawGroupBy = {
@@ -34,12 +36,14 @@ type ReadableQuery = {
   mode: Mode;
   orderby: string;
   query: string;
-
   // a query can have either
   // - `aggregateField` which contains a list of group bys and visualizes merged together
   // - `groupby` and `visualize` which contains the group bys and visualizes separately
   aggregateField?: Array<RawGroupBy | RawVisualize>;
+
   groupby?: string[];
+  // Only used for metrics dataset.
+  metric?: TraceMetric;
   visualize?: RawVisualize[];
 };
 
@@ -54,7 +58,10 @@ export class SavedQueryQuery {
   groupby: string[];
   visualize: RawVisualize[];
 
+  metric?: TraceMetric; // Only used for metrics dataset.
+
   constructor(query: ReadableQuery) {
+    this.metric = query.metric;
     this.fields = query.fields;
     this.mode = query.mode;
     this.orderby = query.orderby;
@@ -89,7 +96,7 @@ export type SortOption =
 
 // Comes from ExploreSavedQueryModelSerializer
 type ReadableSavedQuery = {
-  dataset: 'logs' | 'spans' | 'segment_spans'; // ExploreSavedQueryDataset
+  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics'; // ExploreSavedQueryDataset
   dateAdded: string;
   dateUpdated: string;
   id: number;
@@ -100,6 +107,7 @@ type ReadableSavedQuery = {
   projects: number[];
   query: [ReadableQuery, ...ReadableQuery[]];
   starred: boolean;
+  changedReason?: ExploreQueryChangedReason | null;
   createdBy?: User;
   end?: string;
   environment?: string[];
@@ -120,6 +128,7 @@ export class SavedQuery {
   query: [SavedQueryQuery, ...SavedQueryQuery[]];
   dataset: ReadableSavedQuery['dataset'];
   starred: boolean;
+  changedReason?: ExploreQueryChangedReason | null;
   createdBy?: User;
   end?: string | DateString;
   environment?: string[];
@@ -128,6 +137,7 @@ export class SavedQuery {
   start?: string | DateString;
 
   constructor(savedQuery: ReadableSavedQuery) {
+    this.changedReason = savedQuery.changedReason;
     this.dateAdded = savedQuery.dateAdded;
     this.dateUpdated = savedQuery.dateUpdated;
     this.id = savedQuery.id;
@@ -238,6 +248,7 @@ const DATASET_LABEL_MAP: Record<ReadableSavedQuery['dataset'], string> = {
   logs: 'Logs',
   spans: 'Traces',
   segment_spans: 'Traces',
+  metrics: 'Metrics',
 };
 
 const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
@@ -247,6 +258,7 @@ const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
   logs: TraceItemDataset.LOGS,
   spans: TraceItemDataset.SPANS,
   segment_spans: TraceItemDataset.SPANS,
+  metrics: TraceItemDataset.TRACEMETRICS,
 };
 
 export function getSavedQueryDatasetLabel(dataset: ReadableSavedQuery['dataset']) {

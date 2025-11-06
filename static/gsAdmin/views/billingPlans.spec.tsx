@@ -1,7 +1,5 @@
 import '@testing-library/jest-dom';
 
-import * as Sentry from '@sentry/react';
-
 import {
   render,
   screen,
@@ -63,8 +61,15 @@ const mockPlansResponse: BillingPlansResponse = {
         },
         price_tiers: {
           errors: [
-            {tier: 1, volume: 100000, monthly: 0, annual: 0, od_ppe: 0},
-            {tier: 2, volume: 1000000, monthly: 10000, annual: 100000, od_ppe: 200},
+            {tier: 1, volume: 100000, monthly: 0, annual: 0, od_ppe: 0, reserved_ppe: 0},
+            {
+              tier: 2,
+              volume: 1000000,
+              monthly: 10000,
+              annual: 100000,
+              od_ppe: 200,
+              reserved_ppe: 160,
+            },
           ],
         },
       },
@@ -95,25 +100,6 @@ describe('BillingPlans Component', () => {
     // Wait for the plans data to be fetched and rendered
     await waitFor(() => {
       expect(screen.getAllByText('AM9000 Plans').length).toBeGreaterThan(0);
-    });
-  });
-
-  it('handles API errors gracefully', async () => {
-    MockApiClient.addMockResponse({
-      url: '/billing-plans/',
-      method: 'GET',
-      statusCode: 500,
-      body: {
-        error: 'Internal Server Error',
-      },
-    });
-
-    render(<BillingPlans />);
-
-    // Wait for the component to handle the error
-    await waitFor(() => {
-      // Since there's no UI indication for the error, we check that Sentry captured it
-      expect(Sentry.captureException).toHaveBeenCalled();
     });
   });
 
@@ -157,12 +143,15 @@ describe('BillingPlans Component', () => {
 
     // Check that price tier information is displayed
     expect(await screen.findByText('Tier')).toBeInTheDocument();
+    expect(screen.getByText('Reserved PPE')).toBeInTheDocument();
+    expect(screen.getByText('PAYG PPE')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getByText('100,000')).toBeInTheDocument();
-    expect(screen.getByText('$0.00')).toBeInTheDocument(); // od_ppe
+    expect(screen.getAllByText('$0.00')).toHaveLength(2); // Both reserved_ppe and od_ppe for tier 1
 
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByText('1,000,000')).toBeInTheDocument();
+    expect(screen.getByText('$1.60')).toBeInTheDocument(); // reserved_ppe
     expect(screen.getByText('$2.00')).toBeInTheDocument(); // od_ppe
   });
 
@@ -210,12 +199,12 @@ describe('BillingPlans Component', () => {
 
     // Perform assertions on the CSV content
     expect(blobText).toContain('AM9000');
-    expect(blobText).toContain('Am9000 Business, , , ,Errors,,,,,');
+    expect(blobText).toContain('Am9000 Business, , , ,Errors,,,,,,');
     expect(blobText).toContain(
-      'Monthly,Annual, , ,Tier,Volume (max),Monthly,Annual,OD PPE / PAYG PPE,'
+      'Monthly,Annual, , ,Tier,Volume (max),Monthly,Annual,Reserved PPE,PAYG PPE,'
     );
-    expect(blobText).toContain('$89,$960, , ,1,100000,$0,$0,$0.00,');
-    expect(blobText).toContain(' , , , ,2,1000000,$100,"$1,000",$2.00,');
+    expect(blobText).toContain('$89,$960, , ,1,100000,$0,$0,$0.00,$0.00,');
+    expect(blobText).toContain(' , , , ,2,1000000,$100,"$1,000",$1.60,$2.00,');
   });
 
   it('displays "NOT LIVE" badge for plans that are not live', async () => {
@@ -273,8 +262,22 @@ describe('BillingPlans Component', () => {
             },
             price_tiers: {
               errors: [
-                {tier: 1, volume: 100000, monthly: 0, annual: 0, od_ppe: 0},
-                {tier: 2, volume: 1000000, monthly: 10000, annual: 100000, od_ppe: 200},
+                {
+                  tier: 1,
+                  volume: 100000,
+                  monthly: 0,
+                  annual: 0,
+                  od_ppe: 0,
+                  reserved_ppe: 0,
+                },
+                {
+                  tier: 2,
+                  volume: 1000000,
+                  monthly: 10000,
+                  annual: 100000,
+                  od_ppe: 200,
+                  reserved_ppe: 160,
+                },
               ],
             },
           },

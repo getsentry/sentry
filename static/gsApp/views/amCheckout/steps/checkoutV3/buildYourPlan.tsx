@@ -1,10 +1,11 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Grid} from 'sentry/components/core/layout';
+import {Flex, Stack} from 'sentry/components/core/layout';
+import {Heading} from 'sentry/components/core/text';
+import {IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -18,7 +19,6 @@ import {
   isTrialPlan,
 } from 'getsentry/utils/billing';
 import PlanFeatures from 'getsentry/views/amCheckout/planFeatures';
-import {getHighlightedFeatures} from 'getsentry/views/amCheckout/steps/planSelect';
 import PlanSelectCard from 'getsentry/views/amCheckout/steps/planSelectCard';
 import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
@@ -39,7 +39,6 @@ interface PlanSubstepProps extends BaseSubstepProps {
   organization: Organization;
   subscription: Subscription;
   checkoutTier?: PlanTier;
-  referrer?: string;
 }
 
 interface AdditionalProductsSubstepProps extends BaseSubstepProps {}
@@ -50,12 +49,13 @@ function PlanSubstep({
   formData,
   subscription,
   organization,
-  referrer,
   onUpdate,
 }: PlanSubstepProps) {
   const planOptions = useMemo(() => {
+    // TODO(isabella): Remove this once Developer is surfaced
     const plans = billingConfig.planList.filter(
-      ({contractInterval}) => contractInterval === activePlan.contractInterval
+      ({contractInterval, id}) =>
+        contractInterval === activePlan.contractInterval && id !== billingConfig.freePlan
     );
 
     if (plans.length === 0) {
@@ -96,7 +96,7 @@ function PlanSubstep({
   };
 
   return (
-    <Substep>
+    <Flex direction="column" gap="xl">
       <OptionGrid columns={planOptions.length}>
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
@@ -106,17 +106,7 @@ function PlanSubstep({
           );
           const basePrice = utils.formatPrice({cents: plan.basePrice}); // TODO(isabella): confirm discountInfo is no longer used
 
-          let planContent = utils.getContentForPlan(plan);
-          const highlightedFeatures = getHighlightedFeatures(referrer);
-
-          // Additional members is available on any paid plan
-          // but it's so impactful it doesn't hurt to add it in for the business plan
-          // if the user is coming from a deactivated member header CTA
-          if (isBizPlanFamily(plan) && referrer === 'deactivated_member_header') {
-            highlightedFeatures.push('deactivated_member_header');
-            planContent = cloneDeep(planContent);
-            planContent.features.deactivated_member_header = t('Unlimited members');
-          }
+          const planContent = utils.getContentForPlan(plan, true);
 
           const planIcon = getPlanIcon(plan);
           const badge = getBadge(plan);
@@ -131,7 +121,6 @@ function PlanSubstep({
               planName={plan.name}
               price={basePrice}
               planContent={planContent}
-              highlightedFeatures={highlightedFeatures}
               planIcon={planIcon}
               shouldShowDefaultPayAsYouGo={shouldShowDefaultPayAsYouGo}
               badge={badge}
@@ -140,7 +129,7 @@ function PlanSubstep({
         })}
       </OptionGrid>
       <PlanFeatures planOptions={planOptions} activePlan={activePlan} />
-    </Substep>
+    </Flex>
   );
 }
 
@@ -150,17 +139,23 @@ function AdditionalProductsSubstep({
   onUpdate,
 }: AdditionalProductsSubstepProps) {
   return (
-    <Substep>
-      <SubstepTitle>{t('Select additional products')}</SubstepTitle>
-      <Grid columns={{sm: '1fr', md: '1fr 1fr'}} gap="xl">
+    <Flex direction="column" gap="xl" paddingTop="3xl">
+      <Flex align="center" gap="lg">
+        <Flex paddingLeft="lg">
+          <IconSeer variant="waiting" size="lg" />
+        </Flex>
+        {/* TODO(isabella): The heading and icon should be pushed to the child component (ProductSelect) */}
+        <Heading as="h2">{t('Detect and fix issues faster with our AI agent')}</Heading>
+      </Flex>
+      <Flex direction="column" gap="xl">
         <ProductSelect
           activePlan={activePlan}
           formData={formData}
           onUpdate={onUpdate}
           isNewCheckout
         />
-      </Grid>
-    </Substep>
+      </Flex>
+    </Flex>
   );
 }
 
@@ -170,7 +165,6 @@ function BuildYourPlan({
   organization,
   subscription,
   formData,
-  referrer,
   onEdit,
   onUpdate,
   stepNumber,
@@ -179,7 +173,7 @@ function BuildYourPlan({
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <BuildYourPlanContainer>
+    <Stack gap="xl" direction="column">
       <StepHeader
         isActive
         isCompleted={false}
@@ -187,7 +181,7 @@ function BuildYourPlan({
         onToggleStep={setIsOpen}
         isOpen={isOpen}
         stepNumber={stepNumber}
-        title={t('Build your plan')}
+        title={t('Select a plan')}
         isNewCheckout
       />
       {isOpen && (
@@ -198,7 +192,6 @@ function BuildYourPlan({
             formData={formData}
             onUpdate={onUpdate}
             organization={organization}
-            referrer={referrer}
             subscription={subscription}
             checkoutTier={checkoutTier}
           />
@@ -209,36 +202,19 @@ function BuildYourPlan({
           />
         </Fragment>
       )}
-    </BuildYourPlanContainer>
+    </Stack>
   );
 }
 
 export default BuildYourPlan;
 
-const BuildYourPlanContainer = styled('div')``;
-
-const Substep = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.xl};
-  margin-top: ${p => p.theme.space['3xl']};
-`;
-
-const SubstepTitle = styled('h2')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin-top: ${p => p.theme.space['2xl']};
-  margin-bottom: 0;
-`;
-
 const OptionGrid = styled('div')<{columns: number}>`
   display: grid;
-  grid-template-columns: repeat(${p => p.columns}, 1fr);
-  column-gap: ${p => p.theme.space.xl};
+  grid-template-columns: 1fr;
+  gap: ${p => p.theme.space.lg};
 
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(1, 1fr);
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: repeat(${p => p.columns}, 1fr);
     row-gap: ${p => p.theme.space.xl};
   }
 `;

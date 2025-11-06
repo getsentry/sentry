@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
@@ -11,6 +12,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {MODULE_FEATURE} from 'sentry/views/insights/mobile/screens/settings';
 import ScreensLandingPage from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
+import MobileLayout from 'sentry/views/insights/pages/mobile/layout';
+import {ModuleName} from 'sentry/views/insights/types';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
@@ -80,7 +83,20 @@ describe('Screens Landing Page', () => {
     });
 
     it('shows the platform selector for hybrid sdks', async () => {
-      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
+      render(<MobileLayout />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/mobile-vitals'},
+          route: '/',
+          children: [
+            {
+              path: 'mobile-vitals',
+              handle: {module: ModuleName.MOBILE_VITALS},
+              element: <Fragment />,
+            },
+          ],
+        },
+      });
       expect(await screen.findByLabelText('Android')).toBeInTheDocument();
     });
 
@@ -217,7 +233,20 @@ describe('Screens Landing Page', () => {
 
     it('shows content if permission is there', async () => {
       organization.features = [MODULE_FEATURE];
-      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
+      render(<MobileLayout />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/mobile-vitals'},
+          route: '/',
+          children: [
+            {
+              path: 'mobile-vitals',
+              handle: {module: ModuleName.MOBILE_VITALS},
+              element: <ScreensLandingPage />,
+            },
+          ],
+        },
+      });
       expect(await screen.findAllByText('Mobile Vitals')).toHaveLength(2);
     });
   });

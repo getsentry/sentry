@@ -1,7 +1,14 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PreventContext} from 'sentry/components/prevent/context/preventContext';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import TestsOnboardingPage from 'sentry/views/prevent/tests/onboarding';
+
+jest.mock('sentry/utils/regions', () => ({
+  getRegionDataFromOrganization: jest.fn(),
+}));
+
+const mockGetRegionData = jest.mocked(getRegionDataFromOrganization);
 
 const mockPreventContext = {
   repository: 'test-repo',
@@ -21,6 +28,7 @@ const mockGitHubIntegration = {
     name: 'GitHub',
   },
   externalId: '88888888',
+  status: 'active',
 };
 
 const mockRepositories = [
@@ -38,8 +46,20 @@ const mockRepositories = [
   },
 ];
 
+const mockRepoData = {
+  testAnalyticsEnabled: false,
+  uploadToken: 'test-token',
+};
+
 describe('TestsOnboardingPage', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetRegionData.mockReturnValue({
+      name: 'us',
+      displayName: 'United States',
+      url: 'https://sentry.io',
+    });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/',
       body: [mockGitHubIntegration],
@@ -61,6 +81,11 @@ describe('TestsOnboardingPage', () => {
       body: {
         isSyncing: false,
       },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/prevent/owner/123/repository/test-repo/`,
+      body: mockRepoData,
     });
   });
 
@@ -272,7 +297,9 @@ describe('TestsOnboardingPage', () => {
           await screen.findByLabelText('Use OpenID Connect (OIDC)')
         ).not.toBeChecked();
         expect(await screen.findByText('Step 2b: Add token as')).toBeInTheDocument();
-        expect(await screen.findByText(/^Step 3: Add the script/)).toBeInTheDocument();
+        expect(
+          await screen.findByText(/^Step 3: Add the workflow action/)
+        ).toBeInTheDocument();
         expect(
           await screen.findByText('Step 4: Run your test suite')
         ).toBeInTheDocument();
@@ -331,7 +358,9 @@ describe('TestsOnboardingPage', () => {
           screen.queryByText('Step 3: Edit your GitHub Actions workflow')
         ).not.toBeInTheDocument();
         expect(await screen.findByText('Step 2b: Add token as')).toBeInTheDocument();
-        expect(await screen.findByText(/Step 3: Add the script/)).toBeInTheDocument();
+        expect(
+          await screen.findByText(/Step 3: Add the workflow action/)
+        ).toBeInTheDocument();
 
         // Switch back to OIDC
         const oidcRadio = await screen.findByLabelText('Use OpenID Connect (OIDC)');
@@ -361,25 +390,43 @@ describe('TestsOnboardingPage', () => {
             },
           }
         );
-        expect(
-          await screen.findByText('Step 1: Output a JUnit XML file in your CI')
-        ).toBeInTheDocument();
-        expect(await screen.findByText('Step 2: Add token as')).toBeInTheDocument();
-        expect(screen.getAllByRole('link', {name: 'Sentry Prevent CLI'})).toHaveLength(2);
-        expect(
-          await screen.findByText('Step 3: Install the', {exact: false})
-        ).toBeInTheDocument();
-        expect(
-          await screen.findByText(
-            'Step 4: Upload this file to Sentry Prevent using the CLI'
-          )
-        ).toBeInTheDocument();
-        expect(
-          await screen.findByText('Step 5: Run your test suite')
-        ).toBeInTheDocument();
-        expect(
-          await screen.findByText('Step 6: View results and insights')
-        ).toBeInTheDocument();
+        await Promise.all([
+          waitFor(() =>
+            expect(
+              screen.getByText('Step 1: Output a JUnit XML file in your CI')
+            ).toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(
+              screen.getByText('Step 2: Add token as', {exact: false})
+            ).toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(
+              screen.getAllByRole('link', {name: 'Sentry Prevent CLI'})
+            ).toHaveLength(2)
+          ),
+
+          waitFor(() =>
+            expect(
+              screen.getByText('Step 3: Install the', {exact: false})
+            ).toBeInTheDocument()
+          ),
+
+          waitFor(() =>
+            expect(
+              screen.getByText('Step 4: Upload this file to Sentry Prevent using the CLI')
+            ).toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(screen.getByText('Step 5: Run your test suite')).toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(
+              screen.getByText('Step 6: View results and insights')
+            ).toBeInTheDocument()
+          ),
+        ]);
 
         // GitHub Actions specific steps should NOT be present
         expect(
@@ -411,25 +458,41 @@ describe('TestsOnboardingPage', () => {
         );
 
         // Should show CLI steps regardless of upload permission
-        expect(
-          await screen.findByText('Step 1: Output a JUnit XML file in your CI')
-        ).toBeInTheDocument();
-        expect(await screen.findByText('Step 2: Add token as')).toBeInTheDocument();
-        expect(
-          await screen.findAllByRole('link', {name: 'Sentry Prevent CLI'})
-        ).toHaveLength(2);
-        expect(
-          await screen.findByText('Step 3: Install the', {exact: false})
-        ).toBeInTheDocument();
-        expect(
-          await screen.findByText(
-            'Step 4: Upload this file to Sentry Prevent using the CLI'
-          )
-        ).toBeInTheDocument();
-        expect(
-          await screen.findByText('Step 5: Run your test suite')
-        ).toBeInTheDocument();
-        expect(screen.getByText('Step 6: View results and insights')).toBeInTheDocument();
+        await Promise.all([
+          waitFor(() =>
+            expect(
+              screen.getByText('Step 1: Output a JUnit XML file in your CI')
+            ).toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(
+              screen.getByText('Step 2: Add token as', {exact: false})
+            ).toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(
+              screen.getAllByRole('link', {name: 'Sentry Prevent CLI'})
+            ).toHaveLength(2)
+          ),
+          waitFor(() =>
+            expect(
+              screen.getByText('Step 3: Install the', {exact: false})
+            ).toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(
+              screen.getByText('Step 4: Upload this file to Sentry Prevent using the CLI')
+            ).toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(screen.getByText('Step 5: Run your test suite')).toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(
+              screen.getByText('Step 6: View results and insights')
+            ).toBeInTheDocument()
+          ),
+        ]);
 
         // Switch to GitHub Actions
         const githubRadio = await screen.findByLabelText(
@@ -438,34 +501,242 @@ describe('TestsOnboardingPage', () => {
         await userEvent.click(githubRadio);
 
         // Should now show GitHub Actions steps
-        expect(
-          await screen.findByText('Step 1: Output a JUnit XML file in your CI')
-        ).toBeInTheDocument();
-        expect(
-          await screen.findByText('Step 2: Choose an upload permission')
-        ).toBeInTheDocument();
-        expect(
-          await screen.findByText('Step 3: Edit your GitHub Actions workflow')
-        ).toBeInTheDocument();
-        expect(
-          await screen.findByText('Step 4: Run your test suite')
-        ).toBeInTheDocument();
-        expect(
-          await screen.findByText('Step 5: View results and insights')
-        ).toBeInTheDocument();
+        await Promise.all([
+          waitFor(() =>
+            expect(
+              screen.getByText('Step 1: Output a JUnit XML file in your CI')
+            ).toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(
+              screen.getByText('Step 2: Choose an upload permission')
+            ).toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(
+              screen.getByText('Step 3: Edit your GitHub Actions workflow')
+            ).toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(screen.getByText('Step 4: Run your test suite')).toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(
+              screen.getByText('Step 5: View results and insights')
+            ).toBeInTheDocument()
+          ),
 
-        // CLI specific steps should NOT be present
-        expect(screen.queryByText('Step 2: Add token as')).not.toBeInTheDocument();
-        expect(
-          screen.queryByRole('link', {name: 'Sentry Prevent CLI'})
-        ).not.toBeInTheDocument();
-        expect(screen.queryByText('Step 3: Install the')).not.toBeInTheDocument();
-        expect(
-          screen.queryByText('Step 4: Upload this file to Sentry Prevent using the CLI')
-        ).not.toBeInTheDocument();
-        expect(
-          screen.queryByText('Step 6: View results and insights')
-        ).not.toBeInTheDocument();
+          // CLI specific steps should NOT be present
+          waitFor(() =>
+            expect(screen.queryByText('Step 2: Add token as')).not.toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(
+              screen.queryByRole('link', {name: 'Sentry Prevent CLI'})
+            ).not.toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(screen.queryByText('Step 3: Install the')).not.toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(
+              screen.queryByText(
+                'Step 4: Upload this file to Sentry Prevent using the CLI'
+              )
+            ).not.toBeInTheDocument()
+          ),
+          waitFor(() =>
+            expect(
+              screen.queryByText('Step 6: View results and insights')
+            ).not.toBeInTheDocument()
+          ),
+        ]);
+      });
+    });
+  });
+
+  describe('Token Generation', () => {
+    it('generates repository token and shows token after clicking generate button', async () => {
+      // Mock repo data without token initially
+      const mockRepoDataWithoutToken = {
+        testAnalyticsEnabled: false,
+        uploadToken: null,
+      };
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/prevent/owner/123/repository/test-repo/`,
+        body: mockRepoDataWithoutToken,
+      });
+
+      // Mock the regenerate token API call
+      const regenerateTokenMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prevent/owner/123/repository/test-repo/token/regenerate/',
+        method: 'POST',
+        body: {
+          token: 'new-generated-token-12345',
+        },
+      });
+
+      render(
+        <PreventContext.Provider value={mockPreventContext}>
+          <TestsOnboardingPage />
+        </PreventContext.Provider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/prevent/tests/new',
+              query: {opt: 'githubAction'},
+            },
+          },
+        }
+      );
+
+      // Change upload permission to Upload Token to show the AddUploadTokenStep
+      const uploadTokenRadio = await screen.findByLabelText(
+        'Use Sentry Prevent Upload Token'
+      );
+      await userEvent.click(uploadTokenRadio);
+
+      await screen.findByText('Step 2b: Add token as');
+
+      // Initially should show generate button
+      expect(
+        screen.getByRole('button', {name: 'Generate Repository Token'})
+      ).toBeInTheDocument();
+
+      // Should not show token initially
+      expect(screen.queryByText('SENTRY_PREVENT_TOKEN')).not.toBeInTheDocument();
+
+      // Mock the updated repo data with token after regeneration
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/prevent/owner/123/repository/test-repo/`,
+        body: {
+          ...mockRepoDataWithoutToken,
+          uploadToken: 'new-generated-token-12345',
+        },
+      });
+
+      // Click the generate button
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Generate Repository Token'})
+      );
+
+      // Wait for the API call to complete
+      await waitFor(() => {
+        expect(regenerateTokenMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/prevent/owner/123/repository/test-repo/token/regenerate/',
+          expect.objectContaining({
+            method: 'POST',
+          })
+        );
+      });
+
+      // token should now be showing
+      expect(await screen.findByText('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
+      expect(screen.getByText('new-generated-token-12345')).toBeInTheDocument();
+    });
+  });
+
+  describe('Regenerate Token', () => {
+    it('show existing token and regenerates token on button click', async () => {
+      const mockRepoDataWithToken = {
+        testAnalyticsEnabled: false,
+        uploadToken: 'old-generated-token-12345',
+      };
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/prevent/owner/123/repository/test-repo/`,
+        body: mockRepoDataWithToken,
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prevent/owner/123/repository/test-repo/token/regenerate/',
+        method: 'POST',
+        body: {
+          token: 'new-generated-token-12345',
+        },
+      });
+
+      render(
+        <PreventContext.Provider value={mockPreventContext}>
+          <TestsOnboardingPage />
+        </PreventContext.Provider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/prevent/tests/new',
+              query: {opt: 'githubAction'},
+            },
+          },
+        }
+      );
+
+      const uploadTokenRadio = await screen.findByLabelText(
+        'Use Sentry Prevent Upload Token'
+      );
+      await userEvent.click(uploadTokenRadio);
+
+      await screen.findByText('Step 2b: Add token as');
+
+      expect(screen.getByRole('button', {name: 'Regenerate'})).toBeInTheDocument();
+
+      expect(await screen.findByText('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
+      expect(await screen.findByText('old-generated-token-12345')).toBeInTheDocument();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/prevent/owner/123/repository/test-repo/`,
+        body: {
+          ...mockRepoDataWithToken,
+          uploadToken: 'new-generated-token-12345',
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Regenerate'}));
+
+      expect(await screen.findByText('SENTRY_PREVENT_TOKEN')).toBeInTheDocument();
+      expect(screen.getByText('new-generated-token-12345')).toBeInTheDocument();
+    });
+  });
+
+  describe('when the organization is not in the US region', () => {
+    it('navigates to the TA page with preonboarding alert and header text', async () => {
+      mockGetRegionData.mockReturnValue({
+        name: 'eu',
+        displayName: 'European Union (EU)',
+        url: 'https://eu.sentry.io',
+      });
+
+      // Mock API calls to prevent infinite navigation loop
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/`,
+        body: [],
+        method: 'GET',
+        match: [MockApiClient.matchQuery({provider_key: 'github', includeConfig: 0})],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/prevent/owner/123/repository/test-repo/`,
+        body: {
+          testAnalyticsEnabled: false,
+          uploadToken: null,
+        },
+      });
+
+      const {router} = render(
+        <PreventContext.Provider value={mockPreventContext}>
+          <TestsOnboardingPage />
+        </PreventContext.Provider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/prevent/tests/new',
+              query: {},
+            },
+          },
+        }
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe('/prevent/tests');
       });
     });
   });

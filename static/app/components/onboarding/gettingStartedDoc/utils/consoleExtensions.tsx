@@ -296,10 +296,7 @@ function ConsoleExtensionsContent(params: DocsParams) {
   );
 }
 export function getConsoleExtensions(params: DocsParams): OnboardingStep | null {
-  if (
-    !params.organization.features.includes('project-creation-games-tab') ||
-    params.isSelfHosted
-  ) {
+  if (params.isSelfHosted) {
     return null;
   }
 

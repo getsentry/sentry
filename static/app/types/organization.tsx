@@ -399,6 +399,7 @@ export enum SessionStatus {
   HEALTHY = 'healthy',
   ABNORMAL = 'abnormal',
   ERRORED = 'errored',
+  UNHANDLED = 'unhandled',
   CRASHED = 'crashed',
 }
 

@@ -77,8 +77,8 @@ describe('OperatingSystemContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'os'}
-        alias={'os'}
+        type="os"
+        alias="os"
         value={{...MOCK_OS_CONTEXT, raw_description: ''}}
       />
     );

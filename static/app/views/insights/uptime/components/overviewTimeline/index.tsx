@@ -72,7 +72,9 @@ export function OverviewTimeline({uptimeDetectors}: Props) {
             key={detector.id}
             timeWindowConfig={timeWindowConfig}
             uptimeDetector={detector}
-            summary={summaries?.[detector.id] ?? null}
+            summary={
+              summaries === undefined ? undefined : (summaries[detector.id] ?? null)
+            }
           />
         ))}
       </UptimeAlertRow>

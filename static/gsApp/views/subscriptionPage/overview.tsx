@@ -1,12 +1,13 @@
 import {Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Container} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -34,8 +35,9 @@ import {
 import withPromotions from 'getsentry/utils/withPromotions';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import UsageOverview from 'getsentry/views/subscriptionPage/usageOverview';
 
-import openPerformanceQuotaCreditsPromoModal from './promotions/performanceQuotaCreditsPromo';
 import openPerformanceReservedTransactionsDiscountModal from './promotions/performanceReservedTransactionsPromo';
 import TrialEnded from './trial/trialEnded';
 import OnDemandDisabled from './ondemandDisabled';
@@ -46,7 +48,6 @@ import ReservedUsageChart from './reservedUsageChart';
 import SubscriptionHeader from './subscriptionHeader';
 import UsageAlert from './usageAlert';
 import {CombinedUsageTotals, UsageTotals} from './usageTotals';
-import {trackSubscriptionView} from './utils';
 
 type Props = {
   location: Location;
@@ -60,6 +61,7 @@ type Props = {
 function Overview({location, subscription, promotionData}: Props) {
   const api = useApi();
   const organization = useOrganization();
+  const isNewBillingUI = hasNewBillingUI(organization);
   const navigate = useNavigate();
 
   const displayMode = ['cost', 'usage'].includes(location.query.displayMode as string)
@@ -93,7 +95,7 @@ function Overview({location, subscription, promotionData}: Props) {
 
   useEffect(() => {
     if (promotionData) {
-      let promotion = promotionData.availablePromotions?.find(
+      const promotion = promotionData.availablePromotions?.find(
         promo => promo.promptActivityTrigger === 'performance_reserved_txns_discount_v1'
       );
 
@@ -103,30 +105,6 @@ function Overview({location, subscription, promotionData}: Props) {
           promotionData,
           organization,
           promptFeature: 'performance_reserved_txns_discount_v1',
-          navigate,
-        });
-        return;
-      }
-
-      promotion = promotionData.availablePromotions?.find(
-        promo => promo.promptActivityTrigger === 'performance_quota_credits_v1'
-      );
-
-      if (promotion) {
-        openPerformanceQuotaCreditsPromoModal({api, promotionData, organization});
-        return;
-      }
-
-      promotion = promotionData.availablePromotions?.find(
-        promo => promo.promptActivityTrigger === 'performance_reserved_txns_discount'
-      );
-
-      if (promotion) {
-        openPerformanceReservedTransactionsDiscountModal({
-          api,
-          promotionData,
-          organization,
-          promptFeature: 'performance_reserved_txns_discount',
           navigate,
         });
         return;
@@ -142,12 +120,9 @@ function Overview({location, subscription, promotionData}: Props) {
       openCodecovModal({organization});
     }
 
-    // Open on-demand budget modal if hash fragment present and user has access
-    if (
-      window.location.hash === '#open-ondemand-modal' &&
-      subscription.supportsOnDemand &&
-      hasAccessToSubscriptionOverview(subscription, organization)
-    ) {
+    // Open on-demand budget modal if hash fragment present
+    // Modal logic handles checking perms
+    if (window.location.hash === '#open-ondemand-modal' && !isNewBillingUI) {
       openOnDemandBudgetEditModal({organization, subscription});
 
       // Clear hash to prevent modal reopening on refresh
@@ -157,17 +132,24 @@ function Overview({location, subscription, promotionData}: Props) {
         window.location.pathname + window.location.search
       );
     }
-  }, [organization, location.query, subscription, promotionData, api, navigate]);
-
-  useEffect(
-    () => trackSubscriptionView(organization, subscription, 'overview'),
-    [subscription, organization]
-  );
+  }, [
+    organization,
+    location.query,
+    subscription,
+    promotionData,
+    api,
+    navigate,
+    isNewBillingUI,
+  ]);
 
   // Sales managed accounts do not allow members to view the billing page.
   // Whilst self-serve accounts do.
   if (!hasBillingPerms && !subscription.canSelfServe) {
-    return <ContactBillingMembers />;
+    return (
+      <SubscriptionPageContainer background="secondary" organization={organization}>
+        <ContactBillingMembers />
+      </SubscriptionPageContainer>
+    );
   }
 
   function renderUsageChart(usageData: CustomerUsage) {
@@ -199,7 +181,7 @@ function Overview({location, subscription, promotionData}: Props) {
         0 || false;
 
     return (
-      <TotalsWrapper>
+      <Fragment>
         {sortCategories(subscription.categories)
           .filter(
             categoryHistory =>
@@ -317,23 +299,42 @@ function Overview({location, subscription, promotionData}: Props) {
             />
           );
         })}
-      </TotalsWrapper>
+      </Fragment>
     );
   }
 
-  const isNewBillingUI = hasNewBillingUI(organization);
-
-  if (isPending) {
+  function renderFooter() {
+    if (!subscription.canSelfServe) {
+      return null;
+    }
     return (
-      <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
-        <SubscriptionHeader subscription={subscription} organization={organization} />
-        <LoadingIndicator />
-      </Container>
+      <Flex
+        direction="column"
+        gap="sm"
+        padding="xl"
+        background="primary"
+        radius="md"
+        border="primary"
+      >
+        <Flex align="center" gap="sm">
+          <Text bold>{t('Having trouble?')}</Text>
+        </Flex>
+        <Text>
+          {tct('Reach out to our [supportLink], or join us on [discordLink]', {
+            supportLink: (
+              <ExternalLink href="https://support.sentry.io">
+                {t('Support team')}
+              </ExternalLink>
+            ),
+            discordLink: (
+              <ExternalLink href="https://discord.com/invite/sentry">
+                {t('Discord')}
+              </ExternalLink>
+            ),
+          })}
+        </Text>
+      </Flex>
     );
-  }
-
-  if (isError) {
-    return <LoadingError onRetry={refetchUsage} />;
   }
 
   /**
@@ -351,7 +352,7 @@ function Overview({location, subscription, promotionData}: Props) {
    *   - Receipts
    *   - Credit card on file
    *   - Previous usage history
-   *   - On-demand information
+   *   - On-demand/PAYG information
    */
   function contentWithBillingPerms(usageData: CustomerUsage, planDetails: Plan) {
     return (
@@ -360,11 +361,26 @@ function Overview({location, subscription, promotionData}: Props) {
         <RecurringCredits displayType="data" planDetails={planDetails} />
         <OnDemandDisabled subscription={subscription} />
         <UsageAlert subscription={subscription} usage={usageData} />
-        <DisplayModeToggle subscription={subscription} displayMode={displayMode} />
-        {renderUsageChart(usageData)}
-        {renderUsageCards(usageData)}
-        <OnDemandSettings organization={organization} subscription={subscription} />
+        {isNewBillingUI ? (
+          <UsageOverview
+            subscription={subscription}
+            organization={organization}
+            usageData={usageData}
+          />
+        ) : (
+          <Fragment>
+            <DisplayModeToggle
+              subscription={subscription}
+              displayMode={displayMode}
+              organization={organization}
+            />
+            {renderUsageChart(usageData)}
+            {renderUsageCards(usageData)}
+            <OnDemandSettings organization={organization} subscription={subscription} />
+          </Fragment>
+        )}
         <TrialEnded subscription={subscription} />
+        {renderFooter()}
       </Fragment>
     );
   }
@@ -374,27 +390,52 @@ function Overview({location, subscription, promotionData}: Props) {
       <Fragment>
         <OnDemandDisabled subscription={subscription} />
         <UsageAlert subscription={subscription} usage={usageData} />
-        {renderUsageChart(usageData)}
-        {renderUsageCards(usageData)}
+        {isNewBillingUI ? (
+          <UsageOverview
+            subscription={subscription}
+            organization={organization}
+            usageData={usageData}
+          />
+        ) : (
+          <Fragment>
+            {renderUsageChart(usageData)}
+            {renderUsageCards(usageData)}
+          </Fragment>
+        )}
         <TrialEnded subscription={subscription} />
+        {renderFooter()}
       </Fragment>
     );
   }
 
   return (
-    <Container padding={isNewBillingUI ? {xs: 'xl', md: '3xl'} : '0'}>
-      <SubscriptionHeader organization={organization} subscription={subscription} />
-      <div>
-        {hasBillingPerms
-          ? contentWithBillingPerms(usage, subscription.planDetails)
-          : contentWithoutBillingPerms(usage)}
-      </div>
-    </Container>
+    <SubscriptionPageContainer
+      background="secondary"
+      organization={organization}
+      header={
+        isNewBillingUI ? (
+          <SubscriptionHeader organization={organization} subscription={subscription} />
+        ) : undefined
+      }
+      useBorderTopLogic={false}
+      paddingOverride="0 2xl 3xl"
+    >
+      {!isNewBillingUI && (
+        <SubscriptionHeader organization={organization} subscription={subscription} />
+      )}
+      {isPending ? (
+        <LoadingIndicator />
+      ) : isError ? (
+        <LoadingError onRetry={refetchUsage} />
+      ) : (
+        <Flex direction="column" gap="xl">
+          {hasBillingPerms
+            ? contentWithBillingPerms(usage, subscription.planDetails)
+            : contentWithoutBillingPerms(usage)}
+        </Flex>
+      )}
+    </SubscriptionPageContainer>
   );
 }
 
 export default withSubscription(withPromotions(Overview));
-
-const TotalsWrapper = styled('div')`
-  margin-bottom: ${space(3)};
-`;

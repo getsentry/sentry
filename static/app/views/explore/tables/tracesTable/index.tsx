@@ -22,10 +22,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useExploreQuery} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
+import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {
   Description,
   ProjectBadgeWrapper,
@@ -51,7 +51,7 @@ interface TracesTableProps {
 }
 
 export function TracesTable({tracesTableResult}: TracesTableProps) {
-  const query = useExploreQuery();
+  const query = useQueryParamsQuery();
 
   const {result} = tracesTableResult;
 

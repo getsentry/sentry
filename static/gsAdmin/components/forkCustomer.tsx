@@ -68,10 +68,8 @@ class ForkCustomerAction extends Component<Props> {
       <Fragment>
         <SelectField
           name="regionUrl"
-          label={'Duplicate into Region'}
-          help={
-            "Choose which region to duplicate this organization's low volume metadata into. This will kick off a SAAS->SAAS relocation job, but the source organization will not be affected."
-          }
+          label="Duplicate into Region"
+          help="Choose which region to duplicate this organization's low volume metadata into. This will kick off a SAAS->SAAS relocation job, but the source organization will not be affected."
           choices={regionChoices}
           inline={false}
           stacked

@@ -14,6 +14,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organizationmember import OrganizationMember
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -36,13 +37,15 @@ class ProjectTransferEndpoint(ProjectEndpoint):
     permission_classes = (RelaxedProjectPermission,)
 
     enforce_rate_limit = True
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.USER: RateLimit(
-                limit=3, window=60 * 60
-            ),  # 3 POST requests per hour per user
-        }
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.USER: RateLimit(
+                    limit=3, window=60 * 60
+                ),  # 3 POST requests per hour per user
+            },
+        },
+    )
 
     @sudo_required
     def post(self, request: Request, project) -> Response:

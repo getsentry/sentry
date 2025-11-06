@@ -13,12 +13,12 @@ class LatestRepoReleaseEnvironment(Model):
 
     repository_id = BoundedBigIntegerField()
     # 0 for 'all environments'
-    environment_id = BoundedBigIntegerField()
-    release_id = BoundedBigIntegerField()
+    environment_id = BoundedBigIntegerField(db_index=True)
+    release_id = BoundedBigIntegerField(db_index=True)
     # deploy_id and commit_id are nullable but in practice always have a value
     deploy_id = BoundedBigIntegerField(null=True)
     # commit_id is the id of the ReleaseHeadCommit associated with the given release
-    commit_id = BoundedBigIntegerField(null=True)
+    commit_id = BoundedBigIntegerField(null=True, db_index=True)
 
     class Meta:
         app_label = "sentry"

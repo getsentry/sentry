@@ -5,17 +5,16 @@ import useEmitTimestampChanges from 'sentry/utils/replays/playback/hooks/useEmit
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  useFetchReplaySummary,
-  type UseFetchReplaySummaryResult,
-} from 'sentry/views/replays/detail/ai/useFetchReplaySummary';
+  useReplaySummary,
+  type UseReplaySummaryResult,
+} from 'sentry/views/replays/detail/ai/useReplaySummary';
 
-const ReplaySummaryContext = createContext<UseFetchReplaySummaryResult>({
+const ReplaySummaryContext = createContext<UseReplaySummaryResult>({
   summaryData: undefined,
   isError: false,
   isPending: false,
   isTimedOut: false,
   startSummaryRequest: () => {},
-  isStartSummaryRequestPending: false,
 });
 
 export function useReplaySummaryContext() {
@@ -34,16 +33,19 @@ export function ReplaySummaryContextProvider({
   const organization = useOrganization();
   const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
   const mobileProject = replay.isVideoReplay();
+  const hasAiSummary =
+    organization.features.includes('replay-ai-summaries') &&
+    areAiFeaturesAllowed &&
+    setupAcknowledgement.orgHasAcknowledged;
+  const hasMobileSummary = organization.features.includes('replay-ai-summaries-mobile');
 
-  const summaryResult = useFetchReplaySummary(replay, {
+  const summaryResult = useReplaySummary(replay, {
     staleTime: 0,
     enabled: Boolean(
       replay.getReplay().id &&
         projectSlug &&
-        organization.features.includes('replay-ai-summaries') &&
-        areAiFeaturesAllowed &&
-        setupAcknowledgement.orgHasAcknowledged &&
-        !mobileProject
+        hasAiSummary &&
+        (!mobileProject || hasMobileSummary)
     ),
   });
   useEmitTimestampChanges();

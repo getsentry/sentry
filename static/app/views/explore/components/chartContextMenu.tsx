@@ -11,6 +11,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
+import {
+  isVisualizeEquation,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 function ChartContextMenu({
@@ -26,7 +30,7 @@ function ChartContextMenu({
   setVisible: (visible: boolean) => void;
   visible: boolean;
   visualizeIndex: number;
-  visualizeYAxes: readonly string[];
+  visualizeYAxes: readonly Visualize[];
 }) {
   const {addToDashboard} = useAddToDashboard();
   const organization = useOrganization();
@@ -43,11 +47,12 @@ function ChartContextMenu({
         : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
     if (visualizeYAxes.length === 1) {
-      const yAxis = visualizeYAxes[0]!;
+      const yAxis = visualizeYAxes[0]!.yAxis;
       menuItems.push({
         key: 'create-alert',
         textValue: t('Create an Alert'),
         label: t('Create an Alert'),
+        disabled: isVisualizeEquation(visualizeYAxes[0]!),
         to: getAlertsUrl({
           project,
           query,
@@ -67,14 +72,15 @@ function ChartContextMenu({
         },
       });
     } else {
-      const alertsUrls = visualizeYAxes.map((yAxis, index) => ({
-        key: `${yAxis}-${index}`,
-        label: yAxis,
+      const alertsUrls = visualizeYAxes.map((visualizeYAxis, index) => ({
+        key: `${visualizeYAxis.yAxis}-${index}`,
+        label: visualizeYAxis.yAxis,
+        disabled: isVisualizeEquation(visualizeYAxis),
         to: getAlertsUrl({
           project,
           query,
           pageFilters: pageFilters.selection,
-          aggregate: yAxis,
+          aggregate: visualizeYAxis.yAxis,
           organization,
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
           interval,

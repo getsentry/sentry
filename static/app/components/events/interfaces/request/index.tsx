@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {CodeBlock} from 'sentry/components/core/code';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
@@ -141,7 +141,7 @@ export function Request({data, event}: RequestProps) {
       >
         {title}
         {view === 'curl' ? (
-          <CodeSnippet language="bash">{getCurlCommand(data)}</CodeSnippet>
+          <CodeBlock language="bash">{getCurlCommand(data)}</CodeBlock>
         ) : (
           <Fragment>
             <RequestBodySection data={data} event={event} meta={meta} />
@@ -180,7 +180,7 @@ export function Request({data, event}: RequestProps) {
       className="request"
     >
       {view === 'curl' ? (
-        <CodeSnippet language="bash">{getCurlCommand(data)}</CodeSnippet>
+        <CodeBlock language="bash">{getCurlCommand(data)}</CodeBlock>
       ) : (
         <Fragment>
           {defined(data.query) && (

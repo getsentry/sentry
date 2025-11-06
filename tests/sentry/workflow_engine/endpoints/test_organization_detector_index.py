@@ -57,7 +57,6 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
 
 @region_silo_test
 class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
-
     def test_simple(self) -> None:
         detector = self.create_detector(
             project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
@@ -94,6 +93,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             config={
                 "mode": 1,
                 "environment": "production",
+                "recovery_threshold": 1,
+                "downtime_threshold": 3,
             },
         )
         self.create_data_source_detector(
@@ -402,6 +403,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             config={
                 "mode": 1,
                 "environment": "production",
+                "recovery_threshold": 1,
+                "downtime_threshold": 3,
             },
         )
         cron_detector = self.create_detector(
@@ -703,15 +706,17 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             "name": "Test Detector",
             "type": MetricIssue.slug,
             "projectId": self.project.id,
-            "dataSource": {
-                "queryType": SnubaQuery.Type.ERROR.value,
-                "dataset": Dataset.Events.name.lower(),
-                "query": "test query",
-                "aggregate": "count()",
-                "timeWindow": 3600,
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
-            },
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.name.lower(),
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                }
+            ],
             "conditionGroup": {
                 "id": self.data_condition_group.id,
                 "organizationId": self.organization.id,
@@ -735,7 +740,9 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     def test_reject_upsampled_count_aggregate(self) -> None:
         """Users should not be able to submit upsampled_count() directly in ACI."""
         data = {**self.valid_data}
-        data["dataSource"] = {**self.valid_data["dataSource"], "aggregate": "upsampled_count()"}
+        data["dataSources"] = [
+            {**self.valid_data["dataSources"][0], "aggregate": "upsampled_count()"}
+        ]
 
         response = self.get_error_response(
             self.organization.slug,
@@ -834,6 +841,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert detector.name == "Test Detector"
         assert detector.type == MetricIssue.slug
         assert detector.project_id == self.project.id
+        assert detector.description is None
 
         # Verify data source
         data_source = DataSource.objects.get(detector=detector)
@@ -882,6 +890,18 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             data=detector.get_audit_log_data(),
         )
         mock_schedule_update_project_config.assert_called_once_with(detector)
+
+    def test_creation_with_description(self) -> None:
+        data = {**self.valid_data, "description": "This is a test metric detector"}
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **data,
+                status_code=201,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.description == "This is a test metric detector"
 
     def test_invalid_workflow_ids(self) -> None:
         # Workflow doesn't exist at all
@@ -939,7 +959,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 
     def test_empty_query_string(self) -> None:
         data = {**self.valid_data}
-        data["dataSource"]["query"] = ""
+        data["dataSources"][0]["query"] = ""
 
         with self.tasks():
             response = self.get_success_response(
@@ -1176,6 +1196,14 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
             project_id=self.project.id, name="Third Detector", type=MetricIssue.slug, enabled=True
         )
 
+        self.error_detector = self.create_detector(
+            project_id=self.project.id,
+            name="Error Detector",
+            type=ErrorGroupType.slug,
+            enabled=True,
+            created_by_id=None,
+        )
+
         self.user_detector = self.create_detector(
             project=self.project,
             name="User Created Detector",
@@ -1306,17 +1334,21 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         assert "Invalid ID format" in str(response.data["id"])
 
     def test_update_detectors_no_matching_detectors(self) -> None:
-        response = self.get_success_response(
+        response = self.get_error_response(
             self.organization.slug,
             qs_params={"id": "999999"},
             enabled=False,
-            status_code=200,
+            status_code=400,
         )
 
-        assert response.data["detail"] == "No detectors found."
+        assert (
+            response.data["detail"]
+            == "Some detectors were not found or you do not have permission to update them."
+        )
 
-    def test_update_detectors_permission_denied_for_member(self) -> None:
+    def test_update_detectors_permission_denied_for_member_without_alerts_write(self) -> None:
         self.organization.flags.allow_joinleave = False
+        self.organization.update_option("sentry:alerts_member_write", False)
         self.organization.save()
 
         self.login_as(user=self.member_user)
@@ -1333,6 +1365,7 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         assert self.detector.enabled is True
 
     def test_update_detectors_permission_allowed_for_team_admin(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
         self.login_as(user=self.team_admin_user)
 
         self.get_success_response(
@@ -1366,30 +1399,32 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         # Try to update a detector not created by a user
         self.get_error_response(
             self.organization.slug,
-            qs_params={"id": str(self.detector.id)},
+            qs_params={"id": str(self.error_detector.id)},
             enabled=False,
             status_code=403,
         )
 
         # Verify detector was not modified
-        self.detector.refresh_from_db()
-        assert self.detector.enabled is True
+        self.error_detector.refresh_from_db()
+        assert self.error_detector.enabled is True
 
     def test_update_detectors_org_manager_permission(self) -> None:
+        """
+        Test that an organization manager can update any type of detector, including error detectors.
+        """
         self.login_as(user=self.org_manager_user)
 
         self.get_success_response(
             self.organization.slug,
-            qs_params=[("id", str(self.detector.id)), ("id", str(self.detector_two.id))],
+            qs_params=[("id", str(self.detector.id)), ("id", str(self.error_detector.id))],
             enabled=False,
             status_code=200,
         )
 
-        # Verify detectors were updated
         self.detector.refresh_from_db()
-        self.detector_two.refresh_from_db()
+        self.error_detector.refresh_from_db()
         assert self.detector.enabled is False
-        assert self.detector_two.enabled is False
+        assert self.error_detector.enabled is False
 
     def test_update_owner_query_by_project(self) -> None:
         new_project = self.create_project(organization=self.organization)
@@ -1421,16 +1456,16 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         # Try to update both detectors - should fail because of mixed permissions
         self.get_error_response(
             self.organization.slug,
-            qs_params=[("id", str(self.user_detector.id)), ("id", str(self.detector.id))],
+            qs_params=[("id", str(self.user_detector.id)), ("id", str(self.error_detector.id))],
             enabled=False,
             status_code=403,
         )
 
         # Verify neither detector was modified
         self.user_detector.refresh_from_db()
-        self.detector.refresh_from_db()
+        self.error_detector.refresh_from_db()
         assert self.user_detector.enabled is True
-        assert self.detector.enabled is True
+        assert self.error_detector.enabled is True
 
 
 @region_silo_test
@@ -1628,18 +1663,21 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
 
     def test_delete_no_matching_detectors(self) -> None:
         # Test deleting detectors with non-existent ID
-        response = self.get_success_response(
+        response = self.get_error_response(
             self.organization.slug,
             qs_params={"id": "999999"},
-            status_code=200,
+            status_code=400,
         )
-        assert response.data["detail"] == "No detectors found."
+        assert (
+            response.data["detail"]
+            == "Some detectors were not found or you do not have permission to delete them."
+        )
 
         # Verify no detectors were affected
         self.assert_unaffected_detectors([self.detector, self.detector_two, self.detector_three])
 
         # Test deleting detectors with non-matching query
-        self.get_success_response(
+        response = self.get_success_response(
             self.organization.slug,
             qs_params={"query": "nonexistent-detector-name", "project": self.project.id},
             status_code=200,
@@ -1742,10 +1780,11 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         )
         self.login_as(user=member_user)
 
+        # Returns a 400 because the user does not have visibility into the other projects
         self.get_error_response(
             self.organization.slug,
             qs_params=[("id", str(self.detector.id)), ("id", str(other_detector.id))],
-            status_code=403,
+            status_code=400,
         )
 
         # Verify detector was not affected

@@ -26,8 +26,7 @@ function RepositorySwitcher({repositories, activeRepository}: RepositorySwitcher
 
   return (
     <CompactSelect
-      triggerLabel={activeRepo}
-      triggerProps={{prefix: t('Filter')}}
+      triggerProps={{prefix: t('Filter'), children: activeRepo}}
       value={activeRepo}
       options={repositories.map(repo => ({
         value: repo.name,

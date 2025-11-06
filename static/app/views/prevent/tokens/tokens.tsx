@@ -1,37 +1,30 @@
 import {useCallback} from 'react';
-import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Flex} from 'sentry/components/core/layout/flex';
-import {Text} from 'sentry/components/core/text';
-import Pagination from 'sentry/components/pagination';
+import {Heading, Text} from 'sentry/components/core/text';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Integration} from 'sentry/types/integrations';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 
 import {useInfiniteRepositoryTokens} from './repoTokenTable/hooks/useInfiniteRepositoryTokens';
-import RepoTokenTable, {isAValidSort} from './repoTokenTable/repoTokenTable';
+import RepoTokenTable, {parseSortFromQuery} from './repoTokenTable/repoTokenTable';
 
 export default function TokensPage() {
   const {integratedOrgId} = usePreventContext();
   const organization = useOrganization();
   const navigate = useNavigate();
-  const {data: integrations = []} = useApiQuery<Integration[]>(
-    [
-      `/organizations/${organization.slug}/integrations/`,
-      {query: {includeConfig: 0, provider_key: 'github'}},
-    ],
-    {staleTime: 0}
-  );
+  const {data: integrations = []} = useGetActiveIntegratedOrgs({organization});
   const location = useLocation();
 
-  const sort = decodeSorts(location.query?.sort).find(isAValidSort);
+  const sort = parseSortFromQuery(location.query?.sort as string);
 
   const response = useInfiniteRepositoryTokens({
     cursor: location.query?.cursor as string | undefined,
@@ -40,12 +33,7 @@ export default function TokensPage() {
   });
 
   const handleCursor = useCallback(
-    (
-      _cursor: string | undefined,
-      path: string,
-      query: Record<string, any>,
-      delta: number
-    ) => {
+    (delta: number) => {
       // Without these guards, the pagination cursor can get stuck on an incorrect value.
       const navigation = delta === -1 ? 'prev' : 'next';
       const goPrevPage = navigation === 'prev' && response.hasPreviousPage;
@@ -59,9 +47,8 @@ export default function TokensPage() {
       }
 
       navigate({
-        pathname: path,
         query: {
-          ...query,
+          ...location.query,
           cursor: goPrevPage
             ? response.startCursor
             : goNextPage
@@ -71,14 +58,16 @@ export default function TokensPage() {
         },
       });
     },
-    [navigate, response]
+    [navigate, response, location.query]
   );
   const integratedOrgName = integratedOrgIdToName(integratedOrgId, integrations);
 
   return (
     <Flex direction="column" gap="xl" maxWidth="1000px">
       <IntegratedOrgSelector />
-      <HeaderValue>{t('Repository tokens')}</HeaderValue>
+      <Heading as="h2" size="2xl">
+        {t('Repository tokens')}
+      </Heading>
       <Text>
         {tct(
           `View the list of tokens created for your repositories in [org]. Use them for uploading reports to all Sentry Prevent's features.`,
@@ -92,18 +81,24 @@ export default function TokensPage() {
         )}
       </Text>
       <RepoTokenTable response={response} sort={sort} />
-      {/* We don't need to use the pageLinks prop because Codecov handles pagination using our own cursor implementation. But we need to
-          put a dummy value here because otherwise the component wouldn't render. */}
-      <StyledPagination pageLinks="showComponent" onCursor={handleCursor} />
+      <Flex justify="right">
+        <ButtonBar merged gap="0">
+          <Button
+            icon={<IconChevron direction="left" />}
+            aria-label={t('Previous')}
+            size="sm"
+            disabled={!response.hasPreviousPage}
+            onClick={() => handleCursor(-1)}
+          />
+          <Button
+            icon={<IconChevron direction="right" />}
+            aria-label={t('Next')}
+            size="sm"
+            disabled={!response.hasNextPage}
+            onClick={() => handleCursor(1)}
+          />
+        </ButtonBar>
+      </Flex>
     </Flex>
   );
 }
-
-const HeaderValue = styled('div')`
-  font-size: ${p => p.theme.fontSize['2xl']};
-  font-weight: ${p => p.theme.fontWeight.bold};
-`;
-
-const StyledPagination = styled(Pagination)`
-  margin: 0px;
-`;

@@ -120,31 +120,6 @@ if memcached:
 # A primary cache is required for things such as processing events
 SENTRY_CACHE = "sentry.cache.redis.RedisCache"
 
-#########
-# Queue #
-#########
-
-# See https://develop.sentry.dev/services/queue/ for more information on
-# configuring your queue broker and workers. Sentry relies on a Python
-# framework called Celery to manage queues.
-
-rabbitmq = env("SENTRY_RABBITMQ_HOST") or (env("RABBITMQ_PORT_5672_TCP_ADDR") and "rabbitmq")
-
-if rabbitmq:
-    BROKER_URL = (
-        "amqp://"
-        + (env("SENTRY_RABBITMQ_USERNAME") or env("RABBITMQ_ENV_RABBITMQ_DEFAULT_USER") or "guest")
-        + ":"
-        + (env("SENTRY_RABBITMQ_PASSWORD") or env("RABBITMQ_ENV_RABBITMQ_DEFAULT_PASS") or "guest")
-        + "@"
-        + rabbitmq
-        + "/"
-        + (env("SENTRY_RABBITMQ_VHOST") or env("RABBITMQ_ENV_RABBITMQ_DEFAULT_VHOST") or "/")
-    )
-else:
-    BROKER_URL = f"redis://{redis_password}@{redis}:{redis_port}/{redis_db}"
-
-
 ###############
 # Rate Limits #
 ###############

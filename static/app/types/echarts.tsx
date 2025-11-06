@@ -67,6 +67,18 @@ export type EChartHighlightHandler = EChartEventHandler<EChartsHighlightEventPar
 
 export type EChartDownplayHandler = EChartEventHandler<EChartsHighlightEventParam>;
 
+/**
+ * Incomplete type for the "legendselectchanged" event handler in ECharts. This is extracted from types we were using in the app at one time.
+ */
+interface EChartsLegendSelectChangeEventParam {
+  name: string;
+  selected: Record<string, boolean>;
+  type: 'legendselectchanged';
+}
+
+export type EChartLegendSelectChangeHandler =
+  EChartEventHandler<EChartsLegendSelectChangeEventParam>;
+
 type EChartMouseEventData = string | number | Record<string, any>;
 /**
  * XXX: These are incomplete types and can also vary depending on the component type
@@ -151,8 +163,8 @@ export type EChartFinishedHandler = EChartEventHandler<Record<string, unknown>>;
 export type EChartRenderedHandler = EChartEventHandler<Record<string, unknown>>;
 
 export type EchartBrushAreas = Array<{
-  coordRange: number[][];
-  range: number[][];
+  coordRange: number[] | number[][];
+  range: number[] | number[][];
 }>;
 
 export type EChartBrushStartHandler = EChartEventHandler<{

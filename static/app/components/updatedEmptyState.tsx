@@ -8,14 +8,10 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {
-  OnboardingCodeSnippet,
-  TabbedCodeSnippet,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
-  Configuration,
   DocsParams,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
@@ -44,34 +40,6 @@ export function SetupTitle({project}: {project: Project}) {
         ),
       })}
     </BodyTitle>
-  );
-}
-
-function ConfigurationRenderer({configuration}: {configuration: Configuration}) {
-  const subConfigurations = configuration.configurations ?? [];
-
-  return (
-    <ConfigurationWrapper>
-      {configuration.description && (
-        <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
-      )}
-      {typeof configuration.code === 'string' ||
-      (Array.isArray(configuration.code) && configuration.code.length > 0) ? (
-        Array.isArray(configuration.code) ? (
-          <TabbedCodeSnippet tabs={configuration.code} />
-        ) : (
-          <OnboardingCodeSnippet language={configuration.language}>
-            {configuration.code}
-          </OnboardingCodeSnippet>
-        )
-      ) : null}
-      {subConfigurations.map((subConfiguration, index) => (
-        <ConfigurationRenderer key={index} configuration={subConfiguration} />
-      ))}
-      {configuration.additionalInfo && (
-        <AdditionalInfo>{configuration.additionalInfo}</AdditionalInfo>
-      )}
-    </ConfigurationWrapper>
   );
 }
 
@@ -124,6 +92,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     platformKey: currentPlatformKey,
     project,
     isLogsSelected: false,
+    isMetricsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: false,
     isProfilingSelected: false,
@@ -160,7 +129,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   // TODO: Is there a reason why we are only selecting a few steps?
   const steps = [install[0], configure[0], configure[1], verify[0]]
     // Filter optional steps
-    .filter(step => !!step && !step.collapsible);
+    .filter((step): step is OnboardingStep => !!step && !step.collapsible);
 
   return (
     <AuthTokenGeneratorProvider projectSlug={project?.slug}>
@@ -189,30 +158,13 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
               }}
             >
               {steps.map((step, index) => {
-                const title = step?.title ?? StepTitles[step?.type ?? 'install'];
+                const title = step.title ?? StepTitles[step.type ?? 'install'];
                 return (
                   <GuidedSteps.Step key={index} stepKey={title} title={title}>
-                    {step?.content ? (
-                      <ContentBlocksRenderer
-                        contentBlocks={step.content}
-                        spacing={space(1)}
-                      />
-                    ) : (
-                      <div>
-                        {step?.description ? (
-                          <DescriptionWrapper>{step.description}</DescriptionWrapper>
-                        ) : null}
-                        {step?.configurations?.map((configuration, configIndex) => (
-                          <ConfigurationRenderer
-                            key={configIndex}
-                            configuration={configuration}
-                          />
-                        ))}
-                        {step?.additionalInfo ? (
-                          <AdditionalInfo>{step.additionalInfo}</AdditionalInfo>
-                        ) : null}
-                      </div>
-                    )}
+                    <ContentBlocksRenderer
+                      contentBlocks={step.content}
+                      spacing={space(1)}
+                    />
                     {index === steps.length - 1 ? (
                       <FirstEventIndicator
                         organization={organization}
@@ -244,7 +196,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
             <ArcadeWrapper>
               <Arcade
-                src="https://demo.arcade.software/54VidzNthU5ykIFPCdW1?embed"
+                src="https://demo.arcade.software/bQko6ZTRFMyTm6fJaDzs?embed"
                 loading="lazy"
                 allowFullScreen
               />
@@ -337,9 +289,9 @@ const Divider = styled('hr')`
 `;
 
 const Arcade = styled('iframe')`
-  width: 750px;
+  width: 720px;
   max-width: 100%;
-  height: 500px;
+  height: 420px;
   border: 0;
   color-scheme: auto;
 `;
@@ -352,18 +304,6 @@ const IndicatorWrapper = styled('div')`
   width: 300px;
   max-width: 100%;
   margin-bottom: ${space(1)};
-`;
-
-const ConfigurationWrapper = styled('div')`
-  margin-bottom: ${space(1)};
-`;
-
-const DescriptionWrapper = styled('div')`
-  margin-bottom: ${space(1)};
-`;
-
-const AdditionalInfo = styled(DescriptionWrapper)`
-  margin-top: ${space(2)};
 `;
 
 const FirstEventWrapper = styled('div')`

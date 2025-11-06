@@ -127,7 +127,6 @@ export function IntegrationReposAddRepository({
       onChange={addRepo}
       disabled={false}
       menuTitle={t('Repositories')}
-      triggerLabel={t('Add Repository')}
       emptyMessage={
         query.isFetching
           ? t('Searching\u2026')
@@ -143,6 +142,7 @@ export function IntegrationReposAddRepository({
       onSearch={setSearch}
       triggerProps={{
         busy: adding,
+        children: t('Add Repository'),
       }}
       disableSearchFilter
     />

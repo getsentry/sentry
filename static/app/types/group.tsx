@@ -1,7 +1,7 @@
 import type {LocationDescriptor} from 'history';
 
-import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
 import type {TitledPlugin} from 'sentry/components/group/pluginActions';
+import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
 import type {FieldKind} from 'sentry/utils/fields';
 
@@ -62,6 +62,7 @@ export enum SavedSearchType {
   ERROR = 6,
   TRANSACTION = 7,
   LOG = 8,
+  TRACEMETRIC = 9,
 }
 
 export enum IssueCategory {
@@ -196,7 +197,7 @@ export enum IssueTitle {
   PERFORMANCE_SLOW_DB_QUERY = 'Slow DB Query',
   PERFORMANCE_RENDER_BLOCKING_ASSET = 'Large Render Blocking Asset',
   PERFORMANCE_UNCOMPRESSED_ASSET = 'Uncompressed Asset',
-  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP payload',
+  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP Payload',
   PERFORMANCE_HTTP_OVERHEAD = 'HTTP/1.1 Overhead',
   PERFORMANCE_ENDPOINT_REGRESSION = 'Endpoint Regression',
 
@@ -616,12 +617,20 @@ interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBas
   data: {
     // Set for semver releases
     current_release_version: string;
+    inNextRelease?: boolean;
+    integration_id?: number;
+    provider?: string;
+    provider_key?: string;
   };
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
 }
 
 interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
   data: {
+    inNextRelease?: boolean;
+    integration_id?: number;
+    provider?: string;
+    provider_key?: string;
     version?: string;
   };
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
@@ -943,9 +952,18 @@ export interface BaseGroup {
   substatus?: GroupSubstatus | null;
 }
 
+interface GroupOpenPeriodActivity {
+  dateCreated: string;
+  id: string;
+  type: 'opened' | 'status_change' | 'closed';
+  value: 'high' | 'medium' | null;
+}
+
 export interface GroupOpenPeriod {
+  activities: GroupOpenPeriodActivity[];
   duration: string;
   end: string;
+  id: string;
   isOpen: boolean;
   lastChecked: string;
   start: string;

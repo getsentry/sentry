@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {Link} from 'sentry/components/core/link';
@@ -41,16 +42,21 @@ export function SpanGroupDetailsLink({
   return (
     <OverflowEllipsisTextContainer>
       {group ? (
-        <Link
+        <StyledLink
           to={normalizeUrl(
             `${moduleURL}/spans/span/${group}/?${qs.stringify(queryString)}`
           )}
         >
           {description}
-        </Link>
+        </StyledLink>
       ) : (
         description
       )}
     </OverflowEllipsisTextContainer>
   );
 }
+
+const StyledLink = styled(Link)`
+  display: inline-block;
+  min-width: ${p => p.theme.space['2xl']};
+`;

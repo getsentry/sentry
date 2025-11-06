@@ -1,8 +1,12 @@
+from typing import Any
+
 from django.test import override_settings
 
 from sentry.constants import SentryAppStatus
 from sentry.integrations.models.integration_feature import Feature
+from sentry.models.organization import Organization
 from sentry.sentry_apps.logic import SentryAppUpdater
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -110,7 +114,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
 class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
     method = "post"
 
-    def get_expected_response(self, app, org):
+    def get_expected_response(self, app: SentryApp, org: Organization) -> dict[str, Any]:
         installation = SentryAppInstallation.objects.get(sentry_app=app, organization_id=org.id)
         assert installation.api_grant is not None
         return {

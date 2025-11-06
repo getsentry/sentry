@@ -4,7 +4,6 @@ from typing import Any
 from unittest import mock
 
 import pytest
-from celery.app.task import Task
 from django.db import transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.models.signals import ModelSignal
@@ -28,7 +27,7 @@ def _raise_reports(reports: StaleDatabaseReads):
 
     msg = f"""\
 {_SEP_LINE}
-We have detected that you are spawning a celery task in the following situations:
+We have detected that you are spawning a task in the following situations:
 """
 
     if reports.model_signal_handlers:
@@ -38,7 +37,7 @@ We have detected that you are spawning a celery task in the following situations
         msg += """
 We found that such model signal handlers are often subtly broken in situations
 where the model is being updated inside of a transaction. In this case the
-spawned celery task can observe the old model state in production (where it
+spawned task can observe the old model state in production (where it
 runs on a different machine) but not in tests (where it doesn't).
 
 Typically the fix is to spawn the task using django.db.transaction.on_commit:
@@ -90,6 +89,8 @@ Or like this in pytest-based tests:
 
 @pytest.fixture(autouse=True)
 def stale_database_reads():
+    from sentry.taskworker.task import Task
+
     _state = local()
 
     old_send = ModelSignal.send
@@ -132,9 +133,9 @@ def stale_database_reads():
 
     reports = StaleDatabaseReads(model_signal_handlers=[], transaction_blocks=[])
 
-    old_apply_async = Task.apply_async
+    old_signal_send = Task._signal_send
 
-    def apply_async(self, args=(), kwargs=(), **options):
+    def signal_send(self, task, args=(), kwargs=(), **options):
         in_commit_hook = getattr(_state, "in_on_commit", None) or getattr(
             _state, "in_run_and_clear_commit_hooks", None
         )
@@ -145,7 +146,7 @@ def stale_database_reads():
         elif getattr(_state, "in_atomic", None) and not in_commit_hook:
             reports.transaction_blocks.append(self)
 
-        return old_apply_async(self, args, kwargs, **options)
+        return old_signal_send(self, task, args, kwargs, **options)
 
     with (
         mock.patch.object(ModelSignal, "send", send),
@@ -154,7 +155,7 @@ def stale_database_reads():
         mock.patch.object(
             BaseDatabaseWrapper, "run_and_clear_commit_hooks", run_and_clear_commit_hooks
         ),
-        mock.patch.object(Task, "apply_async", apply_async),
+        mock.patch.object(Task, "_signal_send", signal_send),
     ):
         yield reports
 

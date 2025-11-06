@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import (
@@ -48,13 +50,13 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                 )
 
                 assert title == "Size Analysis"
-                assert subtitle == "1 build processing"
+                assert subtitle == "1 app processing"
                 assert "Processing..." in summary
                 assert "com.example.app" in summary
                 assert "1.0.0 (1)" in summary
 
     def test_processed_state_without_metrics(self):
-        """Test formatting for processed state without size metrics."""
+        """Test that processed state without size metrics raises an error."""
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -63,13 +65,8 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
             build_number=1,
         )
 
-        title, subtitle, summary = format_status_check_messages(
-            [artifact], {}, StatusCheckStatus.FAILURE
-        )
-
-        assert title == "Size Analysis"
-        assert subtitle == "1 build processing"  # Processed but no metrics = still processing
-        assert "Processing..." in summary
+        with pytest.raises(ValueError, match="No metrics exist for VCS size status check"):
+            format_status_check_messages([artifact], {}, StatusCheckStatus.SUCCESS)
 
     def test_processed_state_with_metrics_no_previous(self):
         """Test formatting for processed state with metrics but no previous build."""
@@ -98,9 +95,9 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build analyzed"
+        assert subtitle == "1 app analyzed"
         assert "1.0 MB" in summary
-        assert "2.0 MB" in summary
+        assert "2.1 MB" in summary
         assert "N/A" in summary
         assert "com.example.app" in summary
 
@@ -153,7 +150,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "2 builds processing"
+        assert subtitle == "2 apps processing"
         assert "Processing..." in summary
         assert "com.example.app0" in summary
         assert "com.example.app1" in summary
@@ -197,10 +194,10 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build processing"  # Still processing because watch is not complete
+        assert subtitle == "1 app analyzed, 1 app processing"
         # Should have two rows - main app shows sizes, watch shows processing
         assert "`com.example.app`" in summary
-        assert "`com.example.app (Watch)`" in summary
+        assert "-- (Watch)" in summary
         assert "1.0 MB" in summary  # Main app completed
         assert "Processing..." in summary  # Watch app processing
 
@@ -231,10 +228,10 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build processing"
+        assert subtitle == "1 app processing"
 
         # Verify processing state is shown in table
-        assert "`com.example.processing`" in summary
+        assert "com.example.processing" in summary
         assert "2.1.0 (15)" in summary
         assert "Processing..." in summary
 
@@ -265,7 +262,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build errored"
+        assert subtitle == "1 app errored"
         assert "Build timeout" in summary
         assert "com.example.app" in summary
         assert "1.0.0 (1)" in summary
@@ -343,7 +340,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build analyzed, 1 build processing, 1 build errored"
+        assert subtitle == "1 app analyzed, 1 app processing, 1 app errored"
         assert "Processing..." in summary  # Non-failed artifacts show as processing
         assert "Upload timeout" in summary  # Failed artifact error
         assert "com.example.processed" in summary
@@ -386,9 +383,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "2 builds analyzed"
+        assert subtitle == "2 apps analyzed"
         assert "1.0 MB" in summary  # First artifact download size
-        assert "2.0 MB" in summary  # Second artifact download size
+        assert "2.1 MB" in summary  # Second artifact download size
         assert "com.example.app0" in summary
         assert "com.example.app1" in summary
 
@@ -429,13 +426,13 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build analyzed"
+        assert subtitle == "2 apps analyzed"
         # Should have two rows - main app and watch app
-        assert "`com.example.app`" in summary  # Main app
-        assert "`com.example.app (Watch)`" in summary  # Watch app
+        assert "`com.example.app`" in summary  # Both main and watch show app_id
+        assert "-- (Watch)" in summary  # Watch app label
         assert "1.0 MB" in summary  # Main app download
-        assert "512.0 KB" in summary  # Watch app download
-        assert "2.0 MB" in summary  # Main app install
+        assert "524.3 KB" in summary  # Watch app download
+        assert "2.1 MB" in summary  # Main app install
         # Check that both rows appear together
         lines = summary.split("\n")
         main_row_idx = None
@@ -443,7 +440,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         for i, line in enumerate(lines):
             if "`com.example.app`" in line and "(Watch)" not in line:
                 main_row_idx = i
-            elif "`com.example.app (Watch)`" in line:
+            elif "-- (Watch)" in line:
                 watch_row_idx = i
         assert main_row_idx is not None
         assert watch_row_idx is not None
@@ -487,14 +484,14 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build analyzed"
+        assert subtitle == "2 apps analyzed"
         # Should have two rows - main app and dynamic feature
-        assert "`com.example.android`" in summary  # Main app
-        assert "`com.example.android (Dynamic Feature)`" in summary  # Dynamic feature
-        assert "4.0 MB" in summary  # Main app download
+        assert "`com.example.android`" in summary  # Main app and dynamic feature both show app_id
+        assert "-- (Dynamic Feature)" in summary  # Dynamic feature label
+        assert "4.2 MB" in summary  # Main app download (note: rounds to 4.2 not 4.0)
         assert "1.0 MB" in summary  # Dynamic feature download
-        assert "8.0 MB" in summary  # Main app install
-        assert "2.0 MB" in summary  # Dynamic feature install
+        assert "8.4 MB" in summary  # Main app install
+        assert "2.1 MB" in summary  # Dynamic feature install (note: rounds to 2.1 not 2.0)
 
     def test_size_changes_with_base_artifacts(self):
         """Test size change calculations when base artifacts exist for comparison."""
@@ -557,15 +554,15 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build analyzed"
+        assert subtitle == "1 app analyzed"
 
         # Verify that size changes are calculated and displayed
-        assert "4.0 MB" in summary  # Current download size
-        assert "8.2 MB" in summary  # Current install size
+        assert "4.2 MB" in summary  # Current download size
+        assert "8.6 MB" in summary  # Current install size
 
-        # Verify that changes are shown (4.0MB - 3.8MB = 204.8KB, 8.2MB - 7.9MB = 307.2KB)
-        assert "+204.8 KB" in summary  # Download change
-        assert "+307.2 KB" in summary  # Install change
+        # Verify that changes are shown (4.2MB - 4.0MB = 209.7KB, 8.6MB - 8.3MB = 314.6KB)
+        assert "+209.7 KB" in summary  # Download change
+        assert "+314.6 KB" in summary  # Install change
 
         # Verify the table structure includes the Change columns
         assert "Change" in summary
@@ -599,9 +596,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 build analyzed"
+        assert subtitle == "1 app analyzed"
         assert "1.0 MB" in summary
-        assert "2.0 MB" in summary
+        assert "2.1 MB" in summary
         # Should show N/A for changes when no base exists
         lines = summary.split("\n")
         data_line = next(line for line in lines if "com.example.app" in line)
@@ -682,12 +679,12 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         # Main artifact should show changes (has matching base)
-        assert "+204.8 KB" in summary  # 3.0MB - 2.8MB = 204.8KB
-        assert "+307.2 KB" in summary  # 6.8MB - 6.5MB = 307.2KB
+        assert "+209.7 KB" in summary  # 3.1MB - 2.9MB = 209.7KB
+        assert "+314.6 KB" in summary  # 7.1MB - 6.8MB = 314.6KB
 
         # Watch artifact should show N/A (no matching base watch metrics)
         lines = summary.split("\n")
-        watch_line = next(line for line in lines if "com.example.ios (Watch)" in line)
+        watch_line = next(line for line in lines if "(Watch)" in line)
         # Count N/A occurrences in the watch line - should be 3 (change columns + approval)
         na_count = watch_line.count("N/A")
         assert na_count >= 2  # At least 2 N/A for the change columns
@@ -847,19 +844,19 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
         )
 
         # Verify current sizes are shown
-        assert "5.2 MB" in summary  # Current debug download size
-        assert "10.3 MB" in summary  # Current debug install size
+        assert "5.5 MB" in summary  # Current debug download size
+        assert "10.8 MB" in summary  # Current debug install size
 
         # Verify that changes are calculated against the debug base (not release base)
-        # Expected: 5.2MB - 5.0MB = 204.8KB, 10.3MB - 10.0MB = 307.2KB
-        assert "+204.8 KB" in summary  # Debug download change (should be small)
-        assert "+307.2 KB" in summary  # Debug install change (should be small)
+        # Expected: 5.5MB - 5.2MB = 209.7KB, 10.8MB - 10.5MB = 314.6KB
+        assert "+209.7 KB" in summary  # Debug download change (should be small)
+        assert "+314.6 KB" in summary  # Debug install change (should be small)
 
         # Verify that it's NOT comparing against the release base artifact
         # If it was comparing against release (wrong behavior), we would see much larger changes:
-        # 5.2MB - 2.0MB = 3.2MB, 10.3MB - 4.0MB = 6.3MB
-        assert "+3.2 MB" not in summary  # This would indicate wrong comparison to release base
-        assert "+6.3 MB" not in summary  # This would indicate wrong comparison to release base
+        # 5.5MB - 2.1MB = 3.4MB, 10.8MB - 4.2MB = 6.6MB
+        assert "+3.4 MB" not in summary  # This would indicate wrong comparison to release base
+        assert "+6.6 MB" not in summary  # This would indicate wrong comparison to release base
 
     def test_same_build_configuration_comparison_works(self):
         """Test that artifacts with same build configuration are properly compared."""
@@ -928,10 +925,10 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
         )
 
         # Verify that comparison works properly for same configuration
-        assert "3.1 MB" in summary  # Current download size
-        assert "6.2 MB" in summary  # Current install size
-        assert "+102.4 KB" in summary  # 3.1MB - 3.0MB = 102.4KB
-        assert "+204.8 KB" in summary  # 6.2MB - 6.0MB = 204.8KB
+        assert "3.3 MB" in summary  # Current download size
+        assert "6.5 MB" in summary  # Current install size
+        assert "+104.9 KB" in summary  # 3.3MB - 3.1MB = 104.9KB
+        assert "+209.7 KB" in summary  # 6.5MB - 6.3MB = 209.7KB
 
     def test_no_matching_build_configuration_shows_na(self):
         """Test that when no matching build configuration exists, N/A is shown for changes."""
@@ -1001,8 +998,8 @@ class BuildConfigurationComparisonTest(StatusCheckTestBase):
         )
 
         # Verify current sizes are shown
-        assert "6.0 MB" in summary  # Current debug download size
-        assert "12.0 MB" in summary  # Current debug install size
+        assert "6.3 MB" in summary  # Current debug download size
+        assert "12.6 MB" in summary  # Current debug install size
 
         # Verify that N/A is shown for changes (no matching base configuration)
         lines = summary.split("\n")

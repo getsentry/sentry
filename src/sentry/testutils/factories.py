@@ -55,6 +55,7 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
 from sentry.integrations.models.external_actor import ExternalActor
@@ -69,6 +70,7 @@ from sentry.integrations.models.integration_feature import (
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
+from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -125,7 +127,6 @@ from sentry.notifications.models.notificationaction import (
 )
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
-from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -156,7 +157,6 @@ from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     IntervalSecondsLiteral,
-    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
@@ -1153,7 +1153,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_group(project, create_open_period=True, **kwargs):
         from sentry.models.group import GroupStatus
-        from sentry.models.groupopenperiod import GroupOpenPeriod
+        from sentry.models.groupopenperiod import GroupOpenPeriod, should_create_open_periods
         from sentry.testutils.helpers.datetime import before_now
         from sentry.types.group import GroupSubStatus
 
@@ -1171,7 +1171,7 @@ class Factories:
             kwargs["substatus"] = GroupSubStatus.NEW
 
         group = Group.objects.create(project=project, **kwargs)
-        if create_open_period:
+        if create_open_period and should_create_open_periods(group.type):
             open_period = GroupOpenPeriod.objects.create(
                 group=group,
                 project=project,
@@ -1193,6 +1193,22 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_file(**kwargs):
         return File.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_forwarder(organization, provider, config, **kwargs):
+        return DataForwarder.objects.create(
+            organization=organization, provider=provider, config=config, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_forwarder_project(data_forwarder, project, **kwargs):
+        from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+
+        return DataForwarderProject.objects.create(
+            data_forwarder=data_forwarder, project=project, **kwargs
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1697,9 +1713,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_incident_activity(incident, type, comment=None, user_id=None):
+    def create_incident_activity(incident, type, comment=None, user_id=None, **kwargs):
         return IncidentActivity.objects.create(
-            incident=incident, type=type, comment=comment, user_id=user_id
+            incident=incident, type=type, comment=comment, user_id=user_id, **kwargs
         )
 
     @staticmethod
@@ -1947,13 +1963,9 @@ class Factories:
         release: Release | None = None,
         user_id: int | None = None,
         team_id: int | None = None,
-        prev_history: GroupHistory | None = None,
+        prev_history_date: datetime | None = None,
         date_added: datetime | None = None,
     ) -> GroupHistory:
-        prev_history_date = None
-        if prev_history:
-            prev_history_date = prev_history.date_added
-
         kwargs = {}
         if date_added:
             kwargs["date_added"] = date_added
@@ -1965,7 +1977,6 @@ class Factories:
             user_id=user_id,
             team_id=team_id,
             status=status,
-            prev_history=prev_history,
             prev_history_date=prev_history_date,
             **kwargs,
         )
@@ -2091,8 +2102,6 @@ class Factories:
         headers,
         body,
         date_updated: datetime,
-        uptime_status: UptimeStatus,
-        uptime_status_update_date: datetime,
         trace_sampling: bool = False,
     ):
         if url is None:
@@ -2115,8 +2124,6 @@ class Factories:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
-            uptime_status=uptime_status,
-            uptime_status_update_date=uptime_status_update_date,
         )
 
     @staticmethod

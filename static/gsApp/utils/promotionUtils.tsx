@@ -1,10 +1,10 @@
 import * as Sentry from '@sentry/react';
-import type {QueryObserverResult} from '@tanstack/react-query';
 
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
-import {QueryClient} from 'sentry/utils/queryClient';
+import {QueryClient, type QueryObserverResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 import {
   openPromotionModal,
@@ -14,6 +14,7 @@ import {
   InvoiceItemType,
   type DiscountInfo,
   type Plan,
+  type Promotion,
   type PromotionClaimed,
   type PromotionData,
   type Subscription,
@@ -128,17 +129,17 @@ export function showChurnDiscount({
 
 export async function checkForPromptBasedPromotion({
   organization,
-  refetch,
+  onRefetch,
   promptFeature,
   subscription,
   promotionData,
   onAcceptConditions,
 }: {
   onAcceptConditions: () => void;
+  onRefetch: () => Promise<QueryObserverResult<PromotionData | any, RequestError>>;
   organization: Organization;
   promotionData: PromotionData;
   promptFeature: string;
-  refetch: () => Promise<QueryObserverResult<PromotionData, unknown>>;
   subscription: Subscription;
 }) {
   // from the existing promotion data, check if the user has already claimed the prompt-based promotion
@@ -173,10 +174,10 @@ export async function checkForPromptBasedPromotion({
       feature: promptFeature,
       status: 'dismissed',
     });
-    const result = await refetch();
+    await onRefetch(); // will refresh promotionData
     // find the matching available promotion based on prompt features
-    const promotion = result?.data?.availablePromotions?.find(
-      promo => promo.promptActivityTrigger === promptFeature
+    const promotion = promotionData?.availablePromotions?.find(
+      (promo: Promotion) => promo.promptActivityTrigger === promptFeature
     );
     if (!promotion) {
       return;

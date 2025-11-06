@@ -23,7 +23,7 @@ describe('EAPField', () => {
     render(
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <EAPField
-          aggregate={'count(span.duration)'}
+          aggregate="count(span.duration)"
           onChange={() => {}}
           eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
         />
@@ -56,7 +56,7 @@ describe('EAPField', () => {
     render(
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <EAPField
-          aggregate={'epm()'}
+          aggregate="epm()"
           onChange={() => {}}
           eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
         />
@@ -83,7 +83,7 @@ describe('EAPField', () => {
     render(
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <EAPField
-          aggregate={'failure_rate()'}
+          aggregate="failure_rate()"
           onChange={() => {}}
           eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
         />
@@ -117,7 +117,7 @@ describe('EAPField', () => {
     render(
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <EAPField
-          aggregate={'count(span.duration)'}
+          aggregate="count(span.duration)"
           onChange={onChange}
           eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
         />
@@ -214,7 +214,7 @@ describe('EAPField', () => {
     render(
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
         <EAPField
-          aggregate={'count(message)'}
+          aggregate="count(message)"
           onChange={() => {}}
           eventTypes={[EventTypes.TRACE_ITEM_LOG]}
         />
@@ -310,5 +310,103 @@ describe('EAPField', () => {
 
     expect(screen.getByText('sum')).toBeInTheDocument();
     expect(screen.getByText('severity_number')).toBeInTheDocument();
+  });
+
+  it('renders apdex with duration argument and threshold value for spans', async () => {
+    function Component() {
+      const [aggregate, setAggregate] = useState('count(span.duration)');
+      return (
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <EAPField
+            aggregate={aggregate}
+            onChange={setAggregate}
+            eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+          />
+        </TraceItemAttributeProvider>
+      );
+    }
+
+    render(<Component />);
+
+    await userEvent.click(screen.getByText('count'));
+    await userEvent.click(await screen.findByText('apdex'));
+
+    expect(screen.getByText('apdex')).toBeInTheDocument();
+    expect(screen.getByText('span.duration')).toBeInTheDocument();
+
+    const inputs = screen.getAllByRole('textbox');
+    expect(inputs).toHaveLength(3);
+    expect(inputs[0]).toBeEnabled();
+    expect(inputs[1]).toBeEnabled();
+    expect(inputs[2]).toBeEnabled();
+    expect(inputs[2]).toHaveValue('300');
+  });
+
+  it('should call onChange with correct apdex aggregate when switching to apdex', async () => {
+    const onChange = jest.fn();
+    render(
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        <EAPField
+          aggregate="count(span.duration)"
+          onChange={onChange}
+          eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+        />
+      </TraceItemAttributeProvider>
+    );
+
+    await userEvent.click(screen.getByText('count'));
+    await userEvent.click(await screen.findByText('apdex'));
+
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith('apdex(span.duration,300)', {})
+    );
+  });
+
+  it('should allow changing both duration argument and threshold value for apdex', async () => {
+    const onChange = jest.fn();
+
+    function Component() {
+      const [aggregate, setAggregate] = useState('apdex(span.duration,300)');
+      return (
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <EAPField
+            aggregate={aggregate}
+            onChange={newAggregate => {
+              setAggregate(newAggregate);
+              onChange(newAggregate, {});
+            }}
+            eventTypes={[EventTypes.TRACE_ITEM_SPAN]}
+          />
+        </TraceItemAttributeProvider>
+      );
+    }
+
+    render(<Component />);
+
+    expect(screen.getByText('apdex')).toBeInTheDocument();
+    expect(screen.getByText('span.duration')).toBeInTheDocument();
+
+    const inputs = screen.getAllByRole('textbox');
+    expect(inputs[2]).toHaveValue('300');
+
+    await userEvent.click(screen.getByText('span.duration'));
+    await userEvent.click(await screen.findByText('span.self_time'));
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith('apdex(span.self_time,300)', {});
+    });
+
+    expect(screen.getByText('span.self_time')).toBeInTheDocument();
+
+    const thresholdInput = screen.getAllByRole('textbox')[2]!;
+    await userEvent.clear(thresholdInput);
+    await userEvent.type(thresholdInput, '500');
+    await userEvent.keyboard('{Tab}');
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith('apdex(span.self_time,500)', {});
+    });
+
+    expect(thresholdInput).toHaveValue('500');
   });
 });

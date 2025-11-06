@@ -28,7 +28,7 @@ describe('UptimeAlertDetails', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/?limit=1&project=2&query=issue.type%3Auptime_domain_failure%20title%3A%22Downtime%20detected%20for%20https%3A%2F%2Fexample.com%22`,
+      url: `/organizations/org-slug/issues/?limit=1&project=2&query=detector%3A3`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -54,6 +54,25 @@ describe('UptimeAlertDetails', () => {
       initialRouterConfig: getInitialRouterConfig('3'),
     });
     expect(await screen.findByText('Uptime Test Rule')).toBeInTheDocument();
+  });
+
+  // HOTFIX: monitor_names_missing_default
+  // Auto-detected monitors were created without names. This test ensures the
+  // fallback name is displayed correctly.
+  it('renders with fallback name when monitor name is empty', async () => {
+    const detector = UptimeDetectorFixture({name: ''});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/3/`,
+      body: detector,
+    });
+
+    render(<UptimeAlertDetails />, {
+      organization,
+      initialRouterConfig: getInitialRouterConfig('3'),
+    });
+
+    const expectedName = `Uptime Monitoring for ${detector.dataSources[0].queryObj.url}`;
+    expect(await screen.findByText(expectedName)).toBeInTheDocument();
   });
 
   it('shows a message for invalid uptime alert', async () => {

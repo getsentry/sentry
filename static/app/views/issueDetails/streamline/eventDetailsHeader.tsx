@@ -26,10 +26,8 @@ import {
 import {MetricIssueChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
-import {
-  EventSearch,
-  useEventQuery,
-} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
 import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
@@ -55,7 +53,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const location = useLocation();
   const theme = useTheme();
   const environments = useEnvironmentsFromUrl();
-  const searchQuery = useEventQuery({groupId: group.id});
+  const searchQuery = useEventQuery();
   const issueTypeConfig = getConfigForIssueType(group, project);
   const {dispatch} = useIssueDetails();
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -161,12 +159,12 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                         },
                       });
                     }}
-                    triggerLabel={
-                      period === defaultStatsPeriod && !defaultStatsPeriod.isMaxRetention
-                        ? t('Since First Seen')
-                        : undefined
-                    }
                     triggerProps={{
+                      children:
+                        period === defaultStatsPeriod &&
+                        !defaultStatsPeriod.isMaxRetention
+                          ? t('Since First Seen')
+                          : undefined,
                       style: {
                         padding: `${theme.space.md} ${theme.space.lg}`,
                       },
@@ -197,7 +195,12 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
         {issueTypeConfig.header.graph.enabled && (
           <GraphSection>
             {issueTypeConfig.header.graph.type === 'discover-events' && (
-              <EventGraph event={event} group={group} style={{flex: 1}} />
+              <EventGraph
+                event={event}
+                group={group}
+                showReleasesAs="bubble"
+                style={{flex: 1}}
+              />
             )}
             {issueTypeConfig.header.graph.type === 'detector-history' && (
               <MetricIssueChart group={group} project={project} />

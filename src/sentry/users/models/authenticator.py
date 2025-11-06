@@ -4,7 +4,6 @@ import base64
 import copy
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from django.contrib.auth.models import AnonymousUser
 from django.db import models
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.models.expressions import Expression
@@ -98,9 +97,7 @@ class AuthenticatorManager(BaseManager["Authenticator"]):
             return interface
         return None
 
-    def get_interface(
-        self, user: User | AnonymousUser, interface_id: str
-    ) -> OtpMixin | AuthenticatorInterface:
+    def get_interface(self, user: User, interface_id: str) -> OtpMixin | AuthenticatorInterface:
         """Looks up an interface by interface ID for a user.  If the
         interface is not available but configured a
         `Authenticator.DoesNotExist` will be raised just as if the

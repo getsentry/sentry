@@ -8,6 +8,7 @@ import {
   DisableDetectorAction,
   EditDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
+import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 type DetectorDetailsHeaderProps = {
@@ -23,13 +24,17 @@ export function DetectorDetailsHeader({detector, project}: DetectorDetailsHeader
       <DetailLayout.HeaderContent>
         <Breadcrumbs
           crumbs={[
-            {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
+            {
+              label: t('Monitors'),
+              to: makeMonitorBasePathname(organization.slug),
+            },
             {label: detector.name},
           ]}
         />
         <DetailLayout.Title title={detector.name} project={project} />
       </DetailLayout.HeaderContent>
       <DetailLayout.Actions>
+        <MonitorFeedbackButton />
         <DisableDetectorAction detector={detector} />
         <EditDetectorAction detector={detector} />
       </DetailLayout.Actions>

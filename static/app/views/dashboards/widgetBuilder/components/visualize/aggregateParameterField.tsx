@@ -73,7 +73,6 @@ export function AggregateParameterField({
       <Select
         key="dropdown"
         name="dropdown"
-        menuPlacement="auto"
         placeholder={t('Select value')}
         options={parameter.options}
         value={currentValue}

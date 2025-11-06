@@ -87,6 +87,7 @@ export function makeEAPSpan(
     parent_span_id: null,
     children: [],
     errors: [],
+    occurrences: [],
     measurements: {},
     duration: 10,
     ...overrides,
@@ -242,6 +243,21 @@ export function makeUptimeCheck(
     },
     ...overrides,
   } as TraceTree.UptimeCheck;
+}
+
+export function makeUptimeCheckTiming(
+  overrides: Partial<TraceTree.UptimeCheckTiming> = {}
+): TraceTree.UptimeCheckTiming {
+  return {
+    event_id: overrides.event_id ?? uuid4(),
+    event_type: 'uptime_check_timing',
+    op: 'dns.lookup.duration',
+    description: 'DNS lookup',
+    start_timestamp: 0,
+    end_timestamp: 0.05,
+    duration: 0.05,
+    ...overrides,
+  } as TraceTree.UptimeCheckTiming;
 }
 
 export function makeNodeMetadata(

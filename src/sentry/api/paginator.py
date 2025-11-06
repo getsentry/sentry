@@ -1,3 +1,4 @@
+import base64
 import bisect
 import functools
 import logging
@@ -10,6 +11,7 @@ from urllib.parse import quote
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
 from django.db import connections
 from django.db.models.functions import Lower
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 
 from sentry.utils.cursors import Cursor, CursorResult, build_cursor
 from sentry.utils.pagination_factory import PaginatorLike
@@ -811,3 +813,43 @@ class CallbackPaginator:
             results = self.on_results(results)
 
         return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
+
+
+class EAPPageTokenPaginator:
+    def __init__(self, data_fn):
+        self.data_fn = data_fn
+
+    def get_result(self, limit, cursor=None):
+        assert limit > 0
+
+        page_token = self.page_token_from_cursor(cursor)
+
+        data = self.data_fn(limit, page_token)
+
+        next_page_token = data.pop("page_token")
+
+        return CursorResult(
+            results=data,
+            prev=Cursor("", 0, True, False),
+            next=self.cursor_from_page_token(page_token=next_page_token),
+        )
+
+    def cursor_from_page_token(self, page_token: PageToken):
+        has_more = not page_token.HasField("end_pagination") or not page_token.end_pagination
+
+        return Cursor(
+            base64.b64encode(page_token.SerializeToString()).decode("utf-8"),
+            is_prev=False,
+            has_results=has_more,
+        )
+
+    def page_token_from_cursor(self, cursor: Cursor | None):
+        if cursor is None:
+            return None
+
+        bytes = base64.b64decode(cursor.value.encode("utf-8"))
+
+        page_token = PageToken()
+        page_token.ParseFromString(bytes)
+
+        return page_token

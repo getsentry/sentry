@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import * as Storybook from 'sentry/stories';
@@ -37,7 +37,7 @@ export default Storybook.story('GlobalDrawer', story => {
 
     return (
       <Fragment>
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 
@@ -66,7 +66,7 @@ function MyDrawer({title}: {title: string}) {
   );
 }
 `}
-        </CodeSnippet>
+        </CodeBlock>
         <div>
           <LeftButton onClick={showDetails}>Open Drawer</LeftButton>
         </div>
@@ -97,7 +97,7 @@ function MyDrawer({title}: {title: string}) {
           <code>closeDrawer</code>. The close button can be inside or outside the drawer.
         </p>
 
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`function MyPage() {
   const {openDrawer, closeDrawer} = useDrawer();
 
@@ -111,7 +111,7 @@ function MyDrawer({title}: {title: string}) {
 
   return <button onClick={closeDetails} />;
 }`}
-        </CodeSnippet>
+        </CodeBlock>
 
         <LeftButton
           onClick={() =>
@@ -138,7 +138,7 @@ function MyDrawer({title}: {title: string}) {
           close.
         </p>
 
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`<Button onClick={() => openDrawer(() => null, {
     ariaLabel: 'My Drawer',
     closeOnOutsideClick: true, // or false
@@ -146,7 +146,7 @@ function MyDrawer({title}: {title: string}) {
 })}>
   Open Drawer
 </Button>`}
-        </CodeSnippet>
+        </CodeBlock>
 
         <LeftButton
           onClick={() =>
@@ -207,7 +207,7 @@ function MyDrawer({title}: {title: string}) {
         URL.
       </p>
 
-      <CodeSnippet language="jsx">
+      <CodeBlock language="jsx">
         {`import {useEffect} from 'react';
 import useDrawer from 'sentry/components/globalDrawer';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -236,7 +236,7 @@ function ModalContent() {
   return <p>Ahoy there</p>;
 }
           `}
-      </CodeSnippet>
+      </CodeBlock>
 
       <p>
         You don't need to worry about closing the drawer, since it'll close automatically
@@ -260,7 +260,7 @@ function ModalContent() {
           padding, scrolling, and overflow.
         </p>
 
-        <CodeSnippet language="jsx">
+        <CodeBlock language="jsx">
           {`import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 
 <Button onClick={() => openDrawer(
@@ -274,7 +274,7 @@ function ModalContent() {
 )}>
   Open Drawer
 </Button>`}
-        </CodeSnippet>
+        </CodeBlock>
         <LeftButton
           onClick={() =>
             openDrawer(

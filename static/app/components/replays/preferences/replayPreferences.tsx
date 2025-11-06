@@ -36,6 +36,7 @@ export const StaticReplayPreferences: PrefsStrategy = {
   },
 };
 
+/** @internal used in stories */
 export const StaticNoSkipReplayPreferences: PrefsStrategy = {
   _prefs: {...NO_SKIP_PREFS},
   get() {

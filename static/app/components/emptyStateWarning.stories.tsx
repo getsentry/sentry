@@ -30,16 +30,15 @@ export default Storybook.story('EmptyStateWarning', story => {
         </ul>
       </p>
       <h3>
-        <Storybook.JSXProperty name="small" value={`true`} />
+        <Storybook.JSXProperty name="small" value="true" />
       </h3>
       <EmptyStateWarning small />
       <h3>
-        <Storybook.JSXProperty name="small" value={`true`} /> with children
+        <Storybook.JSXProperty name="small" value="true" /> with children
       </h3>
       <EmptyStateWarning small>No results found.</EmptyStateWarning>
       <h3>
-        <Storybook.JSXProperty name="small" value={`false`} /> with children (with
-        styling)
+        <Storybook.JSXProperty name="small" value="false" /> with children (with styling)
       </h3>
       <StyledEmptyStateWarning>No results found.</StyledEmptyStateWarning>
     </Fragment>

@@ -1,7 +1,10 @@
 from base64 import b64encode
 
+from rest_framework.response import Response
+
 from sentry import options as options_store
 from sentry.models.files.control_file import ControlFile
+from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializerResponse
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -17,13 +20,16 @@ class SentryAppAvatarTestBase(APITestCase):
         SentryAppAvatar.objects.create(sentry_app=self.unpublished_app, color=False, avatar_type=0)
         self.login_as(self.user)
 
-    def get_avatar(self, resp, is_color=True):
+    def get_avatar(
+        self, resp: Response, is_color: bool = True
+    ) -> SentryAppAvatarSerializerResponse:
         avatars = resp.data["avatars"]
         for avatar in avatars:
             if avatar.get("color") == is_color:
                 return avatar
+        raise AssertionError("Invariant violation: expect avatar to be returned")
 
-    def create_avatar(self, is_color):
+    def create_avatar(self, is_color: bool) -> Response:
         avatar_photo = (
             b64encode(self.load_fixture("rookout-color.png"))
             if is_color is True

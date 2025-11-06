@@ -27,6 +27,7 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganization, organization_service
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
@@ -84,13 +85,15 @@ class AuthLoginView(BaseView):
     auth_required = False
 
     enforce_rate_limit = True
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(
-                limit=20, window=1
-            ),  # 20 GET requests per second per IP
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(
+                    limit=20, window=1
+                ),  # 20 GET requests per second per IP
+            }
         }
-    }
+    )
 
     @method_decorator(never_cache)
     def handle(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
@@ -474,12 +477,16 @@ class AuthLoginView(BaseView):
 
     def _handle_login(
         self, request: HttpRequest, user: User, organization: RpcOrganization | None
-    ) -> None:
+    ) -> bool:
         """
         Logs a user in and determines their active org.
+        Returns True if login was successful, False if 2FA is required.
         """
-        login(request=request, user=user, organization_id=coerce_id_from(m=organization))
+        logged_in = login(
+            request=request, user=user, organization_id=coerce_id_from(m=organization)
+        )
         self.active_organization = determine_active_organization(request=request)
+        return logged_in
 
     def refresh_organization_status(
         self, request: HttpRequest, user: User, organization: RpcOrganization
@@ -683,13 +690,14 @@ class AuthLoginView(BaseView):
             elif login_form.is_valid():
                 user = login_form.get_user()
 
-                self._handle_login(request, user, organization)
+                logged_in = self._handle_login(request, user, organization)
                 metrics.incr(
                     "login.attempt", instance="success", skip_internal=True, sample_rate=1.0
                 )
 
                 if not user.is_active:
                     return self.redirect(reverse("sentry-reactivate-account"))
+
                 if organization:
                     # Check if the user is a member of the provided organization based on their email
                     membership = organization_service.check_membership_by_email(
@@ -700,8 +708,10 @@ class AuthLoginView(BaseView):
 
                     # If the user is a member, the user_id is None, and they are in a "pending invite acceptance" state with a valid invitation link,
                     # we redirect them to the invitation page to explicitly accept the invite
+                    # Only redirect if user is logged in (passed 2FA if required)
                     if (
-                        membership
+                        logged_in
+                        and membership
                         and membership.user_id is None
                         and membership.is_pending
                         and invitation_link

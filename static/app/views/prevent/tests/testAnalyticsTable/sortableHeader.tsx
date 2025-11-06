@@ -9,6 +9,7 @@ import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {SORTABLE_FIELDS} from 'sentry/views/prevent/tests/testAnalyticsTable/testAnalyticsTable';
 
 type HeaderParams = {
   alignment: string;
@@ -63,37 +64,39 @@ function SortableHeader({
     ...queryWithoutPagination
   } = location.query;
 
+  const isSortable = SORTABLE_FIELDS.includes(fieldName as any);
+
   return (
     <HeaderCell alignment={alignment}>
-      <StyledLink
-        role="columnheader"
-        aria-sort={
-          sort?.field.endsWith(fieldName)
-            ? sort?.kind === 'asc'
-              ? 'ascending'
-              : 'descending'
-            : 'none'
-        }
-        to={{
-          pathname: location.pathname,
-          query: {
-            ...queryWithoutPagination,
-            sort: sort?.field.endsWith(fieldName)
-              ? sort?.kind === 'desc'
-                ? fieldName
-                : '-' + fieldName
-              : '-' + fieldName,
-          },
-        }}
-      >
-        {label} {sort?.field === fieldName && sortArrow}
-      </StyledLink>
+      {isSortable ? (
+        <StyledLink
+          role="columnheader"
+          aria-sort={
+            sort?.field.endsWith(fieldName)
+              ? sort?.kind === 'asc'
+                ? 'ascending'
+                : 'descending'
+              : 'none'
+          }
+          to={{
+            pathname: location.pathname,
+            query: {
+              ...queryWithoutPagination,
+              sort: sort?.field.endsWith(fieldName)
+                ? sort?.kind === 'desc'
+                  ? fieldName
+                  : '-' + fieldName
+                : '-' + fieldName,
+            },
+          }}
+        >
+          {label} {sort?.field === fieldName && sortArrow}
+        </StyledLink>
+      ) : (
+        <NonSortableHeader role="columnheader">{label}</NonSortableHeader>
+      )}
       {enableToggle ? <WrapToggle /> : null}
-      {tooltip ? (
-        <span>
-          <QuestionTooltip size="xs" title={tooltip} isHoverable />
-        </span>
-      ) : null}
+      {tooltip ? <QuestionTooltip size="xs" title={tooltip} isHoverable /> : null}
     </HeaderCell>
   );
 }
@@ -121,6 +124,10 @@ const StyledLink = styled(Link)`
 
 const WrapText = styled('span')`
   margin-left: ${space(0.5)};
+`;
+
+const NonSortableHeader = styled('span')`
+  color: inherit;
 `;
 
 export default SortableHeader;

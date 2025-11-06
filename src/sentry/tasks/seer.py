@@ -9,7 +9,6 @@ from django.conf import settings
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
 
 logger = logging.getLogger(__name__)
@@ -17,14 +16,9 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.tasks.seer.cleanup_seer_repository_preferences",
-    queue="cleanup",
-    max_retries=3,
-    default_retry_delay=60,
+    namespace=seer_tasks,
+    processing_deadline_duration=60 * 5,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=seer_tasks,
-        processing_deadline_duration=60 * 5,
-    ),
 )
 def cleanup_seer_repository_preferences(
     organization_id: int, repo_external_id: str, repo_provider: str

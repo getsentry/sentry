@@ -20,8 +20,10 @@ function Filters({
   return (
     <FiltersGrid>
       <CompactSelect
-        triggerProps={{prefix: t('Log Level')}}
-        triggerLabel={logLevel.length === 0 ? t('Any') : null}
+        triggerProps={{
+          prefix: t('Log Level'),
+          children: logLevel.length === 0 ? t('Any') : null,
+        }}
         multiple
         options={logLevels}
         onChange={selected => setLogLevel(selected.map(_ => _.value))}

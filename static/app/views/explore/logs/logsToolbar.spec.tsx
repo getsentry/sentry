@@ -3,16 +3,18 @@ import type {ReactNode} from 'react';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
+import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
-    <LogsQueryParamsProvider source="location">
-      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
-        {children}
-      </LogsPageParamsProvider>
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+      source="location"
+    >
+      {children}
     </LogsQueryParamsProvider>
   );
 }
@@ -111,9 +113,11 @@ describe('LogsToolbar', () => {
       await userEvent.click(screen.getByRole('option', {name: 'count unique'}));
       await userEvent.click(screen.getByRole('button', {name: 'message'})); // this one isnt remapped for some reason
       options = screen.getAllByRole('option');
-      expect(options).toHaveLength(2);
-      expect(options[0]).toHaveTextContent('message'); // this one isnt remapped for some reason
-      expect(options[1]).toHaveTextContent('severity');
+      expect(options).toHaveLength(4);
+      expect(options[0]).toHaveTextContent('barnumber');
+      expect(options[1]).toHaveTextContent('foonumber');
+      expect(options[2]).toHaveTextContent('message'); // this one isnt remapped for some reason
+      expect(options[3]).toHaveTextContent('severity');
       await userEvent.click(screen.getByRole('option', {name: 'severity'}));
       expect(router.location.query.aggregateField).toEqual(
         [{groupBy: ''}, {yAxes: ['count_unique(severity)']}].map(aggregateField =>
@@ -171,17 +175,30 @@ describe('LogsToolbar', () => {
 
   describe('group by section', () => {
     it('can switch group bys', async () => {
-      const {router} = render(
-        <Wrapper>
+      let mode: Mode | undefined = undefined;
+
+      function Component() {
+        mode = useQueryParamsMode();
+        return (
           <LogsToolbar
-            numberTags={{bar: {key: 'bar', name: 'bar'}, foo: {key: 'foo', name: 'foo'}}}
+            numberTags={{
+              bar: {key: 'bar', name: 'bar'},
+              foo: {key: 'foo', name: 'foo'},
+            }}
             stringTags={{
               message: {key: 'message', name: 'message'},
               severity: {key: 'severity', name: 'severity'},
             }}
           />
+        );
+      }
+      const {router} = render(
+        <Wrapper>
+          <Component />
         </Wrapper>
       );
+
+      expect(mode).toEqual(Mode.SAMPLES);
 
       await userEvent.click(screen.getByRole('button', {name: '\u2014'}));
       await userEvent.click(screen.getByRole('option', {name: 'message'}));
@@ -191,6 +208,8 @@ describe('LogsToolbar', () => {
         )
       );
 
+      expect(mode).toEqual(Mode.AGGREGATE);
+
       await userEvent.click(screen.getByRole('button', {name: 'message'}));
       await userEvent.click(screen.getByRole('option', {name: 'severity'}));
       expect(router.location.query.aggregateField).toEqual(
@@ -198,6 +217,7 @@ describe('LogsToolbar', () => {
           JSON.stringify(aggregateField)
         )
       );
+      expect(mode).toEqual(Mode.AGGREGATE);
     });
 
     it('can add/delete group bys', async () => {

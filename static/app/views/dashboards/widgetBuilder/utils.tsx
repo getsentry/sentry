@@ -1,8 +1,6 @@
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import type {FlatValidationError, ValidationError} from 'sentry/views/dashboards/utils';
 
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
@@ -41,38 +39,6 @@ export function getDiscoverDatasetFromWidgetType(widgetType: WidgetType) {
     default:
       return undefined;
   }
-}
-
-export function mapErrors(
-  data: ValidationError,
-  update: FlatValidationError
-): FlatValidationError {
-  Object.keys(data).forEach((key: string) => {
-    const value = data[key];
-    if (typeof value === 'string') {
-      update[key] = value;
-      return;
-    }
-    // Recurse into nested objects.
-    if (Array.isArray(value) && typeof value[0] === 'string') {
-      update[key] = value[0];
-      return;
-    }
-    if (Array.isArray(value) && typeof value[0] === 'object') {
-      update[key] = (value as ValidationError[])
-        .filter(defined)
-        .map(item => mapErrors(item, {}));
-    } else {
-      update[key] = mapErrors(value as ValidationError, {});
-    }
-  });
-
-  return update;
-}
-
-export function getFields(fieldsString: string): string[] {
-  // Use a negative lookahead to avoid splitting on commas inside equation fields
-  return fieldsString.split(/,(?![^(]*\))/g);
 }
 
 export function getResultsLimit(numQueries: number, numYAxes: number) {

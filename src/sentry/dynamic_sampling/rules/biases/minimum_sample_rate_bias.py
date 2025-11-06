@@ -12,7 +12,7 @@ class MinimumSampleRateBias(Bias):
         return [
             {
                 "samplingValue": {"type": "minimumSampleRate", "value": base_sample_rate},
-                "type": "transaction",
+                "type": "project",
                 "condition": {
                     "inner": [],
                     "op": "and",

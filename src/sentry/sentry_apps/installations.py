@@ -9,6 +9,13 @@ from django.db import router, transaction
 from django.http.request import HttpRequest
 
 from sentry import analytics, audit_log
+from sentry.analytics.events.sentry_app_installation_token_created import (
+    SentryAppInstallationTokenCreated,
+)
+from sentry.analytics.events.sentry_app_installation_updated import (
+    SentryAppInstallationUpdatedEvent,
+)
+from sentry.analytics.events.sentry_app_installed import SentryAppInstalledEvent
 from sentry.api.serializers import serialize
 from sentry.constants import INTERNAL_INTEGRATION_TOKEN_COUNT_MAX, SentryAppInstallationStatus
 from sentry.exceptions import ApiTokenLimitError
@@ -43,14 +50,12 @@ VALID_ACTIONS = ["created", "deleted"]
 class SentryAppInstallationTokenCreator:
     sentry_app_installation: SentryAppInstallation
     expires_at: datetime.date | None = None
-    generate_audit: bool = False
 
     def run(self, user: User | RpcUser, request: HttpRequest | None = None) -> ApiToken:
         with transaction.atomic(router.db_for_write(ApiToken)):
             self._check_token_limit()
             api_token = self._create_api_token()
             self._create_sentry_app_installation_token(api_token=api_token)
-            self.audit(request, api_token)
         self.record_analytics(user)
         return api_token
 
@@ -79,27 +84,16 @@ class SentryAppInstallationTokenCreator:
             api_token=api_token, sentry_app_installation=self.sentry_app_installation
         )
 
-    def audit(self, request: HttpRequest | None, api_token: ApiToken) -> None:
-        from sentry.utils.audit import create_audit_entry
-
-        if request and self.generate_audit:
-            create_audit_entry(
-                request=request,
-                organization=self.organization_id,
-                target_object=api_token.id,
-                event=audit_log.get_event_id("INTERNAL_INTEGRATION_ADD_TOKEN"),
-                data={"sentry_app": self.sentry_app.name},
-            )
-
     def record_analytics(self, user: User | RpcUser) -> None:
         from sentry import analytics
 
         analytics.record(
-            "sentry_app_installation_token.created",
-            user_id=user.id,
-            organization_id=self.organization_id,
-            sentry_app_installation_id=self.sentry_app_installation.id,
-            sentry_app=self.sentry_app.slug,
+            SentryAppInstallationTokenCreated(
+                user_id=user.id,
+                organization_id=self.organization_id,
+                sentry_app_installation_id=self.sentry_app_installation.id,
+                sentry_app=self.sentry_app.slug,
+            )
         )
 
     @cached_property
@@ -181,10 +175,11 @@ class SentryAppInstallationCreator:
 
     def record_analytics(self, user: User | RpcUser) -> None:
         analytics.record(
-            "sentry_app.installed",
-            user_id=user.id,
-            organization_id=self.organization_id,
-            sentry_app=self.slug,
+            SentryAppInstalledEvent(
+                user_id=user.id,
+                organization_id=self.organization_id,
+                sentry_app=self.slug,
+            )
         )
         metrics.incr("sentry_apps.installation.success")
 
@@ -256,8 +251,9 @@ class SentryAppInstallationUpdater:
 
     def record_analytics(self) -> None:
         analytics.record(
-            "sentry_app_installation.updated",
-            sentry_app_installation_id=self.sentry_app_installation.id,
-            sentry_app_id=self.sentry_app_installation.sentry_app.id,
-            organization_id=self.sentry_app_installation.organization_id,
+            SentryAppInstallationUpdatedEvent(
+                sentry_app_installation_id=self.sentry_app_installation.id,
+                sentry_app_id=self.sentry_app_installation.sentry_app.id,
+                organization_id=self.sentry_app_installation.organization_id,
+            )
         )

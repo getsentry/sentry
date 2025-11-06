@@ -103,8 +103,6 @@ export function ProjectPageFilter({
   const routes = useRoutes();
   const organization = useOrganization();
 
-  const allowMultiple = organization.features.includes('global-views');
-
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const [memberProjects, otherProjects] = useMemo(
     () => partition(projects, project => project.isMember),
@@ -174,14 +172,12 @@ export function ProjectPageFilter({
 
       // "My Projects"
       if (!val.length) {
-        return allowMultiple
-          ? memberProjects.map(p => parseInt(p.id, 10))
-          : [parseInt(memberProjects[0]?.id!, 10)];
+        return memberProjects.map(p => parseInt(p.id, 10));
       }
 
-      return allowMultiple ? val : [val[0]!];
+      return val;
     },
-    [memberProjects, allowMultiple]
+    [memberProjects]
   );
 
   const value = useMemo<number[]>(
@@ -206,7 +202,7 @@ export function ProjectPageFilter({
         count: newValue.length,
         path: getRouteStringFromRoutes(routes),
         organization,
-        multi: allowMultiple,
+        multi: true,
       });
 
       // Wait for the menu to close before calling onChange
@@ -223,7 +219,6 @@ export function ProjectPageFilter({
       value,
       resetParamsOnChange,
       router,
-      allowMultiple,
       organization,
       routes,
       onChange,
@@ -325,7 +320,7 @@ export function ProjectPageFilter({
             key: 'my-projects',
             label: t('My Projects'),
             options: sortBy(memberProjects, listSort).map(getProjectItem),
-            showToggleAllButton: allowMultiple,
+            showToggleAllButton: true,
           },
           {
             key: 'no-membership-header',
@@ -337,7 +332,6 @@ export function ProjectPageFilter({
       : sortBy(memberProjects, listSort).map(getProjectItem);
   }, [
     organization,
-    allowMultiple,
     memberProjects,
     nonMemberProjects,
     mapURLValueToNormalValue,
@@ -393,7 +387,7 @@ export function ProjectPageFilter({
       {...selectProps}
       searchable
       checkboxPosition="trailing"
-      multiple={allowMultiple}
+      multiple
       options={options}
       value={value}
       defaultValue={defaultValue}

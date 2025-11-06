@@ -2,8 +2,6 @@ import type {ReactNode} from 'react';
 import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 interface JSXNodeProps {
   name: string;
   children?: ReactNode;
@@ -50,7 +48,7 @@ const Code = styled('code')`
     padding-inline: 0;
   }
   & > [data-node] {
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space.xl};
   }
 `;
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from rest_framework.request import Request
@@ -7,11 +9,13 @@ from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiGetBuildDetailsEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     transform_preprod_artifact_to_build_details,
 )
+from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +27,13 @@ class ProjectPreprodBuildDetailsEndpoint(PreprodArtifactEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, project, head_artifact_id, head_artifact) -> Response:
+    def get(
+        self,
+        request: Request,
+        project: Project,
+        head_artifact_id: int,
+        head_artifact: PreprodArtifact,
+    ) -> Response:
         """
         Get the build details for a preprod artifact
         ````````````````````````````````````````````````````
@@ -43,7 +53,7 @@ class ProjectPreprodBuildDetailsEndpoint(PreprodArtifactEndpoint):
                 organization_id=project.organization_id,
                 project_id=project.id,
                 user_id=request.user.id,
-                artifact_id=head_artifact_id,
+                artifact_id=str(head_artifact_id),
             )
         )
 
@@ -52,5 +62,8 @@ class ProjectPreprodBuildDetailsEndpoint(PreprodArtifactEndpoint):
         ):
             return Response({"error": "Feature not enabled"}, status=403)
 
-        build_details = transform_preprod_artifact_to_build_details(head_artifact)
-        return Response(build_details.dict())
+        if head_artifact.state == PreprodArtifact.ArtifactState.FAILED:
+            return Response({"error": head_artifact.error_message}, status=400)
+        else:
+            build_details = transform_preprod_artifact_to_build_details(head_artifact)
+            return Response(build_details.dict())

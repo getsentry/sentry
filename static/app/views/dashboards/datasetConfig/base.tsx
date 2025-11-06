@@ -1,10 +1,10 @@
 import trimStart from 'lodash/trimStart';
 
 import type {Client, ResponseMeta} from 'sentry/api';
-import type {SearchBarProps} from 'sentry/components/events/searchBar';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -15,7 +15,12 @@ import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import type {DisplayType, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {getNumEquations} from 'sentry/views/dashboards/utils';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
@@ -31,15 +36,26 @@ import {SpansConfig} from './spans';
 import {TransactionsConfig} from './transactions';
 
 export type WidgetBuilderSearchBarProps = {
-  getFilterWarning: SearchBarProps['getFilterWarning'];
-  onClose: SearchBarProps['onClose'];
-  onSearch: SearchBarProps['onSearch'];
+  getFilterWarning: ((key: string) => React.ReactNode) | undefined;
+  onClose: (value: string, additionalSearchBarState: {validSearch: boolean}) => void;
+  onSearch: (query: string) => void;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
   disabled?: boolean;
   portalTarget?: HTMLElement | null;
 };
+
+export type SearchBarDataProviderProps = {
+  pageFilters: PageFilters;
+  widgetQuery?: WidgetQuery;
+};
+
+export interface SearchBarData {
+  getFilterKeySections: () => FilterKeySection[];
+  getFilterKeys: () => TagCollection;
+  getTagValues: (tag: Tag, searchQuery: string) => Promise<string[]>;
+}
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
@@ -133,7 +149,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     field: string,
     meta: MetaType,
     widget?: Widget,
-    organization?: Organization
+    organization?: Organization,
+    dashboardFilters?: DashboardFilters
   ) => ReturnType<typeof getFieldRenderer>;
   /**
    * Generate field header used for mapping column
@@ -226,6 +243,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     widgetQuery: WidgetQuery,
     organization: Organization
   ) => Series[];
+  /**
+   * Data provider hook that provides methods
+   * to retrieve tags and values for the search bar.
+   */
+  useSearchBarDataProvider?: (props: SearchBarDataProviderProps) => SearchBarData;
 }
 
 export function getDatasetConfig<T extends WidgetType | undefined>(

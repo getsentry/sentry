@@ -1,14 +1,14 @@
 import unittest
 import uuid
-from datetime import UTC, datetime
 from unittest import mock
 from unittest.mock import MagicMock, call
 
 import pytest
 from django.utils import timezone
 
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.grouptype import FeedbackGroup, PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
@@ -24,7 +24,9 @@ from sentry.utils.cache import cache
 from sentry.workflow_engine.handlers.detector import DetectorStateData
 from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import (
+    associate_new_group_with_detector,
     get_detector_by_event,
     get_detectors_by_groupevents_bulk,
     process_detectors,
@@ -103,7 +105,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             group_key=None,
             value=6,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=datetime.now(UTC),
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -137,14 +138,12 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             detector.detector_handler, "group_1", PriorityLevel.HIGH
         )
 
-        detection_time = datetime.now(UTC)
         issue_occurrence_1, event_data_1 = self.detector_to_issue_occurrence(
             detector_occurrence=detector_occurrence_1,
             detector=detector,
             group_key="group_1",
             value=6,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -166,7 +165,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             group_key="group_2",
             value=10,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -201,31 +199,18 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             any_order=True,
         )
 
-    def test_no_issue_type(self) -> None:
-        detector = self.create_detector(type=self.handler_state_type.slug)
-        data_packet = self.build_data_packet()
-        with (
-            mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger,
-            mock.patch(
-                "sentry.workflow_engine.models.Detector.group_type",
-                return_value=None,
-                new_callable=mock.PropertyMock,
-            ),
-        ):
-            results = process_detectors(data_packet, [detector])
-            assert mock_logger.error.call_args[0][0] == "No registered grouptype for detector"
-        assert results == []
-
     def test_no_handler(self) -> None:
         detector = self.create_detector(type=self.no_handler_type.slug)
         data_packet = self.build_data_packet()
         with mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger:
-            results = process_detectors(data_packet, [detector])
-            assert (
-                mock_logger.error.call_args[0][0]
-                == "Registered grouptype for detector has no detector_handler"
-            )
-        assert results == []
+            with pytest.raises(ValueError):
+                results = process_detectors(data_packet, [detector])
+                assert (
+                    mock_logger.error.call_args[0][0]
+                    == "Registered grouptype for detector has no detector_handler"
+                )
+
+                assert results == []
 
     def test_sending_metric_before_evaluating(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
@@ -259,7 +244,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             group_key=None,
             value=6,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=datetime.now(UTC),
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -337,11 +321,13 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         data_packet = self.build_data_packet()
 
         with mock.patch("sentry.utils.metrics.incr") as mock_incr:
-            process_detectors(data_packet, [detector])
-            calls = mock_incr.call_args_list
-            # We can have background threads emitting metrics as tasks are scheduled
-            filtered_calls = list(filter(lambda c: "taskworker" not in c.args[0], calls))
-            assert len(filtered_calls) == 0
+            with pytest.raises(ValueError):
+                process_detectors(data_packet, [detector])
+
+                calls = mock_incr.call_args_list
+                # We can have background threads emitting metrics as tasks are scheduled
+                filtered_calls = list(filter(lambda c: "taskworker" not in c.args[0], calls))
+                assert len(filtered_calls) == 0
 
 
 @django_db_all
@@ -544,14 +530,12 @@ class TestEvaluate(BaseDetectorHandlerTest):
             handler, "val1", PriorityLevel.HIGH
         )
 
-        detection_time = datetime.now(UTC)
         issue_occurrence, event_data = self.detector_to_issue_occurrence(
             detector_occurrence=detector_occurrence,
             detector=handler.detector,
             group_key="val1",
             value=6,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -585,14 +569,12 @@ class TestEvaluate(BaseDetectorHandlerTest):
             handler, "val1", PriorityLevel.HIGH
         )
 
-        detection_time = datetime.now(UTC)
         issue_occurrence, event_data = self.detector_to_issue_occurrence(
             detector_occurrence=detector_occurrence,
             detector=handler.detector,
             group_key="val1",
             value=6,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -641,14 +623,12 @@ class TestEvaluate(BaseDetectorHandlerTest):
             handler, "val1", PriorityLevel.HIGH
         )
 
-        detection_time = datetime.now(UTC)
         issue_occurrence, event_data = self.detector_to_issue_occurrence(
             detector_occurrence=detector_occurrence,
             detector=handler.detector,
             group_key="val1",
             value=100,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -684,14 +664,12 @@ class TestEvaluate(BaseDetectorHandlerTest):
             handler, "val1", PriorityLevel.HIGH
         )
 
-        detection_time = datetime.now(UTC)
         issue_occurrence, event_data = self.detector_to_issue_occurrence(
             detector_occurrence=detector_occurrence,
             detector=handler.detector,
             group_key="val1",
             value=8,
             priority=DetectorPriorityLevel.HIGH,
-            detection_time=detection_time,
             occurrence_id=str(self.mock_uuid4.return_value),
         )
 
@@ -748,14 +726,12 @@ class TestEvaluateGroupValue(BaseDetectorHandlerTest):
                 handler, "val1", PriorityLevel.HIGH
             )
 
-            detection_time = datetime.now(UTC)
             issue_occurrence, event_data = self.detector_to_issue_occurrence(
                 detector_occurrence=detector_occurrence,
                 detector=handler.detector,
                 group_key="group_key",
                 value=10,
                 priority=DetectorPriorityLevel.HIGH,
-                detection_time=detection_time,
                 occurrence_id=str(self.mock_uuid4.return_value),
             )
 
@@ -1033,3 +1009,40 @@ class TestGetDetectorsByGroupEventsBulk(TestCase):
 
             assert result == {}
             mock_metrics.incr.assert_called_with("workflow_engine.detectors.error", amount=1)
+
+
+class TestAssociateNewGroupWithDetector(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.metric_detector = self.create_detector(project=self.project, type="metric_issue")
+        self.error_detector = self.create_detector(project=self.project, type="error")
+
+    def test_metrics_group_with_known_detector(self) -> None:
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+
+        # Should return True and create DetectorGroup
+        assert associate_new_group_with_detector(group, self.metric_detector.id)
+        assert DetectorGroup.objects.filter(
+            detector_id=self.metric_detector.id, group_id=group.id
+        ).exists()
+
+    def test_error_group_with_feature_disabled(self) -> None:
+        group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+
+        with self.options({"workflow_engine.associate_error_detectors": False}):
+            assert not associate_new_group_with_detector(group)
+            assert not DetectorGroup.objects.filter(group_id=group.id).exists()
+
+    def test_error_group_with_feature_enabled(self) -> None:
+        group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+
+        with self.options({"workflow_engine.associate_error_detectors": True}):
+            assert associate_new_group_with_detector(group)
+            assert DetectorGroup.objects.filter(
+                detector_id=self.error_detector.id, group_id=group.id
+            ).exists()
+
+    def test_feedback_group_returns_false(self) -> None:
+        group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
+        assert not associate_new_group_with_detector(group)
+        assert not DetectorGroup.objects.filter(group_id=group.id).exists()

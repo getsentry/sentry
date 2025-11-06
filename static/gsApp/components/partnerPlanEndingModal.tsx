@@ -108,7 +108,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
       <ImageHeader />
       <div>
         <PartnerPlanHeading>
-          <Tag icon={<IconClock />} type={'promotion'}>
+          <Tag icon={<IconClock />} type="promotion">
             {tn('%s day left', '%s days left', daysLeft)}
           </Tag>
           <h2 data-test-id="partner-plan-ending-header">
@@ -151,7 +151,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
         </PathWrapper>
         <div style={{display: 'block'}}>
           <StyledButtonBar>
-            <Button data-test-id="maybe-later" priority={'default'} onClick={closeModal}>
+            <Button data-test-id="maybe-later" priority="default" onClick={closeModal}>
               {t('Remind Me Later')}
             </Button>
             {hasBillingAccess ? (

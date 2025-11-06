@@ -32,17 +32,3 @@ export function getNumericSuggestions(inputValue: string): SuggestionSection[] {
   // If the value is not numeric, don't show any suggestions
   return [];
 }
-
-const DEFAULT_SMALL_NUMERIC_SUGGESTIONS: SuggestionSection[] = [
-  {
-    sectionText: '',
-    suggestions: [{value: '1'}, {value: '10'}, {value: '100'}, {value: '1000'}],
-  },
-];
-
-export function getSmallNumericSuggestions(inputValue: string): SuggestionSection[] {
-  if (!inputValue) {
-    return DEFAULT_SMALL_NUMERIC_SUGGESTIONS;
-  }
-  return [];
-}

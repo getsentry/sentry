@@ -27,7 +27,7 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {OverviewSpansTable} from 'sentry/views/performance/otlp/overviewSpansTable';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import Filter, {
   filterToSearchConditions,
@@ -110,8 +110,12 @@ function EventsContent(props: Props) {
     if (platform === ProjectPerformanceType.BACKEND) {
       const userIndex = transactionsListTitles.indexOf('user');
       if (userIndex > 0) {
-        transactionsListTitles.splice(userIndex + 1, 0, 'http.method');
-        fields.splice(userIndex + 1, 0, {field: 'http.method'});
+        if (!transactionsListTitles.includes('http.method')) {
+          transactionsListTitles.splice(userIndex + 1, 0, 'http.method');
+        }
+        if (!fields.some(f => f.field === 'http.method')) {
+          fields.splice(userIndex + 1, 0, {field: 'http.method'});
+        }
       }
     }
 
@@ -162,7 +166,7 @@ function EventsContent(props: Props) {
     webVital,
   ]);
 
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
 
   const table = shouldUseOTelFriendlyUI ? (
     <OverviewSpansTable
@@ -185,7 +189,7 @@ function EventsContent(props: Props) {
   );
 
   return (
-    <Layout.Main fullWidth>
+    <Layout.Main width="full">
       <Search {...props} eventView={eventView} />
       {table}
     </Layout.Main>
@@ -236,7 +240,7 @@ function Search(props: Props) {
   };
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
 
   return (
     <FilterActions>

@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 import {useBlocker} from 'react-router-dom';
-import type {useAnimation} from 'framer-motion';
 
 import {removeProject} from 'sentry/actionCreators/projects';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
@@ -24,9 +23,7 @@ export function useBackActions({
   recentCreatedProject,
   isRecentCreatedProjectActive,
   goToStep,
-  cornerVariantControl,
 }: {
-  cornerVariantControl: ReturnType<typeof useAnimation>;
   goToStep: (step: StepDescriptor) => void;
   stepIndex: number;
   isRecentCreatedProjectActive?: boolean;
@@ -79,13 +76,6 @@ export function useBackActions({
         return;
       }
 
-      if (!browserBackButton) {
-        // this check happens in the `goToStep` function as well
-        if (currentStep.cornerVariant !== prevStep.cornerVariant) {
-          cornerVariantControl.start('none');
-        }
-      }
-
       trackAnalytics('onboarding.back_button_clicked', {
         organization,
         from: currentStep.id,
@@ -125,7 +115,6 @@ export function useBackActions({
     [
       goToStep,
       organization,
-      cornerVariantControl,
       onboardingContext,
       isRecentCreatedProjectActive,
       recentCreatedProject,

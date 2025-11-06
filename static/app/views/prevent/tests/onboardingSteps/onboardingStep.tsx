@@ -1,32 +1,29 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Container, Flex} from 'sentry/components/core/layout';
+import type {FlexProps} from 'sentry/components/core/layout/flex';
+import {Heading} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons';
 
-const StepContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
+function StepContainer({children}: {children: React.ReactNode}) {
+  return (
+    <Container border="primary" radius="md">
+      <Flex direction="column">{children}</Flex>
+    </Container>
+  );
+}
 
-// this wraps Header and Content
-const Body = styled(Flex)`
-  flex-direction: column;
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
-`;
+function Body(props: {children: React.ReactNode}) {
+  return <Flex direction="column" padding="2xl 3xl" gap="xl" {...props} />;
+}
 
-const Header = styled('h3')`
-  font-size: ${p => p.theme.fontSize.xl};
-  color: ${p => p.theme.subText};
-  margin-bottom: 0;
-  line-height: 31px;
-`;
+function Header(props: {children: React.ReactNode}) {
+  return <Heading as="h3" size="xl" variant="muted" {...props} />;
+}
 
-const Content = styled(Container)`
-  margin-top: ${p => p.theme.space.xs};
-`;
+function Content(props: React.PropsWithChildren<FlexProps>) {
+  return <Flex direction="column" gap="xl" {...props} />;
+}
 
 function ExpandableDropdown({
   triggerContent,
@@ -38,33 +35,21 @@ function ExpandableDropdown({
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <ExpandableContentContainer>
-      <ExpandableContentTrigger onClick={() => setIsExpanded(!isExpanded)}>
+    <Container borderTop="primary">
+      <Flex
+        justify="between"
+        align="center"
+        padding="xl 3xl"
+        role="button"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         {triggerContent}
         <IconChevron direction={isExpanded ? 'up' : 'down'} />
-      </ExpandableContentTrigger>
-      {isExpanded && <ExpandedContent>{children}</ExpandedContent>}
-    </ExpandableContentContainer>
+      </Flex>
+      {isExpanded && <Container padding="sm 3xl 3xl 3xl">{children}</Container>}
+    </Container>
   );
 }
-
-const ExpandableContentContainer = styled(Container)`
-  border-top: 1px solid ${p => p.theme.border};
-  margin-top: auto;
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
-`;
-
-const ExpandableContentTrigger = styled(Flex)`
-  justify-content: space-between;
-  align-items: center;
-  :hover {
-    cursor: pointer;
-  }
-`;
-
-const ExpandedContent = styled(Container)`
-  padding-top: ${p => p.theme.space['2xl']};
-`;
 
 export const OnboardingStep = {
   Container: StepContainer,

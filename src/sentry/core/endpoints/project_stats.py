@@ -9,6 +9,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environment_id
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.models.environment import Environment
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.tsdb.base import TSDBModel
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -19,13 +20,15 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=1),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=5, window=1),
+                RateLimitCategory.USER: RateLimit(limit=5, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
+            }
         },
-    }
+    )
 
     def get(self, request: Request, project) -> Response:
         """

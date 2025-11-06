@@ -18,7 +18,7 @@ from sentry.issues.auto_source_code_config.derived_code_mappings_endpoint import
     get_code_mapping_from_request,
     get_file_and_repo_matches,
 )
-from sentry.issues.auto_source_code_config.errors import NeedsExtension
+from sentry.issues.auto_source_code_config.errors import NeedsExtension, UnsupportedFrameInfo
 from sentry.issues.auto_source_code_config.integration_utils import (
     InstallationCannotGetTreesError,
     InstallationNotFoundError,
@@ -82,6 +82,10 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         except KeyError:
             return self.respond(
                 {"text": "Missing required parameters"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        except UnsupportedFrameInfo:
+            return self.respond(
+                {"text": "Unsupported frame info"}, status=status.HTTP_400_BAD_REQUEST
             )
 
     def post(self, request: Request, organization: Organization) -> Response:

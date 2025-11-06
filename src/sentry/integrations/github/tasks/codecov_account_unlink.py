@@ -5,25 +5,20 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
-account_unlink_endpoint = "sentry/internal/account/unlink/"
+account_unlink_endpoint = "/sentry/internal/account/unlink/"
 
 
 @instrumented_task(
     name="sentry.integrations.github.tasks.codecov_account_unlink",
-    queue="integrations.control",
-    max_retries=3,
+    namespace=integrations_control_tasks,
+    retry=Retry(times=3),
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_control_tasks,
-        retry=Retry(times=3),
-        processing_deadline_duration=60,
-    ),
 )
 @retry(exclude=(ConfigurationError,))
 def codecov_account_unlink(

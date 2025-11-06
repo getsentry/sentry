@@ -3,14 +3,14 @@ from unittest.mock import MagicMock, call, patch
 
 from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
 from sentry.grouping.ingest.seer import get_seer_similar_issues
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
-from sentry.seer.similarity.types import SeerSimilarIssueData
+from sentry.seer.similarity.types import GroupingVersion, SeerSimilarIssueData
 from sentry.seer.similarity.utils import get_stacktrace_string
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
@@ -59,7 +59,7 @@ def create_new_event(
     )
 
     if stacktrace_string is None:
-        stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
+        stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants_legacy(variants))
     event.data["stacktrace_string"] = stacktrace_string
 
     return (event, variants, grouphash, stacktrace_string)
@@ -108,8 +108,15 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "k": options.get("seer.similarity.ingest.num_matches_to_request"),
                 "referrer": "ingest",
                 "use_reranking": True,
+                "model": GroupingVersion.V1,
+                "training_mode": False,
             },
-            {"platform": "python", "hybrid_fingerprint": False},
+            {
+                "platform": "python",
+                "model_version": "v1",
+                "training_mode": False,
+                "hybrid_fingerprint": False,
+            },
         )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -152,6 +159,8 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "project_id": self.project.id,
                 "stacktrace": new_stacktrace_string,
                 "exception_type": "FailedToFetchError",
+                "model": GroupingVersion.V1,
+                "training_mode": False,
             }
 
             assert mock_get_similarity_data.call_count == 2
@@ -164,7 +173,12 @@ class GetSeerSimilarIssuesTest(TestCase):
                         "referrer": "ingest",
                         "use_reranking": True,
                     },
-                    {"platform": "python", "hybrid_fingerprint": False},
+                    {
+                        "platform": "python",
+                        "model_version": "v1",
+                        "training_mode": False,
+                        "hybrid_fingerprint": False,
+                    },
                 ),
                 # Second call to store the event's data since the match that came back from Seer
                 # wasn't usable
@@ -175,7 +189,11 @@ class GetSeerSimilarIssuesTest(TestCase):
                         "referrer": "ingest_follow_up",
                         "use_reranking": False,
                     },
-                    {"platform": "python"},
+                    {
+                        "platform": "python",
+                        "model_version": "v1",
+                        "training_mode": False,
+                    },
                 ),
             ]
 

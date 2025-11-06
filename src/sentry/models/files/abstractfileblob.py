@@ -10,7 +10,6 @@ from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.celery import SentryTask
 from sentry.db.models import Model, WrappingU32IntegerField
 from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 from sentry.models.files.utils import (
@@ -19,6 +18,7 @@ from sentry.models.files.utils import (
     get_storage,
     nooplogger,
 )
+from sentry.taskworker.task import Task
 from sentry.utils import metrics
 
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
@@ -54,7 +54,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
     def _create_blob_owner(self, organization_id: int) -> BlobOwnerType: ...
 
     @abstractmethod
-    def _delete_file_task(self) -> SentryTask: ...
+    def _delete_file_task(self) -> Task[Any, Any]: ...
 
     @classmethod
     @abstractmethod

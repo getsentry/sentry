@@ -121,7 +121,7 @@ export function BreadcrumbWebVital({
         priority="link"
         size="xs"
         to={{
-          pathname: `/organizations/${organization.slug}/insights/frontend/pageloads/overview/`,
+          pathname: `/organizations/${organization.slug}/insights/frontend/pageloads/`,
           query: {
             projectId: replayReader?.getReplay().project_id,
           },

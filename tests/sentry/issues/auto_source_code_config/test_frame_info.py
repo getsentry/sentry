@@ -49,7 +49,9 @@ NO_EXTENSION_FRAME_FILENAMES = [
 class TestFrameInfo:
     def test_frame_filename_repr(self) -> None:
         path = "getsentry/billing/tax/manager.py"
-        assert create_frame_info({"filename": path}).__repr__() == f"FrameInfo: {path}"
+        frame_info = create_frame_info({"filename": path})
+        expected = f"FrameInfo: {path} stack_root: {frame_info.stack_root}"
+        assert frame_info.__repr__() == expected
 
     @pytest.mark.parametrize("filepath", UNSUPPORTED_FRAME_FILENAMES)
     def test_raises_unsupported(self, filepath: str) -> None:
@@ -114,6 +116,12 @@ class TestFrameInfo:
                 "foo/bar/",
                 "foo/bar/Baz",  # The path does not use the abs_path
                 id="invalid_abs_path_dollar_sign",
+            ),
+            pytest.param(
+                {"module": "foo.Baz", "abs_path": "foo"},
+                "foo/",  # Single-depth stack root
+                "foo/Baz",
+                id="granularity_1",
             ),
         ],
     )

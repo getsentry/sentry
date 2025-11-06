@@ -41,9 +41,12 @@ import {
 } from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   handleOrderByReset,
   type DatasetConfig,
+  type SearchBarData,
+  type SearchBarDataProviderProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
   getTableSortOptions,
@@ -59,7 +62,10 @@ import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/fil
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import {useSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -99,7 +105,7 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
         parameters: [
           {
             kind: 'column',
-            columnTypes: ['string'],
+            columnTypes: ['number', 'string'],
             defaultValue: 'span.op',
             required: true,
           },
@@ -130,6 +136,38 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
   {} as Record<AggregationKey, Aggregation>
 );
 
+function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
+  const {pageFilters, widgetQuery} = props;
+  const organization = useOrganization();
+
+  const traceItemAttributeConfig = {
+    traceItemType: TraceItemDataset.SPANS,
+    enabled: organization.features.includes('visibility-explore-view'),
+  };
+
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+
+  const {filterKeys, filterKeySections, getTagValues} = useSearchQueryBuilderProps({
+    itemType: TraceItemDataset.SPANS,
+    numberAttributes,
+    stringAttributes,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+    searchSource: 'dashboards',
+    initialQuery: widgetQuery?.conditions ?? '',
+    projects: pageFilters.projects,
+    supportedAggregates: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  });
+  return {
+    getFilterKeys: () => filterKeys,
+    getFilterKeySections: () => filterKeySections,
+    getTagValues,
+  };
+}
+
 export const SpansConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
@@ -138,6 +176,7 @@ export const SpansConfig: DatasetConfig<
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: true,
   SearchBar: SpansSearchBar,
+  useSearchBarDataProvider: useSpansSearchBarDataProvider,
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   filterSeriesSortOptions,
@@ -185,14 +224,14 @@ export const SpansConfig: DatasetConfig<
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
   filterAggregateParams,
-  getCustomFieldRenderer: (field, meta, widget, _organization) => {
+  getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
     if (field === 'id') {
       return renderEventInTraceView;
     }
     if (field === 'trace') {
       return renderTraceAsLinkable(widget);
     }
-    return getFieldRenderer(field, meta, false);
+    return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
 };
 
@@ -227,15 +266,6 @@ function getPrimaryFieldOptions(
   );
 
   return {...baseFieldOptions, ...spanTags};
-}
-
-function _isNotNumericTag(option: FieldValueOption) {
-  // Filter out numeric tags from primary options, they only show up in
-  // the parameter fields for aggregate functions
-  if ('dataType' in option.value.meta) {
-    return option.value.meta.dataType !== 'number';
-  }
-  return true;
 }
 
 function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
@@ -321,7 +351,7 @@ function getEventsRequest(
     {
       retry: {
         statusCodes: [429],
-        tries: 3,
+        tries: 10,
       },
     }
   );
@@ -339,10 +369,7 @@ function getGroupByFieldOptions(
   );
   const yAxisFilter = filterYAxisOptions();
 
-  // The only options that should be returned as valid group by options
-  // are string tags
-  const filterGroupByOptions = (option: FieldValueOption) =>
-    _isNotNumericTag(option) && !yAxisFilter(option);
+  const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 
   return pickBy(primaryFieldOptions, filterGroupByOptions);
 }

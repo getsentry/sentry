@@ -10,26 +10,18 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.tasks.auto_resolve_issues import schedule_auto_resolution
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
-from sentry.testutils.helpers.features import with_feature
 
 
 class ScheduleAutoResolutionTest(TestCase):
-    @patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_task_persistent_name(self, mock_backend: MagicMock) -> None:
-        mock_backend.get_size.return_value = 0
+    def test_task_persistent_name(self) -> None:
         assert schedule_auto_resolution.name == "sentry.tasks.schedule_auto_resolution"
 
     @patch("sentry.analytics.record")
-    @patch("sentry.tasks.auto_ongoing_issues.backend")
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
-    @with_feature("organizations:issue-open-periods")
-    def test_simple(
-        self, mock_kick_off_status_syncs: MagicMock, mock_backend: MagicMock, mock_record: MagicMock
-    ) -> None:
+    def test_simple(self, mock_kick_off_status_syncs: MagicMock, mock_record: MagicMock) -> None:
         project = self.create_project()
         project2 = self.create_project()
         project3 = self.create_project()
@@ -47,33 +39,25 @@ class ScheduleAutoResolutionTest(TestCase):
             status=GroupStatus.UNRESOLVED,
             last_seen=timezone.now() - timedelta(days=1),
         )
-        assert GroupOpenPeriod.objects.get(group=group1).date_ended is None
 
         group2 = self.create_group(
             project=project, status=GroupStatus.UNRESOLVED, last_seen=timezone.now()
         )
-        assert GroupOpenPeriod.objects.get(group=group2).date_ended is None
 
         group3 = self.create_group(
             project=project3,
             status=GroupStatus.UNRESOLVED,
             last_seen=timezone.now() - timedelta(days=1),
         )
-        assert GroupOpenPeriod.objects.get(group=group3).date_ended is None
-
-        mock_backend.get_size.return_value = 0
 
         with self.tasks():
             schedule_auto_resolution()
 
         assert Group.objects.get(id=group1.id).status == GroupStatus.RESOLVED
-        assert GroupOpenPeriod.objects.get(group=group1).date_ended is not None
 
         assert Group.objects.get(id=group2.id).status == GroupStatus.UNRESOLVED
-        assert GroupOpenPeriod.objects.get(group=group2).date_ended is None
 
         assert Group.objects.get(id=group3.id).status == GroupStatus.UNRESOLVED
-        assert GroupOpenPeriod.objects.get(group=group3).date_ended is None
 
         mock_kick_off_status_syncs.apply_async.assert_called_once_with(
             kwargs={"project_id": group1.project_id, "group_id": group1.id}
@@ -95,11 +79,8 @@ class ScheduleAutoResolutionTest(TestCase):
             ),
         )
 
-    @patch("sentry.tasks.auto_ongoing_issues.backend")
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
-    def test_single_event_performance(
-        self, mock_kick_off_status_syncs: MagicMock, mock_backend: MagicMock
-    ) -> None:
+    def test_single_event_performance(self, mock_kick_off_status_syncs: MagicMock) -> None:
         project = self.create_project()
 
         current_ts = int(time()) - 1
@@ -113,8 +94,6 @@ class ScheduleAutoResolutionTest(TestCase):
             type=PerformanceSlowDBQueryGroupType.type_id,  # Test that auto_resolve is enabled for legacy performance issues
         )
 
-        mock_backend.get_size.return_value = 0
-
         with self.tasks():
             schedule_auto_resolution()
 
@@ -126,8 +105,7 @@ class ScheduleAutoResolutionTest(TestCase):
 
         assert project.get_option("sentry:_last_auto_resolve") > current_ts
 
-    @patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_aggregate_performance(self, mock_backend: MagicMock) -> None:
+    def test_aggregate_performance(self) -> None:
         project = self.create_project()
 
         project.update_option("sentry:resolve_age", 1)
@@ -138,8 +116,6 @@ class ScheduleAutoResolutionTest(TestCase):
             last_seen=timezone.now() - timedelta(days=1),
             type=PerformanceP95EndpointRegressionGroupType.type_id,  # Test that auto_resolve is disabled for SD
         )
-
-        mock_backend.get_size.return_value = 0
 
         with self.tasks():
             schedule_auto_resolution()

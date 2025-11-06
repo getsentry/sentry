@@ -232,7 +232,17 @@ const SECTIONS: TSection[] = [
       {
         id: 'building',
         groups: ['product'],
-        keywords: ['business', 'office', 'company', 'corporate', 'organization'],
+        keywords: [
+          'business',
+          'office',
+          'company',
+          'corporate',
+          'organization',
+          'integration',
+          'github',
+          'external',
+          'integratedOrganization',
+        ],
         name: 'Building',
         defaultProps: {},
       },
@@ -248,13 +258,6 @@ const SECTIONS: TSection[] = [
         groups: ['product'],
         keywords: ['git', 'repo', 'code', 'version control', 'project'],
         name: 'Repository',
-        defaultProps: {},
-      },
-      {
-        id: 'integratedOrg',
-        groups: ['product'],
-        keywords: ['organization', 'integration', 'github', 'external'],
-        name: 'IntegratedOrg',
         defaultProps: {},
       },
     ],
@@ -1053,6 +1056,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'case',
+        groups: ['action'],
+        keywords: ['case', 'toggle', 'search', 'case sensitive', 'A', 'Aa'],
+        name: 'Case',
+        defaultProps: {},
+      },
+      {
         id: 'show',
         groups: ['action'],
         keywords: ['visible', 'eye', 'view', 'display'],
@@ -1807,10 +1817,7 @@ function IconCard(props: IconCardProps) {
   };
   const action: keyof typeof snippets = shift ? 'import' : 'element';
 
-  const {onClick, label} = useCopyToClipboard({
-    successMessage: `Copied ${labels[action]} to clipboard`,
-    text: snippets[action],
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <Tooltip
@@ -1849,7 +1856,13 @@ function IconCard(props: IconCardProps) {
         </Stack>
       }
     >
-      <Cell onClick={onClick} aria-label={label}>
+      <Cell
+        onClick={() =>
+          copy(snippets[action], {
+            successMessage: `Copied ${labels[action]} to clipboard`,
+          })
+        }
+      >
         {props.children}
       </Cell>
     </Tooltip>

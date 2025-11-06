@@ -154,14 +154,6 @@ const Frame = styled('div')<{
   ${p =>
     p.revealActions === 'hover' &&
     css`
-      :hover {
-        background-color: ${p.theme.surface200};
-        transition:
-          background-color 100ms linear,
-          box-shadow 100ms linear;
-        box-shadow: ${p.theme.dropShadowLight};
-      }
-
       &:not(:hover):not(:focus-within) {
         ${TitleHoverItems} {
           opacity: 0;
@@ -189,7 +181,7 @@ const VisualizationWrapper = styled('div')<{noPadding?: boolean}>`
   padding: ${p => (p.noPadding ? 0 : `0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER}`)};
 `;
 
-const FooterWrapper = styled('div')<{noPadding?: boolean}>`
+export const FooterWrapper = styled('div')<{noPadding?: boolean}>`
   margin: 0;
   border-top: 1px solid ${p => p.theme.border};
   padding: ${p => (p.noPadding ? 0 : `${space(1)} ${X_GUTTER} ${space(1)} ${X_GUTTER}`)};

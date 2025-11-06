@@ -1,14 +1,12 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 import type {StoryTreeNode} from './storyTree';
 import {inferFileCategory, StoryTree, useStoryTree} from './storyTree';
 import {useStoryBookFiles} from './useStoriesLoader';
 
 export function StorySidebar() {
-  const {foundations, typography, layout, core, product, shared} =
+  const {foundations, principles, patterns, typography, layout, core, product, shared} =
     useStoryBookFilesByCategory();
 
   return (
@@ -18,6 +16,18 @@ export function StorySidebar() {
           <h3>Foundations</h3>
           <StoryTree nodes={foundations} />
         </li>
+        {principles.length > 0 && (
+          <li>
+            <h3>Principles</h3>
+            <StoryTree nodes={principles} />
+          </li>
+        )}
+        {patterns.length > 0 && (
+          <li>
+            <h3>Patterns</h3>
+            <StoryTree nodes={patterns} />
+          </li>
+        )}
         <li>
           <h3>Typography</h3>
           <StoryTree nodes={typography} />
@@ -30,12 +40,12 @@ export function StorySidebar() {
           <h3>Components</h3>
           <StoryTree nodes={core} />
         </li>
-        {product.length > 0 && (
+        {product.length > 0 ? (
           <li>
             <h3>Product</h3>
             <StoryTree nodes={product} />
           </li>
-        )}
+        ) : null}
         <li>
           <h3>Shared</h3>
           <StoryTree nodes={shared} />
@@ -52,7 +62,14 @@ function scrollIntoView(node: HTMLElement | null) {
 }
 
 export function useStoryBookFilesByCategory(): Record<
-  'foundations' | 'typography' | 'layout' | 'core' | 'product' | 'shared',
+  | 'foundations'
+  | 'principles'
+  | 'patterns'
+  | 'typography'
+  | 'layout'
+  | 'core'
+  | 'product'
+  | 'shared',
   StoryTreeNode[]
 > {
   const files = useStoryBookFiles();
@@ -60,6 +77,8 @@ export function useStoryBookFilesByCategory(): Record<
     // The order of keys here is important and used by the pagination in storyFooter
     const map: Record<ReturnType<typeof inferFileCategory>, string[]> = {
       foundations: [],
+      principles: [],
+      patterns: [],
       typography: [],
       layout: [],
       core: [],
@@ -70,6 +89,12 @@ export function useStoryBookFilesByCategory(): Record<
       switch (inferFileCategory(file)) {
         case 'foundations':
           map.foundations.push(file);
+          break;
+        case 'principles':
+          map.principles.push(file);
+          break;
+        case 'patterns':
+          map.patterns.push(file);
           break;
         case 'typography':
           map.typography.push(file);
@@ -91,6 +116,16 @@ export function useStoryBookFilesByCategory(): Record<
   }, [files]);
 
   const foundations = useStoryTree(filesByOwner.foundations, {
+    query: '',
+    representation: 'category',
+    type: 'flat',
+  });
+  const principles = useStoryTree(filesByOwner.principles, {
+    query: '',
+    representation: 'category',
+    type: 'flat',
+  });
+  const patterns = useStoryTree(filesByOwner.patterns, {
     query: '',
     representation: 'category',
     type: 'flat',
@@ -122,6 +157,8 @@ export function useStoryBookFilesByCategory(): Record<
 
   return {
     foundations,
+    principles,
+    patterns,
     typography,
     core,
     product,
@@ -137,7 +174,7 @@ const SidebarContainer = styled('nav')`
   grid-column: 1;
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   min-height: 0;
   height: calc(100dvh - 52px);
   z-index: 0;
@@ -152,15 +189,15 @@ const SidebarContainer = styled('nav')`
     list-style: none;
   }
   > ul {
-    padding-left: ${space(1)};
-    padding-block: ${space(2)};
+    padding-left: ${p => p.theme.space.md};
+    padding-block: ${p => p.theme.space.xl};
   }
   > ul > li::before {
     display: block;
     content: '';
     height: 1px;
     background: ${p => p.theme.tokens.border.muted};
-    margin: ${space(2)} ${space(1)};
+    margin: ${p => p.theme.space.xl} ${p => p.theme.space.md};
   }
   > ul > li:first-child::before {
     content: none;
@@ -170,6 +207,6 @@ const SidebarContainer = styled('nav')`
     font-size: ${p => p.theme.fontSize.md};
     font-weight: ${p => p.theme.fontWeight.bold};
     margin: 0;
-    padding: ${space(1)};
+    padding: ${p => p.theme.space.md};
   }
 `;

@@ -243,20 +243,28 @@ function getShortSpanOperationDescription(operation?: string) {
 /**
  * Formats a change rate with a sign (+/-) and 2 decimal places.
  *
- * e.g. `0.46 -> '+0.46%'`, `-0.46 -> '-0.46%'`, `0 -> '0%'`
+ * e.g. `0.46 -> '+0.46%'`, `-0.46 -> '-0.46%'`, `0 -> '0.00%'`
  *
  * @param change the change rate to format
+ * @param options formatting options
+ * @param options.minimumValue minimum value threshold, below which "<{minimumValue}%" is shown
  */
-export function formatPercentRate(change: number) {
+export function formatPercentRate(change: number, options?: {minimumValue?: number}) {
+  const {minimumValue} = options ?? {};
+
+  if (change === 0) {
+    return '0.00%';
+  }
+
+  if (minimumValue && Math.abs(change) > 0 && Math.abs(change) < minimumValue) {
+    return change > 0 ? `<+${minimumValue.toFixed(2)}%` : `<-${minimumValue.toFixed(2)}%`;
+  }
+
   if (change > 0) {
     return `+${change.toFixed(2)}%`;
   }
 
-  if (change < 0) {
-    return `${change.toFixed(2)}%`;
-  }
-
-  return '0.00%';
+  return `${change.toFixed(2)}%`;
 }
 
 /**

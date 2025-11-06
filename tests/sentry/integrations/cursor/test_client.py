@@ -13,7 +13,7 @@ class CursorClientTest(TestCase):
             api_key="test_api_key_123", webhook_secret="test_webhook_secret"
         )
 
-    @patch("requests.post")
+    @patch("sentry.integrations.cursor.client.CursorAgentClient.post")
     def test_launch(self, mock_post):
         from datetime import datetime
 
@@ -23,7 +23,7 @@ class CursorClientTest(TestCase):
 
         # Mock the response
         mock_response = MagicMock()
-        mock_response.json.return_value = {
+        mock_response.json = {
             "id": "test_session_123",
             "name": "Test Session",
             "status": "running",
@@ -60,7 +60,7 @@ class CursorClientTest(TestCase):
         # Verify the API call
         mock_post.assert_called_once()
         call_args = mock_post.call_args
-        assert call_args[0][0] == "https://api.cursor.com/v0/agents"
+        assert call_args[0][0] == "/v0/agents"
 
         # Verify headers
         headers = call_args[1]["headers"]

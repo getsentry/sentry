@@ -21,7 +21,6 @@ import type {ViewProps} from 'sentry/views/performance/types';
 type Props = ViewProps & {
   organization: OrganizationSummary;
   queryExtra: Query;
-  withoutZerofill: boolean;
 };
 
 /**
@@ -33,7 +32,6 @@ function UserMiseryChart({
   organization,
   query,
   statsPeriod,
-  withoutZerofill,
   start: propsStart,
   end: propsEnd,
 }: Props) {
@@ -82,7 +80,6 @@ function UserMiseryChart({
         includePrevious={false}
         yAxis={yAxis}
         partial
-        withoutZerofill={withoutZerofill}
         referrer="api.insights.transaction-summary.user-misery-chart"
         queryExtras={getMEPQueryParams(mepContext)}
       >

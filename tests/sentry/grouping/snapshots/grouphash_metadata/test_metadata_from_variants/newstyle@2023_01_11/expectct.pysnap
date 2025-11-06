@@ -1,5 +1,5 @@
 ---
-created: '2025-09-11T18:40:12.890172+00:00'
+created: '2025-10-07T20:42:04.094722+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -23,7 +23,8 @@ contributing variants:
   default*
     hash: "3d2933f4b5ec459ec8d569a398fd328c"
     contributing component: expect_ct
-    component:
+    hint: None
+    root_component:
       default*
         expect_ct*
           salt* (a static salt)

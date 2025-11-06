@@ -440,8 +440,7 @@ E.g. `['release', 'environment']`""",
 
     def validate_tempestFetchScreenshots(self, value):
         organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not has_tempest_access(organization, actor=actor):
+        if not has_tempest_access(organization):
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
             )
@@ -449,8 +448,7 @@ E.g. `['release', 'environment']`""",
 
     def validate_tempestFetchDumps(self, value):
         organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not has_tempest_access(organization, actor=actor):
+        if not has_tempest_access(organization):
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
             )
@@ -919,6 +917,21 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         f"sentry:{FilterTypes.LOG_MESSAGES}",
                         clean_newline_inputs(
                             options[f"filters:{FilterTypes.LOG_MESSAGES}"],
+                            case_insensitive=False,
+                        ),
+                    )
+                else:
+                    return Response({"detail": "You do not have that feature enabled"}, status=400)
+            if f"filters:{FilterTypes.TRACE_METRIC_NAMES}" in options:
+                if features.has(
+                    "projects:custom-inbound-filters", project, actor=request.user
+                ) and features.has(
+                    "organizations:tracemetrics-ingestion", project.organization, actor=request.user
+                ):
+                    project.update_option(
+                        f"sentry:{FilterTypes.TRACE_METRIC_NAMES}",
+                        clean_newline_inputs(
+                            options[f"filters:{FilterTypes.TRACE_METRIC_NAMES}"],
                             case_insensitive=False,
                         ),
                     )

@@ -8,8 +8,8 @@ import {
 } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 
-import type {SentryRouteObject} from 'sentry/components/route';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import type {SentryRouteObject} from 'sentry/router/types';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
@@ -140,7 +140,7 @@ export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
   //   to shim the `useRoutes` hook to act like it did n react-router 3,
   //   where the path was not resolved (looks like /issues/:issueId). Once we
   //   remove usages of useRoutes we can remove this value from the handle.
-  const handle = {name, path};
+  const handle = {...tree.handle, name, path};
 
   if (tree.index) {
     return {index: true, element: getElement(component, deprecatedRouteProps), handle};

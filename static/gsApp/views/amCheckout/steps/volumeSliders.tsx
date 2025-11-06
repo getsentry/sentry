@@ -28,6 +28,41 @@ import * as utils from 'getsentry/views/amCheckout/utils';
 
 const ATTACHMENT_DIGITS = 2;
 
+function renderHovercardBody() {
+  return (
+    <Fragment>
+      <UnitTypeItem
+        unitName={t('Transactions')}
+        description={t(
+          'Transactions are sent when your service receives a request and sends a response.'
+        )}
+        weight="1.0"
+      />
+      <UnitTypeItem
+        unitName={t('Transactions with Profiling')}
+        description={t(
+          'Transactions with Profiling provide the deepest level of visibility for your apps.'
+        )}
+        weight="1.3"
+      />
+    </Fragment>
+  );
+}
+
+export function renderPerformanceHovercard() {
+  return (
+    <StyledHovercard
+      position="top"
+      header={<div>{t('Performance Event Types')}</div>}
+      body={renderHovercardBody()}
+    >
+      <IconContainer>
+        <IconQuestion size="xs" color="subText" />
+      </IconContainer>
+    </StyledHovercard>
+  );
+}
+
 function VolumeSliders({
   checkoutTier,
   activePlan,
@@ -72,37 +107,6 @@ function VolumeSliders({
       </PerformanceTag>
       {!isNewCheckout && t('Total Units')}
     </PerformanceUnits>
-  );
-
-  const renderHovercardBody = () => (
-    <Fragment>
-      <UnitTypeItem
-        unitName={t('Transactions')}
-        description={t(
-          'Transactions are sent when your service receives a request and sends a response.'
-        )}
-        weight="1.0"
-      />
-      <UnitTypeItem
-        unitName={t('Transactions with Profiling')}
-        description={t(
-          'Transactions with Profiling provide the deepest level of visibility for your apps.'
-        )}
-        weight="1.3"
-      />
-    </Fragment>
-  );
-
-  const renderPerformanceHovercard = () => (
-    <StyledHovercard
-      position="top"
-      header={<div>{t('Performance Event Types')}</div>}
-      body={renderHovercardBody()}
-    >
-      <IconContainer>
-        <IconQuestion size="xs" color="subText" />
-      </IconContainer>
-    </StyledHovercard>
   );
 
   return (
@@ -174,15 +178,6 @@ function VolumeSliders({
                     {showPerformanceUnits && renderPerformanceUnitDecoration()}
                     <Title htmlFor={sliderId} isNewCheckout={!!isNewCheckout}>
                       <div>{getPlanCategoryName({plan: activePlan, category})}</div>
-                      {showPerformanceUnits
-                        ? renderPerformanceHovercard()
-                        : categoryInfo?.reservedVolumeTooltip && (
-                            <QuestionTooltip
-                              title={categoryInfo.reservedVolumeTooltip}
-                              position="top"
-                              size="xs"
-                            />
-                          )}
                     </Title>
                     {eventBucket.price !== 0 && (
                       <Description isNewCheckout={!!isNewCheckout}>
@@ -232,6 +227,17 @@ function VolumeSliders({
                       showLabel={false}
                       name={category}
                       id={sliderId}
+                      aria-label={
+                        isByteCategory(category)
+                          ? t(
+                              'Reserved volume for %s (in gigabytes)',
+                              getPlanCategoryName({plan: activePlan, category})
+                            )
+                          : t(
+                              'Reserved volume for %s',
+                              getPlanCategoryName({plan: activePlan, category})
+                            )
+                      }
                       value={formData.reserved[category] ?? ''}
                       allowedValues={allowedValues}
                       onChange={value =>
@@ -270,9 +276,9 @@ function VolumeSliders({
                         <div>{getPlanCategoryName({plan: activePlan, category})}</div>
                         {showPerformanceUnits
                           ? renderPerformanceHovercard()
-                          : categoryInfo?.reservedVolumeTooltip && (
+                          : categoryInfo?.checkoutTooltip && (
                               <QuestionTooltip
-                                title={categoryInfo.reservedVolumeTooltip}
+                                title={categoryInfo.checkoutTooltip}
                                 position="top"
                                 size="xs"
                               />
@@ -340,6 +346,7 @@ function VolumeSliders({
 export default VolumeSliders;
 
 const SlidersContainer = styled('div')`
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.xl};
   > :not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
@@ -418,6 +425,10 @@ const StyledHovercard = styled(Hovercard)`
   }
   ${Body} {
     padding: 0px;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.xs}) {
+    width: 100%;
   }
 `;
 

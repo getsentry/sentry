@@ -10,15 +10,16 @@ from django.conf import settings
 from django.core.cache import cache
 from usageaccountant import UsageUnit
 
-from sentry import eventstore, features
-from sentry.attachments import CachedAttachment, attachment_cache
-from sentry.event_manager import EventManager, save_attachment
+from sentry import features
+from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
+from sentry.event_manager import save_attachment
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.services import eventstore
 from sentry.services.eventstore.processing import (
     event_processing_store,
     transaction_processing_store,
@@ -30,7 +31,6 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
-from sentry.utils.sdk import set_current_event_project
 from sentry.utils.snuba import RateLimitExceeded
 
 logger = logging.getLogger(__name__)
@@ -70,29 +70,6 @@ def trace_func(**span_kwargs):
     return wrapper
 
 
-def process_transaction_no_celery(
-    data: MutableMapping[str, Any], project_id: int, attachments: Any, start_time: float
-) -> None:
-    set_current_event_project(project_id)
-
-    manager = EventManager(data)
-    # event.project.organization is populated after this statement.
-    manager.save(
-        project_id,
-        assume_normalized=True,
-        start_time=start_time,
-    )
-    # Put the updated event back into the cache so that post_process
-    # has the most recent data.
-    data = manager.get_data()
-    if not isinstance(data, dict):
-        data = dict(data.items())
-
-    with sentry_sdk.start_span(op="event_processing_store.store"):
-        cache_key = transaction_processing_store.store(data)
-    save_attachments(attachments, cache_key)
-
-
 @trace_func(name="ingest_consumer.process_event")
 @metrics.wraps("ingest_consumer.process_event")
 def process_event(
@@ -100,7 +77,6 @@ def process_event(
     message: IngestMessage,
     project: Project,
     reprocess_only_stuck_events: bool = False,
-    no_celery_mode: bool = False,
 ) -> None:
     """
     Perform some initial filtering and deserialize the message payload.
@@ -201,20 +177,19 @@ def process_event(
                 if not processing_store.exists(data):
                     return
 
-        # The no_celery_mode version of the transactions consumer skips one trip to rc-processing
-        # Otherwise, we have to store the event in processing store here for the save_event task to
-        # fetch later
-        if no_celery_mode:
-            cache_key: str | None = None
-        else:
-            with metrics.timer("ingest_consumer._store_event"):
-                cache_key = processing_store.store(data)
-            if consumer_type == ConsumerType.Transactions:
-                track_sampled_event(
-                    data["event_id"], ConsumerType.Transactions, TransactionStageStatus.REDIS_PUT
-                )
+        attachment_objects = [
+            CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+            for attachment in attachments
+        ]
+        if attachment_objects:
+            store_attachments_for_event(data, attachment_objects, timeout=CACHE_TIMEOUT)
 
-            save_attachments(attachments, cache_key)
+        with metrics.timer("ingest_consumer._store_event"):
+            cache_key = processing_store.store(data)
+        if consumer_type == ConsumerType.Transactions:
+            track_sampled_event(
+                data["event_id"], ConsumerType.Transactions, TransactionStageStatus.REDIS_PUT
+            )
 
         try:
             # Records rc-processing usage broken down by
@@ -246,22 +221,16 @@ def process_event(
             )
             return
         if data.get("type") == "transaction":
-            if no_celery_mode:
-                with sentry_sdk.start_span(op="ingest_consumer.process_transaction_no_celery"):
-                    sentry_sdk.set_tag("no_celery_mode", True)
-
-                    process_transaction_no_celery(data, project_id, attachments, start_time)
-            else:
-                assert cache_key is not None
-                # No need for preprocess/process for transactions thus submit
-                # directly transaction specific save_event task.
-                save_event_transaction.delay(
-                    cache_key=cache_key,
-                    data=None,
-                    start_time=start_time,
-                    event_id=event_id,
-                    project_id=project_id,
-                )
+            assert cache_key is not None
+            # No need for preprocess/process for transactions thus submit
+            # directly transaction specific save_event task.
+            save_event_transaction.delay(
+                cache_key=cache_key,
+                data=None,
+                start_time=start_time,
+                event_id=event_id,
+                project_id=project_id,
+            )
 
             try:
                 collect_span_metrics(project, data)
@@ -305,17 +274,6 @@ def process_event(
         if isinstance(exc, KeyError):  # ex: missing event_id in message["payload"]
             raise
         raise Retriable(exc)
-
-
-def save_attachments(attachments: Any, cache_key: str) -> None:
-    if attachments:
-        with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
-            attachment_objects = [
-                CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
-                for attachment in attachments
-            ]
-            assert cache_key is not None
-            attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
 
 
 @trace_func(name="ingest_consumer.process_attachment_chunk")

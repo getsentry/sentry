@@ -107,7 +107,7 @@ describe('FlamegraphWarnings', () => {
         <FlamegraphWarnings
           flamegraph={onlySystemFramesFlamegraph}
           requestState={{type: 'resolved', data: onlySystemFramesFlamegraph}}
-          filter={'application'}
+          filter="application"
           onResetFilter={onResetFilter}
         />
       );

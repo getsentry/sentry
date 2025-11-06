@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 import re
+import sys
 from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any, TypedDict
+from typing import Any, NoReturn, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -51,6 +52,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.silo.base import all_silo_function
+from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -531,7 +533,16 @@ class JiraIntegration(IssueSyncIntegration):
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        return self.get_client().create_comment(issue_id, quoted_comment)
+        try:
+            return self.get_client().create_comment(issue_id, quoted_comment)
+        except ApiUnauthorized as e:
+            raise IntegrationConfigurationError(
+                "Insufficient permissions to create a comment on the Jira issue."
+            ) from e
+        except ApiError as e:
+            raise IntegrationError(
+                "There was an error creating a comment on the Jira issue."
+            ) from e
 
     def create_comment_attribution(self, user_id, comment_text):
         user = user_service.get_user(user_id=user_id)
@@ -542,9 +553,18 @@ class JiraIntegration(IssueSyncIntegration):
 
     def update_comment(self, issue_id, user_id, group_note):
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
-        return self.get_client().update_comment(
-            issue_id, group_note.data["external_id"], quoted_comment
-        )
+        try:
+            return self.get_client().update_comment(
+                issue_id, group_note.data["external_id"], quoted_comment
+            )
+        except ApiUnauthorized as e:
+            raise IntegrationConfigurationError(
+                "Insufficient permissions to update a comment on the Jira issue."
+            ) from e
+        except ApiError as e:
+            raise IntegrationError(
+                "There was an error updating a comment on the Jira issue."
+            ) from e
 
     def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
         try:
@@ -791,13 +811,9 @@ class JiraIntegration(IssueSyncIntegration):
         project_id = params.get("project", defaults.get("project"))
         client = self.get_client()
         try:
-            jira_projects = (
-                client.get_projects_paginated({"maxResults": MAX_PER_PROJECT_QUERIES})["values"]
-                if features.has(
-                    "organizations:jira-paginated-projects", self.organization, actor=user
-                )
-                else client.get_projects_list()
-            )
+            jira_projects = client.get_projects_paginated({"maxResults": MAX_PER_PROJECT_QUERIES})[
+                "values"
+            ]
         except ApiError as e:
             logger.info(
                 "jira.get-create-issue-config.no-projects",
@@ -839,11 +855,10 @@ class JiraIntegration(IssueSyncIntegration):
             "updatesForm": True,
             "required": True,
         }
-        if features.has("organizations:jira-paginated-projects", self.organization, actor=user):
-            paginated_projects_url = reverse(
-                "sentry-extensions-jira-search", args=[self.organization.slug, self.model.id]
-            )
-            projects_form_field["url"] = paginated_projects_url
+        paginated_projects_url = reverse(
+            "sentry-extensions-jira-search", args=[self.organization.slug, self.model.id]
+        )
+        projects_form_field["url"] = paginated_projects_url
 
         fields = [
             projects_form_field,
@@ -947,7 +962,11 @@ class JiraIntegration(IssueSyncIntegration):
         if not jira_project:
             raise IntegrationFormError({"project": ["Jira project is required"]})
 
-        meta = client.get_create_meta_for_project(jira_project)
+        try:
+            meta = client.get_create_meta_for_project(jira_project)
+        except ApiError as e:
+            self.raise_error(e)
+
         if not meta:
             raise IntegrationConfigurationError(
                 "Could not fetch issue create configuration from Jira."
@@ -969,6 +988,38 @@ class JiraIntegration(IssueSyncIntegration):
 
         # Immediately fetch and return the created issue.
         return self.get_issue(issue_key)
+
+    def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
+        """
+        Overrides the base `raise_error` method to treat ApiInvalidRequestErrors
+        as configuration errors when we don't have error field handling for the
+        response.
+
+        This is because the majority of Jira errors we receive are external
+        configuration problems, like required fields missing.
+        """
+        logging_context = {
+            "exception_type": type(exc).__name__,
+            "request_body": str(exc.json) if isinstance(exc, ApiError) else None,
+        }
+
+        if isinstance(exc, ApiError) and not exc.json:
+            logger.warning("sentry.jira.raise_error.non_json_error_response", extra=logging_context)
+            raise IntegrationConfigurationError(
+                "Something went wrong while communicating with Jira"
+            ) from exc
+
+        if isinstance(exc, ApiInvalidRequestError):
+            error_fields = self.error_fields_from_json(exc.json)
+            if error_fields is not None:
+                raise IntegrationFormError(error_fields).with_traceback(sys.exc_info()[2])
+
+            logger.warning(
+                "sentry.jira.raise_error.generic_api_invalid_error", extra=logging_context
+            )
+            raise IntegrationConfigurationError(exc.text) from exc
+
+        super().raise_error(exc, identity=identity)
 
     def sync_assignee_outbound(
         self,

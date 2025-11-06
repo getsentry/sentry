@@ -4,7 +4,6 @@ import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceExc
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -13,23 +12,24 @@ import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 describe('SharedGroupDetails', () => {
   const eventEntry = EventEntryFixture();
   const exception = EventStacktraceExceptionFixture().entries[0];
-  const params = {shareId: 'a'};
-  const router = RouterFixture({params});
+
+  const organization = OrganizationFixture({slug: 'test-org'});
+  const project = ProjectFixture({organization});
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/organizations/test-org/projects/`,
+      url: `/organizations/${organization.slug}/projects/`,
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/shared/issues/a/',
+      url: `/organizations/${organization.slug}/shared/issues/a/`,
       body: GroupFixture({
         title: 'ZeroDivisionError',
         latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
-        project: ProjectFixture({organization: OrganizationFixture({slug: 'test-org'})}),
+        project,
       }),
     });
     MockApiClient.addMockResponse({
@@ -39,17 +39,17 @@ describe('SharedGroupDetails', () => {
         latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
-        project: ProjectFixture({organization: OrganizationFixture({slug: 'test-org'})}),
+        project,
       }),
     });
     MockApiClient.addMockResponse({
-      url: `/projects/test-org/project-slug/events/1/actionable-items/`,
+      url: `/projects/${organization.slug}/project-slug/events/1/actionable-items/`,
       body: {
         errors: [],
       },
     });
     MockApiClient.addMockResponse({
-      url: `/projects/test-org/project-slug/events/1/committers/`,
+      url: `/projects/${organization.slug}/project-slug/events/1/committers/`,
       body: [],
     });
   });
@@ -59,32 +59,26 @@ describe('SharedGroupDetails', () => {
   });
 
   it('renders', async () => {
-    render(
-      <SharedGroupDetails
-        params={params}
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-      />
-    );
+    render(<SharedGroupDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/share/issue/a/',
+        },
+        route: '/share/issue/:shareId/',
+      },
+    });
     await screen.findByText('Details');
   });
 
   it('renders with org slug in path', async () => {
-    const params_with_slug = {shareId: 'a', orgId: 'test-org'};
-    const router_with_slug = RouterFixture({params_with_slug});
-    render(
-      <SharedGroupDetails
-        params={params}
-        route={{}}
-        router={router_with_slug}
-        routes={router_with_slug.routes}
-        routeParams={router_with_slug.params}
-        location={router_with_slug.location}
-      />
-    );
+    render(<SharedGroupDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/share/issue/a/`,
+        },
+        route: '/organizations/:orgId/share/issue/:shareId/',
+      },
+    });
     await screen.findByText('Details');
     await screen.findByTestId('sgh-timestamp');
   });

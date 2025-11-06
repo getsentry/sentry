@@ -181,7 +181,7 @@ function AggregatesTable({
                       <TopResultsIndicator color={palette[i]!} />
                     )}
                     <Tooltip title={t('View Samples')} containerDisplayMode="flex">
-                      <StyledLink to={target} data-test-id={'unstack-link'}>
+                      <StyledLink to={target} data-test-id="unstack-link">
                         <IconStack />
                       </StyledLink>
                     </Tooltip>

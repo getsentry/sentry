@@ -18,12 +18,21 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import AutomationsList from 'sentry/views/automations/list';
 
 describe('AutomationsList', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture({
+    features: ['workflow-engine-ui', 'search-query-builder-input-flow-changes'],
+  });
+  const project = ProjectFixture({id: '1', slug: 'project-1'});
+  const detector = MetricDetectorFixture({
+    id: '1',
+    name: 'Detector 1',
+    projectId: project.id,
+  });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -37,9 +46,19 @@ describe('AutomationsList', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/1/',
-      body: [MetricDetectorFixture({name: 'Detector 1'})],
+      body: detector,
     });
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [detector],
+      match: [MockApiClient.matchQuery({id: ['1']})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [project],
+    });
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
+    ProjectsStore.loadInitialData([project]);
   });
 
   it('displays all automation info correctly', async () => {
@@ -61,19 +80,6 @@ describe('AutomationsList', () => {
       url: '/organizations/org-slug/workflows/',
       body: [AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']})],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      body: [
-        MetricDetectorFixture({
-          id: '1',
-          name: 'Detector 1',
-          workflowIds: ['100'],
-          projectId: '1',
-        }),
-      ],
-      match: [MockApiClient.matchQuery({id: ['1']})],
-    });
-    ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug: 'project-1'})]);
 
     render(<AutomationsList />, {organization});
     const row = await screen.findByTestId('automation-list-row');
@@ -124,7 +130,9 @@ describe('AutomationsList', () => {
     );
 
     // Click on Name column header to sort
-    await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+    await userEvent.click(
+      screen.getByRole('columnheader', {name: 'Select all on page Name'})
+    );
 
     await waitFor(() => {
       expect(mockAutomationsRequest).toHaveBeenLastCalledWith(
@@ -139,7 +147,9 @@ describe('AutomationsList', () => {
     expect(router.location.query.sort).toBe('name');
 
     // Click on Name column header again to change sort direction
-    await userEvent.click(screen.getByRole('columnheader', {name: 'Name'}));
+    await userEvent.click(
+      screen.getByRole('columnheader', {name: 'Select all on page Name'})
+    );
 
     await waitFor(() => {
       expect(mockAutomationsRequest).toHaveBeenLastCalledWith(
@@ -168,6 +178,7 @@ describe('AutomationsList', () => {
       // Click through menus to select action:slack
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'action'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'is'}));
       await userEvent.click(await screen.findByRole('option', {name: 'slack'}));
 
       await screen.findByText('Slack Automation');
@@ -177,7 +188,6 @@ describe('AutomationsList', () => {
 
   describe('bulk actions', () => {
     beforeEach(() => {
-      MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/1/',
         body: UserFixture(),
@@ -189,7 +199,7 @@ describe('AutomationsList', () => {
           AutomationFixture({
             id: '1',
             name: 'Enabled Automation',
-            detectorIds: [],
+            detectorIds: ['1'],
             enabled: true,
           }),
           AutomationFixture({
@@ -206,10 +216,11 @@ describe('AutomationsList', () => {
           }),
         ],
       });
-      PageFiltersStore.onInitializeUrlState(
-        PageFiltersFixture({projects: [1]}),
-        new Set()
-      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/detectors/',
+        body: [detector],
+      });
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
     });
 
     it('can select automations', async () => {
@@ -220,7 +231,7 @@ describe('AutomationsList', () => {
       expect(rows).toHaveLength(3);
 
       // Initially no checkboxes should be checked
-      const checkboxes = screen.getAllByRole('checkbox');
+      let checkboxes = screen.getAllByRole('checkbox');
       checkboxes.forEach(checkbox => {
         expect(checkbox).not.toBeChecked();
       });
@@ -245,7 +256,8 @@ describe('AutomationsList', () => {
       await userEvent.click(masterCheckbox);
       expect(masterCheckbox).toBeChecked();
 
-      // // All checkboxes should be checked
+      // All checkboxes should be checked
+      checkboxes = screen.getAllByRole('checkbox');
       checkboxes.forEach(checkbox => {
         expect(checkbox).toBeChecked();
       });
@@ -383,7 +395,13 @@ describe('AutomationsList', () => {
         body: {},
       });
 
-      render(<AutomationsList />, {organization});
+      render(
+        // MonitorViewContainer provides PageFiltersContainer typically
+        <PageFiltersContainer>
+          <AutomationsList />
+        </PageFiltersContainer>,
+        {organization}
+      );
       renderGlobalModal();
 
       // Mock the filtered search results - this will be used when search is applied
@@ -406,7 +424,6 @@ describe('AutomationsList', () => {
         match: [
           MockApiClient.matchQuery({
             query: 'action:slack',
-            project: [1],
           }),
         ],
       });
@@ -414,6 +431,7 @@ describe('AutomationsList', () => {
       // Click through menus to select action:slack
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(await screen.findByRole('option', {name: 'action'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'is'}));
       await userEvent.click(await screen.findByRole('option', {name: 'slack'}));
 
       // Wait for filtered results to load
@@ -432,11 +450,9 @@ describe('AutomationsList', () => {
       await userEvent.click(masterCheckbox);
 
       // Should show alert with option to select all query results
-      expect(
-        screen.getByText(/20 automations on this page selected/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/20 alerts on this page selected/)).toBeInTheDocument();
       const selectAllForQuery = screen.getByText(
-        /Select all 50 automations that match this search query/
+        /Select all 50 alerts that match this search query/
       );
       await userEvent.click(selectAllForQuery);
 
@@ -449,7 +465,7 @@ describe('AutomationsList', () => {
         expect(deleteRequest).toHaveBeenCalledWith(
           '/organizations/org-slug/workflows/',
           expect.objectContaining({
-            query: {id: undefined, query: 'action:slack', project: [1]},
+            query: {id: undefined, query: 'action:slack', project: []},
           })
         );
       });
@@ -509,10 +525,10 @@ describe('AutomationsList', () => {
         within(row).queryByText('No Actions Automation')
       )!;
       expect(within(noActionsRow).getByText('Invalid')).toBeInTheDocument();
-      const noActionsIcon = within(noActionsRow).getByRole('img');
+      const noActionsIcon = within(noActionsRow).getAllByRole('img')[0]!; // Get the first img (warning icon)
       await userEvent.hover(noActionsIcon);
       expect(
-        await screen.findByText('You must add an action for this automation to run.')
+        await screen.findByText('You must add an action for this alert to run.')
       ).toBeInTheDocument();
 
       // Test second automation (all disabled) - should show "Invalid" and danger tooltip
@@ -520,18 +536,18 @@ describe('AutomationsList', () => {
         within(row).queryByText('All Disabled Actions')
       )!;
       expect(within(allDisabledRow).getByText('Invalid')).toBeInTheDocument();
-      const allDisabledIcon = within(allDisabledRow).getByRole('img');
+      const allDisabledIcon = within(allDisabledRow).getAllByRole('img')[0]!; // Get the first img (warning icon)
       await userEvent.hover(allDisabledIcon);
       expect(
         await screen.findByText(
-          'Automation is invalid because no actions can run. Actions need to be reconfigured.'
+          'Alert is invalid because no actions can run. Actions need to be reconfigured.'
         )
       ).toBeInTheDocument();
 
       // Test third automation (mixed) - should NOT show "Invalid" but show warning tooltip
       const mixedRow = rows.find(row => within(row).queryByText('Mixed Actions Status'))!;
       expect(within(mixedRow).queryByText('Invalid')).not.toBeInTheDocument();
-      const mixedIcon = within(mixedRow).getByRole('img');
+      const mixedIcon = within(mixedRow).getAllByRole('img')[0]!; // Get the first img (warning icon)
       await userEvent.hover(mixedIcon);
       expect(
         await screen.findByText(

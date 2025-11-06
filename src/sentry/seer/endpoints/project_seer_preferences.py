@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import logging
+from enum import StrEnum
+from typing import Literal
 
 import orjson
 import requests
 from django.conf import settings
 from pydantic import BaseModel
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,7 +16,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.signed_seer_api import sign_with_seer_secret
@@ -22,11 +27,66 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 logger = logging.getLogger(__name__)
 
 
+class BranchOverrideSerializer(CamelSnakeSerializer):
+    tag_name = serializers.CharField(required=True)
+    tag_value = serializers.CharField(required=True)
+    branch_name = serializers.CharField(required=True)
+
+
+class RepositorySerializer(CamelSnakeSerializer):
+    organization_id = serializers.IntegerField(required=True)
+    integration_id = serializers.CharField(required=True)
+    provider = serializers.CharField(required=True)
+    owner = serializers.CharField(required=True)
+    name = serializers.CharField(required=True)
+    external_id = serializers.CharField(required=True)
+    branch_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    branch_overrides = BranchOverrideSerializer(
+        many=True,
+        required=False,
+        allow_null=True,
+    )
+    instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    base_commit_sha = serializers.CharField(required=False, allow_null=True)
+    provider_raw = serializers.CharField(required=False, allow_null=True)
+
+
+class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
+    handoff_point = serializers.ChoiceField(
+        choices=["root_cause"],
+        required=True,
+    )
+    target = serializers.ChoiceField(
+        choices=["cursor_background_agent"],
+        required=True,
+    )
+    integration_id = serializers.IntegerField(required=True)
+
+
+class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
+    repositories = RepositorySerializer(many=True, required=True)
+    automated_run_stopping_point = serializers.CharField(required=False, allow_null=True)
+    automation_handoff = SeerAutomationHandoffConfigurationSerializer(
+        required=False, allow_null=True
+    )
+
+
+class AutofixHandoffPoint(StrEnum):
+    ROOT_CAUSE = "root_cause"
+
+
+class SeerAutomationHandoffConfiguration(BaseModel):
+    handoff_point: AutofixHandoffPoint
+    target: Literal["cursor_background_agent"]
+    integration_id: int
+
+
 class SeerProjectPreference(BaseModel):
     organization_id: int
     project_id: int
     repositories: list[SeerRepoDefinition]
     automated_run_stopping_point: str | None = None
+    automation_handoff: SeerAutomationHandoffConfiguration | None = None
 
 
 class PreferenceResponse(BaseModel):
@@ -45,33 +105,40 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
     }
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.IP: RateLimit(limit=20, window=60),
-            RateLimitCategory.USER: RateLimit(limit=20, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=60, window=60),
-        },
-        "GET": {
-            RateLimitCategory.IP: RateLimit(limit=1000, window=60, concurrent_limit=500),
-            RateLimitCategory.USER: RateLimit(limit=1000, window=60, concurrent_limit=500),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5000, window=60, concurrent_limit=1000),
-        },
-        "OPTIONS": {
-            RateLimitCategory.IP: RateLimit(limit=1000, window=60, concurrent_limit=500),
-            RateLimitCategory.USER: RateLimit(limit=1000, window=60, concurrent_limit=500),
-            RateLimitCategory.ORGANIZATION: RateLimit(limit=5000, window=60, concurrent_limit=1000),
-        },
-    }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.IP: RateLimit(limit=20, window=60),
+                RateLimitCategory.USER: RateLimit(limit=20, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=60, window=60),
+            },
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=1000, window=60, concurrent_limit=500),
+                RateLimitCategory.USER: RateLimit(limit=1000, window=60, concurrent_limit=500),
+                RateLimitCategory.ORGANIZATION: RateLimit(
+                    limit=5000, window=60, concurrent_limit=1000
+                ),
+            },
+            "OPTIONS": {
+                RateLimitCategory.IP: RateLimit(limit=1000, window=60, concurrent_limit=500),
+                RateLimitCategory.USER: RateLimit(limit=1000, window=60, concurrent_limit=500),
+                RateLimitCategory.ORGANIZATION: RateLimit(
+                    limit=5000, window=60, concurrent_limit=1000
+                ),
+            },
+        }
+    )
 
     def post(self, request: Request, project: Project) -> Response:
-        data = orjson.loads(request.body)
+        serializer = ProjectSeerPreferencesSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
         path = "/v1/project-preference/set"
         body = orjson.dumps(
             {
                 "preference": SeerProjectPreference.validate(
                     {
-                        **data,
+                        **serializer.validated_data,
                         "organization_id": project.organization.id,
                         "project_id": project.id,
                     }

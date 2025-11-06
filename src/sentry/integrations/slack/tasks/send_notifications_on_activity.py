@@ -7,7 +7,6 @@ from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.utils import metrics
 
@@ -21,12 +20,9 @@ _TASK_QUEUED_METRIC = (
 
 @instrumented_task(
     name="sentry.integrations.slack.tasks.send_activity_notifications_to_slack_threads",
-    queue="integrations_slack_activity_notify",
+    namespace=integrations_tasks,
+    processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_tasks,
-        processing_deadline_duration=30,
-    ),
 )
 def send_activity_notifications_to_slack_threads(activity_id) -> None:
     log_params = {"activity_id": activity_id}

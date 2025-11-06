@@ -9,6 +9,8 @@ opposing silo and are stored in Tombstone rows.  Deletions that are not successf
 Tombstone row will not, therefore, cascade to any related cross silo rows.
 """
 
+from __future__ import annotations
+
 import datetime
 from collections import defaultdict
 from dataclasses import dataclass
@@ -17,12 +19,13 @@ from typing import Any
 from uuid import uuid4
 
 import sentry_sdk
-from celery import Task
 from django.apps import apps
+from django.conf import settings
 from django.db import connections, router
 from django.db.models import Max, Min
 from django.db.models.manager import Manager
 from django.utils import timezone
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
 from sentry.db.models import Model
@@ -30,8 +33,8 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.models.tombstone import TombstoneBase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
+from sentry.taskworker.task import Task
 from sentry.utils import json, metrics, redis
 
 
@@ -43,32 +46,35 @@ class WatermarkBatch:
     transaction_id: str
 
 
+def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
+    return redis.redis_clusters.get(settings.SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER)
+
+
 def get_watermark_key(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> str:
     return f"{prefix}.{field.model._meta.db_table}.{field.name}"
 
 
 def get_watermark(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> tuple[int, str]:
-    with redis.clusters.get("default").get_local_client_for_key("deletions.watermark") as client:
-        key = get_watermark_key(prefix, field)
-        v = client.get(key)
-        if v is None:
-            result = (0, uuid4().hex)
-            client.set(key, json.dumps(result))
-            return result
-        lower, transaction_id = json.loads(v)
-        if not (isinstance(lower, int) and isinstance(transaction_id, str)):
-            raise TypeError("Expected watermarks data to be a tuple of (int, str)")
-        return lower, transaction_id
+    client = _get_redis_client()
+    key = get_watermark_key(prefix, field)
+    v = client.get(key)
+    if v is None:
+        result = (0, uuid4().hex)
+        client.set(key, json.dumps(result))
+        return result
+    lower, transaction_id = json.loads(v)
+    if not (isinstance(lower, int) and isinstance(transaction_id, str)):
+        raise TypeError("Expected watermarks data to be a tuple of (int, str)")
+    return lower, transaction_id
 
 
 def set_watermark(
     prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, prev_transaction_id: str
 ) -> None:
-    with redis.clusters.get("default").get_local_client_for_key("deletions.watermark") as client:
-        client.set(
-            get_watermark_key(prefix, field),
-            json.dumps((value, sha1(prev_transaction_id.encode("utf8")).hexdigest())),
-        )
+    _get_redis_client().set(
+        get_watermark_key(prefix, field),
+        json.dumps((value, sha1(prev_transaction_id.encode("utf8")).hexdigest())),
+    )
     metrics.gauge(
         "deletion.hybrid_cloud.low_bound",
         value,
@@ -115,10 +121,8 @@ def _chunk_watermark_batch(
 
 @instrumented_task(
     name="sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
-    queue="cleanup.control",
-    acks_late=True,
+    namespace=deletion_control_tasks,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=deletion_control_tasks),
 )
 def schedule_hybrid_cloud_foreign_key_jobs_control() -> None:
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
@@ -131,10 +135,8 @@ def schedule_hybrid_cloud_foreign_key_jobs_control() -> None:
 
 @instrumented_task(
     name="sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
-    queue="cleanup",
-    acks_late=True,
+    namespace=deletion_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=deletion_tasks),
 )
 def schedule_hybrid_cloud_foreign_key_jobs() -> None:
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
@@ -145,7 +147,7 @@ def schedule_hybrid_cloud_foreign_key_jobs() -> None:
     )
 
 
-def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) -> None:
+def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task[Any, Any]) -> None:
     for app, app_models in apps.all_models.items():
         for model in app_models.values():
             if not hasattr(model._meta, "silo_limit"):
@@ -169,10 +171,8 @@ def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) 
 
 @instrumented_task(
     name="sentry.deletions.tasks.hybrid_cloud.process_hybrid_cloud_foreign_key_cascade_batch_control",
-    queue="cleanup.control",
-    acks_late=True,
+    namespace=deletion_control_tasks,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=deletion_control_tasks),
 )
 def process_hybrid_cloud_foreign_key_cascade_batch_control(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
@@ -191,10 +191,8 @@ def process_hybrid_cloud_foreign_key_cascade_batch_control(
 
 @instrumented_task(
     name="sentry.deletions.tasks.process_hybrid_cloud_foreign_key_cascade_batch",
-    queue="cleanup",
-    acks_late=True,
+    namespace=deletion_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=deletion_tasks),
 )
 def process_hybrid_cloud_foreign_key_cascade_batch(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
@@ -212,7 +210,11 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
 
 
 def _process_hybrid_cloud_foreign_key_cascade(
-    app_name: str, model_name: str, field_name: str, process_task: Task, silo_mode: SiloMode
+    app_name: str,
+    model_name: str,
+    field_name: str,
+    process_task: Task[Any, Any],
+    silo_mode: SiloMode,
 ) -> None:
     """
     Called by the silo bound tasks above.

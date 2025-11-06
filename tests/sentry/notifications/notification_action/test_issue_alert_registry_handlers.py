@@ -250,11 +250,11 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
 
-    @mock.patch("sentry.notifications.notification_action.types.safe_execute")
+    @mock.patch("sentry.notifications.notification_action.types.invoke_future_with_error_handling")
     @mock.patch("sentry.notifications.notification_action.types.activate_downstream_actions")
     @mock.patch("uuid.uuid4")
     def test_invoke_legacy_registry(
-        self, mock_uuid, mock_activate_downstream_actions, mock_safe_execute
+        self, mock_uuid, mock_activate_downstream_actions, mock_invoke_future_with_error_handling
     ):
         # Test that invoke_legacy_registry correctly processes the action
         mock_uuid.return_value = uuid.UUID("12345678-1234-5678-1234-567812345678")
@@ -272,8 +272,8 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         )
 
         # Verify callback execution
-        mock_safe_execute.assert_called_once_with(
-            mock_callback, self.event_data.event, mock_futures
+        mock_invoke_future_with_error_handling.assert_called_once_with(
+            self.event_data, mock_callback, mock_futures
         )
 
 
@@ -821,3 +821,140 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
 
         # Both orgs should have different sentry app installations
         assert action_1_uuid != action_2_uuid
+
+
+class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project()
+        self.group, self.event, self.group_event = self.create_group_event()
+        self.event_data = WorkflowEventData(
+            event=self.group_event, workflow_env=self.environment, group=self.group
+        )
+
+        self.mock_callback = mock.Mock()
+        self.mock_futures = [mock.Mock()]
+
+    def test_happy_path(self):
+        from sentry.notifications.notification_action.types import invoke_future_with_error_handling
+
+        invoke_future_with_error_handling(self.event_data, self.mock_callback, self.mock_futures)
+
+        self.mock_callback.assert_called_once_with(self.group_event, self.mock_futures)
+
+    def test_invalid_event_data(self):
+        from sentry.notifications.notification_action.types import invoke_future_with_error_handling
+        from sentry.workflow_engine.types import WorkflowEventData
+
+        invalid_event_data = WorkflowEventData(
+            event=mock.Mock(), workflow_env=self.environment, group=self.group
+        )
+
+        with pytest.raises(AssertionError) as excinfo:
+            invoke_future_with_error_handling(
+                invalid_event_data, self.mock_callback, self.mock_futures
+            )
+
+        assert "Expected a GroupEvent" in str(excinfo.value)
+
+    def test_ignores_integration_form_error(self):
+        from sentry.notifications.notification_action.types import invoke_future_with_error_handling
+        from sentry.shared_integrations.exceptions import IntegrationFormError
+
+        self.mock_callback.side_effect = IntegrationFormError(
+            field_errors={"foo": "Test form error"}
+        )
+
+        invoke_future_with_error_handling(self.event_data, self.mock_callback, self.mock_futures)
+
+        self.mock_callback.assert_called_once()
+
+    def test_ignores_integration_configuration_error(self):
+        from sentry.notifications.notification_action.types import invoke_future_with_error_handling
+        from sentry.shared_integrations.exceptions import IntegrationConfigurationError
+
+        self.mock_callback.side_effect = IntegrationConfigurationError("Test config error")
+
+        invoke_future_with_error_handling(self.event_data, self.mock_callback, self.mock_futures)
+
+        self.mock_callback.assert_called_once()
+
+    def test_reraises_processing_deadline_exceeded(self):
+        from sentry.notifications.notification_action.types import invoke_future_with_error_handling
+        from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
+
+        self.mock_callback.side_effect = ProcessingDeadlineExceeded("Deadline exceeded")
+
+        with pytest.raises(ProcessingDeadlineExceeded):
+            invoke_future_with_error_handling(
+                self.event_data, self.mock_callback, self.mock_futures
+            )
+
+        self.mock_callback.assert_called_once()
+
+    def test_raises_retry_error_for_api_error(self):
+        from sentry.notifications.notification_action.types import invoke_future_with_error_handling
+        from sentry.shared_integrations.exceptions import ApiError
+        from sentry.taskworker.retry import RetryError
+
+        self.mock_callback.side_effect = ApiError("API error", 500)
+
+        with pytest.raises(RetryError) as excinfo:
+            invoke_future_with_error_handling(
+                self.event_data, self.mock_callback, self.mock_futures
+            )
+
+        assert isinstance(excinfo.value.__cause__, ApiError)
+        self.mock_callback.assert_called_once()
+
+    @mock.patch("logging.getLogger")
+    def test_safe_execute_exception_handling(self, mock_get_logger):
+        from sentry.notifications.notification_action.types import invoke_future_with_error_handling
+
+        mock_localized_logger = mock.Mock()
+        mock_get_logger.return_value = mock_localized_logger
+
+        test_exception = ValueError("Generic test error")
+
+        class TestCallbackClass:
+            def __call__(self, event, futures):  # noqa: ARG002
+                raise test_exception
+
+            @property
+            def __name__(self):
+                return "test_callback"
+
+        failing_callback = TestCallbackClass()
+
+        invoke_future_with_error_handling(self.event_data, failing_callback, self.mock_futures)
+
+        mock_get_logger.assert_called_once_with("sentry.safe_action.testcallbackclass")
+
+        mock_localized_logger.exception.assert_called_once_with(
+            "%s.process_error", "test_callback", extra={"exception": test_exception}
+        )
+
+    @mock.patch("logging.getLogger")
+    def test_generic_exception_with_no_name_attribute(self, mock_get_logger):
+        from sentry.notifications.notification_action.types import invoke_future_with_error_handling
+
+        mock_localized_logger = mock.Mock()
+        mock_get_logger.return_value = mock_localized_logger
+
+        test_exception = Exception("Test error")
+
+        class CallableWithoutName:
+            def __call__(self, event, futures):  # noqa: ARG002
+                raise test_exception
+
+        callback_without_name = CallableWithoutName()
+        callback_without_name.__class__.__name__ = "CallbackWithoutName"
+
+        invoke_future_with_error_handling(self.event_data, callback_without_name, self.mock_futures)
+
+        mock_get_logger.assert_called_once_with("sentry.safe_action.callbackwithoutname")
+
+        expected_func_name = str(callback_without_name)
+        mock_localized_logger.exception.assert_called_once_with(
+            "%s.process_error", expected_func_name, extra={"exception": test_exception}
+        )

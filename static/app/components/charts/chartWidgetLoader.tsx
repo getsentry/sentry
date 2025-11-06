@@ -175,6 +175,10 @@ const CHART_MAP = {
     ),
   overviewSlowAssetsWidget: () =>
     import('sentry/views/insights/common/components/widgets/overviewSlowAssetsWidget'),
+  overviewTimeConsumingQueriesWidget: () =>
+    import(
+      'sentry/views/insights/common/components/widgets/overviewTimeConsumingQueriesWidget'
+    ),
   overviewTimeConsumingRequestsWidget: () =>
     import(
       'sentry/views/insights/common/components/widgets/overviewTimeConsumingRequestsWidget'

@@ -297,11 +297,11 @@ function GroupBySelector({
     <SingleWidthCompactSelect
       data-test-id="editor-groupby"
       options={options}
-      triggerLabel={label}
       value={groupBy.groupBy}
       onChange={handleChange}
       searchable
       triggerProps={{
+        children: label,
         prefix: t('Group By'),
         style: {
           width: '100%',

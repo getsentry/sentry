@@ -13,6 +13,7 @@ import {
   getSolutionCopyText,
   getSolutionDescription,
   getSolutionIsLoading,
+  hasPullRequest,
 } from 'sentry/components/events/autofix/utils';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import Placeholder from 'sentry/components/placeholder';
@@ -24,6 +25,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -102,6 +104,14 @@ export function GroupSummaryWithAutofix({
     () => (autofixData ? getCodeChangesIsLoading(autofixData) : false),
     [autofixData]
   );
+
+  // Track autofix features analytics
+  useRouteAnalyticsParams({
+    has_root_cause: Boolean(rootCauseDescription),
+    has_solution: Boolean(solutionDescription),
+    has_coded_solution: Boolean(codeChangesDescription),
+    has_pr: hasPullRequest(autofixData),
+  });
 
   if (isPending && getAutofixRunExists(group)) {
     return <Placeholder height="130px" />;
@@ -255,6 +265,7 @@ export function AutofixSummary({
                     </CardTitleSpacer>
                     {card.copyText && card.copyTitle && (
                       <CopyToClipboardButton
+                        aria-label={t('Copy to clipboard')}
                         size="xs"
                         text={card.copyText}
                         borderless
@@ -364,7 +375,7 @@ const CardTitle = styled('div')<{preview?: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.textColor};
   padding: ${space(0.5)} ${space(0.5)} 0 ${space(1)};
   justify-content: space-between;
 `;
@@ -386,7 +397,7 @@ const CardTitleText = styled('p')`
 const CardTitleIcon = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.textColor};
 `;
 
 const CardContent = styled('div')`

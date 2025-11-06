@@ -2,6 +2,7 @@ import {createRoot} from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import {wrapCreateBrowserRouterV6} from '@sentry/react';
 import * as Sentry from '@sentry/react';
+import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
 import {commonInitialization} from 'sentry/bootstrap/commonInitialization';
 import {initializeSdk} from 'sentry/bootstrap/initializeSdk';
@@ -37,7 +38,9 @@ export function renderApp() {
   const root = createRoot(rootEl);
   root.render(
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <NuqsAdapter defaultOptions={{shallow: false}}>
+        <RouterProvider router={router} />
+      </NuqsAdapter>
     </QueryClientProvider>
   );
 }

@@ -1,5 +1,6 @@
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -38,7 +39,9 @@ logger = logging.getLogger(__name__)
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
-def get_transactions_for_project(project_id: int) -> list[Transaction]:
+def get_transactions_for_project(
+    project_id: int, limit: int = 500, start_time_delta: dict[str, int] | None = None
+) -> list[Transaction]:
     """
     Get a list of transactions for a project using EAP, sorted by volume/traffic.
 
@@ -48,6 +51,9 @@ def get_transactions_for_project(project_id: int) -> list[Transaction]:
     Returns:
         List of transactions with name and project id
     """
+    if start_time_delta is None:
+        start_time_delta = {"hours": 24}
+
     try:
         project = Project.objects.get(id=project_id)
     except Project.DoesNotExist:
@@ -57,7 +63,7 @@ def get_transactions_for_project(project_id: int) -> list[Transaction]:
         return []
 
     end_time = datetime.now(UTC)
-    start_time = end_time - timedelta(hours=24)
+    start_time = end_time - timedelta(**start_time_delta)
 
     snuba_params = SnubaParams(
         start=start_time,
@@ -79,7 +85,7 @@ def get_transactions_for_project(project_id: int) -> list[Transaction]:
         ],
         orderby=["-count()"],  # Sort by count descending (highest volume first)
         offset=0,
-        limit=500,
+        limit=limit,
         referrer=Referrer.SEER_RPC,
         config=config,
         sampling_mode="NORMAL",
@@ -220,6 +226,79 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
         total_spans=len(spans),
         spans=spans,
     )
+
+
+def _fetch_and_process_profile(
+    profile_info: dict[str, Any],
+    organization_id: int,
+    project_id: int,
+    trace_id: str,
+) -> ProfileData | None:
+    """
+    Fetch and process a single profile. This function is designed to be called
+    concurrently from multiple threads.
+
+    Args:
+        profile_info: Dictionary containing profile metadata (profile_id, span_id, etc.)
+        organization_id: Organization ID
+        project_id: Project ID
+        trace_id: Trace ID for logging
+
+    Returns:
+        ProfileData if successful, None otherwise
+    """
+    profile_id = profile_info["profile_id"]
+    span_id = profile_info["span_id"]
+    transaction_name = profile_info["transaction_name"]
+    is_continuous = profile_info["is_continuous"]
+    start_ts = profile_info["start_ts"]
+    end_ts = profile_info["end_ts"]
+
+    # Fetch raw profile data
+    raw_profile = fetch_profile_data(
+        profile_id=profile_id,
+        organization_id=organization_id,
+        project_id=project_id,
+        start_ts=start_ts,
+        end_ts=end_ts,
+        is_continuous=is_continuous,
+    )
+
+    if not raw_profile:
+        logger.warning(
+            "Failed to fetch profile data",
+            extra={
+                "profile_id": profile_id,
+                "trace_id": trace_id,
+                "project_id": project_id,
+            },
+        )
+        return None
+
+    # Convert to execution tree
+    execution_tree = convert_profile_to_execution_tree(raw_profile)
+
+    if execution_tree:
+        return ProfileData(
+            profile_id=profile_id,
+            span_id=span_id,
+            transaction_name=transaction_name,
+            execution_tree=execution_tree,
+            project_id=project_id,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            is_continuous=is_continuous,
+        )
+    else:
+        logger.warning(
+            "Failed to convert profile to execution tree",
+            extra={
+                "profile_id": profile_id,
+                "trace_id": trace_id,
+                "project_id": project_id,
+            },
+        )
+        return None
 
 
 def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | None:
@@ -374,63 +453,25 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         )
         return None
 
-    # Step 3: Fetch and process each profile
+    # Step 3: Fetch and process profiles in parallel
     processed_profiles = []
 
-    for profile_info in unique_profiles:
-        profile_id = profile_info["profile_id"]
-        span_id = profile_info["span_id"]
-        transaction_name = profile_info["transaction_name"]
-        is_continuous = profile_info["is_continuous"]
-        start_ts = profile_info["start_ts"]
-        end_ts = profile_info["end_ts"]
+    with ThreadPoolExecutor(max_workers=min(len(unique_profiles), 10)) as executor:
+        future_to_profile = {
+            executor.submit(
+                _fetch_and_process_profile,
+                profile_info,
+                project.organization_id,
+                project_id,
+                trace_id,
+            ): profile_info
+            for profile_info in unique_profiles
+        }
 
-        # Fetch raw profile data
-        raw_profile = fetch_profile_data(
-            profile_id=profile_id,
-            organization_id=project.organization_id,
-            project_id=project_id,
-            start_ts=start_ts,
-            end_ts=end_ts,
-            is_continuous=is_continuous,
-        )
-
-        if not raw_profile:
-            logger.warning(
-                "Failed to fetch profile data",
-                extra={
-                    "profile_id": profile_id,
-                    "trace_id": trace_id,
-                    "project_id": project_id,
-                },
-            )
-            continue
-
-        # Convert to execution tree
-        execution_tree = convert_profile_to_execution_tree(raw_profile)
-
-        if execution_tree:
-            processed_profiles.append(
-                ProfileData(
-                    profile_id=profile_id,
-                    span_id=span_id,
-                    transaction_name=transaction_name,
-                    execution_tree=execution_tree,
-                    project_id=project_id,
-                    start_ts=start_ts,
-                    end_ts=end_ts,
-                    is_continuous=is_continuous,
-                )
-            )
-        else:
-            logger.warning(
-                "Failed to convert profile to execution tree",
-                extra={
-                    "profile_id": profile_id,
-                    "trace_id": trace_id,
-                    "project_id": project_id,
-                },
-            )
+        for future in as_completed(future_to_profile):
+            result = future.result()
+            if result:
+                processed_profiles.append(result)
 
     if not processed_profiles:
         logger.info(

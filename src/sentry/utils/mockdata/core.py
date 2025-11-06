@@ -79,7 +79,7 @@ LEVELS = itertools.cycle(["error", "error", "error", "fatal", "warning"])
 
 ENVIRONMENTS = itertools.cycle(["production", "production", "staging", "alpha", "beta", ""])
 
-MONITOR_NAMES = itertools.cycle(settings.CELERYBEAT_SCHEDULE.keys())
+MONITOR_NAMES = itertools.cycle(settings.TASKWORKER_SCHEDULES.keys())
 
 MONITOR_SCHEDULES = itertools.cycle(["* * * * *", "0 * * * *", "0 0 * * *"])
 

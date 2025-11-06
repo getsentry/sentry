@@ -9,10 +9,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {
-  LOGS_FIELDS_KEY,
-  LogsPageParamsProvider,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {type TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
@@ -22,12 +19,13 @@ import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 function ProviderWrapper({children}: {children?: React.ReactNode}) {
   return (
-    <LogsQueryParamsProvider source="location">
-      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
-        <table>
-          <tbody>{children}</tbody>
-        </table>
-      </LogsPageParamsProvider>
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+      source="location"
+    >
+      <table>
+        <tbody>{children}</tbody>
+      </table>
     </LogsQueryParamsProvider>
   );
 }
@@ -138,19 +136,16 @@ describe('logsTableRow', () => {
     ProjectsStore.loadInitialData([project]);
 
     PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: [],
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(project.id, 10)],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
       },
-      new Set()
-    );
+    });
 
     stacktraceLinkMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${projects[0]!.slug}/stacktrace-link/`,

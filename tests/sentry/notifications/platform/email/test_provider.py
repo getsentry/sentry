@@ -1,11 +1,10 @@
 from unittest import mock
 
-import pytest
 from django.core.mail import EmailMultiAlternatives
 
 from sentry import options
 from sentry.notifications.platform.email.provider import EmailNotificationProvider, EmailRenderer
-from sentry.notifications.platform.target import GenericNotificationTarget, prepare_targets
+from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
@@ -62,7 +61,6 @@ class EmailNotificationProviderTest(TestCase):
             resource_type=NotificationTargetResourceType.EMAIL,
             resource_id=self.email,
         )
-        prepare_targets([self.target])
 
     def test_provider_configuration(self) -> None:
         assert self.provider.key == NotificationProviderKey.EMAIL
@@ -78,13 +76,3 @@ class EmailNotificationProviderTest(TestCase):
         mock_send_messages.assert_called_once()
         [sent_message] = mock_send_messages.call_args[0][0]
         assert sent_message.to == [self.email]
-
-    def test_send_with_invalid_resource_type(self) -> None:
-        target = GenericNotificationTarget(
-            provider_key=NotificationProviderKey.EMAIL,
-            resource_type=NotificationTargetResourceType.CHANNEL,
-            resource_id="C01234567890",
-        )
-        email = EmailRenderer.render(data=self.data, rendered_template=self.rendered_template)
-        with pytest.raises(ValueError, match="EmailNotificationProvider cannot send to channel"):
-            EmailNotificationProvider.send(target=target, renderable=email)

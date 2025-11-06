@@ -8,6 +8,7 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+import {Flex} from 'sentry/components/core/layout';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconBusiness} from 'sentry/icons/iconBusiness';
@@ -30,7 +31,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -49,8 +49,10 @@ import type {
   TraceItemDetailsMeta,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
+import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
@@ -267,14 +269,14 @@ export function generateTargetQuery({
   sorts,
   yAxes,
 }: {
-  fields: string[];
+  fields: readonly string[];
   groupBys: readonly string[];
   location: Location;
   // needed to generate targets when `project` is in the group by
   projects: Project[];
   row: Record<string, any>;
   search: MutableSearch;
-  sorts: Sort[];
+  sorts: readonly Sort[];
   yAxes: string[];
 }) {
   search = search.copy();
@@ -365,14 +367,14 @@ export function viewSamplesTarget({
   row,
   projects,
 }: {
-  fields: string[];
+  fields: readonly string[];
   groupBys: readonly string[];
   location: Location;
   // needed to generate targets when `project` is in the group by
   projects: Project[];
   query: string;
   row: Record<string, any>;
-  sorts: Sort[];
+  sorts: readonly Sort[];
   visualizes: readonly Visualize[];
 }) {
   const search = new MutableSearch(query);
@@ -392,11 +394,11 @@ export function viewSamplesTarget({
     yAxes: visualizes.map(visualize => visualize.yAxis),
   });
 
-  return newExploreTarget(location, {
+  return getTargetWithReadableQueryParams(location, {
     mode: Mode.SAMPLES,
     fields: newFields,
     query: newSearch.formatString(),
-    sampleSortBys: newSortBys,
+    sortBys: newSortBys,
   });
 }
 
@@ -511,17 +513,12 @@ export function computeVisualizeSampleTotals(
 
 function DisabledDateOption({label}: {label: ReactNode}) {
   return (
-    <DisabledDateOptionContainer>
+    <Flex align="center">
       {label}
       <StyledIconBuisness />
-    </DisabledDateOptionContainer>
+    </Flex>
   );
 }
-
-const DisabledDateOptionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 
 const StyledIconBuisness = styled(IconBusiness)`
   margin-left: auto;
@@ -568,11 +565,11 @@ export function findSuggestedColumns(
     }
 
     const isStringAttribute = key.startsWith('!')
-      ? attributes.stringAttributes.hasOwnProperty(key.slice(1))
-      : attributes.stringAttributes.hasOwnProperty(key);
+      ? key.slice(1) in attributes.stringAttributes
+      : key in attributes.stringAttributes;
     const isNumberAttribute = key.startsWith('!')
-      ? attributes.numberAttributes.hasOwnProperty(key.slice(1))
-      : attributes.numberAttributes.hasOwnProperty(key);
+      ? key.slice(1) in attributes.numberAttributes
+      : key in attributes.numberAttributes;
 
     // guard against unknown keys and aggregate keys
     if (!isStringAttribute && !isNumberAttribute) {
@@ -632,7 +629,7 @@ function isSimpleFilter(
 
   // all number attributes are considered non trivial because they
   // almost always match on a range of values
-  if (attributes.numberAttributes.hasOwnProperty(key)) {
+  if (key in attributes.numberAttributes) {
     return false;
   }
 
@@ -724,7 +721,7 @@ export function getSavedQueryTraceItemUrl({
   if (urlFunction) {
     return urlFunction({savedQuery, organization});
   }
-  // Invariant, only spans and logs are currently supported.
+  // Invariant, only spans, logs, and metrics are currently supported.
   Sentry.captureMessage(
     `Saved query ${savedQuery.id} has an invalid dataset: ${savedQuery.dataset}`
   );
@@ -745,6 +742,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.LOGS]: getLogsUrlFromSavedQueryUrl,
   [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
+  [TraceItemDataset.TRACEMETRICS]: getMetricsUrlFromSavedQueryUrl,
 };
 
 /**

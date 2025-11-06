@@ -34,7 +34,7 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
               filter: undefined,
             },
           },
-          {preventScrollReset: true}
+          {replace: true, preventScrollReset: true}
         );
       },
       shouldCloseOnLocationChange: newLocation => {

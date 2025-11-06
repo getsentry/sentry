@@ -9,16 +9,20 @@ from django.db.models import ProtectedError
 from django.utils import timezone
 
 from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType, ReplayHydrationErrorType
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.project import Project
 from sentry.models.release import Release, _get_cache_key
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import ReplaysSnubaTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -165,6 +169,21 @@ class GroupTest(TestCase, SnubaTestCase):
             Group.objects.by_qualified_short_id_bulk(
                 group.organization.id, [group_short_id, group_2_short_id]
             )
+
+    def test_by_qualified_short_id_bulk_case_insensitive_project_slug(self) -> None:
+        project = self.create_project(slug="mixedcaseslug")
+        group = self.create_group(project=project, short_id=project.next_short_id())
+
+        Project.objects.filter(id=project.id).update(slug="MixedCaseSlug")
+        assert Project.objects.get(id=project.id).slug == "MixedCaseSlug"
+
+        # Re-fetch to ensure updated relation is used when computing qualified_short_id
+        group = Group.objects.get(id=group.id)
+        short_id = group.qualified_short_id
+
+        # Should resolve via case-insensitive slug fallback
+        resolved = Group.objects.by_qualified_short_id_bulk(group.organization.id, [short_id])
+        assert resolved == [group]
 
     def test_first_last_release(self) -> None:
         project = self.create_project()
@@ -527,3 +546,51 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
                     "has_replays": False,
                 },
             )
+
+    def test_update_group_status_with_custom_update_date(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        custom_datetime = timezone.now() + timedelta(hours=1)
+
+        Group.objects.update_group_status(
+            groups=[group],
+            status=GroupStatus.RESOLVED,
+            substatus=None,
+            activity_type=ActivityType.SET_RESOLVED,
+            update_date=custom_datetime,
+        )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        assert group.resolved_at == custom_datetime
+
+        activity = Activity.objects.filter(
+            group=group, type=ActivityType.SET_RESOLVED.value
+        ).first()
+        assert activity is not None
+        assert activity.datetime == custom_datetime
+
+        open_period = GroupOpenPeriod.objects.get(group=group)
+        assert open_period.date_ended == custom_datetime
+
+    def test_update_group_status_without_custom_update_date(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        before = timezone.now()
+
+        Group.objects.update_group_status(
+            groups=[group],
+            status=GroupStatus.RESOLVED,
+            substatus=None,
+            activity_type=ActivityType.SET_RESOLVED,
+        )
+
+        after = timezone.now()
+        group.refresh_from_db()
+
+        assert group.status == GroupStatus.RESOLVED
+        assert before <= group.resolved_at <= after
+
+        activity = Activity.objects.filter(
+            group=group, type=ActivityType.SET_RESOLVED.value
+        ).first()
+        assert activity is not None
+        assert before <= activity.datetime <= after

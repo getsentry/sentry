@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from pydantic import BaseModel
 
+from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsApiResponse
 from sentry.preprod.models import PreprodArtifactSizeComparison, PreprodArtifactSizeMetrics
 
 
@@ -20,12 +23,12 @@ class SizeAnalysisComparison(BaseModel):
 
 
 class SizeAnalysisCompareGETResponse(BaseModel):
-    head_artifact_id: int
-    base_artifact_id: int
+    head_build_details: BuildDetailsApiResponse
+    base_build_details: BuildDetailsApiResponse
     comparisons: list[SizeAnalysisComparison]
 
 
 class SizeAnalysisComparePOSTResponse(BaseModel):
     status: str
     message: str
-    existing_comparisons: list[SizeAnalysisComparison] | None
+    comparisons: list[SizeAnalysisComparison] | None

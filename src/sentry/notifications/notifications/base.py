@@ -171,9 +171,6 @@ class BaseNotification(abc.ABC):
         """
         return None
 
-    def record_analytics(self, event_name: str, *args: Any, **kwargs: Any) -> None:
-        analytics.record(event_name, *args, **kwargs)
-
     def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         from sentry.integrations.discord.analytics import DiscordIntegrationNotificationSent
         from sentry.integrations.msteams.analytics import MSTeamsIntegrationNotificationSent
@@ -182,105 +179,34 @@ class BaseNotification(abc.ABC):
         from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 
         with sentry_sdk.start_span(op="notification.send", name="record_notification_sent"):
-            event: analytics.Event | None = None
-
             project: Project | None = getattr(self, "project", None)
             group: Group | None = getattr(self, "group", None)
 
-            def create_notification_sent_event(
-                provider: ExternalProviders,
-                organization_id: int,
-                project_id: int | None,
-                category: str,
-                actor_id: int | None,
-                user_id: int | None,
-                group_id: int | None,
-                id: int,
-                actor_type: str,
-                notification_uuid: str,
-                alert_id: int | None,
-            ) -> analytics.Event | None:
-                if provider == ExternalProviders.EMAIL:
-                    return EmailNotificationSent(
-                        organization_id=organization_id,
-                        project_id=project_id,
-                        category=category,
-                        actor_id=actor_id,
-                        user_id=user_id,
-                        group_id=group_id,
-                        id=id,
-                        actor_type=actor_type,
-                        notification_uuid=notification_uuid,
-                        alert_id=alert_id,
-                    )
-                elif provider == ExternalProviders.SLACK:
-                    return SlackIntegrationNotificationSent(
-                        organization_id=organization_id,
-                        project_id=project_id,
-                        category=category,
-                        actor_id=actor_id,
-                        user_id=user_id,
-                        group_id=group_id,
-                        notification_uuid=notification_uuid,
-                        alert_id=alert_id,
-                        actor_type=actor_type,
-                    )
-                elif provider == ExternalProviders.PAGERDUTY:
-                    return PagerdutyIntegrationNotificationSent(
-                        organization_id=organization_id,
-                        project_id=project_id,
-                        category=category,
-                        group_id=group_id,
-                        notification_uuid=notification_uuid,
-                        alert_id=alert_id,
-                    )
-                elif provider == ExternalProviders.OPSGENIE:
-                    return OpsgenieIntegrationNotificationSent(
-                        organization_id=organization_id,
-                        project_id=project_id,
-                        category=category,
-                        group_id=group_id,
-                        notification_uuid=notification_uuid,
-                        alert_id=alert_id,
-                    )
-                elif provider == ExternalProviders.DISCORD:
-                    return DiscordIntegrationNotificationSent(
-                        organization_id=organization_id,
-                        project_id=project_id,
-                        category=category,
-                        group_id=group_id,
-                        notification_uuid=notification_uuid,
-                        alert_id=alert_id,
-                    )
-                elif provider == ExternalProviders.MSTEAMS:
-                    return MSTeamsIntegrationNotificationSent(
-                        organization_id=organization_id,
-                        project_id=project_id,
-                        category=category,
-                        actor_id=actor_id,
-                        user_id=user_id,
-                        notification_uuid=notification_uuid,
-                        alert_id=alert_id,
-                    )
-                return None
+            PROVIDER_TO_EVENT_CLASS = {
+                ExternalProviders.EMAIL: EmailNotificationSent,
+                ExternalProviders.SLACK: SlackIntegrationNotificationSent,
+                ExternalProviders.MSTEAMS: MSTeamsIntegrationNotificationSent,
+                ExternalProviders.PAGERDUTY: PagerdutyIntegrationNotificationSent,
+                ExternalProviders.OPSGENIE: OpsgenieIntegrationNotificationSent,
+                ExternalProviders.DISCORD: DiscordIntegrationNotificationSent,
+            }
 
             try:
-                event = create_notification_sent_event(
-                    provider,
-                    organization_id=self.organization.id,
-                    project_id=project.id if project else None,
-                    category=self.metrics_key,
-                    actor_id=recipient.id if recipient.is_user else None,
-                    user_id=recipient.id if recipient.is_user else None,
-                    group_id=group.id if group else None,
-                    id=recipient.id,
-                    actor_type=recipient.actor_type,
-                    notification_uuid=self.notification_uuid,
-                    alert_id=self.alert_id if self.alert_id else None,
-                )
-
-                if event is not None:
-                    analytics.record(event)
+                if event_class := PROVIDER_TO_EVENT_CLASS.get(provider):
+                    analytics.record(
+                        event_class(
+                            organization_id=self.organization.id,
+                            project_id=project.id if project else None,
+                            category=self.metrics_key,
+                            actor_id=recipient.id if recipient.is_user else None,
+                            user_id=recipient.id if recipient.is_user else None,
+                            group_id=group.id if group else None,
+                            id=recipient.id,
+                            actor_type=recipient.actor_type,
+                            notification_uuid=self.notification_uuid,
+                            alert_id=self.alert_id if self.alert_id else None,
+                        )
+                    )
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 

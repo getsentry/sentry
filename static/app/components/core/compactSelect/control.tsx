@@ -158,7 +158,7 @@ export interface ControlProps
    */
   menuFooter?:
     | React.ReactNode
-    | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+    | ((actions: {closeOverlay: () => void; resetSearch: () => void}) => React.ReactNode);
   /**
    * Items to be displayed in the trailing (right) side of the menu's header.
    */
@@ -200,14 +200,11 @@ export interface ControlProps
    * won't work correctly.
    */
   trigger?: (
-    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    props: Omit<React.HTMLAttributes<HTMLButtonElement>, 'children'> & {
+      ref?: React.Ref<HTMLButtonElement | null>;
+    },
     isOpen: boolean
   ) => React.ReactNode;
-  /**
-   * Label text inside the default trigger button. This is optional — by default the
-   * selected option's label will be used.
-   */
-  triggerLabel?: React.ReactNode;
   /**
    * Props to be passed to the default trigger button.
    */
@@ -221,8 +218,7 @@ export function Control({
   // Control props
   autoFocus,
   trigger,
-  triggerLabel: triggerLabelProp,
-  triggerProps,
+  triggerProps: {children: triggerLabelProp, ...triggerProps} = {},
   isOpen,
   onClose,
   isDismissable,
@@ -578,7 +574,10 @@ export function Control({
               {menuFooter && (
                 <MenuFooter>
                   {typeof menuFooter === 'function'
-                    ? menuFooter({closeOverlay: overlayState.close})
+                    ? menuFooter({
+                        closeOverlay: overlayState.close,
+                        resetSearch: () => updateSearch(''),
+                      })
                     : menuFooter}
                 </MenuFooter>
               )}
@@ -645,6 +644,8 @@ const MenuTitle = styled('span')`
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
+  display: flex;
+  align-items: center;
   && {
     margin: 0;
   }

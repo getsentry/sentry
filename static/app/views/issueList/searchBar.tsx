@@ -18,73 +18,20 @@ import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {
+  SearchBarData,
+  SearchBarDataProviderProps,
+} from 'sentry/views/dashboards/datasetConfig/base';
 import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
 
-const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
-  const allTags: Tag[] = Object.values(tags).filter(
-    tag => !EXCLUDED_TAGS.includes(tag.key)
-  );
-
-  const issueFields = orderBy(
-    allTags.filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
-    ['key']
-  ).map(tag => tag.key);
-
-  const eventFields = orderBy(
-    allTags.filter(tag => tag.kind === FieldKind.EVENT_FIELD),
-    ['key']
-  ).map(tag => tag.key);
-
-  const eventTags = orderBy(
-    allTags.filter(tag => tag.kind === FieldKind.TAG),
-    ['totalValues', 'key'],
-    ['desc', 'asc']
-  ).map(tag => tag.key);
-
-  const eventFeatureFlags = orderBy(
-    allTags.filter(tag => tag.kind === FieldKind.FEATURE_FLAG),
-    ['totalValues', 'key'],
-    ['desc', 'asc']
-  ).map(tag => tag.key);
-
-  const sections = [
-    {
-      value: FieldKind.ISSUE_FIELD,
-      label: t('Issues'),
-      children: issueFields,
-    },
-    {
-      value: FieldKind.EVENT_FIELD,
-      label: t('Event Filters'),
-      children: eventFields,
-    },
-    {
-      value: FieldKind.TAG,
-      label: t('Event Tags'),
-      children: eventTags,
-    },
-  ];
-
-  if (eventFeatureFlags.length > 0) {
-    sections.push({
-      value: FieldKind.FEATURE_FLAG,
-      label: t('Flags'), // Keeping this short so the tabs stay on 1 line.
-      children: eventFeatureFlags,
-    });
-  }
-
-  return sections;
-};
-
 interface Props extends Partial<SearchQueryBuilderProps> {
   organization: Organization;
 }
-
-const EXCLUDED_TAGS = ['environment'];
 
 function IssueListSearchBar({
   organization,
@@ -92,9 +39,114 @@ function IssueListSearchBar({
   initialQuery = '',
   ...props
 }: Props) {
-  const api = useApi();
   const {selection: pageFilters} = usePageFilters();
+  const {getFilterKeys, getFilterKeySections, getTagValues} =
+    useIssueListSearchBarDataProvider({pageFilters});
+
+  return (
+    <SearchQueryBuilder
+      initialQuery={initialQuery}
+      filterKeys={getFilterKeys()}
+      filterKeySections={getFilterKeySections()}
+      getTagValues={getTagValues}
+      recentSearches={SavedSearchType.ISSUE}
+      disallowLogicalOperators
+      searchSource={searchSource}
+      {...props}
+    />
+  );
+}
+
+export default IssueListSearchBar;
+
+const EXCLUDED_TAGS = [
+  'environment',
+  'ai_categorization.label.0',
+  'ai_categorization.label.1',
+  'ai_categorization.label.2',
+  'ai_categorization.label.3',
+  'ai_categorization.label.4',
+  'ai_categorization.label.5',
+  'ai_categorization.label.6',
+  'ai_categorization.label.7',
+  'ai_categorization.label.8',
+  'ai_categorization.label.9',
+  'ai_categorization.label.10',
+  'ai_categorization.label.11',
+  'ai_categorization.label.12',
+  'ai_categorization.label.13',
+  'ai_categorization.label.14',
+  'ai_categorization.label.15',
+  'ai_categorization.labels',
+];
+
+export function useIssueListSearchBarDataProvider(
+  props: SearchBarDataProviderProps
+): SearchBarData {
+  const {pageFilters} = props;
+  const api = useApi();
+  const organization = useOrganization();
   const filterKeys = useIssueListFilterKeys();
+
+  const getFilterKeySections = useCallback((tags: TagCollection): FilterKeySection[] => {
+    const allTags: Tag[] = Object.values(tags).filter(
+      tag => !EXCLUDED_TAGS.includes(tag.key)
+    );
+
+    const issueFields = orderBy(
+      allTags.filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
+      ['key']
+    ).map(tag => tag.key);
+
+    const eventFields = orderBy(
+      allTags.filter(tag => tag.kind === FieldKind.EVENT_FIELD),
+      ['key']
+    ).map(tag => tag.key);
+
+    const eventTags = orderBy(
+      allTags.filter(tag => tag.kind === FieldKind.TAG),
+      ['totalValues', 'key'],
+      ['desc', 'asc']
+    ).map(tag => tag.key);
+
+    const eventFeatureFlags = orderBy(
+      allTags.filter(tag => tag.kind === FieldKind.FEATURE_FLAG),
+      ['totalValues', 'key'],
+      ['desc', 'asc']
+    ).map(tag => tag.key);
+
+    const sections = [
+      {
+        value: FieldKind.ISSUE_FIELD,
+        label: t('Issues'),
+        children: issueFields,
+      },
+      {
+        value: FieldKind.EVENT_FIELD,
+        label: t('Event Filters'),
+        children: eventFields,
+      },
+      {
+        value: FieldKind.TAG,
+        label: t('Event Tags'),
+        children: eventTags,
+      },
+    ];
+
+    if (eventFeatureFlags.length > 0) {
+      sections.push({
+        value: FieldKind.FEATURE_FLAG,
+        label: t('Flags'), // Keeping this short so the tabs stay on 1 line.
+        children: eventFeatureFlags,
+      });
+    }
+
+    return sections;
+  }, []);
+
+  const filterKeySections = useMemo(() => {
+    return getFilterKeySections(filterKeys);
+  }, [filterKeys, getFilterKeySections]);
 
   // Fetches the unique values seen for a tag key and query string. Result is sorted by count.
   const tagValueLoader = useCallback(
@@ -183,22 +235,9 @@ function IssueListSearchBar({
     [tagValueLoader]
   );
 
-  const filterKeySections = useMemo(() => {
-    return getFilterKeySections(filterKeys);
-  }, [filterKeys]);
-
-  return (
-    <SearchQueryBuilder
-      initialQuery={initialQuery}
-      getTagValues={getTagValues}
-      filterKeySections={filterKeySections}
-      filterKeys={filterKeys}
-      recentSearches={SavedSearchType.ISSUE}
-      disallowLogicalOperators
-      searchSource={searchSource}
-      {...props}
-    />
-  );
+  return {
+    getFilterKeys: () => filterKeys,
+    getFilterKeySections: () => filterKeySections,
+    getTagValues,
+  };
 }
-
-export default IssueListSearchBar;

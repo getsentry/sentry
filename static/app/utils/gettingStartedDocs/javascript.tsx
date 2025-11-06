@@ -3,7 +3,6 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
   type BasePlatformOptions,
-  type Configuration,
   type ContentBlock,
   type DocsParams,
   type OnboardingConfig,
@@ -46,19 +45,21 @@ Sentry.init({
   profilesSampleRate: 1.0
 });`;
 
-const getDefaultProfilingHeaderConfig = () => [
+const getDefaultProfilingHeaderContent = (): ContentBlock[] => [
   {
-    description: tct(
+    type: 'text',
+    text: tct(
       "How you do this will depend on your server. If you're using a server like Express, you'll be able to use the [link:response.set] function.",
       {
         link: <ExternalLink href="https://expressjs.com/en/4x/api.html#res.set" />,
       }
     ),
-    language: 'javascript',
-    code: [
+  },
+  {
+    type: 'code',
+    tabs: [
       {
         label: 'JavaScript',
-        value: 'javascript',
         language: 'javascript',
         code: `
 app.get("/", (request, response) => {
@@ -101,26 +102,34 @@ export const getJavascriptProfilingOnboarding = <
   configure: params => [
     {
       title: t('Add Document-Policy: js-profiling header'),
-      description: tct(
-        'For the JavaScript browser profiler to start, the document response header needs to include a [code:Document-Policy] header key with the [code:js-profiling] value.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getDefaultProfilingHeaderConfig(),
+          type: 'text',
+          text: tct(
+            'For the JavaScript browser profiler to start, the document response header needs to include a [code:Document-Policy] header key with the [code:js-profiling] value.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        ...getDefaultProfilingHeaderContent(),
+      ],
     },
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Set up the [code:browserTracingIntegration] and [code:browserProfilingIntegration] in your [code:Sentry.init()] call.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Set up the [code:browserTracingIntegration] and [code:browserProfilingIntegration] in your [code:Sentry.init()] call.',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
-          language: 'javascript',
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'Javascript',
               value: 'javascript',
@@ -130,7 +139,8 @@ export const getJavascriptProfilingOnboarding = <
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'For more detailed information, see the [link:browser profiling documentation].',
             {
               link: <ExternalLink href={docsLink} />,
@@ -143,9 +153,14 @@ export const getJavascriptProfilingOnboarding = <
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
     },
   ],
 });
@@ -154,12 +169,12 @@ export const getJavascriptLogsOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 >({
   docsPlatform,
-  sdkPackage,
+  packageName,
   installSnippetBlock,
 }: {
   docsPlatform: string;
   installSnippetBlock: ContentBlock;
-  sdkPackage: `@sentry/${string}`;
+  packageName: `@sentry/${string}`;
 }): OnboardingConfig<PlatformOptions> => ({
   install: () => [
     {
@@ -168,10 +183,10 @@ export const getJavascriptLogsOnboarding = <
         {
           type: 'text',
           text: tct(
-            'Add the Sentry SDK as a dependency. The minimum version of [sdkPackage] that supports logs is [code:9.41.0].',
+            'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports logs is [code:9.41.0].',
             {
               code: <code />,
-              sdkPackage: <code>{sdkPackage}</code>,
+              packageName: <code>{packageName}</code>,
             }
           ),
         },
@@ -207,7 +222,7 @@ export const getJavascriptLogsOnboarding = <
           type: 'code',
           language: 'javascript',
           code: `
-import * as Sentry from "${sdkPackage}";
+import * as Sentry from "${packageName}";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -244,7 +259,7 @@ Sentry.init({
         {
           type: 'code',
           language: 'jsx',
-          code: `import * as Sentry from "${sdkPackage}";
+          code: `import * as Sentry from "${packageName}";
 
 Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })`,
         },
@@ -257,10 +272,10 @@ export const getJavascriptLogsFullStackOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 >({
   docsPlatform,
-  sdkPackage,
+  packageName,
 }: {
   docsPlatform: string;
-  sdkPackage: `@sentry/${string}`;
+  packageName: `@sentry/${string}`;
 }): OnboardingConfig<PlatformOptions> => ({
   install: () => [
     {
@@ -269,10 +284,10 @@ export const getJavascriptLogsFullStackOnboarding = <
         {
           type: 'text',
           text: tct(
-            'To add logs make sure [sdkPackage] is up-to-date. The minimum version of [sdkPackage] that supports logs is [code:9.41.0].',
+            'To add logs make sure [packageName] is up-to-date. The minimum version of [packageName] that supports logs is [code:9.41.0].',
             {
               code: <code />,
-              sdkPackage: <code>{sdkPackage}</code>,
+              packageName: <code>{packageName}</code>,
             }
           ),
         },
@@ -284,19 +299,19 @@ export const getJavascriptLogsFullStackOnboarding = <
               label: 'npm',
               value: 'npm',
               language: 'bash',
-              code: `npm install ${sdkPackage} --save`,
+              code: `npm install ${packageName} --save`,
             },
             {
               label: 'yarn',
               value: 'yarn',
               language: 'bash',
-              code: `yarn add ${sdkPackage}`,
+              code: `yarn add ${packageName}`,
             },
             {
               label: 'pnpm',
               value: 'pnpm',
               language: 'bash',
-              code: `pnpm add ${sdkPackage}`,
+              code: `pnpm add ${packageName}`,
             },
           ],
         },
@@ -331,7 +346,7 @@ export const getJavascriptLogsFullStackOnboarding = <
           type: 'code',
           language: 'javascript',
           code: `
-import * as Sentry from "${sdkPackage}";
+import * as Sentry from "${packageName}";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -360,14 +375,17 @@ Sentry.init({
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'To confirm that logs are working correctly, run your application and check the Sentry logs page for the collected logs.'
-      ),
       content: [
+        {
+          type: 'text',
+          text: t(
+            'To confirm that logs are working correctly, run your application and check the Sentry logs page for the collected logs.'
+          ),
+        },
         {
           type: 'code',
           language: 'jsx',
-          code: `import * as Sentry from "${sdkPackage}";
+          code: `import * as Sentry from "${packageName}";
 
 Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })`,
         },
@@ -379,46 +397,47 @@ Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })`,
 export const getJavascriptFullStackOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 >({
-  basePackage,
+  packageName,
   browserProfilingLink,
   nodeProfilingLink,
-  getProfilingHeaderConfig = getDefaultProfilingHeaderConfig,
+  getProfilingHeaderContent = getDefaultProfilingHeaderContent,
 }: {
-  basePackage: string;
   browserProfilingLink: string;
   nodeProfilingLink: string;
-  getProfilingHeaderConfig?: (params: DocsParams) => Configuration[];
+  packageName: `@sentry/${string}`;
+  getProfilingHeaderContent?: (params: DocsParams) => ContentBlock[];
 }): OnboardingConfig<PlatformOptions> => ({
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'To enable profiling, add [code:@sentry/profiling-node] to your imports and make sure [packageCode] is up-to-date. The minimum version of [packageCode] that supports node and browser profiling is [code:7.60.0].',
+      content: [
         {
-          code: <code />,
-          packageCode: <code>{basePackage}</code>,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'To enable profiling, add [code:@sentry/profiling-node] to your imports and make sure [packageName] is up-to-date. The minimum version of [packageName] that supports node and browser profiling is [code:7.60.0].',
+            {
+              code: <code />,
+              packageName: <code>{packageName}</code>,
+            }
+          ),
+        },
         {
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'npm',
-              value: 'npm',
               language: 'bash',
-              code: `npm install ${basePackage} @sentry/profiling-node --save`,
+              code: `npm install ${packageName} @sentry/profiling-node --save`,
             },
             {
               label: 'yarn',
-              value: 'yarn',
               language: 'bash',
-              code: `yarn add ${basePackage} @sentry/profiling-node`,
+              code: `yarn add ${packageName} @sentry/profiling-node`,
             },
             {
               label: 'pnpm',
-              value: 'pnpm',
               language: 'bash',
-              code: `pnpm add ${basePackage} @sentry/profiling-node`,
+              code: `pnpm add ${packageName} @sentry/profiling-node`,
             },
           ],
         },
@@ -428,24 +447,26 @@ export const getJavascriptFullStackOnboarding = <
   configure: params => [
     {
       title: t('Configure Node Profiling'),
-      description: tct(
-        'Set up the [code:nodeProfilingIntegration] in your server-side [code:Sentry.init()] call.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: [
+          type: 'text',
+          text: tct(
+            'Set up the [code:nodeProfilingIntegration] in your server-side [code:Sentry.init()] call.',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
-          language: 'javascript',
-          code: [
+          type: 'code',
+          tabs: [
             {
               label: 'Javascript',
-              value: 'javascript',
               language: 'javascript',
               code: `
-const { nodeProfilingIntegration } = require("@sentry/profiling-node");
+  const { nodeProfilingIntegration } = require("@sentry/profiling-node");
 
-Sentry.init({
+  Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
     nodeProfilingIntegration(),
@@ -462,63 +483,69 @@ Sentry.init({
   // Set sampling rate for profiling - this is evaluated only once per SDK.init call
   profilesSampleRate: 1.0,`
   }
-});${
-                params.profilingOptions?.defaultProfilingMode === 'continuous'
-                  ? `
+  });${
+    params.profilingOptions?.defaultProfilingMode === 'continuous'
+      ? `
 
-// Profiling happens automatically after setting it up with \`Sentry.init()\`.
-// All spans (unless those discarded by sampling) will have profiling data attached to them.
-Sentry.startSpan({
+  // Profiling happens automatically after setting it up with \`Sentry.init()\`.
+  // All spans (unless those discarded by sampling) will have profiling data attached to them.
+  Sentry.startSpan({
   name: "My Span",
-}, () => {
+  }, () => {
   // The code executed here will be profiled
-});`
-                  : ''
-              }`,
+  });`
+      : ''
+  }`,
             },
           ],
         },
         {
-          description: tct(
-            'For more information see the [link:node profiling documentation].',
-            {
-              link: <ExternalLink href={`${nodeProfilingLink}`} />,
-            }
-          ),
+          type: 'text',
+          text: tct('For more information see the [link:node profiling documentation].', {
+            link: <ExternalLink href={`${nodeProfilingLink}`} />,
+          }),
         },
       ],
     },
     {
       title: t('Configure Browser Profiling'),
-      description: <BrowserProfilingBetaWarning />,
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'custom',
+          content: <BrowserProfilingBetaWarning />,
+        },
+        {
+          type: 'text',
+          text: tct(
             'Set up the [code:browserProfilingIntegration] in your client-side [code:Sentry.init()] call.',
             {
               code: <code />,
             }
           ),
-          code: [
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Javascript',
-              value: 'javascript',
               language: 'javascript',
               code: browserProfilingSnippet(params),
             },
           ],
         },
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'For the JavaScript browser profiler to start, the document response header needs to include a [code:Document-Policy] header key with the [code:js-profiling] value.',
             {
               code: <code />,
             }
           ),
-          configurations: getProfilingHeaderConfig(params),
         },
+        ...getProfilingHeaderContent(params),
         {
-          description: tct(
+          type: 'text',
+          text: tct(
             'For more detailed information, see the [link:browser profiling documentation].',
             {
               link: <ExternalLink href={browserProfilingLink} />,
@@ -531,9 +558,14 @@ Sentry.startSpan({
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        'Verify that profiling is working correctly by simply using your application.'
-      ),
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that profiling is working correctly by simply using your application.'
+          ),
+        },
+      ],
     },
   ],
 });

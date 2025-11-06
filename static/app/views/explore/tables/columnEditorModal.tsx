@@ -25,7 +25,7 @@ import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface ColumnEditorModalProps extends ModalRenderProps {
-  columns: string[];
+  columns: readonly string[];
   numberTags: TagCollection;
   onColumnsChange: (columns: string[]) => void;
   stringTags: TagCollection;
@@ -50,10 +50,7 @@ export function ColumnEditorModal({
   const tags: Array<SelectOption<string>> = useMemo(() => {
     let allTags = [
       ...columns
-        .filter(
-          column =>
-            !stringTags.hasOwnProperty(column) && !numberTags.hasOwnProperty(column)
-        )
+        .filter(column => !(column in stringTags) && !(column in numberTags))
         .map(column => {
           const kind = classifyTagKey(column);
           const label = prettifyTagKey(column);
@@ -129,7 +126,7 @@ export function ColumnEditorModal({
 
   // We keep a temporary state for the columns so that we can apply the changes
   // only when the user clicks on the apply button.
-  const [tempColumns, setTempColumns] = useState<string[]>(columns);
+  const [tempColumns, setTempColumns] = useState<string[]>(columns.slice());
 
   function handleApply() {
     onColumnsChange(tempColumns.filter(Boolean));
@@ -267,11 +264,11 @@ function ColumnEditorRow({
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
-        triggerLabel={label}
         value={column.column ?? ''}
         onChange={handleColumnChange}
         searchable
         triggerProps={{
+          children: label,
           prefix: t('Column'),
           style: {
             width: '100%',

@@ -18,7 +18,6 @@ const DESCRIPTION = t(
 
 const QUERY_LIMIT_REFERRER = 'insights-query-limit-footer';
 
-/** @internal exported for tests only */
 export function InsightsDateRangeQueryLimitFooter({organization, subscription}: Props) {
   const shouldShowQueryLimitFooter = useHasRequiredFeatures(organization, subscription);
 

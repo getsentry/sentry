@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
-import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
 import {AutofixOutputStream} from 'sentry/components/events/autofix/autofixOutputStream';
 import {
   AutofixRootCause,
@@ -11,6 +10,7 @@ import {
 } from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
 import CodingAgentCard from 'sentry/components/events/autofix/codingAgentCard';
+import AutofixInsightCards from 'sentry/components/events/autofix/insights/autofixInsightCards';
 import {
   AutofixStepType,
   type AutofixData,
@@ -92,7 +92,6 @@ function Step({
                 <AutofixInsightCards
                   insights={step.insights}
                   hasStepBelow={hasStepBelow}
-                  hasStepAbove={hasStepAbove}
                   stepIndex={step.index}
                   groupId={groupId}
                   runId={runId}
@@ -105,6 +104,7 @@ function Step({
                   runId={runId}
                   causes={step.causes}
                   rootCauseSelection={step.selection}
+                  status={step.status}
                   terminationReason={step.termination_reason}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
                   previousDefaultStepIndex={previousDefaultStepIndex}
@@ -120,6 +120,7 @@ function Step({
                   solution={step.solution}
                   description={step.description}
                   solutionSelected={step.solution_selected}
+                  status={step.status}
                   customSolution={step.custom_solution}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}

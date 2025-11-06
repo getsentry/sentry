@@ -2,13 +2,14 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+import sentry_sdk
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
 from sentry import eventstream, similarity, tsdb
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
-from sentry.taskworker.config import TaskworkerConfig
+from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.tsdb.base import TSDBModel
@@ -19,16 +20,9 @@ delete_logger = logging.getLogger("sentry.deletions.async")
 
 @instrumented_task(
     name="sentry.tasks.merge.merge_groups",
-    queue="merge",
-    default_retry_delay=60 * 5,
-    max_retries=None,
+    namespace=issues_tasks,
+    retry=Retry(delay=60 * 5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        retry=Retry(
-            delay=60 * 5,
-        ),
-    ),
 )
 @track_group_async_operation
 def merge_groups(
@@ -163,8 +157,10 @@ def merge_groups(
                     ),
                 )
 
-            previous_group_id = group.id
+            # Fetch buffered stats before deleting the group
+            fetch_buffered_group_stats(group)
 
+            previous_group_id = group.id
             with transaction.atomic(router.db_for_write(GroupRedirect)):
                 GroupRedirect.create_for_group(group, new_group)
                 group.delete()
@@ -185,11 +181,14 @@ def merge_groups(
             try:
                 # it's possible to hit an out of range value for counters
                 new_group.update(
-                    times_seen=F("times_seen") + group.times_seen,
+                    times_seen=F("times_seen") + group.times_seen_with_pending,
                     num_comments=F("num_comments") + group.num_comments,
                 )
-            except DataError:
-                pass
+            except DataError as e:
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_extra("new_group_id", new_group.id)
+                    scope.set_extra("old_group_id", group.id)
+                    sentry_sdk.capture_exception(e, level="warning")
 
     if from_object_ids:
         # This task is recursed until `from_object_ids` is empty and all

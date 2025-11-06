@@ -101,16 +101,16 @@ describe('useMetricDetectorAnomalyPeriods', () => {
     expect(result.current.anomalyPeriods).toHaveLength(2);
     expect(result.current.anomalyPeriods[0]).toEqual(
       expect.objectContaining({
-        type: AnomalyType.HIGH_CONFIDENCE,
-        name: 'High Confidence Anomaly',
+        type: 'open-period-start',
+        priority: 'high',
         start: 1609459200000,
         end: 1609462800000, // Last consecutive anomaly timestamp in ms
       })
     );
     expect(result.current.anomalyPeriods[1]).toEqual(
       expect.objectContaining({
-        type: AnomalyType.HIGH_CONFIDENCE,
-        name: 'High Confidence Anomaly',
+        type: 'open-period-start',
+        priority: 'high',
         start: 1609470000000,
         end: 1609470000000 + 900000, // Plus timePeriod (900s = 15min) in ms for minimum width
       })

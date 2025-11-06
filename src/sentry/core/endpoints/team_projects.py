@@ -7,7 +7,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -25,16 +25,17 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.issue_detection.detectors.disable_detectors import set_default_disabled_detectors
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.performance_issues.detectors.disable_detectors import set_default_disabled_detectors
 from sentry.seer.similarity.utils import (
     project_is_seer_eligible,
     set_default_project_autofix_automation_tuning,
     set_default_project_seer_scanner_automation,
 )
 from sentry.signals import project_created
+from sentry.utils.platform_categories import CONSOLES
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
@@ -44,8 +45,7 @@ def apply_default_project_settings(organization: Organization, project: Project)
     if project.platform and project.platform.startswith("javascript"):
         set_default_inbound_filters(project, organization)
 
-    if features.has("organizations:disable-detectors-on-project-creation", organization):
-        set_default_disabled_detectors(project)
+    set_default_disabled_detectors(project)
 
     set_default_symbol_sources(project)
 
@@ -82,9 +82,22 @@ their own alerts to be notified of new issues.
     )
 
     def validate_platform(self, value):
-        if Project.is_valid_platform(value):
-            return value
-        raise serializers.ValidationError("Invalid platform")
+        if not Project.is_valid_platform(value):
+            raise serializers.ValidationError("Invalid platform")
+
+        if value in CONSOLES:
+            organization = self.context.get("organization")
+            assert organization is not None
+            enabled_console_platforms = organization.get_option(
+                "sentry:enabled_console_platforms", []
+            )
+
+            if value not in enabled_console_platforms:
+                raise serializers.ValidationError(
+                    f"Console platform '{value}' is not enabled for this organization"
+                )
+
+        return value
 
     def validate_name(self, value: str) -> str:
         if value in RESERVED_PROJECT_SLUGS:
@@ -193,16 +206,19 @@ class TeamProjectsEndpoint(TeamEndpoint):
             409: OpenApiResponse(description="A project with this slug already exists."),
         },
         examples=ProjectExamples.CREATE_PROJECT,
+        description="""Create a new project bound to a team.
+
+        Note: If your organization has disabled member project creation, the `org:write` or `team:admin` scope is required.
+        """,
     )
     def post(self, request: Request, team: Team) -> Response:
-        """
-        Create a new project bound to a team.
-        """
         from sentry.core.endpoints.organization_projects_experiment import (
             DISABLED_FEATURE_ERROR_STRING,
         )
 
-        serializer = ProjectPostSerializer(data=request.data)
+        serializer = ProjectPostSerializer(
+            data=request.data, context={"organization": team.organization}
+        )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

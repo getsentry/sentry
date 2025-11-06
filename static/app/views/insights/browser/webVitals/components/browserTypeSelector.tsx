@@ -81,12 +81,14 @@ export default function BrowserTypeSelector() {
 
   return (
     <CompactSelect
-      triggerProps={{prefix: t('Browser Type')}}
+      triggerProps={{
+        prefix: t('Browser Type'),
+        children: value.length === 0 ? 'All' : undefined,
+      }}
       multiple
       clearable
       value={value}
-      triggerLabel={value.length === 0 ? 'All' : undefined}
-      menuTitle={'Filter Browsers'}
+      menuTitle="Filter Browsers"
       options={browserOptions ?? []}
       onChange={(selectedOptions: Array<SelectOption<string>>) => {
         trackAnalytics('insight.vital.select_browser_value', {

@@ -46,7 +46,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
         assert response.status_code == 200
         assert response["Content-Type"] == "application/octet-stream"
         assert "attachment" in response["Content-Disposition"]
-        assert 'filename="installable.ipa"' in response["Content-Disposition"]
+        assert 'filename="com.example.TestApp@1.2.3.ipa"' in response["Content-Disposition"]
         assert response["Content-Length"] == str(self.file.size)
 
         # Verify download count was incremented

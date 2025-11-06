@@ -62,8 +62,7 @@ def test_generate_labels_network_error(mock_make_seer_request) -> None:
             "I don't like the new right sidebar, it makes navigating everywhere hard!", 1
         )
 
-    # Should be called twice: once for summarization URL, once for autofix fallback
-    assert mock_make_seer_request.call_count == 2
+    assert mock_make_seer_request.call_count == 1
     request_body = json.loads(mock_make_seer_request.call_args[1]["body"].decode("utf-8"))
     expected_request = {
         "feedback_message": "I don't like the new right sidebar, it makes navigating everywhere hard!",

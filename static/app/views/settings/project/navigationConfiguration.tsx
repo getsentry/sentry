@@ -132,7 +132,6 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/playstation/`,
           title: t('PlayStation'),
-          badge: () => 'beta',
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
       ],

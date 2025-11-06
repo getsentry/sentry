@@ -3,7 +3,6 @@ from unittest import mock
 import pytest
 
 from sentry.testutils.cases import UptimeTestCase
-from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import (
     UptimeSubscriptionDataSourceHandler,
     get_active_auto_monitor_count_for_org,
@@ -11,7 +10,6 @@ from sentry.uptime.models import (
     get_top_hosting_provider_names,
 )
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, UptimeMonitorMode
-from sentry.workflow_engine.models import DataSourceDetector
 from sentry.workflow_engine.models.detector import Detector
 
 
@@ -91,21 +89,14 @@ class GetDetectorTest(UptimeTestCase):
         uptime_subscription = self.create_uptime_subscription(
             url="https://santry.io",
         )
-        data_source = self.create_data_source(
-            type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
-            source_id=str(uptime_subscription.id),
-        )
-
-        detector = self.create_detector(
+        env = self.create_environment(name="production", project=self.project)
+        detector = self.create_uptime_detector(
             project=self.project,
-            type=UptimeDomainCheckFailure.slug,
             name="My Uptime Monitor",
-            config={
-                "environment": "production",
-                "mode": UptimeMonitorMode.MANUAL.value,
-            },
+            uptime_subscription=uptime_subscription,
+            env=env,
+            mode=UptimeMonitorMode.MANUAL,
         )
-        DataSourceDetector.objects.create(data_source=data_source, detector=detector)
 
         assert get_detector(uptime_subscription) == detector
 

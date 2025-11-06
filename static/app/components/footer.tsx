@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
@@ -41,7 +43,7 @@ function BaseFooter({className}: Props) {
   const organization = useOrganization({allowNull: true});
 
   return (
-    <footer className={className}>
+    <Container as="footer" background="primary" className={className}>
       <LeftLinks>
         {isSelfHosted && (
           <Fragment>
@@ -86,13 +88,14 @@ function BaseFooter({className}: Props) {
         )}
       </RightLinks>
       <Hook name="footer" />
-    </footer>
+    </Container>
   );
 }
 
 const WaitingIndicator = styled('div')`
   --pulsingIndicatorRing: ${p => p.theme.gray200};
   ${pulsingIndicatorStyles};
+  contain: layout;
 `;
 
 const LeftLinks = styled('div')`

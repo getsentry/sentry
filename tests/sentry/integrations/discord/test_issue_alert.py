@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.actions.issue_alert.notification import DiscordNotifyServiceAction
+from sentry.integrations.discord.analytics import DiscordIntegrationNotificationSent
 from sentry.integrations.discord.client import DISCORD_BASE_URL, MESSAGE_URL
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.component import DiscordComponentCustomIds
@@ -23,7 +24,10 @@ from sentry.models.release import Release
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import RuleTestCase, TestCase
-from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_last_analytics_event,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
@@ -162,14 +166,16 @@ class DiscordIssueAlertTest(RuleTestCase):
             buttons[2]["custom_id"]
             == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.event.group.id}"
         )
-        mock_record.assert_any_call(
-            "integrations.discord.notification_sent",
-            category="issue_alert",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.event.group_id,
-            notification_uuid=notification_uuid,
-            alert_id=None,
+        assert_any_analytics_event(
+            mock_record,
+            DiscordIntegrationNotificationSent(
+                category="issue_alert",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.event.group_id,
+                notification_uuid=notification_uuid,
+                alert_id=None,
+            ),
         )
         assert_last_analytics_event(
             mock_record,

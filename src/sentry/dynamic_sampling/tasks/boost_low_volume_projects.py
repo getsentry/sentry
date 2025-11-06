@@ -65,7 +65,6 @@ from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
@@ -85,20 +84,10 @@ OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, Dec
 
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=15 * 60,  # 15 minutes
-    time_limit=15 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=20 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=15 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def boost_low_volume_projects() -> None:
@@ -111,12 +100,7 @@ def boost_low_volume_projects() -> None:
     )
 
     # NB: This always uses the *transactions* root count just to get the list of orgs.
-    if options.get("dynamic-sampling.query-granularity-60s.active-orgs", None):
-        granularity = Granularity(60)
-    else:
-        granularity = Granularity(3600)
-
-    for orgs in GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=granularity):
+    for orgs in GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=Granularity(60)):
         for measure, orgs in partition_by_measure(orgs).items():
             for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
                 org_ids=orgs, measure=measure
@@ -149,46 +133,41 @@ def partition_by_measure(
 
     # Exclude orgs with project-mode sampling from the start. We know the
     # default is DynamicSamplingMode.ORGANIZATION.
-    orgs = [org for org, mode in modes.items() if mode != DynamicSamplingMode.PROJECT]
+    filtered_org_ids = {
+        org.id for org, mode in modes.items() if mode != DynamicSamplingMode.PROJECT
+    }
 
     if not options.get("dynamic-sampling.check_span_feature_flag"):
-        metrics.incr("dynamic_sampling.partition_by_measure.transactions", amount=len(orgs))
-        return {SamplingMeasure.TRANSACTIONS: [org.id for org in orgs]}
+        metrics.incr(
+            "dynamic_sampling.partition_by_measure.transactions", amount=len(filtered_org_ids)
+        )
+        return {SamplingMeasure.TRANSACTIONS: sorted(filtered_org_ids)}
 
-    spans = []
-    transactions = []
+    span_org_ids = set(options.get("dynamic-sampling.measure.spans") or [])
+    span_org_ids = span_org_ids & filtered_org_ids
+    transactions_org_ids = filtered_org_ids - span_org_ids
 
-    for org in orgs:
-        # This is an N+1 query that fetches getsentry database models
-        # internally, but we cannot abstract over batches of feature flag
-        # handlers yet. Hence, we must fetch organizations and do individual
-        # feature checks per org.
-        if features.has("organizations:dynamic-sampling-spans", org):
-            spans.append(org.id)
-        else:
-            transactions.append(org.id)
+    logger.info(
+        "dynamic_sampling.partition_by_measure.options_check",
+        extra={"span_org_ids": span_org_ids},
+    )
 
-    metrics.incr("dynamic_sampling.partition_by_measure.spans", amount=len(spans))
-    metrics.incr("dynamic_sampling.partition_by_measure.transactions", amount=len(transactions))
-    return {SamplingMeasure.SPANS: spans, SamplingMeasure.TRANSACTIONS: transactions}
+    metrics.incr("dynamic_sampling.partition_by_measure.spans", amount=len(span_org_ids))
+    metrics.incr(
+        "dynamic_sampling.partition_by_measure.transactions", amount=len(transactions_org_ids)
+    )
+    return {
+        SamplingMeasure.SPANS: sorted(span_org_ids),
+        SamplingMeasure.TRANSACTIONS: sorted(transactions_org_ids),
+    }
 
 
 @instrumented_task(
     name="sentry.dynamic_sampling.boost_low_volume_projects_of_org_with_query",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=3 * 60,
-    time_limit=3 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=3 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=3 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
@@ -206,10 +185,10 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
         return
 
     measure = SamplingMeasure.TRANSACTIONS
-    if options.get("dynamic-sampling.check_span_feature_flag") and features.has(
-        "organizations:dynamic-sampling-spans", org
-    ):
-        measure = SamplingMeasure.SPANS
+    if options.get("dynamic-sampling.check_span_feature_flag"):
+        span_org_ids = options.get("dynamic-sampling.measure.spans") or []
+        if org_id in span_org_ids:
+            measure = SamplingMeasure.SPANS
 
     projects_with_tx_count_and_rates = fetch_projects_with_total_root_transaction_count_and_rates(
         org_ids=[org_id],
@@ -224,20 +203,10 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
 
 @instrumented_task(
     name="sentry.dynamic_sampling.boost_low_volume_projects_of_org",
-    queue="dynamicsampling",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=3 * 60,
-    time_limit=3 * 60 + 5,
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=3 * 60 + 5,
+    retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=telemetry_experience_tasks,
-        processing_deadline_duration=3 * 60 + 5,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org(
@@ -335,10 +304,13 @@ def query_project_counts_by_org(
     if query_interval > timedelta(days=1):
         granularity = Granularity(24 * 3600)
     else:
-        if options.get("dynamic-sampling.query-granularity-60s", None):
-            granularity = Granularity(60)
-        else:
-            granularity = Granularity(3600)
+        granularity = Granularity(60)
+
+    metrics.incr(
+        "dynamic_sampling.query_project_counts_by_org.count",
+        amount=len(org_ids),
+        tags={"measure": str(measure.value)},
+    )
 
     org_ids = list(org_ids)
     project_ids = list(

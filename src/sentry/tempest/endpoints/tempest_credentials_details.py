@@ -23,7 +23,7 @@ class TempestCredentialsDetailsEndpoint(ProjectEndpoint):
     permission_classes = (TempestCredentialsPermission,)
 
     def delete(self, request: Request, project: Project, tempest_credentials_id: int) -> Response:
-        if not has_tempest_access(project.organization, request.user):
+        if not has_tempest_access(project.organization):
             raise NotFound
 
         try:

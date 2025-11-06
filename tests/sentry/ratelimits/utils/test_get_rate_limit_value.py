@@ -51,10 +51,12 @@ class TestGetRateLimitValue(TestCase):
         """Override one or more of the default rate limits."""
 
         class TestEndpoint(Endpoint):
-            rate_limits = {
-                "GET": {RateLimitCategory.IP: RateLimit(limit=100, window=5)},
-                "POST": {RateLimitCategory.USER: RateLimit(limit=20, window=4)},
-            }
+            rate_limits = RateLimitConfig(
+                limit_overrides={
+                    "GET": {RateLimitCategory.IP: RateLimit(limit=100, window=5)},
+                    "POST": {RateLimitCategory.USER: RateLimit(limit=20, window=4)},
+                }
+            )
 
         _test_endpoint = TestEndpoint.as_view()
         rate_limit_config = get_rate_limit_config(_test_endpoint.view_class)

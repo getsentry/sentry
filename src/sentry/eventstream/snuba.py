@@ -7,17 +7,22 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import urllib3
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.eventstream.base import EventStream, GroupStates
+from sentry.eventstream.item_helpers import serialize_event_data_as_item
 from sentry.eventstream.types import EventStreamEventType
+from sentry.models.project import Project
+from sentry.options.rollout import in_rollout_group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
 
 KW_SKIP_SEMANTIC_PARTITIONING = "skip_semantic_partitioning"
+
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +102,6 @@ class SnubaProtocolEventStream(EventStream):
     ) -> MutableMapping[str, str]:
         return {
             "Received-Timestamp": str(received_timestamp),
-            "queue": self._get_queue_for_post_process(event),
         }
 
     def insert(
@@ -198,7 +202,6 @@ class SnubaProtocolEventStream(EventStream):
                     "is_new": is_new,
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,
-                    "queue": headers["queue"],
                     "skip_consume": skip_consume,
                     "group_states": group_states,
                 },
@@ -208,6 +211,39 @@ class SnubaProtocolEventStream(EventStream):
             skip_semantic_partitioning=skip_semantic_partitioning,
             event_type=event_type,
         )
+
+        if in_rollout_group("eventstream.eap_forwarding_rate", event.project_id):
+            self._forward_event_to_items(event, event_data, event_type, project)
+
+    def _missing_required_item_fields(self, event_data: Mapping[str, Any]) -> list[str]:
+        root_level_fields = ["event_id", "timestamp"]
+        missing_fields = [field for field in root_level_fields if field not in event_data]
+        trace_id = get_path(event_data, "contexts", "trace", "trace_id", default=None)
+        if trace_id is None:
+            missing_fields.append("trace_id")
+
+        return missing_fields
+
+    def _forward_event_to_items(
+        self,
+        event: Event | GroupEvent,
+        event_data: Mapping[str, Any],
+        event_type: EventStreamEventType,
+        project: Project,
+    ) -> None:
+        if not (
+            event_type == EventStreamEventType.Error or event_type == EventStreamEventType.Generic
+        ):
+            return
+
+        missing_fields = self._missing_required_item_fields(event_data)
+        if missing_fields:
+            logger.debug(
+                "Event data is missing required fields to forward to items: %s", missing_fields
+            )
+            return
+
+        self._send_item(serialize_event_data_as_item(event, event_data, project))
 
     def start_delete_groups(self, project_id: int, group_ids: Sequence[int]) -> Mapping[str, Any]:
         if not group_ids:
@@ -399,6 +435,9 @@ class SnubaProtocolEventStream(EventStream):
     ) -> None:
         raise NotImplementedError
 
+    def _send_item(self, trace_item: TraceItem) -> None:
+        raise NotImplementedError
+
 
 class SnubaEventStream(SnubaProtocolEventStream):
     def _send(
@@ -490,7 +529,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
             is_regression,
             is_new_group_environment,
             primary_hash,
-            self._get_queue_for_post_process(event),
             skip_consume,
             group_states,
             occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,

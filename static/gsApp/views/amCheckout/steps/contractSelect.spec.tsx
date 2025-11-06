@@ -93,8 +93,8 @@ describe('ContractSelect', () => {
     await assertAndOpenPanel();
 
     // does not show event price tags
-    expect(screen.queryByText(/\ error/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/\ span/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ error/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ span/)).not.toBeInTheDocument();
   });
 
   it('can select contract term', async () => {

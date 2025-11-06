@@ -17,7 +17,7 @@ import OnDemandBudgets from 'getsentry/views/onDemandBudgets';
 import OnDemandBudgetEdit from 'getsentry/views/onDemandBudgets/onDemandBudgetEdit';
 
 describe('OnDemandBudgets', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({access: ['org:billing']});
 
   const getComponent = (
     props: Omit<React.ComponentProps<typeof OnDemandBudgets>, 'organization'>
@@ -114,45 +114,6 @@ describe('OnDemandBudgets', () => {
 
     await userEvent.click(screen.getByTestId('add-cc-card'));
     expect(await screen.findByText('Stripe')).toBeInTheDocument();
-  });
-
-  it('allows VC partner accounts to set up on-demand budget without credit card', () => {
-    const subscription = SubscriptionFixture({
-      plan: 'am3_business',
-      planTier: PlanTier.AM3,
-      isFree: false,
-      isTrial: false,
-      supportsOnDemand: true,
-      organization,
-      partner: {
-        externalId: 'x123x',
-        name: 'VC Org',
-        partnership: {
-          id: 'VC',
-          displayName: 'VC',
-          supportNote: '',
-        },
-        isActive: true,
-      },
-      onDemandBudgets: {
-        enabled: false,
-        budgetMode: OnDemandBudgetMode.SHARED,
-        sharedMaxBudget: 0,
-        onDemandSpendUsed: 0,
-      },
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const isVCPartner = subscription.partner?.partnership?.id === 'VC';
-    createWrapper({
-      subscription,
-      onDemandEnabled: true,
-      hasPaymentSource: isVCPartner,
-    });
-
-    // Should show Set Up Pay-as-you-go button instead of Add Credit Card
-    expect(screen.getByText('Set Up Pay-as-you-go')).toBeInTheDocument();
-    expect(screen.queryByText('Add Credit Card')).not.toBeInTheDocument();
   });
 
   it('renders initial on-demand budget setup state', () => {
@@ -639,7 +600,7 @@ describe('OnDemandBudgets', () => {
 
     expect(
       screen.getByText(
-        "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
+        'Additional Seer usage is only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
       )
     ).toBeInTheDocument();
   });
@@ -697,7 +658,7 @@ describe('OnDemandBudgets', () => {
     // When logs-billing is enabled, should show the logs warning
     expect(
       screen.getByText(
-        'Additional logs and Seer usage are only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
+        'Additional logs usage is only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
       )
     ).toBeInTheDocument();
 
@@ -719,5 +680,38 @@ describe('OnDemandBudgets', () => {
         'Additional logs and Seer usage are only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
       )
     ).toBeInTheDocument();
+  });
+
+  it('displays does not display contact support for education sponsored', () => {
+    const subscription = SubscriptionFixture({
+      plan: 'am3_sponsored_team_auf',
+      planTier: PlanTier.AM3,
+      sponsoredType: 'education',
+      isFree: false,
+      isTrial: false,
+      supportsOnDemand: true,
+      planDetails: {
+        ...PlanDetailsLookupFixture('am3_team_auf')!,
+      },
+      organization,
+      onDemandBudgets: {
+        enabled: false,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 0,
+        onDemandSpendUsed: 0,
+      },
+    });
+
+    render(
+      <OnDemandBudgets
+        {...defaultProps}
+        subscription={subscription}
+        organization={organization}
+        onDemandEnabled={false}
+        hasPaymentSource={false}
+      />
+    );
+
+    expect(screen.queryByText('Contact Support')).not.toBeInTheDocument();
   });
 });

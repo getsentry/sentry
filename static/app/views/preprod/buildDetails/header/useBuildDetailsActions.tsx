@@ -1,7 +1,6 @@
 import {useNavigate} from 'react-router-dom';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -10,6 +9,24 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface UseBuildDetailsActionsProps {
   artifactId: string;
   projectId: string;
+}
+
+type ErrorDetail = string | {code?: string; message?: string} | null | undefined;
+
+function handleStaffPermissionError(responseDetail: ErrorDetail) {
+  if (typeof responseDetail !== 'string' && responseDetail?.code === 'staff-required') {
+    addErrorMessage(
+      t(
+        'Re-authenticate as staff first and then return to this page and try again. Redirecting...'
+      )
+    );
+    setTimeout(() => {
+      window.location.href = '/_admin/';
+    }, 2000);
+    return;
+  }
+
+  addErrorMessage(t('Access denied. You may need to re-authenticate as staff.'));
 }
 
 export function useBuildDetailsActions({
@@ -43,18 +60,68 @@ export function useBuildDetailsActions({
     deleteArtifact();
   };
 
-  const handleDeleteAction = () => {
-    openConfirmModal({
-      message: t(
-        'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'
-      ),
-      onConfirm: handleDeleteArtifact,
-    });
+  const {mutate: rerunAnalysis} = useMutation<void, RequestError>({
+    mutationFn: () => {
+      return fetchMutation({
+        url: `/internal/preprod-artifact/rerun-analysis/`,
+        method: 'POST',
+        data: {
+          preprod_artifact_id: artifactId,
+        },
+      });
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Analysis rerun initiated successfully'));
+    },
+    onError: error => {
+      if (error.status === 403) {
+        handleStaffPermissionError(error.responseJSON?.detail);
+      } else {
+        addErrorMessage(t('Failed to rerun analysis'));
+      }
+    },
+  });
+
+  const handleRerunAction = () => {
+    rerunAnalysis();
   };
 
-  const handleDownloadAction = () => {
+  const handleDownloadAction = async () => {
+    const downloadUrl = `/api/0/internal/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/`;
+
     try {
-      const downloadUrl = `/api/0/internal/${organization.slug}/${projectId}/files/preprodartifacts/${artifactId}/`;
+      // We use a HEAD request to enable large file downloads using chunked downloading.
+      const response = await fetch(downloadUrl, {
+        method: 'HEAD',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          let detail: ErrorDetail = null;
+          try {
+            // HEAD requests don't include a response body per HTTP spec, so we make a follow-up GET call to retrieve the error details and check for the staff-required code.
+            const errorResponse = await fetch(downloadUrl, {
+              method: 'GET',
+              credentials: 'include',
+            });
+            const errorText = await errorResponse.text();
+            const errorJson = JSON.parse(errorText);
+            detail = errorJson.detail;
+          } catch {
+            // Fall through to generic handling
+          }
+          handleStaffPermissionError(detail);
+        } else if (response.status === 404) {
+          addErrorMessage(t('Build file not found.'));
+        } else if (response.status === 401) {
+          addErrorMessage(t('Unauthorized.'));
+        } else {
+          addErrorMessage(t('Download failed (status: %s)', response.status));
+        }
+        return;
+      }
+
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.download = `preprod_artifact_${artifactId}.zip`;
@@ -62,9 +129,10 @@ export function useBuildDetailsActions({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      addSuccessMessage(t('Build downloaded successfully'));
+
+      addSuccessMessage(t('Build download started'));
     } catch (error) {
-      addErrorMessage(t('Failed to download build'));
+      addErrorMessage(t('Download failed: %s', String(error)));
     }
   };
 
@@ -73,7 +141,8 @@ export function useBuildDetailsActions({
     isDeletingArtifact,
 
     // Actions
-    handleDeleteAction,
+    handleDeleteArtifact,
+    handleRerunAction,
     handleDownloadAction,
   };
 }

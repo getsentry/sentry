@@ -70,6 +70,17 @@ export function getTotalBudget(onDemandBudgets: OnDemandBudgets): number {
   return onDemandBudgets.sharedMaxBudget ?? 0;
 }
 
+export function getTotalSpend(onDemandBudgets: SubscriptionOnDemandBudgets): number {
+  if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    return Object.values(onDemandBudgets.usedSpends).reduce(
+      (sum, spend) => sum + (spend ?? 0),
+      0
+    );
+  }
+
+  return onDemandBudgets.onDemandSpendUsed ?? 0;
+}
+
 export function isOnDemandBudgetsEqual(
   value: OnDemandBudgets,
   other: OnDemandBudgets
@@ -120,8 +131,8 @@ export function hasOnDemandBudgetsFeature(
   organization: undefined | Organization,
   subscription: undefined | Subscription
 ) {
-  // This function determines if the org can access the on-demand budgets UI.
-  // Only orgs on the AM plan can access the on-demand budgets UI.
+  // This function determines if the org can access the PAYG budgets UI.
+  // Only orgs on the AM plan can access the PAYG budgets UI.
   return (
     subscription?.planDetails?.hasOnDemandModes &&
     organization?.features.includes('ondemand-budgets')
@@ -143,7 +154,7 @@ export function exceedsInvoicedBudgetLimit(
     return false;
   }
 
-  // no limit for invoiced customers with CC-charged on-demand
+  // no limit for invoiced customers with CC-charged PAYG
   if (subscription.onDemandInvoiced && !subscription.onDemandInvoicedManual) {
     return false;
   }
@@ -171,12 +182,18 @@ export function trackOnDemandBudgetAnalytics(
   organization: Organization,
   previousBudget: OnDemandBudgets,
   newBudget: OnDemandBudgets,
-  prefix: 'ondemand_budget_modal' | 'checkout' = 'ondemand_budget_modal'
+  prefix:
+    | 'ondemand_budget_modal'
+    | 'checkout'
+    | 'payg_inline_form' = 'ondemand_budget_modal'
 ) {
   const previousTotalBudget = getTotalBudget(previousBudget);
   const totalBudget = getTotalBudget(newBudget);
   const previousBudgetMode = previousBudget.budgetMode;
   const newBudgetMode = newBudget.budgetMode;
+
+  const analyticsParams: Record<string, any> = {};
+
   if (totalBudget > 0 && previousTotalBudget !== totalBudget) {
     const newBudgets: Partial<Record<`${DataCategoryExact}_budget`, number>> = {};
     const previousBudgets: Partial<
@@ -213,12 +230,14 @@ export function trackOnDemandBudgetAnalytics(
       previous_strategy: previousBudgetMode,
       previous_total_budget: previousTotalBudget,
       ...previousBudgets,
+      ...analyticsParams,
     });
     return;
   }
 
   trackGetsentryAnalytics(`${prefix}.ondemand_budget.turned_off`, {
     organization,
+    ...analyticsParams,
   });
 }
 

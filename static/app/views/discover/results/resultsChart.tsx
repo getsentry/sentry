@@ -65,10 +65,6 @@ class ResultsChart extends Component<ResultsChartProps> {
       customMeasurements,
     } = this.props;
 
-    const hasPerformanceChartInterpolation = organization.features.includes(
-      'performance-chart-interpolation'
-    );
-
     const globalSelection = eventView.getPageFilters();
     const start = globalSelection.datetime.start
       ? getUtcToLocalDateObject(globalSelection.datetime.start)
@@ -147,7 +143,6 @@ class ResultsChart extends Component<ResultsChartProps> {
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
               utc={utc === 'true'}
               confirmedQuery={confirmedQuery}
-              withoutZerofill={hasPerformanceChartInterpolation}
               chartComponent={chartComponent}
               referrer={referrer}
               fromDiscover

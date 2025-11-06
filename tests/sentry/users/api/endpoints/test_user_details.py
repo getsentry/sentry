@@ -49,7 +49,6 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["options"]["stacktraceOrder"] == int(StacktraceOrder.DEFAULT)
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
-        assert not resp.data["options"]["prefersStackedNavigation"]
         assert not resp.data["options"]["prefersChonkUI"]
 
     def test_superuser_simple(self) -> None:
@@ -121,8 +120,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "clock24Hours": True,
                 "extra": True,
                 "prefersIssueDetailsStreamlinedUI": True,
-                "prefersNextjsInsightsOverview": True,
-                "prefersStackedNavigation": True,
                 "prefersChonkUI": True,
             },
         )
@@ -146,9 +143,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(
             user=self.user, key="prefers_issue_details_streamlined_ui"
         )
-        assert UserOption.objects.get_value(user=self.user, key="prefers_stacked_navigation")
         assert UserOption.objects.get_value(user=self.user, key="prefers_chonk_ui")
-        assert UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
 
         assert not UserOption.objects.get_value(user=self.user, key="extra")
 
@@ -213,31 +208,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
         assert user.email == "c@example.com"
         assert user.username == "c@example.com"
-
-    def test_saving_nextjs_insights_overview_option(self) -> None:
-        self.get_success_response(
-            "me",
-            options={"prefersNextjsInsightsOverview": True},
-        )
-        assert (
-            UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
-            is True
-        )
-
-        self.get_success_response(
-            "me",
-            options={"prefersNextjsInsightsOverview": False},
-        )
-        assert (
-            UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
-            is False
-        )
-
-    def test_default_nextjs_insights_overview_option_is_true(self) -> None:
-        resp = self.get_success_response(
-            "me",
-        )
-        assert resp.data["options"]["prefersNextjsInsightsOverview"] is True
 
 
 @control_silo_test

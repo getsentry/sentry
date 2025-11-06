@@ -56,9 +56,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
 
         # in bulk
         for m1 in (
-            # GroupOpenPeriod should be deleted before Activity
-            GroupOpenPeriod,
-            Activity,
             AlertRuleProjects,
             EnvironmentProject,
             GroupAssignee,
@@ -93,6 +90,9 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
 
         for m2 in (
+            # GroupOpenPeriod should be deleted before Activity
+            GroupOpenPeriod,
+            Activity,
             Monitor,
             Group,
             QuerySubscription,

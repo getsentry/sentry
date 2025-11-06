@@ -38,6 +38,11 @@ SessionsQueryFunction = Literal[
     "foreground_anr_rate()",
     "unhandled_rate(session)",
     "unhandled_rate(user)",
+    "errored_rate(session)",
+    "errored_rate(user)",
+    "abnormal_rate(session)",
+    "abnormal_rate(user)",
+    "unhealthy_rate(session)",
 ]
 
 GroupByFieldName = Literal[
@@ -483,11 +488,9 @@ class ReleaseHealthBackend(Service):
         start: datetime | None,
         end: datetime | None,
         environment_ids: Sequence[int] | None = None,
-        rollup: int | None = None,  # rollup in seconds
     ) -> Sequence[ProjectWithCount]:
         """
         Returns the number of sessions for each project specified.
-        Additionally
         """
         raise NotImplementedError()
 

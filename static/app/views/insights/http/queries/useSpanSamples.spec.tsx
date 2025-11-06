@@ -1,32 +1,19 @@
-import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {NonDefaultSpanSampleFields} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
 describe('useSpanSamples', () => {
   const organization = OrganizationFixture();
-
-  function Wrapper({children}: {children?: ReactNode}) {
-    return (
-      <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext value={organization}>{children}</OrganizationContext>
-      </QueryClientProvider>
-    );
-  }
-
   jest.mocked(usePageFilters).mockReturnValue(
     PageFilterStateFixture({
       selection: {
@@ -63,10 +50,9 @@ describe('useSpanSamples', () => {
       body: {data: []},
     });
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       ({fields, enabled}) => useSpanSamples({fields, enabled}),
       {
-        wrapper: Wrapper,
         initialProps: {
           fields: [] satisfies NonDefaultSpanSampleFields[],
           enabled: false,
@@ -102,7 +88,7 @@ describe('useSpanSamples', () => {
       },
     });
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       ({filters, fields, referrer}) =>
         useSpanSamples({
           search: MutableSearch.fromQueryObject(filters),
@@ -112,7 +98,6 @@ describe('useSpanSamples', () => {
           max: 900,
         }),
       {
-        wrapper: Wrapper,
         initialProps: {
           filters: {
             'span.group': '221aa7ebd216',

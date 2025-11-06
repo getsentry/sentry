@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 
-from sentry.attachments import attachment_cache
+from sentry.attachments import get_attachments_for_event
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager
 from sentry.grouping.enhancer import EnhancementsConfig
@@ -29,7 +29,6 @@ from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.utils.cache import cache_key_for_event
 
 pytestmark = [requires_snuba]
 
@@ -171,6 +170,7 @@ def test_basic(
         old_event = event
 
         with BurstTaskRunner() as burst:
+            assert event.group_id
             reprocess_group(default_project.id, event.group_id)
 
             burst(max_jobs=100)
@@ -251,6 +251,7 @@ def test_concurrent_events_go_into_new_group(
     )
 
     with BurstTaskRunner() as burst_reprocess:
+        assert event.group_id is not None
         reprocess_group(default_project.id, event.group_id)
 
         assert event.group_id is not None
@@ -382,8 +383,7 @@ def test_attachments_and_userfeedback(
         extra.setdefault("processing_counter", 0)
         extra["processing_counter"] += 1
 
-        cache_key = cache_key_for_event(data)
-        attachments = attachment_cache.get(cache_key)
+        attachments = get_attachments_for_event(data)
         extra.setdefault("attachments", []).append([attachment.type for attachment in attachments])
 
         return data
@@ -412,6 +412,7 @@ def test_attachments_and_userfeedback(
         _create_user_report(evt)
 
     with BurstTaskRunner() as burst:
+        assert event.group_id
         reprocess_group(default_project.id, event.group_id, max_events=1)
 
         burst(max_jobs=100)
@@ -457,6 +458,7 @@ def test_nodestore_missing(
     old_group = event.group
 
     with BurstTaskRunner() as burst:
+        assert event.group_id
         reprocess_group(
             default_project.id, event.group_id, max_events=1, remaining_events=remaining_events
         )
@@ -534,6 +536,7 @@ def test_apply_new_fingerprinting_rules(
     ):
         # Reprocess
         with BurstTaskRunner() as burst_reprocess:
+            assert event1.group_id
             reprocess_group(default_project.id, event1.group_id)
             burst_reprocess(max_jobs=100)
 
@@ -638,6 +641,8 @@ def test_apply_new_stack_trace_rules(
     ):
         # Reprocess
         with BurstTaskRunner() as burst_reprocess:
+            assert event1.group_id
+            assert event2.group_id
             reprocess_group(default_project.id, event1.group_id)
             reprocess_group(default_project.id, event2.group_id)
             burst_reprocess(max_jobs=100)

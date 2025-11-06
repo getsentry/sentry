@@ -18,42 +18,30 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Authenticator} from 'sentry/types/auth';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
+import {useAccountSecurityContext} from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
 import PasswordForm from 'sentry/views/settings/account/passwordForm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = {
-  authenticators: Authenticator[] | null;
-  countEnrolled: number;
-  deleteDisabled: boolean;
-  handleRefresh: () => void;
-  hasVerifiedEmail: boolean;
-  onDisable: (auth: Authenticator) => void;
-  orgsRequire2fa: OrganizationSummary[];
-} & RouteComponentProps;
-
 /**
  * Lists 2fa devices + password change form
  */
-function AccountSecurity({
-  authenticators,
-  countEnrolled,
-  deleteDisabled,
-  onDisable,
-  hasVerifiedEmail,
-  orgsRequire2fa,
-  handleRefresh,
-  location,
-}: Props) {
+export default function AccountSecurity() {
+  const {
+    authenticators,
+    countEnrolled,
+    deleteDisabled,
+    onDisable,
+    hasVerifiedEmail,
+    orgsRequire2fa,
+    handleRefresh,
+  } = useAccountSecurityContext();
+
   const api = useApi();
 
   async function handleSessionClose() {
@@ -238,13 +226,13 @@ function AccountSecurity({
 }
 
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const AuthenticatorList = styled(PanelBody)`
   display: grid;
   grid-template-columns: 1fr max-content;
-  gap: 0 ${space(1)};
+  gap: 0 ${p => p.theme.space.md};
 `;
 
 const AuthenticatorPanelItem = styled(PanelItem)`
@@ -260,14 +248,14 @@ const AuthenticatorPanelItem = styled(PanelItem)`
 const AuthenticatorDetails = styled('div')`
   display: grid;
   grid-template-columns: max-content minmax(auto, 600px);
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   align-items: center;
 `;
 
 const AuthenticatorTitle = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
@@ -275,5 +263,3 @@ const AuthenticatorDescription = styled(TextBlock)`
   grid-column: 2;
   margin: 0;
 `;
-
-export default AccountSecurity;

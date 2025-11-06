@@ -7,6 +7,13 @@ import {
   MODULE_TITLE as AGENTS_MODULE_TITLE,
 } from 'sentry/views/insights/agents/settings';
 import {
+  DATA_TYPE as AI_GENERATIONS_DATA_TYPE,
+  DATA_TYPE_PLURAL as AI_GENERATIONS_DATA_TYPE_PLURAL,
+  MODULE_DOC_LINK as AI_GENERATIONS_MODULE_DOC_LINK,
+  MODULE_FEATURES as AI_GENERATIONS_MODULE_FEATURES,
+  MODULE_TITLE as AI_GENERATIONS_MODULE_TITLE,
+} from 'sentry/views/insights/aiGenerations/settings';
+import {
   DATA_TYPE as RESOURCE_DATA_TYPE,
   DATA_TYPE_PLURAL as RESOURCE_DATA_TYPE_PLURAL,
   MODULE_FEATURES as RESOURCE_MODULE_FEATURES,
@@ -98,7 +105,6 @@ import {
   DATA_TYPE as SESSIONS_DATA_TYPE,
   DATA_TYPE_PLURAL as SESSIONS_DATA_TYPE_PLURAL,
   MODULE_TITLE as SESSIONS_MODULE_TITLE,
-  MODULE_VISIBLE_FEATURES as SESSIONS_MODULE_VISIBLE_FEATURES,
 } from 'sentry/views/insights/sessions/settings';
 
 import type {SpanProperty} from './types';
@@ -122,6 +128,7 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCES_MODULE_TITLE,
   [ModuleName.AGENTS]: AGENTS_MODULE_TITLE,
   [ModuleName.MCP]: MCP_MODULE_TITLE,
+  [ModuleName.AI_GENERATIONS]: AI_GENERATIONS_MODULE_TITLE,
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_TITLE,
   [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_MODULE_TITLE,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_TITLE,
@@ -140,6 +147,7 @@ export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCE_DATA_TYPE,
   [ModuleName.AGENTS]: AGENTS_DATA_TYPE,
   [ModuleName.MCP]: MCP_DATA_TYPE,
+  [ModuleName.AI_GENERATIONS]: AI_GENERATIONS_DATA_TYPE,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
   [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_DATA_TYPE,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_DATA_TYPE,
@@ -158,6 +166,7 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCE_DATA_TYPE_PLURAL,
   [ModuleName.AGENTS]: AGENTS_DATA_TYPE_PLURAL,
   [ModuleName.MCP]: MCP_DATA_TYPE_PLURAL,
+  [ModuleName.AI_GENERATIONS]: AI_GENERATIONS_DATA_TYPE_PLURAL,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
   [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_DATA_TYPE_PLURAL,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_DATA_TYPE_PLURAL,
@@ -179,6 +188,7 @@ export const MODULE_PRODUCT_DOC_LINKS = {
   [ModuleName.RESOURCE]: RESOURCES_MODULE_DOC_LINK,
   [ModuleName.AGENTS]: AGENTS_MODULE_DOC_LINK,
   [ModuleName.MCP]: MCP_MODULE_DOC_LINK,
+  [ModuleName.AI_GENERATIONS]: AI_GENERATIONS_MODULE_DOC_LINK,
   [ModuleName.MOBILE_UI]: MODULE_UI_DOC_LINK,
   [ModuleName.MOBILE_VITALS]: MODULE_SCREENS_DOC_LINK,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_DOC_LINK,
@@ -203,6 +213,7 @@ export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.AGENTS]: AGENTS_MODULE_FEATURES,
   [ModuleName.SCREEN_LOAD]: SCREEN_LOADS_MODULE_FEATURES,
   [ModuleName.MCP]: MCP_MODULE_FEATURES,
+  [ModuleName.AI_GENERATIONS]: AI_GENERATIONS_MODULE_FEATURES,
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_FEATURES,
   [ModuleName.MOBILE_VITALS]: [MOBILE_SCREENS_MODULE_FEATURE],
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_FEATURES,
@@ -223,11 +234,12 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.QUEUE]: ['insight-modules'],
   [ModuleName.AGENTS]: ['insight-modules'],
   [ModuleName.SCREEN_LOAD]: ['insight-modules'],
-  [ModuleName.MCP]: ['insight-modules', 'mcp-insights'],
+  [ModuleName.MCP]: ['insight-modules'],
+  [ModuleName.AI_GENERATIONS]: ['insight-modules', 'ai-insights-generations-page'],
   [ModuleName.MOBILE_UI]: ['insight-modules'],
   [ModuleName.MOBILE_VITALS]: ['insight-modules'],
   [ModuleName.SCREEN_RENDERING]: ['insight-modules'],
-  [ModuleName.SESSIONS]: ['insight-modules', ...SESSIONS_MODULE_VISIBLE_FEATURES],
+  [ModuleName.SESSIONS]: ['insight-modules'],
   [ModuleName.OTHER]: ['insight-modules'],
 };
 
@@ -236,13 +248,13 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
  */
 export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
   ModuleName.MOBILE_VITALS,
-  ModuleName.SESSIONS,
+  ModuleName.MCP,
 ]);
 
 /**
  * Modules that are in beta, e.g. used to show a badge on the tab.
  */
-export const MODULES_CONSIDERED_BETA: Set<ModuleName> = new Set([ModuleName.MCP]);
+export const MODULES_CONSIDERED_BETA: Set<ModuleName> = new Set();
 
 export const INGESTION_DELAY = 90;
 
@@ -253,3 +265,6 @@ export const BASE_FIELD_ALIASES: Partial<Record<SpanProperty, string>> = {
   'epm()': t('Requests Per Minute'),
   'cache_miss_rate()': t('Cache Miss Rate'),
 };
+
+// Values within 3% of average are considered "near average"
+export const NEAR_AVERAGE_THRESHOLD_PERCENTAGE = 3;

@@ -7,6 +7,7 @@ import {
   feedbackOnboardingPlatforms,
   replayPlatforms,
   withLoggingOnboarding,
+  withMetricsOnboarding,
   withPerformanceOnboarding,
 } from 'sentry/data/platformCategories';
 import type {Organization} from 'sentry/types/organization';
@@ -17,7 +18,13 @@ import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 type Props = {
   orgSlug: Organization['slug'];
   platform: PlatformIntegration;
-  productType?: 'feedback' | 'replay' | 'performance' | 'featureFlags' | 'logs';
+  productType?:
+    | 'feedback'
+    | 'replay'
+    | 'performance'
+    | 'featureFlags'
+    | 'logs'
+    | 'metrics';
   projSlug?: Project['slug'];
 };
 
@@ -45,6 +52,7 @@ export function useLoadGettingStarted({
   useEffect(() => {
     async function getGettingStartedDoc() {
       if (
+        platform.deprecated ||
         platform.id === 'other' ||
         !platformPath ||
         (productType === 'replay' && !replayPlatforms.includes(platform.id)) ||
@@ -53,7 +61,8 @@ export function useLoadGettingStarted({
         (productType === 'feedback' &&
           !feedbackOnboardingPlatforms.includes(platform.id)) ||
         (productType === 'featureFlags' &&
-          !featureFlagOnboardingPlatforms.includes(platform.id))
+          !featureFlagOnboardingPlatforms.includes(platform.id)) ||
+        (productType === 'metrics' && !withMetricsOnboarding.has(platform.id))
       ) {
         setModule('none');
         return;
@@ -66,7 +75,7 @@ export function useLoadGettingStarted({
         );
         setModule(mod);
       } catch (err) {
-        setModule(undefined);
+        setModule('none');
         Sentry.captureException(err);
       }
     }
@@ -76,7 +85,7 @@ export function useLoadGettingStarted({
     return () => {
       setModule(undefined);
     };
-  }, [platformPath, platform.id, productType]);
+  }, [platformPath, platform.id, platform.deprecated, productType]);
 
   return {
     refetch: projectKeys.refetch,

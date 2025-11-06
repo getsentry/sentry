@@ -14,6 +14,7 @@ describe('Subscription > Notifications', () => {
   const subscription = SubscriptionFixture({organization});
 
   beforeEach(() => {
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/spend-notifications/`,
@@ -45,6 +46,7 @@ describe('Subscription > Notifications', () => {
     });
 
     organization.access = ['org:billing'];
+    organization.features = ['spend-visibility-notifications'];
     subscription.planDetails.allowOnDemand = false;
     SubscriptionStore.set(organization.slug, subscription);
   });
@@ -60,19 +62,59 @@ describe('Subscription > Notifications', () => {
         "Configure the thresholds for your organization's spend notifications."
       )
     ).toBeInTheDocument();
-    expect(screen.getByText('Subscription Consumption')).toBeInTheDocument();
+    expect(screen.queryByText('Manage Spend Notifications')).not.toBeInTheDocument();
+
+    expect(screen.getByText('Subscription consumption')).toBeInTheDocument();
     expect(screen.getByText('90%')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: '90%'}));
-    // 90% is selected so it is not one of the options
-    const expectedOptions = ['80%', '70%', '60%', '50%', '40%', '30%', '20%', '10%'];
+    await userEvent.click(
+      screen.getByRole('textbox', {
+        name: 'Update subscription consumption spend notification thresholds',
+      })
+    );
+    const expectedOptions = [
+      '90%',
+      '80%',
+      '70%',
+      '60%',
+      '50%',
+      '40%',
+      '30%',
+      '20%',
+      '10%',
+    ];
     const actualOptions = screen.getAllByTestId('menu-list-item-label');
     expect(actualOptions).toHaveLength(expectedOptions.length);
     actualOptions.forEach((element, idx) => {
       expect(element).toHaveTextContent(expectedOptions[idx]!);
     });
-    expect(screen.queryByText('On-Demand Consumption')).not.toBeInTheDocument();
+    expect(screen.queryByText('On-Demand consumption')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Reset'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Save Changes'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Save changes'})).toBeDisabled();
+  });
+
+  it('redirects without flag', () => {
+    organization.features = [];
+    const {router} = render(
+      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
+      {organization}
+    );
+
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: '/settings/chum-bucket/billing/overview/',
+        query: {},
+      })
+    );
+  });
+
+  it('renders for new billing UI', async () => {
+    organization.features.push('subscriptions-v3');
+    render(
+      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
+      {organization}
+    );
+
+    expect(await screen.findByText('Manage Spend Notifications')).toBeInTheDocument();
   });
 
   it('renders an error for non-billing users', async () => {
@@ -103,14 +145,14 @@ describe('Subscription > Notifications', () => {
         "Configure the thresholds for your organization's spend notifications."
       )
     ).toBeInTheDocument();
-    expect(screen.getByText('Subscription Consumption')).toBeInTheDocument();
+    expect(screen.getByText('Subscription consumption')).toBeInTheDocument();
     expect(screen.getByText('90%')).toBeInTheDocument();
-    expect(screen.getByText('On-Demand Consumption')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand consumption')).toBeInTheDocument();
     expect(screen.getByText('80%')).toBeInTheDocument();
     expect(screen.getByText('50%')).toBeInTheDocument();
   });
 
-  it('enables delete button if there is more than two thresholds for a section', async () => {
+  it('disables save button if there are no thresholds', async () => {
     subscription.planDetails.allowOnDemand = true;
     SubscriptionStore.set(organization.slug, subscription);
 
@@ -120,40 +162,18 @@ describe('Subscription > Notifications', () => {
     );
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
-    const deleteButtons = screen.getAllByRole('button', {
-      name: 'Remove notification threshold',
+    const textbox = screen.getByRole('textbox', {
+      name: 'Update subscription consumption spend notification thresholds',
     });
-    expect(deleteButtons).toHaveLength(3);
-    expect(deleteButtons[0]).toBeDisabled();
+    await userEvent.click(textbox);
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '50%'}));
+    expect(screen.getByRole('button', {name: 'Save changes'})).toBeEnabled();
 
-    expect(screen.getByText('80%')).toBeInTheDocument();
-    expect(screen.getByText('50%')).toBeInTheDocument();
-    expect(deleteButtons[1]).toBeEnabled();
-    expect(deleteButtons[2]).toBeEnabled();
-  });
-
-  it('allows 9 thresholds per section max', async () => {
-    render(
-      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
-      {organization}
-    );
-
-    expect(await screen.findByText('90%')).toBeInTheDocument();
-    const clickOptions = {skipHover: true, delay: null};
-    for (const percentage of ['80%', '70%', '60%', '50%', '40%', '30%', '20%', '10%']) {
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Add threshold'}),
-        clickOptions
-      );
-      await userEvent.click(screen.getByRole('option', {name: percentage}), clickOptions);
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Add notification threshold'}),
-        clickOptions
-      );
-      expect(screen.getByText(percentage)).toBeInTheDocument();
-    }
-
-    expect(screen.queryByText('Add threshold')).not.toBeInTheDocument();
+    // userEvent.clear doesn't work because of the way the custom select component works
+    await userEvent.type(textbox, '{backspace}');
+    await userEvent.type(textbox, '{backspace}');
+    await userEvent.type(textbox, '{backspace}');
+    expect(screen.getByRole('button', {name: 'Save changes'})).toBeDisabled();
   });
 
   it('reverts to saved thresholds on reset', async () => {
@@ -163,25 +183,23 @@ describe('Subscription > Notifications', () => {
     );
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Add threshold'}));
-    await userEvent.click(screen.getByRole('option', {name: '70%'}));
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Add notification threshold'})
-    );
-    expect(screen.getByText('70%')).toBeInTheDocument();
+    const textbox = screen.getByRole('textbox', {
+      name: 'Update subscription consumption spend notification thresholds',
+    });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add threshold'}));
-    await userEvent.click(screen.getByRole('option', {name: '50%'}));
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Add notification threshold'})
-    );
+    await userEvent.click(textbox);
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '70%'}));
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '50%'}));
+    expect(screen.getByRole('button', {name: 'Reset'})).toBeEnabled();
+    await userEvent.click(document.body); // click outside to close the dropdown
+    expect(screen.getByText('70%')).toBeInTheDocument();
     expect(screen.getByText('50%')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
-
     expect(screen.getByText('90%')).toBeInTheDocument();
     expect(screen.queryByText('70%')).not.toBeInTheDocument();
     expect(screen.queryByText('50%')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Reset'})).toBeDisabled();
   });
 
   it('calls api with correct args', async () => {
@@ -197,12 +215,13 @@ describe('Subscription > Notifications', () => {
     );
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Add threshold'}));
-    await userEvent.click(screen.getByRole('option', {name: '60%'}));
     await userEvent.click(
-      screen.getByRole('button', {name: 'Add notification threshold'})
+      screen.getByRole('textbox', {
+        name: 'Update subscription consumption spend notification thresholds',
+      })
     );
-    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '60%'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
 
     expect(postMock).toHaveBeenCalledWith(
       `/customers/${organization.slug}/spend-notifications/`,

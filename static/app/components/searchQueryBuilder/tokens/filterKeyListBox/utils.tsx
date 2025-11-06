@@ -156,10 +156,10 @@ export function createRawSearchFilterIsValueItem(
   key: string,
   value: string
 ): RawSearchFilterIsValueItem {
-  const filter = `${key}:${escapeFilterValue(value)}`;
+  const filter = `${key}:${value}`;
 
   return {
-    key: getEscapedKey(`${key}:${value}`),
+    key: getEscapedKey(filter),
     label: <FormattedQuery query={filter} />,
     value: filter,
     textValue: filter,
@@ -228,9 +228,9 @@ export function createAskSeerItem(): AskSeerItem {
   return {
     key: getEscapedKey(ASK_SEER_ITEM_KEY),
     value: ASK_SEER_ITEM_KEY,
-    textValue: 'Ask Seer',
+    textValue: 'Ask Seer to build your query',
     type: 'ask-seer' as const,
-    label: t('Ask Seer'),
+    label: t('Ask Seer to build your query'),
     hideCheck: true,
   };
 }

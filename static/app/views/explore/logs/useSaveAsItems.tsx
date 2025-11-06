@@ -1,6 +1,12 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
@@ -16,7 +22,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   DashboardWidgetSource,
@@ -27,7 +32,9 @@ import {
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useLogsSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
+import {useQueryParamsId} from 'sentry/views/explore/queryParams/context';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -52,11 +59,12 @@ export function useSaveAsItems({
   visualizes,
 }: UseSaveAsItemsOptions) {
   const location = useLocation();
-  const router = useRouter();
   const organization = useOrganization();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
-  const {saveQuery} = useLogsSaveQuery();
+  const {saveQuery, updateQuery} = useLogsSaveQuery();
+  const id = useQueryParamsId();
+  const {data: savedQuery} = useGetSavedQuery(id);
 
   const project =
     projects.length === 1
@@ -69,6 +77,30 @@ export function useSaveAsItems({
   );
 
   const saveAsQuery = useMemo(() => {
+    // Show "Existing Query" if we have a non-prebuilt saved query, otherwise "A New Query"
+    if (defined(id) && savedQuery?.isPrebuilt === false) {
+      return {
+        key: 'update-query',
+        textValue: t('Existing Query'),
+        label: <span>{t('Existing Query')}</span>,
+        onAction: async () => {
+          try {
+            addLoadingMessage(t('Updating query...'));
+            await updateQuery();
+            addSuccessMessage(t('Query updated successfully'));
+            trackAnalytics('logs.save_as', {
+              save_type: 'update_query',
+              ui_source: 'searchbar',
+              organization,
+            });
+          } catch (error) {
+            addErrorMessage(t('Failed to update query'));
+            Sentry.captureException(error);
+          }
+        },
+      };
+    }
+
     return {
       key: 'save-query',
       label: <span>{t('A New Query')}</span>,
@@ -88,7 +120,7 @@ export function useSaveAsItems({
         });
       },
     };
-  }, [organization, saveQuery]);
+  }, [id, savedQuery?.isPrebuilt, updateQuery, saveQuery, organization]);
 
   const saveAsAlert = useMemo(() => {
     const alertsUrls = aggregates.map((yAxis: string, index: number) => {
@@ -174,7 +206,6 @@ export function useSaveAsItems({
             organization,
             location,
             eventView,
-            router,
             yAxis: eventView.yAxis,
             widgetType: WidgetType.LOGS,
             source: DashboardWidgetSource.LOGS,
@@ -199,17 +230,7 @@ export function useSaveAsItems({
       disabled: !dashboardsUrls || dashboardsUrls.length === 0,
       isSubmenu: true,
     };
-  }, [
-    aggregates,
-    groupBys,
-    mode,
-    organization,
-    pageFilters,
-    search,
-    sortBys,
-    location,
-    router,
-  ]);
+  }, [aggregates, groupBys, mode, organization, pageFilters, search, sortBys, location]);
 
   return useMemo(() => {
     const saveAs = [];

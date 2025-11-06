@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useState} from 'react';
+import {Fragment, useEffect, useEffectEvent, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -7,14 +7,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiNode,
   getTraceNodeAttribute,
 } from 'sentry/views/insights/agents/utils/aiTraceNodes';
-import {hasAgentInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
@@ -25,6 +23,8 @@ interface AIMessage {
   content: React.ReactNode;
   role: string;
 }
+
+const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
 
 function renderTextMessages(content: any) {
   if (!Array.isArray(content)) {
@@ -61,11 +61,13 @@ function parseAIMessages(messages: string): AIMessage[] | string {
           message !== null && Boolean(message.content)
       );
   } catch (error) {
-    Sentry.captureMessage('Error parsing ai.prompt.messages', {
-      extra: {
-        error,
-      },
-    });
+    try {
+      Sentry.captureException(
+        new Error('Error parsing ai.prompt.messages', {cause: error})
+      );
+    } catch {
+      // ignore errors with browsers that don't support `cause`
+    }
     return messages;
   }
 }
@@ -89,11 +91,13 @@ function transformInputMessages(inputMessages: string) {
     }
     return JSON.stringify(result);
   } catch (error) {
-    Sentry.captureMessage('Error parsing ai.input_messages', {
-      extra: {
-        error,
-      },
-    });
+    try {
+      Sentry.captureException(
+        new Error('Error parsing ai.input_messages', {cause: error})
+      );
+    } catch {
+      // ignore errors with browsers that don't support `cause`
+    }
     return undefined;
   }
 }
@@ -115,13 +119,52 @@ function transformPrompt(prompt: string) {
     }
     return JSON.stringify(result);
   } catch (error) {
-    Sentry.captureMessage('Error parsing ai.prompt', {
-      extra: {
-        error,
-      },
-    });
+    try {
+      Sentry.captureException(new Error('Error parsing ai.prompt', {cause: error}));
+    } catch {
+      // ignore errors with browsers that don't support `cause`
+    }
     return undefined;
   }
+}
+
+export function hasAIInputAttribute(
+  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+) {
+  return (
+    getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes) ||
+    getTraceNodeAttribute('gen_ai.embeddings.input', node, event, attributes) ||
+    getTraceNodeAttribute('ai.input_messages', node, event, attributes) ||
+    getTraceNodeAttribute('ai.prompt', node, event, attributes)
+  );
+}
+
+function useInvalidRoleDetection(roles: string[]) {
+  const invalidRoles = roles.filter(role => !ALLOWED_MESSAGE_ROLES.has(role));
+  const hasInvalidRoles = invalidRoles.length > 0;
+
+  const captureMessage = useEffectEvent(() => {
+    Sentry.captureMessage('Gen AI message with invalid role', {
+      level: 'warning',
+      tags: {
+        feature: 'agent-monitoring',
+        invalid_role_count: invalidRoles.length,
+      },
+      extra: {
+        invalid_roles: invalidRoles,
+        allowed_roles: Array.from(ALLOWED_MESSAGE_ROLES),
+      },
+    });
+  });
+
+  useEffect(() => {
+    if (hasInvalidRoles) {
+      captureMessage();
+    }
+  }, [hasInvalidRoles]);
 }
 
 export function AIInputSection({
@@ -133,18 +176,13 @@ export function AIInputSection({
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  const organization = useOrganization();
-  if (!hasAgentInsightsFeature(organization) && getIsAiNode(node)) {
-    return null;
-  }
+  const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
 
-  let promptMessages = getTraceNodeAttribute(
-    'gen_ai.request.messages',
-    node,
-    event,
-    attributes
-  );
-  if (!promptMessages) {
+  let promptMessages = shouldRender
+    ? getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes)
+    : null;
+
+  if (!promptMessages && shouldRender) {
     const inputMessages = getTraceNodeAttribute(
       'ai.input_messages',
       node,
@@ -153,7 +191,7 @@ export function AIInputSection({
     );
     promptMessages = inputMessages && transformInputMessages(inputMessages.toString());
   }
-  if (!promptMessages) {
+  if (!promptMessages && shouldRender) {
     const messages = getTraceNodeAttribute('ai.prompt', node, event, attributes);
     if (messages) {
       promptMessages = transformPrompt(messages.toString());
@@ -163,6 +201,15 @@ export function AIInputSection({
   const messages = defined(promptMessages) && parseAIMessages(promptMessages.toString());
 
   const toolArgs = getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes);
+  const embeddingsInput = getTraceNodeAttribute(
+    'gen_ai.embeddings.input',
+    node,
+    event,
+    attributes
+  );
+
+  const roles = Array.isArray(messages) ? messages.map(m => m.role) : [];
+  useInvalidRoleDetection(roles);
 
   if ((!messages || messages.length === 0) && !toolArgs) {
     return null;
@@ -183,6 +230,11 @@ export function AIInputSection({
       {Array.isArray(messages) ? <MessagesArrayRenderer messages={messages} /> : null}
       {toolArgs ? (
         <TraceDrawerComponents.MultilineJSON value={toolArgs} maxDefaultDepth={1} />
+      ) : null}
+      {embeddingsInput ? (
+        <TraceDrawerComponents.MultilineText>
+          {embeddingsInput.toString()}
+        </TraceDrawerComponents.MultilineText>
       ) : null}
     </FoldSection>
   );

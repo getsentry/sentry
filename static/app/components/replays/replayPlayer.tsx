@@ -52,7 +52,6 @@ function BasePlayerRoot({
     dimensions: videoDimensions,
     fastForwardSpeed,
     setRoot,
-    isBuffering,
     isVideoBuffering,
     isFetching,
     isFinished,
@@ -152,7 +151,7 @@ function BasePlayerRoot({
       <StyledNegativeSpaceContainer ref={windowEl} className="sentry-block">
         <div ref={viewEl} className={className} data-inspectable={inspectable} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
-        {isBuffering || isVideoBuffering ? <PositionedBuffering /> : null}
+        {isVideoBuffering ? <PositionedBuffering /> : null}
         {isPreview || isVideoReplay || isFetching || !hasDefaultMaskSettings ? null : (
           <UnmaskAlert />
         )}

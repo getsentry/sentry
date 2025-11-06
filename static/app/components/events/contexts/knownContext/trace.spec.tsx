@@ -150,8 +150,8 @@ describe('TraceContext', () => {
     render(
       <ContextCard
         event={event}
-        type={'default'}
-        alias={'trace'}
+        type="default"
+        alias="trace"
         value={{...MOCK_TRACE_CONTEXT, origin: ''}}
       />,
       {organization}

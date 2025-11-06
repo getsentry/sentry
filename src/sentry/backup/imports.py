@@ -354,7 +354,7 @@ def _import(
         if result.min_ordinal is not None and SiloMode.CONTROL in deps[model_name].silos:
             # Maybe we are resuming an import on a retry. Check to see if this
             # `ControlImportChunkReplica` already exists, and only write it if it does not. There
-            # can't be races here, since there is only one celery task running at a time, pushing
+            # can't be races here, since there is only one task running at a time, pushing
             # updates in a synchronous manner.
             existing_control_import_chunk_replica = ControlImportChunkReplica.objects.filter(
                 import_uuid=flags.import_uuid, model=model_name_str, min_ordinal=result.min_ordinal

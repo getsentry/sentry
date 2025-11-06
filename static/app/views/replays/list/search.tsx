@@ -19,7 +19,7 @@ export default function ReplaysSearch() {
       <ReplaySearchBar
         organization={organization}
         pageFilters={selection}
-        defaultQuery=""
+        initialQuery=""
         query={decodeScalar(query.query, '')}
         onSearch={searchQuery => {
           navigate({

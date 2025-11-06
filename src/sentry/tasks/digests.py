@@ -9,7 +9,6 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import digests_tasks
 from sentry.utils import snuba
 
@@ -18,9 +17,8 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.tasks.digests.schedule_digests",
-    queue="digests.scheduling",
+    namespace=digests_tasks,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=digests_tasks),
 )
 def schedule_digests() -> None:
     from sentry import digests
@@ -44,12 +42,9 @@ def schedule_digests() -> None:
 
 @instrumented_task(
     name="sentry.tasks.digests.deliver_digest",
-    queue="digests.delivery",
+    namespace=digests_tasks,
+    processing_deadline_duration=20 * 60,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=digests_tasks,
-        processing_deadline_duration=20 * 60,
-    ),
 )
 def deliver_digest(
     key: str,

@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Condition
 
-from sentry import eventstore, options
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -18,6 +18,7 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 

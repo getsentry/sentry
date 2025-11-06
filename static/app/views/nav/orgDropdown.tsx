@@ -171,10 +171,16 @@ export function OrgDropdown({
               isSubmenu: true,
               hidden: config.singleOrganization || isDemoModeActive(),
               children: [
-                {
-                  key: 'active-orgs',
-                  children: orderBy(activeOrgs, ['name']).map(makeOrganizationMenuItem),
-                },
+                ...(activeOrgs.length === 0
+                  ? []
+                  : [
+                      {
+                        key: 'active-orgs',
+                        children: orderBy(activeOrgs, ['name']).map(
+                          makeOrganizationMenuItem
+                        ),
+                      },
+                    ]),
                 ...(inactiveOrgs.length === 0
                   ? []
                   : [

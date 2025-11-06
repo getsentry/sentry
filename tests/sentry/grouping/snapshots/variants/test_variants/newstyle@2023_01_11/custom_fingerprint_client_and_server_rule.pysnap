@@ -1,19 +1,20 @@
 ---
-created: '2025-09-11T18:38:49.666332+00:00'
+created: '2025-10-07T20:41:46.806785+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   contributing component: exception
-  component:
-    app (custom server fingerprint takes precedence)
+  hint: ignored because custom server fingerprint takes precedence
+  root_component:
+    app (ignored because custom server fingerprint takes precedence)
       exception*
         stacktrace*
           frame* (marked in-app by the client)
             module*
               "sentry.tasks.base"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "base.py"
             function*
               "_wrapped"
@@ -22,7 +23,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.tasks.store"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "store.py"
             function*
               "process_event"
@@ -31,7 +32,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.tasks.store"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "store.py"
             function*
               "_do_process_event"
@@ -40,7 +41,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.stacktraces"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "stacktraces.py"
             function*
               "process_stacktraces"
@@ -49,7 +50,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.lang.native.plugin"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "plugin.py"
             function*
               "preprocess_step"
@@ -58,7 +59,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.lang.native.symbolizer"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "symbolizer.py"
             function*
               "__init__"
@@ -67,7 +68,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.models.debugfile"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "debugfile.py"
             function*
               "get_symcaches"
@@ -76,7 +77,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.models.debugfile"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "debugfile.py"
             function*
               "_load_cachefiles_via_fs"
@@ -85,7 +86,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "save_to"
@@ -94,7 +95,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "_get_chunked_blob"
@@ -103,7 +104,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "__init__"
@@ -112,7 +113,7 @@ app:
           frame* (marked in-app by the client)
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "_prefetch"
@@ -121,7 +122,7 @@ app:
           frame (marked out of app by the client)
             module*
               "concurrent.futures._base"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "_base.py"
             function*
               "__exit__"
@@ -130,7 +131,7 @@ app:
           frame (marked out of app by the client)
             module*
               "concurrent.futures.thread"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "thread.py"
             function*
               "shutdown"
@@ -139,7 +140,7 @@ app:
           frame (marked out of app by the client)
             module*
               "threading"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "threading.py"
             function*
               "join"
@@ -148,7 +149,7 @@ app:
           frame (marked out of app by the client)
             module*
               "threading"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "threading.py"
             function*
               "wait"
@@ -157,7 +158,7 @@ app:
           frame (marked out of app by the client)
             module*
               "billiard.pool"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "pool.py"
             function*
               "soft_timeout_sighandler"
@@ -176,14 +177,15 @@ custom_fingerprint:
 system:
   hash: null
   contributing component: exception
-  component:
-    system (custom server fingerprint takes precedence)
+  hint: ignored because custom server fingerprint takes precedence
+  root_component:
+    system (ignored because custom server fingerprint takes precedence)
       exception*
         stacktrace*
           frame*
             module*
               "sentry.tasks.base"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "base.py"
             function*
               "_wrapped"
@@ -192,7 +194,7 @@ system:
           frame*
             module*
               "sentry.tasks.store"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "store.py"
             function*
               "process_event"
@@ -201,7 +203,7 @@ system:
           frame*
             module*
               "sentry.tasks.store"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "store.py"
             function*
               "_do_process_event"
@@ -210,7 +212,7 @@ system:
           frame*
             module*
               "sentry.stacktraces"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "stacktraces.py"
             function*
               "process_stacktraces"
@@ -219,7 +221,7 @@ system:
           frame*
             module*
               "sentry.lang.native.plugin"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "plugin.py"
             function*
               "preprocess_step"
@@ -228,7 +230,7 @@ system:
           frame*
             module*
               "sentry.lang.native.symbolizer"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "symbolizer.py"
             function*
               "__init__"
@@ -237,7 +239,7 @@ system:
           frame*
             module*
               "sentry.models.debugfile"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "debugfile.py"
             function*
               "get_symcaches"
@@ -246,7 +248,7 @@ system:
           frame*
             module*
               "sentry.models.debugfile"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "debugfile.py"
             function*
               "_load_cachefiles_via_fs"
@@ -255,7 +257,7 @@ system:
           frame*
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "save_to"
@@ -264,7 +266,7 @@ system:
           frame*
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "_get_chunked_blob"
@@ -273,7 +275,7 @@ system:
           frame*
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "__init__"
@@ -282,7 +284,7 @@ system:
           frame*
             module*
               "sentry.models.file"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "file.py"
             function*
               "_prefetch"
@@ -291,7 +293,7 @@ system:
           frame*
             module*
               "concurrent.futures._base"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "_base.py"
             function*
               "__exit__"
@@ -300,7 +302,7 @@ system:
           frame*
             module*
               "concurrent.futures.thread"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "thread.py"
             function*
               "shutdown"
@@ -309,7 +311,7 @@ system:
           frame*
             module*
               "threading"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "threading.py"
             function*
               "join"
@@ -318,7 +320,7 @@ system:
           frame*
             module*
               "threading"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "threading.py"
             function*
               "wait"
@@ -327,7 +329,7 @@ system:
           frame*
             module*
               "billiard.pool"
-            filename (module takes precedence)
+            filename (ignored because module takes precedence)
               "pool.py"
             function*
               "soft_timeout_sighandler"

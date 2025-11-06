@@ -5,6 +5,7 @@ import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type FormModel from 'sentry/components/forms/model';
@@ -489,7 +490,7 @@ describe('Incident Rules Form', () => {
         ...organization.features,
         'performance-view',
         'visibility-explore-view',
-        'performance-transaction-deprecation-alerts',
+        'discover-saved-queries-deprecation',
       ];
       const rule = MetricRuleFixture();
       createWrapper({
@@ -530,6 +531,43 @@ describe('Incident Rules Form', () => {
             thresholdPeriod: 1,
             thresholdType: 0,
             timeWindow: 60,
+          }),
+        })
+      );
+    });
+
+    it('creates a metrics Apdex rule without satisfaction parameter', async () => {
+      organization.features = [
+        ...organization.features,
+        'performance-view',
+        'mep-rollout-flag',
+      ];
+
+      const rule = MetricRuleFixture();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          aggregate: 'count()',
+          eventTypes: ['transaction'],
+          dataset: Dataset.TRANSACTIONS,
+        },
+      });
+
+      // Open the wizard and switch to Apdex
+      await userEvent.click(screen.getAllByText('Throughput')[1]!);
+      await userEvent.click(await screen.findByText('Apdex'));
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            // Apdex should be saved without a satisfaction parameter
+            aggregate: 'apdex()',
+            dataset: Dataset.GENERIC_METRICS,
+            eventTypes: ['transaction'],
           }),
         })
       );
@@ -611,7 +649,7 @@ describe('Incident Rules Form', () => {
         ...organization.features,
         'performance-view',
         'visibility-explore-view',
-        'performance-transaction-deprecation-alerts',
+        'discover-saved-queries-deprecation',
       ];
       const metricRule = MetricRuleFixture();
       createWrapper({
@@ -624,18 +662,9 @@ describe('Incident Rules Form', () => {
         ruleId: rule.id,
       });
 
-      await userEvent.hover(screen.getAllByText('Throughput')[1]!);
+      await userEvent.hover(screen.getByText('All Environments'));
       expect(
-        await screen.findByText(
-          'Transaction based alerts are no longer supported. Create span alerts instead.'
-        )
-      ).toBeInTheDocument();
-
-      await userEvent.hover(screen.getByText('project-slug'));
-      expect(
-        await screen.findByText(
-          'Transaction based alerts are no longer supported. Create span alerts instead.'
-        )
+        await screen.findByText(/The transaction dataset is being deprecated./)
       ).toBeInTheDocument();
 
       const radio = screen.getByRole('radio', {
@@ -650,6 +679,36 @@ describe('Incident Rules Form', () => {
       );
 
       await waitFor(() => expect(radio).toBeChecked());
+
+      await userEvent.click(screen.getAllByText('Throughput')[1]!);
+      await userEvent.click(await screen.findByText('Spans'));
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            aggregate: 'count(span.duration)',
+            alertType: 'eap_metrics',
+            comparisonDelta: 10080,
+            dataset: 'events_analytics_platform',
+            detectionType: 'percent',
+            environment: null,
+            eventTypes: ['trace_item_span'],
+            id: '4',
+            name: 'My Incident Rule',
+            projects: ['project-slug'],
+            query: '',
+            queryType: 1,
+            resolveThreshold: 36,
+            status: 0,
+            thresholdPeriod: 1,
+            thresholdType: 0,
+            timeWindow: 60,
+          }),
+        })
+      );
     });
 
     it('switches from percent change to count', async () => {
@@ -698,7 +757,9 @@ describe('Incident Rules Form', () => {
         },
       });
       const anomaly_option = await screen.findByText(
-        'Anomaly: whenever values are outside of expected bounds'
+        textWithMarkupMatcher(
+          'Anomaly: whenever values are outside of expected bounds (learn more)'
+        )
       );
       expect(anomaly_option).toBeInTheDocument();
     });

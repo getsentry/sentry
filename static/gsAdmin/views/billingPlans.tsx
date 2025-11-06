@@ -1,6 +1,5 @@
-import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
@@ -8,13 +7,12 @@ import Panel from 'sentry/components/panels/panel';
 import {IconDownload} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
-import useApi from 'sentry/utils/useApi';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import ResultTable from 'admin/components/resultTable';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
-/** @internal exported for tests only */
 export interface BillingPlansResponse {
   data: Plans;
   not_live: string[];
@@ -39,32 +37,24 @@ interface PriceTier {
   annual: number;
   monthly: number;
   od_ppe: number;
+  reserved_ppe: number;
   tier: number;
   volume: number;
 }
 
 function BillingPlans() {
-  const api = useApi();
-  const [billingPlansResponse, setBillingPlansResponse] = useState<BillingPlansResponse>({
-    not_live: [],
-    data: {},
-  });
+  const {
+    data: billingPlansResponse = {
+      not_live: [],
+      data: {},
+    },
+  } = useQuery(
+    apiOptions.as<BillingPlansResponse>()('/billing-plans/', {
+      staleTime: 0,
+    })
+  );
 
   const plans = billingPlansResponse.data;
-
-  useEffect(() => {
-    async function fetchPlans() {
-      try {
-        const response: BillingPlansResponse =
-          await api.requestPromise('/billing-plans/');
-        setBillingPlansResponse(response);
-      } catch (error) {
-        Sentry.captureException(error);
-      }
-    }
-
-    fetchPlans();
-  }, [api]);
 
   function handleDownloadCsv() {
     if (!plans) {
@@ -97,7 +87,8 @@ function BillingPlans() {
             '', // Volume (max)
             '', // Monthly
             '', // Annual
-            '', // OD PPE / PAYG PPE
+            '', // Reserved PPE
+            '', // PAYG PPE
             '' // empty column
           );
         });
@@ -117,7 +108,8 @@ function BillingPlans() {
             'Volume (max)',
             'Monthly',
             'Annual',
-            'OD PPE / PAYG PPE',
+            'Reserved PPE',
+            'PAYG PPE',
             ' ' // empty column
           );
         });
@@ -148,7 +140,8 @@ function BillingPlans() {
                 tier.volume.toString(), // Volume (max)
                 formatCurrency(tier.monthly), // Monthly
                 formatCurrency(tier.annual), // Annual
-                displayUnitPrice({cents: tier.od_ppe, minDigits: 2, maxDigits: 10}), // OD PPE / PAYG PPE
+                displayUnitPrice({cents: tier.reserved_ppe, minDigits: 2, maxDigits: 10}), // Reserved PPE
+                displayUnitPrice({cents: tier.od_ppe, minDigits: 2, maxDigits: 10}), // PAYG PPE
                 ' ' // empty column
               );
             } else {
@@ -158,7 +151,8 @@ function BillingPlans() {
                 ' ', // Volume (max)
                 ' ', // Monthly
                 ' ', // Annual
-                ' ', // OD PPE / PAYG PPE
+                ' ', // Reserved PPE
+                ' ', // PAYG PPE
                 ' ' // empty column
               );
             }
@@ -397,7 +391,8 @@ function PriceTiersTable({
               <th>Volume</th>
               <th>Monthly</th>
               <th>Annual</th>
-              <th>OD PPE / PAYG PPE</th>
+              <th>Reserved PPE</th>
+              <th>PAYG PPE</th>
             </tr>
           </thead>
           <tbody>
@@ -407,6 +402,13 @@ function PriceTiersTable({
                 <td>{Number(tier.volume).toLocaleString('en-US')}</td>
                 <td>{formatCurrency(tier.monthly)}</td>
                 <td>{formatCurrency(tier.annual)}</td>
+                <td>
+                  {displayUnitPrice({
+                    cents: tier.reserved_ppe,
+                    minDigits: 2,
+                    maxDigits: 10,
+                  })}
+                </td>
                 <td>
                   {displayUnitPrice({cents: tier.od_ppe, minDigits: 2, maxDigits: 10})}
                 </td>

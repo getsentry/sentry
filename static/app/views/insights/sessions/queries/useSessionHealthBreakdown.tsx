@@ -50,6 +50,7 @@ export default function useSessionHealthBreakdown({
   const statusData = {
     crashed: getSessionStatusSeries('crashed', sessionData.groups),
     errored: getSessionStatusSeries('errored', sessionData.groups),
+    unhandled: getSessionStatusSeries('unhandled', sessionData.groups),
     abnormal: getSessionStatusSeries('abnormal', sessionData.groups),
     healthy: getSessionStatusSeries('healthy', sessionData.groups),
   };

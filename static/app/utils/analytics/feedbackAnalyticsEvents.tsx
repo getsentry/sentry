@@ -9,6 +9,15 @@ export type FeedbackEventParameters = {
   'feedback.list-view-setup-sidebar': {platform: string};
   'feedback.mark-spam-clicked': {type: 'bulk' | 'details'};
   'feedback.no_associated_event_found': {orgSlug: string};
+  'feedback.summary.categories-empty': Record<string, unknown>;
+  'feedback.summary.categories-error': Record<string, unknown>;
+  'feedback.summary.categories-rendered': {num_categories: number};
+  'feedback.summary.categories-too-few-feedbacks': Record<string, unknown>;
+  'feedback.summary.category-selected': {category: string};
+  'feedback.summary.seer-cta-rendered': Record<string, unknown>;
+  'feedback.summary.summary-error': Record<string, unknown>;
+  'feedback.summary.summary-rendered': Record<string, unknown>;
+  'feedback.summary.summary-too-few-feedbacks': Record<string, unknown>;
   'feedback.trace-section.crash-report-dup': Record<string, unknown>;
   'feedback.trace-section.error': Record<string, unknown>;
   'feedback.trace-section.loaded': {numEvents: number};
@@ -34,4 +43,15 @@ export const feedbackEventMap: Record<FeedbackEventKey, string | null> = {
   'feedback.trace-section.error': 'Error Fetching Trace Data in Feedback Details',
   'feedback.trace-section.loaded': 'Fetched Same-trace Issue Data in Feedback Details',
   'feedback.no_associated_event_found': 'Associated Event Not Found in Feedback',
+  'feedback.summary.categories-empty': 'No Feedback Categories To Render',
+  'feedback.summary.categories-error': 'Error Rendering Feedback Categories',
+  'feedback.summary.categories-rendered': 'Rendered Feedback Categories',
+  'feedback.summary.categories-too-few-feedbacks':
+    'Too Few Feedbacks to Render Feedback Categories',
+  'feedback.summary.category-selected': 'Selected Feedback Category',
+  'feedback.summary.seer-cta-rendered': 'Rendered Feedback Summary Seer CTA',
+  'feedback.summary.summary-error': 'Error Rendering Feedback Summary',
+  'feedback.summary.summary-rendered': 'Rendered Feedback Summary',
+  'feedback.summary.summary-too-few-feedbacks':
+    'Too Few Feedbacks to Render Feedback Summary',
 };

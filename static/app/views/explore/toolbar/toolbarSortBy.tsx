@@ -12,28 +12,34 @@ import {
   ToolbarRow,
   ToolbarSection,
 } from 'sentry/views/explore/components/toolbar/styles';
-import {
-  useExploreFields,
-  useExploreSortBys,
-  useSetExploreSortBys,
-} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {
+  useQueryParamsAggregateSortBys,
+  useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsMode,
+  useQueryParamsSortBys,
   useQueryParamsVisualizes,
+  useSetQueryParamsAggregateSortBys,
+  useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 
 export function ToolbarSortBy() {
   const mode = useQueryParamsMode();
-  const fields = useExploreFields();
+  const fields = useQueryParamsFields();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
 
-  const sorts = useExploreSortBys();
-  const setSorts = useSetExploreSortBys();
+  const sampleSortBys = useQueryParamsSortBys();
+  const setSampleSortBys = useSetQueryParamsSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const setAggregateSortBys = useSetQueryParamsAggregateSortBys();
+  const [sorts, setSorts] =
+    mode === Mode.SAMPLES
+      ? [sampleSortBys, setSampleSortBys]
+      : [aggregateSortBys, setAggregateSortBys];
 
   const [tab] = useTab();
 

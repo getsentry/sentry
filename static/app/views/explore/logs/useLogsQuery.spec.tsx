@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
@@ -13,9 +13,13 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {type AutoRefreshState} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  LOGS_AUTO_REFRESH_KEY,
+  LOGS_REFRESH_INTERVAL_KEY,
+  type AutoRefreshState,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
@@ -26,10 +30,9 @@ import {
   useInfiniteLogsQuery,
   type LogPageParam,
 } from 'sentry/views/explore/logs/useLogsQuery';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
-const mockedUsedLocation = jest.mocked(useLocation);
+const mockUseLocation = jest.mocked(useLocation);
 
 jest.mock('sentry/utils/usePageFilters');
 const mockUsePageFilters = jest.mocked(usePageFilters);
@@ -46,20 +49,17 @@ const linkHeaders = {
 describe('useInfiniteLogsQuery', () => {
   const organization = OrganizationFixture();
   const queryClient = makeTestQueryClient();
-  const mockLocation = mockedUsedLocation.mockReturnValue(LocationFixture());
+  const mockLocation = mockUseLocation.mockReturnValue(LocationFixture());
 
   function createWrapper() {
     return function ({children}: {children?: React.ReactNode}) {
       return (
         <QueryClientProvider client={queryClient}>
-          <LogsQueryParamsProvider source="location">
-            <LogsPageParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            >
-              <OrganizationContext.Provider value={organization}>
-                {children}
-              </OrganizationContext.Provider>
-            </LogsPageParamsProvider>
+          <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            source="location"
+          >
+            {children}
           </LogsQueryParamsProvider>
         </QueryClientProvider>
       );
@@ -87,10 +87,14 @@ describe('useInfiniteLogsQuery', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHook(({disabled}) => useInfiniteLogsQuery({disabled}), {
-      wrapper: createWrapper(),
-      initialProps: {disabled: true},
-    });
+    const {result} = renderHookWithProviders(
+      ({disabled}) => useInfiniteLogsQuery({disabled}),
+      {
+        additionalWrapper: createWrapper(),
+        initialProps: {disabled: true},
+        organization,
+      }
+    );
 
     expect(result.current.isPending).toBe(true);
     expect(result.current.data).toHaveLength(0);
@@ -111,8 +115,9 @@ describe('useInfiniteLogsQuery', () => {
       );
     }
 
-    const {result, rerender} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper(),
+    const {result, rerender} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper(),
+      organization,
     });
 
     await waitFor(() => {
@@ -200,8 +205,9 @@ describe('useInfiniteLogsQuery', () => {
       headers: linkHeaders,
     });
 
-    const {result, rerender} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper(),
+    const {result, rerender} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper(),
+      organization,
     });
 
     await waitFor(() => {
@@ -245,6 +251,206 @@ describe('useInfiniteLogsQuery', () => {
     expect(cachedData.pageParams).toHaveLength(1);
 
     expect(result.current.hasNextPage).toBe(true);
+  });
+
+  it('triggers the high accuracy request when there is no data and a partial scan', async () => {
+    const mockNormalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [],
+        meta: {
+          dataScanned: 'partial',
+          fields: {},
+        },
+      },
+      method: 'GET',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.NORMAL;
+        },
+      ],
+    });
+
+    const mockHighAccuracyRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [],
+        meta: {
+          dataScanned: 'full',
+          fields: {},
+        },
+      },
+      method: 'GET',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY;
+        },
+      ],
+    });
+
+    renderHookWithProviders(() => useInfiniteLogsQuery({}), {
+      additionalWrapper: createWrapper(),
+    });
+
+    expect(mockNormalRequest).toHaveBeenCalledTimes(1);
+    expect(mockNormalRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'ourlogs',
+          sampling: SAMPLING_MODE.NORMAL,
+        }),
+      })
+    );
+
+    await waitFor(() => expect(mockHighAccuracyRequest).toHaveBeenCalledTimes(1));
+    expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'ourlogs',
+          sampling: SAMPLING_MODE.HIGH_ACCURACY,
+        }),
+      })
+    );
+  });
+
+  describe('high fidelity', () => {
+    function makeLinkHeader(cursor: string, hasNext = true) {
+      const url =
+        'https://sentry.io/api/0/organizations/org-slug/events/?caseInsensitive=&dataset=ourlogs&field=id&field=project.id&field=trace&field=severity_number&field=severity&field=timestamp&field=timestamp_precise&field=observed_timestamp&field=message.template&field=message&orderby=-timestamp&per_page=1000&query=&referrer=api.explore.logs-table&sampling=HIGHEST_ACCURACY_FLEX_TIME&sort=-timestamp&statsPeriod=1h&highFidelity=true';
+      return [
+        [
+          `<${url}&cursor=:0:1>`,
+          'rel="previous"',
+          'results="false"',
+          'cursor=":0:1"',
+        ].join('; '),
+        [
+          `<${url}&cursor=${cursor}:0:0>`,
+          'rel="next"',
+          `results="${hasNext ? 'true' : 'false'}"`,
+          `cursor="${cursor}:0:1"`,
+        ].join('; '),
+      ].join(', ');
+    }
+
+    // function makeMockEventsResponse(cursor: string, nextCursor: string, data = []) {
+    function makeMockEventsResponse({
+      cursor,
+      nextCursor,
+      data = [],
+      hasNext,
+    }: {
+      cursor: string;
+      nextCursor: string;
+      data?: any[];
+      hasNext?: boolean;
+    }) {
+      return {
+        url: '/organizations/org-slug/events/',
+        headers: {
+          Link: makeLinkHeader(nextCursor, hasNext),
+        },
+        body: {
+          data,
+          meta: {
+            dataScanned: 'full',
+            fields: {},
+          },
+        },
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return (
+              options.query.sampling === SAMPLING_MODE.FLEX_TIME &&
+              (options.query.cursor || '') === (cursor ? `${cursor}:0:1` : '')
+            );
+          },
+        ],
+      };
+    }
+
+    it('auto fetches only empty pages pages and end when signaled', async () => {
+      const mockFlextTimeRequests = [
+        makeMockEventsResponse({cursor: '', nextCursor: 'page2'}),
+        makeMockEventsResponse({cursor: 'page2', nextCursor: 'page3'}),
+        makeMockEventsResponse({cursor: 'page3', nextCursor: 'page4'}),
+        makeMockEventsResponse({cursor: 'page4', nextCursor: 'page5'}),
+        makeMockEventsResponse({cursor: 'page5', nextCursor: 'page6', hasNext: false}),
+        makeMockEventsResponse({cursor: 'page6', nextCursor: 'page7', hasNext: false}),
+      ].map(response => MockApiClient.addMockResponse(response));
+
+      const {result} = renderHookWithProviders(
+        () => useInfiniteLogsQuery({highFidelity: true, maxAutoFetches: 3}),
+        {
+          additionalWrapper: createWrapper(),
+        }
+      );
+
+      // the first 3 requests should have been called
+      await waitFor(() => expect(mockFlextTimeRequests[0]).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockFlextTimeRequests[1]).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockFlextTimeRequests[2]).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockFlextTimeRequests[3]).not.toHaveBeenCalled());
+
+      // should be allowed to resume autofetching
+      expect(result.current.canResumeAutoFetch).toBe(true);
+      act(() => result.current.resumeAutoFetch());
+
+      // the next 3 requests should have been called
+      await waitFor(() => expect(mockFlextTimeRequests[3]).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockFlextTimeRequests[4]).toHaveBeenCalledTimes(1));
+
+      // should not be allowed to resume autofetching
+      expect(result.current.canResumeAutoFetch).toBe(false);
+
+      await waitFor(() => expect(mockFlextTimeRequests[5]).not.toHaveBeenCalled());
+    });
+
+    it('auto fetches until limit', async () => {
+      function fakeRow(index: number) {
+        return {
+          [OurLogKnownFieldKey.ID]: String(index),
+          [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(index * 100),
+          [OurLogKnownFieldKey.TIMESTAMP]: String(index * 100),
+        };
+      }
+      const mockFlextTimeRequests = [
+        makeMockEventsResponse({
+          cursor: '',
+          nextCursor: 'page2',
+          data: new Array(500).fill(0).map((_, i) => fakeRow(i)),
+        }),
+        makeMockEventsResponse({
+          cursor: 'page2',
+          nextCursor: 'page3',
+          data: new Array(500).fill(0).map((_, i) => fakeRow(i + 500)),
+        }),
+        makeMockEventsResponse({
+          cursor: 'page3',
+          nextCursor: 'page4',
+          data: new Array(500).fill(0).map((_, i) => fakeRow(i + 1000)),
+        }),
+      ].map(response => MockApiClient.addMockResponse(response));
+
+      const {result} = renderHookWithProviders(
+        () => useInfiniteLogsQuery({highFidelity: true, maxAutoFetches: 3}),
+        {
+          additionalWrapper: createWrapper(),
+        }
+      );
+
+      // the first 2 requests should have been called and stop because it totals 1000 results
+      await waitFor(() => expect(mockFlextTimeRequests[0]).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockFlextTimeRequests[1]).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockFlextTimeRequests[2]).not.toHaveBeenCalled());
+
+      // should not be allowed to resume autofetching
+      expect(result.current.canResumeAutoFetch).toBe(false);
+
+      await result.current.fetchNextPage();
+      await waitFor(() => expect(mockFlextTimeRequests[2]).toHaveBeenCalledTimes(1));
+    });
   });
 });
 
@@ -425,20 +631,22 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
 
   function createWrapper({autoRefresh = 'enabled'}: {autoRefresh?: AutoRefreshState}) {
     return function ({children}: {children?: React.ReactNode}) {
+      mockUseLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            [LOGS_AUTO_REFRESH_KEY]: autoRefresh,
+            [LOGS_REFRESH_INTERVAL_KEY]: '5', // Fast refresh for testing
+          },
+        })
+      );
+
       return (
         <QueryClientProvider client={queryClient}>
-          <LogsQueryParamsProvider source="location">
-            <LogsPageParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-              _testContext={{
-                autoRefresh,
-                refreshInterval: 5, // Fast refresh for testing
-              }}
-            >
-              <OrganizationContext.Provider value={organization}>
-                {children}
-              </OrganizationContext.Provider>
-            </LogsPageParamsProvider>
+          <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            source="location"
+          >
+            {children}
           </LogsQueryParamsProvider>
         </QueryClientProvider>
       );
@@ -450,7 +658,6 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     mockUseNavigate.mockReturnValue(jest.fn());
     MockApiClient.clearMockResponses();
     queryClient.clear();
-    mockedUsedLocation.mockReturnValue(LocationFixture());
 
     mockUsePageFilters.mockReturnValue({
       isReady: true,
@@ -475,8 +682,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper({autoRefresh: 'enabled'}),
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      organization,
     });
 
     await waitFor(() => {
@@ -502,8 +710,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper({autoRefresh: 'idle'}),
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper({autoRefresh: 'idle'}),
+      organization,
     });
 
     await waitFor(() => {
@@ -558,8 +767,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper({autoRefresh: 'enabled'}),
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      organization,
     });
 
     await waitFor(() => {
@@ -619,8 +829,9 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       headers: linkHeaders,
     });
 
-    const {result} = renderHook(() => useInfiniteLogsQuery(), {
-      wrapper: createWrapper({autoRefresh: 'idle'}), // Disable auto refresh to avoid virtual streaming filtering
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      additionalWrapper: createWrapper({autoRefresh: 'idle'}), // Disable auto refresh to avoid virtual streaming filtering
+      organization,
     });
 
     await waitFor(() => {

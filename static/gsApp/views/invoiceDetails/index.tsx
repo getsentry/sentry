@@ -19,6 +19,7 @@ import type {BillingDetails, Invoice} from 'getsentry/types';
 import {InvoiceItemType, InvoiceStatus} from 'getsentry/types';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import InvoiceDetailsActions from './actions';
 
@@ -47,19 +48,21 @@ function InvoiceDetails({params}: Props) {
 
   if (isBillingDetailsError || isInvoiceError) {
     return (
-      <LoadingError
-        onRetry={() => {
-          billingDetailsRefetch();
-          invoiceRefetch();
-        }}
-      />
+      <SubscriptionPageContainer background="secondary" organization={organization}>
+        <LoadingError
+          onRetry={() => {
+            billingDetailsRefetch();
+            invoiceRefetch();
+          }}
+        />
+      </SubscriptionPageContainer>
     );
   }
 
   return (
-    <Fragment>
-      <SettingsPageHeader title={t('Invoice Details')}>
-        {t('Invoice Details')}
+    <SubscriptionPageContainer background="secondary" organization={organization}>
+      <SettingsPageHeader title={t('Receipt Details')}>
+        {t('Receipt Details')}
       </SettingsPageHeader>
       <Panel>
         {isInvoiceLoading || isBillingDetailsLoading ? (
@@ -120,7 +123,7 @@ function InvoiceDetails({params}: Props) {
           </PanelBody>
         )}
       </Panel>
-    </Fragment>
+    </SubscriptionPageContainer>
   );
 }
 
