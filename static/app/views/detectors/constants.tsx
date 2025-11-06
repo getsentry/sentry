@@ -1,1 +1,0 @@
-export const DETECTOR_LIST_PAGE_LIMIT = 20;
