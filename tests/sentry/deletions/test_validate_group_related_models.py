@@ -31,10 +31,10 @@ class GroupRelatedModelsCompletenessTest(TestCase):
         # Add models here if they shouldn't be in either list, with a comment explaining why
         # Example: "sentry.SomeModel": "Uses custom deletion logic in XYZ",
         "sentry.Activity": "To be added soon",
-        "sentry.PlatformExternalIssue": "Has custom deletion task registered in deletions/__init__.py (PlatformExternalIssueDeletionTask)",
-        # "workflow_engine.DetectorGroup": "Has on_delete=CASCADE on group field, automatically deleted by Django",
-        # "workflow_engine.WorkflowActionGroupStatus": "Has on_delete=CASCADE (default) on group field, automatically deleted by Django",
-        # "workflow_engine.WorkflowFireHistory": "Has on_delete=CASCADE (default) on group field, automatically deleted by Django",
+        "sentry.PlatformExternalIssue": "TBD",
+        "workflow_engine.DetectorGroup": "TBD",
+        "workflow_engine.WorkflowActionGroupStatus": "TBD",
+        "workflow_engine.WorkflowFireHistory": "TBD",
     }
 
     def get_models_with_group_foreign_key(self) -> set[type[django_models.Model]]:
