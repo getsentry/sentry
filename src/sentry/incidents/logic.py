@@ -925,21 +925,21 @@ def update_alert_rule(
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
                 try:
                     source_id = QuerySubscription.objects.get(snuba_query_id=snuba_query.id).id
+                    success = delete_rule_in_seer(
+                        organization=alert_rule.organization,
+                        source_id=source_id,
+                    )
+                    if not success:
+                        logger.error(
+                            "Call to delete rule data in Seer failed",
+                            extra={
+                                "rule_id": alert_rule.id,
+                            },
+                        )
                 except QuerySubscription.DoesNotExist:
                     logger.exception(
                         "Snuba query missing query subscription",
                         extra={"snuba_query_id": snuba_query.id},
-                    )
-                success = delete_rule_in_seer(
-                    organization=alert_rule.organization,
-                    source_id=source_id,
-                )
-                if not success:
-                    logger.error(
-                        "Call to delete rule data in Seer failed",
-                        extra={
-                            "rule_id": alert_rule.id,
-                        },
                     )
             # if this alert was previously a dynamic alert, then we should update the rule to be ready
             if alert_rule.status == AlertRuleStatus.NOT_ENOUGH_DATA.value:
