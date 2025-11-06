@@ -21,7 +21,7 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import DetectorsList from 'sentry/views/detectors/list';
+import AllMonitors from 'sentry/views/detectors/list/allMonitors';
 
 describe('DetectorsList', () => {
   const organization = OrganizationFixture({
@@ -93,7 +93,7 @@ describe('DetectorsList', () => {
       ],
     });
 
-    render(<DetectorsList />, {organization});
+    render(<AllMonitors />, {organization});
     await screen.findByText('Detector 1');
 
     const row = screen.getByTestId('detector-list-row');
@@ -124,7 +124,7 @@ describe('DetectorsList', () => {
       body: [AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']})],
     });
 
-    render(<DetectorsList />, {organization});
+    render(<AllMonitors />, {organization});
     const row = await screen.findByTestId('detector-list-row');
     expect(within(row).getByText('1 alert')).toBeInTheDocument();
 
@@ -140,7 +140,7 @@ describe('DetectorsList', () => {
       body: [MetricDetectorFixture({name: 'Detector 1'})],
     });
 
-    render(<DetectorsList />, {organization});
+    render(<AllMonitors />, {organization});
 
     await screen.findByText('Detector 1');
 
@@ -162,7 +162,7 @@ describe('DetectorsList', () => {
         match: [MockApiClient.matchQuery({query: '!type:issue_stream type:error'})],
       });
 
-      render(<DetectorsList />, {organization});
+      render(<AllMonitors />, {organization});
       await screen.findByText('Detector 1');
 
       // Click through menus to select type:error
@@ -198,7 +198,7 @@ describe('DetectorsList', () => {
         ],
       });
 
-      render(<DetectorsList />, {organization});
+      render(<AllMonitors />, {organization});
       await screen.findByText('Detector 1');
 
       // Click through menus to select assignee
@@ -216,7 +216,7 @@ describe('DetectorsList', () => {
         url: '/organizations/org-slug/detectors/',
         body: [MetricDetectorFixture({name: 'Detector 1'})],
       });
-      const {router} = render(<DetectorsList />, {organization});
+      const {router} = render(<AllMonitors />, {organization});
       await screen.findByText('Detector 1');
 
       // Default sort is latestGroup descending
@@ -300,7 +300,7 @@ describe('DetectorsList', () => {
     });
 
     it('can select detectors', async () => {
-      render(<DetectorsList />, {organization});
+      render(<AllMonitors />, {organization});
       await screen.findByText('Enabled Detector');
 
       const rows = screen.getAllByTestId('detector-list-row');
@@ -353,7 +353,7 @@ describe('DetectorsList', () => {
         body: {},
       });
 
-      render(<DetectorsList />, {organization});
+      render(<AllMonitors />, {organization});
       renderGlobalModal();
 
       await screen.findByText('Disabled Detector');
@@ -393,7 +393,7 @@ describe('DetectorsList', () => {
         body: {},
       });
 
-      render(<DetectorsList />, {organization});
+      render(<AllMonitors />, {organization});
       renderGlobalModal();
       await screen.findByText('Enabled Detector');
 
@@ -432,7 +432,7 @@ describe('DetectorsList', () => {
         body: {},
       });
 
-      render(<DetectorsList />, {organization});
+      render(<AllMonitors />, {organization});
       renderGlobalModal();
       await screen.findByText('Enabled Detector');
 
@@ -469,7 +469,7 @@ describe('DetectorsList', () => {
         body: {},
       });
 
-      render(<DetectorsList />, {organization});
+      render(<AllMonitors />, {organization});
       renderGlobalModal();
 
       const testUser = UserFixture({id: '2', email: 'test@example.com'});
@@ -543,7 +543,7 @@ describe('DetectorsList', () => {
         features: ['workflow-engine-ui'],
         access: [],
       });
-      render(<DetectorsList />, {organization: noPermsOrganization});
+      render(<AllMonitors />, {organization: noPermsOrganization});
       renderGlobalModal();
 
       await screen.findByText('Disabled Detector');
