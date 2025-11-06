@@ -113,6 +113,62 @@ describe('getFieldRenderer', () => {
     expect(screen.getByText(data.numeric)).toBeInTheDocument();
   });
 
+  describe('rate', () => {
+    it('can render null rate', () => {
+      const renderer = getFieldRenderer(
+        'per_second(value)',
+        {
+          'per_second(value)': 'rate',
+        },
+        false
+      );
+
+      render(
+        renderer(
+          {'per_second(value)': null},
+          {location, organization, theme}
+        ) as React.ReactElement<any, any>
+      );
+      expect(screen.getByText('(no value)')).toBeInTheDocument();
+    });
+
+    it('can render low rate', () => {
+      const renderer = getFieldRenderer(
+        'per_second(value)',
+        {
+          'per_second(value)': 'rate',
+        },
+        false
+      );
+
+      render(
+        renderer(
+          {'per_second(value)': 0.0001},
+          {location, organization, theme}
+        ) as React.ReactElement<any, any>
+      );
+      expect(screen.getByText('<0.01/s')).toBeInTheDocument();
+    });
+
+    it('can render high rate', () => {
+      const renderer = getFieldRenderer(
+        'per_second(value)',
+        {
+          'per_second(value)': 'rate',
+        },
+        false
+      );
+
+      render(
+        renderer(
+          {'per_second(value)': 10},
+          {location, organization, theme}
+        ) as React.ReactElement<any, any>
+      );
+      expect(screen.getByText('10.0/s')).toBeInTheDocument();
+    });
+  });
+
   describe('percentage', () => {
     it('can render percentage fields', () => {
       const renderer = getFieldRenderer(
