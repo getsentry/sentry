@@ -4,9 +4,9 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './react-router';
+import docs from '.';
 
-describe('javascript-react-router onboarding docs', () => {
+describe('javascript-solid onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
@@ -18,12 +18,10 @@ describe('javascript-react-router onboarding docs', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
-    // Includes Sentry import statement in multiple configure sections
+    // Includes import statement
     expect(
-      screen.getAllByText(
-        textWithMarkupMatcher(/import \* as Sentry from ["']@sentry\/react-router["'];/)
-      )
-    ).toHaveLength(4);
+      screen.getByText(textWithMarkupMatcher(/import \* as Sentry from "@sentry\/solid"/))
+    ).toBeInTheDocument();
   });
 
   it('displays sample rates by default', () => {
@@ -36,17 +34,17 @@ describe('javascript-react-router onboarding docs', () => {
     });
 
     expect(
-      screen.getAllByText(textWithMarkupMatcher(/tracesSampleRate/)).length
-    ).toBeGreaterThan(0);
+      screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
+    ).toBeInTheDocument();
     expect(
-      screen.getAllByText(textWithMarkupMatcher(/replaysSessionSampleRate/)).length
-    ).toBeGreaterThan(0);
+      screen.getByText(textWithMarkupMatcher(/replaysSessionSampleRate/))
+    ).toBeInTheDocument();
     expect(
-      screen.getAllByText(textWithMarkupMatcher(/replaysOnErrorSampleRate/)).length
-    ).toBeGreaterThan(0);
+      screen.getByText(textWithMarkupMatcher(/replaysOnErrorSampleRate/))
+    ).toBeInTheDocument();
   });
 
-  it('enables performance by setting tracesSampleRate to 1 and adding integration', () => {
+  it('enables performance setting the tracesSampleRate to 1', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
@@ -55,14 +53,11 @@ describe('javascript-react-router onboarding docs', () => {
     });
 
     expect(
-      screen.getAllByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/)).length
-    ).toBeGreaterThan(0);
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry\.reactRouterTracingIntegration\(\)/))
+      screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
     ).toBeInTheDocument();
   });
 
-  it('enables replay by setting replay sample rates', () => {
+  it('enables replay by setting replay samplerates', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
@@ -84,25 +79,43 @@ describe('javascript-react-router onboarding docs', () => {
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+      screen.getByText(textWithMarkupMatcher(/Sentry.browserProfilingIntegration\(\)/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/nodeProfilingIntegration\(\)/))
+      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
   });
 
-  it('enables logs by setting enableLogs to true and shows logger usage in verify step', () => {
+  it('enables logs by setting enableLogs to true', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
     });
 
     expect(
-      screen.getAllByText(textWithMarkupMatcher(/enableLogs: true/)).length
-    ).toBeGreaterThan(0);
-
-    // When logs are selected, verify step includes a Sentry logger call
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry\.logger\.info\(/))
+      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
     ).toBeInTheDocument();
+  });
+
+  it('shows Logging Integrations in next steps when logs is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.LOGS,
+      ],
+    });
+
+    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
+  });
+
+  it('does not show Logging Integrations in next steps when logs is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
   });
 });
