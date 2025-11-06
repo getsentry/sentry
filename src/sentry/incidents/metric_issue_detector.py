@@ -273,7 +273,8 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 raise serializers.ValidationError(
                     "Invalid extrapolation mode for this detector type."
                 )
-        # Handle anomaly detection
+
+        # Handle a dynamic detector's snuba query changing
         if instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
             if snuba_query.query != data_source.get(
                 "query"
@@ -326,7 +327,6 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         ):
             # Detector has been changed to become a dynamic detector
             send_new_detector_data(instance)
-            # update_detector_data(instance, updated_data_source_data)
 
         instance.save()
 

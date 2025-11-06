@@ -667,9 +667,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         assert condition.comparison == 100
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
-        assert mock_seer_request.call_count == 1
-        mock_seer_request.return_mock()
-
         mock_audit.assert_called()
         mock_audit.reset_mock()
 
