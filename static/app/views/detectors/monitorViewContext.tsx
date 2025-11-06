@@ -11,7 +11,7 @@ export interface MonitorListAdditionalColumn {
   renderPendingCell?: () => React.ReactNode;
 }
 
-export interface RenderVisualizationParams {
+interface RenderVisualizationParams {
   detector: Detector | null;
 }
 

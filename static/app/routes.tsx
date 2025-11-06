@@ -1674,6 +1674,7 @@ function buildRoutes(): RouteObject[] {
   const monitorRoutes: SentryRouteObject = {
     path: '/monitors/',
     withOrgPath: true,
+    component: make(() => import('sentry/views/detectors/detectorViewContainer')),
     children: [
       ...detectorRoutes.children!,
       automationRoutes,

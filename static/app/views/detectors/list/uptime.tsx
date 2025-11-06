@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
@@ -104,17 +103,15 @@ export default function UptimeDetectorsList() {
   return (
     <MonitorViewContext.Provider value={contextValue}>
       <SentryDocumentTitle title={TITLE}>
-        <PageFiltersContainer>
-          <WorkflowEngineListLayout
-            actions={<DetectorListActions detectorType="uptime_domain_failure" />}
-            title={TITLE}
-            description={DESCRIPTION}
-            docsUrl={DOCS_URL}
-          >
-            <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
-            <DetectorListContent {...detectorListQuery} />
-          </WorkflowEngineListLayout>
-        </PageFiltersContainer>
+        <WorkflowEngineListLayout
+          actions={<DetectorListActions detectorType="uptime_domain_failure" />}
+          title={TITLE}
+          description={DESCRIPTION}
+          docsUrl={DOCS_URL}
+        >
+          <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
+          <DetectorListContent {...detectorListQuery} />
+        </WorkflowEngineListLayout>
       </SentryDocumentTitle>
     </MonitorViewContext.Provider>
   );

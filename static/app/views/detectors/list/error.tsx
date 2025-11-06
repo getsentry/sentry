@@ -1,4 +1,3 @@
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
 import {t} from 'sentry/locale';
@@ -20,17 +19,15 @@ export default function ErrorDetectorsList() {
 
   return (
     <SentryDocumentTitle title={TITLE}>
-      <PageFiltersContainer>
-        <WorkflowEngineListLayout
-          actions={<DetectorListActions detectorType="error" />}
-          title={TITLE}
-          description={DESCRIPTION}
-          docsUrl={DOCS_URL}
-        >
-          <DetectorListHeader showTypeFilter={false} />
-          <DetectorListContent {...detectorListQuery} />
-        </WorkflowEngineListLayout>
-      </PageFiltersContainer>
+      <WorkflowEngineListLayout
+        actions={<DetectorListActions detectorType="error" />}
+        title={TITLE}
+        description={DESCRIPTION}
+        docsUrl={DOCS_URL}
+      >
+        <DetectorListHeader showTypeFilter={false} />
+        <DetectorListContent {...detectorListQuery} />
+      </WorkflowEngineListLayout>
     </SentryDocumentTitle>
   );
 }
