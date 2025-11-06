@@ -2715,6 +2715,9 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         )
 
         mock_start_seer_automation.assert_called_once_with(event.group.id)
+        # Verify timestamp was set
+        event.group.refresh_from_db()
+        assert event.group.seer_autofix_last_triggered is not None
 
     @patch(
         "sentry.seer.seer_setup.get_seer_org_acknowledgement",
@@ -2793,7 +2796,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    def test_kick_off_seer_automation_skips_existing_fixability_score(
+    def test_kick_off_seer_automation_skips_when_already_triggered(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -2802,9 +2805,9 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
 
-        # Set seer_fixability_score on the group
+        # Set seer_autofix_last_triggered on the group
         group = event.group
-        group.seer_fixability_score = 0.75
+        group.seer_autofix_last_triggered = timezone.now()
         group.save()
 
         self.call_post_process_group(
@@ -2822,7 +2825,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    def test_kick_off_seer_automation_runs_with_missing_fixability_score(
+    def test_kick_off_seer_automation_runs_when_not_yet_triggered(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -2831,9 +2834,9 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
 
-        # Group has no seer_fixability_score (None by default)
+        # Group has no seer_autofix_last_triggered (None by default)
         group = event.group
-        assert group.seer_fixability_score is None
+        assert group.seer_autofix_last_triggered is None
 
         self.call_post_process_group(
             is_new=False,  # Not a new group
@@ -2843,6 +2846,9 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         )
 
         mock_start_seer_automation.assert_called_once_with(group.id)
+        # Verify timestamp was set
+        group.refresh_from_db()
+        assert group.seer_autofix_last_triggered is not None
 
     @patch(
         "sentry.seer.seer_setup.get_seer_org_acknowledgement",
@@ -2850,7 +2856,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
     )
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    def test_kick_off_seer_automation_skips_with_existing_fixability_score(
+    def test_kick_off_seer_automation_skips_with_existing_automation_triggered(
         self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
     ):
         from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
@@ -2861,9 +2867,9 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
 
-        # Set seer_fixability_score on the group
+        # Set seer_autofix_last_triggered on the group
         group = event.group
-        group.seer_fixability_score = 0.75
+        group.seer_autofix_last_triggered = timezone.now()
         group.save()
 
         # No cached issue summary (cache.get will return None)
