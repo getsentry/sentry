@@ -297,45 +297,6 @@ function ManageReposPanel({
                 )}
               </Flex>
 
-              {/* Test Generation Feature */}
-              <Flex direction="column">
-                <Flex
-                  border="muted"
-                  radius="md"
-                  background="secondary"
-                  padding="lg xl"
-                  align="center"
-                  justify="between"
-                >
-                  <Flex direction="column" gap="sm">
-                    <Text size="md">{t('Enable Test Generation')}</Text>
-                    <Text variant="muted" size="sm">
-                      {t('Run when @sentry generate-test is commented on a PR.')}
-                    </Text>
-                  </Flex>
-                  <Switch
-                    size="lg"
-                    checked={repoConfig.test_generation.enabled}
-                    disabled={
-                      isLoading ||
-                      !canEditSettings ||
-                      (!isEditingOrgDefaults && doesUseOrgDefaults)
-                    }
-                    onChange={async () => {
-                      const newValue = !repoConfig.test_generation.enabled;
-                      await enableFeature({
-                        feature: 'test_generation',
-                        enabled: newValue,
-                        gitOrgName: org.name,
-                        originalConfig: orgConfig,
-                        repoId: githubRepoId,
-                      });
-                    }}
-                    aria-label="Enable Test Generation"
-                  />
-                </Flex>
-              </Flex>
-
               {/* Error Prediction Feature with SubItems */}
               <Flex direction="column">
                 <Flex
@@ -443,6 +404,41 @@ function ManageReposPanel({
                             });
                           }}
                           aria-label="Auto Run on Opened Pull Requests"
+                        />
+                      </FieldGroup>
+                      <FieldGroup
+                        label={<Text size="md">{t('Auto Run on New Commits')}</Text>}
+                        help={
+                          <Text size="xs" variant="muted">
+                            {t('Run when new commits are pushed to a PR.')}
+                          </Text>
+                        }
+                        alignRight
+                        flexibleControlStateSize
+                      >
+                        <Switch
+                          size="lg"
+                          checked={
+                            repoConfig.bug_prediction.triggers.on_new_commit ?? false
+                          }
+                          disabled={
+                            isLoading ||
+                            !canEditSettings ||
+                            (!isEditingOrgDefaults && doesUseOrgDefaults)
+                          }
+                          onChange={async () => {
+                            const newValue =
+                              !repoConfig.bug_prediction.triggers.on_new_commit;
+                            await enableFeature({
+                              feature: 'bug_prediction',
+                              trigger: {on_new_commit: newValue},
+                              enabled: true,
+                              gitOrgName: org.name,
+                              originalConfig: orgConfig,
+                              repoId: githubRepoId,
+                            });
+                          }}
+                          aria-label="Auto Run on New Commits"
                         />
                       </FieldGroup>
                       <FieldGroup
