@@ -31,11 +31,13 @@ class GroupOpenPeriodActivitySerializer(Serializer):
     def serialize(
         self, obj: GroupOpenPeriodActivity, attrs: Mapping[str, Any], user, **kwargs
     ) -> GroupOpenPeriodActivityResponse:
+        time_window = kwargs.get("time_window", 0)
+
         return GroupOpenPeriodActivityResponse(
             id=str(obj.id),
             type=OpenPeriodActivityType(obj.type).to_str(),
             value=PriorityLevel(obj.value).to_str() if obj.value else None,
-            dateCreated=obj.date_added,
+            dateCreated=calculate_event_date_from_update_date(obj.date_added, time_window),
         )
 
 
