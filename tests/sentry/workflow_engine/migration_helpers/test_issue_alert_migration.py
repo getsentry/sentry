@@ -5,7 +5,7 @@ from jsonschema.exceptions import ValidationError
 
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.models.rule import RuleSource
+from sentry.models.rule import Rule, RuleSource
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import (
@@ -128,11 +128,45 @@ class IssueAlertMigratorTest(TestCase):
         assert DataCondition.objects.all().count() == 0
         assert Action.objects.all().count() == 0
 
+    def assert_error_detector_migrated(self, issue_alert: Rule, workflow: Workflow) -> Detector:
+        issue_alert_detector = AlertRuleDetector.objects.get(rule_id=issue_alert.id)
+        error_detector = Detector.objects.get(id=issue_alert_detector.detector.id)
+        assert error_detector.name == "Error Monitor"
+        assert error_detector.project_id == self.project.id
+        assert error_detector.enabled is True
+        assert error_detector.owner_user_id is None
+        assert error_detector.owner_team is None
+        assert error_detector.type == ErrorGroupType.slug
+        assert error_detector.config == {}
+
+        error_detector_workflow = DetectorWorkflow.objects.get(detector=error_detector)
+        assert error_detector_workflow.workflow == workflow
+
+        return error_detector
+
+    def assert_issue_stream_detector_migrated(
+        self, project_id: int, workflow: Workflow
+    ) -> Detector:
+        issue_stream_detector = Detector.objects.get(
+            project_id=project_id, type=IssueStreamGroupType.slug
+        )
+        assert issue_stream_detector.name == "Issue Stream"
+        assert issue_stream_detector.enabled is True
+        assert issue_stream_detector.owner_user_id is None
+        assert issue_stream_detector.owner_team is None
+        assert issue_stream_detector.config == {}
+
+        issue_stream_detector_workflow = DetectorWorkflow.objects.get(
+            detector=issue_stream_detector
+        )
+        assert issue_stream_detector_workflow.workflow == workflow
+
+        return issue_stream_detector
+
     def assert_issue_alert_migrated(
         self, issue_alert, is_enabled=True, logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
     ):
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=issue_alert.id)
-        issue_alert_detector = AlertRuleDetector.objects.get(rule_id=issue_alert.id)
 
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         assert workflow.name == issue_alert.label
@@ -142,17 +176,8 @@ class IssueAlertMigratorTest(TestCase):
         assert workflow.date_added == issue_alert.date_added
         assert workflow.enabled == is_enabled
 
-        detector = Detector.objects.get(id=issue_alert_detector.detector.id)
-        assert detector.name == "Error Monitor"
-        assert detector.project_id == self.project.id
-        assert detector.enabled is True
-        assert detector.owner_user_id is None
-        assert detector.owner_team is None
-        assert detector.type == ErrorGroupType.slug
-        assert detector.config == {}
-
-        detector_workflow = DetectorWorkflow.objects.get(detector=detector)
-        assert detector_workflow.workflow == workflow
+        self.assert_error_detector_migrated(issue_alert, workflow)
+        self.assert_issue_stream_detector_migrated(self.project.id, workflow)
 
         assert workflow.when_condition_group
         assert workflow.when_condition_group.logic_type == logic_type
@@ -187,6 +212,13 @@ class IssueAlertMigratorTest(TestCase):
         dcg_actions = DataConditionGroupAction.objects.all()[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
+
+    def test_run__issue_stream_detector(self) -> None:
+        self.issue_alert.data["group_type"] = IssueStreamGroupType.slug
+        self.issue_alert.save()
+
+        workflow = IssueAlertMigrator(self.issue_alert, self.user.id).run()
+        self.assert_issue_stream_detector_migrated(self.issue_alert.project_id, workflow)
 
     def test_run__missing_matches(self) -> None:
         data = self.issue_alert.data
@@ -323,12 +355,20 @@ class IssueAlertMigratorTest(TestCase):
 
     def test_run__detector_exists(self) -> None:
         project_detector = self.create_detector(project=self.project)
+        other_project_detector = self.create_detector(
+            project=self.project, type=IssueStreamGroupType.slug
+        )
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
         # does not create a new error detector
 
-        detector = Detector.objects.get(project_id=self.project.id)
-        assert detector == project_detector
+        error_detector = Detector.objects.get(project_id=self.project.id, type=ErrorGroupType.slug)
+        assert error_detector.id == project_detector.id
+
+        issue_stream_detector = Detector.objects.get(
+            project_id=self.project.id, type=IssueStreamGroupType.slug
+        )
+        assert other_project_detector.id == issue_stream_detector.id
 
     def test_run__detector_lookup_exists(self) -> None:
         AlertRuleDetector.objects.create(

@@ -6,7 +6,8 @@ import {t} from 'sentry/locale';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
-import {createMetricNameFilter} from 'sentry/views/explore/metrics/utils';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsGroupBys,
   useSetQueryParamsGroupBys,
@@ -15,9 +16,9 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface GroupBySelectorProps {
   /**
-   * The metric name to filter attributes by
+   * The metric to filter attributes by
    */
-  metricName: string;
+  traceMetric: TraceMetric;
 }
 
 /**
@@ -25,25 +26,25 @@ interface GroupBySelectorProps {
  * Fetches available attribute keys from the trace-items API endpoint
  * and displays them as options in a compact select dropdown.
  */
-export function GroupBySelector({metricName}: GroupBySelectorProps) {
+export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
 
-  const metricNameFilter = createMetricNameFilter(metricName);
+  const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
   const {attributes: numberTags, isLoading: numberTagsLoading} =
     useTraceItemAttributeKeys({
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'number',
-      enabled: Boolean(metricNameFilter),
-      query: metricNameFilter,
+      enabled: Boolean(traceMetricFilter),
+      query: traceMetricFilter,
     });
   const {attributes: stringTags, isLoading: stringTagsLoading} =
     useTraceItemAttributeKeys({
       traceItemType: TraceItemDataset.TRACEMETRICS,
       type: 'string',
-      enabled: Boolean(metricNameFilter),
-      query: metricNameFilter,
+      enabled: Boolean(traceMetricFilter),
+      query: traceMetricFilter,
     });
 
   const visibleNumberTags = useMemo(() => {
