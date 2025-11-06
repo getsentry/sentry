@@ -1323,9 +1323,11 @@ class RpcGetReplaySummaryLogsTestCase(
         assert len(logs) == 3
 
         # Verify that regular error event is included
-        assert "ValueError" in logs[1]
-        assert "Invalid input" in logs[1]
-        assert "User experienced an error" in logs[1]
+        assert "ValueError" in logs[0]
+        assert "Invalid input" in logs[0]
+        assert "User experienced an error" in logs[0]
+
+        assert "hello" in logs[1]
 
         # Verify that feedback event is included
         assert "Great website" in logs[2]
