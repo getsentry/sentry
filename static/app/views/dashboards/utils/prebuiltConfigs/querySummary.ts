@@ -208,6 +208,7 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       title: 'Average Duration',
       description: '',
       displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
       thresholds: null,
       interval: '1h',
       queries: [
