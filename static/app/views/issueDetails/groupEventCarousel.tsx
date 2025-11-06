@@ -8,6 +8,7 @@ import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -428,7 +429,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
           </EventIdAndTimeContainer>
         </EventHeading>
       </div>
-      <ActionsWrapper>
+      <Flex align="center" gap="xs">
         <GroupEventActions event={event} group={group} projectSlug={projectSlug} />
         <EventNavigationDropdown
           isDisabled={!hasPreviousEvent && !hasNextEvent}
@@ -453,7 +454,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             referrer="next-event"
           />
         </NavButtons>
-      </ActionsWrapper>
+      </Flex>
     </CarouselAndButtonsWrapper>
   );
 }
@@ -476,12 +477,6 @@ const EventHeading = styled('div')`
   @media (max-width: 600px) {
     font-size: ${p => p.theme.fontSize.md};
   }
-`;
-
-const ActionsWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const StyledNavButton = styled(LinkButton)`
