@@ -402,8 +402,6 @@ export const profiling: PlatformKey[] = [
   'apple-ios',
   'apple-macos',
   'dotnet',
-  'dotnet-winforms',
-  'dotnet-wpf',
   'flutter',
   'javascript',
   'javascript-angular',
