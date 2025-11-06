@@ -42,7 +42,8 @@ def mark_organization_as_pending_deletion_with_outbox_message(
 ) -> Organization | None:
     with outbox_context(transaction.atomic(router.db_for_write(Organization))):
         update_count = Organization.objects.filter(
-            id=org_id, status=OrganizationStatus.ACTIVE
+            id=org_id,
+            status__in=[OrganizationStatus.ACTIVE, OrganizationStatus.RELOCATION_PENDING_APPROVAL],
         ).update(status=OrganizationStatus.PENDING_DELETION)
 
         if not update_count:

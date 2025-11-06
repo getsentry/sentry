@@ -1532,6 +1532,22 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
         self.get_error_response(org.slug, status_code=403)
 
+    def test_delete_relocation_pending(self) -> None:
+        org = self.create_organization(
+            owner=self.user, status=OrganizationStatus.RELOCATION_PENDING_APPROVAL
+        )
+        with self.tasks():
+            self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
+
+        org = Organization.objects.get(id=org.id)
+        assert org.status == OrganizationStatus.PENDING_DELETION
+
+        deleted_org = DeletedOrganization.objects.get(slug=org.slug)
+        self.assert_valid_deleted_log(deleted_org, org)
+
+        schedule = RegionScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
+        assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
+
     def test_cannot_remove_default(self) -> None:
         with unguarded_write(using=router.db_for_write(Organization)):
             Organization.objects.all().delete()
