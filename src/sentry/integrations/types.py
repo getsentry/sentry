@@ -42,6 +42,7 @@ class IntegrationProviderSlug(StrEnum):
     BITBUCKET_SERVER = "bitbucket_server"
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
+    PERFORCE = "perforce"
 
 
 class DataForwarderProviderSlug(StrEnum):
