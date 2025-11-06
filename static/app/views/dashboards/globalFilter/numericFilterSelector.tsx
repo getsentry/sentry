@@ -216,8 +216,8 @@ function NumericFilterSelector({
 
   const nativeFilterToken = useMemo(() => {
     if (isNativeOperator) {
-      const [firstQuery] = globalFilterQueries;
-      const tokens = parseFilterValue(firstQuery!, globalFilter);
+      const firstQuery = globalFilterQueries[0] ?? '';
+      const tokens = parseFilterValue(firstQuery, globalFilter);
       return tokens?.[0];
     }
     const tokens = parseFilterValue(`${globalFilter.tag.key}:>100`, globalFilter);
