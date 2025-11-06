@@ -200,7 +200,7 @@ export function buildToolLinkUrl(
 ): LocationDescriptor | null {
   switch (toolLink.kind) {
     case 'telemetry_live_search': {
-      const {dataset, query, stats_period, project_slug} = toolLink.params;
+      const {dataset, query, stats_period, project_slug, sort} = toolLink.params;
 
       if (dataset === 'issues') {
         // Build URL for issues search
@@ -220,6 +220,10 @@ export function buildToolLinkUrl(
           queryParams.statsPeriod = stats_period;
         }
 
+        if (sort) {
+          queryParams.sort = sort;
+        }
+
         return {
           pathname: `/organizations/${orgSlug}/issues/`,
           query: queryParams,
@@ -227,7 +231,7 @@ export function buildToolLinkUrl(
       }
 
       // Default to spans (traces) search
-      const {y_axes, group_by, sort, mode} = toolLink.params;
+      const {y_axes, group_by, mode} = toolLink.params;
 
       const queryParams: Record<string, any> = {
         query: query || '',
