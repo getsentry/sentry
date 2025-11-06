@@ -1130,3 +1130,71 @@ def test_convert_schema_to_rules_text() -> None:
         )
         == "path:*.js #frontend m@robenolt.com\nurl:http://google.com/* #backend\npath:src/sentry/* david@sentry.io\ntags.foo:bar tagperson@sentry.io\ntags.foo:bar baz tagperson@sentry.io\nmodule:foo.bar #workflow\nmodule:foo bar meow@sentry.io\n"
     )
+
+
+@pytest.mark.parametrize(
+    "pattern, path_details, expected",
+    [
+        # THIS IS THE ONE THAT FAILS
+        # Pattern WITHOUT leading slash
+        # Path WITH leading slash
+        # Should match
+        (
+            "libs/mobile/screens/home/**",
+            [
+                {
+                    "filename": "/libs/mobile/screens/home/src/views/home/components/tiles/invest-tile.component.tsx"
+                },
+                {
+                    "abs_path": "/libs/mobile/screens/home/src/views/home/components/tiles/invest-tile.component.tsx"
+                },
+            ],
+            True,
+        ),
+        # Pattern WITH leading slash
+        # Path WITH leading slash
+        # Should match
+        (
+            "/libs/mobile/screens/home/**",
+            [
+                {
+                    "filename": "/libs/mobile/screens/home/src/views/home/components/tiles/invest-tile.component.tsx"
+                },
+                {
+                    "abs_path": "/libs/mobile/screens/home/src/views/home/components/tiles/invest-tile.component.tsx"
+                },
+            ],
+            True,
+        ),
+        # Pattern WITHOUT leading slash
+        # Path WITHOUT leading slash
+        # Should match
+        (
+            "libs/mobile/screens/home/**",
+            [
+                {
+                    "filename": "libs/mobile/screens/home/src/views/home/components/tiles/invest-tile.component.tsx"
+                },
+                {
+                    "abs_path": "libs/mobile/screens/home/src/views/home/components/tiles/invest-tile.component.tsx"
+                },
+            ],
+            True,
+        ),
+        # Pattern WITH leading slash
+        # Path WITHOUT leading slash
+        # Should match
+        (
+            "/libs/mobile/screens/home/**",
+            [
+                {"filename": "libs/mobile/screens/home/index.tsx"},
+                {"abs_path": "libs/mobile/screens/home/index.tsx"},
+            ],
+            True,
+        ),
+    ],
+)
+def test_codeowners_leading_slash_matching(
+    pattern: str, path_details: Sequence[Mapping[str, str]], expected: bool
+) -> None:
+    _assert_matcher(Matcher("codeowners", pattern), path_details, expected)
