@@ -1,6 +1,7 @@
 import {Fragment, type PropsWithChildren} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import kebabCase from 'lodash/kebabCase';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -47,12 +48,15 @@ function getStoryFromParams(
   const {storyType: category, storySlug} = context;
   const nodes =
     category && category in stories ? stories[category as keyof typeof stories] : [];
+
   for (const node of nodes) {
     const match = node.find(n => kebabCase(n.label) === storySlug);
     if (match) {
       return match;
     }
   }
+
+  Sentry.logger.error(`Story not found: ${storySlug} in category ${category}`);
   return undefined;
 }
 

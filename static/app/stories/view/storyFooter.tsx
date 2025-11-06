@@ -18,8 +18,8 @@ export function StoryFooter() {
   const pagination = findPreviousAndNextStory(story, stories);
   const organization = useOrganization();
 
-  const {state: prevState, ...prevTo} = pagination?.prev?.location ?? {};
-  const {state: nextState, ...nextTo} = pagination?.next?.location ?? {};
+  const prevTo = pagination?.prev?.location ?? {};
+  const nextTo = pagination?.next?.location ?? {};
 
   return (
     <Flex align="center" justify="between" gap="xl">
@@ -31,7 +31,6 @@ export function StoryFooter() {
               `/organizations/${organization.slug}${pagination.prev.location.pathname}`
             ),
           }}
-          state={prevState}
           icon={<IconArrow direction="left" />}
         >
           <Text variant="muted" as="div">
@@ -51,7 +50,6 @@ export function StoryFooter() {
               `/organizations/${organization.slug}${nextTo.pathname}`
             ),
           }}
-          state={nextState}
           icon={<IconArrow direction="right" />}
         >
           <Text variant="muted" as="div" align="right">
