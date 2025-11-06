@@ -127,6 +127,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     priorityLockedAt: datetime | None
     seerFixabilityScore: float | None
     seerAutofixLastTriggered: datetime | None
+    seerAutomationQueued: bool
     project: GroupProjectResponse
     type: str
     issueType: str
