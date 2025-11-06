@@ -13,7 +13,6 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
-from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
 from sentry.notifications.platform.target import IntegrationNotificationTarget
@@ -22,7 +21,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
-from sentry.testutils.asserts import assert_count_of_metric
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 from sentry.testutils.silo import control_silo_test
@@ -526,11 +525,8 @@ class SlackIntegrationSendNotificationTest(TestCase):
             organization_id=self.organization.id,
         )
 
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_send_notification_success(
-        self, mock_chat_post: MagicMock, mock_record: MagicMock
-    ) -> None:
+    def test_send_notification_success(self, mock_chat_post: MagicMock) -> None:
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
         rendered_template = template.render(data)
@@ -545,13 +541,9 @@ class SlackIntegrationSendNotificationTest(TestCase):
             blocks=payload.get("blocks", []),
             text="Mock Notification",
         )
-        assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 1)
 
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_send_notification_api_error(
-        self, mock_chat_post: MagicMock, mock_record: MagicMock
-    ) -> None:
+    def test_send_notification_api_error(self, mock_chat_post: MagicMock) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 400
         mock_response.data = {"error": "channel_not_found"}
@@ -560,7 +552,5 @@ class SlackIntegrationSendNotificationTest(TestCase):
         mock_chat_post.side_effect = SlackApiError("channel_not_found", mock_response)
         payload: SlackRenderable = {"blocks": [], "text": "Test"}
 
-        with pytest.raises(SlackApiError):
+        with pytest.raises(IntegrationConfigurationError):
             self.installation.send_notification(target=self.target, payload=payload)
-
-        assert_count_of_metric(mock_record, EventLifecycleOutcome.HALTED, 1)
