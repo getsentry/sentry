@@ -144,17 +144,29 @@ describe('useUpdatePreventAIFeature', () => {
           'repo-123': {
             vanilla: {
               enabled: true,
-              triggers: {on_command_phrase: true, on_ready_for_review: false},
+              triggers: {
+                on_command_phrase: true,
+                on_ready_for_review: false,
+                on_new_commit: false,
+              },
               sensitivity: 'high',
             },
             bug_prediction: {
               enabled: true,
-              triggers: {on_command_phrase: true, on_ready_for_review: false},
+              triggers: {
+                on_command_phrase: true,
+                on_ready_for_review: false,
+                on_new_commit: false,
+              },
               sensitivity: 'high',
             },
             test_generation: {
               enabled: true,
-              triggers: {on_command_phrase: true, on_ready_for_review: false},
+              triggers: {
+                on_command_phrase: true,
+                on_ready_for_review: false,
+                on_new_commit: false,
+              },
             },
           },
         },
