@@ -87,11 +87,10 @@ DIRECT_GROUP_RELATED_MODELS = (
 # 1. Has an event_id field - per-event data that must be migrated during event
 #    reprocessing pipeline, not as a group bulk operation (UserReport, EventAttachment)
 # 2. Should NOT be transferred during reprocessing - transient or notification data
-#    that doesn't represent core group state (NotificationMessage, PlatformExternalIssue)
+#    that doesn't represent core group state (NotificationMessage)
 ADDITIONAL_GROUP_RELATED_MODELS = (
     models.UserReport,
     models.EventAttachment,
-    models.PlatformExternalIssue,
     NotificationMessage,
 )
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + ADDITIONAL_GROUP_RELATED_MODELS
