@@ -78,7 +78,7 @@ function getAutomationName(builderState: AutomationBuilderState): string {
   const allActions = builderState.actionFilters.flatMap(group => group.actions || []);
 
   if (allActions.length === 0) {
-    return 'New Automation';
+    return 'New Alert';
   }
 
   const count = allActions.length;
