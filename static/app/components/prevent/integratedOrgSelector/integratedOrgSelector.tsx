@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -14,12 +14,12 @@ import {usePreventContext} from 'sentry/components/prevent/context/preventContex
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
 import {IconAdd, IconBuilding, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Integration} from 'sentry/types/integrations';
+import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
-import {computeCenteredWindow} from 'sentry/views/settings/organizationIntegrations/addIntegration';
+import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 import type {IntegrationInformation} from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
 const DEFAULT_ORG_LABEL = 'Select GitHub Org';
@@ -27,49 +27,13 @@ const DEFAULT_ORG_LABEL = 'Select GitHub Org';
 function OrgFooterMessage() {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const cleanupRef = useRef<() => void | null>(null);
 
-  const handleAddIntegration = (_integration: Integration) => {
-    navigate(`/${organization.slug}/tests`);
-  };
-
-  const openGitHubOAuthFlow = () => {
-    if (!provider) {
-      return;
-    }
-
-    // Open GitHub OAuth flow in a popup window
-    const {url, width, height} = provider.setupDialog;
-    const {left, top} = computeCenteredWindow(width, height);
-    const opts = `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`;
-
-    const dialog = window.open(url, 'sentryAddIntegration', opts);
-    dialog?.focus();
-
-    // Listen for the postMessage from the OAuth callback
-    const handleMessage = (message: MessageEvent) => {
-      if (message.source === dialog && message.data?.success) {
-        window.removeEventListener('message', handleMessage);
-        cleanupRef.current = null;
-        if (message.data.data) {
-          handleAddIntegration(message.data.data);
-        }
-      }
-    };
-    window.addEventListener('message', handleMessage);
-
-    cleanupRef.current = () => {
-      window.removeEventListener('message', handleMessage);
-      cleanupRef.current = null;
-    };
-  };
-
-  // Cleanup the event listener if it hasn't been cleaned up yet
-  useEffect(() => {
-    return () => {
-      cleanupRef.current?.();
-    };
-  }, []);
+  const handleAddIntegration = useCallback(
+    (_integration: IntegrationWithConfig) => {
+      navigate(`/${organization.slug}/tests`);
+    },
+    [navigate, organization.slug]
+  );
 
   const {data: integrationInfo, isPending: isIntegrationInfoPending} =
     useApiQuery<IntegrationInformation>(
@@ -111,14 +75,22 @@ function OrgFooterMessage() {
       {isIntegrationInfoPending ? (
         <LoadingIndicator />
       ) : provider ? (
-        <Button
-          size="xs"
-          icon={<IconAdd />}
-          priority="default"
-          onClick={openGitHubOAuthFlow}
+        <AddIntegration
+          provider={provider}
+          onInstall={handleAddIntegration}
+          organization={organization}
         >
-          {t('GitHub Organization')}
-        </Button>
+          {openDialog => (
+            <Button
+              size="xs"
+              icon={<IconAdd />}
+              priority="default"
+              onClick={() => openDialog()}
+            >
+              {t('GitHub Organization')}
+            </Button>
+          )}
+        </AddIntegration>
       ) : (
         <LinkButton
           href="https://github.com/apps/sentry/installations/select_target"
