@@ -3,6 +3,7 @@ _TRIGGER_SCHEMA = {
     "properties": {
         "on_command_phrase": {"type": "boolean"},
         "on_ready_for_review": {"type": "boolean"},
+        "on_new_commit": {"type": "boolean"},
     },
     "required": ["on_command_phrase", "on_ready_for_review"],
     "additionalProperties": False,
@@ -99,6 +100,7 @@ PREVENT_AI_CONFIG_DEFAULT = {
                 "triggers": {
                     "on_command_phrase": True,
                     "on_ready_for_review": True,
+                    "on_new_commit": False,
                 },
             },
             "test_generation": {
@@ -106,6 +108,7 @@ PREVENT_AI_CONFIG_DEFAULT = {
                 "triggers": {
                     "on_command_phrase": True,
                     "on_ready_for_review": False,
+                    "on_new_commit": False,
                 },
             },
             "vanilla": {
@@ -114,6 +117,7 @@ PREVENT_AI_CONFIG_DEFAULT = {
                 "triggers": {
                     "on_command_phrase": True,
                     "on_ready_for_review": False,
+                    "on_new_commit": False,
                 },
             },
         },

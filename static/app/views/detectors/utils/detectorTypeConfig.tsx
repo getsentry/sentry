@@ -23,6 +23,10 @@ const DETECTOR_TYPE_CONFIG: Record<DetectorType, DetectorTypeConfig> = {
     userCreateable: true,
     label: t('Uptime'),
   },
+  issue_stream: {
+    userCreateable: false,
+    label: t('Issue Stream'),
+  },
 };
 
 export function isValidDetectorType(detectorType: DetectorType) {
@@ -30,9 +34,9 @@ export function isValidDetectorType(detectorType: DetectorType) {
 }
 
 export function detectorTypeIsUserCreateable(detectorType: DetectorType) {
-  return DETECTOR_TYPE_CONFIG[detectorType].userCreateable ?? false;
+  return DETECTOR_TYPE_CONFIG[detectorType]?.userCreateable ?? false;
 }
 
 export function getDetectorTypeLabel(detectorType: DetectorType) {
-  return DETECTOR_TYPE_CONFIG[detectorType].label ?? 'Unknown';
+  return DETECTOR_TYPE_CONFIG[detectorType]?.label ?? 'Unknown';
 }
