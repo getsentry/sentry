@@ -10,7 +10,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 
-from sentry import eventstream, features
+from sentry import eventstream
 from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.event_manager import (
     GroupInfo,
@@ -74,9 +74,7 @@ def save_issue_occurrence(
         _get_or_create_group_release(environment, release, event, [group_info])
 
         # Create IncidentGroupOpenPeriod relationship for metric issues
-        if occurrence.type == MetricIssue and features.has(
-            "organizations:workflow-engine-single-process-metric-issues", event.organization
-        ):
+        if occurrence.type == MetricIssue:
             open_period = get_latest_open_period(group_info.group)
             if open_period:
                 IncidentGroupOpenPeriod.create_from_occurrence(

@@ -3,7 +3,6 @@ import logging
 from django.db import IntegrityError, models
 from django.db.models import Q
 
-from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -240,11 +239,6 @@ def update_incident_activity_based_on_group_activity(
         logger.warning("No open period found for group", extra={"group_id": group.id})
         return
 
-    if not features.has(
-        "organizations:workflow-engine-single-process-metric-issues", group.project.organization
-    ):
-        return
-
     # get the incident for the open period
     try:
         incident_id = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period).incident_id
@@ -291,11 +285,6 @@ def update_incident_based_on_open_period_status_change(
     open_period = get_latest_open_period(group)
     if open_period is None:
         logger.warning("No open period found for group", extra={"group_id": group.id})
-        return
-
-    if not features.has(
-        "organizations:workflow-engine-single-process-metric-issues", group.project.organization
-    ):
         return
 
     # get the incident for the open period

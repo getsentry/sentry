@@ -12,6 +12,10 @@ export function getTextDecoration(p: TextProps<any> | HeadingProps) {
   }
   if (p.underline) {
     decorations.push('underline');
+
+    if (p.underline === 'dotted') {
+      decorations.push('dotted');
+    }
   }
   return decorations.join(' ');
 }
