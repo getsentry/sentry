@@ -28,6 +28,6 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="group",
             name="seer_automation_queued",
-            field=models.BooleanField(default=False),
+            field=models.BooleanField(db_default=False, default=False),
         ),
     ]
