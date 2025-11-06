@@ -24,28 +24,23 @@ class GroupRelatedModelsCompletenessTest(TestCase):
     deletion configuration to prevent orphaned records or cascade delete timeouts.
     """
 
-    # Models that don't need to be in either list (with justification)
+    # Models that don't need to be in either list (with justification).
+    # Note: Models with custom deletion tasks registered in deletions/__init__.py
+    # are automatically detected and don't need to be listed here.
     EXEMPTED_MODELS: Mapping[str, str] = {
         # Add models here if they shouldn't be in either list, with a comment explaining why
         # Example: "sentry.SomeModel": "Uses custom deletion logic in XYZ",
-        "sentry.Activity": "TBD",
-        "sentry.GroupReaction": "TBD",
-        "sentry.PlatformExternalIssue": "TBD",
     }
 
     def get_models_with_group_foreign_key(self) -> set[type[django_models.Model]]:
         """
-        Discover all models in the sentry app that have a foreign key to Group.
+        Discover all models that have a foreign key to Group.
         """
         from sentry.models.group import Group
 
         models_with_group_fk = set()
 
         for model_class in django.apps.apps.get_models():
-            # Only check sentry app models
-            if model_class._meta.app_label not in ("sentry", "notifications"):
-                continue
-
             # Skip the Group model itself
             if model_class.__name__ == "Group":
                 continue
