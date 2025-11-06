@@ -1,16 +1,19 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
+import {Button as ScrapsButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout/stack';
 import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconAdd, IconFix, IconSubtract} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -50,6 +53,8 @@ interface SizeCompareItemDiffTableProps {
   originalItemCount: number;
 }
 
+const ITEMS_PER_PAGE = 40;
+
 export function SizeCompareItemDiffTable({
   diffItems,
   originalItemCount,
@@ -60,6 +65,8 @@ export function SizeCompareItemDiffTable({
     field: 'size_diff',
     kind: 'desc',
   });
+
+  const [currentPage, setCurrentPage] = useState(0);
 
   const sortedDiffItems = [...diffItems].sort((a: DiffItem, b: DiffItem) => {
     const {field, kind} = sort;
@@ -105,118 +112,165 @@ export function SizeCompareItemDiffTable({
     return 0;
   });
 
-  return (
-    <SimpleTableWithColumns>
-      <SimpleTableHeader>
-        {tableHeaders.map(header => (
-          <SimpleTable.HeaderCell
-            key={header.key}
-            handleSortClick={
-              header.key
-                ? () =>
-                    setSort({
-                      field: header.key,
-                      kind:
-                        sort?.field === header.key && sort.kind === 'asc'
-                          ? 'desc'
-                          : 'asc',
-                    })
-                : undefined
-            }
-            sort={sort && sort?.field === header.key ? sort.kind : undefined}
-          >
-            {header.label}
-          </SimpleTable.HeaderCell>
-        ))}
-      </SimpleTableHeader>
-      {sortedDiffItems.length === 0 && (
-        <SimpleTable.Empty>
-          <Stack gap="lg" align="center" justify="center">
-            <Text size="lg" variant="muted" bold>
-              {t('No results found')}
-            </Text>
-            {originalItemCount > 0 && (
-              <Button priority="primary" onClick={disableHideSmallChanges}>
-                {t('Show all changes')}
-              </Button>
-            )}
-          </Stack>
-        </SimpleTable.Empty>
-      )}
-      {sortedDiffItems.map((diffItem, index) => {
-        let changeTypeLabel: string;
-        let changeTypeIcon: React.ReactNode;
-        switch (diffItem.type) {
-          case 'added':
-            changeTypeLabel = t('Added');
-            changeTypeIcon = <IconAdd />;
-            break;
-          case 'removed':
-            changeTypeLabel = t('Removed');
-            changeTypeIcon = <IconSubtract />;
-            break;
-          default:
-            changeTypeLabel = t('Modified');
-            changeTypeIcon = <IconFix />;
-            break;
-        }
+  const totalPages = Math.ceil(sortedDiffItems.length / ITEMS_PER_PAGE);
+  const lastPageIndex = Math.max(totalPages - 1, 0);
+  const safeCurrentPage = Math.min(currentPage, lastPageIndex);
+  const startIndex = safeCurrentPage * ITEMS_PER_PAGE;
+  const currentDiffItems = sortedDiffItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const showPagination = totalPages > 1;
 
-        return (
-          <SimpleTable.Row key={index}>
-            <SimpleTable.RowCell>
-              <ChangeTag changeType={diffItem.type}>
-                {changeTypeIcon}
-                {changeTypeLabel}
-              </ChangeTag>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
-              <Tooltip
-                title={
-                  diffItem.path ? (
-                    <Flex
-                      align="start"
-                      gap="xs"
-                      style={{maxWidth: '100%', textAlign: 'left'}}
-                    >
-                      <FilePathTooltipText>{diffItem.path}</FilePathTooltipText>
-                      <CopyToClipboardButton
-                        borderless
-                        size="zero"
-                        text={diffItem.path}
-                        style={{flexShrink: 0}}
-                        aria-label="Copy path to clipboard"
-                      />
-                    </Flex>
-                  ) : null
-                }
-                disabled={!diffItem.path}
-                isHoverable
-                maxWidth={420}
-              >
-                <TextOverflow
-                  ellipsisDirection="right"
-                  style={{display: 'block', width: '100%'}}
+  useEffect(() => {
+    if (safeCurrentPage !== currentPage) {
+      setCurrentPage(safeCurrentPage);
+    }
+  }, [currentPage, safeCurrentPage]);
+
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [sort.field, sort.kind, diffItems.length]);
+
+  const handlePageChange = (newPage: number) => {
+    const clampedPage = Math.max(0, Math.min(newPage, lastPageIndex));
+    setCurrentPage(clampedPage);
+  };
+
+  return (
+    <Flex direction="column" gap="md">
+      <SimpleTableWithColumns>
+        <SimpleTableHeader>
+          {tableHeaders.map(header => (
+            <SimpleTable.HeaderCell
+              key={header.key}
+              handleSortClick={
+                header.key
+                  ? () =>
+                      setSort({
+                        field: header.key,
+                        kind:
+                          sort?.field === header.key && sort.kind === 'asc'
+                            ? 'desc'
+                            : 'asc',
+                      })
+                  : undefined
+              }
+              sort={sort && sort?.field === header.key ? sort.kind : undefined}
+            >
+              {header.label}
+            </SimpleTable.HeaderCell>
+          ))}
+        </SimpleTableHeader>
+        {sortedDiffItems.length === 0 && (
+          <SimpleTable.Empty>
+            <Stack gap="lg" align="center" justify="center">
+              <Text size="lg" variant="muted" bold>
+                {t('No results found')}
+              </Text>
+              {originalItemCount > 0 && (
+                <ScrapsButton priority="primary" onClick={disableHideSmallChanges}>
+                  {t('Show all changes')}
+                </ScrapsButton>
+              )}
+            </Stack>
+          </SimpleTable.Empty>
+        )}
+        {currentDiffItems.map((diffItem, index) => {
+          let changeTypeLabel: string;
+          let changeTypeIcon: React.ReactNode;
+          switch (diffItem.type) {
+            case 'added':
+              changeTypeLabel = t('Added');
+              changeTypeIcon = <IconAdd />;
+              break;
+            case 'removed':
+              changeTypeLabel = t('Removed');
+              changeTypeIcon = <IconSubtract />;
+              break;
+            default:
+              changeTypeLabel = t('Modified');
+              changeTypeIcon = <IconFix />;
+              break;
+          }
+
+          return (
+            <SimpleTable.Row key={startIndex + index}>
+              <SimpleTable.RowCell>
+                <ChangeTag changeType={diffItem.type}>
+                  {changeTypeIcon}
+                  {changeTypeLabel}
+                </ChangeTag>
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
+                <Tooltip
+                  title={
+                    diffItem.path ? (
+                      <Flex
+                        align="start"
+                        gap="xs"
+                        style={{maxWidth: '100%', textAlign: 'left'}}
+                      >
+                        <FilePathTooltipText>{diffItem.path}</FilePathTooltipText>
+                        <CopyToClipboardButton
+                          borderless
+                          size="zero"
+                          text={diffItem.path}
+                          style={{flexShrink: 0}}
+                          aria-label="Copy path to clipboard"
+                        />
+                      </Flex>
+                    ) : null
+                  }
+                  disabled={!diffItem.path}
+                  isHoverable
+                  maxWidth={420}
                 >
-                  {diffItem.path ?? ''}
-                </TextOverflow>
-              </Tooltip>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              {capitalize(diffItem.item_type ?? '')}
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              {diffItem.head_size
-                ? formatBytesBase10(diffItem.head_size)
-                : formatBytesBase10(diffItem.base_size!)}
-            </SimpleTable.RowCell>
-            <ChangeAmountCell changeType={diffItem.type}>
-              {diffItem.size_diff > 0 ? '+' : '-'}
-              {formatBytesBase10(Math.abs(diffItem.size_diff))}
-            </ChangeAmountCell>
-          </SimpleTable.Row>
-        );
-      })}
-    </SimpleTableWithColumns>
+                  <TextOverflow
+                    ellipsisDirection="right"
+                    style={{display: 'block', width: '100%'}}
+                  >
+                    {diffItem.path ?? ''}
+                  </TextOverflow>
+                </Tooltip>
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                {capitalize(diffItem.item_type ?? '')}
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                {diffItem.head_size
+                  ? formatBytesBase10(diffItem.head_size)
+                  : formatBytesBase10(diffItem.base_size!)}
+              </SimpleTable.RowCell>
+              <ChangeAmountCell changeType={diffItem.type}>
+                {diffItem.size_diff > 0 ? '+' : '-'}
+                {formatBytesBase10(Math.abs(diffItem.size_diff))}
+              </ChangeAmountCell>
+            </SimpleTable.Row>
+          );
+        })}
+      </SimpleTableWithColumns>
+      {showPagination && (
+        <Flex align="center" justify="end" gap="md" padding="md">
+          <Text size="sm" variant="muted">
+            {t('Page %s of %s', safeCurrentPage + 1, totalPages)}
+          </Text>
+          <ButtonBar merged gap="0">
+            <Button
+              size="xs"
+              icon={<IconChevron direction="left" />}
+              aria-label={t('Previous')}
+              onClick={() => handlePageChange(safeCurrentPage - 1)}
+              disabled={safeCurrentPage === 0}
+            />
+            <Button
+              size="xs"
+              icon={<IconChevron direction="right" />}
+              aria-label={t('Next')}
+              onClick={() => handlePageChange(safeCurrentPage + 1)}
+              disabled={safeCurrentPage >= lastPageIndex}
+            />
+          </ButtonBar>
+        </Flex>
+      )}
+    </Flex>
   );
 }
 
