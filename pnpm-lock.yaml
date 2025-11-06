@@ -349,8 +349,8 @@ importers:
         specifier: 6.0.0
         version: 6.0.0
       echarts-for-react:
-        specifier: 3.0.4
-        version: 3.0.4(echarts@6.0.0)(react@19.2.0)
+        specifier: 3.0.5
+        version: 3.0.5(echarts@6.0.0)(react@19.2.0)
       esbuild:
         specifier: 0.25.10
         version: 0.25.10
@@ -4836,8 +4836,8 @@ packages:
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
 
-  echarts-for-react@3.0.4:
-    resolution: {integrity: sha512-rc7SNdr0JoMTkMJspp9ejlZAoipv2mMwbI30ggIgxSZMELdX36C2aJREvJ9OSkyetC/RoO1s7VrefXUrUAMClg==}
+  echarts-for-react@3.0.5:
+    resolution: {integrity: sha512-YpEI5Ty7O/2nvCfQ7ybNa+S90DwE8KYZWacGvJW4luUqywP7qStQ+pxDlYOmr4jGDu10mhEkiAuMKcUlT4W5vg==}
     peerDependencies:
       echarts: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0
       react: ^15.0.0 || >=16.0.0
@@ -13954,7 +13954,7 @@ snapshots:
 
   eastasianwidth@0.2.0: {}
 
-  echarts-for-react@3.0.4(echarts@6.0.0)(react@19.2.0):
+  echarts-for-react@3.0.5(echarts@6.0.0)(react@19.2.0):
     dependencies:
       echarts: 6.0.0
       fast-deep-equal: 3.1.3
