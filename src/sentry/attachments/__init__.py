@@ -16,7 +16,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry.objectstore import Client as ObjectstoreClient
-from sentry.objectstore import attachments as objectstore_attachments
+from sentry.objectstore import get_attachments_client
 from sentry.options.rollout import in_random_rollout
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.imports import import_string
@@ -81,7 +81,7 @@ def delete_ratelimited_attachments(
     for attachment in attachments:
         if attachment.rate_limited and attachment.stored_id:
             if client is None:
-                client = objectstore_attachments.for_project(project.organization_id, project.id)
+                client = get_attachments_client().for_project(project.organization_id, project.id)
             client.delete(attachment.stored_id)
 
     # all other attachments which only exist in the cache but are not stored will

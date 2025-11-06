@@ -77,7 +77,8 @@ export type DetectorType =
   | 'error'
   | 'metric_issue'
   | 'monitor_check_in_failure'
-  | 'uptime_domain_failure';
+  | 'uptime_domain_failure'
+  | 'issue_stream';
 
 interface BaseMetricDetectorConfig {
   thresholdPeriod: number;
@@ -124,6 +125,7 @@ type BaseDetector = Readonly<{
   createdBy: string | null;
   dateCreated: string;
   dateUpdated: string;
+  description: string | null;
   enabled: boolean;
   id: string;
   lastTriggered: string;
@@ -190,6 +192,7 @@ export interface BaseDetectorUpdatePayload {
   projectId: Detector['projectId'];
   type: Detector['type'];
   workflowIds: string[];
+  description?: string | null;
   enabled?: boolean;
 }
 

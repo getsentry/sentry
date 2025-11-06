@@ -29,6 +29,7 @@ interface CreditCardPanelProps {
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
   isNewBillingUI?: boolean;
+  maxPanelWidth?: string;
   shouldExpandInitially?: boolean;
 }
 
@@ -52,6 +53,7 @@ function CreditCardPanel({
   ftcLocation,
   analyticsEvent,
   shouldExpandInitially,
+  maxPanelWidth,
 }: CreditCardPanelProps) {
   const [cardLastFourDigits, setCardLastFourDigits] = useState<string | null>(null);
   const [cardZipCode, setCardZipCode] = useState<string | null>(null);
@@ -163,6 +165,7 @@ function CreditCardPanel({
       border="primary"
       radius="md"
       data-test-id="credit-card-panel"
+      maxWidth={maxPanelWidth}
     >
       <Flex direction="column" gap="lg" width="100%">
         <Heading as="h2" size="lg">
