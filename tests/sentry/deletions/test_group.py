@@ -1,11 +1,12 @@
 import os
 import random
 from datetime import datetime, timedelta
-from time import time
+from time import sleep, time
 from typing import Any
 from unittest import mock
 from uuid import uuid4
 
+import pytest
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
 from sentry import deletions, nodestore
@@ -507,3 +508,85 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             assert first_batch == [group2.id, group1.id]  # group2 has less times_seen than group1
             # group3 and group4 have the same times_seen, thus sorted by id
             assert second_batch == [group3.id, group4.id]
+
+    @pytest.mark.xfail(
+        strict=False,
+        reason="ClickHouse light deletes are eventually consistent and may be slow in CI",
+    )
+    def test_issue_platform_deletion_integration(self) -> None:
+        """
+        Integration test verifying issue platform events are actually deleted from Snuba.
+
+        Unlike test_simple_issue_platform which mocks Snuba calls for speed and reliability,
+        this test performs actual end-to-end deletion to verify the integration works.
+
+        Note: This test may be flaky in CI due to ClickHouse eventual consistency.
+        It's marked with xfail to avoid blocking CI, but will report if it passes.
+        """
+        # Adding this query here to make sure that the cache is not being used
+        assert self.select_error_events(self.project.id) is None
+        assert self.select_issue_platform_events(self.project.id) is None
+
+        # Create initial error event and occurrence related to it
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence_event, issue_platform_group = self.create_occurrence(
+            event, type_id=FeedbackGroup.type_id
+        )
+
+        # Assertions after creation
+        assert occurrence_event.id != event.event_id
+        assert event.group_id != issue_platform_group.id
+        assert event.group.issue_category == GroupCategory.ERROR
+        assert issue_platform_group.issue_category == GroupCategory.FEEDBACK
+        assert issue_platform_group.type == FeedbackGroup.type_id
+
+        # Assert that the error event has been inserted in the nodestore & Snuba
+        event_node_id = Event.generate_node_id(event.project_id, event.event_id)
+        assert nodestore.backend.get(event_node_id)
+        expected_error = {"event_id": event.event_id, "group_id": event.group_id}
+        assert self.select_error_events(self.project.id) == expected_error
+
+        # Assert that the occurrence event has been inserted in Snuba
+        expected_occurrence_event = {
+            "event_id": occurrence_event.event_id,
+            "group_id": issue_platform_group.id,
+            "occurrence_id": occurrence_event.id,
+        }
+        assert self.select_issue_platform_events(self.project.id) == expected_occurrence_event
+
+        # This will delete the group and the events from the node store and Snuba
+        with self.tasks():
+            delete_groups_for_project(
+                object_ids=[issue_platform_group.id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
+
+        # The original error event and group still exist
+        assert Group.objects.filter(id=event.group_id).exists()
+        assert nodestore.backend.get(event_node_id)
+        assert self.select_error_events(self.project.id) == expected_error
+
+        # The Issue Platform group has been deleted from Postgres
+        assert not Group.objects.filter(id=issue_platform_group.id).exists()
+
+        # Poll for Snuba deletion with CI-friendly timeouts
+        # ClickHouse light deletes are eventually consistent, so we need to wait
+        max_attempts = 50  # Up to 5 seconds
+        delay = 0.1
+        deleted = False
+        for attempt in range(max_attempts):
+            result = self.select_issue_platform_events(self.project.id)
+            if result is None:
+                deleted = True
+                break
+            if attempt < max_attempts - 1:
+                sleep(delay)
+
+        if not deleted:
+            # Provide helpful debug information if test fails
+            result = self.select_issue_platform_events(self.project.id)
+            pytest.fail(
+                f"Issue platform events not deleted from Snuba after {max_attempts * delay}s. "
+                f"Found: {result}. This indicates ClickHouse replication lag or deletion failure."
+            )
