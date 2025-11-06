@@ -7,6 +7,7 @@ import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex, type FlexProps} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
@@ -97,12 +98,9 @@ function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
   );
 }
 
-const NameColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-`;
+function NameColumn(props: FlexProps) {
+  return <Flex direction="column" align="start" justify="center" {...props} />;
+}
 
 const SizeColumn = styled('div')`
   display: flex;
