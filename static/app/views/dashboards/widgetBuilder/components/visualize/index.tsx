@@ -45,6 +45,7 @@ import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/co
 import SortableVisualizeFieldWrapper from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
 import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
+import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/metricSelectRow';
 import {SelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import VisualizeGhostField from 'sentry/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -682,23 +683,27 @@ function Visualize({error, setError}: VisualizeProps) {
                             )
                           ) : (
                             <Fragment>
-                              <SelectRow
-                                field={field}
-                                index={index}
-                                hasColumnParameter={hasColumnParameter}
-                                columnOptions={columnOptions}
-                                aggregateOptions={aggregateOptions}
-                                stringFields={stringFields}
-                                error={error}
-                                setError={setError}
-                                fields={fields}
-                                source={source}
-                                isEditing={isEditing}
-                                fieldOptions={fieldOptions}
-                                columnFilterMethod={columnFilterMethod}
-                                aggregates={aggregates}
-                                disabled={disableTransactionWidget}
-                              />
+                              {state.dataset === WidgetType.TRACEMETRICS ? (
+                                <MetricSelectRow disabled={disableTransactionWidget} />
+                              ) : (
+                                <SelectRow
+                                  field={field}
+                                  index={index}
+                                  hasColumnParameter={hasColumnParameter}
+                                  columnOptions={columnOptions}
+                                  aggregateOptions={aggregateOptions}
+                                  stringFields={stringFields}
+                                  error={error}
+                                  setError={setError}
+                                  fields={fields}
+                                  source={source}
+                                  isEditing={isEditing}
+                                  fieldOptions={fieldOptions}
+                                  columnFilterMethod={columnFilterMethod}
+                                  aggregates={aggregates}
+                                  disabled={disableTransactionWidget}
+                                />
+                              )}
                               {field.kind === FieldValueKind.FUNCTION &&
                                 parameterRefinements.length > 0 && (
                                   <ParameterRefinements>
@@ -1074,7 +1079,7 @@ export const FieldBar = styled('div')`
 // TODO: Is there a more generic way to style this?
 export const PrimarySelectRow = styled('div')<{
   hasColumnParameter: boolean;
-  isTraceMetrics: boolean;
+  isTraceMetrics?: boolean;
 }>`
   display: flex;
   width: 100%;

@@ -6,6 +6,7 @@ import {
   explodeField,
   generateFieldAsString,
   isAggregateFieldOrEquation,
+  type AggregationKeyWithAlias,
   type Column,
   type QueryFieldValue,
   type Sort,
@@ -33,6 +34,8 @@ import {
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 // For issues dataset, events and users are sorted descending and do not use '-'
 // All other issues fields are sorted ascending
@@ -70,6 +73,7 @@ export const BuilderStateAction = {
   SET_SELECTED_AGGREGATE: 'SET_SELECTED_AGGREGATE',
   SET_STATE: 'SET_STATE',
   SET_THRESHOLDS: 'SET_THRESHOLDS',
+  SET_TRACE_METRIC: 'SET_TRACE_METRIC',
 } as const;
 
 type WidgetAction =
@@ -89,8 +93,8 @@ type WidgetAction =
   | {
       payload: ThresholdsConfig | null | undefined;
       type: typeof BuilderStateAction.SET_THRESHOLDS;
-    };
-
+    }
+  | {payload: TraceMetric; type: typeof BuilderStateAction.SET_TRACE_METRIC};
 type WidgetBuilderStateActionOptions = {
   updateUrl?: boolean;
 };
@@ -108,6 +112,7 @@ export interface WidgetBuilderState {
   sort?: Sort[];
   thresholds?: ThresholdsConfig | null;
   title?: string;
+  traceMetric?: TraceMetric;
   yAxis?: Column[];
 }
 
@@ -176,6 +181,12 @@ function useWidgetBuilderState(): {
     deserializer: deserializeLinkedDashboards,
     serializer: serializeLinkedDashboards,
   });
+  const [traceMetric, setTraceMetric] = useQueryParamState<TraceMetric>({
+    fieldName: 'traceMetric',
+    decoder: decodeScalar,
+    deserializer: deserializeTraceMetric,
+    serializer: serializeTraceMetric,
+  });
 
   const state = useMemo(
     () => ({
@@ -190,6 +201,7 @@ function useWidgetBuilderState(): {
       limit,
       legendAlias,
       thresholds,
+      traceMetric,
       linkedDashboards,
       // The selected aggregate is the last aggregate for big number widgets
       // if it hasn't been explicitly set
@@ -212,6 +224,7 @@ function useWidgetBuilderState(): {
       selectedAggregate,
       thresholds,
       linkedDashboards,
+      traceMetric,
     ]
   );
 
@@ -572,6 +585,28 @@ function useWidgetBuilderState(): {
         case BuilderStateAction.SET_THRESHOLDS:
           setThresholds(action.payload, options);
           break;
+        case BuilderStateAction.SET_TRACE_METRIC:
+          setTraceMetric(action.payload, options);
+
+          if (action.payload.type !== traceMetric?.type && traceMetric) {
+            console.log(DEFAULT_YAXIS_BY_TYPE[action.payload.type]);
+            setYAxis(
+              [
+                {
+                  kind: 'function',
+                  function: [
+                    (DEFAULT_YAXIS_BY_TYPE[action.payload.type] ??
+                      '') as AggregationKeyWithAlias,
+                    'value',
+                    '',
+                    '',
+                  ],
+                },
+              ],
+              options
+            );
+          }
+          break;
         default:
           break;
       }
@@ -590,6 +625,7 @@ function useWidgetBuilderState(): {
       setSelectedAggregate,
       setThresholds,
       setLinkedDashboards,
+      setTraceMetric,
       fields,
       yAxis,
       displayType,
@@ -597,6 +633,7 @@ function useWidgetBuilderState(): {
       sort,
       dataset,
       limit,
+      traceMetric,
     ]
   );
 
@@ -748,4 +785,14 @@ export function serializeThresholds(thresholds: ThresholdsConfig | null): string
   return JSON.stringify(thresholds);
 }
 
+function serializeTraceMetric(traceMetric: TraceMetric): string {
+  return JSON.stringify(traceMetric);
+}
+
+function deserializeTraceMetric(traceMetric: string): TraceMetric | undefined {
+  if (traceMetric === '') {
+    return undefined;
+  }
+  return JSON.parse(traceMetric);
+}
 export default useWidgetBuilderState;

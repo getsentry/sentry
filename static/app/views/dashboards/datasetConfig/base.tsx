@@ -12,6 +12,7 @@ import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {isEquation} from 'sentry/utils/discover/fields';
+import type {DiscoverQueryExtras} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
@@ -205,7 +206,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     cursor?: string,
     referrer?: string,
     mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
+    samplingMode?: SamplingMode,
+    queryExtras?: DiscoverQueryExtras
   ) => Promise<[TableResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Generate the list of sort options for table

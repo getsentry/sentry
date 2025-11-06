@@ -35,7 +35,6 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 
 type AggregateFunction = [
   AggregationKeyWithAlias,
@@ -67,7 +66,7 @@ interface SelectRowProps {
   stringFields?: string[];
 }
 
-function renderDropdownMenuFooter() {
+export function renderDropdownMenuFooter() {
   return (
     <FooterWrapper>
       <IconInfo size="xs" />
@@ -150,24 +149,8 @@ export function SelectRow({
   }, [defaultColumnOptions, state.dataset, field]);
 
   return (
-    <PrimarySelectRow
-      hasColumnParameter={hasColumnParameter}
-      isTraceMetrics={state.dataset === WidgetType.TRACEMETRICS}
-    >
-      {state.dataset === WidgetType.TRACEMETRICS && (
-        <GroupedSelectControl fullWidth>
-          <MetricSelector
-            traceMetric={{
-              name: field.kind === FieldValueKind.FIELD ? field.field : '',
-              type: '',
-            }}
-            onChange={() => {}}
-          />
-        </GroupedSelectControl>
-      )}
-      <GroupedSelectControl
-        fullWidth={state.dataset !== WidgetType.TRACEMETRICS && !hasColumnParameter}
-      >
+    <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
+      <GroupedSelectControl fullWidth={!hasColumnParameter}>
         <AggregateCompactSelect
           searchable
           hasColumnParameter={hasColumnParameter}
@@ -434,47 +417,45 @@ export function SelectRow({
         />
       </GroupedSelectControl>
       {hasColumnParameter && state.dataset !== WidgetType.TRACEMETRICS && (
-        <GroupedSelectControl fullWidth>
-          <SelectWrapper ref={columnSelectRef}>
-            <ColumnCompactSelect
-              searchable
-              options={columnOptions}
-              value={
-                field.kind === FieldValueKind.FUNCTION
-                  ? (parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? '')
-                  : field.field
+        <GroupedSelectControl fullWidth ref={columnSelectRef}>
+          <ColumnCompactSelect
+            searchable
+            options={columnOptions}
+            value={
+              field.kind === FieldValueKind.FUNCTION
+                ? (parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? '')
+                : field.field
+            }
+            onChange={newField => {
+              const newFields = cloneDeep(fields);
+              const currentField = newFields[index]!;
+              if (currentField.kind === FieldValueKind.FUNCTION) {
+                currentField.function[1] = newField.value as string;
               }
-              onChange={newField => {
-                const newFields = cloneDeep(fields);
-                const currentField = newFields[index]!;
-                if (currentField.kind === FieldValueKind.FUNCTION) {
-                  currentField.function[1] = newField.value as string;
-                }
-                if (currentField.kind === FieldValueKind.FIELD) {
-                  currentField.field = newField.value as string;
-                }
-                dispatch({
-                  type: updateAction,
-                  payload: newFields,
-                });
-                setError?.({...error, queries: []});
-                trackAnalytics('dashboards_views.widget_builder.change', {
-                  builder_version: WidgetBuilderVersion.SLIDEOUT,
-                  field: 'visualize.updateColumn',
-                  from: source,
-                  new_widget: !isEditing,
-                  value:
-                    currentField.kind === FieldValueKind.FIELD ? 'column' : 'aggregate',
-                  widget_type: state.dataset ?? '',
-                  organization,
-                });
-              }}
-              triggerProps={{
-                'aria-label': t('Column Selection'),
-              }}
-              disabled={disabled || lockOptions}
-            />
-          </SelectWrapper>
+              if (currentField.kind === FieldValueKind.FIELD) {
+                currentField.field = newField.value as string;
+              }
+              dispatch({
+                type: updateAction,
+                payload: newFields,
+              });
+              setError?.({...error, queries: []});
+              trackAnalytics('dashboards_views.widget_builder.change', {
+                builder_version: WidgetBuilderVersion.SLIDEOUT,
+                field: 'visualize.updateColumn',
+                from: source,
+                new_widget: !isEditing,
+                value:
+                  currentField.kind === FieldValueKind.FIELD ? 'column' : 'aggregate',
+                widget_type: state.dataset ?? '',
+                organization,
+              });
+            }}
+            triggerProps={{
+              'aria-label': t('Column Selection'),
+            }}
+            disabled={disabled || lockOptions}
+          />
         </GroupedSelectControl>
       )}
     </PrimarySelectRow>

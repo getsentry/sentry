@@ -14,7 +14,7 @@ import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   doDiscoverQuery,
   type DiscoverQueryExtras,
@@ -42,6 +42,7 @@ import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHas
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -55,26 +56,17 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['avg(value)'],
+  fields: [''],
   columns: [],
   fieldAliases: [],
-  aggregates: ['avg(value)'],
+  aggregates: [''],
   conditions: '',
-  orderby: '-avg(value)',
+  orderby: '',
 };
 
 const DEFAULT_FIELD: QueryFieldValue = {
   function: ['avg', 'value', undefined, undefined],
   kind: FieldValueKind.FUNCTION,
-};
-
-// Stub aggregations - to be implemented
-const TRACE_METRICS_AGGREGATIONS: Record<AggregationKey, Aggregation> = {
-  [AggregationKey.COUNT]: {
-    isSortable: true,
-    outputType: null,
-    parameters: [],
-  },
 };
 
 function TraceMetricsSearchBar({
@@ -90,6 +82,8 @@ function TraceMetricsSearchBar({
     selection: {projects},
   } = usePageFilters();
   const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
+  const {state: widgetBuilderState} = useWidgetBuilderContext();
+  const traceMetric = widgetBuilderState.traceMetric;
 
   // TODO: Implement proper trace metrics attributes
   const traceItemAttributeConfig = {
@@ -117,6 +111,7 @@ function TraceMetricsSearchBar({
       onChange={(query, state) => {
         onClose?.(query, {validSearch: state.queryIsValid});
       }}
+      namespace={traceMetric?.name}
     />
   );
 }
@@ -192,7 +187,8 @@ export const TraceMetricsConfig: DatasetConfig<
     cursor?: string,
     referrer?: string,
     _mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
+    samplingMode?: SamplingMode,
+    queryExtras?: DiscoverQueryExtras
   ) => {
     // TODO: Implement actual trace metrics request logic
     return getEventsRequest(
@@ -204,7 +200,7 @@ export const TraceMetricsConfig: DatasetConfig<
       cursor,
       referrer,
       undefined,
-      undefined,
+      queryExtras,
       samplingMode
     );
   },
@@ -227,7 +223,7 @@ function getPrimaryFieldOptions(
     organization,
     tagKeys: [],
     fieldKeys: [],
-    aggregations: TRACE_METRICS_AGGREGATIONS,
+    aggregations: {},
   });
 
   const metricsTags = Object.values(tags ?? {}).reduce(

@@ -15,6 +15,8 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export interface DiscoverQueryExtras {
+  metricName?: string;
+  metricType?: string;
   useOnDemandMetrics?: boolean;
 }
 

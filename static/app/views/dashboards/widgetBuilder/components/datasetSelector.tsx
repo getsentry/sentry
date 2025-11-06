@@ -79,7 +79,7 @@ function WidgetBuilderDatasetSelector() {
       </FeatureBadgeAlignmentWrapper>,
     ]);
   }
-  if (organization.features.includes('tracemetrics-dashboards')) {
+  if (hasTraceMetricsDashboards) {
     datasetChoices.push([
       WidgetType.TRACEMETRICS,
       <FeatureBadgeAlignmentWrapper
