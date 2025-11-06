@@ -515,7 +515,7 @@ def get_replay_metadata(
     *,
     replay_id: str,
     organization_id: int,
-    project_ids: list[int] | None = None,
+    project_id: int | None = None,
 ) -> dict[str, Any] | None:
     """
     Get the metadata for a replay through an aggregate replay event query.
@@ -523,7 +523,7 @@ def get_replay_metadata(
     Args:
         replay_id: The ID of the replay.
         organization_id: The ID of the organization the replay belongs to.
-        project_ids: The projects to query. If not provided, all projects in the organization will be queried.
+        project_id: The projects to query. If not provided, all projects in the organization will be queried.
 
     Returns:
         A dict containing the metadata for the replay, or None if it's not found.
@@ -545,8 +545,8 @@ def get_replay_metadata(
     path = path.strip("/")[len("api/0") :] + "/"
 
     params = {}
-    if project_ids:
-        params["project"] = project_ids
+    if project_id:
+        params["project"] = project_id
 
     resp = client.get(
         auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
@@ -561,7 +561,7 @@ def get_replay_metadata(
             extra={
                 "replay_id": replay_id,
                 "organization_id": organization_id,
-                "project_ids": project_ids,
+                "project_id": project_id,
                 "status_code": resp.status_code,
             },
         )
