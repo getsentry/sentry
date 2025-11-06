@@ -1,44 +1,12 @@
 from unittest import mock
 
 import pytest
-from rest_framework.exceptions import ErrorDetail
 
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
 class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     dataset = "tracemetrics"
-
-    @pytest.mark.skip(reason="not implemented yet")
-    def test_missing_metric_name_and_type(self):
-        response = self.do_request(
-            {
-                "field": ["sum(value)"],
-                "dataset": self.dataset,
-                "project": self.project.id,
-            }
-        )
-        assert response.status_code == 400, response.content
-        assert response.data == {
-            "metricName": ErrorDetail("This field is required.", code="required"),
-            "metricType": ErrorDetail("This field is required.", code="required"),
-        }
-
-    @pytest.mark.skip(reason="not implemented yet")
-    def test_invalid_metric_type(self):
-        response = self.do_request(
-            {
-                "metricName": "foo",
-                "metricType": "bar",
-                "field": ["sum(value)"],
-                "dataset": self.dataset,
-                "project": self.project.id,
-            }
-        )
-        assert response.status_code == 400, response.content
-        assert response.data == {
-            "metricType": ErrorDetail('"bar" is not a valid choice.', code="invalid_choice"),
-        }
 
     def test_simple_deprecated(self) -> None:
         trace_metrics = [
