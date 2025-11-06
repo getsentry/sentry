@@ -75,6 +75,7 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupEmailThread,
     models.GroupSubscription,
     models.GroupReaction,
+    models.Activity,
     RuleFireHistory,
 )
 
