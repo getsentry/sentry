@@ -3,11 +3,13 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
+import {ExternalLink} from '@sentry/scraps/link/link';
+import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
 import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -36,7 +38,19 @@ function getReplayTabs({
     [TabKey.AI]:
       hasAiSummary && (!isVideoReplay || hasMobileSummary) ? (
         <Flex align="center" gap="sm">
-          {t('AI Summary')}
+          <Tooltip
+            isHoverable
+            title={tct(
+              `Powered by generative AI. Learn more about our [link:AI privacy principles].`,
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/" />
+                ),
+              }
+            )}
+          >
+            {t('AI Summary')}
+          </Tooltip>
           <FeatureBadge type="beta" />
         </Flex>
       ) : null,
