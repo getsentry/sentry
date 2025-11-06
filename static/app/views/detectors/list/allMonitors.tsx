@@ -12,7 +12,7 @@ const DESCRIPTION = t(
 );
 const DOCS_URL = 'https://docs.sentry.io/product/monitors/';
 
-export default function DetectorsList() {
+export default function AllMonitors() {
   const detectorListQuery = useDetectorListQuery();
 
   return (

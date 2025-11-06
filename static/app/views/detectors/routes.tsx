@@ -6,7 +6,7 @@ export const detectorRoutes: SentryRouteObject = {
   children: [
     {
       index: true,
-      component: make(() => import('sentry/views/detectors/list')),
+      component: make(() => import('sentry/views/detectors/list/allMonitors')),
     },
     {
       path: 'new',
