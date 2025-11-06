@@ -1,7 +1,6 @@
 import {Fragment, useRef, useState} from 'react';
 
 import {Button} from 'sentry/components/core/button';
-import {CodeBlock} from 'sentry/components/core/code/codeBlock';
 import {Input} from 'sentry/components/core/input';
 import {Radio} from 'sentry/components/core/radio';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -160,19 +159,46 @@ const AlertDetails = ({workflow}: {workflow: Automation}) => (
   <div>
     <h4>{workflow.name}</h4>
 
-    {workflow.detectorIds.length && (
-      <Fragment>
-        <h6>Connected Monitors</h6>
-        <CodeBlock language="javascript">{JSON.stringify(workflow)}</CodeBlock>
-        <ul>
-          {workflow.detectorIds.map(detectorId => (
-            <li key={detectorId}>
-              <a href="#">{detectorId}</a>
-            </li>
-          ))}
-        </ul>
-      </Fragment>
-    )}
+    <div style={{marginBottom: 16}}>
+      {Object.entries(workflow).map(([key, value]) => {
+        if (typeof value === 'object' || typeof key === 'object') return null;
+
+        return (
+          <div key={key}>
+            <strong>{key}:&nbsp;</strong>
+            {value}
+          </div>
+        );
+      })}
+    </div>
+
+    <div style={{display: 'flex'}}>
+      {workflow.detectorIds.length && (
+        <div style={{flex: '1'}}>
+          <h6>Connected Monitors</h6>
+          <ul>
+            {workflow.detectorIds.map(detectorId => (
+              <li key={detectorId}>
+                <a href="#">{detectorId}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {workflow.detectorIds.length && (
+        <div style={{flex: '1'}}>
+          <h6>Action Filters</h6>
+          <ul>
+            {workflow.actionFilters.map(actionFilter => (
+              <li key={actionFilter.id}>
+                <a href="#">{actionFilter.id}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   </div>
 );
 
