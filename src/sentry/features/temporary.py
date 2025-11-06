@@ -123,7 +123,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Data Secrecy v2 (with Break the Glass feature)
     manager.add("organizations:data-secrecy-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable v2 of data forwarding implementation in post process
-    manager.add("organizations:data-forwarding-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False, default=True)
+    manager.add("organizations:data-forwarding-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables synthesis of device.class in ingest
     manager.add("organizations:device-class-synthesis", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable device.class as a selectable column
