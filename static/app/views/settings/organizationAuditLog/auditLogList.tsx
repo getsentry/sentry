@@ -356,10 +356,10 @@ function AuditLogList({
             <Fragment key={entry.id}>
               <UserInfo>
                 <div>{getAvatarDisplay(entry.actor)}</div>
-                <NameContainer>
+                <Flex direction="column" justify="center">
                   {addUsernameDisplay(entry.actor)}
                   <AuditNote entry={entry} orgSlug={organization.slug} />
-                </NameContainer>
+                </Flex>
               </UserInfo>
               <Flex align="center">
                 <MonoDetail>{getTypeDisplay(entry.event)}</MonoDetail>
@@ -411,12 +411,6 @@ const UserInfo = styled('div')`
   line-height: 1.2;
   font-size: ${p => p.theme.fontSize.sm};
   min-width: 250px;
-`;
-
-const NameContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 `;
 
 const Note = styled('div')`
