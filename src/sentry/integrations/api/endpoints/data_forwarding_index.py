@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -50,6 +51,9 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
     def get(self, request: Request, organization) -> Response:
+        if not features.has("organizations:data-forwarding-revamp-access", organization):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
+
         queryset = DataForwarder.objects.filter(organization_id=organization.id)
 
         return self.paginate(
@@ -73,6 +77,9 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
     def post(self, request: Request, organization) -> Response:
+        if not features.has("organizations:data-forwarding-revamp-access", organization):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
+
         data = request.data
         data["organization_id"] = organization.id
 

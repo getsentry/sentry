@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -286,6 +287,9 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     def put(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> Response:
+        if not features.has("organizations:data-forwarding-revamp-access", organization):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
+
         # org:write users can update the main data forwarder configuration
         if request.access.has_scope("org:write"):
             return self._update_data_forwarder_config(request, organization, data_forwarder)
@@ -323,5 +327,8 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     def delete(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
     ) -> Response:
+        if not features.has("organizations:data-forwarding-revamp-access", organization):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
+
         data_forwarder.delete()
         return self.respond(status=status.HTTP_204_NO_CONTENT)
