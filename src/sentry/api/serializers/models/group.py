@@ -397,6 +397,7 @@ class GroupSerializerBase(Serializer, ABC):
             "priorityLockedAt": obj.priority_locked_at,
             "seerFixabilityScore": obj.seer_fixability_score,
             "seerAutofixLastTriggered": obj.seer_autofix_last_triggered,
+            "seerAutomationQueued": obj.seer_automation_queued,
         }
 
         # This attribute is currently feature gated

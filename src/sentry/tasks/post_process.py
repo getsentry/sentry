@@ -1646,6 +1646,18 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if is_seer_scanner_rate_limited(project, group.organization):
         return
 
+    # Atomic check-and-set to prevent race conditions
+    # Only queue if automation hasn't been queued yet
+    from sentry.models.group import Group
+
+    rows_updated = Group.objects.filter(id=group.id, seer_automation_queued=False).update(
+        seer_automation_queued=True
+    )
+
+    if rows_updated == 0:
+        # Another process already queued automation for this group
+        return
+
     start_seer_automation.delay(group.id)
 
 

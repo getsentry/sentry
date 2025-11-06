@@ -2715,6 +2715,9 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         )
 
         mock_start_seer_automation.assert_called_once_with(event.group.id)
+        # Verify flag was set atomically
+        event.group.refresh_from_db()
+        assert event.group.seer_automation_queued is True
 
     @patch(
         "sentry.seer.seer_setup.get_seer_org_acknowledgement",
@@ -2834,6 +2837,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         # Group has no seer_fixability_score (None by default)
         group = event.group
         assert group.seer_fixability_score is None
+        assert group.seer_automation_queued is False
 
         self.call_post_process_group(
             is_new=False,  # Not a new group
@@ -2843,6 +2847,9 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         )
 
         mock_start_seer_automation.assert_called_once_with(group.id)
+        # Verify flag was set atomically
+        group.refresh_from_db()
+        assert group.seer_automation_queued is True
 
     @patch(
         "sentry.seer.seer_setup.get_seer_org_acknowledgement",
@@ -2877,6 +2884,38 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
+        mock_start_seer_automation.assert_not_called()
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    def test_kick_off_seer_automation_prevents_race_condition(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        """Test that atomic flag prevents duplicate automation queuing."""
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Set seer_automation_queued to True (simulating another process already queued it)
+        group = event.group
+        group.seer_automation_queued = True
+        group.save()
+        assert group.seer_fixability_score is None  # No scan yet
+
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        # Should not call automation since flag is already set
         mock_start_seer_automation.assert_not_called()
 
     @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
