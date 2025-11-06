@@ -23,7 +23,6 @@ import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTim
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
 import {MonitorHeader} from 'sentry/views/insights/crons/components/monitorHeader';
 import {MonitorIssues} from 'sentry/views/insights/crons/components/monitorIssues';
-import {MonitorStats} from 'sentry/views/insights/crons/components/monitorStats';
 import {MonitorOnboarding} from 'sentry/views/insights/crons/components/onboarding';
 import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
 import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusToggleButton';
@@ -175,7 +174,6 @@ function MonitorDetails({params, location}: Props) {
             {hasLastCheckIn(monitor) ? (
               <Fragment>
                 <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
-                <MonitorStats monitor={monitor} monitorEnvs={monitor.environments} />
                 <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
                 <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
                 <MonitorCheckIns
