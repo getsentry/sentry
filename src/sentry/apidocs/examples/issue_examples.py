@@ -75,6 +75,7 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     },
     "seerAutofixLastTriggered": None,
     "seerFixabilityScore": None,
+    "seerAutomationQueued": False,
     "status": "ignored",
     "substatus": "archived_until_condition_met",
     "statusDetails": {},

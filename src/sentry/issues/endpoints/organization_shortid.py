@@ -106,6 +106,7 @@ class ShortIdLookupEndpoint(GroupEndpoint):
                         "priorityLockedAt": None,
                         "seerFixabilityScore": 0.5,
                         "seerAutofixLastTriggered": None,
+                        "seerAutomationQueued": False,
                         "substatus": "ongoing",
                     },
                     "groupId": "1",
