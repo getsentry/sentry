@@ -4,7 +4,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs, {AngularConfigType} from './angular';
+import {AngularConfigType} from './utils';
+import docs from '.';
 
 describe('javascript-angular onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
