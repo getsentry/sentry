@@ -1,12 +1,14 @@
 import {Fragment, useCallback, useId, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link/link';
+
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {IconMail} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {selectText} from 'sentry/utils/selectText';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -30,9 +32,10 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   const user = name && email && !isSameNameAndEmail ? `${name} <${email}>` : nameOrEmail;
 
   const summary = feedbackIssue.metadata.summary;
+  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
   const isAiSummaryEnabled =
     areAiFeaturesAllowed &&
-    setupAcknowledgement.orgHasAcknowledged &&
+    (setupAcknowledgement.orgHasAcknowledged || skipConsentFlow) &&
     organization.features.includes('user-feedback-ai-titles');
 
   const userNodeId = useId();
@@ -69,7 +72,18 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
       <Flex align="center" wrap="wrap" gap="xs">
         {isAiSummaryEnabled && summary && (
           <Fragment>
-            <strong>{summary}</strong>
+            <Tooltip
+              title={tct(
+                `Powered by generative AI. Learn more about our [link:AI privacy principles].`,
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/" />
+                  ),
+                }
+              )}
+            >
+              <strong>{summary}</strong>
+            </Tooltip>
             <Purple>•</Purple>
           </Fragment>
         )}
