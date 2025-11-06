@@ -1,38 +1,27 @@
 import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
+import {parseAsString, parseAsStringEnum, useQueryStates} from 'nuqs';
 
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
-import type {QueryValue} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 
-function decodeSortField(value: QueryValue): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  return 'count()';
-}
-
-function isSortOrder(value: string): value is 'asc' | 'desc' {
-  return value === 'asc' || value === 'desc';
-}
-
-function decodeSortOrder(value: QueryValue): 'asc' | 'desc' {
-  if (typeof value === 'string' && isSortOrder(value)) {
-    return value;
-  }
-  return 'desc';
-}
-
-export function useTableSortParams() {
-  const {field: sortField, order: sortOrder} = useLocationQuery({
-    fields: {
-      [TableUrlParams.SORT_FIELD]: decodeSortField,
-      [TableUrlParams.SORT_ORDER]: decodeSortOrder,
+export function useTableSort(defaultValue: Sort = {field: 'count()', kind: 'desc'}) {
+  const [tableSort, setTableSort] = useQueryStates(
+    {
+      field: parseAsString.withDefault(defaultValue.field),
+      kind: parseAsStringEnum(['asc', 'desc']).withDefault(defaultValue.kind),
     },
-  });
-  return {sortField, sortOrder};
+    {
+      history: 'replace',
+      urlKeys: {
+        field: TableUrlParams.SORT_FIELD,
+        kind: TableUrlParams.SORT_ORDER,
+      },
+    }
+  );
+  return {tableSort, setTableSort};
 }
 
 export const HeadSortCell = memo(function HeadCell({
@@ -40,23 +29,25 @@ export const HeadSortCell = memo(function HeadCell({
   children,
   align = 'left',
   forceCellGrow = false,
+  currentSort,
   onClick,
 }: {
   children: React.ReactNode;
+  currentSort: Sort;
   sortKey: string;
   align?: 'left' | 'right';
   forceCellGrow?: boolean;
   onClick?: (sortKey: string, newDirection: 'asc' | 'desc') => void;
 }) {
   const location = useLocation();
-  const {sortField, sortOrder} = useTableSortParams();
-  const newDirection =
-    sortField === sortKey ? (sortOrder === 'asc' ? 'desc' : 'asc') : 'desc';
+
+  const reversedOrder = currentSort.kind === 'asc' ? 'desc' : 'asc';
+  const newDirection = currentSort.field === sortKey ? reversedOrder : 'desc';
 
   return (
     <SortLink
       align={align}
-      direction={sortField === sortKey ? sortOrder : undefined}
+      direction={currentSort.field === sortKey ? currentSort.kind : undefined}
       canSort
       preventScrollReset
       generateSortLink={() => ({

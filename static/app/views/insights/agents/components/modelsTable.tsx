@@ -22,7 +22,7 @@ import {
 } from 'sentry/views/insights/agents/components/common';
 import {
   HeadSortCell,
-  useTableSortParams,
+  useTableSort,
 } from 'sentry/views/insights/agents/components/headSortCell';
 import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
@@ -93,7 +93,7 @@ export function ModelsTable() {
 
   const {cursor, setCursor} = useTableCursor();
 
-  const {sortField, sortOrder} = useTableSortParams();
+  const {tableSort} = useTableSort();
 
   const modelsRequest = useSpans(
     {
@@ -109,7 +109,7 @@ export function ModelsTable() {
         'p95(span.duration)',
         'count_if(span.status,equals,internal_error)',
       ],
-      sorts: [{field: sortField, kind: sortOrder}],
+      sorts: [tableSort],
       search: fullQuery,
       limit: 10,
       cursor,
@@ -154,6 +154,7 @@ export function ModelsTable() {
       return (
         <HeadSortCell
           sortKey={column.key}
+          currentSort={tableSort}
           forceCellGrow={column.key === 'model'}
           align={rightAlignColumns.has(column.key) ? 'right' : undefined}
           onClick={handleSort}
@@ -162,7 +163,7 @@ export function ModelsTable() {
         </HeadSortCell>
       );
     },
-    [handleSort]
+    [handleSort, tableSort]
   );
 
   const renderBodyCell = useCallback(
