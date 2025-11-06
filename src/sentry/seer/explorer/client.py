@@ -1,37 +1,7 @@
-"""
-Seer Explorer Client - Type-safe interface for running AI debugging agents.
-
-This module provides a class-based interface for Sentry developers to build agentic features
-with full Sentry context and optional structured artifact generation.
-
-Example usage:
-    from sentry.seer.explorer.client import SeerExplorerClient
-    from pydantic import BaseModel
-
-    # Simple usage
-    client = SeerExplorerClient(organization, user)
-    run_id = client.start_run("Analyze trace XYZ and find performance issues")
-    state = client.get_run(run_id)
-
-    # With artifacts
-    class BugAnalysis(BaseModel):
-        issue_count: int
-        severity: str
-        recommendations: list[str]
-
-    client = SeerExplorerClient(organization, user, artifact_schema=BugAnalysis)
-    run_id = client.start_run("Analyze recent 500 errors")
-    state = client.get_run(run_id, blocking=True)
-
-    # Artifact is automatically reconstructed as BugAnalysis instance
-    if state.artifact:
-        print(f"Found {state.artifact.issue_count} issues")
-"""
-
 from __future__ import annotations
 
 import logging
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 import orjson
 import requests
@@ -53,39 +23,49 @@ from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T", bound=BaseModel)
 
-
-class SeerExplorerClient(Generic[T]):
+class SeerExplorerClient:
     """
-    Type-safe client for Seer Explorer with automatic artifact reconstruction.
+    A simple client for Seer Explorer, our general debugging agent.
 
-    This class provides a clean interface for interacting with the Seer Explorer API.
-    When an artifact_schema is provided, the client automatically:
-    1. Serializes the Pydantic model to JSON Schema for the API
-    2. Reconstructs returned artifacts as typed Pydantic instances
+    This provides a class-based interface for Sentry developers to build agentic features
+    with full Sentry context.
 
-    Args:
-        organization: Sentry organization
-        user: User for permission checks (can be User, AnonymousUser, or None)
-        artifact_schema: Optional Pydantic model class for structured artifact generation
+    Example usage:
+        from sentry.seer.explorer.client import SeerExplorerClient
+        from pydantic import BaseModel
 
-    Example:
-        class IssueAnalysis(BaseModel):
+        # Simple usage
+        client = SeerExplorerClient(organization, user)
+        run_id = client.start_run("Analyze trace XYZ and find performance issues")
+        state = client.get_run(run_id)
+
+        # With artifacts
+        class BugAnalysis(BaseModel):
             issue_count: int
             severity: str
+            recommendations: list[str]
 
-        client = SeerExplorerClient(org, user, artifact_schema=IssueAnalysis)
-        run_id = client.start_run("Analyze errors")
-        state = client.get_run(run_id)
-        # state.artifact is already an IssueAnalysis instance!
+        client = SeerExplorerClient(organization, user, artifact_schema=BugAnalysis)
+        run_id = client.start_run("Analyze recent 500 errors")
+        state = client.get_run(run_id, blocking=True)
+
+        # Artifact is automatically reconstructed as BugAnalysis instance at runtime
+        if state.artifact:
+            artifact = cast(BugAnalysis, state.artifact)
+            print(f"Found {artifact.issue_count} issues")
+
+        Args:
+            organization: Sentry organization
+            user: User for permission checks and user-specific context (can be User, AnonymousUser, or None)
+            artifact_schema: Optional Pydantic model to generate a structured artifact at the end of the run
     """
 
     def __init__(
         self,
         organization: Organization,
         user: User | AnonymousUser | None = None,
-        artifact_schema: type[T] | None = None,
+        artifact_schema: type[BaseModel] | None = None,
     ):
         self.organization = organization
         self.user = user
