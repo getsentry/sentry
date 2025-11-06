@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 import orjson
@@ -16,16 +17,14 @@ from sentry.explore.translation.alerts_translation import (
     translate_detector_and_update_subscription_in_snuba,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.alert_rule import (
-    AlertRuleDetectionType,
-    AlertRuleSeasonality,
-    AlertRuleSensitivity,
-)
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.seer.anomaly_detection.store_data import SeerMethod
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import ExtrapolationMode, SnubaQueryEventType
+from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -39,16 +38,17 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org)
 
     def test_snapshot_snuba_query_with_performance_metrics(self) -> None:
-        alert_rule = self.create_alert_rule(
-            organization=self.org,
-            projects=[self.project],
-            name="Test Alert",
+
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.PerformanceMetrics,
             query="transaction.duration:>100",
             aggregate="count()",
-            time_window=10,
-            dataset=Dataset.PerformanceMetrics,
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
         )
-        snuba_query = alert_rule.snuba_query
 
         snapshot_snuba_query(snuba_query)
         snuba_query.refresh_from_db()
@@ -61,16 +61,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         assert snuba_query.query_snapshot["time_window"] == snuba_query.time_window
 
     def test_snapshot_snuba_query_with_transactions(self) -> None:
-        alert_rule = self.create_alert_rule(
-            organization=self.org,
-            projects=[self.project],
-            name="Test Alert",
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Transactions,
             query="transaction.duration:>100",
             aggregate="p95(transaction.duration)",
-            time_window=10,
-            dataset=Dataset.Transactions,
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
         )
-        snuba_query = alert_rule.snuba_query
 
         snapshot_snuba_query(snuba_query)
         snuba_query.refresh_from_db()
@@ -83,16 +83,16 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         assert snuba_query.query_snapshot["time_window"] == snuba_query.time_window
 
     def test_snapshot_snuba_query_with_events_dataset(self) -> None:
-        alert_rule = self.create_alert_rule(
-            organization=self.org,
-            projects=[self.project],
-            name="Test Alert",
-            query="level:error",
-            aggregate="count()",
-            time_window=10,
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.Events,
+            query="transaction.duration:>100",
+            aggregate="p95(transaction.duration)",
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.DEFAULT],
+            resolution=timedelta(minutes=1),
         )
-        snuba_query = alert_rule.snuba_query
 
         assert snuba_query.query_snapshot is None
 
@@ -106,17 +106,23 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
     def test_translate_alert_rule_simple_count(self, mock_create_rpc) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
-        alert_rule = self.create_alert_rule(
-            organization=self.org,
-            projects=[self.project],
-            name="Test Alert",
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.PerformanceMetrics,
             query="transaction.duration:>100",
             aggregate="count()",
-            time_window=10,
-            dataset=Dataset.PerformanceMetrics,
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
         )
-        snuba_query = alert_rule.snuba_query
         original_dataset = snuba_query.dataset
+
+        create_snuba_subscription(
+            project=self.project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+        )
 
         data_source = self.create_data_source(
             organization=self.org,
@@ -140,7 +146,9 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         assert snuba_query.dataset == Dataset.PerformanceMetrics.value
 
-        translate_detector_and_update_subscription_in_snuba(snuba_query)
+        # Now translate and update the subscription with tasks enabled
+        with self.tasks():
+            translate_detector_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.query_snapshot is not None
@@ -204,16 +212,22 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
     def test_translate_alert_rule_p95(self, mock_create_rpc) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
-        alert_rule = self.create_alert_rule(
-            organization=self.org,
-            projects=[self.project],
-            name="Test Alert",
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Transactions,
             query="http.method:GET",
             aggregate="p95(transaction.duration)",
-            time_window=10,
-            dataset=Dataset.Transactions,
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
         )
-        snuba_query = alert_rule.snuba_query
+
+        create_snuba_subscription(
+            project=self.project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+        )
 
         data_source = self.create_data_source(
             organization=self.org,
@@ -237,7 +251,8 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         assert snuba_query.dataset == Dataset.Transactions.value
 
-        translate_detector_and_update_subscription_in_snuba(snuba_query)
+        with self.tasks():
+            translate_detector_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
@@ -265,16 +280,22 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
     def test_translate_alert_rule_count_unique(self, mock_create_rpc) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
-        alert_rule = self.create_alert_rule(
-            organization=self.org,
-            projects=[self.project],
-            name="Test Alert",
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.PerformanceMetrics,
             query="transaction:/api/*",
             aggregate="count_unique(user)",
-            time_window=10,
-            dataset=Dataset.PerformanceMetrics,
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
         )
-        snuba_query = alert_rule.snuba_query
+
+        create_snuba_subscription(
+            project=self.project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+        )
 
         data_source = self.create_data_source(
             organization=self.org,
@@ -296,7 +317,8 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         data_source.detectors.add(detector)
 
-        translate_detector_and_update_subscription_in_snuba(snuba_query)
+        with self.tasks():
+            translate_detector_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
@@ -315,16 +337,22 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
     def test_translate_alert_rule_empty_query(self, mock_create_rpc) -> None:
         mock_create_rpc.return_value = "test-subscription-id"
 
-        alert_rule = self.create_alert_rule(
-            organization=self.org,
-            projects=[self.project],
-            name="Test Alert",
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Transactions,
             query="",
             aggregate="count()",
-            time_window=10,
-            dataset=Dataset.Transactions,
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
         )
-        snuba_query = alert_rule.snuba_query
+
+        create_snuba_subscription(
+            project=self.project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+        )
 
         data_source = self.create_data_source(
             organization=self.org,
@@ -346,7 +374,8 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
         data_source.detectors.add(detector)
 
-        translate_detector_and_update_subscription_in_snuba(snuba_query)
+        with self.tasks():
+            translate_detector_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
@@ -371,16 +400,22 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         mock_create_snql.return_value = "rollback-subscription-id"
         mock_delete.return_value = None
 
-        alert_rule = self.create_alert_rule(
-            organization=self.org,
-            projects=[self.project],
-            name="Test Alert",
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Transactions,
             query="transaction.duration:>100",
             aggregate="count()",
-            time_window=10,
-            dataset=Dataset.Transactions,
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
         )
-        snuba_query = alert_rule.snuba_query
+
+        create_snuba_subscription(
+            project=self.project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+        )
 
         data_source = self.create_data_source(
             organization=self.org,
@@ -408,7 +443,8 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         original_aggregate = snuba_query.aggregate
         original_time_window = snuba_query.time_window
 
-        translate_detector_and_update_subscription_in_snuba(snuba_query)
+        with self.tasks():
+            translate_detector_and_update_subscription_in_snuba(snuba_query)
         snuba_query.refresh_from_db()
 
         assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
@@ -451,16 +487,22 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
 
     @with_feature("organizations:migrate-transaction-alerts-to-spans")
     def test_rollback_without_snapshot(self) -> None:
-        alert_rule = self.create_alert_rule(
-            organization=self.org,
-            projects=[self.project],
-            name="Test Alert",
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Events,
             query="transaction.duration:>100",
             aggregate="count()",
-            time_window=10,
-            dataset=Dataset.Events,
+            time_window=timedelta(minutes=10),
+            environment=None,
+            event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
         )
-        snuba_query = alert_rule.snuba_query
+
+        create_snuba_subscription(
+            project=self.project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+        )
 
         data_source = self.create_data_source(
             organization=self.org,
@@ -507,20 +549,22 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
-        alert_rule = self.create_alert_rule(
-            organization=self.org,
-            projects=[self.project],
-            name="Anomaly Detection Alert",
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.PerformanceMetrics,
             query="transaction.duration:>100",
             aggregate="count()",
-            time_window=15,
-            dataset=Dataset.PerformanceMetrics,
-            detection_type=AlertRuleDetectionType.DYNAMIC,
-            sensitivity=AlertRuleSensitivity.LOW,
-            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=timedelta(minutes=10),
+            environment=None,
             event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
         )
-        snuba_query = alert_rule.snuba_query
+
+        create_snuba_subscription(
+            project=self.project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+        )
 
         data_source = self.create_data_source(
             organization=self.org,
@@ -601,20 +645,21 @@ class AlertsTranslationTestCase(TestCase, SnubaTestCase):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
-        alert_rule = self.create_alert_rule(
-            organization=self.org,
-            projects=[self.project],
-            name="Anomaly Detection Alert",
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.Transactions,
             query="transaction.duration:>100",
             aggregate="count()",
-            time_window=15,
-            dataset=Dataset.Transactions,
-            detection_type=AlertRuleDetectionType.DYNAMIC,
-            sensitivity=AlertRuleSensitivity.LOW,
-            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=timedelta(minutes=10),
+            environment=None,
             event_types=[SnubaQueryEventType.EventType.TRANSACTION],
+            resolution=timedelta(minutes=1),
         )
-        snuba_query = alert_rule.snuba_query
+        create_snuba_subscription(
+            project=self.project,
+            subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+            snuba_query=snuba_query,
+        )
 
         data_source = self.create_data_source(
             organization=self.org,
