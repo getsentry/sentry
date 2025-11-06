@@ -12,7 +12,7 @@ export const ProviderLabels: Record<DataForwarderProviderSlug, string> = {
   [DataForwarderProviderSlug.SPLUNK]: 'Splunk',
 };
 
-export interface DataForwarderProject {
+interface DataForwarderProject {
   dataForwarderId: string;
   effectiveConfig: Record<string, any>;
   id: string;

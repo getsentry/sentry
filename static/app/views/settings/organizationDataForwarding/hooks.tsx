@@ -9,29 +9,16 @@ import {
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   ProviderLabels,
   type DataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/types';
 
-export function useHasDataForwardingAccess() {
-  const organization = useOrganization();
-  const featureSet = new Set(organization.features);
-
-  return (
-    // Can access the new UI/UX and endpoints
-    featureSet.has('data-forwarding-revamp-access') &&
-    // Can access the feature itself (subscription-based)
-    featureSet.has('data-forwarding')
-  );
-}
-
 const makeDataForwarderQueryKey = (params: {orgSlug: string}): ApiQueryKey => [
   `/organizations/${params.orgSlug}/forwarding/`,
 ];
 
-export function useDataForwarders({
+function useDataForwarders({
   params,
   options,
 }: {
@@ -40,11 +27,13 @@ export function useDataForwarders({
 }) {
   return useApiQuery<DataForwarder[]>(makeDataForwarderQueryKey(params), {
     staleTime: 30000,
-
     ...options,
   });
 }
 
+/**
+ * Simplified hook to get the primary data forwarder for an organization.
+ */
 export function useDataForwarder({
   orgSlug,
 }: {
