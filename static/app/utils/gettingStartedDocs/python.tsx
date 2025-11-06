@@ -186,7 +186,7 @@ export const getPythonMetricsOnboarding = ({
         {
           type: 'text',
           text: tct(
-            'Metrics are automatically enabled in your [code:sentry_sdk.init()] configuration. You can emit metrics using the [code:Sentry.metrics] API.',
+            'Metrics are automatically enabled in your [code:sentry_sdk.init()] configuration. You can emit metrics using the [code:sentry_sdk.metrics] API.',
             {
               code: <code />,
             }
