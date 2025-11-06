@@ -203,7 +203,6 @@ open_periods = {
             "id": "551505189",  # this ID renders on the vertical line indicating the beginning of an open period
             "start": "2022-04-21T20:29:34.982805Z",
             "end": None,
-            "duration": None,
             "isOpen": True,
             "lastChecked": "2022-05-01T20:28:00Z",
             "activities": [

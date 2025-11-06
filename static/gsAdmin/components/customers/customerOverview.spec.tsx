@@ -190,20 +190,18 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('Total: $0.00 / $3,000,000.00')).toBeInTheDocument();
 
     // CPE information
-    expect(screen.getByText('Pay-as-you-go Cost-Per-Event Errors:')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Cost-Per-Event Errors:')).toBeInTheDocument();
     expect(screen.getByText('$0.12345678')).toBeInTheDocument();
     expect(
-      screen.getByText('Pay-as-you-go Cost-Per-Event Performance units:')
+      screen.getByText('On-Demand Cost-Per-Event Performance units:')
     ).toBeInTheDocument();
     expect(screen.getByText('$1.00000000')).toBeInTheDocument();
-    expect(screen.getByText('Pay-as-you-go Cost-Per-Event Replays:')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Cost-Per-Event Replays:')).toBeInTheDocument();
     expect(screen.getByText('$0.50000000')).toBeInTheDocument();
-    expect(
-      screen.getByText('Pay-as-you-go Cost-Per-Event Attachments:')
-    ).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Cost-Per-Event Attachments:')).toBeInTheDocument();
     expect(screen.getByText('$0.20300000')).toBeInTheDocument();
     expect(
-      screen.getByText('Pay-as-you-go Cost-Per-Event Cron monitors:')
+      screen.getByText('On-Demand Cost-Per-Event Cron monitors:')
     ).toBeInTheDocument();
     expect(screen.getByText('$0.07550000')).toBeInTheDocument();
   });
@@ -644,6 +642,7 @@ describe('CustomerOverview', () => {
     const organization = OrganizationFixture({});
     const subscription = SubscriptionFixture({
       organization,
+      plan: 'am3_f',
     });
 
     subscription.planDetails = {

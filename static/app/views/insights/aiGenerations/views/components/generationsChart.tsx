@@ -1,10 +1,10 @@
 import {Fragment, useMemo} from 'react';
-import {parseAsStringEnum, useQueryState} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconGraph} from 'sentry/icons/iconGraph';
+import {t} from 'sentry/locale';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
@@ -14,16 +14,18 @@ import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/p
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+  useSetQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
-import {getAIGenerationsFilter} from 'sentry/views/insights/agents/utils/query';
+import {AI_GENERATIONS_PAGE_FILTER} from 'sentry/views/insights/aiGenerations/views/utils/constants';
 import {Referrer} from 'sentry/views/insights/aiGenerations/views/utils/referrer';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
-
-enum ChartType {
-  BAR = 'bar',
-  LINE = 'line',
-  AREA = 'area',
-}
+import type {SpanFields} from 'sentry/views/insights/types';
 
 const CHART_TYPE_OPTIONS = [
   {
@@ -49,21 +51,74 @@ const plottableConstructors: Record<
   [ChartType.AREA]: Area,
 };
 
+const chartTypeIconMap: Record<ChartType, 'line' | 'bar' | 'area'> = {
+  [ChartType.BAR]: 'bar',
+  [ChartType.LINE]: 'line',
+  [ChartType.AREA]: 'area',
+};
+
+function prettifyAggregation(aggregation: string): string {
+  if (aggregation === 'count(span.duration)') {
+    return 'count(generations)';
+  }
+  return aggregation;
+}
+
 export function GenerationsChart() {
-  const [interval, setInterval, intervalOptions] = useChartInterval();
+  const visualizes = useQueryParamsVisualizes();
+  const setVisualizes = useSetQueryParamsVisualizes();
 
-  const [chartType, setChartType] = useQueryState(
-    'chartType',
-    parseAsStringEnum(Object.values(ChartType)).withDefault(ChartType.BAR)
+  function handleChartTypeChange(index: number, chartType: ChartType) {
+    const newVisualizes = visualizes.map((visualize, i) => {
+      if (i === index) {
+        visualize = visualize.replace({chartType});
+      }
+      return visualize.serialize();
+    });
+    setVisualizes(newVisualizes);
+  }
+
+  return (
+    <Fragment>
+      {visualizes.map((visualize, index) => {
+        return (
+          <ChartWidget
+            key={index}
+            visualize={visualize}
+            onChartTypeChange={chartType => handleChartTypeChange(index, chartType)}
+          />
+        );
+      })}
+    </Fragment>
   );
+}
 
-  const query = useCombinedQuery(getAIGenerationsFilter());
+function ChartWidget({
+  visualize,
+  onChartTypeChange,
+}: {
+  onChartTypeChange: (chartType: ChartType) => void;
+  visualize: Visualize;
+}) {
+  const groupBys = useQueryParamsGroupBys().filter(Boolean);
+  const [interval, setInterval, intervalOptions] = useChartInterval();
+  const chartType = visualize.chartType;
 
+  const query = useCombinedQuery(AI_GENERATIONS_PAGE_FILTER);
   const {data, isLoading, error} = useFetchSpanTimeSeries(
     {
       query,
-      yAxis: ['count(span.duration)'],
+      yAxis: [visualize.yAxis] as any,
+      groupBy: groupBys as SpanFields[],
       interval,
+      sort:
+        groupBys.length > 0 && groupBys[0]
+          ? {
+              field: groupBys[0],
+              kind: 'desc' as const,
+            }
+          : undefined,
+      topEvents: groupBys.length > 0 ? 5 : undefined,
     },
     Referrer.GENERATIONS_CHART
   );
@@ -83,20 +138,20 @@ export function GenerationsChart() {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title="count(generations)" />}
+      Title={<Widget.WidgetTitle title={prettifyAggregation(visualize.yAxis)} />}
       Actions={
         <Fragment>
           <CompactSelect
             triggerProps={{
-              icon: <IconGraph type={chartType} />,
+              icon: <IconGraph type={chartTypeIconMap[chartType]} />,
               borderless: true,
               showChevron: false,
               size: 'xs',
             }}
             value={chartType}
-            menuTitle="Type"
+            menuTitle={t('Type')}
             options={CHART_TYPE_OPTIONS}
-            onChange={option => setChartType(option.value)}
+            onChange={option => onChartTypeChange(option.value)}
           />
           <CompactSelect
             value={interval}
@@ -107,7 +162,7 @@ export function GenerationsChart() {
               showChevron: false,
               size: 'xs',
             }}
-            menuTitle="Interval"
+            menuTitle={t('Interval')}
             options={intervalOptions}
           />
         </Fragment>

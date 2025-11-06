@@ -12,9 +12,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
+import {
+  HeadSortCell,
+  useTableSort,
+} from 'sentry/views/insights/agents/components/headSortCell';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
-import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {MCPReferrer} from 'sentry/views/insights/mcp/utils/referrer';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
@@ -46,6 +48,7 @@ export function McpToolsTable() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_TOOL_NAME}`);
+  const {tableSort} = useTableSort();
   const tableDataRequest = useSpanTableData({
     query,
     fields: [
@@ -56,7 +59,7 @@ export function McpToolsTable() {
       AVG_DURATION,
       P95_DURATION,
     ],
-    cursorParamName: TableUrlParams.CURSOR,
+    sort: tableSort,
     referrer: MCPReferrer.MCP_TOOL_TABLE,
   });
 
@@ -77,16 +80,16 @@ export function McpToolsTable() {
       return (
         <HeadSortCell
           sortKey={column.key}
+          currentSort={tableSort}
           align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
           forceCellGrow={column.key === SpanFields.MCP_TOOL_NAME}
-          cursorParamName={TableUrlParams.CURSOR}
           onClick={handleSort}
         >
           {column.name}
         </HeadSortCell>
       );
     },
-    [handleSort]
+    [handleSort, tableSort]
   );
 
   type TableData = (typeof tableDataRequest.data)[number];
@@ -132,7 +135,6 @@ export function McpToolsTable() {
         renderBodyCell,
         renderHeadCell,
       }}
-      cursorParamName={TableUrlParams.CURSOR}
       pageLinks={tableDataRequest.pageLinks}
       isPlaceholderData={tableDataRequest.isPlaceholderData}
     />

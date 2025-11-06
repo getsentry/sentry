@@ -1,12 +1,24 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {TabPanels} from '@sentry/scraps/tabs';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import {DetailsWrapper} from 'sentry/views/explore/logs/styles';
+import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
-export const TabListWrapper = styled('div')`
-  padding-top: ${p => p.theme.space.sm};
+export const TabListWrapper = styled('div')<{orientation: TableOrientation}>`
+  padding-top: 10px;
+  width: 100%;
+
+  ${p =>
+    p.orientation === 'bottom' &&
+    css`
+      padding-top: 0;
+      padding-bottom: 1px;
+    `}
 `;
 
 export const StyledTopResultsIndicator = styled(TopResultsIndicator)``;
@@ -39,21 +51,37 @@ export const WrappingText = styled('div')`
   align-items: center;
 `;
 
-export const ExpandedRowContainer = styled('div')`
+export const ExpandedRowContainer = styled('div')<{embedded?: boolean}>`
   grid-column: 1 / -1;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+
+  ${p =>
+    p.embedded &&
+    css`
+      padding: ${p.theme.space.xs} ${p.theme.space.sm};
+    `}
 `;
 
 export const StyledSimpleTableRowCell = styled(SimpleTable.RowCell)<{
-  hasPadding?: boolean;
+  embedded?: boolean;
+  noPadding?: boolean;
 }>`
-  padding: ${p => (p.hasPadding ? p.theme.space.xs : 0)};
+  padding: ${p => (p.noPadding ? 0 : p.theme.space.lg)};
+  padding-top: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
+  padding-bottom: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
+
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
-export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)`
+export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)<{
+  noPadding?: boolean;
+}>`
   font-size: ${p => p.theme.fontSize.sm};
+  padding: ${p => (p.noPadding ? 0 : p.theme.space.lg)};
+  padding-top: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
+  padding-bottom: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
 `;
+
 export const StyledSimpleTableBody = styled('div')`
   position: relative;
   overflow-y: auto;
@@ -63,11 +91,14 @@ export const StyledSimpleTableBody = styled('div')`
   grid-template-columns: subgrid;
   grid-auto-rows: min-content;
   grid-column: 1 / -1;
+  scrollbar-gutter: stable;
 `;
 
 export const StyledSimpleTableHeader = styled(SimpleTable.Header)`
   height: 33px;
   z-index: unset;
+  position: sticky;
+  top: 0;
 `;
 
 export const StickyTableRow = styled(SimpleTable.Row)<{
@@ -93,4 +124,23 @@ export const DetailsContent = styled(StyledPanel)`
 
 export const MetricsDetailsWrapper = styled(DetailsWrapper)`
   border-top: 0;
+`;
+
+export const NumericSimpleTableHeaderCell = styled(StyledSimpleTableHeaderCell)`
+  justify-content: flex-end;
+`;
+
+export const NumericSimpleTableRowCell = styled(StyledSimpleTableRowCell)`
+  justify-content: flex-end;
+`;
+
+export const BodyContainer = styled('div')`
+  padding: ${p => p.theme.space.md};
+  padding-top: 0;
+  height: 320px;
+  container-type: inline-size;
+`;
+
+export const StyledTabPanels = styled(TabPanels)`
+  overflow: auto;
 `;

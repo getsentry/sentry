@@ -19,9 +19,9 @@ import {Flex} from 'sentry/components/core/layout';
 import {IconAdd, IconDelete, IconEdit, IconMail} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import APIReference from '!!type-loader!sentry/components/core/alert/index';
+import documentation from '!!type-loader!@sentry/scraps/alert';
 
-export const types = {Alert: APIReference.Alert};
+export {documentation};
 
 To create a basic alert, wrap your message in an `<Alert>` component and specify the appropriate type.
 
@@ -98,7 +98,7 @@ By default, alerts display appropriate icons based on their type. You can hide i
 
 ### Expandable Content
 
-Alerts can contain expandable content to provide additional details without overwhelming the initial view.
+Alerts can contain expandable content to provide additional details without overwhelming the initial view. Use `handleExpandChange` to add additional logic on expand and on collapse.
 
 <Storybook.Demo>
   <Alert
@@ -173,7 +173,7 @@ Add interactive elements like buttons, links or badges to the right side of aler
 <Storybook.Demo>
   <Alert.Container>
     <Alert type="info" trailingItems={<Badge type="warning">Action Required</Badge>}>
-      This alert has a trailing bagde
+      This alert has a trailing badge
     </Alert>
     <Alert
       type="error"
@@ -189,6 +189,25 @@ Add interactive elements like buttons, links or badges to the right side of aler
       }
     >
       This alert has multiple trailing actions
+    </Alert>
+    <Alert
+      type="warning"
+      expand={
+        <div>
+          <p>This alert starts in an expanded state.</p>
+          <p>Users can still collapse it by clicking the chevron.</p>
+        </div>
+      }
+      trailingItems={
+        <Flex gap="sm">
+          <Badge type="warning">Action Required</Badge>
+          <Alert.Button priority="muted" icon={<IconEdit />}>
+            Edit
+          </Alert.Button>
+        </Flex>
+      }
+    >
+      This alert has multiple trailing items and can be expanded.
     </Alert>
   </Alert.Container>
 </Storybook.Demo>

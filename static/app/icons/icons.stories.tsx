@@ -1817,10 +1817,7 @@ function IconCard(props: IconCardProps) {
   };
   const action: keyof typeof snippets = shift ? 'import' : 'element';
 
-  const {onClick, label} = useCopyToClipboard({
-    successMessage: `Copied ${labels[action]} to clipboard`,
-    text: snippets[action],
-  });
+  const {copy} = useCopyToClipboard();
 
   return (
     <Tooltip
@@ -1859,7 +1856,13 @@ function IconCard(props: IconCardProps) {
         </Stack>
       }
     >
-      <Cell onClick={onClick} aria-label={label}>
+      <Cell
+        onClick={() =>
+          copy(snippets[action], {
+            successMessage: `Copied ${labels[action]} to clipboard`,
+          })
+        }
+      >
         {props.children}
       </Cell>
     </Tooltip>

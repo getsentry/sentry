@@ -276,7 +276,7 @@ function deleteQueryTokens(
   };
 }
 
-function modifyFilterOperatorQuery(
+export function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
   newOperator: TermOperator,
@@ -538,7 +538,7 @@ function replaceTokensWithText(
   };
 }
 
-function modifyFilterValue(
+export function modifyFilterValue(
   query: string,
   token: TokenResult<Token.FILTER>,
   newValue: string
@@ -727,7 +727,13 @@ export function replaceFreeTextTokens(
     }
 
     const value = escapeTagValue(token.text.trim());
-    replacedQuery.push(`${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`);
+    replacedQuery.push(
+      // We don't want to break user flows, so if they include an asterisk in their free
+      // text value, leave it as an `is` filter.
+      value.includes('*')
+        ? `${primarySearchKey}:${value}`
+        : `${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`
+    );
   }
 
   const finalQuery = replacedQuery.join(' ').trim();
@@ -781,10 +787,13 @@ function updateFreeTextAndReplaceText(
       : newState.focusOverride;
   }
 
+  // Only update the committed query if we aren't in the middle of creating a filter
+  const committedQuery = action.shouldCommitQuery ? query : state.committedQuery;
+
   return {
     ...newState,
     query,
-    committedQuery: query,
+    committedQuery,
     focusOverride,
   };
 }

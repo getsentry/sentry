@@ -962,7 +962,11 @@ class JiraIntegration(IssueSyncIntegration):
         if not jira_project:
             raise IntegrationFormError({"project": ["Jira project is required"]})
 
-        meta = client.get_create_meta_for_project(jira_project)
+        try:
+            meta = client.get_create_meta_for_project(jira_project)
+        except ApiError as e:
+            self.raise_error(e)
+
         if not meta:
             raise IntegrationConfigurationError(
                 "Could not fetch issue create configuration from Jira."
@@ -994,20 +998,27 @@ class JiraIntegration(IssueSyncIntegration):
         This is because the majority of Jira errors we receive are external
         configuration problems, like required fields missing.
         """
+        logging_context = {
+            "exception_type": type(exc).__name__,
+            "request_body": str(exc.json) if isinstance(exc, ApiError) else None,
+        }
+
+        if isinstance(exc, ApiError) and not exc.json:
+            logger.warning("sentry.jira.raise_error.non_json_error_response", extra=logging_context)
+            raise IntegrationConfigurationError(
+                "Something went wrong while communicating with Jira"
+            ) from exc
+
         if isinstance(exc, ApiInvalidRequestError):
-            if exc.json:
-                error_fields = self.error_fields_from_json(exc.json)
-                if error_fields is not None:
-                    raise IntegrationFormError(error_fields).with_traceback(sys.exc_info()[2])
+            error_fields = self.error_fields_from_json(exc.json)
+            if error_fields is not None:
+                raise IntegrationFormError(error_fields).with_traceback(sys.exc_info()[2])
 
             logger.warning(
-                "sentry.jira.raise_error.api_invalid_request_error",
-                extra={
-                    "exception_type": type(exc).__name__,
-                    "request_body": str(exc.json),
-                },
+                "sentry.jira.raise_error.generic_api_invalid_error", extra=logging_context
             )
             raise IntegrationConfigurationError(exc.text) from exc
+
         super().raise_error(exc, identity=identity)
 
     def sync_assignee_outbound(

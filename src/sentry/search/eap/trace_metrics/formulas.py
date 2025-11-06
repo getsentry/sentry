@@ -1,3 +1,5 @@
+from typing import cast
+
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.formula_pb2 import Literal as LiteralValue
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -6,13 +8,27 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     Function,
 )
 
-from sentry.search.eap.columns import FormulaDefinition, ResolvedArguments, ResolverSettings
+from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap.columns import (
+    AttributeArgumentDefinition,
+    FormulaDefinition,
+    ResolvedArguments,
+    ResolverSettings,
+    ValueArgumentDefinition,
+)
+from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
 
 
-def _rate_internal(divisor: int, settings: ResolverSettings) -> Column.BinaryFormula:
+def _rate_internal(
+    divisor: int, metric_type: str, settings: ResolverSettings
+) -> Column.BinaryFormula:
     """
-    Calculate rate per X (assumed second if not passed) for trace metrics using the value attribute.
+    Calculate rate per X for trace metrics using the value attribute.
     """
+    search_config = settings["search_config"]
+    if not isinstance(search_config, TraceMetricsSearchResolverConfig):
+        raise InvalidSearchQuery("unexpected search config")
+
     extrapolation_mode = settings["extrapolation_mode"]
     is_timeseries_request = settings["snuba_params"].is_timeseries_request
 
@@ -22,10 +38,17 @@ def _rate_internal(divisor: int, settings: ResolverSettings) -> Column.BinaryFor
         else settings["snuba_params"].interval
     )
 
+    metric_type = search_config.metric_type if search_config.metric_type else metric_type
+
+    if metric_type == "counter":
+        aggregate_func = Function.FUNCTION_SUM
+    else:
+        aggregate_func = Function.FUNCTION_COUNT
+
     return Column.BinaryFormula(
         left=Column(
             aggregation=AttributeAggregation(
-                aggregate=Function.FUNCTION_COUNT,
+                aggregate=aggregate_func,
                 key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.value"),
                 extrapolation_mode=extrapolation_mode,
             ),
@@ -37,31 +60,62 @@ def _rate_internal(divisor: int, settings: ResolverSettings) -> Column.BinaryFor
     )
 
 
-def per_second(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def per_second(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     """
     Calculate rate per second for trace metrics using the value attribute.
     """
-    return _rate_internal(1, settings)
+    metric_type = cast(str, args[1]) if len(args) > 1 else "counter"
+    return _rate_internal(1, metric_type, settings)
 
 
-def per_minute(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def per_minute(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     """
     Calculate rate per minute for trace metrics using the value attribute.
     """
-    return _rate_internal(60, settings)
+
+    metric_type = cast(str, args[1]) if len(args) > 1 else "counter"
+    return _rate_internal(60, metric_type, settings)
 
 
 TRACE_METRICS_FORMULA_DEFINITIONS = {
     "per_second": FormulaDefinition(
         default_search_type="rate",
-        arguments=[],
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "number",
+                    "integer",
+                },
+                default_arg="value",
+            ),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                default_arg="counter",
+            ),
+        ],
         formula_resolver=per_second,
         is_aggregate=True,
+        infer_search_type_from_arguments=False,
     ),
     "per_minute": FormulaDefinition(
         default_search_type="rate",
-        arguments=[],
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "number",
+                    "integer",
+                },
+                default_arg="value",
+            ),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                default_arg="counter",
+            ),
+        ],
         formula_resolver=per_minute,
         is_aggregate=True,
+        infer_search_type_from_arguments=False,
     ),
 }
