@@ -47,7 +47,7 @@ PROFILE_FUNCTIONS_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="_fingerprint",
+            public_alias="fingerprint",
             internal_name="fingerprint",
             search_type="integer",
         ),
