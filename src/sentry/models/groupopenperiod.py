@@ -6,6 +6,7 @@ from django.contrib.postgres.constraints import ExclusionConstraint
 from django.contrib.postgres.fields import DateTimeRangeField
 from django.contrib.postgres.fields.ranges import RangeBoundary, RangeOperators
 from django.db import models, router, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry import options
@@ -155,7 +156,9 @@ def get_open_periods_for_group(
         date_started__gte=query_start,
     ).order_by("-date_started")
     if query_end:
-        group_open_periods = group_open_periods.filter(date_ended__lte=query_end)
+        group_open_periods = group_open_periods.filter(
+            Q(date_ended__lte=query_end) | Q(date_ended__isnull=True)
+        )
 
     return group_open_periods[:limit]
 

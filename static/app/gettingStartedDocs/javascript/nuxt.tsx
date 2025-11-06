@@ -22,7 +22,7 @@ import {
   getReplaySDKSetupSnippet,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
+import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
 import {t, tct, tctCode} from 'sentry/locale';
 import {
   getJavascriptLogsFullStackOnboarding,
@@ -287,7 +287,7 @@ const docs: Docs = {
   replayOnboarding,
   crashReportOnboarding,
   profilingOnboarding,
-  featureFlagOnboarding,
+  featureFlagOnboarding: featureFlag,
   logsOnboarding: getJavascriptLogsFullStackOnboarding({
     docsPlatform: 'nuxt',
     packageName: '@sentry/nuxt',

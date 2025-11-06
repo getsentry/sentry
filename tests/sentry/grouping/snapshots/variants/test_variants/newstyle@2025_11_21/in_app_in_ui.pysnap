@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.214678+00:00'
+created: '2025-11-03T21:48:48.199099+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,6 +10,10 @@ app:
   root_component:
     app*
       exception*
+        type (ignored because exception is synthetic)
+          "EXC_BREAKPOINT"
+        value (ignored because stacktrace takes precedence)
+          "autoplayOption"
         stacktrace*
           frame (marked out of app by the client)
             function*
@@ -145,10 +149,6 @@ app:
               "currentuserprofile.swift"
             function*
               "value"
-        type (ignored because exception is synthetic)
-          "EXC_BREAKPOINT"
-        value (ignored because stacktrace takes precedence)
-          "autoplayOption"
 --------------------------------------------------------------------------
 system:
   hash: "1921b991270e24c19ea1ed6863892d71"
@@ -157,6 +157,10 @@ system:
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "EXC_BREAKPOINT"
+        value (ignored because stacktrace takes precedence)
+          "autoplayOption"
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
@@ -292,7 +296,3 @@ system:
               "currentuserprofile.swift"
             function*
               "value"
-        type (ignored because exception is synthetic)
-          "EXC_BREAKPOINT"
-        value (ignored because stacktrace takes precedence)
-          "autoplayOption"

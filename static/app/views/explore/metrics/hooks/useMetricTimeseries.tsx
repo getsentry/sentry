@@ -1,7 +1,6 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {shouldTriggerHighAccuracy} from 'sentry/views/explore/hooks/useExploreTimeseries';
@@ -22,14 +21,9 @@ import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSorte
 interface UseMetricTimeseriesOptions {
   enabled: boolean;
   traceMetric: TraceMetric;
-  queryExtras?: RPCQueryExtras;
 }
 
-export function useMetricTimeseries({
-  traceMetric,
-  queryExtras,
-  enabled,
-}: UseMetricTimeseriesOptions) {
+export function useMetricTimeseries({traceMetric, enabled}: UseMetricTimeseriesOptions) {
   const visualize = useMetricVisualize();
   const topEvents = useTopEvents();
   const canTriggerHighAccuracy = useCallback(
@@ -40,36 +34,32 @@ export function useMetricTimeseries({
   );
   return useProgressiveQuery<typeof useMetricTimeseriesImpl>({
     queryHookImplementation: useMetricTimeseriesImpl,
-    queryHookArgs: {traceMetric, queryExtras, enabled},
+    queryHookArgs: {traceMetric, queryExtras: undefined, enabled},
     queryOptions: {
       canTriggerHighAccuracy,
     },
   });
 }
 
+interface UseMetricTimeseriesImplOptions extends UseMetricTimeseriesOptions {
+  queryExtras?: RPCQueryExtras;
+}
+
 function useMetricTimeseriesImpl({
   traceMetric,
   queryExtras,
   enabled,
-}: UseMetricTimeseriesOptions) {
+}: UseMetricTimeseriesImplOptions) {
   const visualize = useMetricVisualize();
   const groupBys = useQueryParamsGroupBys();
   const [interval] = useChartInterval();
   const topEvents = useTopEvents();
-  const searchQuery = useQueryParamsSearch();
+  const search = useQueryParamsSearch();
   const sortBys = useQueryParamsAggregateSortBys();
-
-  const search = useMemo(() => {
-    const baseQuery = `metric.name:${traceMetric.name}`;
-    if (!searchQuery.isEmpty()) {
-      return `${baseQuery} (${searchQuery.formatString()})`;
-    }
-    return baseQuery;
-  }, [traceMetric.name, searchQuery]);
 
   const timeseriesResult = useSortedTimeSeries(
     {
-      search: new MutableSearch(search),
+      search,
       yAxis: [visualize.yAxis],
       interval,
       fields: [...groupBys, visualize.yAxis],
@@ -77,6 +67,7 @@ function useMetricTimeseriesImpl({
       topEvents,
       orderby: sortBys.map(formatSort),
       ...queryExtras,
+      traceMetric,
     },
     'api.explore.metrics-stats',
     DiscoverDatasets.TRACEMETRICS
