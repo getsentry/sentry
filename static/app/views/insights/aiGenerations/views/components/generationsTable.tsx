@@ -10,14 +10,19 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import TimeSince from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
 import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
-import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
+import {
+  HeadSortCell,
+  useTableSort,
+} from 'sentry/views/insights/agents/components/headSortCell';
 import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
-import {getAIGenerationsFilter} from 'sentry/views/insights/agents/utils/query';
+import {AI_GENERATIONS_PAGE_FILTER} from 'sentry/views/insights/aiGenerations/views/utils/constants';
 import {Referrer} from 'sentry/views/insights/aiGenerations/views/utils/referrer';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -25,32 +30,34 @@ import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared
 import {SpanFields} from 'sentry/views/insights/types';
 
 const INITIAL_COLUMN_ORDER = [
-  {key: SpanFields.SPAN_ID, name: 'Span ID', width: 100},
+  {key: SpanFields.SPAN_ID, name: t('Span ID'), width: 100},
   {
     key: SpanFields.GEN_AI_REQUEST_MESSAGES,
-    name: 'Input / Output',
+    name: t('Input / Output'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
     key: SpanFields.GEN_AI_REQUEST_MODEL,
-    name: 'Model',
+    name: t('Model'),
     width: 200,
   },
-  {key: SpanFields.TIMESTAMP, name: 'Timestamp'},
+  {key: SpanFields.TIMESTAMP, name: t('Timestamp')},
 ] as const;
 
-function getLastUserMessage(messages?: string) {
+const DEFAULT_SORT: Sort = {field: SpanFields.TIMESTAMP, kind: 'desc'};
+
+function getLastInputMessage(messages?: string) {
   if (!messages) {
     return null;
   }
   try {
     const messagesArray = JSON.parse(messages);
-    const lastUserMessage = messagesArray.findLast(
-      (message: any) => message.role === 'user'
-    )?.content;
-    return typeof lastUserMessage === 'string'
-      ? lastUserMessage
-      : lastUserMessage[0].text.toString();
+    const lastInputMessage =
+      messagesArray.findLast((message: any) => message.role === 'user')?.content ||
+      messagesArray.findLast((message: any) => message.role === 'system')?.content;
+    return typeof lastInputMessage === 'string'
+      ? lastInputMessage
+      : lastInputMessage[0].text.toString();
   } catch (error) {
     return messages;
   }
@@ -58,12 +65,9 @@ function getLastUserMessage(messages?: string) {
 
 export function GenerationsTable() {
   const {openTraceViewDrawer} = useTraceViewDrawer({});
-  const query = useCombinedQuery(
-    // Only show generation spans that result in a response to the user's message
-    `${getAIGenerationsFilter()}  AND !span.op:gen_ai.embeddings`
-  );
-
+  const query = useCombinedQuery(AI_GENERATIONS_PAGE_FILTER);
   const {cursor} = useTableCursor();
+  const {tableSort} = useTableSort(DEFAULT_SORT);
 
   const {data, isLoading, error, pageLinks, isPlaceholderData} = useSpans(
     {
@@ -79,8 +83,8 @@ export function GenerationsTable() {
         SpanFields.GEN_AI_REQUEST_MODEL,
         SpanFields.TIMESTAMP,
       ],
-      sorts: [{field: SpanFields.TIMESTAMP, kind: 'desc'}],
       cursor,
+      sorts: [tableSort],
       keepPreviousData: true,
       limit: 20,
     },
@@ -115,7 +119,7 @@ export function GenerationsTable() {
         const statusValue = dataRow[SpanFields.SPAN_STATUS];
         const isError = statusValue && statusValue !== 'ok' && statusValue !== 'unknown';
 
-        const userMessage = getLastUserMessage(
+        const userMessage = getLastInputMessage(
           dataRow[SpanFields.GEN_AI_REQUEST_MESSAGES]
         );
         const outputValue =
@@ -183,31 +187,37 @@ export function GenerationsTable() {
     [openTraceViewDrawer]
   );
 
-  const renderHeadCell = useCallback((column: GridColumnOrder<keyof TableData>) => {
-    return (
-      <HeadSortCell
-        align={column.key === SpanFields.TIMESTAMP ? 'right' : 'left'}
-        sortKey={column.key}
-        forceCellGrow={column.key === SpanFields.GEN_AI_REQUEST_MESSAGES}
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const renderHeadCell = useCallback(
+    (column: GridColumnOrder<keyof TableData>) => {
+      return (
+        <HeadSortCell
+          align={column.key === SpanFields.TIMESTAMP ? 'right' : 'left'}
+          currentSort={tableSort}
+          sortKey={column.key}
+          forceCellGrow={column.key === SpanFields.GEN_AI_REQUEST_MESSAGES}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [tableSort]
+  );
 
   return (
-    <PlatformInsightsTable
-      data={data}
-      stickyHeader
-      isLoading={isLoading}
-      error={error}
-      initialColumnOrder={INITIAL_COLUMN_ORDER as any}
-      pageLinks={pageLinks}
-      grid={{
-        renderBodyCell,
-        renderHeadCell,
-      }}
-      isPlaceholderData={isPlaceholderData}
-    />
+    <div>
+      <PlatformInsightsTable
+        data={data}
+        stickyHeader
+        isLoading={isLoading}
+        error={error}
+        initialColumnOrder={INITIAL_COLUMN_ORDER as any}
+        pageLinks={pageLinks}
+        grid={{
+          renderBodyCell,
+          renderHeadCell,
+        }}
+        isPlaceholderData={isPlaceholderData}
+      />
+    </div>
   );
 }
