@@ -728,7 +728,8 @@ def filter_exceptions_for_exception_groups(
     if len(exceptions) <= 1:
         return exceptions
 
-    # TODO: Get rid of this hack!
+    # TODO: Get rid of this hack once we are fully transitioned off of the `newstyle:2023-01-11`
+    # config
     #
     # A change in the python SDK between version 2 and version 3 means that suddenly this function
     # applies where it didn't used to, which in turn changes how some exception groups are hashed.
