@@ -6,26 +6,24 @@ import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorLi
 import {DetectorListHeader} from 'sentry/views/detectors/list/common/detectorListHeader';
 import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetectorListQuery';
 
-const TITLE = t('Metric Monitors');
+const TITLE = t('Monitors');
 const DESCRIPTION = t(
-  'Metric monitors track errors based on span attributes and custom metrics.'
+  'Monitors are used to transform errors, performance problems, and other events into issues.'
 );
 const DOCS_URL = 'https://docs.sentry.io/product/monitors/';
 
-export default function MetricDetectorsList() {
-  const detectorListQuery = useDetectorListQuery({
-    detectorFilter: 'metric_issue',
-  });
+export default function AllMonitors() {
+  const detectorListQuery = useDetectorListQuery();
 
   return (
     <SentryDocumentTitle title={TITLE}>
       <WorkflowEngineListLayout
-        actions={<DetectorListActions detectorType="metric_issue" />}
+        actions={<DetectorListActions />}
         title={TITLE}
         description={DESCRIPTION}
         docsUrl={DOCS_URL}
       >
-        <DetectorListHeader showTypeFilter={false} />
+        <DetectorListHeader />
         <DetectorListContent {...detectorListQuery} />
       </WorkflowEngineListLayout>
     </SentryDocumentTitle>
