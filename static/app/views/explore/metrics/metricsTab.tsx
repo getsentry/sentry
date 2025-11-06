@@ -6,8 +6,13 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
+import {
+  ExploreBodyContent,
+  ExploreBodySearch,
+  ExploreContentSection,
+  ExploreControlSection,
+} from 'sentry/views/explore/components/styles';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
-import {BottomSectionBody, TopSectionBody} from 'sentry/views/explore/logs/styles';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
@@ -51,7 +56,7 @@ function MetricsTabFilterSection({
   relativeOptions,
 }: PickableDays) {
   return (
-    <TopSectionBody noRowGap>
+    <ExploreBodySearch>
       <Layout.Main width="full">
         <FilterBarWithSaveAsContainer>
           <StyledPageFilterBar condensed>
@@ -67,7 +72,7 @@ function MetricsTabFilterSection({
           <MetricSaveAs />
         </FilterBarWithSaveAsContainer>
       </Layout.Main>
-    </TopSectionBody>
+    </ExploreBodySearch>
   );
 }
 
@@ -105,28 +110,33 @@ function MetricsTabBodySection() {
   const metricQueries = useMultiMetricsQueryParams();
 
   return (
-    <BottomSectionBody>
-      <Flex direction="column" gap="lg">
-        {metricQueries.map((metricQuery, index) => {
-          return (
-            <MetricsQueryParamsProvider
-              key={`queryPanel-${index}`}
-              queryParams={metricQuery.queryParams}
-              setQueryParams={metricQuery.setQueryParams}
-              traceMetric={metricQuery.metric}
-              setTraceMetric={metricQuery.setTraceMetric}
-              removeMetric={metricQuery.removeMetric}
-            >
-              <MetricPanel traceMetric={metricQuery.metric} queryIndex={index} />
-            </MetricsQueryParamsProvider>
-          );
-        })}
-      </Flex>
-    </BottomSectionBody>
+    <ExploreBodyContent>
+      <ExploreControlSection expanded={false} />
+      <ExploreContentSection expanded={false}>
+        <Flex direction="column" gap="lg">
+          {metricQueries.map((metricQuery, index) => {
+            return (
+              <MetricsQueryParamsProvider
+                key={`queryPanel-${index}`}
+                queryParams={metricQuery.queryParams}
+                setQueryParams={metricQuery.setQueryParams}
+                traceMetric={metricQuery.metric}
+                setTraceMetric={metricQuery.setTraceMetric}
+                removeMetric={metricQuery.removeMetric}
+              >
+                <MetricPanel traceMetric={metricQuery.metric} queryIndex={index} />
+              </MetricsQueryParamsProvider>
+            );
+          })}
+        </Flex>
+      </ExploreContentSection>
+    </ExploreBodyContent>
   );
 }
 
 const MetricsQueryBuilderContainer = styled(Container)`
   padding: ${p => `${p.theme.space.xl} ${p.theme.space['3xl']}`};
   background-color: ${p => p.theme.background};
+  border-top: none;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;

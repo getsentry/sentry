@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:18:52.956481+00:00'
+created: '2025-11-05T19:32:39.306934+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,6 +10,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value* (stripped event-specific values)
+          "Fatal Error: <hex> / <hex>"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
@@ -179,27 +183,27 @@ app:
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "__report_load.cold.1"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "__abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "__pthread_kill"
-        type (ignored because exception is synthetic)
-          "0x00000000 / 0x00000000"
-        value* (stripped event-specific values)
-          "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "8be5979a334287a1b47457228f1d4612"
+  hash: "e678e9c9f08b5e0f9987605f0f5dbae5"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
@@ -369,16 +373,12 @@ system:
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "__report_load.cold.1"
-          frame*
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "__abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "__pthread_kill"
-        type (ignored because exception is synthetic)
-          "0x00000000 / 0x00000000"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: <hex> / <hex>"

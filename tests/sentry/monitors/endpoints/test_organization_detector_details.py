@@ -59,6 +59,7 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
             "id": str(self.detector.id),
             "projectId": str(self.project.id),
             "name": "Monitor Incident Detector",
+            "description": None,
             "type": MonitorIncidentType.slug,
             "workflowIds": [],
             "owner": {
