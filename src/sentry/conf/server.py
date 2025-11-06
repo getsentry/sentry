@@ -3124,6 +3124,7 @@ CODECOV_API_BASE_URL = "https://api.codecov.io"
 OVERWATCH_REGION_URLS: dict[str, str] = cast(
     dict[str, str], env("OVERWATCH_REGION_URLS", {}, type=env_types.Dict)
 )
+OVERWATCH_REGION_URL: str | None = os.getenv("OVERWATCH_REGION_URL")
 OVERWATCH_WEBHOOK_SECRET: str | None = os.getenv("OVERWATCH_WEBHOOK_SECRET")
 
 # Devserver configuration overrides.
