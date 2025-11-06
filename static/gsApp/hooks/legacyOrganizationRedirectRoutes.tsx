@@ -1,4 +1,4 @@
-import type {SentryRouteObject} from 'sentry/components/route';
+import type {SentryRouteObject} from 'sentry/router/types';
 
 const legacyOrganizationRedirectRoutes = (): SentryRouteObject => ({
   children: [
