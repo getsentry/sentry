@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:18:51.420329+00:00'
+created: '2025-11-03T21:48:46.737254+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,13 +12,13 @@ app:
       exception*
         type*
           "iOS_Swift.SampleError"
+        value (ignored because ns-error info takes precedence)
+          "Code=<int> Description=The operation couldn’t be completed. (iOS_Swift.SampleError error <int>.)"
         ns_error*
           domain*
             "iOS_Swift.SampleError"
           code*
             0
-        value (ignored because ns-error info takes precedence)
-          "Code=<int> Description=The operation couldn’t be completed. (iOS_Swift.SampleError error <int>.)"
       threads (ignored because app exception takes precedence)
         stacktrace*
           frame (marked out of app by the client)

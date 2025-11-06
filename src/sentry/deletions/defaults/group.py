@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry import models, options
+from sentry.db.models.base import Model
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
 from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
@@ -63,6 +64,16 @@ _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
     models.EventAttachment,
     NotificationMessage,
 )
+
+
+def get_group_related_models() -> Sequence[type[Model]]:
+    """
+    Returns the tuple of models related to groups that should be deleted.
+    Checks options at runtime to allow dynamic configuration.
+    """
+    if options.get("deletions.activity.delete-in-bulk"):
+        return _GROUP_RELATED_MODELS + (models.Activity,)
+    return _GROUP_RELATED_MODELS
 
 
 class EventsBaseDeletionTask(BaseDeletionTask[Group]):
@@ -176,7 +187,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         group_ids = [group.id for group in instance_list]
         # Remove child relations for all groups first.
         child_relations: list[BaseRelation] = []
-        for model in _GROUP_RELATED_MODELS:
+        for model in get_group_related_models():
             child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)

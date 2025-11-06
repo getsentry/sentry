@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:19:59.516870+00:00'
+created: '2025-11-03T21:52:55.813388+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -24,12 +24,14 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "4717aeb08ff642726ef6ea8f1ce55cdf"
+    hash: "8961a4ec639f0697b27b860bbaf365bb"
     contributing component: exception
     hint: None
     root_component:
       app*
         exception*
+          type*
+            "Ensure failed"
           stacktrace*
             frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
               function*
@@ -122,15 +124,15 @@ contributing variants:
                 "sentryplaygroundutils.cpp"
               function*
                 "USentryPlaygroundUtils::Terminate"
-          type*
-            "Ensure failed"
   system*
-    hash: "65244b22630821cacd0be603ebcef671"
+    hash: "4fa979767cc67d57c9bc771f6e48ed45"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "Ensure failed"
           stacktrace*
             frame*
               function*
@@ -270,5 +272,3 @@ contributing variants:
             frame*
               function*
                 "sentry_unwind_stack_from_ucontext"
-          type*
-            "Ensure failed"
