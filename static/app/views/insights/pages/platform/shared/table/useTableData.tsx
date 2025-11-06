@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useTableSort} from 'sentry/views/insights/agents/components/headSortCell';
 import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanProperty} from 'sentry/views/insights/types';
@@ -13,22 +12,21 @@ export function useSpanTableData<Fields extends SpanProperty>({
   fields,
   referrer,
   query,
-  defaultSort,
+  sort,
 }: {
-  defaultSort: Sort;
   fields: Fields[];
   query: string | MutableSearch;
   referrer: string;
+  sort: Sort;
 }) {
-  const {tableSort} = useTableSort(defaultSort);
   const {cursor} = useTableCursor();
 
-  const isValidSortKey = fields.includes(tableSort.field as Fields);
+  const isValidSortKey = fields.includes(sort.field as Fields);
 
   return useSpans(
     {
       search: query,
-      sorts: isValidSortKey ? [tableSort] : undefined,
+      sorts: isValidSortKey ? [sort] : undefined,
       fields,
       limit: PER_PAGE,
       keepPreviousData: true,
@@ -42,18 +40,18 @@ export function useTableDataWithController<Fields extends SpanProperty>({
   fields,
   referrer,
   query,
-  defaultSort,
+  sort,
 }: {
-  defaultSort: Sort;
   fields: Fields[];
   query: string | MutableSearch;
   referrer: string;
+  sort: Sort;
 }) {
   const transactionsRequest = useSpanTableData({
     query,
     fields: ['transaction', ...fields],
     referrer,
-    defaultSort,
+    sort,
   });
 
   // Get the list of transactions from the first request

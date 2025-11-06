@@ -187,18 +187,21 @@ export function GenerationsTable() {
     [openTraceViewDrawer]
   );
 
-  const renderHeadCell = useCallback((column: GridColumnOrder<keyof TableData>) => {
-    return (
-      <HeadSortCell
-        align={column.key === SpanFields.TIMESTAMP ? 'right' : 'left'}
-        defaultSort={DEFAULT_SORT}
-        sortKey={column.key}
-        forceCellGrow={column.key === SpanFields.GEN_AI_REQUEST_MESSAGES}
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const renderHeadCell = useCallback(
+    (column: GridColumnOrder<keyof TableData>) => {
+      return (
+        <HeadSortCell
+          align={column.key === SpanFields.TIMESTAMP ? 'right' : 'left'}
+          currentSort={tableSort}
+          sortKey={column.key}
+          forceCellGrow={column.key === SpanFields.GEN_AI_REQUEST_MESSAGES}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [tableSort]
+  );
 
   return (
     <div>

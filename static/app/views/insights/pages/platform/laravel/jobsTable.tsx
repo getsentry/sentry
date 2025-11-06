@@ -8,10 +8,12 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
+import {
+  HeadSortCell,
+  useTableSort,
+} from 'sentry/views/insights/agents/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
@@ -53,13 +55,12 @@ const rightAlignColumns = new Set([
   'avg_if(span.duration,span.op,equals,queue.process)',
 ]);
 
-const DEFAULT_SORT: Sort = {field: 'count()', kind: 'desc'};
-
 export function JobsTable() {
   const {query} = useTransactionNameQuery();
   const mutableQuery = new MutableSearch(query);
   mutableQuery.addFilterValue(SpanFields.SPAN_OP, 'queue.process');
 
+  const {tableSort} = useTableSort();
   const tableDataRequest = useSpanTableData({
     query: mutableQuery,
     fields: [
@@ -72,22 +73,25 @@ export function JobsTable() {
       'failure_rate()',
       'sum(span.duration)',
     ],
-    defaultSort: DEFAULT_SORT,
+    sort: tableSort,
     referrer: Referrer.PATHS_TABLE,
   });
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
-    return (
-      <HeadSortCell
-        sortKey={column.key}
-        defaultSort={DEFAULT_SORT}
-        align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        forceCellGrow={column.key === 'transaction'}
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<string>) => {
+      return (
+        <HeadSortCell
+          sortKey={column.key}
+          currentSort={tableSort}
+          align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
+          forceCellGrow={column.key === 'transaction'}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [tableSort]
+  );
 
   type TableData = (typeof tableDataRequest.data)[number];
 

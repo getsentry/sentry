@@ -6,8 +6,10 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import type {Sort} from 'sentry/utils/discover/fields';
-import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
+import {
+  HeadSortCell,
+  useTableSort,
+} from 'sentry/views/insights/agents/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
@@ -46,10 +48,9 @@ const rightAlignColumns = new Set([
   'sum(span.duration)',
 ]);
 
-const DEFAULT_SORT: Sort = {field: 'count()', kind: 'desc'};
-
 export function ApiTable() {
   const {query} = useTransactionNameQuery();
+  const {tableSort} = useTableSort();
   const tableDataRequest = useSpanTableData({
     query: `transaction.op:http.server is_transaction:True ${query ?? ''}`.trim(),
     fields: [
@@ -61,22 +62,25 @@ export function ApiTable() {
       'count()',
       'sum(span.duration)',
     ],
-    defaultSort: DEFAULT_SORT,
+    sort: tableSort,
     referrer: Referrer.API_TABLE,
   });
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
-    return (
-      <HeadSortCell
-        sortKey={column.key}
-        defaultSort={DEFAULT_SORT}
-        align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
-        forceCellGrow={column.key === 'transaction'}
-      >
-        {column.name}
-      </HeadSortCell>
-    );
-  }, []);
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<string>) => {
+      return (
+        <HeadSortCell
+          sortKey={column.key}
+          currentSort={tableSort}
+          align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
+          forceCellGrow={column.key === 'transaction'}
+        >
+          {column.name}
+        </HeadSortCell>
+      );
+    },
+    [tableSort]
+  );
 
   type TableData = (typeof tableDataRequest.data)[number];
 

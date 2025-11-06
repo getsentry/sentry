@@ -7,7 +7,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 
-export function useTableSort(defaultValue: Sort) {
+export function useTableSort(defaultValue: Sort = {field: 'count()', kind: 'desc'}) {
   const [tableSort, setTableSort] = useQueryStates(
     {
       field: parseAsString.withDefault(defaultValue.field),
@@ -29,26 +29,25 @@ export const HeadSortCell = memo(function HeadCell({
   children,
   align = 'left',
   forceCellGrow = false,
-  defaultSort,
+  currentSort,
   onClick,
 }: {
   children: React.ReactNode;
-  defaultSort: Sort;
+  currentSort: Sort;
   sortKey: string;
   align?: 'left' | 'right';
   forceCellGrow?: boolean;
   onClick?: (sortKey: string, newDirection: 'asc' | 'desc') => void;
 }) {
   const location = useLocation();
-  const {tableSort} = useTableSort(defaultSort);
 
-  const reversedOrder = tableSort.kind === 'asc' ? 'desc' : 'asc';
-  const newDirection = tableSort.field === sortKey ? reversedOrder : 'desc';
+  const reversedOrder = currentSort.kind === 'asc' ? 'desc' : 'asc';
+  const newDirection = currentSort.field === sortKey ? reversedOrder : 'desc';
 
   return (
     <SortLink
       align={align}
-      direction={tableSort.field === sortKey ? tableSort.kind : undefined}
+      direction={currentSort.field === sortKey ? currentSort.kind : undefined}
       canSort
       preventScrollReset
       generateSortLink={() => ({
