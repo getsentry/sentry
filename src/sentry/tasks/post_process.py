@@ -1307,6 +1307,7 @@ def process_data_forwarding(job: PostProcessJob) -> None:
     from data_forwarding.amazon_sqs.forwarder import AmazonSQSForwarder
     from data_forwarding.segment.forwarder import SegmentForwarder
     from data_forwarding.splunk.forwarder import SplunkForwarder
+
     from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 
     event = job["event"]
