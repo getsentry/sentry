@@ -1,12 +1,13 @@
 import React from 'react';
 import {Link} from 'react-router-dom';
 
+import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
