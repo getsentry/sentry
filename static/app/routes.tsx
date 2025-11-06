@@ -3,6 +3,7 @@ import memoize from 'lodash/memoize';
 
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import {ScrapsProviders} from 'sentry/scrapsProviders';
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
@@ -3065,7 +3066,13 @@ function buildRoutes(): RouteObject[] {
   };
 
   const appRoutes: SentryRouteObject = {
-    component: ProvideAriaRouter,
+    component: ({children}: {children: React.ReactNode}) => {
+      return (
+        <ProvideAriaRouter>
+          <ScrapsProviders>{children}</ScrapsProviders>
+        </ProvideAriaRouter>
+      );
+    },
     deprecatedRouteProps: true,
     children: [
       experimentalSpaRoutes,
