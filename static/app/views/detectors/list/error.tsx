@@ -1,20 +1,36 @@
-import DetectorsList from 'sentry/views/detectors/list';
-import {
-  MonitorViewContext,
-  useMonitorViewContext,
-} from 'sentry/views/detectors/monitorViewContext';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
+import {t} from 'sentry/locale';
+import {DetectorListActions} from 'sentry/views/detectors/list/common/actions';
+import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
+import {DetectorListHeader} from 'sentry/views/detectors/list/common/header';
+import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetectorListQuery';
+
+const TITLE = t('Error Monitors');
+const DESCRIPTION = t(
+  'Error monitors are created by default for each project based on issue grouping/fingerprint rules.'
+);
+const DOCS_URL = 'https://docs.sentry.io/product/monitors/';
 
 export default function ErrorDetectorsList() {
-  const parentContext = useMonitorViewContext();
+  const detectorListQuery = useDetectorListQuery({
+    detectorFilter: 'error',
+  });
 
   return (
-    <MonitorViewContext.Provider
-      value={{
-        ...parentContext,
-        detectorFilter: 'error',
-      }}
-    >
-      <DetectorsList />
-    </MonitorViewContext.Provider>
+    <SentryDocumentTitle title={TITLE}>
+      <PageFiltersContainer>
+        <WorkflowEngineListLayout
+          actions={<DetectorListActions detectorType="error" />}
+          title={TITLE}
+          description={DESCRIPTION}
+          docsUrl={DOCS_URL}
+        >
+          <DetectorListHeader />
+          <DetectorListContent {...detectorListQuery} />
+        </WorkflowEngineListLayout>
+      </PageFiltersContainer>
+    </SentryDocumentTitle>
   );
 }

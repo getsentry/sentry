@@ -1,20 +1,36 @@
-import DetectorsList from 'sentry/views/detectors/list';
-import {
-  MonitorViewContext,
-  useMonitorViewContext,
-} from 'sentry/views/detectors/monitorViewContext';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
+import {t} from 'sentry/locale';
+import {DetectorListActions} from 'sentry/views/detectors/list/common/actions';
+import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
+import {DetectorListHeader} from 'sentry/views/detectors/list/common/header';
+import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetectorListQuery';
+
+const TITLE = t('Metric Monitors');
+const DESCRIPTION = t(
+  'Metric monitors track errors based on span attributes and custom metrics.'
+);
+const DOCS_URL = 'https://docs.sentry.io/product/monitors/';
 
 export default function MetricDetectorsList() {
-  const parentContext = useMonitorViewContext();
+  const detectorListQuery = useDetectorListQuery({
+    detectorFilter: 'metric_issue',
+  });
 
   return (
-    <MonitorViewContext.Provider
-      value={{
-        ...parentContext,
-        detectorFilter: 'metric_issue',
-      }}
-    >
-      <DetectorsList />
-    </MonitorViewContext.Provider>
+    <SentryDocumentTitle title={TITLE}>
+      <PageFiltersContainer>
+        <WorkflowEngineListLayout
+          actions={<DetectorListActions detectorType="metric_issue" />}
+          title={TITLE}
+          description={DESCRIPTION}
+          docsUrl={DOCS_URL}
+        >
+          <DetectorListHeader />
+          <DetectorListContent {...detectorListQuery} />
+        </WorkflowEngineListLayout>
+      </PageFiltersContainer>
+    </SentryDocumentTitle>
   );
 }
