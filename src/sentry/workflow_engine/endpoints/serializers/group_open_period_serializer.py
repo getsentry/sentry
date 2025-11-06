@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -20,7 +20,6 @@ class GroupOpenPeriodResponse(TypedDict):
     id: str
     start: datetime
     end: datetime | None
-    duration: timedelta | None
     isOpen: bool
     lastChecked: datetime
     activities: list[GroupOpenPeriodActivityResponse] | None
@@ -66,7 +65,6 @@ class GroupOpenPeriodSerializer(Serializer):
             id=str(obj.id),
             start=obj.date_started,
             end=obj.date_ended,
-            duration=obj.date_ended - obj.date_started if obj.date_ended else None,
             isOpen=obj.date_ended is None,
             lastChecked=get_last_checked_for_open_period(obj.group),
             activities=attrs.get("activities"),
