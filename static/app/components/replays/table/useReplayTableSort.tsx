@@ -23,7 +23,7 @@ export default function useReplayTableSort({
 
   const {getParamValue, setParamValue} = useUrlParams(
     queryParamKey,
-    encodeSort(DEFAULT_SORT)
+    encodeSort(defaultSort)
   );
   const sortQuery = getParamValue();
   const sortType = decodeSorts(sortQuery).at(0) ?? defaultSortRef.current;
