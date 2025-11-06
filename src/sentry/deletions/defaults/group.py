@@ -30,9 +30,15 @@ GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
 GROUP_HASH_ITERATIONS = 10000
 
-# Group models that relate only to groups and not to events. We assume those to
-# be safe to delete/mutate within a single transaction for user-triggered
-# actions (delete/reprocess/merge/unmerge)
+# Group models that relate only to groups and not to events. These models are
+# transferred during reprocessing operations because they represent group-level
+# metadata that should follow the group when events are reprocessed.
+#
+# Add a model to this list if it meets ALL of these criteria:
+# 1. NO event_id field - represents group state, not individual event data
+# 2. Should be TRANSFERRED during reprocessing - the metadata is about the group itself
+#    (e.g., assignments, bookmarks, resolutions, history) and should move with it
+# 3. Safe to bulk update with group_id changes during merge/unmerge operations
 DIRECT_GROUP_RELATED_MODELS = (
     # prioritize GroupHash
     models.GroupHash,
@@ -59,11 +65,21 @@ DIRECT_GROUP_RELATED_MODELS = (
     RuleFireHistory,
 )
 
-_GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
+# Additional group-related models that require special handling during reprocessing.
+# Unlike DIRECT_GROUP_RELATED_MODELS which are migrated in bulk, these models need
+# per-event processing or should not be transferred at all.
+#
+# Add a model to this list if it meets ANY of these criteria:
+# 1. Has an event_id field - per-event data that must be migrated during event
+#    reprocessing pipeline, not as a group bulk operation (UserReport, EventAttachment)
+# 2. Should NOT be transferred during reprocessing - transient or notification data
+#    that doesn't represent core group state (NotificationMessage)
+ADDITIONAL_GROUP_RELATED_MODELS = (
     models.UserReport,
     models.EventAttachment,
     NotificationMessage,
 )
+_GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + ADDITIONAL_GROUP_RELATED_MODELS
 
 
 def get_group_related_models() -> Sequence[type[Model]]:
