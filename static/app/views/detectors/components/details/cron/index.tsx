@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -23,7 +22,6 @@ import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import toArray from 'sentry/utils/array/toArray';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -32,6 +30,7 @@ import {
 } from 'sentry/views/alerts/rules/crons/utils';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
+import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
@@ -230,11 +229,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 showUnknownLegend={showUnknownLegend}
               />
             </Section>
-            {detector.description && (
-              <Section title={t('Describe')}>
-                <StyledMarkedText text={detector.description} />
-              </Section>
-            )}
+            <DetectorDetailsDescription description={detector.description} />
             <DetectorExtraDetails>
               <KeyValueTableRow
                 keyName={t('Monitor slug')}
@@ -326,11 +321,3 @@ function useDocsPanel(monitorSlug: string, project: Project) {
       resizable: true,
     });
 }
-
-const StyledMarkedText = styled(MarkedText)`
-  word-wrap: break-word;
-
-  p {
-    margin: 0;
-  }
-`;

@@ -1,5 +1,4 @@
 import {useCallback, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {CodeBlock} from 'sentry/components/core/code';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -10,7 +9,6 @@ import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {DetailsTimeline} from 'sentry/views/alerts/rules/uptime/detailsTimeline';
 import {DetailsTimelineLegend} from 'sentry/views/alerts/rules/uptime/detailsTimelineLegend';
 import {
@@ -20,6 +18,7 @@ import {
 import {UptimeChecksTable} from 'sentry/views/alerts/rules/uptime/uptimeChecksTable';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
+import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 
@@ -84,11 +83,7 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
             <DetailsTimelineLegend showMissedLegend={showMissedLegend} />
           </Section>
           <DetectorDetailsAssignee owner={detector.owner} />
-          {detector.description && (
-            <Section title={t('Describe')}>
-              <StyledMarkedText text={detector.description} />
-            </Section>
-          )}
+          <DetectorDetailsDescription description={detector.description} />
           <DetectorExtraDetails>
             <KeyValueTableRow
               keyName={t('Interval')}
@@ -108,11 +103,3 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
     </DetailLayout>
   );
 }
-
-const StyledMarkedText = styled(MarkedText)`
-  word-wrap: break-word;
-
-  p {
-    margin: 0;
-  }
-`;
