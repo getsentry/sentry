@@ -169,6 +169,7 @@ class SubscriptionProcessor:
                     "num_results": len(results),
                     "value": aggregation_value,
                     "detector_id": detector.id,
+                    "subscription_update": subscription_update,
                 },
             )
         return results
