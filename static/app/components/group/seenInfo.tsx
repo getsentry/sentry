@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import TimeSince from 'sentry/components/timeSince';
@@ -36,7 +37,7 @@ function SeenInfo({
   projectId,
 }: Props) {
   return (
-    <HovercardWrapper>
+    <Flex align="baseline">
       <StyledHovercard
         showUnderline
         header={
@@ -97,7 +98,7 @@ function SeenInfo({
           </Fragment>
         )}
       </DateWrapper>
-    </HovercardWrapper>
+    </Flex>
   );
 }
 
@@ -106,11 +107,6 @@ const dateTimeCss = (p: any) => css`
   font-size: ${p.theme.fontSize.md};
   display: flex;
   justify-content: center;
-`;
-
-const HovercardWrapper = styled('div')`
-  display: flex;
-  align-items: baseline;
 `;
 
 const DateWrapper = styled('div')`
