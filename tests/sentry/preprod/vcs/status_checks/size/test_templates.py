@@ -196,8 +196,8 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         assert title == "Size Analysis"
         assert subtitle == "1 app analyzed, 1 app processing"
         # Should have two rows - main app shows sizes, watch shows processing
-        assert "com.example.app" in summary
-        assert "`-- (Watch)`" in summary
+        assert "`com.example.app`" in summary
+        assert "-- (Watch)" in summary
         assert "1.0 MB" in summary  # Main app completed
         assert "Processing..." in summary  # Watch app processing
 
@@ -428,8 +428,8 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert title == "Size Analysis"
         assert subtitle == "2 apps analyzed"
         # Should have two rows - main app and watch app
-        assert "com.example.app" in summary  # Both main and watch show app_id
-        assert "`-- (Watch)`" in summary  # Watch app label
+        assert "`com.example.app`" in summary  # Both main and watch show app_id
+        assert "-- (Watch)" in summary  # Watch app label
         assert "1.0 MB" in summary  # Main app download
         assert "524.3 KB" in summary  # Watch app download
         assert "2.1 MB" in summary  # Main app install
@@ -438,9 +438,9 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         main_row_idx = None
         watch_row_idx = None
         for i, line in enumerate(lines):
-            if "com.example.app" in line and "(Watch)" not in line:
+            if "`com.example.app`" in line and "(Watch)" not in line:
                 main_row_idx = i
-            elif "`-- (Watch)`" in line:
+            elif "-- (Watch)" in line:
                 watch_row_idx = i
         assert main_row_idx is not None
         assert watch_row_idx is not None
@@ -486,8 +486,8 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert title == "Size Analysis"
         assert subtitle == "2 apps analyzed"
         # Should have two rows - main app and dynamic feature
-        assert "com.example.android" in summary  # Main app and dynamic feature both show app_id
-        assert "`-- (Dynamic Feature)`" in summary  # Dynamic feature label
+        assert "`com.example.android`" in summary  # Main app and dynamic feature both show app_id
+        assert "-- (Dynamic Feature)" in summary  # Dynamic feature label
         assert "4.2 MB" in summary  # Main app download (note: rounds to 4.2 not 4.0)
         assert "1.0 MB" in summary  # Dynamic feature download
         assert "8.4 MB" in summary  # Main app install

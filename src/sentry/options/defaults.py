@@ -342,9 +342,20 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 register(
-    "deletions.group-history.use-bulk-deletion",
+    "deletions.group-hash-metadata.batch-size",
+    default=1000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "deletions.group-hashes-metadata.update-seer-matched-grouphash-ids",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "deletions.activity.delete-in-bulk",
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -629,14 +640,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout configuration for Arroyo ConfluentProducer
-# Controls the rollout of individual Kafka producers by name
-register(
-    "arroyo.producer.confluent-producer-rollout",
-    type=Dict,
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
@@ -1985,6 +1988,11 @@ register(
     default=3,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "performance.issues.web_vitals.count_threshold",
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Adjusting some time buffers in the trace endpoint
 register(
@@ -2180,6 +2188,14 @@ register(
     "dynamic-sampling.check_span_feature_flag",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
+# List of organization IDs that should be using spans for rebalancing in dynamic sampling.
+register(
+    "dynamic-sampling.measure.spans",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # === Hybrid cloud subsystem options ===

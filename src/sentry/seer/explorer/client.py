@@ -39,7 +39,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.models.organization import Organization
-from sentry.seer.explorer.client_models import SeerRunState
+from sentry.seer.explorer.client_models import ExplorerRun, SeerRunState
 from sentry.seer.explorer.client_utils import (
     collect_user_org_context,
     fetch_run_status,
@@ -56,6 +56,8 @@ def start_seer_run(
     prompt: str,
     user: User | AnonymousUser | None = None,
     on_page_context: str | None = None,
+    category_key: str | None = None,
+    category_value: str | None = None,
 ) -> int:
     """
     Start a new Seer Explorer session.
@@ -68,6 +70,8 @@ def start_seer_run(
         prompt: The initial task/query for the agent
         user: User (from request.user, can be User or AnonymousUser or None)
         on_page_context: Optional context from the user's screen
+        category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "researcher"). Should identify the purpose/use case of the run.
+        category_value: Optional category value for filtering/grouping runs (e.g., "issue-123", "a5b32"). Should identify individual runs within the category.
 
     Returns:
         int: The run ID that can be used to fetch results or continue the conversation
@@ -91,6 +95,12 @@ def start_seer_run(
         "on_page_context": on_page_context,
         "user_org_context": collect_user_org_context(user, organization),
     }
+
+    if category_key or category_value:
+        if not category_key or not category_value:
+            raise ValueError("category_key and category_value must be provided together")
+        payload["category_key"] = category_key
+        payload["category_value"] = category_value
 
     body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
 
@@ -207,10 +217,70 @@ def get_seer_run(
     return fetch_run_status(run_id, organization)
 
 
-# TODO: Add these once Seer API supports them:
-# - find_seer_runs() - search for past runs
-# - Tool configuration (currently explorer has fixed tools)
-# - Structured output artifacts
-# - Sentry data context (issue_id, trace_id, etc.)
-# - Custom agent names, categories, and category values
-# - Custom tools
+def get_seer_runs(
+    organization: Organization,
+    user: User | AnonymousUser | None = None,
+    category_key: str | None = None,
+    category_value: str | None = None,
+    offset: int | None = None,
+    limit: int | None = None,
+) -> list[ExplorerRun]:
+    """
+    Get a list of Seer Explorer runs for the given organization with optional filters.
+
+    This function supports flexible filtering by user_id, category_key, or category_value.
+    At least one filter should be provided to avoid returning all runs for the org.
+
+    Args:
+        organization: Sentry organization
+        user: Optional user to filter runs by (if provided, only returns runs for this user)
+        category_key: Optional category key to filter by (e.g., "bug-fixer", "researcher")
+        category_value: Optional category value to filter by (e.g., "issue-123", "a5b32")
+        offset: Optional offset for pagination
+        limit: Optional limit for pagination
+
+    Returns:
+        list[ExplorerRun]: List of runs matching the filters, sorted by most recent first
+
+    Raises:
+        SeerPermissionError: If the user/org doesn't have access to Seer Explorer
+        requests.HTTPError: If the Seer API request fails
+    """
+    has_access, error = has_seer_explorer_access_with_detail(organization, user)
+    if not has_access:
+        raise SeerPermissionError(error or "Access denied")
+
+    path = "/v1/automation/explorer/runs"
+
+    payload: dict[str, Any] = {
+        "organization_id": organization.id,
+    }
+
+    # Add optional filters
+    if user and hasattr(user, "id"):
+        payload["user_id"] = user.id
+    if category_key is not None:
+        payload["category_key"] = category_key
+    if category_value is not None:
+        payload["category_value"] = category_value
+    if offset is not None:
+        payload["offset"] = offset
+    if limit is not None:
+        payload["limit"] = limit
+
+    body = orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS)
+
+    response = requests.post(
+        f"{settings.SEER_AUTOFIX_URL}{path}",
+        data=body,
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            **sign_with_seer_secret(body),
+        },
+    )
+
+    response.raise_for_status()
+    result = response.json()
+
+    runs = [ExplorerRun(**run) for run in result.get("data", [])]
+    return runs
