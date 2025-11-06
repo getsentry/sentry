@@ -2,6 +2,7 @@ from unittest import mock
 
 import orjson
 import pytest
+from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail, ValidationError
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
@@ -152,15 +153,15 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 }
             ],
             "conditionGroup": {
-                "id": self.data_condition_group.id,
-                "organizationId": self.organization.id,
+                # "id": self.data_condition_group.id,
+                # "organizationId": self.organization.id,
                 "logicType": self.data_condition_group.logic_type,
                 "conditions": [
                     {
                         "type": Condition.GREATER,
                         "comparison": 100,
                         "conditionResult": DetectorPriorityLevel.HIGH,
-                        "conditionGroupId": self.data_condition_group.id,
+                        # "conditionGroupId": self.data_condition_group.id,
                     },
                     {
                         "type": Condition.LESS_OR_EQUAL,
@@ -178,8 +179,8 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         self.valid_anomaly_detection_data = {
             **self.valid_data,
             "conditionGroup": {
-                "id": self.data_condition_group.id,
-                "organizationId": self.organization.id,
+                # "id": self.data_condition_group.id,
+                # "organizationId": self.organization.id,
                 "logicType": self.data_condition_group.logic_type,
                 "conditions": [
                     {
@@ -190,7 +191,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                             "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
                         },
                         "conditionResult": DetectorPriorityLevel.HIGH,
-                        "conditionGroupId": self.data_condition_group.id,
+                        # "conditionGroupId": self.data_condition_group.id,
                     },
                 ],
             },
@@ -227,6 +228,9 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert snuba_query.time_window == 3600
         assert snuba_query.environment == self.environment
         assert snuba_query.event_types == [SnubaQueryEventType.EventType.ERROR]
+
+
+class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator):
 
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
@@ -590,6 +594,265 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             expected_message="Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead.",
         ):
             validator.save()
+
+
+class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator):
+    def test_update_with_valid_data(self) -> None:
+        """
+        Test a simple update
+        """
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        # # the front end passes _all_ of the data, not just what changed
+        new_name = "Testing My Cool Detector"
+        update_data = {
+            **self.valid_data,
+            "id": detector.id,
+            "projectId": self.project.id,
+            "dateCreated": detector.date_added,
+            "dateUpdated": timezone.now(),
+            "conditionGroup": {
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                    },
+                ],
+            },
+            "name": new_name,  # change the name
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        updated_detector = update_validator.save()
+        assert updated_detector.name == new_name
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_update_anomaly_detection_from_static(
+        self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
+        """
+        Test that if a static detector is changed to become a dynamic one
+        we send the historical data to Seer for that detector
+        """
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            static_detector = validator.save()
+
+        # Verify condition group in DB
+        condition_group = DataConditionGroup.objects.get(
+            id=static_detector.workflow_condition_group_id
+        )
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY
+        assert condition_group.organization_id == self.project.organization_id
+
+        # Verify conditions in DB
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 1
+        condition = conditions[0]
+        assert condition.type == Condition.GREATER
+        assert condition.comparison == 100
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
+
+        assert mock_seer_request.call_count == 1
+        mock_seer_request.return_mock()
+
+        mock_audit.assert_called()
+        mock_audit.reset_mock()
+
+        # Change to become a dynamic detector
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        update_validator = MetricIssueDetectorValidator(
+            instance=static_detector,
+            data=self.valid_anomaly_detection_data,
+            context=self.context,
+            partial=True,
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        dynamic_detector = update_validator.save()
+
+        assert mock_seer_request.call_count == 1
+
+        # Verify detector in DB
+        self.assert_validated(dynamic_detector)
+
+        # Verify condition group in DB
+        condition_group = DataConditionGroup.objects.get(
+            id=dynamic_detector.workflow_condition_group_id
+        )
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY
+        assert condition_group.organization_id == self.project.organization_id
+
+        # Verify conditions in DB
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 1
+
+        condition = conditions[0]
+        assert condition.type == Condition.ANOMALY_DETECTION
+        assert condition.comparison == {
+            "sensitivity": AnomalyDetectionSensitivity.HIGH,
+            "seasonality": AnomalyDetectionSeasonality.AUTO,
+            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+        }
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
+
+        mock_audit.assert_called_once_with(
+            request=self.context["request"],
+            organization=self.project.organization,
+            target_object=dynamic_detector.id,
+            event=audit_log.get_event_id("DETECTOR_EDIT"),
+            data=dynamic_detector.get_audit_log_data(),
+        )
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_update_anomaly_detection_snuba_query(
+        self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
+    ) -> None:
+        """
+        Test that when we update the snuba query for a dynamic detector
+        that we make a call to Seer with the changes
+        """
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_anomaly_detection_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            detector = validator.save()
+
+        # Verify detector in DB
+        self.assert_validated(detector)
+
+        assert mock_seer_request.call_count == 1
+        mock_seer_request.reset_mock()
+
+        # Verify condition group in DB
+        condition_group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY
+        assert condition_group.organization_id == self.project.organization_id
+
+        # Verify conditions in DB
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 1
+
+        condition = conditions[0]
+        assert condition.type == Condition.ANOMALY_DETECTION
+        assert condition.comparison == {
+            "sensitivity": AnomalyDetectionSensitivity.HIGH,
+            "seasonality": AnomalyDetectionSeasonality.AUTO,
+            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+        }
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
+
+        # Verify audit log
+        mock_audit.assert_called_once_with(
+            request=self.context["request"],
+            organization=self.project.organization,
+            target_object=detector.id,
+            event=audit_log.get_event_id("DETECTOR_ADD"),
+            data=detector.get_audit_log_data(),
+        )
+        mock_audit.reset_mock()
+
+        # Change the snuba query which should call Seer
+        updated_query = "different query"
+        update_data = {
+            **self.valid_anomaly_detection_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.value,
+                    "query": updated_query,  # this is what's changing
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                }
+            ],
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        dynamic_detector = update_validator.save()
+
+        assert mock_seer_request.call_count == 1
+        mock_seer_request.reset_mock()
+
+        # Verify snuba query changes
+        data_source = DataSource.objects.get(detector=dynamic_detector)
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
+        assert snuba_query.query == updated_query
+
+        mock_audit.assert_called_once_with(
+            request=self.context["request"],
+            organization=self.project.organization,
+            target_object=dynamic_detector.id,
+            event=audit_log.get_event_id("DETECTOR_EDIT"),
+            data=dynamic_detector.get_audit_log_data(),
+        )
+        mock_audit.reset_mock()
+
+        # Change the aggregate which should call Seer
+        updated_aggregate = "count_unique(user)"
+        update_data = {
+            **self.valid_anomaly_detection_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.value,
+                    "query": "updated_query",
+                    "aggregate": updated_aggregate,  # this is what's changing
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                }
+            ],
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        dynamic_detector = update_validator.save()
+
+        assert mock_seer_request.call_count == 1
+
+        # Verify snuba query changes
+        data_source = DataSource.objects.get(detector=dynamic_detector)
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
+        assert snuba_query.aggregate == "count_unique(tags[sentry:user])"
+
+        mock_audit.assert_called_once_with(
+            request=self.context["request"],
+            organization=self.project.organization,
+            target_object=dynamic_detector.id,
+            event=audit_log.get_event_id("DETECTOR_EDIT"),
+            data=dynamic_detector.get_audit_log_data(),
+        )
 
     @with_feature("organizations:discover-saved-queries-deprecation")
     def test_update_allowed_even_with_deprecated_dataset(self) -> None:

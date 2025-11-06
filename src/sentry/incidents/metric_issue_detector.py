@@ -273,6 +273,12 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 raise serializers.ValidationError(
                     "Invalid extrapolation mode for this detector type."
                 )
+        # Handle anomaly detection
+        if instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
+            if snuba_query.query != data_source.get(
+                "query"
+            ) or snuba_query.aggregate != data_source.get("aggregate"):
+                update_detector_data(instance, data_source)
 
         update_snuba_query(
             snuba_query=snuba_query,
@@ -303,34 +309,24 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             if query_subscriptions:
                 enable_disable_subscriptions(query_subscriptions, enabled)
 
-        data_source: SnubaQueryDataSourceType | None = None
+        # Handle data sources
+        updated_data_source_data: SnubaQueryDataSourceType | None = None
 
         if "data_sources" in validated_data:
-            data_source = validated_data.pop("data_sources")[0]
+            updated_data_source_data = validated_data.pop("data_sources")[0]
 
-        if data_source is not None:
-            self.update_data_source(instance, data_source)
+        if updated_data_source_data is not None:
+            self.update_data_source(instance, updated_data_source_data)
 
         # Handle anomaly detection changes
-        detection_type = instance.config.get("detection_type")
         if (
-            (
-                not detection_type == AlertRuleDetectionType.DYNAMIC
-                and validated_data.get("config", {}).get("detection_type")
-                == AlertRuleDetectionType.DYNAMIC
-            )
-            or (
-                detection_type == AlertRuleDetectionType.DYNAMIC
-                and data_source.query != validated_data.get("dataSources", {}).get("query")
-                # and (data_source.query is not None or data_source.aggregate is not None)
-            )
-            or (
-                detection_type == AlertRuleDetectionType.DYNAMIC
-                and data_source.aggregate != validated_data.get("dataSources", {}).get("aggregate")
-            )
+            not instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC
+            and validated_data.get("config", {}).get("detection_type")
+            == AlertRuleDetectionType.DYNAMIC
         ):
-            # detector has been changed to become a dynamic detector OR the snubaquery has changed on a dynamic detector
-            update_detector_data(instance, data_source)
+            # Detector has been changed to become a dynamic detector
+            send_new_detector_data(instance)
+            # update_detector_data(instance, updated_data_source_data)
 
         instance.save()
 
