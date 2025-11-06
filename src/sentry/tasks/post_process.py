@@ -1318,9 +1318,6 @@ def process_data_forwarding(job: PostProcessJob) -> None:
         data_forwarder__is_enabled=True,
     ).select_related("data_forwarder")
 
-    if not data_forwarder_projects.exists():
-        return
-
     for data_forwarder_project in data_forwarder_projects:
         provider = data_forwarder_project.data_forwarder.provider
         try:
