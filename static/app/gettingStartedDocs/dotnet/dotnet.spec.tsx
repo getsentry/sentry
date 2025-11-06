@@ -40,4 +40,17 @@ describe('dotnet onboarding docs', () => {
       await screen.findByText(textWithMarkupMatcher(/options.TracesSampleRate/))
     ).toBeInTheDocument();
   });
+
+  it('renders profiling onboarding docs correctly', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.PROFILING,
+      ],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/options.ProfilesSampleRate/))
+    ).toBeInTheDocument();
+  });
 });

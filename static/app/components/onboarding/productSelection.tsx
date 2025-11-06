@@ -86,7 +86,7 @@ export const platformProductAvailability = {
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
-  dotnet: [ProductSolution.PERFORMANCE_MONITORING],
+  dotnet: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'dotnet-aspnet': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-aspnetcore': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-awslambda': [ProductSolution.PERFORMANCE_MONITORING],
