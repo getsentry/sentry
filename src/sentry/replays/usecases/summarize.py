@@ -288,10 +288,12 @@ def generate_summary_logs(
             ):
                 error = error_events[error_idx]
 
-                if error["category"] == "error":
-                    yield generate_error_log_message(error)
-                elif error["category"] == "feedback":
-                    yield generate_feedback_log_message(error)
+                # Only yield errors that occurred after replay start
+                if error["timestamp"] >= replay_start_ms:
+                    if error["category"] == "error":
+                        yield generate_error_log_message(error)
+                    elif error["category"] == "feedback":
+                        yield generate_feedback_log_message(error)
 
                 error_idx += 1
 
@@ -312,10 +314,12 @@ def generate_summary_logs(
     while error_idx < len(error_events):
         error = error_events[error_idx]
 
-        if error["category"] == "error":
-            yield generate_error_log_message(error)
-        elif error["category"] == "feedback":
-            yield generate_feedback_log_message(error)
+        # Only yield errors that occurred after replay start
+        if error["timestamp"] >= replay_start_ms:
+            if error["category"] == "error":
+                yield generate_error_log_message(error)
+            elif error["category"] == "feedback":
+                yield generate_feedback_log_message(error)
 
         error_idx += 1
 

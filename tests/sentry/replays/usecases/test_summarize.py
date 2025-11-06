@@ -1524,11 +1524,65 @@ class RpcGetReplaySummaryLogsTestCase(
         assert len(logs) == 0
 
     def test_rpc_filters_out_events_before_replay_start(self) -> None:
-        """Test that events before the replay start are not logged."""
+        """Test that both segment events and error events before replay start are filtered out."""
         now = datetime.now(UTC)
         replay_start = now - timedelta(minutes=1)
+        trace_id = uuid.uuid4().hex
+        span_id = "1" + uuid.uuid4().hex[:15]
 
-        self.store_replay(dt=replay_start)
+        # Create an error that occurred BEFORE replay start (should be filtered)
+        early_error_id = uuid.uuid4().hex
+        early_error_timestamp = (replay_start - timedelta(minutes=3)).timestamp()
+        self.store_event(
+            data={
+                "event_id": early_error_id,
+                "timestamp": early_error_timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "EarlyError",
+                            "value": "This happened before replay started",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": span_id,
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        # Create an error that occurred AFTER replay start (should be included)
+        late_error_id = uuid.uuid4().hex
+        late_error_timestamp = (replay_start + timedelta(minutes=2)).timestamp()
+        self.store_event(
+            data={
+                "event_id": late_error_id,
+                "timestamp": late_error_timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "LateError",
+                            "value": "This happened after replay started",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id,
+                        "span_id": span_id,
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_replay(dt=replay_start, segment_id=0, trace_ids=[trace_id])
 
         data = [
             {
@@ -1563,5 +1617,14 @@ class RpcGetReplaySummaryLogsTestCase(
         )
 
         logs = response["logs"]
-        assert len(logs) == 1
-        assert "world" in logs[0]
+        assert len(logs) == 2
+
+        # Should include the late error and the "world" console message
+        assert "LateError" in logs[0]
+        assert "This happened after replay started" in logs[0]
+        assert "world" in logs[1]
+
+        # Should NOT include the early error or "hello" console message
+        assert not any("EarlyError" in log for log in logs)
+        assert not any("This happened before replay started" in log for log in logs)
+        assert not any("hello" in log for log in logs)
