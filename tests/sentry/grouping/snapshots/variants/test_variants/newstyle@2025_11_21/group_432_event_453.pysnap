@@ -1,5 +1,5 @@
 ---
-created: '2025-11-03T21:48:48.057857+00:00'
+created: '2025-11-05T19:32:39.432968+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -118,20 +118,20 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "abort"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "raise"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             filename*
               "crashpad_client_win.cc"
             function*
               "crashpad::`anonymous namespace'::HandleAbortSignal"
 --------------------------------------------------------------------------
 system:
-  hash: "1056f62d72ff8b4d0c3842d696dbb10a"
+  hash: "f1cecca3f7a7663f9c2e639a44c20047"
   contributing component: exception
   hint: None
   root_component:
@@ -245,13 +245,13 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "raise"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             filename*
               "crashpad_client_win.cc"
             function*
