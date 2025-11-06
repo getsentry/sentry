@@ -854,7 +854,7 @@ def get_semver_releases(project: Project) -> QuerySet[Release]:
         Release.objects.filter(projects=project, organization_id=project.organization_id)
         .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
-        .annotate_build_case_column()
+        .annotate_build_code_column()
         .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
     )
 

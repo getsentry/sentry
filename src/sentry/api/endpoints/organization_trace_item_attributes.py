@@ -557,7 +557,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
                 ).values_list("release_id", flat=True),
             )
             .annotate_prerelease_column()
-            .annotate_build_case_column()
+            .annotate_build_code_column()
         )  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
 
         environment_ids = self.snuba_params.environment_ids
