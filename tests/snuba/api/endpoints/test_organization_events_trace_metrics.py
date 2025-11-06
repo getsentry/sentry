@@ -8,7 +8,7 @@ from tests.snuba.api.endpoints.test_organization_events import OrganizationEvent
 class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     dataset = "tracemetrics"
 
-    def test_simple(self) -> None:
+    def test_simple_deprecated(self) -> None:
         trace_metrics = [
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("bar", 2, "counter"),
@@ -18,8 +18,57 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         response = self.do_request(
             {
                 "field": ["metric.name", "value"],
+                "query": "metric.name:foo metric.type:counter",
                 "orderby": "value",
-                "query": "metric.name:foo",
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": mock.ANY,
+                "project.name": self.project.slug,
+                "metric.name": "foo",
+                "value": 1,
+            },
+        ]
+
+    def test_simple_aggregation_deprecated(self) -> None:
+        trace_metrics = [
+            self.create_trace_metric("foo", 1, "counter"),
+            self.create_trace_metric("bar", 2, "counter"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["metric.name", "sum(value)"],
+                "query": "metric.name:foo metric.type:counter",
+                "orderby": "sum(value)",
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "metric.name": "foo",
+                "sum(value)": 1,
+            },
+        ]
+
+    def test_simple(self) -> None:
+        trace_metrics = [
+            self.create_trace_metric("foo", 1, "counter"),
+            self.create_trace_metric("bar", 2, "counter"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "metricName": "foo",
+                "metricType": "counter",
+                "field": ["metric.name", "value"],
+                "orderby": "value",
                 "dataset": self.dataset,
             }
         )
@@ -42,8 +91,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         response = self.do_request(
             {
+                "metricName": "foo",
+                "metricType": "counter",
                 "field": ["metric.name", "sum(value)"],
-                "query": "metric.name:foo",
                 "orderby": "sum(value)",
                 "dataset": self.dataset,
             }
@@ -63,8 +113,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         response = self.do_request(
             {
+                "metricName": "test_metric",
+                "metricType": "counter",
                 "field": ["per_minute(test_metric)"],
-                "query": "",
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "statsPeriod": "10m",
@@ -85,8 +136,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         response = self.do_request(
             {
+                "metricName": "test_metric",
+                "metricType": "counter",
                 "field": ["per_second(test_metric, counter)"],
-                "query": "",
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "statsPeriod": "10m",
@@ -111,8 +163,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         response = self.do_request(
             {
+                "metricName": "request_count",
+                "metricType": "counter",
                 "field": ["per_second(request_count,counter)"],
-                "query": "metric.name:request_count",
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "statsPeriod": "10m",
@@ -123,6 +176,29 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert data[0] == {"per_second(request_count,counter)": pytest.approx(8 / 600, abs=0.001)}
 
     def test_per_second_formula_with_gauge_metric_type(self) -> None:
+        gauge_metrics = [
+            self.create_trace_metric("cpu_usage", 75.0, "gauge"),
+            self.create_trace_metric("cpu_usage", 80.0, "gauge"),
+        ]
+        self.store_trace_metrics(gauge_metrics)
+
+        response = self.do_request(
+            {
+                "metricName": "cpu_usage",
+                "metricType": "gauge",
+                "field": [
+                    "per_second(cpu_usage, gauge)"
+                ],  # Trying space in the formula here to make sure it works.
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data[0] == {"per_second(cpu_usage, gauge)": pytest.approx(2 / 600, abs=0.001)}
+
+    def test_per_second_formula_with_gauge_metric_type_without_top_level_metric_type(self) -> None:
         gauge_metrics = [
             self.create_trace_metric("cpu_usage", 75.0, "gauge"),
             self.create_trace_metric("cpu_usage", 80.0, "gauge"),
