@@ -479,6 +479,7 @@ function WidgetViewerModal(props: Props) {
       eventView,
       theme,
       projects,
+      selectedQueryIndex,
     });
   }
 
@@ -508,6 +509,7 @@ function WidgetViewerModal(props: Props) {
       eventView,
       theme,
       projects,
+      selectedQueryIndex,
     });
   };
 
@@ -987,6 +989,7 @@ interface ViewerTableV2Props {
   navigate: ReactRouter3Navigate;
   organization: Organization;
   projects: Project[];
+  selectedQueryIndex: number;
   setChartUnmodified: React.Dispatch<React.SetStateAction<boolean>>;
   tableWidget: Widget;
   theme: Theme;
@@ -1013,6 +1016,7 @@ function ViewerTableV2({
   projects,
   dashboardFilters,
   modalSelection,
+  selectedQueryIndex,
 }: ViewerTableV2Props) {
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const links = parseLinkHeader(pageLinks ?? null);
@@ -1043,7 +1047,7 @@ function ViewerTableV2({
   const datasetConfig = getDatasetConfig(widget.widgetType);
   const aliases = decodeColumnAliases(
     tableColumns,
-    tableWidget.queries[0]?.fieldAliases ?? [],
+    tableWidget.queries[selectedQueryIndex]?.fieldAliases ?? [],
     tableWidget.widgetType === WidgetType.ISSUE
       ? datasetConfig?.getFieldHeaderMap?.()
       : {}
@@ -1161,7 +1165,8 @@ function ViewerTableV2({
               modalSelection,
               widget,
               organization,
-              dashboardFilters
+              dashboardFilters,
+              selectedQueryIndex
             );
             navigate(getExploreUrl(dataRow));
           }
