@@ -23,7 +23,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
-    IntegrationProviderError,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
@@ -797,7 +796,8 @@ class RegionJiraIntegrationTest(APITestCase):
         )
         installation = self.integration.get_installation(self.organization.id)
         with pytest.raises(
-            IntegrationProviderError, match="Something went wrong while communicating with Jira"
+            IntegrationConfigurationError,
+            match="Something went wrong while communicating with Jira",
         ):
             installation.create_issue(
                 {
@@ -826,7 +826,8 @@ class RegionJiraIntegrationTest(APITestCase):
         )
         installation = self.integration.get_installation(self.organization.id)
         with pytest.raises(
-            IntegrationProviderError, match="Something went wrong while communicating with Jira"
+            IntegrationConfigurationError,
+            match="Something went wrong while communicating with Jira",
         ):
             installation.create_issue(
                 {

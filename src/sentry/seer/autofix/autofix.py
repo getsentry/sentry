@@ -553,7 +553,7 @@ def trigger_autofix(
     if group.organization.get_option("sentry:hide_ai_features"):
         return _respond_with_error("AI features are disabled for this organization.", 403)
 
-    if not get_seer_org_acknowledgement(org_id=group.organization.id):
+    if not get_seer_org_acknowledgement(group.organization):
         return _respond_with_error(
             "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer.",
             403,

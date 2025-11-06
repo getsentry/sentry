@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.364644+00:00'
+created: '2025-11-03T21:48:48.363869+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,6 +10,10 @@ app:
   root_component:
     app*
       exception*
+        type*
+          "Error"
+        value*
+          "bad"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by stack trace rule (module:@babel/** -app))
             module*
@@ -26,10 +30,6 @@ app:
               "tslib/tslib.es6"
             function* (trimmed javascript function)
               "sent"
-        type*
-          "Error"
-        value*
-          "bad"
 --------------------------------------------------------------------------
 system:
   hash: null
@@ -38,6 +38,10 @@ system:
   root_component:
     system (ignored because app exception takes precedence)
       exception (ignored because hash matches app variant)
+        type*
+          "Error"
+        value*
+          "bad"
         stacktrace (ignored because it contains no contributing frames)
           frame (ignored by stack trace rule (module:@babel/** -group))
             module*
@@ -54,7 +58,3 @@ system:
               "tslib/tslib.es6"
             function* (trimmed javascript function)
               "sent"
-        type*
-          "Error"
-        value*
-          "bad"
