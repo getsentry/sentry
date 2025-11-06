@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {IconChevron} from 'sentry/icons';
+import {useStoryParams} from 'sentry/stories/view';
 import {fzf} from 'sentry/utils/profiling/fzf/fzf';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export class StoryTreeNode {
@@ -15,7 +15,7 @@ export class StoryTreeNode {
   public path: string;
   public filesystemPath: string;
   public category: StoryCategory;
-  public slug: string;
+  public slug: string | undefined = undefined;
 
   public visible = true;
   public expanded = false;
@@ -31,17 +31,13 @@ export class StoryTreeNode {
     this.category = inferFileCategory(filesystemPath);
 
     if (this.category === 'shared') {
-      const segments = this.path.split('/');
-      const filename = segments.pop();
-
-      if (filename === undefined) {
-        this.slug = '';
-      }
-
-      this.slug = `${segments.join('/')}/${this.label.replaceAll(' ', '-').toLowerCase()}`;
+      const [_app, ...segments] = this.filesystemPath.split('/');
+      // Remove the filename from the path
+      segments.pop()!;
+      this.slug = `${segments.map(segment => segment.toLowerCase()).join('/')}/${this.label.replaceAll(' ', '-').toLowerCase()}`;
+    } else {
+      this.slug = `${this.label.replaceAll(' ', '-').toLowerCase()}`;
     }
-
-    this.slug = `${this.label.replaceAll(' ', '-').toLowerCase()}`;
   }
 
   find(predicate: (node: StoryTreeNode) => boolean): StoryTreeNode | undefined {
@@ -289,8 +285,8 @@ export function useStoryTree(
     type: 'flat' | 'nested';
   }
 ) {
-  const location = useLocation();
-  const initialName = useRef(location.query.name);
+  const {storySlug} = useStoryParams();
+  const initialSlug = useRef(storySlug ?? null);
 
   const tree = useMemo(() => {
     const root = new StoryTreeNode('root', '', '');
@@ -379,9 +375,9 @@ export function useStoryTree(
     }
 
     // If the user navigates to a story, expand to its location in the tree
-    if (initialName.current) {
+    if (initialSlug.current) {
       for (const {node, path} of root) {
-        if (node.filesystemPath === initialName.current) {
+        if (node.slug === initialSlug.current) {
           for (const p of path) {
             p.expanded = true;
           }
@@ -398,8 +394,8 @@ export function useStoryTree(
     const root = tree.find(node => node.name === 'app') ?? tree;
 
     if (!options.query) {
-      if (initialName.current) {
-        initialName.current = null;
+      if (initialSlug.current) {
+        initialSlug.current = null;
       }
 
       // If there is no initial query and no story is selected, the sidebar
@@ -518,11 +514,11 @@ export function StoryTree({nodes, ...htmlProps}: Props) {
 
 function Folder(props: {node: StoryTreeNode}) {
   const [expanded, setExpanded] = useState(props.node.expanded);
-  const location = useLocation();
+  const {storySlug} = useStoryParams();
 
   const hasActiveChild = useMemo(() => {
-    return !!props.node.find(n => n.filesystemPath === location.query.name);
-  }, [location, props.node]);
+    return !!props.node.find(n => n.slug === storySlug);
+  }, [storySlug, props.node]);
 
   if (hasActiveChild && !props.node.expanded) {
     props.node.expanded = true;
@@ -560,9 +556,9 @@ function Folder(props: {node: StoryTreeNode}) {
               return null;
             }
             return Object.keys(child.children).length === 0 ? (
-              <File key={child.path} node={child} />
+              <File key={child.slug} node={child} />
             ) : (
-              <Folder key={child.path} node={child} />
+              <Folder key={child.slug} node={child} />
             );
           })}
         </StoryList>
@@ -572,9 +568,9 @@ function Folder(props: {node: StoryTreeNode}) {
 }
 
 function File(props: {node: StoryTreeNode}) {
-  const location = useLocation();
   const organization = useOrganization();
-  const active = props.node.filesystemPath === location.query.name;
+  const {storySlug} = useStoryParams();
+  const active = storySlug === props.node.slug;
 
   return (
     <li>

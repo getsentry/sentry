@@ -151,13 +151,11 @@ export function useStoryBookFilesByCategory(): Record<
     representation: 'category',
     type: 'flat',
   });
-
   const product = useStoryTree(filesByOwner.product, {
     query: '',
     representation: 'category',
     type: 'nested',
   });
-
   const shared = useStoryTree(filesByOwner.shared, {
     query: '',
     representation: 'category',
@@ -169,9 +167,9 @@ export function useStoryBookFilesByCategory(): Record<
     principles,
     patterns,
     typography,
+    layout,
     core,
     product,
-    layout,
     shared,
   };
 }

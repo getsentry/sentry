@@ -67,16 +67,25 @@ function findPreviousAndNextStory(
   prev?: StoryTreeNode;
 } | null {
   const stories = Object.values(categories).flat();
-  const currentIndex = stories.findIndex(s => s.filesystemPath === story.filename);
+  const queue = [...stories];
 
-  if (currentIndex === -1) {
-    return null;
+  while (queue.length > 0) {
+    const node = queue.pop();
+    if (!node) break;
+
+    if (node.filesystemPath === story.filename) {
+      return {
+        prev: queue[queue.length - 1] ?? undefined,
+        next: queue[queue.length + 1] ?? undefined,
+      };
+    }
+
+    for (const key in node.children) {
+      queue.push(node.children[key]!);
+    }
   }
 
-  return {
-    prev: stories[currentIndex - 1] ?? undefined,
-    next: stories[currentIndex + 1] ?? undefined,
-  };
+  return null;
 }
 
 const Card = styled(LinkButton)`

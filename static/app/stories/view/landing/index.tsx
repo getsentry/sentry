@@ -32,7 +32,7 @@ const frontmatter = {
     actions: [
       {
         children: 'Get Started',
-        to: '/stories?name=app/styles/colors.mdx',
+        to: '/stories/foundations/colors',
         priority: 'primary',
       },
       {
@@ -93,8 +93,9 @@ export function StoryLanding() {
           <CardGrid>
             <Card
               to={{
-                pathname: normalizeUrl(`/organizations/${organization.slug}/stories/`),
-                query: {name: 'app/styles/colors.mdx'},
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/stories/foundations/colors`
+                ),
               }}
               title="Color"
             >
@@ -104,8 +105,9 @@ export function StoryLanding() {
             </Card>
             <Card
               to={{
-                pathname: normalizeUrl(`/organizations/${organization.slug}/stories/`),
-                query: {name: 'app/icons/icons.stories.tsx'},
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/stories/foundations/icons`
+                ),
               }}
               title="Icons"
             >
@@ -115,8 +117,9 @@ export function StoryLanding() {
             </Card>
             <Card
               to={{
-                pathname: normalizeUrl(`/organizations/${organization.slug}/stories/`),
-                query: {name: 'app/styles/typography.stories.tsx'},
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/stories/foundations/typography`
+                ),
               }}
               title="Typography"
             >
@@ -126,8 +129,9 @@ export function StoryLanding() {
             </Card>
             <Card
               to={{
-                pathname: normalizeUrl(`/organizations/${organization.slug}/stories/`),
-                query: {name: 'app/styles/images.stories.tsx'},
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/stories/foundations/images`
+                ),
               }}
               title="Images"
             >

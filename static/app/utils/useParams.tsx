@@ -45,8 +45,6 @@ type ParamKeys =
   | 'shareId'
   | 'spanSlug'
   | 'step'
-  | 'storySlug'
-  | 'storyCategory'
   | 'tagKey'
   | 'teamId'
   | 'tokenId'

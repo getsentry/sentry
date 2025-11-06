@@ -320,9 +320,9 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: '/stories/:storyCategory?/:storySlug?/',
-      component: make(() => import('sentry/stories/view/index')),
+      path: '/stories/*',
       withOrgPath: true,
+      component: make(() => import('sentry/stories/view/index')),
     },
     {
       path: '/debug/notifications/:notificationSource?/',
