@@ -112,7 +112,7 @@ export default function ReplayDetailsPageBreadcrumbs({
                 pathname: previousReplay
                   ? `/explore/replays/${previousReplay.id}/`
                   : undefined,
-                query: {...location.query},
+                query: location.query,
               }}
             />
             <LinkButton
@@ -121,7 +121,7 @@ export default function ReplayDetailsPageBreadcrumbs({
               disabled={!nextReplay}
               to={{
                 pathname: nextReplay ? `/explore/replays/${nextReplay.id}/` : undefined,
-                query: {...location.query},
+                query: location.query,
               }}
             />
           </ButtonBar>
