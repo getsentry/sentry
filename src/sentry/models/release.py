@@ -309,7 +309,7 @@ class Release(Model):
         "revision",
         "prerelease_case",
         "prerelease",
-        "build_number_case",
+        "build_code_case",
         "build_number",
         "build_code",
     ]
