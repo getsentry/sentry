@@ -1,9 +1,9 @@
 import {Fragment, useRef, useState} from 'react';
 
 import {Button} from 'sentry/components/core/button';
+import {CodeBlock} from 'sentry/components/core/code/codeBlock';
 import {Input} from 'sentry/components/core/input';
 import {Radio} from 'sentry/components/core/radio';
-import {CodeBlock} from 'sentry/components/core/code/codeBlock';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 
 import PageHeader from 'admin/components/pageHeader';
@@ -163,9 +163,7 @@ const AlertDetails = ({workflow}: {workflow: Automation}) => (
     {workflow.detectorIds.length && (
       <Fragment>
         <h6>Connected Monitors</h6>
-        <CodeBlock language="javascript">
-          {JSON.stringify(workflow)}
-        </CodeBlock>
+        <CodeBlock language="javascript">{JSON.stringify(workflow)}</CodeBlock>
         <ul>
           {workflow.detectorIds.map(detectorId => (
             <li key={detectorId}>
@@ -239,7 +237,9 @@ function AlertsDebug() {
       {workflow && (
         <div style={{marginTop: 16}}>
           <AlertDetails workflow={workflow} />
-          <div style={{width: "100%", borderBottom: "1px solid #E0DCE5", margin: "64px 0"}} />
+          <div
+            style={{width: '100%', borderBottom: '1px solid #E0DCE5', margin: '64px 0'}}
+          />
         </div>
       )}
       {workflowId && <AlertDebugForm onSubmit={updateApi} workflowId={workflowId} />}
