@@ -258,14 +258,11 @@ x-sentry-service-config:
       [
         snuba,
         postgres,
+        relay,
         taskbroker,
         taskworker,
         ingest-events,
         ingest-transactions,
-        ingest-attachments,
-        post-process-forwarder-errors,
-        post-process-forwarder-transactions,
-        post-process-forwarder-issue-platform,
         uptime-checker,
         uptime-results,
       ]
