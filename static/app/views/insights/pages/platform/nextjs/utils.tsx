@@ -14,11 +14,7 @@ type AbsoluteDateTimeObject = {
   start: DateString;
 };
 
-export function getPreviousPeriod({
-  period,
-  start,
-  end,
-}: DateTimeObject): AbsoluteDateTimeObject | null {
+export function getPreviousPeriod({period, start, end}: DateTimeObject) {
   if (start && end) {
     return doGetPreviousPeriod({start, end});
   }
@@ -59,7 +55,7 @@ const doGetPreviousPeriod = ({start, end}: AbsoluteDateTimeObject) => {
 export const truncatePeriod = (
   {start, end}: {end: Date | null; start: Date | null},
   periodType: StatsPeriodType
-): AbsoluteDateTimeObject | null => {
+) => {
   const truncateDate = (date: Date): string => {
     // Create a new date to avoid mutating the original
     const newDate = new Date(date);
