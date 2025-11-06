@@ -131,9 +131,7 @@ describe('DetectorSection', () => {
       `/organizations/${organization.slug}/issues/alerts/rules/uptime/${project.slug}/${detectorId}/details/`
     );
     expect(
-      screen.getByText(
-        'This issue was created by an uptime monitoring alert rule after detecting 3 consecutive failed checks.'
-      )
+      screen.getByText('This issue was created by an uptime monitoring alert rule.')
     ).toBeInTheDocument();
   });
 });
