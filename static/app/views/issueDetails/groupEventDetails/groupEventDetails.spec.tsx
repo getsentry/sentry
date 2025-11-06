@@ -352,6 +352,7 @@ describe('groupEventDetails', () => {
       body: props.event,
     });
 
+    // Start on a specific event details page
     const eventRouterConfig = {
       location: {
         pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/events/${props.event.id}/`,
@@ -367,11 +368,13 @@ describe('groupEventDetails', () => {
       `/organizations/${props.organization.slug}/issues/${props.group.id}/events/${props.event.id}/`
     );
 
+    // Change environment filter to 'prod', which doesn't match the event's 'dev' environment
     router.navigate({
       pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/events/${props.event.id}/`,
       search: '?environment=prod',
     });
 
+    // Should redirect back to issue list page (without eventId) but preserve the environment filter
     await waitFor(() => {
       expect(router.location.pathname).toBe(
         `/organizations/${props.organization.slug}/issues/${props.group.id}/`
