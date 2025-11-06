@@ -103,7 +103,10 @@ function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
   return items.join(',') + ',';
 }
 
-function prepareInputValueForSaving(valueType: FieldValueType, inputValue: string) {
+export function prepareInputValueForSaving(
+  valueType: FieldValueType,
+  inputValue: string
+) {
   const parsed = parseMultiSelectFilterValue(inputValue);
 
   if (!parsed) {
