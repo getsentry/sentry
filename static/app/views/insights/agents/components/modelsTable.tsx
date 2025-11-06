@@ -11,6 +11,7 @@ import GridEditable, {
 import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {Sort} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -22,7 +23,7 @@ import {
 } from 'sentry/views/insights/agents/components/common';
 import {
   HeadSortCell,
-  useTableSortParams,
+  useTableSort,
 } from 'sentry/views/insights/agents/components/headSortCell';
 import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
@@ -83,6 +84,8 @@ const rightAlignColumns = new Set([
   'p95(span.duration)',
 ]);
 
+const DEFAULT_SORT: Sort = {field: 'count()', kind: 'desc'};
+
 export function ModelsTable() {
   const organization = useOrganization();
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
@@ -93,7 +96,7 @@ export function ModelsTable() {
 
   const {cursor, setCursor} = useTableCursor();
 
-  const {sortField, sortOrder} = useTableSortParams();
+  const {tableSort} = useTableSort(DEFAULT_SORT);
 
   const modelsRequest = useSpans(
     {
@@ -109,7 +112,7 @@ export function ModelsTable() {
         'p95(span.duration)',
         'count_if(span.status,equals,internal_error)',
       ],
-      sorts: [{field: sortField, kind: sortOrder}],
+      sorts: [tableSort],
       search: fullQuery,
       limit: 10,
       cursor,
@@ -154,6 +157,7 @@ export function ModelsTable() {
       return (
         <HeadSortCell
           sortKey={column.key}
+          defaultSort={DEFAULT_SORT}
           forceCellGrow={column.key === 'model'}
           align={rightAlignColumns.has(column.key) ? 'right' : undefined}
           onClick={handleSort}

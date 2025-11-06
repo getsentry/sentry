@@ -8,6 +8,7 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
@@ -57,6 +58,8 @@ const rightAlignColumns = new Set([
   'p95(span.duration)',
 ]);
 
+const DEFAULT_SORT: Sort = {field: 'count()', kind: 'desc'};
+
 export function ClientTable() {
   const organization = useOrganization();
   const hasWebVitalsFlag = organization.features.includes('insight-modules');
@@ -85,6 +88,7 @@ export function ClientTable() {
       'count_if(span.op,equals,navigation)',
       'count_if(span.op,equals,pageload)',
     ],
+    defaultSort: DEFAULT_SORT,
     referrer: Referrer.CLIENT_TABLE,
   });
 
@@ -92,6 +96,7 @@ export function ClientTable() {
     return (
       <HeadSortCell
         sortKey={column.key}
+        defaultSort={DEFAULT_SORT}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
         forceCellGrow={column.key === 'transaction'}
       >

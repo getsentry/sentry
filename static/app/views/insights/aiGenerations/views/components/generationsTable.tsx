@@ -12,9 +12,13 @@ import {
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
 import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
-import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
+import {
+  HeadSortCell,
+  useTableSort,
+} from 'sentry/views/insights/agents/components/headSortCell';
 import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
@@ -40,6 +44,8 @@ const INITIAL_COLUMN_ORDER = [
   {key: SpanFields.TIMESTAMP, name: t('Timestamp')},
 ] as const;
 
+const DEFAULT_SORT: Sort = {field: SpanFields.TIMESTAMP, kind: 'desc'};
+
 function getLastInputMessage(messages?: string) {
   if (!messages) {
     return null;
@@ -61,6 +67,7 @@ export function GenerationsTable() {
   const {openTraceViewDrawer} = useTraceViewDrawer({});
   const query = useCombinedQuery(AI_GENERATIONS_PAGE_FILTER);
   const {cursor} = useTableCursor();
+  const {tableSort} = useTableSort(DEFAULT_SORT);
 
   const {data, isLoading, error, pageLinks, isPlaceholderData} = useSpans(
     {
@@ -77,6 +84,7 @@ export function GenerationsTable() {
         SpanFields.TIMESTAMP,
       ],
       cursor,
+      sorts: [tableSort],
       keepPreviousData: true,
       limit: 20,
     },
@@ -183,6 +191,7 @@ export function GenerationsTable() {
     return (
       <HeadSortCell
         align={column.key === SpanFields.TIMESTAMP ? 'right' : 'left'}
+        defaultSort={DEFAULT_SORT}
         sortKey={column.key}
         forceCellGrow={column.key === SpanFields.GEN_AI_REQUEST_MESSAGES}
       >

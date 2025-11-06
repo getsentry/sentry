@@ -8,6 +8,7 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
@@ -52,6 +53,8 @@ const rightAlignColumns = new Set([
   'avg_if(span.duration,span.op,equals,queue.process)',
 ]);
 
+const DEFAULT_SORT: Sort = {field: 'count()', kind: 'desc'};
+
 export function JobsTable() {
   const {query} = useTransactionNameQuery();
   const mutableQuery = new MutableSearch(query);
@@ -69,6 +72,7 @@ export function JobsTable() {
       'failure_rate()',
       'sum(span.duration)',
     ],
+    defaultSort: DEFAULT_SORT,
     referrer: Referrer.PATHS_TABLE,
   });
 
@@ -76,6 +80,7 @@ export function JobsTable() {
     return (
       <HeadSortCell
         sortKey={column.key}
+        defaultSort={DEFAULT_SORT}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
         forceCellGrow={column.key === 'transaction'}
       >

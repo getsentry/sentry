@@ -9,6 +9,7 @@ import GridEditable, {
 import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {Sort} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -20,7 +21,7 @@ import {
 } from 'sentry/views/insights/agents/components/common';
 import {
   HeadSortCell,
-  useTableSortParams,
+  useTableSort,
 } from 'sentry/views/insights/agents/components/headSortCell';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
@@ -56,6 +57,8 @@ const rightAlignColumns = new Set([
   'p95(span.duration)',
 ]);
 
+const DEFAULT_SORT: Sort = {field: 'count()', kind: 'desc'};
+
 export function ToolsTable() {
   const organization = useOrganization();
 
@@ -67,7 +70,7 @@ export function ToolsTable() {
 
   const {cursor, setCursor} = useTableCursor();
 
-  const {sortField, sortOrder} = useTableSortParams();
+  const {tableSort} = useTableSort(DEFAULT_SORT);
 
   const toolsRequest = useSpans(
     {
@@ -79,7 +82,7 @@ export function ToolsTable() {
         'failure_rate()',
         'count_if(span.status,equals,internal_error)',
       ],
-      sorts: [{field: sortField, kind: sortOrder}],
+      sorts: [tableSort],
       search: fullQuery,
       limit: 10,
       cursor,
@@ -119,6 +122,7 @@ export function ToolsTable() {
       return (
         <HeadSortCell
           sortKey={column.key}
+          defaultSort={DEFAULT_SORT}
           forceCellGrow={column.key === 'tool'}
           align={rightAlignColumns.has(column.key) ? 'right' : undefined}
           onClick={handleSort}

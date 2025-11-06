@@ -8,6 +8,7 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {Sort} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -41,6 +42,8 @@ const rightAlignColumns = new Set([
   P95_DURATION,
 ]);
 
+const DEFAULT_SORT: Sort = {field: 'count()', kind: 'desc'};
+
 export function McpPromptsTable() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -55,6 +58,7 @@ export function McpPromptsTable() {
       AVG_DURATION,
       P95_DURATION,
     ],
+    defaultSort: DEFAULT_SORT,
     referrer: MCPReferrer.MCP_PROMPT_TABLE,
   });
 
@@ -75,6 +79,7 @@ export function McpPromptsTable() {
       return (
         <HeadSortCell
           sortKey={column.key}
+          defaultSort={DEFAULT_SORT}
           align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
           forceCellGrow={column.key === SpanFields.MCP_PROMPT_NAME}
           onClick={handleSort}

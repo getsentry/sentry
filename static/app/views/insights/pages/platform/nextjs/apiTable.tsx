@@ -6,6 +6,7 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
@@ -45,6 +46,8 @@ const rightAlignColumns = new Set([
   'sum(span.duration)',
 ]);
 
+const DEFAULT_SORT: Sort = {field: 'count()', kind: 'desc'};
+
 export function ApiTable() {
   const {query} = useTransactionNameQuery();
   const tableDataRequest = useSpanTableData({
@@ -58,6 +61,7 @@ export function ApiTable() {
       'count()',
       'sum(span.duration)',
     ],
+    defaultSort: DEFAULT_SORT,
     referrer: Referrer.API_TABLE,
   });
 
@@ -65,6 +69,7 @@ export function ApiTable() {
     return (
       <HeadSortCell
         sortKey={column.key}
+        defaultSort={DEFAULT_SORT}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
         forceCellGrow={column.key === 'transaction'}
       >

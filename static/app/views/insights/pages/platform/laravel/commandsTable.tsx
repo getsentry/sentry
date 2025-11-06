@@ -7,6 +7,7 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import type {Sort} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -42,6 +43,8 @@ const rightAlignColumns = new Set([
   'p95(span.duration)',
 ]);
 
+const DEFAULT_SORT: Sort = {field: 'count()', kind: 'desc'};
+
 export function CommandsTable() {
   const {query} = useTransactionNameQuery();
   const tableDataRequest = useSpanTableData({
@@ -55,6 +58,7 @@ export function CommandsTable() {
       'p95(span.duration)',
       'sum(span.duration)',
     ],
+    defaultSort: DEFAULT_SORT,
     referrer: Referrer.PATHS_TABLE,
   });
 
@@ -62,6 +66,7 @@ export function CommandsTable() {
     return (
       <HeadSortCell
         sortKey={column.key}
+        defaultSort={DEFAULT_SORT}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
         forceCellGrow={column.key === 'command'}
       >

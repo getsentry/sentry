@@ -10,6 +10,7 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
@@ -54,6 +55,8 @@ const rightAlignColumns = new Set([
   'sum(span.duration)',
 ]);
 
+const DEFAULT_SORT: Sort = {field: 'count()', kind: 'desc'};
+
 export function PathsTable() {
   const {query} = useTransactionNameQuery();
   const mutableQuery = new MutableSearch(query);
@@ -73,6 +76,7 @@ export function PathsTable() {
       'http.request.method',
       'count_unique(user)',
     ],
+    defaultSort: DEFAULT_SORT,
     referrer: Referrer.PATHS_TABLE,
   });
 
@@ -80,6 +84,7 @@ export function PathsTable() {
     return (
       <HeadSortCell
         sortKey={column.key}
+        defaultSort={DEFAULT_SORT}
         align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
         forceCellGrow={column.key === 'transaction'}
       >
