@@ -284,6 +284,28 @@ export function WizardProjectSelection({
     emptyMessage = t('No projects matching search');
   }
 
+  const platformField = (
+    <FieldWrapper>
+      <label>{t('Platform')}</label>
+      <StyledCompactSelect
+        value={newProjectPlatform as string}
+        searchable
+        options={platformOptions}
+        triggerProps={{
+          icon: newProjectPlatform ? (
+            <PlatformIcon platform={newProjectPlatform} size={16} />
+          ) : null,
+          children: newProjectPlatform
+            ? platforms.find(p => p.id === newProjectPlatform)?.name
+            : t('Select a platform'),
+        }}
+        onChange={({value}) => {
+          setNewProjectPlatform(value as string);
+        }}
+      />
+    </FieldWrapper>
+  );
+
   const projectNameField = (
     <FieldWrapper>
       <label>{t('Project Slug')}</label>
@@ -382,77 +404,41 @@ export function WizardProjectSelection({
         {isCreateProjectSelected &&
           (isOrgMemberWithNoAccess ? (
             <Fragment>
-              {!platformParam && (
-                <FieldWrapper>
-                  <label>{t('Platform')}</label>
-                  <StyledCompactSelect
-                    value={newProjectPlatform as string}
-                    searchable
-                    options={platformOptions}
-                    triggerProps={{
-                      icon: newProjectPlatform ? (
-                        <PlatformIcon platform={newProjectPlatform} size={16} />
-                      ) : null,
-                      children: newProjectPlatform
-                        ? platforms.find(p => p.id === newProjectPlatform)?.name
-                        : t('Select a platform'),
-                    }}
-                    onChange={({value}) => {
-                      setNewProjectPlatform(value as string);
-                    }}
-                  />
-                </FieldWrapper>
-              )}
+              {!platformParam && platformField}
               {projectNameField}
             </Fragment>
           ) : (
-            <Columns>
-              {!platformParam && (
+            <Fragment>
+              {!platformParam && platformField}
+              <Columns>
+                {projectNameField}
                 <FieldWrapper>
-                  <label>{t('Platform')}</label>
+                  <label>{t('Team')}</label>
                   <StyledCompactSelect
-                    value={newProjectPlatform as string}
-                    searchable
-                    options={platformOptions}
+                    value={newProjectTeam as string}
+                    options={
+                      selectableTeams?.map(team => ({
+                        value: team.slug,
+                        label: `#${team.slug}`,
+                        leadingItems: <IdBadge team={team} hideName />,
+                        searchKey: team.slug,
+                      })) || []
+                    }
                     triggerProps={{
-                      icon: newProjectPlatform ? (
-                        <PlatformIcon platform={newProjectPlatform} size={16} />
+                      icon: selectedTeam ? (
+                        <IdBadge avatarSize={16} team={selectedTeam} hideName />
                       ) : null,
-                      children: newProjectPlatform
-                        ? platforms.find(p => p.id === newProjectPlatform)?.name
-                        : t('Select a platform'),
+                      children: selectedTeam
+                        ? `#${selectedTeam.slug}`
+                        : t('Select a team'),
                     }}
                     onChange={({value}) => {
-                      setNewProjectPlatform(value as string);
+                      setNewProjectTeam(value as string);
                     }}
                   />
                 </FieldWrapper>
-              )}
-              {projectNameField}
-              <FieldWrapper>
-                <label>{t('Team')}</label>
-                <StyledCompactSelect
-                  value={newProjectTeam as string}
-                  options={
-                    selectableTeams?.map(team => ({
-                      value: team.slug,
-                      label: `#${team.slug}`,
-                      leadingItems: <IdBadge team={team} hideName />,
-                      searchKey: team.slug,
-                    })) || []
-                  }
-                  triggerProps={{
-                    icon: selectedTeam ? (
-                      <IdBadge avatarSize={16} team={selectedTeam} hideName />
-                    ) : null,
-                    children: selectedTeam ? `#${selectedTeam.slug}` : t('Select a team'),
-                  }}
-                  onChange={({value}) => {
-                    setNewProjectTeam(value as string);
-                  }}
-                />
-              </FieldWrapper>
-            </Columns>
+              </Columns>
+            </Fragment>
           ))}
         <SubmitButton
           disabled={!isFormValid || isPending}
