@@ -4,6 +4,7 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
   waitForDrawerToHide,
   within,
 } from 'sentry-test/reactTestingLibrary';
@@ -132,5 +133,93 @@ describe('BreadcrumbsDataSection', () => {
     });
     expect(drawerControl).toBeInTheDocument();
     expect(drawerControl).toHaveFocus();
+  });
+
+  describe('Copy All Breadcrumbs Integration', () => {
+    const mockWriteText = jest.fn();
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      
+      // Mock clipboard API
+      Object.assign(navigator, {
+        clipboard: {
+          writeText: mockWriteText,
+        },
+      });
+      
+      Object.defineProperty(window, 'isSecureContext', {
+        value: true,
+        writable: true,
+      });
+      
+      mockWriteText.mockResolvedValue(undefined);
+    });
+
+    it('copy button is available in the breadcrumbs drawer', async () => {
+      render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
+      
+      // Open the drawer
+      const viewAllButton = screen.getByRole('button', {name: 'View All Breadcrumbs'});
+      await userEvent.click(viewAllButton);
+      
+      const drawer = screen.getByRole('complementary', {name: 'breadcrumb drawer'});
+      expect(drawer).toBeInTheDocument();
+      
+      // Verify copy button is present and accessible
+      const copyButton = within(drawer).getByRole('button', {name: 'Copy All Breadcrumbs'});
+      expect(copyButton).toBeInTheDocument();
+      expect(copyButton).not.toBeDisabled();
+    });
+
+    it('copy functionality works from the breadcrumbs drawer', async () => {
+      render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
+      
+      // Open the drawer
+      const viewAllButton = screen.getByRole('button', {name: 'View All Breadcrumbs'});
+      await userEvent.click(viewAllButton);
+      
+      const drawer = screen.getByRole('complementary', {name: 'breadcrumb drawer'});
+      const copyButton = within(drawer).getByRole('button', {name: 'Copy All Breadcrumbs'});
+      
+      // Click copy button
+      await userEvent.click(copyButton);
+      
+      await waitFor(() => {
+        expect(mockWriteText).toHaveBeenCalledTimes(1);
+      });
+      
+      // Verify the copied content contains expected breadcrumb data
+      const copiedText = mockWriteText.mock.calls[0][0];
+      expect(copiedText).toContain('BREADCRUMBS');
+      expect(copiedText).toContain('Warning Category');
+      expect(copiedText).toContain('Total:');
+    });
+
+    it('copy button respects search filters in drawer', async () => {
+      render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
+      
+      // Open the drawer
+      const viewAllButton = screen.getByRole('button', {name: 'View All Breadcrumbs'});
+      await userEvent.click(viewAllButton);
+      
+      const drawer = screen.getByRole('complementary', {name: 'breadcrumb drawer'});
+      
+      // Apply a search filter
+      const searchInput = within(drawer).getByRole('textbox', {name: 'Search All Breadcrumbs'});
+      await userEvent.type(searchInput, 'warning');
+      
+      // Click copy button
+      const copyButton = within(drawer).getByRole('button', {name: 'Copy All Breadcrumbs'});
+      await userEvent.click(copyButton);
+      
+      await waitFor(() => {
+        expect(mockWriteText).toHaveBeenCalledTimes(1);
+      });
+      
+      const copiedText = mockWriteText.mock.calls[0][0];
+      expect(copiedText).toContain('Warning Category');
+      expect(copiedText).not.toContain('Log Category');
+    });
   });
 });
