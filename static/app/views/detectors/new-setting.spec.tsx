@@ -190,7 +190,7 @@ describe('DetectorEdit', () => {
                   {
                     comparison: 100,
                     conditionResult: 0,
-                    type: 'lt',
+                    type: 'lte',
                   },
                 ],
                 logicType: 'any',
@@ -277,7 +277,7 @@ describe('DetectorEdit', () => {
                   {
                     comparison: 100,
                     conditionResult: 0,
-                    type: 'lt',
+                    type: 'lte',
                   },
                 ],
                 logicType: 'any',
@@ -348,7 +348,7 @@ describe('DetectorEdit', () => {
               conditionGroup: {
                 conditions: [
                   {comparison: 100, conditionResult: 75, type: 'gt'},
-                  {comparison: 100, conditionResult: 0, type: 'lt'},
+                  {comparison: 100, conditionResult: 0, type: 'lte'},
                 ],
                 logicType: 'any',
               },
@@ -426,7 +426,7 @@ describe('DetectorEdit', () => {
                 {
                   comparison: 80,
                   conditionResult: 0,
-                  type: 'lt',
+                  type: 'lte',
                 },
               ],
             },
@@ -490,7 +490,7 @@ describe('DetectorEdit', () => {
                 {
                   comparison: 50,
                   conditionResult: 0,
-                  type: 'lt',
+                  type: 'lte',
                 },
               ],
             },

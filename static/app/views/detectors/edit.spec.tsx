@@ -326,7 +326,7 @@ describe('DetectorEdit', () => {
               conditionGroup: {
                 conditions: [
                   {comparison: 8, conditionResult: 75, type: 'gt'},
-                  {comparison: 8, conditionResult: 0, type: 'lt'},
+                  {comparison: 8, conditionResult: 0, type: 'lte'},
                 ],
                 logicType: 'any',
               },

@@ -59,7 +59,7 @@ function DataConditionGroupFixture(
       // OK (resolution) condition - uses same comparison value with swapped operator
       DataConditionFixture({
         id: '2',
-        type: DataConditionType.LESS,
+        type: DataConditionType.LESS_OR_EQUAL,
         conditionResult: DetectorPriorityLevel.OK,
       }),
     ],
