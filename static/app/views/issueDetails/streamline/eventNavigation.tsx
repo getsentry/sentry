@@ -220,7 +220,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
           'You can quickly navigate between different examples in this issue to find their similarities (and differences).'
         )}
       >
-        <NavigationWrapper>
+        <Flex gap={{xs: '2xs', sm: 'xs'}} justify="between">
           {currentTab === Tab.DETAILS && (
             <Fragment>
               <IssueDetailsEventNavigation
@@ -316,7 +316,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               </LinkButton>
             </ButtonBar>
           )}
-        </NavigationWrapper>
+        </Flex>
       </TourElement>
     </EventNavigationWrapper>
   );
@@ -353,16 +353,6 @@ const EventNavigationWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.xs}) {
     flex-direction: row;
     align-items: center;
-  }
-`;
-
-const NavigationWrapper = styled('div')`
-  display: flex;
-  gap: ${space(0.25)};
-  justify-content: space-between;
-
-  @media (min-width: ${p => p.theme.breakpoints.xs}) {
-    gap: ${space(0.5)};
   }
 `;
 
