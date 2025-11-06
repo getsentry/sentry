@@ -18,7 +18,6 @@ def create_project_detectors(instance, created, **kwargs):
                 "organizations:workflow-engine-issue-alert-dual-write", instance.organization
             ):
                 ensure_default_detectors(instance)
-                logger.info("project.detector-created", extra={"project_id": instance.id})
         except IntegrityError as e:
             sentry_sdk.capture_exception(e)
 
