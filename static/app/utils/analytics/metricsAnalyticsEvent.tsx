@@ -7,6 +7,11 @@ export type MetricsAnalyticsEventParameters = {
     platform: PlatformKey | 'unknown';
     supports_onboarding_checklist: boolean;
   };
+  'metrics.nav.rendered': {
+    metrics_tab_visible: boolean;
+    organization: Organization;
+    platforms: Array<PlatformKey | 'unknown'>;
+  };
   'metrics.onboarding': {
     organization: Organization;
     platform: PlatformKey | 'unknown';
@@ -33,6 +38,7 @@ type MetricsAnalyticsEventKey = keyof MetricsAnalyticsEventParameters;
 
 export const metricsAnalyticsEventMap: Record<MetricsAnalyticsEventKey, string | null> = {
   'metrics.explorer.setup_button_clicked': 'Metrics Setup Button Clicked',
+  'metrics.nav.rendered': 'Metrics Nav Rendered',
   'metrics.onboarding': 'Metrics Explore Empty State (Onboarding)',
   'metrics.onboarding_platform_docs_viewed':
     'Metrics Explore Empty State (Onboarding) - Platform Docs Viewed',

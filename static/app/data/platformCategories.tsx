@@ -396,6 +396,12 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([]);
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
 export const withoutMetricsSupport: Set<PlatformKey> = new Set([]);
 
+export const limitedMetricsSupportPrefixes: Set<string> = new Set([
+  'javascript',
+  'node',
+  'python',
+]);
+
 export const profiling: PlatformKey[] = [
   'android',
   'apple',
@@ -419,6 +425,7 @@ export const profiling: PlatformKey[] = [
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
   'javascript-vue',
+
   'node',
   'node-awslambda',
   'node-azurefunctions',
