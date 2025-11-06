@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {appendTagCondition} from 'sentry/utils/queryString';
+import {generateQueryWithTag} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -213,7 +213,6 @@ function TagFacetsDistributionMeterWrapper({
   expandFirstTag?: boolean;
 }) {
   const location = useLocation();
-  const query = {...location.query};
   return (
     <TagFacetsList>
       {tagKeys.map((tagKey, index) => {
@@ -229,16 +228,17 @@ function TagFacetsDistributionMeterWrapper({
               // Create a link to the events page with a tag condition on the selected value
               const url: LocationDescriptor = {
                 ...location,
-                query: {
-                  ...query,
-                  query: appendTagCondition(null, tagKey, value.value),
-                },
+                query: generateQueryWithTag(location.query, {
+                  key: tagKey,
+                  value: value.value,
+                }),
                 pathname: eventsPath,
               };
 
               return {
                 ...value,
                 url,
+                name: value.name === '' ? t('(empty)') : value.name,
               };
             })
           : [];

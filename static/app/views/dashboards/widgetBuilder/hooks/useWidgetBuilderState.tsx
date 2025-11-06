@@ -380,6 +380,13 @@ function useWidgetBuilderState(): {
         }
         case BuilderStateAction.SET_FIELDS: {
           setFields(action.payload, options);
+          const remainingKindFields = action.payload.filter(
+            field => field.kind === FieldValueKind.FIELD
+          );
+          const remainingLinkedDashboards = linkedDashboards?.filter(linkedDashboard =>
+            remainingKindFields.some(field => field.field === linkedDashboard.field)
+          );
+          setLinkedDashboards(remainingLinkedDashboards, options);
 
           const isRemoved = action.payload.length < (fields?.length ?? 0);
           if (
@@ -593,6 +600,7 @@ function useWidgetBuilderState(): {
       fields,
       yAxis,
       displayType,
+      linkedDashboards,
       query,
       sort,
       dataset,
