@@ -6,7 +6,7 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/node/utils';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 const getSdkConfigureSnippetToml = () => `
 compatibility_flags = ["nodejs_compat"]
