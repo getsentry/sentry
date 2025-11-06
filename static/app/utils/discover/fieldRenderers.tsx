@@ -295,7 +295,9 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       const {unit} = baggage ?? {};
       return (
         <NumberContainer>
-          {formatRate(data[field], unit as RateUnit, {minimumValue: 0.01})}
+          {typeof data[field] === 'number'
+            ? formatRate(data[field], unit as RateUnit, {minimumValue: 0.01})
+            : emptyValue}
         </NumberContainer>
       );
     },
