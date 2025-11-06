@@ -1,7 +1,8 @@
 import logging
-import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, Literal, cast
+from typing import Any, Literal
+
+from django.urls import reverse
 
 from sentry import eventstore
 from sentry.api import client
@@ -15,8 +16,6 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import query_replay_instance
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
@@ -513,7 +512,11 @@ def get_issue_details(
 
 
 def get_replay_metadata(
-    *, replay_id: str, project_id: int, start: datetime | None = None, end: datetime | None = None
+    *,
+    replay_id: str,
+    project_id: int,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> dict[str, Any] | None:
     """
     Get the metadata for a replay through an aggregate replay event query.
@@ -531,23 +534,45 @@ def get_replay_metadata(
         The return type is ReplayDetailsResponse.
     """
     try:
-        replay_id = str(uuid.UUID(replay_id))
-    except ValueError:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        logger.warning(
+            "Project does not exist",
+            extra={"project_id": project_id, "replay_id": replay_id},
+        )
         return None
 
-    default_start, default_end = default_start_end_dates()  # Default last 90d.
-    start = start or default_start
-    end = end or default_end
+    path = reverse(
+        "sentry-api-0-project-replay-details",
+        args=(project.organization.slug, project.slug, replay_id),
+    )
+    path = path.strip("/").lstrip("api/0") + "/"
 
-    snuba_response = query_replay_instance(
-        project_id=project_id,
-        replay_id=replay_id,
-        start=start,
-        end=end,
+    params = {}
+    if start:
+        params["start"] = start.isoformat()
+    if end:
+        params["end"] = end.isoformat()
+
+    resp = client.get(
+        auth=ApiKey(
+            organization_id=project.organization.id, scope_list=["org:read", "project:read"]
+        ),
+        user=None,
+        path=path,
+        params=params,
     )
 
-    response = process_raw_response(
-        snuba_response,
-        fields=[],
-    )
-    return cast(dict[str, Any], response[0]) if response else None
+    if resp.status_code != 200 or not (resp.data or {}).get("data"):
+        logger.warning(
+            "Failed to get replay metadata",
+            extra={
+                "project_id": project_id,
+                "replay_id": replay_id,
+                "params": params,
+                "status_code": resp.status_code,
+            },
+        )
+        return None
+
+    return resp.data["data"]
