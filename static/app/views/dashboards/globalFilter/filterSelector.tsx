@@ -98,17 +98,17 @@ function FilterSelector({
     setActiveFilterValues(opts);
 
     // Build filter condition string
-    const filterValue = () => {
-      if (opts.length === 0) {
-        return '';
-      }
-      const mutableSearch = new MutableSearch('');
-      return mutableSearch.addFilterValueList(tag.key, opts).toString();
-    };
+    const mutableSearch = new MutableSearch('');
 
+    let filterValue = '';
+    if (opts.length === 1) {
+      filterValue = mutableSearch.addFilterValue(tag.key, opts[0]!).toString();
+    } else if (opts.length > 1) {
+      filterValue = mutableSearch.addFilterValueList(tag.key, opts).toString();
+    }
     onUpdateFilter({
       ...globalFilter,
-      value: filterValue(),
+      value: filterValue,
     });
   };
 

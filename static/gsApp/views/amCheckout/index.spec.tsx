@@ -27,7 +27,7 @@ import {hasOnDemandBudgetsFeature} from 'getsentry/views/onDemandBudgets/utils';
 function assertCheckoutV3Steps(tier: PlanTier) {
   expect(screen.getByTestId('checkout-steps')).toBeInTheDocument();
   [
-    'Build your plan',
+    'Select a plan',
     [PlanTier.AM1, PlanTier.AM2].includes(tier)
       ? /Set your on-demand limit/
       : /Set your pay-as-you-go limit/,
