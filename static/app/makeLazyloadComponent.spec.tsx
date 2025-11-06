@@ -1,7 +1,7 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Link, setRouteConfigProvider} from 'sentry/components/core/link/link';
-import {PRELOAD_HANDLE} from 'sentry/constants/routes';
+import {PRELOAD_HANDLE} from 'sentry/router/preload';
 
 import {makeLazyloadComponent} from './makeLazyloadComponent';
 

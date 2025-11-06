@@ -1,7 +1,7 @@
 import {lazy} from 'react';
 
 import LazyLoad from 'sentry/components/lazyLoad';
-import {PRELOAD_HANDLE} from 'sentry/constants/routes';
+import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import errorHandler from 'sentry/utils/errorHandler';
 import retryableImport from 'sentry/utils/retryableImport';
 

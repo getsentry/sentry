@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import type {LinkProps} from '@sentry/scraps/link';
 import {LinkBehaviorContextProvider} from '@sentry/scraps/link/linkBehaviorContext';
 
-import {PRELOAD_HANDLE} from 'sentry/constants/routes';
+import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';

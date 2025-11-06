@@ -9,7 +9,7 @@ import {
 import * as Sentry from '@sentry/react';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
-import {PRELOAD_HANDLE} from 'sentry/constants/routes';
+import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import type {SentryRouteObject} from 'sentry/router/types';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useLocation} from 'sentry/utils/useLocation';
