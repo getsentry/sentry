@@ -349,12 +349,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "deletions.group-hashes-metadata.update-seer-matched-grouphash-ids",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "deletions.activity.delete-in-bulk",
     default=False,
     type=Bool,
