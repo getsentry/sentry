@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Container} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
@@ -204,11 +205,16 @@ function InnerContent({
       <ToggleExceptionButton
         {...{hiddenExceptions, toggleRelatedExceptions, values, exception}}
       />
-
       {exception.mechanism ? (
-        <Mechanism data={exception.mechanism} meta={meta?.[exceptionIdx]?.mechanism} />
+        <Container paddingTop="xl">
+          <Mechanism data={exception.mechanism} meta={meta?.[exceptionIdx]?.mechanism} />
+        </Container>
       ) : null}
-      {hasCoverageData ? <LineCoverageLegend /> : null}
+      {hasCoverageData ? (
+        <Container paddingTop="md">
+          <LineCoverageLegend />
+        </Container>
+      ) : null}
       <RelatedExceptions
         mechanism={exception.mechanism}
         allExceptions={values}
