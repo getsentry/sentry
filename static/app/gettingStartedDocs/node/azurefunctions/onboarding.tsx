@@ -1,28 +1,16 @@
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportJavaScriptInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {t, tct} from 'sentry/locale';
-import {
   getInstallCodeBlock,
-  getNodeAgentMonitoringOnboarding,
-  getNodeLogsOnboarding,
-  getNodeMcpOnboarding,
-  getNodeProfilingOnboarding,
   getSdkInitSnippet,
-} from 'sentry/utils/gettingStartedDocs/node';
+} from 'sentry/gettingStartedDocs/node/node/utils';
+import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = (params: DocsParams) => `
 "use strict";
 // IMPORTANT: Make sure to import and initialize Sentry at the top of your file.
 ${getSdkInitSnippet(params, 'node')}
@@ -43,7 +31,7 @@ module.exports = async function (context, req) {
 };
 `;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct("In this quick guide you'll use [strong:npm] or [strong:yarn] to set up:", {
       strong: <strong />,
@@ -92,7 +80,7 @@ const onboarding: OnboardingConfig = {
     }),
   ],
   verify: () => [],
-  nextSteps: (params: Params) => {
+  nextSteps: params => {
     const steps = [];
 
     if (params.isLogsSelected) {
@@ -109,37 +97,3 @@ const onboarding: OnboardingConfig = {
     return steps;
   },
 };
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/azure-functions/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  crashReportOnboarding,
-  profilingOnboarding: getNodeProfilingOnboarding(),
-  logsOnboarding: getNodeLogsOnboarding({
-    docsPlatform: 'azure-functions',
-    packageName: '@sentry/node',
-  }),
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
-  mcpOnboarding: getNodeMcpOnboarding(),
-};
-
-export default docs;
