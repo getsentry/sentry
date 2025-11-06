@@ -2,7 +2,7 @@ import orjson
 import pytest
 import responses
 
-from data_forwarding.splunk.forwarder import SplunkForwarder
+from sentry.integrations.data_forwarding.splunk.forwarder import SplunkForwarder
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
