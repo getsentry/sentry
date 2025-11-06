@@ -18,6 +18,7 @@ def urlopen_with_retries(url: str, timeout: int = 5, retries: int = 6) -> IO[byt
         except Exception:
             if i == retries - 1:
                 raise
+            print(f"Failed to fetch {url}, attempting retry {i + 1}")
             time.sleep(2**i)  # 1, 2, 4, ..., 16
     else:
         raise AssertionError("unreachable")
