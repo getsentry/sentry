@@ -514,50 +514,42 @@ def get_issue_details(
 def get_replay_metadata(
     *,
     replay_id: str,
-    project_id: int,
-    start: datetime | None = None,
-    end: datetime | None = None,
+    organization_id: int,
+    project_ids: list[int] | None = None,
 ) -> dict[str, Any] | None:
     """
     Get the metadata for a replay through an aggregate replay event query.
 
     Args:
         replay_id: The ID of the replay.
-        project_id: The ID of the project the replay belongs to.
-        start: The start time of the search range. Defaults to 90d ago.
-        end: The end time of the search range. Defaults to now.
-
-        For accurate results, the replay should start and end within the search range.
+        organization_id: The ID of the organization the replay belongs to.
+        project_ids: The projects to query. If not provided, all projects in the organization will be queried.
 
     Returns:
         A dict containing the metadata for the replay, or None if it's not found.
         The return type is ReplayDetailsResponse.
     """
     try:
-        project = Project.objects.get(id=project_id)
-    except Project.DoesNotExist:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
         logger.warning(
-            "Project does not exist",
-            extra={"project_id": project_id, "replay_id": replay_id},
+            "Organization does not exist",
+            extra={"organization_id": organization_id, "replay_id": replay_id},
         )
         return None
 
     path = reverse(
-        "sentry-api-0-project-replay-details",
-        args=(project.organization.slug, project.slug, replay_id),
+        "sentry-api-0-organization-replay-details",
+        args=(organization.slug, replay_id),
     )
-    path = path.strip("/").lstrip("api/0") + "/"
+    path = path.strip("/")[len("api/0") :] + "/"
 
     params = {}
-    if start:
-        params["start"] = start.isoformat()
-    if end:
-        params["end"] = end.isoformat()
+    if project_ids:
+        params["project"] = project_ids
 
     resp = client.get(
-        auth=ApiKey(
-            organization_id=project.organization.id, scope_list=["org:read", "project:read"]
-        ),
+        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
         user=None,
         path=path,
         params=params,
@@ -567,9 +559,9 @@ def get_replay_metadata(
         logger.warning(
             "Failed to get replay metadata",
             extra={
-                "project_id": project_id,
                 "replay_id": replay_id,
-                "params": params,
+                "organization_id": organization_id,
+                "project_ids": project_ids,
                 "status_code": resp.status_code,
             },
         )
