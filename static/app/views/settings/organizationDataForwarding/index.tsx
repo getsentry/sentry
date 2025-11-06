@@ -71,12 +71,15 @@ export default function OrganizationDataForwarding() {
         return;
       }
       const initialData: Record<string, any> = {
+        is_enabled: dataForwarder.isEnabled,
         enroll_new_projects: dataForwarder.enrollNewProjects,
         project_ids: dataForwarder.enrolledProjects.map(project => project.id),
         ...dataForwarder.config,
       };
       setCombinedFormState(prev => ({...prev, [dataForwarder.provider]: initialData}));
-      formModel.setInitialData(initialData ?? {...combinedFormState[provider]});
+      formModel.setInitialData(
+        dataForwarder ? initialData : {...combinedFormState[provider]}
+      );
       formModel.setFormOptions({onFieldChange: updateCombinedFormState});
       formModel.validateFormCompletion();
     },
@@ -147,7 +150,7 @@ export default function OrganizationDataForwarding() {
         >
           <JsonForm
             forms={getDataForwarderFormGroups({
-              provider,
+              provider: dataForwarder ? dataForwarder.provider : provider,
               projects,
               dataForwarder,
               organization,

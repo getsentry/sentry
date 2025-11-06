@@ -75,6 +75,7 @@ export function useMutateDataForwarder({
         })
       );
       queryClient.invalidateQueries({queryKey: [endpoint]});
+      queryClient.invalidateQueries({queryKey: listQueryKey});
     },
     onError: error => {
       const displayError =
