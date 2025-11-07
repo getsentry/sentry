@@ -3,6 +3,7 @@ import type {ReactNode} from 'react';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconFire, IconSpan, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {NoPaddingColumns} from 'sentry/views/explore/metrics/constants';
 import {
   NumericSimpleTableHeaderCell,
   StyledSimpleTableHeader,
@@ -24,9 +25,13 @@ const ICON_HEADERS = {
 
 interface MetricsSamplesTableHeaderProps {
   columns: SampleTableColumnKey[];
+  embedded?: boolean;
 }
 
-export function MetricsSamplesTableHeader({columns}: MetricsSamplesTableHeaderProps) {
+export function MetricsSamplesTableHeader({
+  columns,
+  embedded,
+}: MetricsSamplesTableHeaderProps) {
   const sorts = useQueryParamsSortBys();
 
   return (
@@ -41,6 +46,7 @@ export function MetricsSamplesTableHeader({columns}: MetricsSamplesTableHeaderPr
             field={field}
             index={i}
             sort={sorts.find(s => s.field === field)?.kind}
+            embedded={embedded}
           >
             {columnType === 'stat'
               ? ICON_HEADERS[field as keyof typeof ICON_HEADERS]
@@ -59,15 +65,17 @@ function FieldHeaderCellWrapper({
   children,
   index,
   sort,
+  embedded = false,
 }: {
   children: ReactNode;
   field: SampleTableColumnKey;
   index: number;
+  embedded?: boolean;
   sort?: 'asc' | 'desc';
 }) {
   const columnType = getMetricTableColumnType(field);
   const label = getFieldLabel(field);
-  const hasPadding = field !== VirtualTableSampleColumnKey.EXPAND_ROW;
+  const hasPadding = !NoPaddingColumns.includes(field as VirtualTableSampleColumnKey);
 
   if (columnType === 'stat') {
     return (
@@ -75,6 +83,7 @@ function FieldHeaderCellWrapper({
         key={`stat-${index}`}
         divider={false}
         data-column-name={field}
+        embedded={embedded}
       >
         <Tooltip title={label} skipWrapper>
           {children}
@@ -92,6 +101,7 @@ function FieldHeaderCellWrapper({
           justifyContent: 'flex-end',
           paddingRight: 'calc(12px + 15px)', // 12px is the padding of the cell, 15px is the width of the scrollbar.
         }}
+        embedded={embedded}
       >
         <Tooltip showOnlyOnOverflow title={label}>
           {children}
@@ -101,7 +111,12 @@ function FieldHeaderCellWrapper({
   }
 
   return (
-    <StyledSimpleTableHeaderCell key={index} sort={sort} noPadding={!hasPadding}>
+    <StyledSimpleTableHeaderCell
+      key={index}
+      sort={sort}
+      noPadding={!hasPadding}
+      embedded={embedded}
+    >
       <Tooltip showOnlyOnOverflow title={label}>
         {children}
       </Tooltip>
