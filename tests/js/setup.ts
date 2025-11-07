@@ -3,11 +3,14 @@
 import '@testing-library/jest-dom';
 
 import {webcrypto} from 'node:crypto';
+import {ReadableStream, TransformStream, WritableStream} from 'node:stream/web';
 import {TextDecoder, TextEncoder} from 'node:util';
+import {BroadcastChannel} from 'node:worker_threads';
 
 import {type ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import {enableFetchMocks} from 'jest-fetch-mock';
+
+// import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
 
 import {resetMockDate} from 'sentry-test/utils';
@@ -29,7 +32,7 @@ setLocale(DEFAULT_LOCALE_DATA);
 /**
  * Setup fetch mocks (needed to define the `Request` global)
  */
-enableFetchMocks();
+// enableFetchMocks();
 
 // @ts-expect-error XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
 // framer-motion SVG components fail
@@ -63,7 +66,7 @@ jest.mock('lodash/debounce', () =>
   })
 );
 jest.mock('sentry/utils/recreateRoute');
-jest.mock('sentry/api');
+// jest.mock('sentry/api');
 jest
   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
   .mockImplementation(props => props.children as ReactElement);
@@ -326,3 +329,26 @@ Object.defineProperty(global.self, 'crypto', {
     subtle: webcrypto.subtle,
   },
 });
+
+(globalThis as any).TextDecoder ??= TextDecoder;
+(globalThis as any).TextEncoder ??= TextEncoder;
+(globalThis as any).ReadableStream ??= ReadableStream;
+
+(globalThis as any).Blob ??= Blob;
+(globalThis as any).Headers ??= Headers;
+(globalThis as any).FormData ??= FormData;
+(globalThis as any).Request ??= Request;
+(globalThis as any).Response ??= Response;
+(globalThis as any).fetch ??= fetch;
+(globalThis as any).AbortController ??= AbortController;
+(globalThis as any).AbortSignal ??= AbortSignal;
+(globalThis as any).structuredClone ??= structuredClone;
+(globalThis as any).URL ??= URL;
+(globalThis as any).URLSearchParams ??= URLSearchParams;
+
+(globalThis as any).BroadcastChannel ??= BroadcastChannel;
+(globalThis as any).TransformStream ??= TransformStream;
+
+(globalThis as any).ReadableStream ??= ReadableStream;
+(globalThis as any).WritableStream ??= WritableStream;
+(globalThis as any).TransformStream ??= TransformStream;

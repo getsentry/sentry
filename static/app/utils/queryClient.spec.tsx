@@ -1,5 +1,8 @@
 import {Fragment} from 'react';
+import {disableFetchMocks} from 'jest-fetch-mock';
+import {http, HttpResponse} from 'msw';
 
+import {server} from 'sentry-test/msw';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -73,13 +76,25 @@ describe('queryClient', () => {
   });
 
   describe('useQuery', () => {
+    beforeEach(() => {
+      // disableFetchMocks();
+    });
     it('can do a simple fetch', async () => {
-      const mock = MockApiClient.addMockResponse({
-        url: '/some/test/path/',
-        body: {value: 5},
-        headers: {'Custom-Header': 'header value'},
+      const requests: Request[] = [];
+      server.events.on('request:start', ({request}) => {
+        requests.push(request);
       });
 
+      server.use(
+        http.get('*/some/test/path/', () => {
+          return HttpResponse.json(
+            {
+              value: 5,
+            },
+            {headers: {'Custom-Header': 'header value'}}
+          );
+        })
+      );
       function TestComponent() {
         const {data, getResponseHeader} = useApiQuery<ResponseData>(
           ['/some/test/path/'],
@@ -103,7 +118,8 @@ describe('queryClient', () => {
       expect(await screen.findByText('5')).toBeInTheDocument();
       expect(screen.getByText('header value')).toBeInTheDocument();
 
-      expect(mock).toHaveBeenCalledWith('/some/test/path/', expect.anything());
+      expect(requests).toHaveLength(1);
+      expect(requests[0]!.url).toStrictEqual(expect.stringContaining('/some/test/path/'));
     });
 
     it('can do a fetch with provided query object', async () => {
