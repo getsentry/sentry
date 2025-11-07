@@ -1,8 +1,12 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Link} from 'sentry/components/core/link/link';
 import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
+import {SentryLinkBehaviorProvider} from 'sentry/scrapsProviders/link';
+import OrganizationStore from 'sentry/stores/organizationStore';
 
 import {makeLazyloadComponent} from './makeLazyloadComponent';
 
@@ -234,11 +238,29 @@ describe('makeLazyloadComponent', () => {
   describe('route integration', () => {
     beforeEach(() => {
       jest.useRealTimers();
+
+      act(() => {
+        OrganizationStore.init();
+        OrganizationStore.onUpdate(
+          OrganizationFixture({features: ['route-intent-preloading']}),
+          {replace: true}
+        );
+      });
+    });
+
+    afterEach(() => {
+      act(() => {
+        OrganizationStore.reset();
+      });
     });
     it('works with Link component route preloading', async () => {
-      const LazyComponent = makeLazyloadComponent(
-        createMockComponentPromise(MockComponent, 50)
-      );
+      // Spy on the preload function to verify it gets called
+      const preloadPromise = createMockComponentPromise(MockComponent, 50);
+      const preloadPromiseSpy = jest.fn(() => {
+        return preloadPromise();
+      });
+
+      const LazyComponent = makeLazyloadComponent(preloadPromiseSpy);
 
       // Create mock routes that include our lazy component
       const mockRoutes = [
@@ -251,32 +273,47 @@ describe('makeLazyloadComponent', () => {
         },
       ];
 
-      // Render a Link that should trigger preloading
+      // Render ONLY the Link, not the component itself to avoid triggering the load
       render(
         <RouteConfigProvider value={mockRoutes}>
-          <div>
-            <Link to="/test-route" data-test-id="test-link">
-              Go to test route
-            </Link>
-            <LazyComponent title="Test Component" />
-          </div>
+          <SentryLinkBehaviorProvider>
+            <div>
+              <Link to="/test-route" data-test-id="test-link">
+                Go to test route
+              </Link>
+            </div>
+          </SentryLinkBehaviorProvider>
         </RouteConfigProvider>
       );
 
       const link = screen.getByTestId('test-link');
 
-      // Initially, component should show loading (not preloaded yet)
-      expect(screen.queryByTestId('mock-component')).not.toBeInTheDocument();
+      // Initially, no preload calls should have happened
+      expect(preloadPromiseSpy).not.toHaveBeenCalled();
 
       // Hover over link to trigger preload
       await userEvent.hover(link);
 
-      // Wait for component to load after preload
+      // Verify that the preload function was called by hovering
+      expect(preloadPromiseSpy).toHaveBeenCalledTimes(1);
+
+      // Now render the component to verify it uses the preloaded result
+      render(
+        <RouteConfigProvider value={mockRoutes}>
+          <LazyComponent title="Test Component" />
+        </RouteConfigProvider>
+      );
+
+      // Component should render immediately since it was preloaded
+      // (though we still need to wait for React to process the render)
       await waitFor(() => {
         expect(screen.getByTestId('mock-component')).toBeInTheDocument();
       });
 
       expect(screen.getByText('Test Component')).toBeInTheDocument();
+
+      // The preload count should still be 1 since the component reuses the same promise
+      expect(preloadPromiseSpy).toHaveBeenCalledTimes(1);
     });
 
     it('handles multiple routes with different preload handles', async () => {
@@ -371,28 +408,40 @@ describe('makeLazyloadComponent', () => {
       });
     });
 
-    it('handles route config provider errors gracefully', async () => {
-      const LazyComponent = makeLazyloadComponent(createMockComponentPromise());
+    it('handles preload errors', async () => {
+      // Create a component that fails during preload
+      const preloadError = new Error('Preload failed');
+      const failingResolver = jest.fn(() => Promise.reject(preloadError));
+      const LazyComponent = makeLazyloadComponent(failingResolver);
 
-      // For this test, we'll use empty routes to simulate no route config
+      const mockRoutes = [
+        {
+          path: '/test-route',
+          element: <div>Route wrapper</div>,
+          handle: {[PRELOAD_HANDLE]: LazyComponent[PRELOAD_HANDLE]},
+        },
+      ];
+
       render(
-        <RouteConfigProvider value={[]}>
-          <div>
-            <Link to="/error-route" data-test-id="error-link">
-              Error route
-            </Link>
-            <LazyComponent title="Test Component" />
-          </div>
+        <RouteConfigProvider value={mockRoutes}>
+          <SentryLinkBehaviorProvider>
+            <div>
+              <Link to="/test-route" data-test-id="error-link">
+                Go to error route
+              </Link>
+            </div>
+          </SentryLinkBehaviorProvider>
         </RouteConfigProvider>
       );
 
-      // Should not throw when hovering, even with failing route config
+      // Hover should trigger preload failure
       await userEvent.hover(screen.getByTestId('error-link'));
 
-      // Component should still load normally
-      await waitFor(() => {
-        expect(screen.getByTestId('mock-component')).toBeInTheDocument();
-      });
+      // Verify the preload was attempted and failed
+      expect(failingResolver).toHaveBeenCalled();
+
+      // Despite the preload error, the link should still render without crashing
+      expect(screen.getByText('Go to error route')).toBeInTheDocument();
     });
   });
 });
