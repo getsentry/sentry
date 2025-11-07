@@ -427,6 +427,7 @@ function EAPSpanNodeDetailsContent({
   traceItemData: TraceItemDetailsResponse;
 }) {
   const attributes = traceItemData.attributes;
+  const attributesMeta = traceItemData.meta;
   const links = traceItemData.links;
   const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
 
@@ -487,7 +488,11 @@ function EAPSpanNodeDetailsContent({
           hideNodeActions={hideNodeActions}
         />
         <AIIOAlert node={node} attributes={attributes} />
-        <AIInputSection node={node} attributes={attributes} />
+        <AIInputSection
+          node={node}
+          attributes={attributes}
+          attributesMeta={attributesMeta}
+        />
         <AIOutputSection node={node} attributes={attributes} />
         <MCPInputSection node={node} attributes={attributes} />
         <MCPOutputSection node={node} attributes={attributes} />

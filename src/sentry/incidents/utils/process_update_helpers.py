@@ -219,9 +219,7 @@ def get_comparison_aggregation_value(
     return (aggregation_value / comparison_aggregate) * 100
 
 
-def calculate_event_date_from_update_date(
-    update_date: datetime, snuba_query: SnubaQuery, threshold_period: int = 1
-) -> datetime:
+def calculate_event_date_from_update_date(update_date: datetime, time_window: int) -> datetime:
     """
     Calculates the date that an event actually happened based on the date that we
     received the update. This takes into account time window and threshold period.
@@ -230,8 +228,4 @@ def calculate_event_date_from_update_date(
     # Subscriptions label buckets by the end of the bucket, whereas discover
     # labels them by the front. This causes us an off-by-one error with event dates,
     # so to prevent this we subtract a bucket off of the date.
-    update_date -= timedelta(seconds=snuba_query.time_window)
-    # We want to also subtract `frequency * (threshold_period - 1)` from the date.
-    # This allows us to show the actual start of the event, rather than the date
-    # of the last update that we received.
-    return update_date - timedelta(seconds=(snuba_query.resolution * (threshold_period - 1)))
+    return update_date - timedelta(seconds=time_window)
