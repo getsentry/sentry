@@ -43,7 +43,7 @@ def get_transactions_for_project(
     project_id: int, limit: int = 500, start_time_delta: dict[str, int] | None = None
 ) -> list[Transaction]:
     """
-    Get a list of transactions for a project using EAP, sorted by volume/traffic.
+    Get a list of transactions for a project using EAP, sorted by total time spent.
 
     Args:
         project_id: The ID of the project to fetch transactions for
@@ -75,15 +75,15 @@ def get_transactions_for_project(
         auto_fields=True,
     )
 
-    # Query EAP for transactions with volume metrics
+    # Query EAP for most important transactions (highest total time spent)
     result = Spans.run_table_query(
         params=snuba_params,
-        query_string=f"is_transaction:true project.id:{project_id}",
+        query_string="is_transaction:true",
         selected_columns=[
             "transaction",
-            "count()",
+            "sum(span.duration)",
         ],
-        orderby=["-count()"],  # Sort by count descending (highest volume first)
+        orderby=["-sum(span.duration)"],
         offset=0,
         limit=limit,
         referrer=Referrer.SEER_RPC,
