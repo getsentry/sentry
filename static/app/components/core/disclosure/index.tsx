@@ -1,1 +1,1 @@
-export {Disclosure, useDisclosureContext} from './disclosure';
+export {Disclosure} from './disclosure';
