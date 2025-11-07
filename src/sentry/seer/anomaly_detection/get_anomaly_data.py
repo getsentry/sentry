@@ -3,7 +3,10 @@ import logging
 from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
+from sentry.conf.server import (
+    SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
+    SEER_ANOMALY_DETECTION_ENDPOINT_URL,
+)
 from sentry.incidents.handlers.condition.anomaly_detection_handler import AnomalyDetectionUpdate
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.net.http import connection_from_url
@@ -274,3 +277,77 @@ def get_anomaly_data_from_seer(
         )
         return None
     return ts
+
+
+def get_anomaly_threshold_data_from_seer(
+    subscription: QuerySubscription,
+    start: float,
+    end: float,
+) -> list[dict[str, object]] | None:
+    """
+    Get anomaly detection threshold data from Seer for a specific alert rule and time range.
+    Returns data points with yhat_lower and yhat_upper threshold values.
+
+    {
+    "alert": {
+      "id": null,
+      "source_id": 261045,
+      "source_type": 1
+    },
+    "start": 1729178100.0,
+    "end": 1729179000.0
+    }
+    """
+    source_id = subscription.id
+    source_type = DataSourceType.SNUBA_QUERY_SUBSCRIPTION
+
+    payload = {
+        "alert": {
+            "id": None,
+            "source_id": source_id,
+            "source_type": source_type,
+        },
+        "start": start,
+        "end": end,
+    }
+    try:
+        logger.info("Sending threshold data to Seer", extra=payload)
+        response = make_signed_seer_api_request(
+            connection_pool=SEER_ANOMALY_DETECTION_CONNECTION_POOL,
+            path=SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
+            body=json.dumps(payload).encode("utf-8"),
+        )
+    except (TimeoutError, MaxRetryError):
+        logger.warning("Timeout error when hitting anomaly detection alert data endpoint")
+        return None
+
+    if response.status > 400:
+        logger.error(
+            "Error when hitting Seer alert data endpoint",
+            extra={
+                "response_data": response.data,
+                "payload": payload,
+            },
+        )
+        return None
+
+    try:
+        results = json.loads(response.data.decode("utf-8"))
+    except JSONDecodeError:
+        logger.exception(
+            "Failed to parse Seer alert data response",
+            extra={
+                "response_data": response.data,
+                "payload": payload,
+            },
+        )
+        return None
+
+    if not results.get("success"):
+        detailed_error_message = results.get("message", "<unknown>")
+        # We want Sentry to group them by error message.
+        msg = f"Error when hitting Seer alert data endpoint: {detailed_error_message}"
+        logger.warning(msg)
+        return None
+
+    return results.get("data")
