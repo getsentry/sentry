@@ -20,7 +20,7 @@ describe('ConfidenceFooter', () => {
       );
 
       expect(screen.getByTestId('wrapper')).toHaveTextContent(
-        'Extrapolated from 100 span'
+        'Extrapolated from 100 spans'
       );
       await userEvent.hover(screen.getByText('100'));
       expect(
