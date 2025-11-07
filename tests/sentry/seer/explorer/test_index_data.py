@@ -23,22 +23,24 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
 
     def test_get_transactions_for_project(self) -> None:
         """Test the full end-to-end happy path for get_transactions_for_project."""
-        # Create spans for different transactions with varying volumes
+        # Create spans for different transactions with varying total time spent
+        # Format: (transaction_name, count, avg_duration_ms)
         transactions_data = [
-            ("api/users/profile", 5),  # High volume
-            ("api/posts/create", 3),  # Medium volume
-            ("api/health", 1),  # Low volume
+            ("api/users/profile", 5, 100.0),  # 5 * 100 = 500ms total (highest)
+            ("api/posts/create", 3, 150.0),  # 3 * 150 = 450ms total (middle)
+            ("api/health", 10, 10.0),  # 10 * 10 = 100ms total (lowest, despite high count)
         ]
 
-        # Store transaction spans with different volumes
+        # Store transaction spans with different volumes and durations
         spans = []
-        for transaction_name, count in transactions_data:
+        for transaction_name, count, duration_ms in transactions_data:
             for i in range(count):
                 span = self.create_span(
                     {
                         "description": f"transaction-span-{i}",
                         "sentry_tags": {"transaction": transaction_name},
                         "is_segment": True,  # This marks it as a transaction span
+                        "duration_ms": duration_ms,
                     },
                     start_ts=self.ten_mins_ago + timedelta(minutes=i),
                 )
@@ -51,6 +53,7 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
                             "description": f"regular-span-{i}",
                             "sentry_tags": {"transaction": transaction_name},
                             "is_segment": False,  # This marks it as a regular span
+                            "duration_ms": 50.0,
                         },
                         start_ts=self.ten_mins_ago + timedelta(minutes=i, seconds=30),
                     )
@@ -64,11 +67,11 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
         # Verify basic structure and data
         assert len(result) == 3
 
-        # Should be sorted by volume (count) descending - only transaction spans count
+        # Should be sorted by total time spent (sum of duration) descending
         transaction_names = [t.name for t in result]
-        assert transaction_names[0] == "api/users/profile"  # Highest count (5 transaction spans)
-        assert transaction_names[1] == "api/posts/create"  # Medium count (3 transaction spans)
-        assert transaction_names[2] == "api/health"  # Lowest count (1 transaction span)
+        assert transaction_names[0] == "api/users/profile"  # 500ms total (highest)
+        assert transaction_names[1] == "api/posts/create"  # 450ms total (middle)
+        assert transaction_names[2] == "api/health"  # 100ms total (lowest despite high count)
 
         # Verify all transactions have correct project_id and structure
         for transaction in result:
