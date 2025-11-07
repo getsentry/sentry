@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.bases.project import ProjectDistributionPermission, ProjectEndpoint
 from sentry.models.project import Project
 from sentry.preprod.build_distribution_utils import (
     get_download_url_for_artifact,
@@ -45,7 +45,7 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (ProjectDistributionPermission,)
 
     rate_limits = RateLimitConfig(
         limit_overrides={
