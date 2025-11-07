@@ -35,9 +35,7 @@ type SlideOverPanelProps = {
   transitionProps?: Transition;
 };
 
-export default SlideOverPanel;
-
-function SlideOverPanel({
+export function SlideOverPanel({
   'data-test-id': testId,
   ariaLabel,
   collapsed,

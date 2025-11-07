@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import SlideOverPanel from '@sentry/scraps/slideOverPanel';
+import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
