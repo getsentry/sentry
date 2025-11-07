@@ -117,7 +117,7 @@ function MetricsSectionContent() {
         filterKeys={{}}
         getTagValues={() => new Promise<string[]>(() => [])}
         initialQuery={metricsSearch.formatString()}
-        searchSource="metrics"
+        searchSource="tracemetrics"
         onSearch={query => setMetricsQuery(query)}
       />
       <TableContainer>
