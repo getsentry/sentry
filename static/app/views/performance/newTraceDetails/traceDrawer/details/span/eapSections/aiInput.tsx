@@ -2,13 +2,19 @@ import {Fragment, useEffect, useEffectEvent, useLayoutEffect, useState} from 're
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Container} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import usePrevious from 'sentry/utils/usePrevious';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {
+  TraceItemDetailsMeta,
+  TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiNode,
   getTraceNodeAttribute,
@@ -170,13 +176,17 @@ function useInvalidRoleDetection(roles: string[]) {
 export function AIInputSection({
   node,
   attributes,
+  attributesMeta,
   event,
 }: {
   node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span | TraceTree.Transaction>;
   attributes?: TraceItemResponseAttribute[];
+  attributesMeta?: TraceItemDetailsMeta;
   event?: EventTransaction;
 }) {
   const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
+  const messagesMeta = attributesMeta?.['gen_ai.request.messages']?.meta as any;
+  const isTruncated = messagesMeta?.['']?.len > 0;
 
   let promptMessages = shouldRender
     ? getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes)
@@ -221,6 +231,13 @@ export function AIInputSection({
       title={t('Input')}
       disableCollapsePersistence
     >
+      {isTruncated ? (
+        <Container paddingBottom="lg">
+          <Alert type="muted">
+            {t('Due to size limitations, the message history on this span is truncated.')}
+          </Alert>
+        </Container>
+      ) : null}
       {/* If parsing fails, we'll just show the raw string */}
       {typeof messages === 'string' ? (
         <TraceDrawerComponents.MultilineText>
