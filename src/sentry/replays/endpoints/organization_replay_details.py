@@ -4,7 +4,7 @@ from datetime import datetime
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import Column, Condition, Entity, Function, Op, Query
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -26,30 +26,55 @@ from sentry.replays.validators import ReplayValidator
 
 def query_replay_instance_eap(
     project_ids: list[int],
-    replay_id: str,
+    replay_ids: list[str],
     start: datetime,
     end: datetime,
-    organization_id: int | None = None,
+    organization_id: int,
+    request_user_id: int,
     referrer: str = "replays.query.details_query",
 ):
+    select = [
+        Column("replay_id"),
+        Function("min", parameters=[Column("project_id")], alias="agg_project_id"),
+        Function("min", parameters=[Column("replay_start_timestamp")], alias="started_at"),
+        Function("max", parameters=[Column("timestamp")], alias="finished_at"),
+        Function("count", parameters=[Column("segment_id")], alias="count_segments"),
+        Function("sum", parameters=[Column("count_error_events")], alias="count_errors"),
+        Function("sum", parameters=[Column("count_warning_events")], alias="count_warnings"),
+        Function("sum", parameters=[Column("count_info_events")], alias="count_infos"),
+        Function(
+            "sumIf",
+            parameters=[
+                Column("click_is_dead"),
+                Function(
+                    "greaterOrEquals",
+                    [Column("timestamp"), int(datetime(year=2023, month=7, day=24).timestamp())],
+                ),
+            ],
+            alias="count_dead_clicks",
+        ),
+        Function(
+            "sumIf",
+            parameters=[
+                Column("click_is_rage"),
+                Function(
+                    "greaterOrEquals",
+                    [Column("timestamp"), int(datetime(year=2023, month=7, day=24).timestamp())],
+                ),
+            ],
+            alias="count_rage_clicks",
+        ),
+        Function("max", parameters=[Column("is_archived")], alias="is_archived"),
+    ]
+
     snuba_query = Query(
         match=Entity("replays"),
-        select=[
-            Column("replay_id"),
-            Column("project_id"),
-            Column("timestamp"),
-            Column("segment_id"),
-            Column("is_archived"),
-        ],
+        select=select,
         where=[
-            Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("timestamp"), Op.LT, int(end.timestamp())),
-            Condition(Column("timestamp"), Op.GTE, int(start.timestamp())),
-            Condition(Column("replay_id"), Op.EQ, replay_id),
+            Condition(Column("replay_id"), Op.IN, replay_ids),
         ],
-        having=[
-            Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
-        ],
+        groupby=[Column("replay_id")],
+        granularity=Granularity(3600),
     )
 
     settings = Settings(
@@ -57,10 +82,16 @@ def query_replay_instance_eap(
             "replay_id": str,
             "project_id": int,
             "timestamp": int,
+            "replay_start_timestamp": int,
             "segment_id": int,
             "is_archived": int,
+            "count_error_events": int,
+            "count_warning_events": int,
+            "count_info_events": int,
+            "click_is_dead": int,
+            "click_is_rage": int,
         },
-        default_limit=1,
+        default_limit=100,
         default_offset=0,
     )
 
@@ -69,13 +100,12 @@ def query_replay_instance_eap(
         debug=False,
         start_datetime=start,
         end_datetime=end,
-        organization_id=organization_id or 0,
+        organization_id=organization_id,
         project_ids=project_ids,
         referrer=referrer,
         request_id=str(uuid.uuid4().hex),
         trace_item_type="replay",
     )
-
     return eap_read.query(snuba_query, settings, request_meta, [])
 
 

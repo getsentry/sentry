@@ -3722,6 +3722,81 @@ class TraceTestCase(SpanTestCase):
 @pytest.mark.snuba
 @requires_snuba
 @pytest.mark.usefixtures("reset_snuba")
+class ReplayEAPTestCase(BaseTestCase):
+    def create_eap_replay(
+        self,
+        *,
+        organization=None,
+        project=None,
+        timestamp=None,
+        replay_id=None,
+        segment_id=0,
+        trace_id=None,
+        retention_days=30,
+        **attributes,
+    ):
+        from datetime import datetime, timezone
+        from uuid import uuid4
+
+        from google.protobuf.timestamp_pb2 import Timestamp
+        from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+        from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if timestamp is None:
+            timestamp = datetime.now(timezone.utc)
+        if replay_id is None:
+            replay_id = uuid4().hex
+        if trace_id is None:
+            trace_id = replay_id
+
+        attributes_data = {
+            "replay_id": replay_id,
+            "segment_id": segment_id,
+            "project_id": project.id,
+            "is_archived": attributes.pop("is_archived", 0),
+        }
+
+        attributes_data.update(attributes)
+
+        attributes_proto = {}
+        for k, v in attributes_data.items():
+            if v is not None:
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
+            timestamp=timestamp_proto,
+            trace_id=trace_id,
+            item_id=uuid4().bytes,
+            received=timestamp_proto,
+            retention_days=retention_days,
+            attributes=attributes_proto,
+        )
+
+    def store_replays_eap(self, replays):
+        import requests
+        from django.conf import settings
+
+        files = {f"replay_{i}": replay.SerializeToString() for i, replay in enumerate(replays)}
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            files=files,
+        )
+        assert response.status_code == 200
+
+        for replay in replays:
+            replay.item_id = replay.item_id[::-1]
+
+
 class UptimeResultEAPTestCase(BaseTestCase):
     """Test case for creating and storing EAP uptime results."""
 
