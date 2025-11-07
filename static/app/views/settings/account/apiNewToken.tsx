@@ -31,6 +31,7 @@ export default function ApiNewToken() {
     Release: 'no-access',
     Organization: 'no-access',
     Alerts: 'no-access',
+    Distribution: 'no-access',
   });
   const navigate = useNavigate();
   const organization = useOrganization({allowNull: true});
