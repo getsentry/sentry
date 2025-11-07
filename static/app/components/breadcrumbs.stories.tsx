@@ -72,7 +72,8 @@ export default Storybook.story('Breadcrumbs', story => {
           ],
           [
             {
-              label: 'longlonglonglonglonglonglonglonglonglonglonglonglonglonglong',
+              label:
+                'A Very Long Project Name Here That Will Be Truncated Because It Is Too Long',
               to: '/org/',
             },
             {label: 'Very Long Project Name Here', to: '/project/'},

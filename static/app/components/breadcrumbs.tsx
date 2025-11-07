@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {LinkProps} from 'sentry/components/core/link';
@@ -46,6 +46,7 @@ export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
 
   return (
     <Flex
+      as="nav"
       gap="xs"
       align="center"
       padding="md 0"
@@ -60,7 +61,9 @@ export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
               variant={index === crumbs.length - 1 ? 'primary' : 'muted'}
             />
             {index < crumbs.length - 1 ? (
-              <IconChevron size="xs" direction="right" color="subText" />
+              <Flex align="center" justify="center" flexShrink={0}>
+                <IconChevron size="xs" direction="right" color="subText" />
+              </Flex>
             ) : null}
           </Fragment>
         );
@@ -81,20 +84,29 @@ function BreadCrumbItem(props: BreadCrumbItemProps) {
     }
   }
 
-  if (props.crumb.to) {
-    return (
-      <BreadcrumbLink
-        to={props.crumb.to}
-        preservePageFilters={props.crumb.preservePageFilters}
-        data-test-id="breadcrumb-link"
-        onClick={onBreadcrumbLinkClick}
-      >
-        <Text variant={props.variant}>{props.crumb.label}</Text>
-      </BreadcrumbLink>
-    );
-  }
-
-  return <Text variant={props.variant}>{props.crumb.label}</Text>;
+  return (
+    <Container maxWidth="400px" width="auto">
+      {styleProps => {
+        return props.crumb.to ? (
+          <BreadcrumbLink
+            to={props.crumb.to}
+            preservePageFilters={props.crumb.preservePageFilters}
+            data-test-id="breadcrumb-link"
+            onClick={onBreadcrumbLinkClick}
+            {...styleProps}
+          >
+            <Text ellipsis variant={props.variant}>
+              {props.crumb.label}
+            </Text>
+          </BreadcrumbLink>
+        ) : (
+          <Text ellipsis variant={props.variant} {...styleProps}>
+            {props.crumb.label}
+          </Text>
+        );
+      }}
+    </Container>
+  );
 }
 
 interface BreadcrumbLinkProps extends LinkProps {

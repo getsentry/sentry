@@ -3,10 +3,8 @@ export type BreadcrumbsAnalyticsEventParameters = {
   'breadcrumbs.menu.clicked': {organization: null};
 };
 
-export type BreadcrumbsAnalyticsKey = keyof BreadcrumbsAnalyticsEventParameters;
-
 export const breadcrumbsAnalyticsEventMap: Record<
-  BreadcrumbsAnalyticsKey,
+  keyof BreadcrumbsAnalyticsEventParameters,
   string | null
 > = {
   'breadcrumbs.link.clicked': 'Breadcrumbs: Link Clicked',
