@@ -72,14 +72,12 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
         {isAiSummaryEnabled && summary && (
           <Fragment>
             <Tooltip
-              title={tct(
-                `Powered by generative AI. Learn more about our [link:AI privacy principles].`,
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/" />
-                  ),
-                }
-              )}
+              isHoverable
+              title={tct(`[link:Learn more]`, {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/" />
+                ),
+              })}
             >
               <strong>{summary}</strong>
             </Tooltip>
