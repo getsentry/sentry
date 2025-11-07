@@ -740,7 +740,7 @@ export function useMetricsPanelAnalytics({
       return;
     }
 
-    if (metricSamplesTableResult.result.isFetching) {
+    if (metricSamplesTableResult.result.isFetching || !dataScanned) {
       return;
     }
 
