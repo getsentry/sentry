@@ -69,7 +69,7 @@ export function MetricsSamplesTable({
   return (
     <SimpleTableWithHiddenColumns numColumns={columns.length - 1} embedded={embedded}>
       {isFetching && <TransparentLoadingMask />}
-      <MetricsSamplesTableHeader columns={columns} />
+      <MetricsSamplesTableHeader columns={columns} embedded={embedded} />
       <StyledSimpleTableBody>
         {error ? (
           <SimpleTable.Empty>

@@ -1234,6 +1234,11 @@ function buildRoutes(): RouteObject[] {
       name: t('Stats'),
       children: statsChildren,
     },
+    {
+      path: 'data-forwarding/',
+      name: t('Data Forwarding'),
+      component: make(() => import('sentry/views/settings/organizationDataForwarding')),
+    },
   ];
   const orgSettingsRoutes: SentryRouteObject = {
     component: make(
@@ -1704,7 +1709,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':release/',
       component: make(() => import('sentry/views/releases/detail')),
-      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -1738,7 +1742,6 @@ function buildRoutes(): RouteObject[] {
         component: make(() => import('sentry/views/releases/index')),
         withOrgPath: true,
         children: releaseChildren,
-        deprecatedRouteProps: true,
       },
       {
         path: '/releases/new-events/',
@@ -2216,6 +2219,7 @@ function buildRoutes(): RouteObject[] {
       index: true,
       component: make(() => import('sentry/views/explore/metrics/content')),
     },
+    traceView,
   ];
 
   const profilingChildren: SentryRouteObject[] = [
@@ -2660,10 +2664,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/admin/adminOverview')),
     },
     {
-      path: 'buffer/',
-      component: make(() => import('sentry/views/admin/adminBuffer')),
-    },
-    {
       path: 'relays/',
       component: make(() => import('sentry/views/admin/adminRelays')),
       deprecatedRouteProps: true,
@@ -2677,10 +2677,6 @@ function buildRoutes(): RouteObject[] {
       path: 'projects/',
       component: make(() => import('sentry/views/admin/adminProjects')),
       deprecatedRouteProps: true,
-    },
-    {
-      path: 'queue/',
-      component: make(() => import('sentry/views/admin/adminQueue')),
     },
     {
       path: 'settings/',
