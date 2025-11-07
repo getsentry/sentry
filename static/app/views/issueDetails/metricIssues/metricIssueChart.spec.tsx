@@ -39,19 +39,23 @@ describe('MetricIssueChart', () => {
     });
   });
 
-  it('renders the metric issue chart', async () => {
-    const detector = MetricDetectorFixture({
-      projectId: project.id,
-    });
+  const detector = MetricDetectorFixture({
+    projectId: project.id,
+  });
+  const event = EventFixture({
+    occurrence: {
+      evidenceData: {
+        detectorId: detector.id,
+      },
+      type: 8001,
+    },
+  });
 
-    const detectorId = detector.id;
-    const event = EventFixture({
-      contexts: {metric_alert: {alert_rule_id: detectorId}},
-    });
+  it('renders the metric issue chart', async () => {
     const detectorDetails = getDetectorDetails({event, organization, project});
 
     const mockDetector = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/detectors/${detectorId}/`,
+      url: `/organizations/${organization.slug}/detectors/${detector.id}/`,
       body: detector,
     });
     const mockStats = MockApiClient.addMockResponse({
@@ -72,16 +76,11 @@ describe('MetricIssueChart', () => {
   });
 
   it('shows detector load error message when detector request fails', async () => {
-    const detectorId = '123';
-    const event = EventFixture({
-      contexts: {metric_alert: {alert_rule_id: detectorId}},
-    });
     const detectorDetails = getDetectorDetails({event, organization, project});
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/detectors/${detectorId}/`,
-      statusCode: 500,
-      body: {detail: 'Internal Error'},
+      url: `/organizations/${organization.slug}/detectors/${detector.id}/`,
+      statusCode: 404,
     });
 
     render(
@@ -91,7 +90,11 @@ describe('MetricIssueChart', () => {
       {organization}
     );
 
-    expect(await screen.findByText(/Error loading metric monitor:/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        /The metric monitor which created this issue no longer exists./i
+      )
+    ).toBeInTheDocument();
     expect(screen.queryByTestId('area-chart')).not.toBeInTheDocument();
   });
 });

@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import type {Group, GroupOpenPeriod} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useMetricDetectorChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
@@ -21,13 +22,26 @@ interface MetricIssueChartProps {
 
 const CHART_HEIGHT = 180;
 
+function getDetectorErrorMessage(detectorError: RequestError): string {
+  if (detectorError.status === 404) {
+    return t('The metric monitor which created this issue no longer exists.');
+  }
+  if (detectorError.responseJSON?.detail) {
+    return t(
+      'The metric monitor could not be loaded: %s',
+      detectorError.responseJSON.detail
+    );
+  }
+  return t('The metric monitor could not be loaded.');
+}
+
 export function MetricIssueChart({group, project: _project}: MetricIssueChartProps) {
   const {detectorDetails} = useIssueDetails();
   const detectorId = detectorDetails?.detectorId;
 
   const {
     data: detector,
-    isPending: isDetectorLoading,
+    isPending: isDetectorPending,
     isError: isDetectorError,
     error: detectorError,
   } = useDetectorQuery<MetricDetector>(detectorId ?? '', {
@@ -37,17 +51,14 @@ export function MetricIssueChart({group, project: _project}: MetricIssueChartPro
   const {data: openPeriods = []} = useOpenPeriods({groupId: group.id});
 
   if (isDetectorError) {
-    const errorMessage = detectorError?.message ?? t('Unknown error');
     return (
       <Container width="100%">
-        <GraphAlert type="error">
-          {t('Error loading metric monitor: %s', errorMessage)}
-        </GraphAlert>
+        <GraphAlert type="error">{getDetectorErrorMessage(detectorError)}</GraphAlert>
       </Container>
     );
   }
 
-  if (isDetectorLoading) {
+  if (isDetectorPending) {
     return <MetricIssueChartPlaceholder />;
   }
 
