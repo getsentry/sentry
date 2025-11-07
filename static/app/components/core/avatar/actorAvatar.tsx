@@ -85,8 +85,9 @@ function AsyncMemberAvatar({ref, userActor, ...props}: AsyncMemberAvatarProps) {
   const member = members.find(u => u.id === userActor.id);
 
   if (fetching) {
-    const size = `${props.size}px`;
-    return <Placeholder shape="circle" width={size} height={size} />;
+    return (
+      <Placeholder width={`${props.size}px`} height={`${props.size}px`} radius="full" />
+    );
   }
 
   if (!member) {

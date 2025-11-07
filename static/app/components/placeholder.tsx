@@ -1,28 +1,25 @@
-import styled from '@emotion/styled';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {type ContainerElement} from '@sentry/scraps/layout/container';
 
-export interface PlaceholderProps extends React.HTMLAttributes<HTMLDivElement> {
-  // error?: React.ReactNode;
-  height?: string;
-  shape?: 'rect' | 'circle';
-  width?: string;
-}
+export type PlaceholderProps<T extends ContainerElement = 'div'> = FlexProps<T> & {
+  shape?: 'circle';
+};
 
-const Placeholder = styled(({className, children, style}: PlaceholderProps) => {
+export function Placeholder(props: PlaceholderProps<'div'>) {
+  const {radius, shape, ...rest} = props;
   return (
-    <div className={className} style={style}>
-      {children}
-    </div>
+    <Flex
+      direction="column"
+      flexShrink={0}
+      justify="center"
+      align="center"
+      background="tertiary"
+      width={props.width ?? '100%'}
+      height={props.height ?? '60px'}
+      radius={shape === 'circle' ? 'full' : (radius ?? 'md')}
+      {...rest}
+    />
   );
-})<PlaceholderProps>`
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  justify-content: center;
-  align-items: center;
-  background-color: ${p => p.theme.backgroundTertiary};
-  width: ${p => p.width ?? '100%'};
-  height: ${p => p.height ?? '60px'};
-  border-radius: ${p => (p.shape === 'circle' ? '100%' : p.theme.borderRadius)};
-`;
+}
 
 export default Placeholder;

@@ -65,7 +65,6 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
             />
           ) : (
             <Placeholder
-              shape="rect"
               width={`${projectBadgeSize}px`}
               height={`${projectBadgeSize}px`}
             />
