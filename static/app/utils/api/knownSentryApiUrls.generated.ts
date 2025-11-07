@@ -3,6 +3,8 @@
  * To update it run `python3 -m tools.api_urls_to_typescript`
  *
  * This file is the sibling to knownGetsentryApiUrls.ts.
+ *
+ * DEPLOYMENT: This is safe to deploy alongside backend changes.
  */
 
 export type KnownSentryApiUrls =
@@ -189,6 +191,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/'
   | '/organizations/$organizationIdOrSlug/access-requests/'
   | '/organizations/$organizationIdOrSlug/access-requests/$requestId/'
+  | '/organizations/$organizationIdOrSlug/ai-conversations/'
   | '/organizations/$organizationIdOrSlug/alert-rules/'
   | '/organizations/$organizationIdOrSlug/alert-rules/$alertRuleId/'
   | '/organizations/$organizationIdOrSlug/alert-rules/available-actions/'
@@ -208,6 +211,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/'
   | '/organizations/$organizationIdOrSlug/codeowners-associations/'
   | '/organizations/$organizationIdOrSlug/combined-rules/'
+  | '/organizations/$organizationIdOrSlug/conduit-demo/'
   | '/organizations/$organizationIdOrSlug/config/integrations/'
   | '/organizations/$organizationIdOrSlug/config/repos/'
   | '/organizations/$organizationIdOrSlug/dashboards/'
@@ -276,6 +280,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/flags/signing-secrets/$signingSecretId/'
   | '/organizations/$organizationIdOrSlug/fork/'
   | '/organizations/$organizationIdOrSlug/forwarding/'
+  | '/organizations/$organizationIdOrSlug/forwarding/$dataForwarderId/'
   | '/organizations/$organizationIdOrSlug/group-search-views/'
   | '/organizations/$organizationIdOrSlug/group-search-views/$viewId/'
   | '/organizations/$organizationIdOrSlug/group-search-views/$viewId/starred/'
@@ -457,7 +462,8 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/plugins/'
   | '/organizations/$organizationIdOrSlug/plugins/$pluginSlug/deprecation-info/'
   | '/organizations/$organizationIdOrSlug/plugins/configs/'
-  | '/organizations/$organizationIdOrSlug/prevent/github/repos/'
+  | '/organizations/$organizationIdOrSlug/prevent/ai/github/config/$gitOrganizationName/'
+  | '/organizations/$organizationIdOrSlug/prevent/ai/github/repos/'
   | '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/'
   | '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/sync/'
   | '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/tokens/'
@@ -517,9 +523,12 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/sdk-deprecations/'
   | '/organizations/$organizationIdOrSlug/sdk-updates/'
   | '/organizations/$organizationIdOrSlug/sdks/'
+  | '/organizations/$organizationIdOrSlug/search-agent/translate/'
   | '/organizations/$organizationIdOrSlug/searches/'
   | '/organizations/$organizationIdOrSlug/searches/$searchId/'
   | '/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId'
+  | '/organizations/$organizationIdOrSlug/seer/explorer-runs/'
+  | '/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/'
   | '/organizations/$organizationIdOrSlug/seer/setup-check/'
   | '/organizations/$organizationIdOrSlug/sent-first-event/'
   | '/organizations/$organizationIdOrSlug/sentry-app-components/'
@@ -726,6 +735,7 @@ export type KnownSentryApiUrls =
   | '/relocations/$relocationUuid/unpause/'
   | '/reporting-api-experiment/'
   | '/secret-scanning/github/'
+  | '/seer/models/'
   | '/sentry-app-installations/$uuid/'
   | '/sentry-app-installations/$uuid/authorizations/'
   | '/sentry-app-installations/$uuid/external-issue-actions/'
