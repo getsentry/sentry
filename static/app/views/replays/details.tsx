@@ -5,11 +5,9 @@ import invariant from 'invariant';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DEFAULT_SORT} from 'sentry/components/replays/table/useReplayTableSort';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -48,11 +46,13 @@ export default function ReplayDetails() {
   });
   const {replay, replayRecord} = readerResult;
 
-  const query = useLocationQuery({
+  const {playlistStart, playlistEnd, ...query} = useLocationQuery({
     fields: {
       cursor: decodeScalar,
       end: decodeScalar,
       environment: decodeList,
+      playlistEnd: decodeScalar,
+      playlistStart: decodeScalar,
       project: decodeList,
       query: decodeScalar,
       sort: decodeScalar,
@@ -61,10 +61,11 @@ export default function ReplayDetails() {
     },
   });
 
-  const sort = query.sort === '' ? encodeSort(DEFAULT_SORT) : query.sort;
+  const start = playlistStart === '' ? query.start : playlistStart;
+  const end = playlistEnd === '' ? query.end : playlistEnd;
 
   const queryKey = useReplayListQueryKey({
-    options: {query: {...query, sort}},
+    options: {query: {...query, start, end}},
     organization,
     queryReferrer: 'replayList',
   });

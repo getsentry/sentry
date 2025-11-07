@@ -15,6 +15,7 @@ import ReplayBadge from 'sentry/components/replays/replayBadge';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import NumericDropdownFilter from 'sentry/components/replays/table/filters/numericDropdownFilter';
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
+import {DEFAULT_SORT} from 'sentry/components/replays/table/useReplayTableSort';
 import ScoreBar from 'sentry/components/scoreBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
@@ -26,7 +27,7 @@ import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import EventView, {encodeSort} from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -527,11 +528,14 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     const {start, end, statsPeriod, ...eventViewQuery} =
       eventView.generateQueryStringObject();
 
+    // EventView only fetches sort from location if the corresponding fields are also in the URL
+    const sort = location.query.sort ?? encodeSort(DEFAULT_SORT);
+
     let query = {referrer, ...eventViewQuery};
 
     if (!start && !end && typeof statsPeriod === 'string') {
       const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(statsPeriod);
-      query = {...query, ...{playlistStart, playlistEnd}};
+      query = {...query, ...{playlistStart, playlistEnd, sort}};
     }
 
     const replayDetailsPathname = makeReplaysPathname({
