@@ -5,9 +5,11 @@ import invariant from 'invariant';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DEFAULT_SORT} from 'sentry/components/replays/table/useReplayTableSort';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -49,18 +51,20 @@ export default function ReplayDetails() {
   const query = useLocationQuery({
     fields: {
       cursor: decodeScalar,
+      end: decodeScalar,
       environment: decodeList,
       project: decodeList,
-      sort: decodeScalar,
       query: decodeScalar,
+      sort: decodeScalar,
       start: decodeScalar,
-      end: decodeScalar,
       utc: decodeScalar,
     },
   });
 
+  const sort = query.sort === '' ? encodeSort(DEFAULT_SORT) : query.sort;
+
   const queryKey = useReplayListQueryKey({
-    options: {query},
+    options: {query: {...query, sort}},
     organization,
     queryReferrer: 'replayList',
   });

@@ -26,7 +26,7 @@ import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView, {encodeSort} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -43,8 +43,6 @@ import type {
   ReplayListRecord,
   ReplayRecordNestedFieldName,
 } from 'sentry/views/replays/types';
-
-import {DEFAULT_SORT} from './useReplayTableSort';
 
 type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 
@@ -527,8 +525,6 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     const referrer = getRouteStringFromRoutes(routes);
     const eventView = EventView.fromLocation(location);
 
-    // EventView only fetches sort from location if the corresponding fields are also in the URL
-    const sort = location.query.sort ?? encodeSort(DEFAULT_SORT);
     const replayDetailsPathname = makeReplaysPathname({
       path: `/${replay.id}/`,
       organization,
@@ -548,7 +544,6 @@ export const ReplaySessionColumn: ReplayTableColumn = {
         query: {
           referrer,
           ...eventViewQuery,
-          sort,
         },
       };
     };
