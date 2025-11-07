@@ -100,7 +100,12 @@ function BreadCrumbItem(props: BreadCrumbItemProps) {
             </Text>
           </BreadcrumbLink>
         ) : (
-          <Text ellipsis variant={props.variant} {...styleProps}>
+          <Text
+            ellipsis
+            variant={props.variant}
+            data-test-id="breadcrumb-item"
+            {...styleProps}
+          >
             {props.crumb.label}
           </Text>
         );
@@ -115,9 +120,10 @@ interface BreadcrumbLinkProps extends LinkProps {
 }
 
 function BreadcrumbLink(props: BreadcrumbLinkProps) {
-  if (props.preservePageFilters) {
-    return <GlobalSelectionLink {...props} />;
+  const {preservePageFilters, ...rest} = props;
+  if (preservePageFilters) {
+    return <GlobalSelectionLink {...rest} />;
   }
 
-  return <Link {...props} />;
+  return <Link {...rest} />;
 }
