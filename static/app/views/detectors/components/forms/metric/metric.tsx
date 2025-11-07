@@ -1,8 +1,9 @@
-import {Fragment, useContext, useEffect, useMemo} from 'react';
+import {Fragment, useContext, useEffect} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import toNumber from 'lodash/toNumber';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Disclosure, useDisclosureContext} from 'sentry/components/core/disclosure';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text/heading';
 import {Text} from 'sentry/components/core/text/text';
@@ -15,21 +16,13 @@ import FormContext from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SelectValue} from 'sentry/types/core';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import type {
-  Detector,
-  MetricDetector,
-  MetricDetectorConfig,
-} from 'sentry/types/workflowEngine/detectors';
+import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
-  Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
-import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
 import {
   TRANSACTIONS_DATASET_DEPRECATION_MESSAGE,
   TransactionsDatasetWarning,
@@ -37,7 +30,6 @@ import {
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {DescribeSection} from 'sentry/views/detectors/components/forms/common/describeSection';
-import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
@@ -49,7 +41,9 @@ import {
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
 import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
 import {ResolveSection} from 'sentry/views/detectors/components/forms/metric/resolveSection';
+import {TemplateSection} from 'sentry/views/detectors/components/forms/metric/templateSection';
 import {useAutoMetricDetectorName} from 'sentry/views/detectors/components/forms/metric/useAutoMetricDetectorName';
+import {useDatasetChoices} from 'sentry/views/detectors/components/forms/metric/useDatasetChoices';
 import {useInitialMetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/useInitialMetricDetectorFormData';
 import {useIntervalChoices} from 'sentry/views/detectors/components/forms/metric/useIntervalChoices';
 import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualize';
@@ -58,7 +52,6 @@ import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
-import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 function MetricDetectorForm() {
   useAutoMetricDetectorName();
@@ -66,6 +59,7 @@ function MetricDetectorForm() {
   return (
     <FormStack>
       <TransactionsDatasetWarningListener />
+      <TemplateSection />
       <CustomizeMetricSection />
       <DetectSection />
       <AssignSection />
@@ -343,6 +337,7 @@ function IntervalPicker() {
       placeholder={t('Interval')}
       flexibleControlStateSize
       inline={false}
+      preserveOnUnmount
       label={
         <Tooltip
           title={t('The time period over which to evaluate your metric.')}
@@ -358,49 +353,19 @@ function IntervalPicker() {
   );
 }
 
-function useDatasetChoices() {
-  const organization = useOrganization();
+function DisclosureTitleWithBorder({children}: {children: React.ReactNode}) {
+  const {state} = useDisclosureContext();
+  return (
+    <StyledDisclosureTitle expanded={state.isExpanded}>{children}</StyledDisclosureTitle>
+  );
+}
 
-  const {detector} = useDetectorFormContext();
-  const savedDataset = (detector as MetricDetector | undefined)?.dataSources[0]?.queryObj
-    ?.snubaQuery?.dataset;
-  const isExistingTransactionsDetector =
-    Boolean(detector) &&
-    [Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(savedDataset as Dataset);
-  const shouldHideTransactionsDataset =
-    !isExistingTransactionsDetector && deprecateTransactionAlerts(organization);
-
-  return useMemo(() => {
-    const datasetChoices: Array<SelectValue<DetectorDataset>> = [
-      {
-        value: DetectorDataset.ERRORS,
-        label: t('Errors'),
-      },
-      ...(shouldHideTransactionsDataset
-        ? []
-        : [
-            {
-              value: DetectorDataset.TRANSACTIONS,
-              label: t('Transactions'),
-            },
-          ]),
-      ...(organization.features.includes('visibility-explore-view')
-        ? [{value: DetectorDataset.SPANS, label: t('Spans')}]
-        : []),
-      ...(hasLogAlerts(organization)
-        ? [
-            {
-              value: DetectorDataset.LOGS,
-              label: t('Logs'),
-              trailingItems: <FeatureBadge type="new" />,
-            },
-          ]
-        : []),
-      {value: DetectorDataset.RELEASES, label: t('Releases')},
-    ];
-
-    return datasetChoices;
-  }, [organization, shouldHideTransactionsDataset]);
+function DisclosureContentNoPadding({children}: {children: React.ReactNode}) {
+  return (
+    <NoPaddingContentWrapper>
+      <Disclosure.Content>{children}</Disclosure.Content>
+    </NoPaddingContentWrapper>
+  );
 }
 
 function CustomizeMetricSection() {
@@ -414,72 +379,83 @@ function CustomizeMetricSection() {
 
   return (
     <Container>
-      <Flex direction="column" gap="xs">
-        <BorderBottomHeader>
-          <Heading as="h3">{t('Customize Metric')}</Heading>
-        </BorderBottomHeader>
-        <DatasetRow>
-          <DatasetField
-            placeholder={t('Dataset')}
-            flexibleControlStateSize
-            inline={false}
-            label={
-              <Tooltip
-                title={t('This reflects the type of information you want to use.')}
-                showUnderline
-              >
-                <SectionLabel>{t('Dataset')}</SectionLabel>
-              </Tooltip>
-            }
-            name={METRIC_DETECTOR_FORM_FIELDS.dataset}
-            options={datasetChoices}
-            onChange={newDataset => {
-              // Reset aggregate function to dataset default when dataset changes
-              const datasetConfig = getDatasetConfig(newDataset);
-              const defaultAggregate = generateFieldAsString(datasetConfig.defaultField);
-              formContext.form?.setValue(
-                METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
-                defaultAggregate
-              );
+      <Disclosure as="section" size="md" role="region" defaultExpanded>
+        <DisclosureTitleWithBorder>
+          <Disclosure.Title aria-label={t('Customize Metric Section')}>
+            <Text size="lg">{t('Customize Metric')}</Text>
+          </Disclosure.Title>
+        </DisclosureTitleWithBorder>
+        <DisclosureContentNoPadding>
+          <Flex direction="column" gap="md">
+            <Flex direction="column" gap="xs">
+              <DatasetRow>
+                <DatasetField
+                  placeholder={t('Dataset')}
+                  flexibleControlStateSize
+                  inline={false}
+                  preserveOnUnmount
+                  label={
+                    <Tooltip
+                      title={t('This reflects the type of information you want to use.')}
+                      showUnderline
+                    >
+                      <SectionLabel>{t('Dataset')}</SectionLabel>
+                    </Tooltip>
+                  }
+                  name={METRIC_DETECTOR_FORM_FIELDS.dataset}
+                  options={datasetChoices}
+                  onChange={newDataset => {
+                    // Reset aggregate function to dataset default when dataset changes
+                    const datasetConfig = getDatasetConfig(newDataset);
+                    const defaultAggregate = generateFieldAsString(
+                      datasetConfig.defaultField
+                    );
+                    formContext.form?.setValue(
+                      METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
+                      defaultAggregate
+                    );
 
-              const supportedDetectionTypes = datasetConfig.supportedDetectionTypes;
-              if (!supportedDetectionTypes.includes(detectionType)) {
-                formContext.form?.setValue(
-                  METRIC_DETECTOR_FORM_FIELDS.detectionType,
-                  supportedDetectionTypes[0]
-                );
-              }
-            }}
-          />
-          <Tooltip
-            title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-            isHoverable
-            disabled={!isTransactionsDataset}
-          >
-            <DisabledSection disabled={isTransactionsDataset}>
-              <IntervalPicker />
-            </DisabledSection>
-          </Tooltip>
-        </DatasetRow>
-      </Flex>
-      <Tooltip
-        title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-        isHoverable
-        disabled={!isTransactionsDataset}
-      >
-        <DisabledSection disabled={isTransactionsDataset}>
-          <Visualize />
-        </DisabledSection>
-      </Tooltip>
-      <Tooltip
-        title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-        isHoverable
-        disabled={!isTransactionsDataset}
-      >
-        <FilterRow disabled={isTransactionsDataset}>
-          <DetectorQueryFilterBuilder />
-        </FilterRow>
-      </Tooltip>
+                    const supportedDetectionTypes = datasetConfig.supportedDetectionTypes;
+                    if (!supportedDetectionTypes.includes(detectionType)) {
+                      formContext.form?.setValue(
+                        METRIC_DETECTOR_FORM_FIELDS.detectionType,
+                        supportedDetectionTypes[0]
+                      );
+                    }
+                  }}
+                />
+                <Tooltip
+                  title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
+                  isHoverable
+                  disabled={!isTransactionsDataset}
+                >
+                  <DisabledSection disabled={isTransactionsDataset}>
+                    <IntervalPicker />
+                  </DisabledSection>
+                </Tooltip>
+              </DatasetRow>
+            </Flex>
+            <Tooltip
+              title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
+              isHoverable
+              disabled={!isTransactionsDataset}
+            >
+              <DisabledSection disabled={isTransactionsDataset}>
+                <Visualize />
+              </DisabledSection>
+            </Tooltip>
+            <Tooltip
+              title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
+              isHoverable
+              disabled={!isTransactionsDataset}
+            >
+              <FilterRow disabled={isTransactionsDataset}>
+                <DetectorQueryFilterBuilder />
+              </FilterRow>
+            </Tooltip>
+          </Flex>
+        </DisclosureContentNoPadding>
+      </Disclosure>
     </Container>
   );
 }
@@ -739,4 +715,28 @@ const PriorityLabel = styled('span')`
 const RequiredAsterisk = styled('span')`
   color: ${p => p.theme.error};
   margin-left: ${space(0.25)};
+`;
+
+const StyledDisclosureTitle = styled('div')<{expanded: boolean}>`
+  width: 100%;
+
+  ${p =>
+    p.expanded &&
+    css`
+      border-bottom: 1px solid ${p.theme.border};
+      margin-bottom: ${p.theme.space.md};
+      padding-bottom: ${p.theme.space.sm};
+    `}
+`;
+
+const NoPaddingContentWrapper = styled('div')`
+  &&,
+  && > *,
+  && > * > * {
+    padding: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
 `;
