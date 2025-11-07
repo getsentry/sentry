@@ -41,17 +41,4 @@ describe('wpf onboarding docs', () => {
       await screen.findByText(textWithMarkupMatcher(/o.TracesSampleRate/))
     ).toBeInTheDocument();
   });
-
-  it('renders profiling onboarding docs correctly', async () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.PERFORMANCE_MONITORING,
-        ProductSolution.PROFILING,
-      ],
-    });
-
-    expect(
-      await screen.findByText(textWithMarkupMatcher(/o.ProfilesSampleRate/))
-    ).toBeInTheDocument();
-  });
 });

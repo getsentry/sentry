@@ -24,9 +24,7 @@ logger = logging.getLogger("sentry.tasks.web_vitals_issue_detection")
 TRANSACTIONS_PER_PROJECT_LIMIT = 5
 DEFAULT_START_TIME_DELTA = {"days": 7}  # Low scores within this time range create web vital issues
 SCORE_THRESHOLD = 0.9  # Scores below this threshold will create web vital issues
-SAMPLES_COUNT_THRESHOLD = (
-    10  # Web Vitals require at least this amount of samples to create an issue
-)
+SAMPLES_COUNT_THRESHOLD = 10  # TODO: Use project config threshold setting. Web Vitals require at least this amount of samples to create an issue
 VITALS: list[WebVitalIssueDetectionType] = ["lcp", "fcp", "cls", "ttfb", "inp"]
 
 
