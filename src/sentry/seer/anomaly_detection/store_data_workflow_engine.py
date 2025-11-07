@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -30,7 +31,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 from sentry.workflow_engine.models import DataCondition, DataSource, DataSourceDetector, Detector
-from sentry.workflow_engine.types import DetectorException, SnubaQueryDataSourceType
+from sentry.workflow_engine.types import DetectorException
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,8 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 
 
 def update_detector_data(
-    detector: Detector, updated_data_source_data: SnubaQueryDataSourceType
+    detector: Detector,
+    updated_fields: dict[str, Any],
 ) -> None:
     try:
         data_source = DataSourceDetector.objects.get(detector_id=detector.id).data_source
@@ -69,17 +71,24 @@ def update_detector_data(
         raise DetectorException(
             f"Could not create detector, data condition {dcg_id} not found or too many found."
         )
-    # use setattr to avoid saving the snuba query until the Seer call has successfully finished,
-    # otherwise it would be in a bad state
-    event_types = snuba_query.event_types
-    if updated_data_source_data:
-        event_types = updated_data_source_data.get("eventTypes")
+    # use setattr to avoid saving the models until the Seer call has successfully finished,
+    # otherwise they would be in a bad state
+    updated_data_condition_data = updated_fields.get("condition_group", {}).get("conditions")
+    if updated_data_condition_data:
+        for k, v in updated_data_condition_data[0].items():
+            setattr(data_condition, k, v)
 
-        for k, v in updated_data_source_data.items():
+    event_types = snuba_query.event_types
+    updated_data_source_data = updated_fields.get("data_sources")
+    if updated_data_source_data:
+        data_source_data = updated_data_source_data[0]
+        event_types = data_source_data.get("eventTypes")
+
+        for k, v in data_source_data.items():
             if k == "dataset":
                 v = v.value
             elif k == "time_window":
-                time_window = updated_data_source_data.get("time_window")
+                time_window = data_source_data.get("time_window")
                 v = time_window if time_window is not None else snuba_query.time_window
             elif k == "event_types":
                 continue

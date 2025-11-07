@@ -279,7 +279,13 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             if snuba_query.query != data_source.get(
                 "query"
             ) or snuba_query.aggregate != data_source.get("aggregate"):
-                update_detector_data(instance, data_source)
+                try:
+                    update_detector_data(instance, data_source)
+                except Exception:
+                    # don't update the snuba query if we failed to send data to Seer
+                    raise serializers.ValidationError(
+                        "Failed to send data to Seer, cannot update detector"
+                    )
 
         update_snuba_query(
             snuba_query=snuba_query,
@@ -297,6 +303,21 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         )
 
     def update(self, instance: Detector, validated_data: dict[str, Any]):
+        # Handle anomaly detection changes first in case we need to exit before saving
+        if (
+            not instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC
+            and validated_data.get("config", {}).get("detection_type")
+            == AlertRuleDetectionType.DYNAMIC
+        ):
+            # Detector has been changed to become a dynamic detector
+            try:
+                update_detector_data(instance, validated_data)
+            except Exception:
+                # Don't update if we failed to send data to Seer
+                raise serializers.ValidationError(
+                    "Failed to send data to Seer, cannot update detector"
+                )
+
         super().update(instance, validated_data)
 
         # Handle enable/disable query subscriptions
@@ -318,15 +339,6 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         if updated_data_source_data is not None:
             self.update_data_source(instance, updated_data_source_data)
-
-        # Handle anomaly detection changes
-        if (
-            not instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC
-            and validated_data.get("config", {}).get("detection_type")
-            == AlertRuleDetectionType.DYNAMIC
-        ):
-            # Detector has been changed to become a dynamic detector
-            send_new_detector_data(instance)
 
         instance.save()
 

@@ -153,15 +153,12 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 }
             ],
             "conditionGroup": {
-                # "id": self.data_condition_group.id,
-                # "organizationId": self.organization.id,
                 "logicType": self.data_condition_group.logic_type,
                 "conditions": [
                     {
                         "type": Condition.GREATER,
                         "comparison": 100,
                         "conditionResult": DetectorPriorityLevel.HIGH,
-                        # "conditionGroupId": self.data_condition_group.id,
                     },
                     {
                         "type": Condition.LESS_OR_EQUAL,
@@ -179,8 +176,6 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         self.valid_anomaly_detection_data = {
             **self.valid_data,
             "conditionGroup": {
-                # "id": self.data_condition_group.id,
-                # "organizationId": self.organization.id,
                 "logicType": self.data_condition_group.logic_type,
                 "conditions": [
                     {
@@ -191,7 +186,6 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                             "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
                         },
                         "conditionResult": DetectorPriorityLevel.HIGH,
-                        # "conditionGroupId": self.data_condition_group.id,
                     },
                 ],
             },
@@ -850,6 +844,123 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             event=audit_log.get_event_id("DETECTOR_EDIT"),
             data=dynamic_detector.get_audit_log_data(),
         )
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection__send_historical_data_update_fails(
+        self, mock_seer_request: mock.MagicMock
+    ) -> None:
+        """
+        Test that if the call to Seer fails when we try to change a detector's type to dynamic from static that we do not update the detector or data condition
+        """
+
+        # Create static detector
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            static_detector = validator.save()
+
+        # Verify condition group in DB
+        condition_group = DataConditionGroup.objects.get(
+            id=static_detector.workflow_condition_group_id
+        )
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY
+        assert condition_group.organization_id == self.project.organization_id
+
+        # Verify conditions in DB
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 1
+        condition = conditions[0]
+        assert condition.type == Condition.GREATER
+        assert condition.comparison == 100
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
+
+        # Attempt to convert detector to dynamic type
+        mock_seer_request.side_effect = TimeoutError
+
+        update_validator = MetricIssueDetectorValidator(
+            instance=static_detector,
+            data=self.valid_anomaly_detection_data,
+            context=self.context,
+            partial=True,
+        )
+        assert update_validator.is_valid(), update_validator.errors
+
+        with self.tasks(), pytest.raises(ValidationError):
+            update_validator.save()
+
+        # Re-fetch the models and ensure they're not updated
+        detector = Detector.objects.get(id=static_detector.id)
+        assert detector.config.get("detection_type") == AlertRuleDetectionType.STATIC.value
+
+        condition_group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY
+        assert condition_group.organization_id == self.project.organization_id
+
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 1
+        condition = conditions[0]
+        assert condition.type == Condition.GREATER
+        assert condition.comparison == 100
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection__send_historical_data_snuba_update_fails(
+        self, mock_seer_request: mock.MagicMock
+    ) -> None:
+        """
+        Test that if the call to Seer fails when we try to change a dynamic detector's snuba query that we do not update the snuba query
+        """
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_anomaly_detection_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            detector = validator.save()
+
+        # Attempt to change the snuba query's query
+        mock_seer_request.side_effect = TimeoutError
+
+        updated_query = "different query"
+        update_data = {
+            **self.valid_anomaly_detection_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.value,
+                    "query": updated_query,  # this is what's changing
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                }
+            ],
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+
+        with self.tasks(), pytest.raises(ValidationError):
+            update_validator.save()
+
+        # Fetch data and ensure it hasn't changed
+        data_source = DataSource.objects.get(detector=detector)
+        query_sub = QuerySubscription.objects.get(id=data_source.source_id)
+        snuba_query = query_sub.snuba_query
+        assert snuba_query.query == "test query"
 
     @with_feature("organizations:discover-saved-queries-deprecation")
     def test_update_allowed_even_with_deprecated_dataset(self) -> None:
