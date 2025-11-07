@@ -440,15 +440,22 @@ def _truncate_to_byte_limit(text: str | None, byte_limit: int) -> str | None:
     if not text:
         return text
 
+    TRUNCATE_AMOUNT = 10
+
     encoded = text.encode("utf-8")
     if len(encoded) <= byte_limit:
         return text
+
+    if byte_limit <= TRUNCATE_AMOUNT:
+        # This shouldn't happen, but just in case.
+        truncated = encoded[:byte_limit].decode("utf-8", errors="ignore")
+        return truncated
 
     # Truncate to byte_limit - 10 (a bit of wiggle room) to make room for "..."
     # Note: this can break formatting you have and is more of a catch-all,
     # broken formatting is better than silently erroring for the user.
     # Templating logic itself should try to more contextually trim the content if possible.
-    truncated = encoded[: byte_limit - 10].decode("utf-8", errors="ignore")
+    truncated = encoded[: byte_limit - TRUNCATE_AMOUNT].decode("utf-8", errors="ignore")
     return truncated + "..."
 
 
