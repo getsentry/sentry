@@ -524,15 +524,14 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     const referrer = getRouteStringFromRoutes(routes);
     const eventView = EventView.fromLocation(location);
 
-    let query = {referrer};
+    const {start, end, statsPeriod, ...eventViewQuery} =
+      eventView.generateQueryStringObject();
 
-    const {statsPeriod, ...eventViewQuery} = eventView.generateQueryStringObject();
+    let query = {referrer, ...eventViewQuery};
 
-    if (statsPeriod && typeof statsPeriod === 'string') {
-      const {start, end} = parseStatsPeriod(statsPeriod);
-      eventViewQuery.start = start;
-      eventViewQuery.end = end;
-      query = {...eventViewQuery, ...query};
+    if (!start && !end && typeof statsPeriod === 'string') {
+      const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(statsPeriod);
+      query = {...query, ...{playlistStart, playlistEnd}};
     }
 
     const replayDetailsPathname = makeReplaysPathname({
