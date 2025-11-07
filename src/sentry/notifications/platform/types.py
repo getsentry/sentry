@@ -186,7 +186,7 @@ class NotificationBodyTextBlockType(StrEnum):
     """
     CODE = "code"
     """
-    A code block.
+    Inline block of code.
     """
 
 
@@ -196,6 +196,13 @@ class NotificationBodyFormattingBlockType(StrEnum):
     """
 
     SECTION = "section"
+    """
+    A block of text with a line break before.
+    """
+    CODE_BLOCK = "code_block"
+    """
+    A new section of code with a line break before.
+    """
 
 
 class NotificationBodyFormattingBlock(Protocol):
@@ -231,6 +238,12 @@ class NotificationBodyTextBlock(Protocol):
 @dataclass
 class SectionBlock(NotificationBodyFormattingBlock):
     type: Literal[NotificationBodyFormattingBlockType.SECTION]
+    blocks: list[NotificationBodyTextBlock]
+
+
+@dataclass
+class CodeBlock(NotificationBodyFormattingBlock):
+    type: Literal[NotificationBodyFormattingBlockType.CODE_BLOCK]
     blocks: list[NotificationBodyTextBlock]
 
 

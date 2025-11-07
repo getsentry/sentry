@@ -80,12 +80,14 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
 
     @classmethod
     def render_body_blocks_to_html_string(cls, body: list[NotificationBodyFormattingBlock]) -> str:
-
         body_blocks = []
         for block in body:
             if block.type == NotificationBodyFormattingBlockType.SECTION:
                 body_blocks.append(f"<br>{cls.render_text_blocks_to_html_string(block.blocks)}")
-
+            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+                body_blocks.append(
+                    f"<br><code>{cls.render_text_blocks_to_html_string(block.blocks)}</code>"
+                )
         # Mark as safe so Django doesn't escape the HTML tags
         return mark_safe(" ".join(body_blocks))
 
@@ -107,6 +109,8 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
         for block in blocks:
             if block.type == NotificationBodyFormattingBlockType.SECTION:
                 body_blocks.append(f"\n{cls.render_text_blocks_to_txt_string(block.blocks)}")
+            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+                body_blocks.append(f"\n```{cls.render_text_blocks_to_txt_string(block.blocks)}```")
         return mark_safe(" ".join(body_blocks))
 
     @classmethod
@@ -118,7 +122,7 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
             elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
                 texts.append(f"**{block.text}**")
             elif block.type == NotificationBodyTextBlockType.CODE:
-                texts.append(f"```{block.text}```")
+                texts.append(f"`{block.text}`")
         return mark_safe(" ".join(texts))
 
 

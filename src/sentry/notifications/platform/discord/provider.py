@@ -109,6 +109,12 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
                         name=block.type.value, value=cls.render_text_blocks(block.blocks)
                     )
                 )
+            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+                fields.append(
+                    DiscordMessageEmbedField(
+                        name=block.type.value, value=f"```{cls.render_text_blocks(block.blocks)}```"
+                    )
+                )
         return fields
 
     @classmethod
@@ -120,7 +126,7 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
             elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
                 texts.append(f"**{block.text}**")
             elif block.type == NotificationBodyTextBlockType.CODE:
-                texts.append(f"```{block.text}```")
+                texts.append(f"`{block.text}`")
         return " ".join(texts)
 
 

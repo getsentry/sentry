@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     BoldTextBlock,
+    CodeBlock,
     CodeTextBlock,
     NotificationBodyFormattingBlockType,
     NotificationBodyTextBlockType,
@@ -57,7 +58,15 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
-                            text=f"A new {data.error_type} error has been detected in {data.project_name} with",
+                            text="A new",
+                        ),
+                        CodeTextBlock(
+                            type=NotificationBodyTextBlockType.CODE,
+                            text=data.error_type,
+                        ),
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text=f"error has been detected in {data.project_name} with",
                         ),
                         BoldTextBlock(
                             type=NotificationBodyTextBlockType.BOLD_TEXT,
@@ -71,10 +80,15 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
                             text="The error message is:",
-                        ),
-                        CodeTextBlock(
-                            type=NotificationBodyTextBlockType.CODE,
-                            text=f"{data.error_message}.",
+                        )
+                    ],
+                ),
+                CodeBlock(
+                    type=NotificationBodyFormattingBlockType.CODE_BLOCK,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text=data.error_message,
                         ),
                     ],
                 ),

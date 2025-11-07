@@ -70,7 +70,7 @@ class DiscordRendererTest(TestCase):
         embeds = renderable["embeds"]
         assert len(embeds) == 1
         embed = embeds[0]
-        fields = embed["fields"]
+        fields = list(embed["fields"])
         assert len(fields) == 1
         field = fields[0]
         assert field["name"] == "section"

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from sentry.integrations.msteams.card_builder.block import create_code_block
 from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -94,6 +95,8 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         for block in body:
             if block.type == NotificationBodyFormattingBlockType.SECTION:
                 body_blocks.append(create_text_block(text=cls.render_text_blocks(block.blocks)))
+            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+                body_blocks.append(create_code_block(text=cls.render_text_blocks(block.blocks)))
         return body_blocks
 
     @classmethod
@@ -105,7 +108,7 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
                 texts.append(f"**{block.text}**")
             elif block.type == NotificationBodyTextBlockType.CODE:
-                texts.append(f"```{block.text}```")
+                texts.append(f"`{block.text}`")
         return " ".join(texts)
 
 
