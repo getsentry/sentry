@@ -108,7 +108,7 @@ export default function RepoTokenTable({response, sort}: Props) {
   const navigate = useNavigate();
 
   const handleSort = (field: 'name') => {
-    const {cursor, navigation, ...queryWithoutPagination} = location.query;
+    const {_cursor, _navigation, ...queryWithoutPagination} = location.query;
 
     const newQuery = {...queryWithoutPagination};
 

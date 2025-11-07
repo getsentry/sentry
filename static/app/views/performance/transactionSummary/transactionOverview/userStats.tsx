@@ -4,7 +4,7 @@ import type {Location, LocationDescriptor} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Link} from 'sentry/components/core/link';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import UserMisery from 'sentry/components/userMisery';
 import {IconOpen} from 'sentry/icons';

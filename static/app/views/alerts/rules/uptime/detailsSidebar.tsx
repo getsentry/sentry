@@ -7,7 +7,7 @@ import {CodeBlock} from 'sentry/components/core/code';
 import {Grid} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import getDuration from 'sentry/utils/duration/getDuration';

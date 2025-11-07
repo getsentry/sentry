@@ -5,7 +5,7 @@ import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {captureException} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import {useUser} from 'sentry/utils/useUser';
 

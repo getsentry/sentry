@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 
 import FeedbackItemSection from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

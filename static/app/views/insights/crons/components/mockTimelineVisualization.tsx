@@ -11,7 +11,7 @@ import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/ge
 import FormContext from 'sentry/components/forms/formContext';
 import type {FieldValue} from 'sentry/components/forms/model';
 import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';

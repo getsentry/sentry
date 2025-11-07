@@ -4,7 +4,7 @@ import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
 
 import {Flex} from 'sentry/components/core/layout/flex';
 import {ExternalLink} from 'sentry/components/core/link';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';

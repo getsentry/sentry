@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSentry} from 'sentry/icons';
 import type {AvatarUser} from 'sentry/types/user';
 

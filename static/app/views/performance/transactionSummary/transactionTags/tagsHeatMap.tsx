@@ -19,7 +19,7 @@ import MenuItem from 'sentry/components/menuItem';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import Panel from 'sentry/components/panels/panel';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';

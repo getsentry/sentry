@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';

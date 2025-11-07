@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
 import {CodeBlock} from 'sentry/components/core/code';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isSpanFrame} from 'sentry/utils/replays/types';

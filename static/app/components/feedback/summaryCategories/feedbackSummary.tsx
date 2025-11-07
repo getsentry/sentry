@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Link} from 'sentry/components/core/link';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';

@@ -12,7 +12,7 @@ import {
 import {useAiAutofix, useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {getAutofixRunExists} from 'sentry/components/events/autofix/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

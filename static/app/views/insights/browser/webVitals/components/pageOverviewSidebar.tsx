@@ -22,7 +22,7 @@ import {
   getSolutionIsLoading,
 } from 'sentry/components/events/autofix/utils';
 import {AutofixSummary} from 'sentry/components/group/groupSummaryWithAutofix';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';

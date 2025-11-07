@@ -11,7 +11,7 @@ import {Checkbox} from 'sentry/components/core/checkbox';
 import {Text} from 'sentry/components/core/text';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
