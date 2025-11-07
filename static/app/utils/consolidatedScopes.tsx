@@ -98,7 +98,7 @@ function toResourcePermissions(scopes: string[]): Permissions {
   // row for Releases.
   if (scopes.includes(PROJECT_RELEASES)) {
     permissions.Release = 'admin';
-    filteredScopes = scopes.filter((scope: string) => scope !== PROJECT_RELEASES); // remove project:releases
+    filteredScopes = filteredScopes.filter((scope: string) => scope !== PROJECT_RELEASES); // remove project:releases
   }
 
   // The scope for distribution is `project:distribution`, but instead of displaying
@@ -106,7 +106,9 @@ function toResourcePermissions(scopes: string[]): Permissions {
   // row for Distribution.
   if (scopes.includes(PROJECT_DISTRIBUTION)) {
     permissions.Distribution = 'read';
-    filteredScopes = scopes.filter((scope: string) => scope !== PROJECT_DISTRIBUTION); // remove project:distribution
+    filteredScopes = filteredScopes.filter(
+      (scope: string) => scope !== PROJECT_DISTRIBUTION
+    ); // remove project:distribution
   }
 
   // We have a special case with the org:integrations scope. This scope is
