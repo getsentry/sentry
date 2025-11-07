@@ -1,31 +1,17 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportApiIntroduction,
-  getCrashReportInstallDescription,
-  getCrashReportJavaScriptInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {t, tct} from 'sentry/locale';
-import {
   getImportInstrumentSnippet,
   getInstallCodeBlock,
-  getNodeAgentMonitoringOnboarding,
-  getNodeLogsOnboarding,
-  getNodeMcpOnboarding,
-  getNodeProfilingOnboarding,
   getSdkInitSnippet,
   getSentryImportSnippet,
-} from 'sentry/utils/gettingStartedDocs/node';
-
-type Params = DocsParams;
+} from 'sentry/gettingStartedDocs/node/node/utils';
+import {t, tct} from 'sentry/locale';
 
 const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet()}
@@ -42,7 +28,7 @@ Sentry.setupKoaErrorHandler(app);
 
 app.listen(3000);`;
 
-const getVerifySnippet = (params: Params) => `
+const getVerifySnippet = (params: DocsParams) => `
 app.use(async function () {${
   params.isLogsSelected
     ? `
@@ -56,9 +42,9 @@ app.use(async function () {${
 });
 `;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
-    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+    tct("In this quick guide you'll use [strong:npm] or [strong:yarn] to set up:", {
       strong: <strong />,
     }),
   install: params => [
@@ -131,7 +117,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -154,7 +140,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [];
 
     if (params.isLogsSelected) {
@@ -171,78 +157,3 @@ const onboarding: OnboardingConfig = {
     return steps;
   },
 };
-
-const feedbackOnboardingNode: OnboardingConfig = {
-  introduction: () => getCrashReportApiIntroduction(),
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportInstallDescription(),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: `import * as Sentry from "@sentry/node";
-
-const eventId = Sentry.captureMessage("User Feedback");
-// OR: const eventId = Sentry.lastEventId();
-
-const userFeedback = {
-  event_id: eventId,
-  name: "John Doe",
-  email: "john@doe.com",
-  comments: "I really like your App, thanks!",
-};
-Sentry.captureUserFeedback(userFeedback);
-`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  configure: () => [],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/koa/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  feedbackOnboardingCrashApi: feedbackOnboardingNode,
-  crashReportOnboarding,
-  logsOnboarding: getNodeLogsOnboarding({
-    docsPlatform: 'koa',
-    packageName: '@sentry/node',
-  }),
-  profilingOnboarding: getNodeProfilingOnboarding(),
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
-  mcpOnboarding: getNodeMcpOnboarding(),
-};
-
-export default docs;
