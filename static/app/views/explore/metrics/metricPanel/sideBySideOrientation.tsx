@@ -24,10 +24,10 @@ export function SideBySideOrientation({
   queryIndex,
   traceMetric,
   orientation,
-  infoContentHidden,
+  infoContentVisible,
   updateTableConfig,
 }: {
-  infoContentHidden: boolean;
+  infoContentVisible: boolean;
   orientation: TableOrientation;
   queryIndex: number;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
@@ -52,21 +52,21 @@ export function SideBySideOrientation({
   );
 
   const additionalActions = (
-    <Flex direction="row" marginTop={infoContentHidden ? undefined : 'md'}>
+    <Flex direction="row" marginTop={infoContentVisible ? 'md' : undefined}>
       <PanelPositionSelector
         orientation={orientation}
-        disabled={infoContentHidden}
+        disabled={!infoContentVisible}
         updateTableConfig={updateTableConfig}
       />
       <HideContentButton
         orientation={orientation}
-        infoContentHidden={infoContentHidden}
-        onToggle={() => updateTableConfig({visible: !infoContentHidden})}
+        infoContentHidden={!infoContentVisible}
+        onToggle={() => updateTableConfig({visible: !infoContentVisible})}
       />
     </Flex>
   );
 
-  if (infoContentHidden) {
+  if (!infoContentVisible) {
     return (
       <div ref={measureRef}>
         <MetricsGraph
@@ -74,7 +74,7 @@ export function SideBySideOrientation({
           queryIndex={queryIndex}
           orientation={orientation}
           additionalActions={additionalActions}
-          infoContentHidden={infoContentHidden}
+          infoContentHidden={!infoContentVisible}
         />
       </div>
     );
