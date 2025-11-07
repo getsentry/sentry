@@ -316,8 +316,9 @@ describe('makeLazyloadComponent', () => {
       expect(preloadPromiseSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('handles multiple routes with different preload handles', async () => {
-      const LazyComponent1 = makeLazyloadComponent(() =>
+    it('preloads all components in nested route hierarchy', async () => {
+      // Spy on preload functions to verify they're called
+      const spy1 = jest.fn(() =>
         Promise.resolve({
           default: (props: {title: string}) => (
             <div data-test-id="component-1">{props.title}</div>
@@ -325,13 +326,16 @@ describe('makeLazyloadComponent', () => {
         })
       );
 
-      const LazyComponent2 = makeLazyloadComponent(() =>
+      const spy2 = jest.fn(() =>
         Promise.resolve({
           default: (props: {title: string}) => (
             <div data-test-id="component-2">{props.title}</div>
           ),
         })
       );
+
+      const LazyComponent1 = makeLazyloadComponent(spy1);
+      const LazyComponent2 = makeLazyloadComponent(spy2);
 
       // Mock routes with nested structure
       const mockRoutes = [
@@ -353,26 +357,49 @@ describe('makeLazyloadComponent', () => {
         },
       ];
 
+      // Render only the link to avoid triggering component loading
       render(
         <RouteConfigProvider value={mockRoutes}>
-          <div>
-            <Link to="/parent/child" data-test-id="nested-link">
-              Go to nested route
-            </Link>
-            <LazyComponent1 title="Component 1" />
-            <LazyComponent2 title="Component 2" />
-          </div>
+          <SentryLinkBehaviorProvider>
+            <div>
+              <Link to="/parent/child" data-test-id="nested-link">
+                Go to nested route
+              </Link>
+            </div>
+          </SentryLinkBehaviorProvider>
         </RouteConfigProvider>
       );
 
+      // Initially, no preload functions should have been called
+      expect(spy1).not.toHaveBeenCalled();
+      expect(spy2).not.toHaveBeenCalled();
+
+      // Hover over the link to trigger preloading
       await userEvent.hover(screen.getByTestId('nested-link'));
 
+      // Verify BOTH preload functions were called (parent and child routes)
+      expect(spy1).toHaveBeenCalledTimes(1);
+      expect(spy2).toHaveBeenCalledTimes(1);
+
+      // Now render the components to verify they use the preloaded results
+      render(
+        <div>
+          <LazyComponent1 title="Component 1" />
+          <LazyComponent2 title="Component 2" />
+        </div>
+      );
+
+      // Components should render successfully
       await waitFor(() => {
         expect(screen.getByTestId('component-1')).toBeInTheDocument();
       });
       await waitFor(() => {
         expect(screen.getByTestId('component-2')).toBeInTheDocument();
       });
+
+      // Preload functions should still only have been called once each
+      expect(spy1).toHaveBeenCalledTimes(1);
+      expect(spy2).toHaveBeenCalledTimes(1);
     });
 
     it('gracefully handles routes without preload handles', async () => {
