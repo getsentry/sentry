@@ -6,7 +6,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './fastify';
+import docs from '.';
 
 describe('fastify onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
