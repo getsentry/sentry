@@ -19,6 +19,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
 import Hook from 'sentry/components/hook';
+import LoadingError from 'sentry/components/loadingError';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -443,7 +444,7 @@ export default function ProjectGeneralSettingsContainer() {
   );
 
   if (!project?.id) {
-    return null;
+    return <LoadingError message={t('Failed to load project.')} />;
   }
 
   return <ProjectGeneralSettings project={project} onChangeSlug={handleChangeSlug} />;
