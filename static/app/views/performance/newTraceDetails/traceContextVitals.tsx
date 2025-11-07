@@ -39,7 +39,11 @@ type Props = {
 };
 
 export function TraceContextVitals({rootEventResults, tree, containerWidth}: Props) {
-  const {hasVitals} = useTraceContextSections({tree, logs: undefined});
+  const {hasVitals} = useTraceContextSections({
+    tree,
+    logs: undefined,
+    metrics: undefined,
+  });
   const traceNode = tree.root.children[0];
   const theme = useTheme();
 

@@ -9,8 +9,10 @@ import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/tr
 export function useTraceContextSections({
   tree,
   logs,
+  metrics,
 }: {
   logs: OurLogsResponseItem[] | undefined;
+  metrics: {count: number} | undefined;
   tree: TraceTree;
 }) {
   const organization = useOrganization();
@@ -18,6 +20,7 @@ export function useTraceContextSections({
   const hasProfiles: boolean = tree.type === 'trace' && tree.profiled_events.size > 0;
 
   const hasLogs = !!(logs && logs?.length > 0);
+  const hasMetrics = !!(metrics && metrics.count > 0);
   const hasOnlyLogs: boolean = tree.type === 'empty' && hasLogs;
 
   const allowedVitals = Object.keys(VITAL_DETAILS);
@@ -36,7 +39,8 @@ export function useTraceContextSections({
       hasVitals,
       hasSummary,
       hasAiSpans,
+      hasMetrics,
     }),
-    [hasProfiles, hasOnlyLogs, hasLogs, hasVitals, hasSummary, hasAiSpans]
+    [hasProfiles, hasOnlyLogs, hasLogs, hasVitals, hasSummary, hasAiSpans, hasMetrics]
   );
 }
