@@ -1,8 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
-
 import {Input} from 'sentry/components/core/input';
 import {Select} from 'sentry/components/core/select';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
@@ -135,70 +132,60 @@ export default function IssueAlertOptions({
   notificationProps,
   onFieldChange,
 }: IssueAlertOptionsProps) {
-  const issueAlertOptionsChoices: Array<[RuleAction, React.ReactNode, React.ReactNode?]> =
+  const issueAlertOptionsChoices: Array<[RuleAction, React.ReactNode]> = [
+    [RuleAction.DEFAULT_ALERT, t('Alert me on high priority issues')],
     [
-      [
-        RuleAction.DEFAULT_ALERT,
-        t('Use my default alerts'),
-        <Text key="default-alert-description" variant="muted">
-          This project will be connected to the following alerts:{' '}
-          <Link to="/alerts/">Send a notification for high priority issues</Link>,{' '}
-          <Link to="/alerts/">Send a slack notification to #alerts</Link>
-        </Text>,
-      ],
-      [
-        RuleAction.CUSTOMIZED_ALERTS,
-        tct('When there are more than [threshold][metric] a unique error in [interval]', {
-          threshold: (
-            // 80px is just enough to see 6 digits at a time
-            <div style={{width: '80px'}}>
-              <Input
-                type="number"
-                min="0"
-                name=""
-                placeholder="10"
-                value={threshold}
-                onChange={e => {
-                  onFieldChange('threshold', e.target.value);
-                }}
-                data-test-id="range-input"
-              />
-            </div>
-          ),
-          metric: (
-            <div style={{width: '170px'}} onClick={e => e.preventDefault()}>
-              <Select
-                value={metric}
-                options={METRIC_CHOICES}
-                onChange={(option: (typeof METRIC_CHOICES)[number]) => {
-                  onFieldChange('metric', option.value);
-                }}
-              />
-            </div>
-          ),
-          interval: (
-            <div style={{width: '140px'}} onClick={e => e.preventDefault()}>
-              <Select
-                value={interval}
-                options={INTERVAL_CHOICES}
-                onChange={(option: (typeof INTERVAL_CHOICES)[number]) => {
-                  onFieldChange('interval', option.value);
-                }}
-              />
-            </div>
-          ),
-        }),
-      ],
-      [RuleAction.CREATE_ALERT_LATER, t("I'll create my own alerts later")],
-    ];
+      RuleAction.CUSTOMIZED_ALERTS,
+      tct('When there are more than [threshold][metric] a unique error in [interval]', {
+        threshold: (
+          // 80px is just enough to see 6 digits at a time
+          <div style={{width: '80px'}}>
+            <Input
+              type="number"
+              min="0"
+              name=""
+              placeholder="10"
+              value={threshold}
+              onChange={e => {
+                onFieldChange('threshold', e.target.value);
+              }}
+              data-test-id="range-input"
+            />
+          </div>
+        ),
+        metric: (
+          <div style={{width: '170px'}} onClick={e => e.preventDefault()}>
+            <Select
+              value={metric}
+              options={METRIC_CHOICES}
+              onChange={(option: (typeof METRIC_CHOICES)[number]) => {
+                onFieldChange('metric', option.value);
+              }}
+            />
+          </div>
+        ),
+        interval: (
+          <div style={{width: '140px'}} onClick={e => e.preventDefault()}>
+            <Select
+              value={interval}
+              options={INTERVAL_CHOICES}
+              onChange={(option: (typeof INTERVAL_CHOICES)[number]) => {
+                onFieldChange('interval', option.value);
+              }}
+            />
+          </div>
+        ),
+      }),
+    ],
+    [RuleAction.CREATE_ALERT_LATER, t("I'll create my own alerts later")],
+  ];
 
   return (
     <Content>
       <RadioGroup
-        choices={issueAlertOptionsChoices.map(([choiceValue, node, description]) => [
+        choices={issueAlertOptionsChoices.map(([choiceValue, node]) => [
           choiceValue.toString(),
           <RadioItemWrapper key={choiceValue}>{node}</RadioItemWrapper>,
-          description,
         ])}
         label={t('Options for creating an alert')}
         onChange={val => {
