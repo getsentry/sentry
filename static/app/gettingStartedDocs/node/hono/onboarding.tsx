@@ -1,33 +1,19 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportApiIntroduction,
-  getCrashReportInstallDescription,
-  getCrashReportJavaScriptInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {t, tct} from 'sentry/locale';
-import {
   getImportInstrumentSnippet,
   getInstallCodeBlock,
-  getNodeAgentMonitoringOnboarding,
-  getNodeLogsOnboarding,
-  getNodeMcpOnboarding,
-  getNodeProfilingOnboarding,
   getSdkInitSnippet,
   getSentryImportSnippet,
-} from 'sentry/utils/gettingStartedDocs/node';
+} from 'sentry/gettingStartedDocs/node/node/utils';
+import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getVerifySnippet = (params: Params) => `app.get("/debug-sentry", () => {${
+const getVerifySnippet = (params: DocsParams) => `app.get("/debug-sentry", () => {${
   params.isLogsSelected
     ? `
   // Send a log before throwing the error
@@ -83,7 +69,7 @@ const app = new Hono()
   });
 `;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -169,7 +155,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -192,7 +178,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [];
 
     if (params.isLogsSelected) {
@@ -209,79 +195,3 @@ const onboarding: OnboardingConfig = {
     return steps;
   },
 };
-
-const feedbackOnboardingNode: OnboardingConfig = {
-  introduction: () => getCrashReportApiIntroduction(),
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportInstallDescription(),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `import * as Sentry from "@sentry/node";
-
-const eventId = Sentry.captureMessage("User Feedback");
-// OR: const eventId = Sentry.lastEventId();
-
-const userFeedback = {
-  event_id: eventId,
-  name: "John Doe",
-  email: "john@doe.com",
-  comments: "I really like your App, thanks!",
-};
-Sentry.captureUserFeedback(userFeedback);
-`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  configure: () => [],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/hono/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  feedbackOnboardingCrashApi: feedbackOnboardingNode,
-  crashReportOnboarding,
-  logsOnboarding: getNodeLogsOnboarding({
-    docsPlatform: 'hono',
-    packageName: '@sentry/node',
-  }),
-  profilingOnboarding: getNodeProfilingOnboarding(),
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
-  mcpOnboarding: getNodeMcpOnboarding(),
-};
-
-export default docs;
