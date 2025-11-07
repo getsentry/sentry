@@ -11,7 +11,7 @@ import {BroadcastChannel} from 'node:worker_threads';
 import {type ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 
-// import {enableFetchMocks} from 'jest-fetch-mock';
+import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
 
 import {resetMockDate} from 'sentry-test/utils';
@@ -33,7 +33,7 @@ setLocale(DEFAULT_LOCALE_DATA);
 /**
  * Setup fetch mocks (needed to define the `Request` global)
  */
-// enableFetchMocks();
+enableFetchMocks();
 
 // @ts-expect-error XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
 // framer-motion SVG components fail
