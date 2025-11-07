@@ -37,4 +37,3 @@ describe('gcpfunctions onboarding docs', () => {
     ).toBeInTheDocument();
   });
 });
-
