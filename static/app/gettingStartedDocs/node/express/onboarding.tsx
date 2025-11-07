@@ -1,33 +1,17 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
-  getCrashReportJavaScriptInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {t, tct} from 'sentry/locale';
-import {
   getImportInstrumentSnippet,
   getInstallCodeBlock,
-  getNodeAgentMonitoringOnboarding,
-  getNodeLogsOnboarding,
-  getNodeMcpOnboarding,
-  getNodeProfilingOnboarding,
   getSdkInitSnippet,
   getSentryImportSnippet,
-} from 'sentry/utils/gettingStartedDocs/node';
-
-type Params = DocsParams;
+} from 'sentry/gettingStartedDocs/node/node/utils';
+import {t, tct} from 'sentry/locale';
 
 const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet()}
@@ -58,15 +42,15 @@ app.use(function onError(err, req, res, next) {
 app.listen(3000);
 `;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
-      'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
+      "In this quick guide you'll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:",
       {
         strong: <strong />,
       }
     ),
-  install: (params: Params) => [
+  install: (params: DocsParams) => [
     {
       type: StepType.INSTALL,
       content: [
@@ -78,7 +62,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -136,7 +120,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -166,7 +150,7 @@ app.get("/debug-sentry", function mainHandler(req, res) {${
       ],
     },
   ],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [];
 
     if (params.isLogsSelected) {
@@ -183,39 +167,3 @@ app.get("/debug-sentry", function mainHandler(req, res) {${
     return steps;
   },
 };
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/express/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  replayOnboardingJsLoader,
-  crashReportOnboarding,
-  feedbackOnboardingJsLoader,
-  logsOnboarding: getNodeLogsOnboarding({
-    docsPlatform: 'express',
-    packageName: '@sentry/node',
-  }),
-  profilingOnboarding: getNodeProfilingOnboarding(),
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
-  mcpOnboarding: getNodeMcpOnboarding(),
-};
-
-export default docs;
