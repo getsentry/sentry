@@ -226,6 +226,7 @@ jest.mock('@sentry/react', function sentryReact() {
       info: jest.fn(),
       debug: jest.fn(),
       trace: jest.fn(),
+      fmt: jest.fn(),
     },
   };
 });
