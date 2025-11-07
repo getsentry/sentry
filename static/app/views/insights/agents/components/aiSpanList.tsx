@@ -222,12 +222,12 @@ const TraceListItem = memo(function TraceListItem({
     >
       <ListItemIcon color={safeColor}>{icon} </ListItemIcon>
       <ListItemContent>
-        <ListItemHeader align="center" gap="xs">
+        <Flex align="center" gap="xs" marginBottom="xs">
           <ListItemTitle>{title}</ListItemTitle>
           {subtitle && <ListItemSubtitle>- {subtitle}</ListItemSubtitle>}
           <FlexSpacer />
           <DurationText>{getDuration(duration, 2, true, true)}</DurationText>
-        </ListItemHeader>
+        </Flex>
         <DurationBar color={safeColor} relativeTiming={relativeTiming} />
       </ListItemContent>
     </ListItemContainer>
@@ -444,10 +444,6 @@ const ListItemIcon = styled('div')<{color: string}>`
 const ListItemContent = styled('div')`
   flex: 1;
   min-width: 0;
-`;
-
-const ListItemHeader = styled(Flex)`
-  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const ListItemTitle = styled('div')`

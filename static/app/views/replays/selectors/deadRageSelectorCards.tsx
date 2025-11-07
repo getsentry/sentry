@@ -2,8 +2,10 @@ import type {ReactNode} from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import Accordion from 'sentry/components/container/accordion';
-import {Flex, type FlexProps} from 'sentry/components/core/layout';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -270,12 +272,13 @@ const StyledPlaceholder = styled(Placeholder)`
   height: 36px;
 `;
 
-const EmptyHeader = styled(Flex)`
-  justify-content: center;
-  align-items: center;
-  gap: ${space(1.5)};
-  color: ${p => p.theme.subText};
-`;
+function EmptyHeader(props: FlexProps) {
+  return (
+    <Text variant="muted" as="div">
+      <Flex justify="center" align="center" gap="lg" {...props} />
+    </Text>
+  );
+}
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   padding: 24px;

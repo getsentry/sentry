@@ -186,7 +186,7 @@ export function AutomateSection() {
             openInNewTab
           />
         </Section>
-        <ButtonWrapper justify="between">
+        <ButtonWrapper justify="between" borderTop="primary" padding="xl">
           {/* TODO: Implement create automation flow */}
           <Button size="sm" icon={<IconAdd />} disabled>
             {t('Create New Alert')}
@@ -228,7 +228,5 @@ const DrawerContent = styled('div')`
 `;
 
 const ButtonWrapper = styled(Flex)`
-  border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(2)};
   margin: -${space(2)};
 `;
