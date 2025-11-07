@@ -1,19 +1,30 @@
 from django.urls import reverse
 
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
 
-        self.user = self.create_user(email="test@example.com")
-        self.org = self.create_organization(owner=self.user)
+        self.org = self.create_organization()
         self.project = self.create_project(organization=self.org)
-        self.api_token = self.create_user_auth_token(
-            user=self.user, scope_list=["org:admin", "project:admin"]
-        )
+
+        # Create an integration token with project:distribution scope
+        token_str = generate_token(self.org.slug, "")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrgAuthToken.objects.create(
+                organization_id=self.org.id,
+                name="Test Integration Token",
+                token_hashed=hash_token(token_str),
+                scope_list=["project:distribution"],
+            )
+        self.api_token = token_str
 
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
 
@@ -72,7 +83,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         """Test that missing required parameters return 400"""
         url = self._get_url()
         response = self.client.get(
-            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token}"
         )
         assert response.status_code == 400
         assert "Missing required parameters" in response.json()["error"]
@@ -84,7 +95,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             url
             + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=nonexistent",
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
         )
         assert response.status_code == 200
         assert response.json()["current"] is None
@@ -102,7 +113,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             url
             + "?app_id=com.example.app&platform=ios&build_version=1.0.0&main_binary_identifier=test-identifier",
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
         )
 
         assert response.status_code == 200
@@ -136,7 +147,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             url
             + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=test-identifier",
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
         )
 
         assert response.status_code == 200
@@ -173,7 +184,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             url
             + "?app_id=com.example.app&platform=ios&build_version=1.0.0&main_binary_identifier=test-identifier",
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
         )
 
         assert response.status_code == 200
@@ -207,7 +218,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             url
             + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=test-identifier",
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
         )
 
         assert response.status_code == 200
@@ -243,7 +254,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             url
             + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=test-identifier",
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
         )
 
         assert response.status_code == 200
@@ -281,7 +292,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             url
             + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=test-identifier",
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
         )
 
         assert response.status_code == 200
@@ -306,7 +317,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             url
             + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=test-identifier",
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
         )
 
         assert response.status_code == 200
@@ -345,7 +356,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             url
             + "?app_id=com.example.app&platform=android&build_version=1.0.0&main_binary_identifier=test-identifier&build_configuration=debug",
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
         )
 
         assert response.status_code == 200
@@ -375,7 +386,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             url
             + "?app_id=com.example.app&platform=android&build_version=1.0.0&build_number=42&main_binary_identifier=test-identifier",
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
         )
 
         assert response.status_code == 200
@@ -392,7 +403,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             url
             + "?app_id=com.example.app&platform=android&build_version=1.0.0&build_number=invalid&main_binary_identifier=test-identifier",
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
         )
         assert response.status_code == 400
         assert "Invalid build_number format" in response.json()["error"]
@@ -409,7 +420,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         response = self.client.get(
             url + "?app_id=com.example.app&platform=android&build_version=1.0.0&build_number=42",
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
         )
 
         assert response.status_code == 200
@@ -423,7 +434,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         response = self.client.get(
             url + "?app_id=com.example.app&platform=android&build_version=1.0.0",
             format="json",
-            HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
         )
 
         assert response.status_code == 400

@@ -58,15 +58,15 @@ describe('DetectorSection', () => {
       </IssueDetailsContext>
     );
 
-    expect(screen.getByText('Metric Alert Detector')).toBeInTheDocument();
-    const link = screen.getByRole('button', {name: 'View detector details'});
+    expect(screen.getByText('Metric Monitor')).toBeInTheDocument();
+    const link = screen.getByRole('button', {name: 'View monitor details'});
     expect(link).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/issues/alerts/rules/details/${detectorId}/`
     );
     expect(
       screen.getByText(
-        'This issue was created by a metric alert detector. View the detector details to learn more.'
+        'This issue was created by a metric monitor. View the monitor details to learn more.'
       )
     ).toBeInTheDocument();
   });
@@ -131,9 +131,7 @@ describe('DetectorSection', () => {
       `/organizations/${organization.slug}/issues/alerts/rules/uptime/${project.slug}/${detectorId}/details/`
     );
     expect(
-      screen.getByText(
-        'This issue was created by an uptime monitoring alert rule after detecting 3 consecutive failed checks.'
-      )
+      screen.getByText('This issue was created by an uptime monitoring alert rule.')
     ).toBeInTheDocument();
   });
 });

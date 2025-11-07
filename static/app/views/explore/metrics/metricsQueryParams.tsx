@@ -4,6 +4,10 @@ import {useCallback, useMemo} from 'react';
 import {defined} from 'sentry/utils';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {defaultQuery, type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  MetricsFrozenContextProvider,
+  type MetricsFrozenForTracesProviderProps,
+} from 'sentry/views/explore/metrics/metricsFrozenContext';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   QueryParamsContextProvider,
@@ -37,6 +41,7 @@ interface MetricsQueryParamsProviderProps {
   setQueryParams: (queryParams: ReadableQueryParams) => void;
   setTraceMetric: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
+  freeze?: MetricsFrozenForTracesProviderProps;
 }
 
 export function MetricsQueryParamsProvider({
@@ -46,6 +51,7 @@ export function MetricsQueryParamsProvider({
   setTraceMetric,
   removeMetric,
   traceMetric,
+  freeze,
 }: MetricsQueryParamsProviderProps) {
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
@@ -72,14 +78,19 @@ export function MetricsQueryParamsProvider({
 
   return (
     <TraceMetricContext value={traceMetricContextValue}>
-      <QueryParamsContextProvider
-        queryParams={queryParams}
-        setQueryParams={setWritableQueryParams}
-        isUsingDefaultFields
-        shouldManageFields={false}
+      <MetricsFrozenContextProvider
+        traceIds={freeze?.traceIds ?? []}
+        tracePeriod={freeze?.tracePeriod}
       >
-        {children}
-      </QueryParamsContextProvider>
+        <QueryParamsContextProvider
+          queryParams={queryParams}
+          setQueryParams={setWritableQueryParams}
+          isUsingDefaultFields
+          shouldManageFields={false}
+        >
+          {children}
+        </QueryParamsContextProvider>
+      </MetricsFrozenContextProvider>
     </TraceMetricContext>
   );
 }

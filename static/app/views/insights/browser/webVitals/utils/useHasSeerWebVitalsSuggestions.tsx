@@ -1,5 +1,6 @@
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
+import type {Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -9,7 +10,7 @@ import useProjects from 'sentry/utils/useProjects';
 // - Org has web vitals suggestions feature enabled
 // - Org has ai features enabled and has given consent
 // - Project has a github repository set up
-export function useHasSeerWebVitalsSuggestions() {
+export function useHasSeerWebVitalsSuggestions(selectedProject?: Project) {
   const organization = useOrganization();
 
   const {
@@ -17,7 +18,7 @@ export function useHasSeerWebVitalsSuggestions() {
   } = usePageFilters();
   const {projects: allProjects} = useProjects();
   const selectedProjects = getSelectedProjectList(projects, allProjects);
-  const project = selectedProjects[0];
+  const project = selectedProject ?? selectedProjects[0]; // By default, use the first selected project if no project is provided
 
   const {preference, codeMappingRepos} = useProjectSeerPreferences(project!);
   const hasConfiguredRepos = Boolean(
