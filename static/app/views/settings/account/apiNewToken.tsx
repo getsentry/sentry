@@ -38,7 +38,7 @@ export default function ApiNewToken() {
   const [preview, setPreview] = useState<string>('');
 
   const hasPreprodFeature =
-    organization?.features.includes('organizations:preprod-frontend-routes') ?? false;
+    organization?.features.includes('organizations:preprod-build-distribution') ?? false;
 
   const displayedPermissions = SENTRY_APP_PERMISSIONS.filter(
     o => o.resource !== 'Distribution' || hasPreprodFeature
