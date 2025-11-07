@@ -8,6 +8,7 @@ import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTabl
 import ReplayTableHeader from 'sentry/components/replays/table/replayTableHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
+import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
@@ -23,6 +24,7 @@ type SortProps =
 type Props = SortProps & {
   columns: readonly ReplayTableColumn[];
   error: RequestError | null | undefined;
+  eventView: EventView | null;
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
@@ -30,6 +32,7 @@ type Props = SortProps & {
 };
 
 export default function ReplayTable({
+  eventView,
   columns,
   error,
   isPending,
@@ -42,7 +45,7 @@ export default function ReplayTable({
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
 
-  if (isPending) {
+  if (isPending || !eventView) {
     return (
       <StyledSimpleTable
         data-test-id="replay-table-loading"
@@ -111,6 +114,7 @@ export default function ReplayTable({
             <RowCell key={`${replay.id}-${columnIndex}-${column.sortKey}`}>
               <column.Component
                 columnIndex={columnIndex}
+                eventView={eventView}
                 replay={replay}
                 rowIndex={rowIndex}
                 showDropdownFilters={showDropdownFilters}

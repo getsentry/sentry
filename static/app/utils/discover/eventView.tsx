@@ -182,7 +182,7 @@ export const encodeSort = (sort: Sort): string => {
   }
 };
 
-const encodeSorts = (sorts: readonly Sort[]): string[] => sorts.map(encodeSort);
+export const encodeSorts = (sorts: readonly Sort[]): string[] => sorts.map(encodeSort);
 
 // TODO(__SENTRY_USING_REACT_ROUTER_SIX): This is needed to translate query
 // objects that have non-string values and single-element arrays to match what

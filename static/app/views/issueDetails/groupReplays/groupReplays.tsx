@@ -120,6 +120,7 @@ export default function GroupReplays({group}: Props) {
           </ReplayCountHeader>
         </ReplayHeader>
         <ReplayTable
+          eventView={null}
           columns={isMobilePlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
           error={fetchError}
           isPending={isFetching}
@@ -244,6 +245,7 @@ function GroupReplaysTable({
 
   const replayTable = (
     <ReplayTable
+      eventView={eventView}
       columns={[
         ...(selectedReplay ? [ReplayPlayPauseColumn] : []),
         ...(allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),

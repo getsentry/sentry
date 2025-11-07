@@ -26,7 +26,7 @@ import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import EventView, {encodeSorts} from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -54,7 +54,7 @@ interface HeaderProps {
 
 interface CellProps {
   columnIndex: number;
-  end: string;
+  eventView: EventView;
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
@@ -316,10 +316,18 @@ export const ReplayDetailsLinkColumn: ReplayTableColumn = {
   Header: '',
   interactive: true,
   sortKey: undefined,
-  Component: ({replay}) => {
+  Component: ({replay, eventView}) => {
     const organization = useOrganization();
     return (
-      <DetailsLink to={makeReplaysPathname({path: `/${replay.id}/`, organization})}>
+      <DetailsLink
+        to={{
+          pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
+          query: {
+            query: eventView.query,
+            sorts: encodeSorts(eventView.sorts),
+          },
+        }}
+      >
         <Tooltip title={t('See Full Replay')}>
           <IconOpen />
         </Tooltip>
