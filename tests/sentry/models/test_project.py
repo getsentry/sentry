@@ -37,6 +37,7 @@ from sentry.types.actor import Actor
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 class ProjectTest(APITestCase, TestCase):
@@ -476,13 +477,14 @@ class ProjectTest(APITestCase, TestCase):
         assert alert_rule.team_id is None
         assert alert_rule.user_id is None
 
-    def test_project_detector(self) -> None:
+    def test_project_detectors(self) -> None:
         project = self.create_project()
-        assert not Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+        assert not Detector.objects.filter(project=project).exists()
 
         with self.feature({"organizations:workflow-engine-issue-alert-dual-write": True}):
             project = self.create_project()
             assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+            assert Detector.objects.filter(project=project, type=IssueStreamGroupType.slug).exists()
 
 
 class ProjectOptionsTests(TestCase):
