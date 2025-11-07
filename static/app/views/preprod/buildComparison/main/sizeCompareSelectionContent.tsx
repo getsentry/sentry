@@ -1,14 +1,15 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout/flex';
+import {Radio} from '@sentry/scraps/radio';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Stack} from 'sentry/components/core/layout';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Radio} from 'sentry/components/core/radio';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
