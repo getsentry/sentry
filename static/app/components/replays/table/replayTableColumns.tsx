@@ -57,7 +57,6 @@ interface CellProps {
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
-  eventView?: EventView;
 }
 
 export interface ReplayTableColumn {
@@ -90,17 +89,6 @@ export interface ReplayTableColumn {
    * Defaults to `max-content`
    */
   width?: string;
-}
-
-function generateQueryStringObjectWithStatsPeriod(eventView: EventView) {
-  const {statsPeriod, ...eventViewQuery} = eventView.generateQueryStringObject();
-
-  if (statsPeriod && typeof statsPeriod === 'string') {
-    const {start, end} = parseStatsPeriod(statsPeriod);
-    eventViewQuery.start = start;
-    eventViewQuery.end = end;
-  }
-  return eventViewQuery;
 }
 
 export const ReplayActivityColumn: ReplayTableColumn = {
@@ -327,16 +315,10 @@ export const ReplayDetailsLinkColumn: ReplayTableColumn = {
   Header: '',
   interactive: true,
   sortKey: undefined,
-  Component: ({replay, eventView}) => {
+  Component: ({replay}) => {
     const organization = useOrganization();
-    let toLink = {
-      pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
-    };
-    if (eventView) {
-      toLink = {...toLink, ...generateQueryStringObjectWithStatsPeriod(eventView)};
-    }
     return (
-      <DetailsLink to={toLink}>
+      <DetailsLink to={makeReplaysPathname({path: `/${replay.id}/`, organization})}>
         <Tooltip title={t('See Full Replay')}>
           <IconOpen />
         </Tooltip>
@@ -524,8 +506,9 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
-  Component: ({replay, eventView}) => {
+  Component: ({replay}) => {
     const routes = useRoutes();
+    const location = useLocation();
     const organization = useOrganization();
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});
 
@@ -539,16 +522,23 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     );
 
     const referrer = getRouteStringFromRoutes(routes);
+    const eventView = EventView.fromLocation(location);
+
+    let query = {referrer};
+
+    const {statsPeriod, ...eventViewQuery} = eventView.generateQueryStringObject();
+
+    if (statsPeriod && typeof statsPeriod === 'string') {
+      const {start, end} = parseStatsPeriod(statsPeriod);
+      eventViewQuery.start = start;
+      eventViewQuery.end = end;
+      query = {...eventViewQuery, ...query};
+    }
+
     const replayDetailsPathname = makeReplaysPathname({
       path: `/${replay.id}/`,
       organization,
     });
-
-    let query = {referrer};
-
-    if (eventView) {
-      query = {...generateQueryStringObjectWithStatsPeriod(eventView), ...query};
-    }
 
     const detailsTab = () => {
       return {
