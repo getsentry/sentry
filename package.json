@@ -199,6 +199,7 @@
     "@types/gettext-parser": "8.0.0",
     "@types/node": "^22.9.1",
     "babel-jest": "30.0.4",
+    "cross-fetch": "^4.1.0",
     "eslint": "9.34.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-import-resolver-typescript": "^3.8.3",

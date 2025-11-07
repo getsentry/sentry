@@ -1,9 +1,10 @@
 'use strict';
 
+import 'cross-fetch/polyfill';
 import '@testing-library/jest-dom';
 
 import {webcrypto} from 'node:crypto';
-import {ReadableStream, TransformStream, WritableStream} from 'node:stream/web';
+import {TransformStream, WritableStream} from 'node:stream/web';
 import {TextDecoder, TextEncoder} from 'node:util';
 import {BroadcastChannel} from 'node:worker_threads';
 
@@ -330,25 +331,7 @@ Object.defineProperty(global.self, 'crypto', {
   },
 });
 
-(globalThis as any).TextDecoder ??= TextDecoder;
-(globalThis as any).TextEncoder ??= TextEncoder;
-(globalThis as any).ReadableStream ??= ReadableStream;
-
-(globalThis as any).Blob ??= Blob;
-(globalThis as any).Headers ??= Headers;
-(globalThis as any).FormData ??= FormData;
-(globalThis as any).Request ??= Request;
-(globalThis as any).Response ??= Response;
-(globalThis as any).fetch ??= fetch;
-(globalThis as any).AbortController ??= AbortController;
-(globalThis as any).AbortSignal ??= AbortSignal;
-(globalThis as any).structuredClone ??= structuredClone;
-(globalThis as any).URL ??= URL;
-(globalThis as any).URLSearchParams ??= URLSearchParams;
-
 (globalThis as any).BroadcastChannel ??= BroadcastChannel;
-(globalThis as any).TransformStream ??= TransformStream;
 
-(globalThis as any).ReadableStream ??= ReadableStream;
 (globalThis as any).WritableStream ??= WritableStream;
 (globalThis as any).TransformStream ??= TransformStream;
