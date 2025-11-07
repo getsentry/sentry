@@ -87,6 +87,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         client,
         commit_comparison.provider,
         preprod_artifact.project.organization_id,
+        preprod_artifact.project.organization.slug,
         repository.integration_id,
     )
     if not provider:
@@ -247,10 +248,16 @@ def _get_status_check_client(
 
 
 def _get_status_check_provider(
-    client: StatusCheckClient, provider: str | None, organization_id: int, integration_id: int
+    client: StatusCheckClient,
+    provider: str | None,
+    organization_id: int,
+    organization_slug: str,
+    integration_id: int,
 ) -> _StatusCheckProvider | None:
     if provider == IntegrationProviderSlug.GITHUB:
-        return _GitHubStatusCheckProvider(client, provider, organization_id, integration_id)
+        return _GitHubStatusCheckProvider(
+            client, provider, organization_id, organization_slug, integration_id
+        )
     else:
         return None
 
@@ -266,11 +273,13 @@ class _StatusCheckProvider(ABC):
         client: StatusCheckClient,
         provider_key: str,
         organization_id: int,
+        organization_slug: str,
         integration_id: int,
     ):
         self.client = client
         self.provider_key = provider_key
         self.organization_id = organization_id
+        self.organization_slug = organization_slug
         self.integration_id = integration_id
 
     def _create_scm_interaction_event(self) -> SCMIntegrationInteractionEvent:
