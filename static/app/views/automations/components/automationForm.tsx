@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
 import EditConnectedMonitors from 'sentry/views/automations/components/editConnectedMonitors';
-import {useSetAutomaticAutomationName} from 'sentry/views/automations/components/forms/common/useSetAutomaticAutomationName';
+import {useSetAutomaticAutomationName} from 'sentry/views/automations/components/forms/useSetAutomaticAutomationName';
 
 const FREQUENCY_OPTIONS = [
   {value: 5, label: t('5 minutes')},
