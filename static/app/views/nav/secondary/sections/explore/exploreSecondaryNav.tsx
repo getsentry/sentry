@@ -30,6 +30,14 @@ export function ExploreSecondaryNav() {
     perPage: MAX_STARRED_QUERIES_DISPLAYED,
   });
 
+  const userPlatforms = useMemo(
+    () =>
+      Array.from(
+        new Set(projects.map(project => (project.platform as PlatformKey) || 'unknown'))
+      ).sort(),
+    [projects]
+  );
+
   const hasMetricsSupportedPlatform = projects.some(project => {
     const platform = project.platform || 'unknown';
     return Array.from(limitedMetricsSupportPrefixes).some(prefix =>
@@ -37,14 +45,10 @@ export function ExploreSecondaryNav() {
     );
   });
 
-  const userPlatforms = useMemo(
-    () => [
-      ...new Set(projects.map(project => (project.platform as PlatformKey) || 'unknown')),
-    ],
-    [projects]
-  );
-
   useEffect(() => {
+    if (userPlatforms.length === 0) {
+      return;
+    }
     trackAnalytics('metrics.nav.rendered', {
       organization,
       metrics_tab_visible: hasMetricsSupportedPlatform,
