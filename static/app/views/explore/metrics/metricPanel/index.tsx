@@ -115,8 +115,8 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
             queryIndex={queryIndex}
             traceMetric={traceMetric}
             orientation={orientation}
-            infoContentHidden={!infoContentVisible}
             isMetricOptionsEmpty={isMetricOptionsEmpty}
+            infoContentVisible={infoContentVisible}
             updateTableConfig={updateTableConfig}
           />
         ) : (
@@ -126,8 +126,8 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
             traceMetric={traceMetric}
             orientation={orientation}
             canChangeOrientation={canChangeOrientation}
-            infoContentHidden={!infoContentVisible}
             isMetricOptionsEmpty={isMetricOptionsEmpty}
+            infoContentVisible={infoContentVisible}
             updateTableConfig={updateTableConfig}
           />
         )}

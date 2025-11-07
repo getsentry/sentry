@@ -16,12 +16,12 @@ export function StackedOrientation({
   traceMetric,
   orientation,
   canChangeOrientation,
-  infoContentHidden,
   isMetricOptionsEmpty,
+  infoContentVisible,
   updateTableConfig,
 }: {
   canChangeOrientation: boolean;
-  infoContentHidden: boolean;
+  infoContentVisible: boolean;
   isMetricOptionsEmpty: boolean;
   orientation: TableOrientation;
   queryIndex: number;
@@ -40,12 +40,12 @@ export function StackedOrientation({
       <PanelPositionSelector
         updateTableConfig={updateTableConfig}
         orientation={orientation}
-        disabled={!canChangeOrientation || infoContentHidden}
+        disabled={!canChangeOrientation || !infoContentVisible}
       />
       <HideContentButton
         orientation={orientation}
-        infoContentHidden={infoContentHidden}
-        onToggle={() => updateTableConfig({visible: !infoContentHidden})}
+        infoContentHidden={!infoContentVisible}
+        onToggle={() => updateTableConfig({visible: !infoContentVisible})}
       />
     </Flex>
   );
@@ -62,7 +62,7 @@ export function StackedOrientation({
       <MetricInfoTabs
         traceMetric={traceMetric}
         additionalActions={additionalInfoTabActions}
-        contentsHidden={infoContentHidden}
+        contentsHidden={!infoContentVisible}
         orientation={orientation}
         isMetricOptionsEmpty={isMetricOptionsEmpty}
       />
