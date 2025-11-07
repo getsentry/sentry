@@ -195,6 +195,36 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             },
         }
 
+    def create_dynamic_detector(self) -> None:
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_anomaly_detection_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            detector = validator.save()
+
+        # Verify condition group in DB
+        condition_group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY
+        assert condition_group.organization_id == self.project.organization_id
+
+        # Verify conditions in DB
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 1
+
+        condition = conditions[0]
+        assert condition.type == Condition.ANOMALY_DETECTION
+        assert condition.comparison == {
+            "sensitivity": AnomalyDetectionSensitivity.HIGH,
+            "seasonality": AnomalyDetectionSeasonality.AUTO,
+            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+        }
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
+
+        return detector
+
     def assert_validated(self, detector):
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
@@ -275,37 +305,12 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
-        validator = MetricIssueDetectorValidator(
-            data=self.valid_anomaly_detection_data,
-            context=self.context,
-        )
-        assert validator.is_valid(), validator.errors
-
-        with self.tasks():
-            detector = validator.save()
+        detector = self.create_dynamic_detector()
 
         # Verify detector in DB
         self.assert_validated(detector)
 
         assert mock_seer_request.call_count == 1
-
-        # Verify condition group in DB
-        condition_group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
-        assert condition_group.logic_type == DataConditionGroup.Type.ANY
-        assert condition_group.organization_id == self.project.organization_id
-
-        # Verify conditions in DB
-        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 1
-
-        condition = conditions[0]
-        assert condition.type == Condition.ANOMALY_DETECTION
-        assert condition.comparison == {
-            "sensitivity": AnomalyDetectionSensitivity.HIGH,
-            "seasonality": AnomalyDetectionSeasonality.AUTO,
-            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
-        }
-        assert condition.condition_result == DetectorPriorityLevel.HIGH
 
         # Verify audit log
         mock_audit.assert_called_once_with(
@@ -618,18 +623,6 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
 
         return static_detector
 
-    def create_dynamic_detector(self) -> None:
-        validator = MetricIssueDetectorValidator(
-            data=self.valid_anomaly_detection_data,
-            context=self.context,
-        )
-        assert validator.is_valid(), validator.errors
-
-        with self.tasks():
-            detector = validator.save()
-
-        return detector
-
     def test_update_with_valid_data(self) -> None:
         """
         Test a simple update
@@ -734,36 +727,18 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
     ) -> None:
         """
         Test that when we update the snuba query for a dynamic detector
-        that we make a call to Seer with the changes
+        we make a call to Seer with the changes
         """
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
-        detector = self.self.create_dynamic_detector()
+        detector = self.create_dynamic_detector()
 
         # Verify detector in DB
         self.assert_validated(detector)
 
         assert mock_seer_request.call_count == 1
         mock_seer_request.reset_mock()
-
-        # Verify condition group in DB
-        condition_group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
-        assert condition_group.logic_type == DataConditionGroup.Type.ANY
-        assert condition_group.organization_id == self.project.organization_id
-
-        # Verify conditions in DB
-        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 1
-
-        condition = conditions[0]
-        assert condition.type == Condition.ANOMALY_DETECTION
-        assert condition.comparison == {
-            "sensitivity": AnomalyDetectionSensitivity.HIGH,
-            "seasonality": AnomalyDetectionSeasonality.AUTO,
-            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
-        }
-        assert condition.condition_result == DetectorPriorityLevel.HIGH
 
         # Verify audit log
         mock_audit.assert_called_once_with(
