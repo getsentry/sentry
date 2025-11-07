@@ -1,25 +1,12 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {
-  getCrashReportJavaScriptInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/node/utils';
 import {t, tct} from 'sentry/locale';
-import {
-  getInstallCodeBlock,
-  getNodeAgentMonitoringOnboarding,
-  getNodeLogsOnboarding,
-  getNodeMcpOnboarding,
-} from 'sentry/utils/gettingStartedDocs/node';
-
-type Params = DocsParams;
 
 const getSdkConfigureSnippetToml = () => `
 compatibility_flags = ["nodejs_compat"]
@@ -34,7 +21,7 @@ const getSdkConfigureSnippetJson = () => `
   "compatibility_date": "2024-09-23"
 }`;
 
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = (params: DocsParams) => `
 import * as Sentry from "@sentry/cloudflare";
 
 export default Sentry.withSentry(
@@ -67,7 +54,7 @@ export default Sentry.withSentry(
   } satisfies ExportedHandler<Env>,
 );`;
 
-const getVerifySnippet = (params: Params) => `${
+const getVerifySnippet = (params: DocsParams) => `${
   params.isLogsSelected
     ? `
 // Send a log before throwing the error
@@ -80,7 +67,7 @@ setTimeout(() => {
   throw new Error();
 });`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     t(
       "In this quick guide you'll set up and configure the Sentry Cloudflare SDK for the use in your Cloudflare Workers application."
@@ -161,7 +148,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -179,7 +166,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [
       {
         id: 'cloudflare-features',
@@ -205,63 +192,3 @@ const onboarding: OnboardingConfig = {
     return steps;
   },
 };
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportJavaScriptInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/cloudflare/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  crashReportOnboarding,
-  logsOnboarding: getNodeLogsOnboarding({
-    docsPlatform: 'cloudflare',
-    packageName: '@sentry/cloudflare',
-    generateConfigureSnippet: (params, packageName) => ({
-      type: 'code',
-      language: 'javascript',
-      code: `import * as Sentry from "${packageName}";
-
-export default Sentry.withSentry(
-  env => ({
-    dsn: "${params.dsn.public}",
-    integrations: [
-      // send console.log, console.warn, and console.error calls as logs to Sentry
-      Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
-    ],
-    // Enable logs to be sent to Sentry
-    enableLogs: true,
-  }),
-  {
-    async fetch(request, env, ctx) {
-      return new Response('Hello World!');
-    },
-  } satisfies ExportedHandler<Env>,
-);
-      `,
-    }),
-  }),
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    packageName: '@sentry/cloudflare',
-  }),
-  mcpOnboarding: getNodeMcpOnboarding({
-    packageName: '@sentry/cloudflare',
-  }),
-};
-
-export default docs;

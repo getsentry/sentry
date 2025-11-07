@@ -4,9 +4,9 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './cloudflare-workers';
+import docs from '.';
 
-describe('express onboarding docs', () => {
+describe('cloudflare-workers onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
@@ -16,6 +16,7 @@ describe('express onboarding docs', () => {
     expect(
       screen.getByRole('heading', {name: /Upload Source Maps/i})
     ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
     // Includes import statement
     const allMatches = screen.getAllByText(
@@ -31,7 +32,6 @@ describe('express onboarding docs', () => {
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
         ProductSolution.PERFORMANCE_MONITORING,
-        ProductSolution.PROFILING,
       ],
     });
 
@@ -40,20 +40,7 @@ describe('express onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
-  it('enables performance setting the tracesSampleRate to 1', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.ERROR_MONITORING,
-        ProductSolution.PERFORMANCE_MONITORING,
-      ],
-    });
-
-    expect(
-      screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
-    ).toBeInTheDocument();
-  });
-
-  it('displays logs configuration when logs are selected', () => {
+  it('enables logs by setting enableLogs to true', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
     });
@@ -63,20 +50,9 @@ describe('express onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows Logging Integrations in next steps when logs is selected', () => {
+  it('does not enable logs when not selected', () => {
     renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-    });
-
-    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
-  });
-
-  it('does not display logs configuration when logs are not selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.ERROR_MONITORING,
-        ProductSolution.PERFORMANCE_MONITORING,
-      ],
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
     });
 
     expect(
@@ -84,12 +60,17 @@ describe('express onboarding docs', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('does not show Logging Integrations in next steps when logs is not selected', () => {
+  it('displays logs integration next step when logs are selected', () => {
     renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.ERROR_MONITORING,
-        ProductSolution.PERFORMANCE_MONITORING,
-      ],
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
+  });
+
+  it('does not display logs integration next step when logs are not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
     });
 
     expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
@@ -117,5 +98,11 @@ describe('express onboarding docs', () => {
         textWithMarkupMatcher(/Sentry\.logger\.info\('User triggered test error'/)
       )
     ).not.toBeInTheDocument();
+  });
+
+  it('displays cloudflare features next step', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(screen.getByText('Cloudflare Features')).toBeInTheDocument();
   });
 });
