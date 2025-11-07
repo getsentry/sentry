@@ -137,9 +137,6 @@ export const getRouter = () => {
               language: 'tsx',
               filename: 'instrument.server.mjs',
               code: `import * as Sentry from "@sentry/tanstackstart-react";
-import { createRouter } from "./router";
-
-const router = createRouter();
 
 Sentry.init({
   dsn: "${params.dsn.public}",
@@ -187,8 +184,9 @@ Sentry.init({
           type: 'code',
           tabs: [
             {
-              label: 'TypeScript',
-              language: 'tsx',
+              label: 'JSON',
+              language: 'json',
+              filename: 'package.json',
               code: `{
   "scripts": {
      "build": "vite build && cp instrument.server.mjs .output/server",
@@ -208,8 +206,9 @@ Sentry.init({
           type: 'code',
           tabs: [
             {
-              label: 'TypeScript',
-              language: 'tsx',
+              label: 'JSON',
+              language: 'json',
+              filename: 'package.json',
               code: `{
   "scripts": {
      "build": "vite build && cp instrument.server.mjs .output/server",
@@ -357,7 +356,7 @@ const route = createRoute({
             {
               type: 'text',
               text: tct(
-                'To test tracing, create a new file like [code:src/routes/api/sentry-example.ts] to create a test route [code:/sentry-example]:',
+                'To test tracing, create a new file like [code:src/routes/api/sentry-example.ts] to create a test route [code:/api/sentry-example]:',
                 {code: <code />}
               ),
             },
@@ -367,9 +366,10 @@ const route = createRoute({
                 {
                   label: 'TypeScript',
                   language: 'typescript',
-                  filename: 'app/routes/api/sentry-example-api.ts',
+                  filename: 'src/app/routes/api/sentry-example-api.ts',
                   code: `import { createFileRoute } from "@tanstack/react-router";
 import { json } from "@tanstack/react-start";
+
 export const Route = createFileRoute("/api/sentry-example")({
   server: {
     handlers: {
@@ -463,7 +463,7 @@ export const Route = createFileRoute("/api/sentry-example")({
         {
           type: 'text',
           text: t(
-            'Now, head over to your project on Sentry.io to view the collected data (it takes a couple of moments for the data to appear).'
+            'Now view the collected data in your issues feed (it takes a couple of moments for the data to appear).'
           ),
         },
       ],
