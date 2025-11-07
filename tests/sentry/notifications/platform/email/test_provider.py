@@ -6,11 +6,35 @@ from sentry import options
 from sentry.notifications.platform.email.provider import EmailNotificationProvider, EmailRenderer
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.types import (
+    NotificationBodyFormattingBlock,
+    NotificationBodyFormattingBlockType,
+    NotificationBodyTextBlock,
+    NotificationBodyTextBlockType,
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
+
+
+def validate_text_block(
+    text_block: NotificationBodyTextBlock, text_content: str, html_content: str
+) -> None:
+    if text_block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
+        assert text_block.text in text_content
+        assert text_block.text in html_content
+    elif text_block.type == NotificationBodyTextBlockType.BOLD_TEXT:
+        assert f"<strong>{text_block.text}</strong>" in html_content
+    elif text_block.type == NotificationBodyTextBlockType.CODE:
+        assert f"<code>{text_block.text}</code>" in html_content
+
+
+def validate_formatting_block(
+    formatting_block: NotificationBodyFormattingBlock, text_content: str, html_content: str
+) -> None:
+    if formatting_block.type == NotificationBodyFormattingBlockType.SECTION:
+        assert "\n" in text_content
+        assert "br" in html_content
 
 
 class EmailRendererTest(TestCase):
@@ -39,7 +63,6 @@ class EmailRendererTest(TestCase):
 
         for element in [
             self.rendered_template.subject,
-            self.rendered_template.body,
             self.rendered_template.actions[0].label,
             self.rendered_template.actions[0].link,
             self.rendered_template.chart.url,
@@ -48,6 +71,12 @@ class EmailRendererTest(TestCase):
         ]:
             assert element in str(text_content)
             assert element in str(html_content)
+
+        # validate body blocks
+        for block in self.rendered_template.body:
+            validate_formatting_block(block, str(text_content), str(html_content))
+            for text_block in block.blocks:
+                validate_text_block(text_block, str(text_content), str(html_content))
 
 
 class EmailNotificationProviderTest(TestCase):
