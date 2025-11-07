@@ -3,22 +3,17 @@ import {Fragment} from 'react';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {Chevron} from 'sentry/components/chevron';
 import type {LinkProps} from 'sentry/components/core/link';
 import {Link} from 'sentry/components/core/link';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {IconChevron} from 'sentry/icons';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 export interface Crumb {
   /**
    * Label of the crumb
    */
-  label: React.ReactNode;
-
-  /**
-   * Component will try to come up with unique key, but you can provide your own
-   * (used when mapping over crumbs)
-   */
-  key?: string;
+  label: NonNullable<React.ReactNode>;
 
   /**
    * It will keep the page filter values (projects, environments, time) in the
@@ -45,6 +40,7 @@ export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
   }
 
   if (crumbs[crumbs.length - 1]?.to) {
+    // We should not be mutating the crumbs
     crumbs[crumbs.length - 1]!.to = null;
   }
 
@@ -53,8 +49,8 @@ export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
       gap="xs"
       align="center"
       padding="md 0"
-      {...props}
       data-test-id="breadcrumb-list"
+      {...props}
     >
       {crumbs.map((crumb, index) => {
         return (
@@ -63,7 +59,9 @@ export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
               crumb={crumb}
               variant={index === crumbs.length - 1 ? 'primary' : 'muted'}
             />
-            {index < crumbs.length - 1 ? <BreadcumbChevron /> : null}
+            {index < crumbs.length - 1 ? (
+              <IconChevron size="xs" direction="right" color="subText" />
+            ) : null}
           </Fragment>
         );
       })}
@@ -77,30 +75,29 @@ interface BreadCrumbItemProps {
 }
 
 function BreadCrumbItem(props: BreadCrumbItemProps) {
+  function onBreadcrumbLinkClick() {
+    if (props.crumb.to) {
+      trackAnalytics('breadcrumbs.link.clicked', {organization: null});
+    }
+  }
+
   if (props.crumb.to) {
     return (
       <BreadcrumbLink
         to={props.crumb.to}
         preservePageFilters={props.crumb.preservePageFilters}
         data-test-id="breadcrumb-link"
+        onClick={onBreadcrumbLinkClick}
       >
-        <Text as="span" variant="muted">
-          {props.crumb.label}
-        </Text>
+        <Text variant={props.variant}>{props.crumb.label}</Text>
       </BreadcrumbLink>
     );
   }
-  return (
-    <Flex data-test-id="breadcrumb-item" maxWidth="400px" align="center">
-      <Text as="span" ellipsis variant={props.variant}>
-        {props.crumb.label}
-      </Text>
-    </Flex>
-  );
+
+  return <Text variant={props.variant}>{props.crumb.label}</Text>;
 }
 
-interface BreadcrumbLinkProps {
-  to: LinkProps['to'];
+interface BreadcrumbLinkProps extends LinkProps {
   children?: React.ReactNode;
   preservePageFilters?: boolean;
 }
@@ -109,15 +106,6 @@ function BreadcrumbLink(props: BreadcrumbLinkProps) {
   if (props.preservePageFilters) {
     return <GlobalSelectionLink {...props} />;
   }
-  return <Link {...props} />;
-}
 
-function BreadcumbChevron() {
-  return (
-    <Text variant="muted">
-      <Flex flexShrink={0} align="center">
-        <Chevron direction="right" color="subText" />
-      </Flex>
-    </Text>
-  );
+  return <Link {...props} />;
 }

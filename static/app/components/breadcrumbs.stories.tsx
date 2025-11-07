@@ -15,7 +15,7 @@ export default Storybook.story('Breadcrumbs', story => {
         <Breadcrumbs
           crumbs={[
             {label: 'Organization', to: '/organizations/sentry/'},
-            {label: 'Projects', to: '/organizations/sentry/projects/'},
+            {label: 'Projects'},
             {
               label: 'Project Settings',
               to: '/settings/projects/javascript/',
