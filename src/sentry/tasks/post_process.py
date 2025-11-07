@@ -1693,7 +1693,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
 
     # cache.add uses Redis SETNX which atomically sets the key only if it doesn't exist
     # Returns False if another process already set the key, ensuring only one process proceeds
-    if not cache.add(cache_key, True, timeout=900):  # 15 minutes
+    if not cache.add(cache_key, True, timeout=600):  # 10 minute
         return
 
     start_seer_automation.delay(group.id)
