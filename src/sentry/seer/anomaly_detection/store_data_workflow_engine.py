@@ -41,22 +41,27 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 )
 
 
-def update_detector_data(
-    detector: Detector,
-    updated_fields: dict[str, Any],
-) -> None:
+def _fetch_related_models(
+    detector: Detector, method: str
+) -> tuple[DataSource, DataCondition, SnubaQuery] | None:
+    # XXX: it is technically possible (though not used today) that a detector could have multiple data sources
+    data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()
+    if not data_source_detector:
+        raise DetectorException(f"Could not {method} detector, data source not found.")
+    data_source = data_source_detector.data_source
+
     try:
-        data_source = DataSourceDetector.objects.get(detector_id=detector.id).data_source
-    except DataSourceDetector.DoesNotExist:
-        raise Exception("Could not update detector, data source detector not found.")
-    try:
-        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        query_subscription = QuerySubscription.objects.get(id=int(data_source.source_id))
     except QuerySubscription.DoesNotExist:
-        raise Exception("Could not update detector, query subscription not found.")
+        raise DetectorException(
+            f"Could not {method} detector, query subscription {data_source.source_id} not found."
+        )
     try:
         snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
     except SnubaQuery.DoesNotExist:
-        raise Exception("Could not update detector, snuba query not found.")
+        raise DetectorException(
+            f"Could not {method} detector, snuba query {query_subscription.snuba_query_id} not found."
+        )
     try:
         data_condition = DataCondition.objects.get(
             condition_group=detector.workflow_condition_group
@@ -69,8 +74,16 @@ def update_detector_data(
             else None
         )
         raise DetectorException(
-            f"Could not create detector, data condition {dcg_id} not found or too many found."
+            f"Could not {method} detector, data condition {dcg_id} not found or too many found."
         )
+    return data_source, data_condition, snuba_query
+
+
+def update_detector_data(
+    detector: Detector,
+    updated_fields: dict[str, Any],
+) -> None:
+    data_source, data_condition, snuba_query = _fetch_related_models(detector, "update")
     # use setattr to avoid saving the models until the Seer call has successfully finished,
     # otherwise they would be in a bad state
     updated_data_condition_data = updated_fields.get("condition_group", {}).get("conditions")
@@ -113,38 +126,7 @@ def send_new_detector_data(detector: Detector) -> None:
     """
     Send historical data for a new Detector to Seer.
     """
-    # XXX: it is technically possible (though not used today) that a detector could have multiple data sources
-    data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()
-    if not data_source_detector:
-        raise DetectorException("Could not create detector, data source not found.")
-    data_source = data_source_detector.data_source
-
-    try:
-        query_subscription = QuerySubscription.objects.get(id=int(data_source.source_id))
-    except QuerySubscription.DoesNotExist:
-        raise DetectorException(
-            f"Could not create detector, query subscription {data_source.source_id} not found."
-        )
-    try:
-        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
-    except SnubaQuery.DoesNotExist:
-        raise DetectorException(
-            f"Could not create detector, snuba query {query_subscription.snuba_query_id} not found."
-        )
-    try:
-        data_condition = DataCondition.objects.get(
-            condition_group=detector.workflow_condition_group
-        )
-    except (DataCondition.DoesNotExist, DataCondition.MultipleObjectsReturned):
-        # there should only ever be one data condition for a dynamic metric detector, we dont actually expect a MultipleObjectsReturned
-        dcg_id = (
-            detector.workflow_condition_group.id
-            if detector.workflow_condition_group is not None
-            else None
-        )
-        raise DetectorException(
-            f"Could not create detector, data condition {dcg_id} not found or too many found."
-        )
+    data_source, data_condition, snuba_query = _fetch_related_models(detector, "create")
     try:
         handle_send_historical_data_to_seer(
             detector, data_source, data_condition, snuba_query, detector.project, SeerMethod.CREATE
