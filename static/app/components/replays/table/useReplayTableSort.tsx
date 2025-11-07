@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {useCallback} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {encodeSort} from 'sentry/utils/discover/eventView';
@@ -12,18 +12,17 @@ interface Props {
   queryParamKey?: string;
 }
 
-const DEFAULT_SORT = {field: 'started_at', kind: 'asc'} as const;
+const DEFAULT_SORT = {field: 'started_at', kind: 'desc'} as const;
 
 export default function useReplayTableSort({
   defaultSort = DEFAULT_SORT,
   queryParamKey = 'sort',
 }: Props = {}) {
-  const defaultSortRef = useRef(defaultSort);
   const organization = useOrganization();
 
-  const {getParamValue, setParamValue} = useUrlParams(queryParamKey, '-started_at');
+  const {getParamValue, setParamValue} = useUrlParams(queryParamKey, '');
   const sortQuery = getParamValue();
-  const sortType = decodeSorts(sortQuery).at(0) ?? defaultSortRef.current;
+  const sortType = decodeSorts(sortQuery).at(0) ?? defaultSort;
 
   const handleSortClick = useCallback(
     (key: string) => {
