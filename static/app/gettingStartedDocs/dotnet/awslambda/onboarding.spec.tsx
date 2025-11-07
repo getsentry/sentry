@@ -39,4 +39,3 @@ describe('awslambda onboarding docs', () => {
     ).toBeInTheDocument();
   });
 });
-
