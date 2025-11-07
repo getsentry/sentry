@@ -423,29 +423,31 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 project_id=self.project.id,
             )
 
-        # The original error event and group still exist
-        assert Group.objects.filter(id=event.group_id).exists()
-        assert nodestore.backend.get(event_node_id)
-        assert self.select_error_events(self.project.id) == expected_error
-
         # The Issue Platform group and occurrence have been deleted from Postgres
         assert not Group.objects.filter(id=issue_platform_group.id).exists()
 
         # Verify events are deleted from Snuba
         # ClickHouse light deletes are eventually consistent, so poll with timeout
-        max_attempts = 50  # Up to 5 seconds
+        # Give ClickHouse a moment to start processing the deletion before we start checking
+        sleep(0.5)
+        max_attempts = 30  # Up to 6 seconds total (0.5s initial + 30 * 0.2s)
         for attempt in range(max_attempts):
             result = self.select_issue_platform_events(self.project.id)
             if result is None:
                 break  # Success - events deleted
             if attempt < max_attempts - 1:
-                sleep(0.1)
+                sleep(0.2)  # Slower polling to avoid overwhelming Snuba
         else:
             # If we exhausted all attempts, fail with helpful message
             result = self.select_issue_platform_events(self.project.id)
             raise AssertionError(
-                f"Issue platform events not deleted from Snuba after 5 seconds. Found: {result}"
+                f"Issue platform events not deleted from Snuba after ~6.5 seconds. Found: {result}"
             )
+
+        # The original error event and group still exist (checked after issue platform polling)
+        assert Group.objects.filter(id=event.group_id).exists()
+        assert nodestore.backend.get(event_node_id)
+        assert self.select_error_events(self.project.id) == expected_error
 
     @mock.patch("sentry.deletions.tasks.nodestore.bulk_snuba_queries")
     def test_issue_platform_batching(self, mock_bulk_snuba_queries: mock.Mock) -> None:
