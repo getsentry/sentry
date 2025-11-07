@@ -97,7 +97,6 @@ TRACE_METRICS_FORMULA_DEFINITIONS = {
                     "number",
                     "integer",
                 },
-                default_arg="value",
             ),
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
@@ -127,7 +126,6 @@ TRACE_METRICS_FORMULA_DEFINITIONS = {
                     "number",
                     "integer",
                 },
-                default_arg="value",
             ),
             ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
