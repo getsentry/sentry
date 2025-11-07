@@ -165,7 +165,6 @@ function confidenceMessage({
     '[warning] Extrapolated from [matchingSpansCount] after scanning [tooltip:[downSampledSpansCount] of [allSpansCount]]',
     {
       warning,
-      topEvents,
       matchingSpansCount,
       downSampledSpansCount,
       allSpansCount,
