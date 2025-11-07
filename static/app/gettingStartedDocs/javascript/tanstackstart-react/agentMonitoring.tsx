@@ -1,4 +1,4 @@
-import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
+import {getNodeAgentMonitoringOnboarding} from 'sentry/gettingStartedDocs/node/node/utils';
 
 export const agentMonitoring = getNodeAgentMonitoringOnboarding({
   packageName: '@sentry/tanstackstart-react',
