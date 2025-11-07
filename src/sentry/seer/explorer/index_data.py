@@ -146,46 +146,40 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
         auto_fields=True,
     )
 
-    # Step 1: Get trace IDs with their span counts in a single query
+    # Step 1: Get a random trace ID for the transaction
     escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
     traces_result = Spans.run_table_query(
         params=snuba_params,
         query_string=f'transaction:"{escaped_transaction_name}" project.id:{project_id}',
         selected_columns=[
             "trace",
-            "count()",  # This counts all spans in each trace
+            "precise.start_ts",
         ],
-        orderby=["-count()"],
+        orderby=["precise.start_ts"],
         offset=0,
-        limit=20,  # Get more candidates to choose from
+        limit=1,
         referrer=Referrer.SEER_RPC,
         config=config,
         sampling_mode="NORMAL",
     )
 
-    trace_span_counts = []
+    trace_id = None
     for row in traces_result.get("data", []):
         trace_id = row.get("trace")
-        span_count = row.get("count()", 0)
-        if trace_id and span_count > 0:
-            trace_span_counts.append((trace_id, span_count))
+        if trace_id:
+            break
 
-    if not trace_span_counts:
+    if not trace_id:
         logger.info(
             "No traces found for transaction",
             extra={"transaction_name": transaction_name, "project_id": project_id},
         )
         return None
 
-    # Choose trace with median span count
-    trace_span_counts.sort(key=lambda x: x[1])  # Sort by span count
-    median_index = len(trace_span_counts) // 2
-    chosen_trace_id, total_spans = trace_span_counts[median_index]
-
     # Step 2: Get all spans in the chosen trace
     spans_result = Spans.run_table_query(
         params=snuba_params,
-        query_string=f"trace:{chosen_trace_id}",
+        query_string=f"trace:{trace_id}",
         selected_columns=[
             "span_id",
             "parent_span",
@@ -220,7 +214,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
             )
 
     return TraceData(
-        trace_id=chosen_trace_id,
+        trace_id=trace_id,
         project_id=project_id,
         transaction_name=transaction_name,
         total_spans=len(spans),
