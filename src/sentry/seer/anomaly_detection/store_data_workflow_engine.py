@@ -31,7 +31,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 from sentry.workflow_engine.models import DataCondition, DataSource, DataSourceDetector, Detector
-from sentry.workflow_engine.types import DetectorException
+from sentry.workflow_engine.types import DetectorException, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -64,10 +64,15 @@ def _fetch_related_models(
         )
     try:
         data_condition = DataCondition.objects.get(
-            condition_group=detector.workflow_condition_group
+            condition_group=detector.workflow_condition_group,
+            condition_result__in=[
+                DetectorPriorityLevel.HIGH,
+                DetectorPriorityLevel.MEDIUM,
+                DetectorPriorityLevel.LOW,
+            ],
         )
     except (DataCondition.DoesNotExist, DataCondition.MultipleObjectsReturned):
-        # there should only ever be one data condition for a dynamic metric detector, we dont actually expect a MultipleObjectsReturned
+        # there should only ever be one non-resolution data condition for a dynamic metric detector, we dont actually expect a MultipleObjectsReturned
         dcg_id = (
             detector.workflow_condition_group.id
             if detector.workflow_condition_group is not None
