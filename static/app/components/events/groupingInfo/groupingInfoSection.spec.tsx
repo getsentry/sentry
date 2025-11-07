@@ -30,13 +30,16 @@ describe('EventGroupingInfo', () => {
     groupingInfoRequest = MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/events/${event.id}/grouping-info/`,
       body: {
-        app: {
-          contributes: true,
-          description: 'variant description',
-          hash: '123',
-          hashMismatch: false,
-          key: 'key',
-          type: EventGroupVariantType.CHECKSUM,
+        grouping_config: 'default:XXXX',
+        variants: {
+          app: {
+            contributes: true,
+            description: 'variant description',
+            hash: '123',
+            hashMismatch: false,
+            key: 'key',
+            type: EventGroupVariantType.CHECKSUM,
+          },
         },
       },
     });
