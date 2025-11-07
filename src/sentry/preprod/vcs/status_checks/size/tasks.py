@@ -334,7 +334,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
             truncated_text = _truncate_to_byte_limit(text, GITHUB_MAX_TEXT_FIELD_LENGTH)
             truncated_summary = _truncate_to_byte_limit(summary, GITHUB_MAX_SUMMARY_FIELD_LENGTH)
 
-            if text and len(truncated_text) != len(text):
+            if text and truncated_text and len(truncated_text) != len(text):
                 logger.warning(
                     "preprod.status_checks.create.text_truncated",
                     extra={
@@ -345,7 +345,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                     },
                 )
 
-            if summary and len(truncated_summary) != len(summary):
+            if summary and truncated_summary and len(truncated_summary) != len(summary):
                 logger.warning(
                     "preprod.status_checks.create.summary_truncated",
                     extra={
