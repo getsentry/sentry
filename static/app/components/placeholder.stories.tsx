@@ -14,13 +14,10 @@ export default Storybook.story('Placeholder', story => {
     </Placeholder>
   ));
 
-  story('Error State', () => <Placeholder error="Failed to load data" height="100px" />);
-
   story('Multiple Variations', () => (
     <div style={{display: 'flex', gap: '16px', flexWrap: 'wrap'}}>
       <Placeholder width="100px" height="60px" />
       <Placeholder shape="circle" width="60px" height="60px" />
-      <Placeholder error="Error" width="120px" height="60px" />
       <Placeholder width="150px" height="60px">
         Custom content
       </Placeholder>

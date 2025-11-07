@@ -174,11 +174,11 @@ export default function MetricChart({
     [location.pathname, navigate]
   );
 
-  const renderEmpty = useCallback((placeholderText = '') => {
+  const renderEmpty = useCallback(() => {
     return (
       <ChartPanel>
         <PanelBody withPadding>
-          <TriggerChartPlaceholder>{placeholderText}</TriggerChartPlaceholder>
+          <TriggerChartPlaceholder />
         </PanelBody>
       </ChartPanel>
     );

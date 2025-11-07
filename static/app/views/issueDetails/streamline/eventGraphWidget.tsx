@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout/container';
+
 import {useFetchGroupAndEvent} from 'sentry/components/featureFlags/hooks/useFetchGroupAndEvent';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -48,8 +50,8 @@ export default function EventGraphWidget({
 
   if (isError || !event || !groupData) {
     return (
-      <Container>
-        <Placeholder height="100%" error={t('Error loading chart')} />
+      <Container height="100%">
+        <ErrorPlaceholder height="100%">{t('Error loading chart')}</ErrorPlaceholder>
       </Container>
     );
   }
@@ -63,6 +65,11 @@ export default function EventGraphWidget({
     />
   );
 }
+
+const ErrorPlaceholder = styled(Placeholder)`
+  color: ${p => p.theme.red200};
+  background-color: ${p => p.theme.red100};
+`;
 
 function EventGraphLoadedWidget({
   group,
@@ -98,9 +105,5 @@ function EventGraphLoadedWidget({
     />
   );
 }
-
-const Container = styled('div')`
-  height: 100%;
-`;
 
 export const EVENT_GRAPH_WIDGET_ID = 'event-graph-widget';
