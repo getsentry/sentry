@@ -79,6 +79,12 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
             comparison=50,
             condition_result=DetectorPriorityLevel.LOW,
         )
+        self.resolve_condition = self.create_data_condition(
+            condition_group=self.data_condition_group,
+            type=Condition.GREATER_OR_EQUAL,
+            comparison=50,
+            condition_result=DetectorPriorityLevel.OK,
+        )
         self.detector = self.create_detector(
             project_id=self.project.id,
             name="Test Detector",
@@ -180,6 +186,13 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                         "conditionResult": DetectorPriorityLevel.HIGH,
                         "conditionGroupId": self.condition.condition_group.id,
                     },
+                    {
+                        "id": self.resolve_condition.id,
+                        "comparison": 100,
+                        "type": Condition.LESS_OR_EQUAL,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                        "conditionGroupId": self.condition.condition_group.id,
+                    },
                 ],
             },
             "config": self.detector.config,
@@ -223,7 +236,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         self.assert_condition_group_updated(condition_group)
 
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 1
+        assert len(conditions) == 2
         condition = conditions[0]
         self.assert_data_condition_updated(condition)
 
@@ -276,7 +289,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         condition_group = detector.workflow_condition_group
         assert condition_group
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 2
+        assert len(conditions) == 3
 
     def test_update_bad_schema(self) -> None:
         """

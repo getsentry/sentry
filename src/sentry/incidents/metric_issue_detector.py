@@ -82,7 +82,13 @@ def schedule_update_project_config(detector: Detector) -> None:
 
 class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
     supported_conditions = frozenset(
-        (Condition.GREATER, Condition.LESS, Condition.ANOMALY_DETECTION)
+        (
+            Condition.GREATER,
+            Condition.LESS,
+            Condition.GREATER_OR_EQUAL,
+            Condition.LESS_OR_EQUAL,
+            Condition.ANOMALY_DETECTION,
+        )
     )
     supported_condition_results = frozenset(
         (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM, DetectorPriorityLevel.OK)
@@ -132,6 +138,12 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
         MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
             raise_exception=True
         )
+        if not any(
+            condition["condition_result"] == DetectorPriorityLevel.OK for condition in value
+        ) and not any(condition["type"] == Condition.ANOMALY_DETECTION for condition in value):
+            raise serializers.ValidationError(
+                "Resolution condition required for metric issue detector."
+            )
         return value
 
 
@@ -146,7 +158,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         if "condition_group" in attrs:
             conditions = attrs.get("condition_group", {}).get("conditions")
-            if len(conditions) > 2:
+            if len(conditions) > 3:
                 raise serializers.ValidationError("Too many conditions")
 
         return attrs

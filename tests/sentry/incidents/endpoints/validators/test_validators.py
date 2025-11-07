@@ -161,6 +161,12 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                         "conditionResult": DetectorPriorityLevel.HIGH,
                         "conditionGroupId": self.data_condition_group.id,
                     },
+                    {
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
                 ],
             },
             "config": {
@@ -244,7 +250,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 
         # Verify conditions in DB
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 1
+        assert len(conditions) == 2
         condition = conditions[0]
         assert condition.type == Condition.GREATER
         assert condition.comparison == 100
@@ -399,6 +405,31 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             )
         ]
 
+    def test_no_resolution_condition(self) -> None:
+        data = {
+            **self.valid_data,
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                ],
+            },
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("conditionGroup", {}).get("conditions") == [
+            ErrorDetail(
+                string="Resolution condition required for metric issue detector.", code="invalid"
+            )
+        ]
+
     def test_too_many_conditions(self) -> None:
         data = {
             **self.valid_data,
@@ -423,6 +454,12 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                         "type": Condition.GREATER,
                         "comparison": 300,
                         "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                    {
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.OK,
                         "conditionGroupId": self.data_condition_group.id,
                     },
                 ],
