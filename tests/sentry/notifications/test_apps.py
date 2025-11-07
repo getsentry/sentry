@@ -6,6 +6,14 @@ from sentry.testutils.cases import TestCase
 class NotificationsDjangoAppTest(TestCase):
 
     def test_registers_legacy_providers(self) -> None:
+        """
+        This django app doesn't actually register these legacy providers because it would result
+        in some circular breakages from all the __init__.py imports. We'll still test it here
+        to make sure it doesn't break in the future.
+
+        If this test is failing for you, ensure all `@register_notification_provider` decorators
+        are triggered by an initialization import.
+        """
         from sentry.notifications.notify import registry
 
         assert len(registry) == 3
