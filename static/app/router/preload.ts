@@ -17,35 +17,12 @@ export function preload(routeConfig: RouteObject[], to: To) {
           PRELOAD_HANDLE in routeHandle
         ) {
           routeHandle[PRELOAD_HANDLE]?.().catch((error: unknown) => {
-            Sentry.withScope(scope => {
-              scope.setLevel('warning');
-              Sentry.captureException(error, {
-                tags: {
-                  component: 'Link',
-                  operation: 'preload',
-                },
-                extra: {
-                  to,
-                  route: match.route.path,
-                },
-              });
-            });
+            Sentry.logger.warn(`Preload failed for route: ${match.route.path}`, {error});
           });
         }
       }
     }
   } catch (error) {
-    Sentry.withScope(scope => {
-      scope.setLevel('warning');
-      Sentry.captureException(error, {
-        tags: {
-          component: 'Link',
-          operation: 'route_matching',
-        },
-        extra: {
-          to,
-        },
-      });
-    });
+    Sentry.logger.warn('Error during route preloading', {error});
   }
 }
