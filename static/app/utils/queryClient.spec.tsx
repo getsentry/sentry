@@ -125,10 +125,18 @@ describe('queryClient', () => {
     });
 
     it('can do a fetch with provided query object', async () => {
-      const mock = MockApiClient.addMockResponse({
-        url: '/some/test/path/',
-        body: {value: 5},
+      const requests: Request[] = [];
+      server.events.on('request:start', ({request}) => {
+        requests.push(request);
       });
+
+      server.use(
+        http.get('*/some/test/path/', () => {
+          return HttpResponse.json({
+            value: 5,
+          });
+        })
+      );
 
       function TestComponent() {
         const {data} = useApiQuery<ResponseData>(
@@ -147,20 +155,20 @@ describe('queryClient', () => {
 
       expect(await screen.findByText('5')).toBeInTheDocument();
 
-      expect(mock).toHaveBeenCalledWith(
-        '/some/test/path/',
-        expect.objectContaining({query: {filter: 'red'}})
-      );
+      expect(requests).toHaveLength(1);
+      expect(requests[0]!.url).toStrictEqual(expect.stringContaining('/some/test/path/'));
+      expect(new URL(requests[0]!.url).searchParams.get('filter')).toBe('red');
     });
 
     it('can return error state', async () => {
-      MockApiClient.addMockResponse({
-        url: '/some/test/path',
-        statusCode: 500,
-      });
+      server.use(
+        http.get('*/some/test/path/', () => {
+          return HttpResponse.error();
+        })
+      );
 
       function TestComponent() {
-        const query = useApiQuery<ResponseData>(['/some/test/path'], {
+        const query = useApiQuery<ResponseData>(['/some/test/path/'], {
           staleTime: 0,
         });
 
