@@ -15,7 +15,6 @@ export function StackedOrientation({
   queryIndex,
   traceMetric,
   orientation,
-  setOrientation,
   canChangeOrientation,
   infoContentHidden,
   setInfoContentHidden,
@@ -27,7 +26,6 @@ export function StackedOrientation({
   orientation: TableOrientation;
   queryIndex: number;
   setInfoContentHidden: (hidden: boolean) => void;
-  setOrientation: (orientation: TableOrientation) => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
   traceMetric: TraceMetric;
 }) {
@@ -35,7 +33,6 @@ export function StackedOrientation({
     <Flex direction="row">
       <PanelPositionSelector
         orientation={orientation}
-        setOrientation={setOrientation}
         disabled={!canChangeOrientation || infoContentHidden}
       />
       <HideContentButton

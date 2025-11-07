@@ -10,12 +10,14 @@ import {
 } from 'sentry/utils/discover/fields';
 import {decodeList} from 'sentry/utils/queryString';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {TableConfig} from 'sentry/views/explore/queryParams/aggregateField';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export const MAX_VISUALIZES = 4;
 
 interface VisualizeOptions {
   chartType?: ChartType;
+  tableConfig?: TableConfig;
   visible?: boolean;
 }
 
@@ -23,6 +25,7 @@ export abstract class Visualize {
   readonly yAxis: string;
   readonly chartType: ChartType;
   readonly visible: boolean;
+  readonly tableConfig?: TableConfig;
   protected readonly selectedChartType?: ChartType;
   abstract readonly kind: 'function' | 'equation';
 
@@ -31,6 +34,7 @@ export abstract class Visualize {
     this.selectedChartType = options?.chartType;
     this.chartType = this.selectedChartType ?? determineDefaultChartType([yAxis]);
     this.visible = options?.visible ?? true;
+    this.tableConfig = options?.tableConfig;
   }
 
   abstract clone(): Visualize;
@@ -38,8 +42,10 @@ export abstract class Visualize {
     chartType,
     visible,
     yAxis,
+    tableConfig,
   }: {
     chartType?: ChartType;
+    tableConfig?: TableConfig;
     visible?: boolean;
     yAxis?: string;
   }): Visualize;
@@ -57,6 +63,10 @@ export abstract class Visualize {
       json.visible = this.visible;
     }
 
+    if (defined(this.tableConfig)) {
+      json.tableConfig = this.tableConfig;
+    }
+
     return json;
   }
 
@@ -66,11 +76,13 @@ export abstract class Visualize {
         return new VisualizeEquation(yAxis, {
           chartType: json.chartType,
           visible: json.visible,
+          tableConfig: json.tableConfig,
         });
       }
       return new VisualizeFunction(yAxis, {
         chartType: json.chartType,
         visible: json.visible,
+        tableConfig: json.tableConfig,
       });
     });
   }
@@ -89,21 +101,25 @@ export class VisualizeFunction extends Visualize {
     return new VisualizeFunction(this.yAxis, {
       chartType: this.selectedChartType,
       visible: this.visible,
+      tableConfig: this.tableConfig,
     });
   }
 
   replace({
     chartType,
+    tableConfig,
     visible,
     yAxis,
   }: {
     chartType?: ChartType;
+    tableConfig?: TableConfig;
     visible?: boolean;
     yAxis?: string;
   }): VisualizeFunction {
     return new VisualizeFunction(yAxis ?? this.yAxis, {
       chartType: chartType ?? this.selectedChartType,
       visible: visible ?? this.visible,
+      tableConfig: tableConfig ?? this.tableConfig,
     });
   }
 }
@@ -120,6 +136,7 @@ export class VisualizeEquation extends Visualize {
   clone(): Visualize {
     return new VisualizeEquation(this.yAxis, {
       chartType: this.selectedChartType,
+      tableConfig: this.tableConfig,
     });
   }
 
@@ -127,14 +144,17 @@ export class VisualizeEquation extends Visualize {
     chartType,
     visible,
     yAxis,
+    tableConfig,
   }: {
     chartType?: ChartType;
+    tableConfig?: TableConfig;
     visible?: boolean;
     yAxis?: string;
   }): Visualize {
     return new VisualizeEquation(yAxis ?? this.yAxis, {
       chartType: chartType ?? this.selectedChartType,
       visible: visible ?? this.visible,
+      tableConfig: tableConfig ?? this.tableConfig,
     });
   }
 }
@@ -188,6 +208,7 @@ export function isVisualizeEquation(
 export interface BaseVisualize {
   yAxes: readonly string[];
   chartType?: ChartType;
+  tableConfig?: TableConfig;
   visible?: boolean;
 }
 

@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback} from 'react';
 
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -14,6 +14,10 @@ import {useTableOrientationControl} from 'sentry/views/explore/metrics/hooks/use
 import {SideBySideOrientation} from 'sentry/views/explore/metrics/metricPanel/sideBySideOrientation';
 import {StackedOrientation} from 'sentry/views/explore/metrics/metricPanel/stackedOrientation';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  useMetricVisualize,
+  useSetMetricVisualize,
+} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -31,16 +35,29 @@ interface MetricPanelProps {
 
 export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
   const {
-    orientation,
-    setOrientation: setUserPreferenceOrientation,
     canChangeOrientation,
+    orientation,
+    visible: infoContentVisible,
   } = useTableOrientationControl();
-  const [infoContentHidden, setInfoContentHidden] = useState(false);
   const {isMetricOptionsEmpty} = useMetricOptions({enabled: Boolean(traceMetric.name)});
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
     enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
   });
+
+  const visualize = useMetricVisualize();
+  const setVisualize = useSetMetricVisualize();
+
+  const setInfoContentHidden = useCallback(() => {
+    setVisualize(
+      visualize.replace({
+        tableConfig: {
+          ...visualize.tableConfig,
+          visible: !infoContentVisible,
+        },
+      })
+    );
+  }, [setVisualize, visualize, infoContentVisible]);
 
   const columns = TraceSamplesTableColumns;
   const fields = columns.filter(c => getMetricTableColumnType(c) !== 'stat');
@@ -85,9 +102,8 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
             timeseriesResult={timeseriesResult}
             queryIndex={queryIndex}
             traceMetric={traceMetric}
-            setOrientation={setUserPreferenceOrientation}
             orientation={orientation}
-            infoContentHidden={infoContentHidden}
+            infoContentHidden={!infoContentVisible}
             setInfoContentHidden={setInfoContentHidden}
             isMetricOptionsEmpty={isMetricOptionsEmpty}
           />
@@ -96,10 +112,9 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
             timeseriesResult={timeseriesResult}
             queryIndex={queryIndex}
             traceMetric={traceMetric}
-            setOrientation={setUserPreferenceOrientation}
             orientation={orientation}
             canChangeOrientation={canChangeOrientation}
-            infoContentHidden={infoContentHidden}
+            infoContentHidden={!infoContentVisible}
             setInfoContentHidden={setInfoContentHidden}
             isMetricOptionsEmpty={isMetricOptionsEmpty}
           />
