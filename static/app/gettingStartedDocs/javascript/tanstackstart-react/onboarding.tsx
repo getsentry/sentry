@@ -53,7 +53,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            "First, initialize Sentry on the client in your [code:src/router.tsx] file:",
+            'First, initialize Sentry on the client in your [code:src/router.tsx] file:',
             {code: <code />}
           ),
         },
@@ -169,7 +169,7 @@ Sentry.init({
               code: <code />,
               hostingLink: (
                 <ExternalLink href="https://tanstack.com/start/latest/docs/framework/react/guide/hosting" />
-              )
+              ),
             }
           ),
         },
@@ -179,9 +179,7 @@ Sentry.init({
             'For example, when using [nitroLink:Nitro], copy the instrumentation file to [code:.output/server]:',
             {
               code: <code />,
-              nitroLink: (
-                <ExternalLink href="https://nitro.build/" />
-              )
+              nitroLink: <ExternalLink href="https://nitro.build/" />,
             }
           ),
         },
@@ -204,7 +202,7 @@ Sentry.init({
           text: tct(
             'Add a [code:--import] flag directly or to the [code:NODE_OPTIONS] environment variable wherever you run your application to import [code:instrument.server.mjs]:',
             {code: <code />}
-          )
+          ),
         },
         {
           type: 'code',
@@ -232,7 +230,7 @@ Sentry.init({
         {
           type: 'text',
           text: tct(
-            'Errors caught by your own error boundaries aren\'t captured unless you report them manually. Wrap your custom [code:ErrorBoundary] component with [code:withErrorBoundary]:',
+            "Errors caught by your own error boundaries aren't captured unless you report them manually. Wrap your custom [code:ErrorBoundary] component with [code:withErrorBoundary]:",
             {code: <code />}
           ),
         },
@@ -303,7 +301,7 @@ const route = createRoute({
           ),
         },
         {
-          'type': 'code',
+          type: 'code',
           tabs: [
             {
               label: 'TypeScript',
@@ -314,7 +312,7 @@ const route = createRoute({
 });`,
             },
           ],
-        }
+        },
       ],
     },
   ],
@@ -467,7 +465,7 @@ export const Route = createFileRoute("/api/sentry-example")({
           text: t(
             'Now, head over to your project on Sentry.io to view the collected data (it takes a couple of moments for the data to appear).'
           ),
-        }
+        },
       ],
     },
   ],
