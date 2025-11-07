@@ -351,11 +351,6 @@ describe('Performance GridEditable Table', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      headers: {
-        Link:
-          '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
-          '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
-      },
       body: {
         meta: {
           fields: {
