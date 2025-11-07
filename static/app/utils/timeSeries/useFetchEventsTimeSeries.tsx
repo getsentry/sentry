@@ -26,6 +26,10 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   yAxis: YAxis | YAxis[];
   /**
+   * Case-insensitive search. If enabled, the search is not case sensitive.
+   */
+  caseInsensitive?: boolean;
+  /**
    * Boolean. If missing, the query is enabled. If supplied, the query will obey the prop as specified.
    */
   enabled?: boolean;
@@ -98,6 +102,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     extrapolate,
     query,
     sampling,
+    caseInsensitive,
     pageFilters,
     sort,
     topEvents,
@@ -147,6 +152,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
               ? '0'
               : '1'
             : undefined,
+          caseInsensitive: caseInsensitive ? 1 : 0,
         },
       },
     ],

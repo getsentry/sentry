@@ -140,6 +140,7 @@ describe('useFetchEventsTimeSeries', () => {
           interval: '1h',
           query: 'span.op:db*',
           sampling: 'NORMAL',
+          caseInsensitive: 0,
         },
       })
     );
@@ -193,6 +194,7 @@ describe('useFetchEventsTimeSeries', () => {
           project: [420],
           interval: '2h',
           sampling: 'NORMAL',
+          caseInsensitive: 0,
         },
       })
     );
@@ -242,6 +244,7 @@ describe('useFetchEventsTimeSeries', () => {
           topEvents: 5,
           groupBy: ['span.category', 'transaction'],
           sort: '-p50(span.duration)',
+          caseInsensitive: 0,
         },
       })
     );

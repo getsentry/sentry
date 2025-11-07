@@ -153,6 +153,7 @@ describe('DatabaseLandingPage', () => {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: ['epm()'],
+          caseInsensitive: 0,
         },
       })
     );
@@ -178,6 +179,7 @@ describe('DatabaseLandingPage', () => {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: ['avg(span.self_time)'],
+          caseInsensitive: 0,
         },
       })
     );
@@ -268,6 +270,7 @@ describe('DatabaseLandingPage', () => {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: ['epm()'],
+          caseInsensitive: 0,
         },
       })
     );
@@ -293,6 +296,7 @@ describe('DatabaseLandingPage', () => {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: ['avg(span.self_time)'],
+          caseInsensitive: 0,
         },
       })
     );
