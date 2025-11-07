@@ -1,6 +1,5 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
-import {useMutation} from '@tanstack/react-query';
 
 import {
   addErrorMessage,
@@ -16,23 +15,21 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {useTogglePluginMutation} from 'sentry/views/settings/projectPlugins/useTogglePluginMutation';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-type Props = {
-  organization: Organization;
-  project: Project;
-};
+import {useTogglePluginMutation} from './useTogglePluginMutation';
 
-export default function ProjectPluginDetails({organization, project}: Props) {
-  const {pluginId, projectId} = useParams<{pluginId: string; projectId: string}>();
-  const pluginsQueryKey = `/projects/${organization.slug}/${projectId}/plugins/`;
-  const pluginDetailsQueryKey = `/projects/${organization.slug}/${projectId}/plugins/${pluginId}/`;
+export default function ProjectPluginDetails() {
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+  const {pluginId} = useParams<{pluginId: string; projectId: string}>();
+  const pluginsQueryKey = `/projects/${organization.slug}/${project.slug}/plugins/`;
+  const pluginDetailsQueryKey = `/projects/${organization.slug}/${project.slug}/plugins/${pluginId}/`;
 
   const {
     data: plugins,
