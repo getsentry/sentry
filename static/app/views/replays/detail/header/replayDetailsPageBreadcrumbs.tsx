@@ -102,7 +102,7 @@ export default function ReplayDetailsPageBreadcrumbs({
             icon={<IconCopy size="xs" color="subText" />}
           />
         </Tooltip>
-        <Flex>
+        <StyledFlex>
           <ButtonBar merged gap="0">
             <LinkButton
               size="xs"
@@ -125,7 +125,7 @@ export default function ReplayDetailsPageBreadcrumbs({
               }}
             />
           </ButtonBar>
-        </Flex>
+        </StyledFlex>
       </Flex>
     ) : (
       <Placeholder width="100%" height="16px" />
@@ -140,6 +140,10 @@ export default function ReplayDetailsPageBreadcrumbs({
 
   return <StyledBreadcrumbs crumbs={crumbs} />;
 }
+
+const StyledFlex = styled(Flex)`
+  margin-left: 10px;
+`;
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
