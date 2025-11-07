@@ -1,47 +1,23 @@
 import {ExternalLink} from 'sentry/components/core/link';
-import altCrashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/altCrashReportCallout';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportApiIntroduction,
-  getCrashReportGenericInstallSteps,
-  getCrashReportInstallDescription,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getDotnetProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/dotnet';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-type Params = DocsParams;
+import {getInstallSnippetCoreCli, getInstallSnippetPackageManager} from './utils';
 
-const getInstallSnippetPackageManager = (params: Params) => `
-Install-Package Sentry -Version ${getPackageVersion(
-  params,
-  'sentry.dotnet',
-  params.isProfilingSelected ? '4.3.0' : '3.34.0'
-)}`;
-
-const getInstallSnippetCoreCli = (params: Params) => `
-dotnet add package Sentry -v ${getPackageVersion(
-  params,
-  'sentry.dotnet',
-  params.isProfilingSelected ? '4.3.0' : '3.34.0'
-)}`;
-
-const getInstallProfilingSnippetPackageManager = (params: Params) => `
+const getInstallProfilingSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.Profiling -Version ${getPackageVersion(
   params,
   'sentry.dotnet.profiling',
   '4.3.0'
 )}`;
 
-const getInstallProfilingSnippetCoreCli = (params: Params) => `
+const getInstallProfilingSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.Profiling -v ${getPackageVersion(
   params,
   'sentry.dotnet.profiling',
@@ -53,7 +29,7 @@ enum DotNetPlatform {
   IOS_MACCATALYST = 1,
 }
 
-const getConfigureSnippet = (params: Params, platform?: DotNetPlatform) => `
+const getConfigureSnippet = (params: DocsParams, platform?: DotNetPlatform) => `
 using Sentry;
 
 SentrySdk.Init(options =>
@@ -121,7 +97,7 @@ var span = transaction.StartChild("test-child-operation");
 span.Finish(); // Mark the span as finished
 transaction.Finish(); // Mark the transaction as finished and send it to Sentry`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
       'Sentry for .NET is a collection of NuGet packages provided by Sentry; it supports .NET Framework 4.6.1 and .NET Core 2.0 and above. At its core, Sentry for .NET provides a raw client for sending events to Sentry. If you use a framework such as [strong:ASP.NET, WinForms, WPF, MAUI, Xamarin, Serilog], or similar, we recommend visiting our [link:Sentry .NET] documentation for installation instructions.',
@@ -233,7 +209,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -321,82 +297,3 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-export const csharpFeedbackOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportApiIntroduction(),
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportInstallDescription(),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'C#',
-              language: 'csharp',
-              code: `using Sentry;
-
-var eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.");
-
-SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User");`,
-            },
-            {
-              label: 'F#',
-              language: 'fsharp',
-              code: `open Sentry
-
-let eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.")
-
-SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User")`,
-            },
-          ],
-        },
-        {
-          type: 'custom',
-          content: altCrashReportCallout(),
-        },
-      ],
-    },
-  ],
-  configure: () => [],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportGenericInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/dotnet/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const profilingOnboarding = getDotnetProfilingOnboarding({
-  getInstallSnippetPackageManager,
-  getInstallSnippetCoreCli,
-});
-
-const docs: Docs = {
-  onboarding,
-  feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
-  crashReportOnboarding,
-  profilingOnboarding,
-};
-
-export default docs;
