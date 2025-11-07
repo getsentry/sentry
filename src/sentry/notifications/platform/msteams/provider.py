@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sentry.integrations.msteams.card_builder.block import create_code_block
 from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -42,8 +41,6 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             Action,
             ActionSet,
             ActionType,
-            AdaptiveCard,
-            Block,
             ImageBlock,
             OpenUrlAction,
             TextSize,
@@ -89,7 +86,10 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
     @classmethod
     def render_body_blocks(cls, body: list[NotificationBodyFormattingBlock]) -> list[Block]:
-        from sentry.integrations.msteams.card_builder.block import create_text_block
+        from sentry.integrations.msteams.card_builder.block import (
+            create_code_block,
+            create_text_block,
+        )
 
         body_blocks: list[Block] = []
         for block in body:
