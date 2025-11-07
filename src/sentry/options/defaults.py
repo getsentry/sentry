@@ -343,15 +343,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "deletions.group-hashes-metadata.update-seer-matched-grouphash-ids",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "deletions.activity.delete-in-bulk",
-    default=False,
-    type=Bool,
+    "deletions.group-hash-metadata.batch-size",
+    default=1000,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1980,6 +1974,11 @@ register(
 register(
     "performance.issues.sql_injection.query_value_length_threshold",
     default=3,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.web_vitals.count_threshold",
+    default=10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

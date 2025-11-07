@@ -10,6 +10,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {parseFunction} from 'sentry/utils/discover/fields';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
@@ -158,13 +159,13 @@ export function AggregatesTab({traceMetric}: AggregatesTabProps) {
         {fields.map((field, i) => {
           let label = field;
           const tag = stringTags?.[field] ?? numberTags?.[field] ?? null;
-          if (tag) {
-            label = tag.name;
-          }
-
           const func = parseFunction(field);
           if (func) {
             label = `${func.name}(…)`;
+          } else if (tag) {
+            label = tag.name;
+          } else {
+            label = prettifyTagKey(field);
           }
 
           const direction = sorts.find(s => s.field === field)?.kind;
