@@ -2,6 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
@@ -104,29 +105,34 @@ function FilterSelector({
   const {data: fetchedFilterValues, isFetching} = queryResult;
 
   const options = useMemo(() => {
-    const optionMap = new Map<string, {label: string; value: string}>();
-    const addOption = (value: string) => optionMap.set(value, {label: value, value});
+    const optionMap = new Map<string, SelectOption<string>>();
+    const fixedOptionMap = new Map<string, SelectOption<string>>();
+    const addOption = (value: string, map: Map<string, SelectOption<string>>) =>
+      map.set(value, {label: value, value});
 
-    // Filter values fetched using getTagValues
-    fetchedFilterValues?.forEach(addOption);
+    // Filter values in the global filter
+    activeFilterValues.forEach(value => addOption(value, optionMap));
+
     // Predefined values
     predefinedValues?.forEach(suggestionSection => {
-      suggestionSection.suggestions.forEach(suggestion => addOption(suggestion.value));
+      suggestionSection.suggestions.forEach(suggestion =>
+        addOption(suggestion.value, optionMap)
+      );
     });
-    // Filter values in the global filter
-    activeFilterValues.forEach(addOption);
-    // Staged filter values inside the filter selector
-    stagedFilterValues.forEach(addOption);
+    // Filter values fetched using getTagValues
+    fetchedFilterValues?.forEach(value => addOption(value, optionMap));
 
     // Allow setting a custom filter value based on search input
-    if (searchQuery) {
-      addOption(searchQuery);
+    if (searchQuery && !optionMap.has(searchQuery)) {
+      addOption(searchQuery, fixedOptionMap);
     }
-
-    // Reversing the order allows effectively deduplicating the values
-    // and avoid losing their original order from the fetched results
-    // (e.g. without this, all staged values would be grouped at the top of the list)
-    return Array.from(optionMap.values()).reverse();
+    // Staged filter values inside the filter selector
+    stagedFilterValues.forEach(value => {
+      if (!optionMap.has(value)) {
+        addOption(value, fixedOptionMap);
+      }
+    });
+    return [...Array.from(fixedOptionMap.values()), ...Array.from(optionMap.values())];
   }, [
     fetchedFilterValues,
     predefinedValues,
@@ -170,7 +176,8 @@ function FilterSelector({
       onStagedValueChange={value => {
         setStagedFilterValues(value);
       }}
-      sizeLimit={10}
+      sizeLimit={30}
+      menuWidth={400}
       onClose={() => {
         setSearchQuery('');
         setStagedFilterValues([]);
