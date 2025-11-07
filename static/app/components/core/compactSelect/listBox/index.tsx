@@ -144,10 +144,6 @@ export function ListBox({
     }
   };
 
-  const onMouseLeave = () => {
-    listState.selectionManager.setFocusedKey(null);
-  };
-
   const listItems = useMemo(
     () =>
       [...listState.collection].filter(node => {
@@ -160,12 +156,19 @@ export function ListBox({
     [listState.collection, hiddenOptions]
   );
 
+  const mergedProps = mergeProps(listBoxProps, props);
+
+  const onMouseLeave = (e: React.MouseEvent<HTMLUListElement>) => {
+    mergedProps.onMouseLeave?.(e);
+    listState.selectionManager.setFocusedKey(null);
+  };
+
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
       <ListWrap
-        {...mergeProps(listBoxProps, props)}
+        {...mergedProps}
         onKeyDown={onKeyDown}
         onMouseLeave={onMouseLeave}
         ref={mergeRefs(listElementRef, ref)}
