@@ -1,6 +1,10 @@
 import {Client as MockClient} from './mockApi';
 
-const RealClient = jest.requireActual('sentry/api').Client;
+const RealApi = jest.requireActual('sentry/api');
+const RealClient = RealApi.Client;
+
+export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
+export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
 
 export class Client extends MockClient {
   private realClient?: InstanceType<typeof RealClient>;
