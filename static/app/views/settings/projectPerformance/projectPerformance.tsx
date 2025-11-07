@@ -41,6 +41,7 @@ import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
@@ -178,6 +179,8 @@ function ProjectPerformance() {
     projectSlug,
     orgSlug: organization.slug,
   });
+
+  const hasWebVitalsSeerSuggestions = useHasSeerWebVitalsSuggestions(project);
 
   const {
     data: threshold,
@@ -566,7 +569,7 @@ function ProjectPerformance() {
           })
         );
       },
-      visible: organization.features.includes('performance-web-vitals-seer-suggestions'),
+      visible: hasWebVitalsSeerSuggestions,
     },
   };
 
@@ -997,9 +1000,7 @@ function ProjectPerformance() {
               performanceIssueSettings[DetectorConfigAdmin.WEB_VITALS_ENABLED]
             ),
             disabledReason,
-            visible: organization.features.includes(
-              'performance-web-vitals-seer-suggestions'
-            ),
+            visible: hasWebVitalsSeerSuggestions,
           },
         ],
         initiallyCollapsed: issueType !== IssueType.WEB_VITALS,

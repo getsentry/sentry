@@ -9,6 +9,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueTitle} from 'sentry/types/group';
 import * as utils from 'sentry/utils/isActiveSuperuser';
 import ProjectPerformance, {
@@ -54,7 +55,11 @@ const manageDetectorData = [
 
 describe('projectPerformance', () => {
   const org = OrganizationFixture({
-    features: ['performance-view', 'performance-web-vitals-seer-suggestions'],
+    features: [
+      'performance-view',
+      'performance-web-vitals-seer-suggestions',
+      'gen-ai-features',
+    ],
   });
   const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
@@ -68,10 +73,15 @@ describe('projectPerformance', () => {
       pathname: `/organizations/${org.slug}/settings/projects/${project.slug}/performance/`,
       query: {},
     },
+    params: {
+      orgId: org.slug,
+      projectId: project.slug,
+    },
   };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([project]);
     getMock = MockApiClient.addMockResponse({
       url: configUrl,
       method: 'GET',
@@ -100,7 +110,7 @@ describe('projectPerformance', () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'GET',
-      body: {},
+      body: project,
       statusCode: 200,
     });
     MockApiClient.addMockResponse({
@@ -114,6 +124,25 @@ describe('projectPerformance', () => {
       method: 'GET',
       body: {},
       statusCode: 200,
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/seer/preferences/',
+      method: 'GET',
+      body: {
+        code_mapping_repos: [
+          {provider: 'github', owner: 'owner', name: 'repo', externalId: '123'},
+        ],
+      },
+      statusCode: 200,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      method: 'GET',
+      body: {
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+        },
+      },
     });
   });
 
@@ -478,7 +507,11 @@ describe('projectPerformance', () => {
 
       render(<ProjectPerformance />, {
         organization: OrganizationFixture({
-          features: ['performance-view', 'performance-web-vitals-seer-suggestions'],
+          features: [
+            'performance-view',
+            'performance-web-vitals-seer-suggestions',
+            'gen-ai-features',
+          ],
         }),
         initialRouterConfig,
       });
@@ -541,7 +574,11 @@ describe('projectPerformance', () => {
 
       render(<ProjectPerformance />, {
         organization: OrganizationFixture({
-          features: ['performance-view', 'performance-web-vitals-seer-suggestions'],
+          features: [
+            'performance-view',
+            'performance-web-vitals-seer-suggestions',
+            'gen-ai-features',
+          ],
           access: ['project:read'],
         }),
         initialRouterConfig,
