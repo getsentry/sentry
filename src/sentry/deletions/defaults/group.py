@@ -270,22 +270,25 @@ def update_group_hash_metadata_in_batches(hash_ids: Sequence[int]) -> None:
     """
     option_batch_size = options.get("deletions.group-hash-metadata.batch-size", 1000)
     batch_size = max(1, option_batch_size)
-    metadata_ids = []
-    for i in range(0, len(hash_ids), batch_size):
-        batch = hash_ids[i : i + batch_size]
-        # We want batches of metadata ids, not just the ids
-        metadata_ids.append(
-            list(
-                GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=batch).values_list(
-                    "id", flat=True
-                )
-            )
-        )
 
-    if not metadata_ids:
+    # Collect all metadata_ids in batches to avoid large IN clauses in SELECT
+    metadata_id_batches = []
+    collected_ids = set()
+    while True:
+        batch_metadata_ids = list(
+            GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids)
+            .exclude(id__in=collected_ids)
+            .values_list("id", flat=True)[:batch_size]
+        )
+        if not batch_metadata_ids:
+            break
+        metadata_id_batches.append(batch_metadata_ids)
+        collected_ids.update(batch_metadata_ids)
+
+    if not metadata_id_batches:
         return
 
-    for batch in metadata_ids:
+    for batch in metadata_id_batches:
         updated = GroupHashMetadata.objects.filter(id__in=batch).update(seer_matched_grouphash=None)
         metrics.incr("deletions.group_hash_metadata.rows_updated", amount=updated, sample_rate=1.0)
 
