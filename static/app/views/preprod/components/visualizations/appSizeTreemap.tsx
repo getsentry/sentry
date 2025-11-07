@@ -3,13 +3,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {ECharts, TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
 import {IconClose, IconContract, IconExpand, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -1,12 +1,13 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge/tag';
+import {Button} from '@sentry/scraps/button';
+import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconInfo} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFlag} from 'sentry/icons/iconFlag';
