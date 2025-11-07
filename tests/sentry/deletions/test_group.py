@@ -9,6 +9,7 @@ from uuid import uuid4
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
 from sentry import deletions, nodestore
+from sentry.deletions.defaults.group import update_group_hash_metadata_in_batches
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -336,6 +337,57 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             assert not GroupHashMetadata.objects.filter(id=metadata_a_id).exists()
             assert not GroupHash.objects.filter(id=grouphash_b.id).exists()
             assert not GroupHashMetadata.objects.filter(id=metadata_b_id).exists()
+
+    def test_update_group_hash_metadata_in_batches(self) -> None:
+        """
+        Test that update_group_hash_metadata_in_batches correctly processes all records
+        in batches without getting stuck in an infinite loop, and that it correctly
+        updates seer_matched_grouphash to None.
+        """
+        num_additional_grouphashes = 5
+        # Create events with group hashes
+        event_a = self.store_event(data={"fingerprint": ["a"]}, project_id=self.project.id)
+        grouphash_a = GroupHash.objects.get(group_id=event_a.group_id)
+
+        # Create multiple events with different group hashes that reference grouphash_a
+        # This simulates multiple events that were matched to grouphash_a by Seer
+        additional_grouphashes = []
+        for i in range(num_additional_grouphashes):
+            event = self.store_event(data={"fingerprint": [i]}, project_id=self.project.id)
+            grouphash = GroupHash.objects.get(hash=event.get_primary_hash())
+            if grouphash.metadata is not None:
+                # Update the metadata to reference grouphash_a
+                grouphash.metadata.seer_matched_grouphash = grouphash_a
+                grouphash.metadata.save()
+            else:
+                raise AssertionError("GroupHashMetadata is None for grouphash id=%s" % grouphash.id)
+            additional_grouphashes.append(grouphash)
+
+        # Verify setup: all metadata records should reference grouphash_a
+        assert (
+            GroupHashMetadata.objects.filter(seer_matched_grouphash_id=grouphash_a.id).count()
+            == num_additional_grouphashes
+        )
+
+        # Test with a small batch size to force multiple batches
+        with mock.patch("sentry.deletions.defaults.group.options.get") as mock_options:
+            # Set batch size to 2 to force multiple batches
+            mock_options.return_value = 2
+            # Call the function to update all metadata that references grouphash_a
+            update_group_hash_metadata_in_batches([grouphash_a.id])
+
+        # Verify that all metadata records that referenced grouphash_a now have None
+        assert (
+            GroupHashMetadata.objects.filter(seer_matched_grouphash_id=grouphash_a.id).count() == 0
+        )
+
+        # Verify that the metadata records still exist but with seer_matched_grouphash=None
+        for grouphash in additional_grouphashes:
+            if grouphash.metadata is not None:
+                grouphash.metadata.refresh_from_db()
+                assert grouphash.metadata.seer_matched_grouphash is None
+            else:
+                raise AssertionError("GroupHashMetadata is None for grouphash id=%s" % grouphash.id)
 
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
