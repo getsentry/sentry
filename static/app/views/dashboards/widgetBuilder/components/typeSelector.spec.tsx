@@ -1,6 +1,3 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -14,13 +11,6 @@ jest.mock('sentry/utils/useNavigate', () => ({
 const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('TypeSelector', () => {
-  let router!: ReturnType<typeof RouterFixture>;
-  let organization!: ReturnType<typeof OrganizationFixture>;
-  beforeEach(() => {
-    router = RouterFixture();
-    organization = OrganizationFixture();
-  });
-
   it('changes the visualization type', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
@@ -28,12 +18,7 @@ describe('TypeSelector', () => {
     render(
       <WidgetBuilderProvider>
         <TypeSelector />
-      </WidgetBuilderProvider>,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
     // click dropdown
@@ -43,7 +28,6 @@ describe('TypeSelector', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        ...router.location,
         query: expect.objectContaining({displayType: 'bar'}),
       }),
       expect.anything()
@@ -54,12 +38,7 @@ describe('TypeSelector', () => {
     render(
       <WidgetBuilderProvider>
         <TypeSelector error={{displayType: 'Please select a type'}} />
-      </WidgetBuilderProvider>,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
     expect(await screen.findByText('Please select a type')).toBeInTheDocument();

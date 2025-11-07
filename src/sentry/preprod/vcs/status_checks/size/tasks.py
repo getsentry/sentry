@@ -130,6 +130,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
             extra={
                 "artifact_id": preprod_artifact.id,
                 "organization_id": preprod_artifact.project.organization_id,
+                "organization_slug": preprod_artifact.project.organization.slug,
             },
         )
         return
@@ -141,6 +142,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
             "status": status.value,
             "check_id": check_id,
             "organization_id": preprod_artifact.project.organization_id,
+            "organization_slug": preprod_artifact.project.organization.slug,
         },
     )
 

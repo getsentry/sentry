@@ -1,10 +1,11 @@
 import type {ReactNode} from 'react';
 
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text/heading';
+
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Heading} from 'sentry/components/core/text/heading';
 import {t} from 'sentry/locale';
 import {CodeBlockWrapper} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
