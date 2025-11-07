@@ -3101,7 +3101,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
 
         # Set cache key to simulate automation already queued
         cache_key = f"seer_automation_queued:{event.group.id}"
-        cache.set(cache_key, True, timeout=900)
+        cache.set(cache_key, True, timeout=600)
 
         self.call_post_process_group(
             is_new=True,
@@ -3148,7 +3148,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
 
             # Should check cache but not call automation due to cache.add returning False
             mock_cache.get.assert_called()
-            mock_cache.add.assert_called_once_with(cache_key, True, timeout=900)
+            mock_cache.add.assert_called_once_with(cache_key, True, timeout=600)
             mock_start_seer_automation.assert_not_called()
 
     @patch(
