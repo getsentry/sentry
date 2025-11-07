@@ -354,8 +354,8 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 return str(check_id) if check_id else None
             except ApiForbiddenError as e:
                 lifecycle.record_failure(e)
-
-                # Check if this is a permission error
+                # 403 errors are typically not transient (permission or configuration issues)
+                # so we convert them to IntegrationConfigurationError to prevent retries
                 error_message = str(e).lower()
                 if (
                     "resource not accessible" in error_message
@@ -375,12 +375,18 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                         "Please ensure the app has the required permissions and that "
                         "the organization has accepted any updated permissions."
                     ) from e
-
-                # For other 403 errors, re-raise the original exception
-                raise
-            except Exception as e:
-                lifecycle.record_failure(e)
-                return None
+                else:
+                    logger.exception(
+                        "preprod.status_checks.create.forbidden",
+                        extra={
+                            "organization_id": self.organization_id,
+                            "integration_id": self.integration_id,
+                            "repo": repo,
+                        },
+                    )
+                    raise IntegrationConfigurationError(
+                        f"GitHub API returned 403 Forbidden when creating check run: {e}"
+                    ) from e
 
 
 GITHUB_STATUS_CHECK_STATUS_MAPPING: dict[StatusCheckStatus, GitHubCheckStatus] = {
