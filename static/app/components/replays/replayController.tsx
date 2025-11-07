@@ -9,7 +9,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
-import {IconChevron, IconRewind10} from 'sentry/icons';
+import {IconNext, IconRewind10} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
@@ -46,7 +46,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
         disabled={isLoading}
         size="sm"
         title={t('Next breadcrumb')}
-        icon={<IconChevron direction="right" />}
+        icon={<IconNext size="sm" />}
         onClick={() => {
           if (!replay) {
             return;
