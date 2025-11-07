@@ -20,9 +20,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
-from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import schedule_update_project_config
@@ -202,8 +200,10 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         if detector.type == ErrorGroupType.slug:
             return Response(status=403)
 
-        RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
-        detector.update(status=ObjectStatus.PENDING_DELETION)
+        validator = get_detector_validator(
+            request, detector.project, detector.type, instance=detector
+        )
+        validator.delete()
 
         DetectorLifeCycleHooks.on_pending_delete(detector)
 

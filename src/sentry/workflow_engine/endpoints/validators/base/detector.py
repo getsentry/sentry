@@ -9,6 +9,8 @@ from rest_framework import serializers
 from sentry import audit_log
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
@@ -143,6 +145,18 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
 
         DetectorLifeCycleHooks.on_after_update(instance)
         return instance
+
+    def delete(self) -> None:
+        """
+        Delete the detector by scheduling it for deletion.
+
+        Subclasses can override this to perform detector-specific cleanup before
+        deletion (e.g., removing billing seats, cleaning up external resources).
+        They should call super().delete() to perform the actual deletion.
+        """
+        assert self.instance is not None
+        RegionScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
+        self.instance.update(status=ObjectStatus.PENDING_DELETION)
 
     def _create_data_source(self, validated_data_source, detector: Detector):
         data_source_creator = validated_data_source["_creator"]
