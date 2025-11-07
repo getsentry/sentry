@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
@@ -184,54 +183,8 @@ class SnubaQueryDataSourceType(TypedDict):
     event_types: list[SnubaQueryEventType]
 
 
-type DetectorLifeCycleHook = Callable[[Detector], None]
-
-
-@dataclass(frozen=True)
-class DetectorLifeCycleHooks:
-    """
-    The DetectorLifeCycleHooks allow for hooks to be added into different areas of the API.
-    These hooks are only invoked through the API, for changes that might be happening outside of the API,
-    it's recommended to use a signal to capture the model updates.
-
-    Args:
-        after_create:
-            This method is used as a callback after a detector is created. The first argument is the detector that was created.
-
-        before_delete:
-            This method is used in the deletion API for a detector, the callback will be invoked with the id for the detector
-            that is deleted.
-
-        after_update:
-           This method is used to access when a detector is updated in the API.
-    """
-
-    after_create: DetectorLifeCycleHook | None = None
-    pending_delete: DetectorLifeCycleHook | None = None
-    after_update: DetectorLifeCycleHook | None = None
-
-    @staticmethod
-    def on_after_create(detector: Detector):
-        hooks = detector.settings.hooks
-        if hooks and hooks.after_create:
-            hooks.after_create(detector)
-
-    @staticmethod
-    def on_after_update(detector: Detector):
-        hooks = detector.settings.hooks
-        if hooks and hooks.after_update:
-            hooks.after_update(detector)
-
-    @staticmethod
-    def on_pending_delete(detector: Detector):
-        hooks = detector.settings.hooks
-        if hooks and hooks.pending_delete:
-            hooks.pending_delete(detector)
-
-
 @dataclass(frozen=True)
 class DetectorSettings:
-    hooks: DetectorLifeCycleHooks | None = None
     handler: type[DetectorHandler] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)

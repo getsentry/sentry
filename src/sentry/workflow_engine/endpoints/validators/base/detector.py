@@ -30,7 +30,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.detector import enforce_config_schema
-from sentry.workflow_engine.types import DataConditionType, DetectorLifeCycleHooks
+from sentry.workflow_engine.types import DataConditionType
 
 
 @dataclass(frozen=True)
@@ -143,7 +143,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             data=instance.get_audit_log_data(),
         )
 
-        DetectorLifeCycleHooks.on_after_update(instance)
         return instance
 
     def delete(self) -> None:
@@ -229,7 +228,5 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 event=audit_log.get_event_id("DETECTOR_ADD"),
                 data=detector.get_audit_log_data(),
             )
-
-            DetectorLifeCycleHooks.on_after_create(detector)
 
         return detector
