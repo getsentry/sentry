@@ -57,18 +57,6 @@ function useMetricsFrozenContext() {
   return _useMetricsFrozenContext() ?? {};
 }
 
-export function useMetricsFrozenIsFrozen() {
-  return useMetricsFrozenContext().frozen;
-}
-
-export function useMetricsFrozenProjectIds() {
-  return useMetricsFrozenContext().projectIds;
-}
-
-export function useMetricsFrozenTraceIds() {
-  return useMetricsFrozenContext().traceIds;
-}
-
 export function useMetricsFrozenSearch() {
   return useMetricsFrozenContext().search;
 }

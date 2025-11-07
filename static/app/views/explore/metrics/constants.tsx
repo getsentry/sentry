@@ -51,11 +51,6 @@ export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
   ...HiddenTraceMetricSearchFields,
 ];
 
-export const HiddenTraceSamplesTableEmbeddedFields: TraceMetricFieldKey[] = [
-  TraceMetricKnownFieldKey.PROJECT_ID,
-  TraceMetricKnownFieldKey.TRACE,
-];
-
 export const TraceSamplesTableStatColumns: VirtualTableSampleColumnKey[] = [
   VirtualTableSampleColumnKey.LOGS,
   VirtualTableSampleColumnKey.SPANS,
