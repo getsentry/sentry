@@ -1,3 +1,4 @@
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
@@ -174,15 +175,25 @@ Sentry.init({
         {
           type: 'text',
           text: tct(
-            'For production monitoring, you need to move the Sentry server config file to your build output. Since TanStack Start is designed to work with any hosting provider, the exact location will depend on where your build artifacts are deployed (for example, [code:/dist], [code:.output/server] or a platform-specific directory).',
-            {code: <code />}
+            'For production monitoring, you need to move the Sentry server config file to your build output. Since [hostingLink:TanStack Start is designed to work with any hosting provider], the exact location will depend on where your build artifacts are deployed (for example, [code:/dist], [code:.output/server] or a platform-specific directory).',
+            {
+              code: <code />,
+              hostingLink: (
+                <ExternalLink href="https://tanstack.com/start/latest/docs/framework/react/guide/hosting" />
+              )
+            }
           ),
         },
         {
           type: 'text',
           text: tct(
-            'For example, when using Nitro, copy the instrumentation file to [code:.output/server]:',
-            {code: <code />}
+            'For example, when using [nitroLink:Nitro], copy the instrumentation file to [code:.output/server]:',
+            {
+              code: <code />,
+              nitroLink: (
+                <ExternalLink href="https://nitro.build/" />
+              )
+            }
           ),
         },
         {
@@ -310,7 +321,7 @@ const route = createRoute({
               language: 'tsx',
               code: `Sentry.init({
   dsn: "${params.dsn.public}",
-  tunnel: 'https://your-api-endpoint.com/sentry-events',
+  tunnel: '/tunnel',
 });`,
             },
           ],
