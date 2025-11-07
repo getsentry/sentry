@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from typing import Any
 
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
@@ -81,6 +81,10 @@ class TreeEnricher:
                 interval = _span_interval(span)
                 self._span_map.setdefault(parent_span_id, []).append(interval)
 
+        self._span_hierarchy: dict[str, SpanEvent] = {
+            span["span_id"]: span for span in spans if "span_id" in span
+        }
+
     def _attributes(self, span: SpanEvent) -> dict[str, Any]:
         attributes: dict[str, Any] = {**(span.get("attributes") or {})}
 
@@ -119,12 +123,37 @@ class TreeEnricher:
                 if attributes.get(key) is None:
                     attributes[key] = value
 
+            GENAI_SPAN_OPS_AGENT_CHILDREN = [
+                "gen_ai.execute_tool",
+                "gen_ai.handoff",
+                "gen_ai.run",
+                "gen_ai.create_agent",
+            ]
+            op = get_span_op(span)
+
+            if op in GENAI_SPAN_OPS_AGENT_CHILDREN and "gen_ai.agent.name" not in attributes:
+                for ancestor in self._iter_ancestors(span):
+                    if "gen_ai.agent.name" in ancestor.get("attributes") or {}:
+                        attributes["gen_ai.agent.name"] = {
+                            "type": "string",
+                            "value": attribute_value(ancestor, "gen_ai.agent.name"),
+                        }
+                        break
+
         attributes["sentry.exclusive_time_ms"] = {
             "type": "double",
             "value": self._exclusive_time(span),
         }
 
         return attributes
+
+    def _iter_ancestors(self, span: SpanEvent) -> Iterator[SpanEvent]:
+        """
+        Iterates over the ancestors of a span in order towards the root using the "parent_span_id" attribute.
+        """
+        current = span
+        while current := self._span_hierarchy.get(current.get("parent_span_id")):
+            yield current
 
     def _exclusive_time(self, span: SpanEvent) -> float:
         """
