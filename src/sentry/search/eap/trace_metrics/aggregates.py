@@ -210,7 +210,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS = {
                 ),
                 default_arg="",
             ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg="non"),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
     ),
     "p90": TraceMetricAggregateDefinition(
