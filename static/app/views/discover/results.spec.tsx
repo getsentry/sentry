@@ -1204,7 +1204,7 @@ describe('Results', () => {
         expect(measurementsMetaMock).toHaveBeenCalled();
       });
 
-      expect(screen.getByText('Discover')).toHaveAttribute(
+      expect(screen.getByRole('link', {name: 'Discover'})).toHaveAttribute(
         'href',
         expect.stringMatching(
           new RegExp('^/organizations/org-slug/explore/discover/homepage/')
