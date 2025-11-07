@@ -35,7 +35,7 @@ const DisclosureContext = createContext<
   | null
 >(null);
 
-export function useDisclosureContext() {
+function useDisclosureContext() {
   const context = useContext(DisclosureContext);
   if (!context) {
     throw new Error('useDisclosureContext must be used within a Disclosure component');

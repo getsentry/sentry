@@ -1,9 +1,8 @@
 import {Fragment, useContext, useEffect} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import toNumber from 'lodash/toNumber';
 
-import {Disclosure, useDisclosureContext} from 'sentry/components/core/disclosure';
+import {Disclosure} from 'sentry/components/core/disclosure';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text/heading';
 import {Text} from 'sentry/components/core/text/text';
@@ -353,21 +352,6 @@ function IntervalPicker() {
   );
 }
 
-function DisclosureTitleWithBorder({children}: {children: React.ReactNode}) {
-  const {state} = useDisclosureContext();
-  return (
-    <StyledDisclosureTitle expanded={state.isExpanded}>{children}</StyledDisclosureTitle>
-  );
-}
-
-function DisclosureContentNoPadding({children}: {children: React.ReactNode}) {
-  return (
-    <NoPaddingContentWrapper>
-      <Disclosure.Content>{children}</Disclosure.Content>
-    </NoPaddingContentWrapper>
-  );
-}
-
 function CustomizeMetricSection() {
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
@@ -380,12 +364,10 @@ function CustomizeMetricSection() {
   return (
     <Container>
       <Disclosure as="section" size="md" role="region" defaultExpanded>
-        <DisclosureTitleWithBorder>
-          <Disclosure.Title aria-label={t('Customize Metric Section')}>
-            <Text size="lg">{t('Customize Metric')}</Text>
-          </Disclosure.Title>
-        </DisclosureTitleWithBorder>
-        <DisclosureContentNoPadding>
+        <Disclosure.Title aria-label={t('Customize Metric Section')}>
+          <Text size="lg">{t('Customize Metric')}</Text>
+        </Disclosure.Title>
+        <Disclosure.Content>
           <Flex direction="column" gap="md">
             <Flex direction="column" gap="xs">
               <DatasetRow>
@@ -454,7 +436,7 @@ function CustomizeMetricSection() {
               </FilterRow>
             </Tooltip>
           </Flex>
-        </DisclosureContentNoPadding>
+        </Disclosure.Content>
       </Disclosure>
     </Container>
   );
@@ -472,9 +454,7 @@ function DetectSection() {
     <Container>
       <Flex direction="column" gap="lg">
         <div>
-          <BorderBottomHeader>
-            <Heading as="h3">{t('Issue Detection')}</Heading>
-          </BorderBottomHeader>
+          <Heading as="h3">{t('Issue Detection')}</Heading>
           <DetectionType />
           <Flex direction="column">
             {(!detectionType || detectionType === 'static') && (
@@ -596,12 +576,6 @@ const FilterRow = styled('div')<{disabled: boolean}>`
   ${p => (p.disabled ? `opacity: 0.6;` : '')}
 `;
 
-const BorderBottomHeader = styled('div')`
-  padding-bottom: ${p => p.theme.space.sm};
-  margin-bottom: ${p => p.theme.space.md};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
-
 const StyledSelectField = styled(SelectField)`
   width: 180px;
   padding: 0;
@@ -715,28 +689,4 @@ const PriorityLabel = styled('span')`
 const RequiredAsterisk = styled('span')`
   color: ${p => p.theme.error};
   margin-left: ${space(0.25)};
-`;
-
-const StyledDisclosureTitle = styled('div')<{expanded: boolean}>`
-  width: 100%;
-
-  ${p =>
-    p.expanded &&
-    css`
-      border-bottom: 1px solid ${p.theme.border};
-      margin-bottom: ${p.theme.space.md};
-      padding-bottom: ${p.theme.space.sm};
-    `}
-`;
-
-const NoPaddingContentWrapper = styled('div')`
-  &&,
-  && > *,
-  && > * > * {
-    padding: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-  }
 `;
