@@ -1043,17 +1043,19 @@ class SnubaTagStorage(TagStorage):
             .distinct()
         )
 
-        return (
-            Release.objects.filter(
-                organization_id=organization_id,
-                package__in=packages,
-                id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
-                    "release_id", flat=True
-                ),
-            )
-            .annotate_prerelease_column()  # type: ignore[attr-defined]
-            .annotate_build_code_column()
-        )
+        qs = Release.objects.filter(
+            organization_id=organization_id,
+            package__in=packages,
+            id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
+                "release_id", flat=True
+            ),
+        ).annotate_prerelease_column()  # type: ignore[attr-defined]
+
+        organization = Organization.objects.get_from_cache(id=organization_id)
+        if features.has("organizations:semver-ordering-with-build-code", organization):
+            qs = qs.annotate_build_code_column()
+
+        return qs
 
     def _get_tag_values_for_semver(
         self,
@@ -1093,14 +1095,16 @@ class SnubaTagStorage(TagStorage):
                 ).values_list("release_id", flat=True)
             )
 
-        order_by = map(_flip_field_sort, Release.SEMVER_COLS + ["package"])
-        versions = (
-            versions.filter_to_semver()
-            .annotate_prerelease_column()
-            .annotate_build_code_column()
-            .order_by(*order_by)
-            .values_list("version", flat=True)[:1000]
-        )
+        versions = versions.filter_to_semver().annotate_prerelease_column()
+
+        order_by = Release.SEMVER_COLS
+        organization = Organization.objects.get_from_cache(id=organization_id)
+        if features.has("organizations:semver-ordering-with-build-code", organization):
+            versions = versions.annotate_build_code_column()
+            order_by = Release.SEMVER_COLS_WITH_BUILD_CODE
+
+        order_by = map(_flip_field_sort, order_by + ["package"])
+        versions = versions.order_by(*order_by).values_list("version", flat=True)[:1000]
 
         seen = set()
         formatted_versions = []

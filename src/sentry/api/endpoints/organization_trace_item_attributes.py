@@ -467,10 +467,13 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
                 id__in=release_environments.values_list("release_id", flat=True)
             )
 
-        order_by = map(_flip_field_sort, Release.SEMVER_COLS + ["package"])
         versions = versions.filter_to_semver()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
         versions = versions.annotate_prerelease_column()
-        versions = versions.annotate_build_code_column()
+        semver_cols = Release.SEMVER_COLS
+        if features.has("organizations:semver-ordering-with-build-code", self.organization):
+            versions = versions.annotate_build_code_column()
+            semver_cols = Release.SEMVER_COLS_WITH_BUILD_CODE
+        order_by = map(_flip_field_sort, semver_cols + ["package"])
         versions = versions.order_by(*order_by)
 
         seen = set()
@@ -548,17 +551,16 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             .distinct()
         )
 
-        versions = (
-            Release.objects.filter(
-                organization_id=self.snuba_params.organization_id,
-                package__in=packages,
-                id__in=ReleaseProject.objects.filter(
-                    project_id__in=self.snuba_params.project_ids
-                ).values_list("release_id", flat=True),
-            )
-            .annotate_prerelease_column()  # type: ignore[attr-defined]
-            .annotate_build_code_column()
-        )
+        versions = Release.objects.filter(
+            organization_id=self.snuba_params.organization_id,
+            package__in=packages,
+            id__in=ReleaseProject.objects.filter(
+                project_id__in=self.snuba_params.project_ids
+            ).values_list("release_id", flat=True),
+        ).annotate_prerelease_column()  # type: ignore[attr-defined]
+
+        if features.has("organizations:semver-ordering-with-build-code", self.organization):
+            versions = versions.annotate_build_code_column()
 
         environment_ids = self.snuba_params.environment_ids
         if environment_ids:

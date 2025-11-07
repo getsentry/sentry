@@ -26,6 +26,15 @@ logger = logging.getLogger(__name__)
 class SemverVersion(
     namedtuple(
         "SemverVersion",
+        "major minor patch revision prerelease_case prerelease",
+    )
+):
+    pass
+
+
+class SemverVersionWithBuildCode(
+    namedtuple(
+        "SemverVersionWithBuildCode",
         "major minor patch revision prerelease_case prerelease build_code_case build_number build_code",
     )
 ):
@@ -85,7 +94,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         negated: bool = False,
     ) -> Self:
         """
-        Filters released by build. If the passed `build` is a numeric string, we'll filter on
+        Filters releases by build. If the passed `build` is a numeric string, we'll filter on
         `build_number` and make use of the passed operator.
         If it is a non-numeric string, then we'll filter on `build_code` instead. We support a
         wildcard only at the end of this string, so that we can filter efficiently via the index.
@@ -127,11 +136,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
 
         Typically we build a `SemverFilter` via `sentry.search.events.filter.parse_semver`
         """
-        qs = (
-            self.filter(organization_id=organization_id)
-            .annotate_prerelease_column()
-            .annotate_build_code_column()
-        )
+        qs = self.filter(organization_id=organization_id).annotate_prerelease_column()
 
         query_func = "exclude" if semver_filter.negated else "filter"
 

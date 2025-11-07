@@ -41,7 +41,12 @@ from sentry.models.releases.constants import (
 )
 from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
+from sentry.models.releases.util import (
+    ReleaseQuerySet,
+    SemverFilter,
+    SemverVersion,
+    SemverVersionWithBuildCode,
+)
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -302,17 +307,9 @@ class Release(Model):
 
     __repr__ = sane_repr("organization_id", "version")
 
-    SEMVER_COLS = [
-        "major",
-        "minor",
-        "patch",
-        "revision",
-        "prerelease_case",
-        "prerelease",
-        "build_code_case",
-        "build_number",
-        "build_code",
-    ]
+    SEMVER_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
+
+    SEMVER_COLS_WITH_BUILD_CODE = SEMVER_COLS + ["build_code_case", "build_number", "build_code"]
 
     def __eq__(self, other: object) -> bool:
         """Make sure that specialized releases are only comparable to the same
@@ -404,6 +401,17 @@ class Release(Model):
 
     @property
     def semver_tuple(self) -> SemverVersion:
+        return SemverVersion(
+            self.major,
+            self.minor,
+            self.patch,
+            self.revision,
+            1 if self.prerelease == "" else 0,
+            self.prerelease,
+        )
+
+    @property
+    def semver_tuple_with_build_code(self) -> SemverVersionWithBuildCode:
         if self.build_number is None and self.build_code is not None:
             build_code_case = 2
         elif self.build_number is not None:
@@ -411,7 +419,7 @@ class Release(Model):
         else:
             build_code_case = 0
 
-        return SemverVersion(
+        return SemverVersionWithBuildCode(
             self.major,
             self.minor,
             self.patch,

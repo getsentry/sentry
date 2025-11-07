@@ -1,6 +1,7 @@
 import string
 from typing import Literal
 
+from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.release import Release
@@ -95,7 +96,11 @@ def semver_filter_converter(params: SnubaParams, search_filter: SearchFilter) ->
     # Note that we sort this such that if we end up fetching more than
     # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
     # the passed filter.
-    order_by = Release.SEMVER_COLS
+    order_by = (
+        Release.SEMVER_COLS_WITH_BUILD_CODE
+        if features.has("organizations:semver-ordering-with-build-code", params.organization)
+        else Release.SEMVER_COLS
+    )
     if operator.startswith("<"):
         order_by = list(map(_flip_field_sort, order_by))
     qs = (

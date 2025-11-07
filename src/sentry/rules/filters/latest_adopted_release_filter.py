@@ -7,8 +7,10 @@ from typing import Any
 from django import forms
 from django.db.models.signals import post_delete, post_save
 
+from sentry import features
 from sentry.models.environment import Environment
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.organization import Organization
 from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.rules import EventState
@@ -156,7 +158,14 @@ def is_newer_release(
         and release.is_semver_release
         and comparison_release.is_semver_release
     ):
-        return release.semver_tuple > comparison_release.semver_tuple
+        organization = Organization.objects.get_from_cache(id=release.organization_id)
+        if features.has("organizations:semver-ordering-with-build-code", organization):
+            return (
+                release.semver_tuple_with_build_code
+                > comparison_release.semver_tuple_with_build_code
+            )
+        else:
+            return release.semver_tuple > comparison_release.semver_tuple
     else:
         release_date = release.date_released if release.date_released else release.date_added
         comparison_date = (
