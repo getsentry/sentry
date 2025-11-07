@@ -4230,7 +4230,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             qs_params={"id": [group.id]}, priority=PriorityLevel.MEDIUM.to_str()
         )
         assert response.status_code == 400
-        assert response.data["detail"] == "Cannot manually set priority of a metric issue."
+        assert response.data["detail"] == "Cannot manually set priority of one or more issues."
 
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):
