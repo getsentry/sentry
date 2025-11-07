@@ -16,6 +16,7 @@ import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {parseCursor} from 'sentry/utils/cursor';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
@@ -273,7 +274,7 @@ function prettifyField(
     return tag.name;
   }
 
-  return prettifyAggregation(field) ?? field;
+  return prettifyAggregation(field) ?? prettifyTagKey(field);
 }
 
 const TopResultsIndicator = styled('div')<{color: string}>`

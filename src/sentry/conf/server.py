@@ -3124,6 +3124,7 @@ CODECOV_API_BASE_URL = "https://api.codecov.io"
 OVERWATCH_REGION_URLS: dict[str, str] = cast(
     dict[str, str], env("OVERWATCH_REGION_URLS", {}, type=env_types.Dict)
 )
+OVERWATCH_REGION_URL: str | None = os.getenv("OVERWATCH_REGION_URL")
 OVERWATCH_WEBHOOK_SECRET: str | None = os.getenv("OVERWATCH_WEBHOOK_SECRET")
 
 # Devserver configuration overrides.
@@ -3197,7 +3198,7 @@ if ngrok_host and SILO_DEVSERVER:
     SENTRY_FEATURES["system:multi-region"] = True
 
 CONDUIT_GATEWAY_PRIVATE_KEY: str | None = os.getenv("CONDUIT_GATEWAY_PRIVATE_KEY")
-CONDUIT_GATEWAY_URL: str = os.getenv("CONDUIT_GATEWAY_URL", "https://conduit.sentry.io")
+CONDUIT_GATEWAY_URL: str = os.getenv("CONDUIT_GATEWAY_URL", "http://127.0.0.1:9096")
 CONDUIT_GATEWAY_JWT_ISSUER: str = os.getenv("CONDUIT_GATEWAY_JWT_ISSUER", "sentry.io")
 CONDUIT_GATEWAY_JWT_AUDIENCE: str = os.getenv("CONDUIT_GATEWAY_JWT_AUDIENCE", "conduit")
 

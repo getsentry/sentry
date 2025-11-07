@@ -16,7 +16,7 @@ export function UserFixture(params: Partial<User> = {}): User {
       avatarType: 'letter_avatar',
       stacktraceOrder: -1,
       prefersIssueDetailsStreamlinedUI: true,
-      prefersChonkUI: false,
+      prefersChonkUI: null,
     },
     ip_address: '127.0.0.1',
     hasPasswordAuth: true,

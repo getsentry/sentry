@@ -90,6 +90,7 @@ export interface MetricDetectorFormData
     MetricDetectorConditionFormData,
     MetricDetectorDynamicFormData,
     SnubaQueryFormData {
+  description: string | null;
   detectionType: MetricDetectorConfig['detectionType'];
   name: string;
   owner: string;
@@ -110,6 +111,7 @@ export const METRIC_DETECTOR_FORM_FIELDS = {
   projectId: 'projectId',
   owner: 'owner',
   workflowIds: 'workflowIds',
+  description: 'description',
 
   // Snuba query fields
   dataset: 'dataset',
@@ -216,23 +218,27 @@ export function createConditions(
     });
   }
 
-  // Optionally add explicit resolution (OK) condition when manual strategy is chosen
-  if (
+  // Always add an explicit resolution (OK) condition
+  // Use custom value if provided, otherwise use MEDIUM threshold if available, else HIGH threshold
+  const resolutionConditionType =
+    data.conditionType === DataConditionType.GREATER
+      ? DataConditionType.LESS_OR_EQUAL
+      : DataConditionType.GREATER_OR_EQUAL;
+
+  const resolutionComparison =
     data.resolutionStrategy === 'custom' &&
     defined(data.resolutionValue) &&
     data.resolutionValue !== ''
-  ) {
-    const resolutionConditionType =
-      data.conditionType === DataConditionType.GREATER
-        ? DataConditionType.LESS
-        : DataConditionType.GREATER;
+      ? parseFloat(data.resolutionValue) || 0
+      : defined(data.mediumThreshold) && data.mediumThreshold !== ''
+        ? parseFloat(data.mediumThreshold) || 0
+        : parseFloat(data.highThreshold) || 0;
 
-    conditions.push({
-      type: resolutionConditionType,
-      comparison: parseFloat(data.resolutionValue) || 0,
-      conditionResult: DetectorPriorityLevel.OK,
-    });
-  }
+  conditions.push({
+    type: resolutionConditionType,
+    comparison: resolutionComparison,
+    conditionResult: DetectorPriorityLevel.OK,
+  });
 
   return conditions;
 }
@@ -331,6 +337,7 @@ export function metricDetectorFormDataToEndpointPayload(
     type: 'metric_issue',
     projectId: data.projectId,
     owner: data.owner || null,
+    description: data.description || null,
     conditionGroup: {
       logicType: DataConditionGroupLogicType.ANY,
       conditions,
@@ -445,6 +452,7 @@ export function metricSavedDetectorToFormData(
     workflowIds: detector.workflowIds,
     environment: getDetectorEnvironment(detector) || '',
     owner: detector.owner ? `${detector.owner?.type}:${detector.owner?.id}` : '',
+    description: detector.description || null,
     query: datasetConfig.toSnubaQueryString(snubaQuery),
     aggregateFunction:
       datasetConfig.fromApiAggregate(snubaQuery?.aggregate || '') ||
