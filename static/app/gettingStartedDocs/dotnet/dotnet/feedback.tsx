@@ -52,5 +52,3 @@ SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The Use
   verify: () => [],
   nextSteps: () => [],
 };
-
-export const csharpFeedbackOnboarding = feedback;
