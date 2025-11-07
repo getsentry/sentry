@@ -8,19 +8,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-const getInstallSnippetPackageManager = (params: DocsParams) => `
-Install-Package Sentry -Version ${getPackageVersion(
-  params,
-  'sentry.dotnet',
-  params.isProfilingSelected ? '4.3.0' : '3.34.0'
-)}`;
-
-const getInstallSnippetCoreCli = (params: DocsParams) => `
-dotnet add package Sentry -v ${getPackageVersion(
-  params,
-  'sentry.dotnet',
-  params.isProfilingSelected ? '4.3.0' : '3.34.0'
-)}`;
+import {getInstallSnippetCoreCli, getInstallSnippetPackageManager} from './utils';
 
 const getInstallProfilingSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.Profiling -Version ${getPackageVersion(
@@ -309,5 +297,3 @@ export const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-export {getInstallSnippetPackageManager, getInstallSnippetCoreCli};
