@@ -34,7 +34,6 @@ export type Project = {
   hasInsightsCaches: boolean;
   hasInsightsDb: boolean;
   hasInsightsHttp: boolean;
-  hasInsightsLlmMonitoring: boolean;
   hasInsightsMCP: boolean;
   hasInsightsQueues: boolean;
   hasInsightsScreenLoad: boolean;

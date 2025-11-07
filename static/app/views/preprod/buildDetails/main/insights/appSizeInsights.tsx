@@ -1,11 +1,12 @@
 import {useCallback} from 'react';
 import {useSearchParams} from 'react-router-dom';
 
-import {Button} from 'sentry/components/core/button';
-import {Container} from 'sentry/components/core/layout/container';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Heading} from 'sentry/components/core/text/heading';
-import {Text} from 'sentry/components/core/text/text';
+import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout/container';
+import {Flex} from '@sentry/scraps/layout/flex';
+import {Heading} from '@sentry/scraps/text/heading';
+import {Text} from '@sentry/scraps/text/text';
+
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
@@ -35,6 +36,7 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
     setSearchParams(newParams);
   }, [searchParams, setSearchParams]);
 
+  const hasInsights = processedInsights.length > 0;
   // Only show top 5 insights, show the rest in the sidebar
   const topInsights = processedInsights.slice(0, 5);
 
@@ -50,9 +52,11 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
         <Heading as="h2" size="lg">
           {t('Top insights')}
         </Heading>
-        <Button size="sm" icon={<IconSettings />} onClick={openSidebar}>
-          {t('View insight details')}
-        </Button>
+        {hasInsights && (
+          <Button size="sm" icon={<IconSettings />} onClick={openSidebar}>
+            {t('View insight details')}
+          </Button>
+        )}
       </Flex>
       <Flex
         direction="column"
@@ -91,6 +95,19 @@ export function AppSizeInsights({processedInsights, platform}: AppSizeInsightsPr
             </Flex>
           </Flex>
         ))}
+        {!hasInsights && (
+          <Flex
+            padding="lg"
+            radius="md"
+            background="primary"
+            align="center"
+            justify="center"
+          >
+            <Text size="sm" bold>
+              {t('Your app looks good! No insights were found.')}
+            </Text>
+          </Flex>
+        )}
       </Flex>
 
       <AppSizeInsightsSidebar

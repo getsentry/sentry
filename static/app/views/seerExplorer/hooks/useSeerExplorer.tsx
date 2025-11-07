@@ -79,12 +79,9 @@ const isPolling = (sessionData: SeerExplorerResponse['session'], runStarted: boo
     return false;
   }
 
-  if (!sessionData) {
-    return true;
-  }
-
-  // Poll if status is processing or if any message is loading
   return (
+    !sessionData ||
+    runStarted ||
     sessionData.status === 'processing' ||
     sessionData.blocks.some(message => message.loading)
   );
@@ -141,9 +138,6 @@ export const useSeerExplorer = () => {
         deletedFromIndex ?? (apiData?.session?.blocks.length || 0);
       const calculatedInsertIndex = insertIndex ?? effectiveMessageLength;
 
-      // Generate timestamp in seconds to match backend format
-      const timestamp = Date.now() / 1000;
-
       // Record current real blocks signature to know when to clear optimistic UI
       const baselineSignature = JSON.stringify(
         (apiData?.session?.blocks || []).map(b => [
@@ -154,8 +148,15 @@ export const useSeerExplorer = () => {
         ])
       );
 
+      // Generate deterministic block IDs matching backend logic
+      // Backend generates: `{prefix}-{index}-{content[:16].replace(' ', '-')}`
+      const generateBlockId = (prefix: string, content: string, index: number) => {
+        const contentPrefix = content.slice(0, 16).replace(/ /g, '-');
+        return `${prefix}-${index}-${contentPrefix}`;
+      };
+
       // Set optimistic UI: show user's message and a thinking placeholder,
-      // and hide all real blocks after the insert point. IDs mimic real pattern.
+      // and hide all real blocks after the insert point.
       const assistantContent =
         OPTIMISTIC_ASSISTANT_TEXTS[
           Math.floor(Math.random() * OPTIMISTIC_ASSISTANT_TEXTS.length)
@@ -164,8 +165,12 @@ export const useSeerExplorer = () => {
         insertIndex: calculatedInsertIndex,
         userQuery: query,
         baselineSignature,
-        userBlockId: `user-${timestamp}`,
-        assistantBlockId: `assistant-${timestamp}`,
+        userBlockId: generateBlockId('user', query, calculatedInsertIndex),
+        assistantBlockId: generateBlockId(
+          'loading',
+          assistantContent || '',
+          calculatedInsertIndex + 1
+        ),
         assistantContent: assistantContent || 'Thinking...',
       });
 
@@ -177,7 +182,6 @@ export const useSeerExplorer = () => {
             data: {
               query,
               insert_index: calculatedInsertIndex,
-              message_timestamp: timestamp,
               on_page_context: screenshot,
             },
           }

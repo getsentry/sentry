@@ -21,17 +21,14 @@ export function MetricDetectorPreviewChart() {
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
 
   // Threshold-related form fields
-  const conditionValue = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionValue
+  const highThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.highThreshold
   );
   const conditionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionType
   );
-  const highThreshold = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.highThreshold
-  );
-  const initialPriorityLevel = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.initialPriorityLevel
+  const mediumThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.mediumThreshold
   );
   const resolutionStrategy = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy
@@ -52,24 +49,22 @@ export function MetricDetectorPreviewChart() {
 
   // Create condition group from form data using the helper function
   const conditions = useMemo(() => {
-    // Wait for a condition value to be defined
-    if (detectionType === 'static' && !conditionValue) {
+    // Wait for a high threshold value to be defined
+    if (detectionType === 'static' && !highThreshold) {
       return [];
     }
 
     return createConditions({
       conditionType,
-      conditionValue,
-      initialPriorityLevel,
       highThreshold,
+      mediumThreshold,
       resolutionStrategy,
       resolutionValue,
     });
   }, [
     conditionType,
-    conditionValue,
-    initialPriorityLevel,
     highThreshold,
+    mediumThreshold,
     resolutionStrategy,
     resolutionValue,
     detectionType,

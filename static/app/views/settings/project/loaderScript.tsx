@@ -17,9 +17,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-function ProjectLoaderScript({project}: {project: Project}) {
+export default function ProjectLoaderScript() {
   const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
   const apiEndpoint = `/projects/${organization.slug}/${project.slug}/keys/`;
   const [updatedProjectKeys, setUpdatedProjectKeys] = useState<ProjectKey[]>([]);
 
@@ -136,5 +138,3 @@ function LoaderItem({
     </Panel>
   );
 }
-
-export default ProjectLoaderScript;
