@@ -12,7 +12,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
+import {
+  HeadSortCell,
+  useTableSort,
+} from 'sentry/views/insights/agents/components/headSortCell';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {MCPReferrer} from 'sentry/views/insights/mcp/utils/referrer';
@@ -45,6 +48,7 @@ export function McpResourcesTable() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_RESOURCE_URI}`);
+  const {tableSort} = useTableSort();
   const tableDataRequest = useSpanTableData({
     query,
     fields: [
@@ -55,6 +59,7 @@ export function McpResourcesTable() {
       AVG_DURATION,
       P95_DURATION,
     ],
+    sort: tableSort,
     referrer: MCPReferrer.MCP_RESOURCE_TABLE,
   });
 
@@ -75,6 +80,7 @@ export function McpResourcesTable() {
       return (
         <HeadSortCell
           sortKey={column.key}
+          currentSort={tableSort}
           align={rightAlignColumns.has(column.key) ? 'right' : 'left'}
           forceCellGrow={column.key === SpanFields.MCP_RESOURCE_URI}
           onClick={handleSort}
@@ -83,7 +89,7 @@ export function McpResourcesTable() {
         </HeadSortCell>
       );
     },
-    [handleSort]
+    [handleSort, tableSort]
   );
 
   type TableData = (typeof tableDataRequest.data)[number];

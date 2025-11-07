@@ -3,7 +3,7 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {getNodeLogsOnboarding} from 'sentry/utils/gettingStartedDocs/node';
+import {getNodeLogsOnboarding} from 'sentry/gettingStartedDocs/node/node/utils';
 
 import {crashReport} from './crashReport';
 import {onboarding} from './onboarding';
