@@ -508,6 +508,7 @@ const ChartWrapper = styled('div')`
 
 // Tinder Cards Styled Components
 const FactsCardContainer = styled('div')`
+  display: none;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};

@@ -1,7 +1,6 @@
 import React, {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {TreeCoverageSunburstChart} from 'sentry/components/charts/treeCoverageSunburstChart';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -1066,120 +1065,6 @@ const fileTreeData: FileTreeNode[] = [
   },
 ];
 
-// Mock data for the sunburst chart
-const sunburstData = {
-  name: 'src',
-  fullPath: 'src',
-  coverage: 85,
-  children: [
-    {
-      name: 'components',
-      fullPath: 'src/components',
-      coverage: 92,
-      children: [
-        {
-          name: 'Button.tsx',
-          fullPath: 'src/components/Button.tsx',
-          coverage: 95,
-          value: 1,
-          children: [],
-        },
-        {
-          name: 'Modal.tsx',
-          fullPath: 'src/components/Modal.tsx',
-          coverage: 88,
-          value: 1,
-          children: [],
-        },
-        {
-          name: 'Form.tsx',
-          fullPath: 'src/components/Form.tsx',
-          coverage: 76,
-          value: 1,
-          children: [],
-        },
-      ],
-    },
-    {
-      name: 'utils',
-      fullPath: 'src/utils',
-      coverage: 67,
-      children: [
-        {
-          name: 'helpers.ts',
-          fullPath: 'src/utils/helpers.ts',
-          coverage: 65,
-          value: 1,
-          children: [],
-        },
-        {
-          name: 'validation.ts',
-          fullPath: 'src/utils/validation.ts',
-          coverage: 70,
-          value: 1,
-          children: [],
-        },
-      ],
-    },
-    {
-      name: 'hooks',
-      fullPath: 'src/hooks',
-      coverage: 81,
-      children: [
-        {
-          name: 'useAuth.ts',
-          fullPath: 'src/hooks/useAuth.ts',
-          coverage: 85,
-          value: 1,
-          children: [],
-        },
-        {
-          name: 'useData.ts',
-          fullPath: 'src/hooks/useData.ts',
-          coverage: 78,
-          value: 1,
-          children: [],
-        },
-      ],
-    },
-    {
-      name: 'services',
-      fullPath: 'src/services',
-      coverage: 45,
-      children: [
-        {
-          name: 'api.ts',
-          fullPath: 'src/services/api.ts',
-          coverage: 72,
-          value: 1,
-          children: [],
-        },
-        {
-          name: 'auth.ts',
-          fullPath: 'src/services/auth.ts',
-          coverage: 23,
-          value: 1,
-          children: [],
-        },
-      ],
-    },
-    {
-      name: 'App.tsx',
-      fullPath: 'src/App.tsx',
-      coverage: 100,
-      value: 1,
-      children: [],
-    },
-    {
-      name: 'index.tsx',
-      fullPath: 'src/index.tsx',
-      coverage: 100,
-      value: 1,
-      children: [],
-    },
-  ],
-};
-
 const COLUMN_ORDER: GridColumnOrder[] = [
   {key: 'commit', name: t('Commits'), width: COL_WIDTH_UNDEFINED},
   {key: 'uploads', name: t('Upload count'), width: COL_WIDTH_UNDEFINED},
@@ -2190,8 +2075,6 @@ export default function CommitsListPage() {
   const [displayMode, setDisplayMode] = useState<'coverage' | 'uncovered'>('coverage');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
-  const [isSunburstCollapsed, setIsSunburstCollapsed] = useState(false);
-  const [showSunburstLabels, setShowSunburstLabels] = useState(false);
   const commitDropdownRef = useRef<HTMLDivElement>(null);
   const pathFilterRef = useRef<HTMLDivElement>(null);
 
@@ -2507,82 +2390,6 @@ export default function CommitsListPage() {
 
     setFileTree(prevTree => toggleNodeInTree(prevTree));
   }, []);
-
-  // Handle sunburst chart node click
-  const handleSunburstNodeClick = useCallback(
-    (fullPath: string, isFile: boolean) => {
-      // Function to find and expand all parent nodes leading to the target path
-      const expandPathInTree = (
-        nodes: FileTreeNode[],
-        targetPath: string
-      ): FileTreeNode[] => {
-        return nodes.map(node => {
-          // If this node is on the path to our target, expand it
-          if (targetPath.startsWith(node.id) || targetPath === node.id) {
-            const updatedNode = {...node, isExpanded: true};
-
-            // If this node has children, recursively process them
-            if (node.children) {
-              updatedNode.children = expandPathInTree(node.children, targetPath);
-            }
-
-            return updatedNode;
-          }
-
-          // If this node has children, check if any child is on the target path
-          if (node.children) {
-            const hasTargetInChildren = node.children.some(
-              child => targetPath.startsWith(child.id) || targetPath === child.id
-            );
-
-            if (hasTargetInChildren) {
-              return {
-                ...node,
-                isExpanded: true,
-                children: expandPathInTree(node.children, targetPath),
-              };
-            }
-          }
-
-          return node;
-        });
-      };
-
-      // Function to find a node by its path
-      const findNodeByPath = (
-        nodes: FileTreeNode[],
-        targetPath: string
-      ): FileTreeNode | null => {
-        for (const node of nodes) {
-          if (node.id === targetPath) {
-            return node;
-          }
-
-          if (node.children) {
-            const found = findNodeByPath(node.children, targetPath);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
-
-      // Update the file tree to expand all nodes leading to the clicked path
-      setFileTree(prevTree => expandPathInTree(prevTree, fullPath));
-
-      // If it's a file, select it; if it's a folder, just expand to show it
-      if (isFile) {
-        const targetNode = findNodeByPath(fileTree, fullPath);
-        if (targetNode) {
-          setSelectedFileNode(targetNode);
-        }
-      } else {
-        // For folders, clear file selection but set path filter to show folder contents
-        setSelectedFileNode(null);
-        setSelectedPath(fullPath);
-      }
-    },
-    [fileTree]
-  );
 
   // Get initial tab from URL query parameter, default to 'commits'
   const initialTab = location.query?.tab || 'commits';
@@ -3002,57 +2809,6 @@ export default function CommitsListPage() {
               />
             </SummaryCardGroup>
           </Grid>
-
-          <SunburstChartContainer>
-            <SunburstChartHeader>
-              <SunburstChartHeaderLeft>
-                <SunburstToggleButton
-                  onClick={() => setIsSunburstCollapsed(!isSunburstCollapsed)}
-                  aria-label={
-                    isSunburstCollapsed
-                      ? 'Expand sunburst chart'
-                      : 'Collapse sunburst chart'
-                  }
-                >
-                  <IconChevron
-                    direction={isSunburstCollapsed ? 'right' : 'down'}
-                    size="sm"
-                  />
-                </SunburstToggleButton>
-                <SunburstChartHeaderContent>
-                  <SunburstChartTitle>Coverage Visualization</SunburstChartTitle>
-                  <SunburstChartDescription>
-                    Interactive sunburst chart showing file and folder coverage hierarchy.
-                    Click on segments to navigate the file tree.
-                  </SunburstChartDescription>
-                </SunburstChartHeaderContent>
-              </SunburstChartHeaderLeft>
-              {!isSunburstCollapsed && (
-                <SunburstChartHeaderRight>
-                  <SunburstLabelToggle>
-                    <SunburstCheckboxInput
-                      type="checkbox"
-                      id="sunburst-labels-toggle"
-                      checked={showSunburstLabels}
-                      onChange={e => setShowSunburstLabels(e.target.checked)}
-                    />
-                    <SunburstCheckboxLabel htmlFor="sunburst-labels-toggle">
-                      Show Labels
-                    </SunburstCheckboxLabel>
-                  </SunburstLabelToggle>
-                </SunburstChartHeaderRight>
-              )}
-            </SunburstChartHeader>
-            {!isSunburstCollapsed && (
-              <SunburstChartContent>
-                <TreeCoverageSunburstChart
-                  data={sunburstData}
-                  onNodeClick={handleSunburstNodeClick}
-                  showLabels={showSunburstLabels}
-                />
-              </SunburstChartContent>
-            )}
-          </SunburstChartContainer>
 
           <PathFilterContainer>
             <PathFilterGroup>
@@ -4541,6 +4297,7 @@ const PathFilterContainer = styled('div')`
   align-items: center;
   justify-content: space-between;
   gap: ${p => p.theme.space.lg};
+  margin-top: ${p => p.theme.space.xl};
   margin-bottom: ${p => p.theme.space.xl};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
@@ -4792,118 +4549,4 @@ const SuggestionPath = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-`;
-
-// Sunburst Chart styled components
-const SunburstChartContainer = styled('div')`
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
-  margin-top: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.xl};
-`;
-
-const SunburstChartHeader = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: ${p => p.theme.space.lg};
-  border-bottom: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.backgroundSecondary};
-`;
-
-const SunburstChartHeaderLeft = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  gap: ${p => p.theme.space.md};
-`;
-
-const SunburstToggleButton = styled('button')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.subText};
-  transition: all 0.15s ease;
-  flex-shrink: 0;
-  margin-top: 2px;
-
-  &:hover {
-    background: ${p => p.theme.backgroundTertiary};
-    color: ${p => p.theme.textColor};
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px ${p => p.theme.purple300};
-  }
-`;
-
-const SunburstChartHeaderContent = styled('div')`
-  flex: 1;
-  min-width: 0;
-`;
-
-const SunburstChartTitle = styled('h3')`
-  margin: 0 0 ${p => p.theme.space.sm};
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.headingColor};
-`;
-
-const SunburstChartDescription = styled('p')`
-  margin: 0;
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.md};
-  line-height: ${p => p.theme.text.lineHeightBody};
-  color: ${p => p.theme.subText};
-`;
-
-const SunburstChartContent = styled('div')`
-  padding: ${p => p.theme.space.lg};
-`;
-
-const SunburstChartHeaderRight = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-top: 2px;
-`;
-
-const SunburstLabelToggle = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-`;
-
-const SunburstCheckboxInput = styled('input')`
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: ${p => p.theme.purple400};
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px ${p => p.theme.purple300};
-    border-radius: 2px;
-  }
-`;
-
-const SunburstCheckboxLabel = styled('label')`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  color: ${p => p.theme.textColor};
-  cursor: pointer;
-  user-select: none;
-
-  &:hover {
-    color: ${p => p.theme.headingColor};
-  }
 `;
