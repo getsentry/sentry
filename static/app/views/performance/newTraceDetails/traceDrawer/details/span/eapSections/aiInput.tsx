@@ -283,6 +283,22 @@ function MessagesArrayRenderer({
     }
   }, [messages.length, previousMessagesLength]);
 
+  const truncationAlert = isTruncated ? (
+    <Container paddingBottom="lg">
+      <Alert type="muted">
+        {tct(
+          'Due to [link:size limitations], the oldest [count] got dropped from the history.',
+          {
+            count: tn('message', '%s messages', truncatedMessages),
+            link: (
+              <ExternalLink href="https://develop.sentry.dev/sdk/expected-features/data-handling/#variable-size" />
+            ),
+          }
+        )}
+      </Alert>
+    </Container>
+  ) : null;
+
   const renderMessage = (message: AIMessage, index: number) => {
     return (
       <Fragment key={index}>
@@ -302,26 +318,17 @@ function MessagesArrayRenderer({
   };
 
   if (isExpanded) {
-    return messages.map(renderMessage);
+    return (
+      <Fragment>
+        {truncationAlert}
+        {messages.map(renderMessage)}
+      </Fragment>
+    );
   }
 
   return (
     <Fragment>
-      {isTruncated ? (
-        <Container paddingBottom="lg">
-          <Alert type="muted">
-            {tct(
-              'Due to [link:size limitations], the oldest [count] got dropped from the history.',
-              {
-                count: tn('message', '%s messages', truncatedMessages),
-                link: (
-                  <ExternalLink href="https://develop.sentry.dev/sdk/expected-features/data-handling/#variable-size" />
-                ),
-              }
-            )}
-          </Alert>
-        </Container>
-      ) : null}
+      {truncationAlert}
       {messages.slice(0, MAX_MESSAGES_AT_START).map(renderMessage)}
       <ButtonDivider>
         <Button onClick={() => setIsExpanded(true)} size="xs">
