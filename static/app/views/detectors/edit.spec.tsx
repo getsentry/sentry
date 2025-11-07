@@ -324,7 +324,10 @@ describe('DetectorEdit', () => {
                 },
               ],
               conditionGroup: {
-                conditions: [{comparison: 8, conditionResult: 75, type: 'gt'}],
+                conditions: [
+                  {comparison: 8, conditionResult: 75, type: 'gt'},
+                  {comparison: 8, conditionResult: 0, type: 'lte'},
+                ],
                 logicType: 'any',
               },
               config: {detectionType: 'static', thresholdPeriod: 1},
