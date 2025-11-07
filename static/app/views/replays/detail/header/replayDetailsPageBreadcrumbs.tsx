@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -37,6 +38,7 @@ export default function ReplayDetailsPageBreadcrumbs({
   const location = useLocation();
   const eventView = EventView.fromLocation(location);
   const project = useProjectFromId({project_id: replayRecord?.project_id ?? undefined});
+  const [isHovered, setIsHovered] = useState(false);
   const {currentTime} = useReplayContext();
   // Create URL with current timestamp for copying
   const replayUrlWithTimestamp = replayRecord
@@ -79,30 +81,38 @@ export default function ReplayDetailsPageBreadcrumbs({
 
   const replayCrumb = {
     label: replayRecord ? (
-      <Flex align="center" gap="xs">
-        <div
-          onClick={() =>
-            copy(replayUrlWithTimestamp, {
-              successMessage: t('Copied replay link to clipboard'),
-            })
-          }
+      <Flex>
+        <Flex
+          align="center"
+          gap="xs"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
         >
-          {getShortEventId(replayRecord?.id)}
-        </div>
-        <Tooltip title={t('Copy link to replay at current timestamp')}>
-          <Button
-            aria-label={t('Copy link to replay at current timestamp')}
+          <div
             onClick={() =>
               copy(replayUrlWithTimestamp, {
                 successMessage: t('Copied replay link to clipboard'),
               })
             }
-            size="zero"
-            borderless
-            icon={<IconCopy size="xs" color="subText" />}
-          />
-        </Tooltip>
-        <StyledFlex>
+          >
+            {getShortEventId(replayRecord?.id)}
+          </div>
+          <Tooltip title={t('Copy link to replay at current timestamp')}>
+            <Button
+              aria-label={t('Copy link to replay at current timestamp')}
+              onClick={() =>
+                copy(replayUrlWithTimestamp, {
+                  successMessage: t('Copied replay link to clipboard'),
+                })
+              }
+              size="zero"
+              borderless
+              style={isHovered ? {} : {visibility: 'hidden'}}
+              icon={<IconCopy size="xs" color="subText" />}
+            />
+          </Tooltip>
+        </Flex>
+        <Flex>
           <ButtonBar merged gap="0">
             <LinkButton
               size="xs"
@@ -125,7 +135,7 @@ export default function ReplayDetailsPageBreadcrumbs({
               }}
             />
           </ButtonBar>
-        </StyledFlex>
+        </Flex>
       </Flex>
     ) : (
       <Placeholder width="100%" height="16px" />
@@ -140,10 +150,6 @@ export default function ReplayDetailsPageBreadcrumbs({
 
   return <StyledBreadcrumbs crumbs={crumbs} />;
 }
-
-const StyledFlex = styled(Flex)`
-  margin-left: 10px;
-`;
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
