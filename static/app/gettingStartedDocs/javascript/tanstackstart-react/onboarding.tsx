@@ -1,19 +1,8 @@
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
-import {
-  getJavascriptFullStackOnboarding,
-  getJavascriptLogsFullStackOnboarding,
-} from 'sentry/utils/gettingStartedDocs/javascript';
-import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
-type Params = DocsParams;
-
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     t("In this guide you'll set up the Sentry TanStack Start React SDK"),
   install: () => [
@@ -50,7 +39,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: params => [
     {
       title: t('Set up the SDK'),
       content: [
@@ -485,26 +474,3 @@ export const APIRoute = createAPIFileRoute("/api/sentry-example-api")({
     },
   ],
 };
-
-const profilingOnboarding = getJavascriptFullStackOnboarding({
-  packageName: '@sentry/tanstackstart-react',
-  browserProfilingLink:
-    'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/profiling/browser-profiling/',
-  nodeProfilingLink:
-    'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/profiling/node-profiling/',
-});
-
-const docs: Docs = {
-  onboarding,
-  profilingOnboarding,
-  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
-    packageName: '@sentry/tanstackstart-react',
-    configFileName: 'app/ssr.tsx',
-  }),
-  logsOnboarding: getJavascriptLogsFullStackOnboarding({
-    docsPlatform: 'tanstackstart-react',
-    packageName: '@sentry/tanstackstart-react',
-  }),
-};
-
-export default docs;
