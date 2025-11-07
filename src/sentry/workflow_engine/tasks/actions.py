@@ -54,6 +54,7 @@ def build_trigger_action_task_params(
         "group_state": event_data.group_state,
         "has_reappeared": event_data.has_reappeared,
         "has_escalated": event_data.has_escalated,
+        "project_id": detector.project_id,
     }
 
 
@@ -67,7 +68,6 @@ def build_trigger_action_task_params(
 @retry(timeouts=True, raise_on_no_retries=False, ignore_and_capture=Action.DoesNotExist)
 def trigger_action(
     action_id: int,
-    detector_id: int,
     workflow_id: int,
     event_id: str | None,
     activity_id: int | None,
@@ -76,6 +76,8 @@ def trigger_action(
     group_state: GroupState,
     has_reappeared: bool,
     has_escalated: bool,
+    detector_id: int | None = None,
+    project_id: int | None = None,
 ) -> None:
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 
@@ -87,7 +89,7 @@ def trigger_action(
         )
         raise ValueError("Exactly one of event_id or activity_id must be provided")
 
-    action = Action.objects.annotate(workflow_id=Value(workflow_id)).get(id=action_id)
+    action: Action = Action.objects.annotate(workflow_id=Value(workflow_id)).get(id=action_id)
     detector = Detector.objects.get(id=detector_id)
 
     metrics.incr(
@@ -96,7 +98,8 @@ def trigger_action(
         sample_rate=1.0,
     )
 
-    project_id = detector.project_id
+    if project_id is None:
+        project_id = detector.project_id
 
     if event_id is not None:
         event_data = build_workflow_event_data_from_event(
