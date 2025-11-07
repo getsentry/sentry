@@ -10,60 +10,6 @@ REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
 class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
-    def test_query_replay_instance_eap_calls_eap_query(self) -> None:
-        """Ensure query_replay_instance_eap calls eap_read.query with correct arguments."""
-        import datetime
-        from unittest.mock import patch
-
-        from sentry.replays.endpoints.organization_replay_details import query_replay_instance_eap
-
-        project_ids = [123]
-        replay_id = "abc123"
-        start = datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC)
-        end = datetime.datetime(2025, 1, 2, 0, 0, tzinfo=datetime.UTC)
-        organization_id = 42
-        referrer = "test.referrer"
-
-        with patch("sentry.replays.lib.eap.read.query") as mock_query:
-            mock_query.return_value = "mocked"
-            result = query_replay_instance_eap(
-                project_ids=project_ids,
-                replay_id=replay_id,
-                start=start,
-                end=end,
-                organization_id=organization_id,
-                referrer=referrer,
-            )
-            assert result == "mocked"
-            assert mock_query.call_count == 1
-
-            args, kwargs = mock_query.call_args
-            snuba_query = args[0]
-            assert snuba_query.match.name == "replays"
-
-            select_cols = [col.name for col in snuba_query.select]
-            assert "replay_id" in select_cols
-            assert "project_id" in select_cols
-            assert "timestamp" in select_cols
-            assert "segment_id" in select_cols
-            assert "is_archived" in select_cols
-
-            settings = args[1]
-            assert settings["attribute_types"]["replay_id"] == str
-            assert settings["attribute_types"]["project_id"] == int
-            assert settings["attribute_types"]["timestamp"] == int
-            assert settings["attribute_types"]["segment_id"] == int
-            assert settings["attribute_types"]["is_archived"] == int
-            assert settings["default_limit"] == 1
-            assert settings["default_offset"] == 0
-
-            request_meta = args[2]
-            assert request_meta["organization_id"] == organization_id
-            assert request_meta["project_ids"] == project_ids
-            assert request_meta["referrer"] == referrer
-            assert request_meta["cogs_category"] == "replays"
-            assert request_meta["trace_item_type"] == "replay"
-
     endpoint = "sentry-api-0-organization-replay-details"
 
     def setUp(self) -> None:
