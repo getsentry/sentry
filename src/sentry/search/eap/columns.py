@@ -350,7 +350,7 @@ class AggregateDefinition(FunctionDefinition):
 
 
 @dataclass(kw_only=True)
-class TraceMetricAggregateDefinition(FunctionDefinition):
+class TraceMetricAggregateDefinition(AggregateDefinition):
     internal_function: Function.ValueType
     attribute_resolver: Callable[[ResolvedArgument], AttributeKey] | None = None
 
