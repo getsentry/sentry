@@ -6,6 +6,7 @@ import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
 import type {TraceViewQueryParams} from './useTraceQueryParams';
@@ -76,6 +77,8 @@ export function useInitialTraceMetricData({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
+  const hasMetricsFeature = canUseMetricsUI(organization);
+
   const queryKey = useMemo(
     () =>
       traceMetricCountQueryKey({
@@ -92,7 +95,7 @@ export function useInitialTraceMetricData({
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     retry: false,
-    enabled: enabled && Boolean(traceId),
+    enabled: enabled && Boolean(traceId) && hasMetricsFeature,
   });
 
   const metricsData = useMemo(() => {
