@@ -1,0 +1,25 @@
+import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+
+import {agentMonitoring} from './agentMonitoring';
+import {crashReport} from './crashReport';
+import {logs} from './logs';
+import {mcp} from './mcp';
+import {onboarding} from './onboarding';
+import {profiling} from './profiling';
+
+const docs: Docs = {
+  onboarding,
+  replayOnboardingJsLoader,
+  crashReportOnboarding: crashReport,
+  feedbackOnboardingJsLoader,
+  profilingOnboarding: profiling,
+  logsOnboarding: logs,
+  agentMonitoringOnboarding: agentMonitoring,
+  mcpOnboarding: mcp,
+};
+
+export default docs;
