@@ -1709,7 +1709,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':release/',
       component: make(() => import('sentry/views/releases/detail')),
-      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -1743,7 +1742,6 @@ function buildRoutes(): RouteObject[] {
         component: make(() => import('sentry/views/releases/index')),
         withOrgPath: true,
         children: releaseChildren,
-        deprecatedRouteProps: true,
       },
       {
         path: '/releases/new-events/',

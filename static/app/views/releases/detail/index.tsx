@@ -1,4 +1,5 @@
 import {createContext, useCallback, useEffect, useMemo} from 'react';
+import {Outlet} from 'react-router-dom';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
@@ -224,7 +225,7 @@ function ReleasesDetail({
 // ========================================================================
 // RELEASE DETAIL CONTAINER
 // ========================================================================
-function ReleasesDetailContainer({children}: {children: React.ReactNode}) {
+function ReleasesDetailContainer() {
   const params = useParams<{release: string}>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -308,7 +309,9 @@ function ReleasesDetailContainer({children}: {children: React.ReactNode}) {
       }
       specificProjectSlugs={projects.map((p: ReleaseProject) => p.slug)}
     >
-      <ReleasesDetail releaseMeta={releaseMeta}>{children}</ReleasesDetail>
+      <ReleasesDetail releaseMeta={releaseMeta}>
+        <Outlet />
+      </ReleasesDetail>
     </PageFiltersContainer>
   );
 }
