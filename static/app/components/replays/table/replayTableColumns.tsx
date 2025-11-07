@@ -54,10 +54,10 @@ interface HeaderProps {
 
 interface CellProps {
   columnIndex: number;
-  eventView: EventView;
   replay: ListRecord;
   rowIndex: number;
   showDropdownFilters: boolean;
+  eventView?: EventView;
 }
 
 export interface ReplayTableColumn {
@@ -90,6 +90,17 @@ export interface ReplayTableColumn {
    * Defaults to `max-content`
    */
   width?: string;
+}
+
+function generateQueryStringObjectWithStatsPeriod(eventView: EventView) {
+  const {statsPeriod, ...eventViewQuery} = eventView.generateQueryStringObject();
+
+  if (statsPeriod && typeof statsPeriod === 'string') {
+    const {start, end} = parseStatsPeriod(statsPeriod);
+    eventViewQuery.start = start;
+    eventViewQuery.end = end;
+  }
+  return eventViewQuery;
 }
 
 export const ReplayActivityColumn: ReplayTableColumn = {
@@ -322,7 +333,7 @@ export const ReplayDetailsLinkColumn: ReplayTableColumn = {
       pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
     };
     if (eventView) {
-      toLink = {...toLink, ...eventView.generateQueryStringObject()};
+      toLink = {...toLink, ...generateQueryStringObjectWithStatsPeriod(eventView)};
     }
     return (
       <DetailsLink to={toLink}>
@@ -528,27 +539,21 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     );
 
     const referrer = getRouteStringFromRoutes(routes);
-
     const replayDetailsPathname = makeReplaysPathname({
       path: `/${replay.id}/`,
       organization,
     });
 
-    const {statsPeriod, ...eventViewQuery} = eventView.generateQueryStringObject();
+    let query = {referrer};
 
-    if (statsPeriod && typeof statsPeriod === 'string') {
-      const {start, end} = parseStatsPeriod(statsPeriod);
-      eventViewQuery.start = start;
-      eventViewQuery.end = end;
+    if (eventView) {
+      query = {...generateQueryStringObjectWithStatsPeriod(eventView), ...query};
     }
 
     const detailsTab = () => {
       return {
         pathname: replayDetailsPathname,
-        query: {
-          referrer,
-          ...eventViewQuery,
-        },
+        query,
       };
     };
     const trackNavigationEvent = () =>
