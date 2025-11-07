@@ -195,6 +195,36 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             },
         }
 
+    def create_static_detector(self) -> None:
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            static_detector = validator.save()
+
+        # Verify detector in DB
+        self.assert_validated(static_detector)
+
+        # Verify condition group in DB
+        condition_group = DataConditionGroup.objects.get(
+            id=static_detector.workflow_condition_group_id
+        )
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY
+        assert condition_group.organization_id == self.project.organization_id
+
+        # Verify conditions in DB
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 2
+        condition = conditions[0]
+        assert condition.type == Condition.GREATER
+        assert condition.comparison == 100
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
+
+        return static_detector
+
     def create_dynamic_detector(self) -> None:
         validator = MetricIssueDetectorValidator(
             data=self.valid_anomaly_detection_data,
@@ -261,29 +291,7 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
     def test_create_with_valid_data(
         self, mock_audit: mock.MagicMock, mock_schedule_update_project_config
     ) -> None:
-        validator = MetricIssueDetectorValidator(
-            data=self.valid_data,
-            context=self.context,
-        )
-        assert validator.is_valid(), validator.errors
-
-        with self.tasks():
-            detector = validator.save()
-
-        # Verify detector in DB
-        self.assert_validated(detector)
-        # Verify condition group in DB
-        condition_group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
-        assert condition_group.logic_type == DataConditionGroup.Type.ANY
-        assert condition_group.organization_id == self.project.organization_id
-
-        # Verify conditions in DB
-        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 2
-        condition = conditions[0]
-        assert condition.type == Condition.GREATER
-        assert condition.comparison == 100
-        assert condition.condition_result == DetectorPriorityLevel.HIGH
+        detector = self.create_static_detector()
 
         # Verify audit log
         mock_audit.assert_called_once_with(
@@ -596,33 +604,6 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
 
 
 class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator):
-    def create_static_detector(self) -> None:
-        validator = MetricIssueDetectorValidator(
-            data=self.valid_data,
-            context=self.context,
-        )
-        assert validator.is_valid(), validator.errors
-
-        with self.tasks():
-            static_detector = validator.save()
-
-        # Verify condition group in DB
-        condition_group = DataConditionGroup.objects.get(
-            id=static_detector.workflow_condition_group_id
-        )
-        assert condition_group.logic_type == DataConditionGroup.Type.ANY
-        assert condition_group.organization_id == self.project.organization_id
-
-        # Verify conditions in DB
-        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 1
-        condition = conditions[0]
-        assert condition.type == Condition.GREATER
-        assert condition.comparison == 100
-        assert condition.condition_result == DetectorPriorityLevel.HIGH
-
-        return static_detector
-
     def test_update_with_valid_data(self) -> None:
         """
         Test a simple update
