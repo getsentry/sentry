@@ -49,6 +49,7 @@ from sentry.models.organization import Organization
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import ExtrapolationMode
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
@@ -103,6 +104,25 @@ def fetch_alert_rule(
     return Response(serialized_rule)
 
 
+def _is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode) -> bool:
+    if (
+        new_extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.name.lower()
+        and old_extrapolation_mode != ExtrapolationMode.SERVER_WEIGHTED.name.lower()
+    ):
+        return True
+    if (
+        new_extrapolation_mode == ExtrapolationMode.NONE.name.lower()
+        and old_extrapolation_mode != ExtrapolationMode.NONE.name.lower()
+    ):
+        return True
+    if (
+        new_extrapolation_mode == ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED.name.lower()
+        or new_extrapolation_mode == ExtrapolationMode.UNKNOWN.name.lower()
+    ):
+        return False
+    return False
+
+
 def update_alert_rule(
     request: Request, organization: Organization, alert_rule: AlertRule
 ) -> Response:
@@ -122,15 +142,16 @@ def update_alert_rule(
         partial=True,
     )
     if validator.is_valid():
-        if data.get("extrapolation_mode"):
-            if (
-                data.get("extrapolation_mode") == ExtrapolationMode.SERVER_WEIGHTED.name.lower()
-                and alert_rule.snuba_query.extrapolation_mode
-                != ExtrapolationMode.SERVER_WEIGHTED.name.lower()
-            ):
-                raise serializers.ValidationError(
-                    "server_weighted extrapolation mode is not a valid mode for this alert type."
-                )
+        if data.get("dataset") == Dataset.EventsAnalyticsPlatform.value:
+            if data.get("extrapolation_mode"):
+                old_extrapolation_mode = ExtrapolationMode(
+                    alert_rule.snuba_query.extrapolation_mode
+                ).name.lower()
+                new_extrapolation_mode = data.get("extrapolation_mode", old_extrapolation_mode)
+                if _is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode):
+                    raise serializers.ValidationError(
+                        "Invalid extrapolation mode for this alert type."
+                    )
 
         try:
             trigger_sentry_app_action_creators_for_incidents(validator.validated_data)

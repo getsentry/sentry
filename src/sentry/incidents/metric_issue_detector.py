@@ -168,7 +168,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 )
 
     def _validate_extrapolation_mode(self, extrapolation_mode: str) -> None:
-        if extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.name.lower():
+        if extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.value:
             raise serializers.ValidationError(
                 "server_weighted extrapolation mode is not supported for new alerts."
             )
@@ -261,7 +261,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             )
 
         if self.is_invalid_extrapolation_mode(snuba_query, data_source):
-            raise serializers.ValidationError("Invalid extrapolation mode")
+            raise serializers.ValidationError("Invalid extrapolation mode for this alert type.")
 
         update_snuba_query(
             snuba_query=snuba_query,

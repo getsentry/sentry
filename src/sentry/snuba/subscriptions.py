@@ -58,7 +58,11 @@ def create_snuba_query(
         resolution=int(resolution.total_seconds()),
         environment=environment,
         group_by=group_by,
-        extrapolation_mode=extrapolation_mode,
+        extrapolation_mode=(
+            extrapolation_mode.value
+            if extrapolation_mode is not None
+            else ExtrapolationMode.UNKNOWN.value
+        ),
     )
     if not event_types:
         if dataset == Dataset.Events:
@@ -85,7 +89,7 @@ def update_snuba_query(
     resolution,
     environment,
     event_types,
-    extrapolation_mode,
+    extrapolation_mode=None,
 ):
     """
     Updates a SnubaQuery. Triggers updates to any related QuerySubscriptions.
@@ -126,7 +130,11 @@ def update_snuba_query(
             time_window=int(time_window.total_seconds()),
             resolution=int(resolution.total_seconds()),
             environment=environment,
-            extrapolation_mode=extrapolation_mode,
+            extrapolation_mode=(
+                extrapolation_mode
+                if extrapolation_mode is not None
+                else ExtrapolationMode.UNKNOWN.value
+            ),
         )
         if new_event_types:
             SnubaQueryEventType.objects.bulk_create(
