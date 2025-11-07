@@ -1,10 +1,12 @@
 import {type DashboardDetails} from 'sentry/views/dashboards/types';
 import {QUERIES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries';
+import {QUERIES_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/querySummary';
 import {SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/sessionHealth';
 
 export enum PrebuiltDashboardId {
   FRONTEND_SESSION_HEALTH = 1,
   BACKEND_QUERIES = 2,
+  BACKEND_QUERIES_SUMMARY = 3,
 }
 
 export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
@@ -12,4 +14,5 @@ export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
 export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard> = {
   [PrebuiltDashboardId.FRONTEND_SESSION_HEALTH]: SESSION_HEALTH_PREBUILT_CONFIG,
   [PrebuiltDashboardId.BACKEND_QUERIES]: QUERIES_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY]: QUERIES_SUMMARY_PREBUILT_CONFIG,
 };
