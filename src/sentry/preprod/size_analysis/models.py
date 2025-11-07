@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict
@@ -18,7 +20,7 @@ class TreemapElement(BaseModel):
     is_dir: bool
     type: str | None
     """ Some files (like zip files) are not directories but have children. """
-    children: list["TreemapElement"]
+    children: list[TreemapElement]
 
 
 class TreemapResults(BaseModel):

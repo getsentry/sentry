@@ -31,7 +31,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import {InvalidReason} from 'sentry/components/searchSyntax/parser';
+import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -297,8 +297,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   get transactionAlertDisabledMessage() {
-    return t(
-      'Transaction based alerts are no longer supported. Create span alerts instead.'
+    return tctCode(
+      'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
+      {
+        FAQLink: (
+          <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+        ),
+      }
     );
   }
 
@@ -488,35 +493,35 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             <div>{t('Define your metric')}</div>
           </StyledListTitle>
         </StyledListItem>
-        <Tooltip
-          title={this.transactionAlertDisabledMessage}
-          disabled={!this.disableTransactionAlertType}
-          isHoverable
-        >
-          <FormRow>
-            <WizardField
-              name="aggregate"
-              help={null}
-              organization={organization}
-              disabled={disabled}
-              project={project}
-              style={{
-                ...this.formElemBaseStyle,
-                flex: 1,
-              }}
-              inline={false}
-              flexibleControlStateSize
-              columnWidth={200}
-              alertType={alertType}
-              required
-              isEditing={isEditing}
-              eventTypes={eventTypes}
-              disabledReason={
-                this.disableTransactionAlertType
-                  ? this.transactionAlertDisabledMessage
-                  : undefined
-              }
-            />
+        <FormRow>
+          <WizardField
+            name="aggregate"
+            help={null}
+            organization={organization}
+            disabled={disabled}
+            project={project}
+            style={{
+              ...this.formElemBaseStyle,
+              flex: 1,
+            }}
+            inline={false}
+            flexibleControlStateSize
+            columnWidth={200}
+            alertType={alertType}
+            required
+            isEditing={isEditing}
+            eventTypes={eventTypes}
+            disabledReason={
+              this.disableTransactionAlertType
+                ? this.transactionAlertDisabledMessage
+                : undefined
+            }
+          />
+          <Tooltip
+            title={this.transactionAlertDisabledMessage}
+            disabled={!this.disableTransactionAlertType}
+            isHoverable
+          >
             <Select
               name="timeWindow"
               styles={this.selectControlStyles}
@@ -527,8 +532,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               inline={false}
               flexibleControlStateSize
             />
-          </FormRow>
-        </Tooltip>
+          </Tooltip>
+        </FormRow>
       </Fragment>
     );
   }
@@ -695,6 +700,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           }
                           onChange={onChange}
                           invalidMessages={{
+                            ...defaultConfig.invalidMessages,
                             [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
                               'The wildcard operator is not supported here.'
                             ),

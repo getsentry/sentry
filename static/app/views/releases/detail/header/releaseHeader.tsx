@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
@@ -66,6 +67,7 @@ function ReleaseHeader({
           </NavTabsBadge>
         ),
       }),
+      textValue: t('Commits %s', formatAbbreviatedNumber(commitCount)),
       to: `commits/`,
     },
     {
@@ -76,6 +78,7 @@ function ReleaseHeader({
           </NavTabsBadge>
         ),
       }),
+      textValue: t('Files Changed %s', formatAbbreviatedNumber(commitFilesChanged)),
       to: `files-changed/`,
     },
   ];
@@ -90,11 +93,17 @@ function ReleaseHeader({
             <FeatureBadge type="new" />
           </BadgeWrapper>
         ) : (
-          <NavTabsBadge type="default">
-            {formatAbbreviatedNumber(numberOfMobileBuilds)}
-          </NavTabsBadge>
+          <React.Fragment>
+            <NavTabsBadge type="default">
+              {formatAbbreviatedNumber(numberOfMobileBuilds)}
+            </NavTabsBadge>
+            <BadgeWrapper>
+              <FeatureBadge type="beta" />
+            </BadgeWrapper>
+          </React.Fragment>
         ),
     }),
+    textValue: t('Builds %s', numberOfMobileBuilds),
     to: `builds/`,
   };
 
@@ -148,6 +157,7 @@ function ReleaseHeader({
               size="zero"
               text={version}
               title={version}
+              aria-label={t('Copy release version to clipboard')}
             />
           </IconWrapper>
           {!!url && (
@@ -176,7 +186,7 @@ function ReleaseHeader({
       <Layout.HeaderTabs value={getActiveTabTo()}>
         <TabList hideBorder>
           {tabs.map(tab => (
-            <TabList.Item key={tab.to} to={getTabUrl(tab.to)}>
+            <TabList.Item key={tab.to} to={getTabUrl(tab.to)} textValue={tab.textValue}>
               {tab.title}
             </TabList.Item>
           ))}

@@ -336,7 +336,10 @@ def get_performance_issue_alert_subtitle(event: GroupEvent) -> str:
     """Generate the issue alert subtitle for performance issues"""
     if event.occurrence is None:
         return ""
-    return event.occurrence.evidence_data.get("repeating_spans_compact", "").replace("`", '"')
+    repeating_spans_compact = event.occurrence.evidence_data.get("repeating_spans_compact", "")
+    if isinstance(repeating_spans_compact, list):
+        repeating_spans_compact = repeating_spans_compact[0]
+    return repeating_spans_compact.replace("`", '"')
 
 
 def get_notification_group_title(

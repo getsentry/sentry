@@ -1109,6 +1109,7 @@ describe('trace view', () => {
     });
 
     it('scrolls to missing instrumentation node', async () => {
+      mockTracePreferences({missing_instrumentation: true});
       mockQueryString('?node=ms-queueprocess0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
@@ -1166,16 +1167,11 @@ describe('trace view', () => {
     ] as Array<`?${string}`>)('logs if path is not found: %s', async path => {
       mockQueryString(path);
 
-      const sentryScopeMock = {
-        setFingerprint: jest.fn(),
-        captureMessage: jest.fn(),
-      } as any;
-
-      jest.spyOn(Sentry, 'withScope').mockImplementation((f: any) => f(sentryScopeMock));
+      jest.spyOn(Sentry.logger, 'warn');
       await pageloadTestSetup();
 
       await waitFor(() => {
-        expect(sentryScopeMock.captureMessage).toHaveBeenCalledWith(
+        expect(Sentry.logger.warn).toHaveBeenCalledWith(
           'Failed to scroll to node in trace tree'
         );
       });

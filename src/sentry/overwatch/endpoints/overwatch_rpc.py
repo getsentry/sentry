@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+from copy import deepcopy
 from typing import Any
 
 import sentry_sdk
@@ -19,8 +20,11 @@ from sentry.constants import (
     HIDE_AI_FEATURES_DEFAULT,
     ObjectStatus,
 )
+from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.prevent.models import PreventAIConfiguration
+from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT
 from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
@@ -96,9 +100,9 @@ def _can_use_prevent_ai_features(org: Organization) -> bool:
 @region_silo_endpoint
 class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
     """
-    Returns the resolved config for a single repo under a GitHub org.
+    Returns the resolved config for a Sentry organization.
 
-    GET /prevent/pr-review/configs/resolved?ghOrg={org}&repo={repo}
+    GET /prevent/pr-review/configs/resolved?sentryOrgId={orgId}&gitOrgName={gitOrgName}&provider={provider}
     """
 
     publish_status = {
@@ -114,12 +118,43 @@ class PreventPrReviewResolvedConfigsEndpoint(Endpoint):
             request.successful_authenticator, OverwatchRpcSignatureAuthentication
         ):
             raise PermissionDenied
-        gh_org = request.GET.get("ghOrg")
-        repo = request.GET.get("repo")
-        if not gh_org or not repo:
-            raise ParseError("Missing required query parameters: ghOrg, repo")
-        # Stub: return empty dict for now
-        return Response(data={})
+
+        sentry_org_id_str = request.GET.get("sentryOrgId")
+        if not sentry_org_id_str:
+            raise ParseError("Missing required query parameter: sentryOrgId")
+        try:
+            sentry_org_id = int(sentry_org_id_str)
+            if sentry_org_id <= 0:
+                raise ParseError("sentryOrgId must be a positive integer")
+        except ValueError:
+            raise ParseError("sentryOrgId must be a valid integer")
+
+        git_org_name = request.GET.get("gitOrgName")
+        if not git_org_name:
+            raise ParseError("Missing required query parameter: gitOrgName")
+        provider = request.GET.get("provider")
+        if not provider:
+            raise ParseError("Missing required query parameter: provider")
+
+        github_org_integrations = integration_service.get_organization_integrations(
+            organization_id=sentry_org_id,
+            providers=[provider],
+            status=ObjectStatus.ACTIVE,
+            name=git_org_name,
+        )
+        if not github_org_integrations:
+            return Response({"detail": "GitHub integration not found"}, status=404)
+
+        config = PreventAIConfiguration.objects.filter(
+            organization_id=sentry_org_id,
+            integration_id=github_org_integrations[0].integration_id,
+        ).first()
+
+        response_data: dict[str, Any] = deepcopy(PREVENT_AI_CONFIG_DEFAULT)
+        if config:
+            response_data["organization"] = config.data
+
+        return Response(data=response_data)
 
 
 @region_silo_endpoint
@@ -161,7 +196,12 @@ class PreventPrReviewSentryOrgEndpoint(Endpoint):
         return Response(
             data={
                 "organizations": [
-                    {"org_id": org.id, "has_consent": _can_use_prevent_ai_features(org)}
+                    {
+                        "org_id": org.id,
+                        "org_slug": org.slug,
+                        "org_name": org.name,
+                        "has_consent": _can_use_prevent_ai_features(org),
+                    }
                     for org in organizations
                 ]
             }

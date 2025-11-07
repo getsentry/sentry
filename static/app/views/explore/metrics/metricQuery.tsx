@@ -1,12 +1,22 @@
+import type {Location} from 'history';
+
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {
+  isBaseVisualize,
+  isVisualize,
+  Visualize,
+  VisualizeFunction,
+  type BaseVisualize,
+} from 'sentry/views/explore/queryParams/visualize';
 
 export interface TraceMetric {
   name: string;
+  type: string;
 }
 
 export interface BaseMetricQuery {
@@ -15,8 +25,9 @@ export interface BaseMetricQuery {
 }
 
 export interface MetricQuery extends BaseMetricQuery {
-  setMetricName: (metricName: string) => void;
+  removeMetric: () => void;
   setQueryParams: (queryParams: ReadableQueryParams) => void;
+  setTraceMetric: (traceMetric: TraceMetric) => void;
 }
 
 export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null {
@@ -28,7 +39,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
   }
 
   const metric = json.metric;
-  if (typeof metric !== 'string') {
+  if (defined(metric) && typeof metric !== 'object') {
     return null;
   }
 
@@ -37,11 +48,33 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
     return null;
   }
 
+  const rawAggregateFields = json.aggregateFields;
+  if (!Array.isArray(rawAggregateFields)) {
+    return null;
+  }
+
+  const visualizes = rawAggregateFields
+    .filter<BaseVisualize>(isBaseVisualize)
+    .flatMap(vis => Visualize.fromJSON(vis));
+
+  if (!visualizes.length) {
+    return null;
+  }
+
+  const groupBys = rawAggregateFields.filter<GroupBy>(isGroupBy);
+
+  const aggregateFields = [...visualizes, ...groupBys];
+
+  const aggregateSortBys = json.aggregateSortBys;
+  if (!Array.isArray(aggregateSortBys)) {
+    return null;
+  }
+
   return {
-    metric: {name: metric},
+    metric,
     queryParams: new ReadableQueryParams({
       extrapolate: true,
-      mode: Mode.AGGREGATE,
+      mode: json.mode,
       query,
 
       cursor: '',
@@ -49,22 +82,32 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
       sortBys: defaultSortBys(),
 
       aggregateCursor: '',
-      aggregateFields: defaultAggregateFields(),
-      aggregateSortBys: defaultAggregateSortBys(),
+      aggregateFields,
+      aggregateSortBys,
     }),
   };
 }
 
 export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
   return JSON.stringify({
-    metric: metricQuery.metric.name,
+    metric: metricQuery.metric,
     query: metricQuery.queryParams.query,
+    aggregateFields: metricQuery.queryParams.aggregateFields.map(field => {
+      if (isVisualize(field)) {
+        return field.serialize();
+      }
+
+      // Keep Group By as-is
+      return field;
+    }),
+    aggregateSortBys: metricQuery.queryParams.aggregateSortBys,
+    mode: metricQuery.queryParams.mode,
   });
 }
 
 export function defaultMetricQuery(): BaseMetricQuery {
   return {
-    metric: {name: ''},
+    metric: {name: '', type: ''},
     queryParams: new ReadableQueryParams({
       extrapolate: true,
       mode: Mode.AGGREGATE,
@@ -94,9 +137,20 @@ function defaultSortBys(): Sort[] {
 }
 
 function defaultAggregateFields(): AggregateField[] {
-  return [new VisualizeFunction('sum(value)', {chartType: ChartType.BAR})];
+  return [new VisualizeFunction('per_second(value)')];
 }
 
 function defaultAggregateSortBys(): Sort[] {
-  return [{field: 'sum(value)', kind: 'desc'}];
+  return [{field: 'per_second(value)', kind: 'desc'}];
+}
+
+export function stripMetricParamsFromLocation(location: Location): Location {
+  const target: Location = {...location, query: {...location.query}};
+  for (const key in ReadableQueryParams.prototype) {
+    delete target.query[key];
+  }
+  // Metric context
+  delete target.query.metric;
+
+  return target;
 }

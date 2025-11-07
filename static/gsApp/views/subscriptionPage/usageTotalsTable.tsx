@@ -1,8 +1,10 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Flex, Grid} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import type {TooltipProps} from 'sentry/components/core/tooltip';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -11,15 +13,28 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import type {BillingStatTotal, Subscription} from 'getsentry/types';
-import {displayPercentage, formatUsageWithUnits} from 'getsentry/utils/billing';
+import {
+  displayPercentage,
+  formatUsageWithUnits,
+  getPercentage,
+  hasNewBillingUI,
+} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
   isContinuousProfiling,
 } from 'getsentry/utils/dataCategory';
 import {StripedTable} from 'getsentry/views/subscriptionPage/styles';
+
+const OUTCOMES_SHOWN = [
+  'accepted',
+  'droppedOverQuota',
+  'droppedSpikeProtection',
+  'droppedOther',
+];
 
 type RowProps = {
   category: DataCategory;
@@ -32,6 +47,14 @@ type RowProps = {
    */
   quantity: number;
   totals: BillingStatTotal;
+  /**
+   * Legend color for the bar
+   */
+  barColor?: string;
+  /**
+   * Whether the name should be bold
+   */
+  bold?: boolean;
   /**
    * Button to expand outcome section
    */
@@ -54,30 +77,34 @@ function OutcomeRow({
   tooltipTitle,
   expandButton,
   indent,
+  barColor,
+  bold,
 }: RowProps) {
   const amount = Math.max(quantity, 0);
   const totalUsage = totals.accepted + totals.dropped;
 
+  const TextWrapper = tooltipTitle ? TextWithQuestionTooltip : Fragment;
+
   return (
     <tr>
-      {tooltipTitle ? (
-        <td>
-          <OutcomeType indent={indent}>
-            <TextWithQuestionTooltip>
+      <td>
+        <Flex
+          gap="xs"
+          align="center"
+          paddingLeft={barColor && indent ? '3xl' : undefined}
+        >
+          {barColor && <OutcomeLegend color={barColor} />}
+          <OutcomeType indent={!barColor && indent}>
+            <TextWrapper>
               {expandButton}
-              {name}
+              <Text bold={bold}>{name}</Text>
+            </TextWrapper>
+            {tooltipTitle && (
               <QuestionTooltip size="xs" position="top" title={tooltipTitle} />
-            </TextWithQuestionTooltip>
+            )}
           </OutcomeType>
-        </td>
-      ) : (
-        <td>
-          <OutcomeType indent={indent}>
-            {expandButton}
-            {name}
-          </OutcomeType>
-        </td>
-      )}
+        </Flex>
+      </td>
       <td>
         <TextOverflow>
           {formatUsageWithUnits(amount, category, {useUnitScaling: true})}
@@ -98,6 +125,7 @@ type OutcomeSectionProps = {
   totals: BillingStatTotal;
   expanded?: boolean;
   isEventBreakdown?: boolean;
+  isNewBillingUI?: boolean;
 };
 
 type State = {expanded: boolean};
@@ -109,10 +137,13 @@ function OutcomeSection({
   category,
   totals,
   children,
+  isNewBillingUI,
 }: OutcomeSectionProps) {
-  const [state, setState] = useState<State>({expanded: !isEventBreakdown});
+  const [state, setState] = useState<State>({
+    expanded: isNewBillingUI || !isEventBreakdown,
+  });
 
-  const expandButton = (
+  const expandButton = isNewBillingUI ? undefined : (
     <StyledButton
       data-test-id="expand-dropped-totals"
       size="zero"
@@ -129,9 +160,83 @@ function OutcomeSection({
         expandButton={expandButton}
         category={category}
         totals={totals}
+        bold={isNewBillingUI}
       />
       {state.expanded && children}
     </Fragment>
+  );
+}
+
+function IngestionBar({
+  totals,
+  totalIngested,
+  outcomeToBarColor,
+}: {
+  outcomeToBarColor: Record<(typeof OUTCOMES_SHOWN)[number], string>;
+  totalIngested: number;
+  totals: BillingStatTotal;
+}) {
+  const displayTotals = Object.entries(totals).filter(
+    ([outcome, total]) => OUTCOMES_SHOWN.includes(outcome) && total > 0
+  );
+
+  return (
+    <Flex width="100%" justify="end">
+      {totalIngested > 0 ? (
+        displayTotals.map(([outcome, total], index) => {
+          const fillPercentage = getPercentage(total, totalIngested);
+          const isFirstBar = index === 0;
+          const isLastBar = index === Object.entries(displayTotals).length - 1;
+          const barColor = outcomeToBarColor[outcome];
+
+          return (
+            <Bar
+              fillPercentage={fillPercentage}
+              hasLeftBorderRadius={isFirstBar}
+              hasRightBorderRadius={isLastBar}
+              barColor={barColor}
+              key={outcome}
+            />
+          );
+        })
+      ) : (
+        <Bar fillPercentage={100} hasLeftBorderRadius hasRightBorderRadius />
+      )}
+    </Flex>
+  );
+}
+
+function IngestionSummary({
+  category,
+  totals,
+  outcomeToBarColor,
+}: {
+  category: DataCategory;
+  outcomeToBarColor: Record<(typeof OUTCOMES_SHOWN)[number], string>;
+  totals: BillingStatTotal;
+}) {
+  const totalIngested = Object.entries(totals)
+    .filter(([key]) => OUTCOMES_SHOWN.includes(key))
+    .reduce((acc, [_, value]) => acc + value, 0);
+
+  return (
+    <Flex direction="column" gap="md">
+      <Heading as="h4">{t('Total ingested')}</Heading>
+      <Flex justify="between" align="center" gap="lg">
+        <Text wrap="nowrap">
+          {formatUsageWithUnits(totalIngested, category, {
+            useUnitScaling: true,
+            isAbbreviated: true,
+          })}
+        </Text>
+
+        <IngestionBar
+          totals={totals}
+          totalIngested={totalIngested}
+          outcomeToBarColor={outcomeToBarColor}
+        />
+      </Flex>
+    </Flex>
   );
 }
 
@@ -143,7 +248,17 @@ type Props = {
 };
 
 function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Props) {
+  const organization = useOrganization();
+  const isNewBillingUI = hasNewBillingUI(organization);
   const categoryInfo = getCategoryInfoFromPlural(category);
+  const theme = useTheme();
+  const colorPalette = theme.chart.getColorPalette(6);
+  const outcomeToBarColor = {
+    accepted: colorPalette[0],
+    droppedOverQuota: colorPalette[3],
+    droppedSpikeProtection: colorPalette[4],
+    droppedOther: colorPalette[5],
+  };
 
   function OutcomeTable({children}: {children: React.ReactNode}) {
     const categoryName = isEventBreakdown
@@ -164,15 +279,17 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
         <thead>
           <tr>
             <th>
-              <TextOverflow>
-                {isEventBreakdown
-                  ? tct('[singularName] Events', {
-                      singularName: toTitleCase(categoryInfo?.displayName ?? category, {
-                        allowInnerUpperCase: true,
-                      }),
-                    })
-                  : categoryName}
-              </TextOverflow>
+              {(!isNewBillingUI || isEventBreakdown) && (
+                <TextOverflow>
+                  {isEventBreakdown
+                    ? tct('[singularName] Events', {
+                        singularName: toTitleCase(categoryInfo?.displayName ?? category, {
+                          allowInnerUpperCase: true,
+                        }),
+                      })
+                    : categoryName}
+                </TextOverflow>
+              )}
             </th>
             <th>
               <TextOverflow>{t('Quantity')}</TextOverflow>
@@ -193,13 +310,26 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
   const hasSpikeProtection = categoryInfo?.hasSpikeProtection ?? false;
 
   return (
-    <UsageTableWrapper>
+    <Grid
+      gap="md"
+      padding={isNewBillingUI ? 'md' : 'md 0'}
+      border={isNewBillingUI ? 'primary' : undefined}
+      radius={isNewBillingUI ? 'md' : undefined}
+    >
+      {isNewBillingUI && (
+        <IngestionSummary
+          category={category}
+          totals={totals}
+          outcomeToBarColor={outcomeToBarColor}
+        />
+      )}
       <OutcomeTable>
         <OutcomeRow
           name={t('Accepted')}
           quantity={totals.accepted}
           category={category}
           totals={totals}
+          barColor={isNewBillingUI ? outcomeToBarColor.accepted : undefined}
         />
         <OutcomeSection
           isEventBreakdown={isEventBreakdown}
@@ -207,6 +337,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
           quantity={totals.dropped}
           category={category}
           totals={totals}
+          isNewBillingUI={isNewBillingUI}
         >
           <OutcomeRow
             indent
@@ -214,6 +345,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
             quantity={totals.droppedOverQuota}
             category={category}
             totals={totals}
+            barColor={isNewBillingUI ? outcomeToBarColor.droppedOverQuota : undefined}
           />
           {hasSpikeProtection && (
             <OutcomeRow
@@ -222,6 +354,9 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
               quantity={totals.droppedSpikeProtection}
               category={category}
               totals={totals}
+              barColor={
+                isNewBillingUI ? outcomeToBarColor.droppedSpikeProtection : undefined
+              }
             />
           )}
           <OutcomeRow
@@ -233,10 +368,11 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
             tooltipTitle={t(
               'The dropped other category is for all uncategorized dropped events. This is commonly due to user configured rate limits.'
             )}
+            barColor={isNewBillingUI ? outcomeToBarColor.droppedOther : undefined}
           />
         </OutcomeSection>
       </OutcomeTable>
-    </UsageTableWrapper>
+    </Grid>
   );
 }
 
@@ -267,13 +403,6 @@ const TextWithQuestionTooltip = styled('div')`
   gap: ${space(1)};
 `;
 
-const UsageTableWrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: row;
-  gap: ${space(3)};
-  padding: ${space(1)} 0;
-`;
-
 const StyledTable = styled(StripedTable)`
   table-layout: fixed;
 
@@ -289,4 +418,27 @@ const StyledTable = styled(StripedTable)`
   th:first-child {
     padding-left: 0;
   }
+`;
+
+const Bar = styled('div')<{
+  fillPercentage: number;
+  barColor?: string;
+  hasLeftBorderRadius?: boolean;
+  hasRightBorderRadius?: boolean;
+}>`
+  display: block;
+  width: ${p => `${p.fillPercentage}%`};
+  height: 7px;
+  background: ${p => p.barColor ?? p.theme.gray200};
+  border-top-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.borderRadius : 0)};
+  border-bottom-left-radius: ${p => (p.hasLeftBorderRadius ? p.theme.borderRadius : 0)};
+  border-top-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.borderRadius : 0)};
+  border-bottom-right-radius: ${p => (p.hasRightBorderRadius ? p.theme.borderRadius : 0)};
+`;
+
+const OutcomeLegend = styled('div')<{color: string}>`
+  border-radius: 50%;
+  background-color: ${p => p.color};
+  width: 7px;
+  height: 7px;
 `;

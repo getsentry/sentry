@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 from django.utils import timezone
-from rest_framework import status
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
@@ -29,10 +28,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         self.login_as(user=self.user)
 
         self.detector = self.create_detector()
-        self.group = self.create_group(priority=PriorityLevel.LOW)
-        # Metric issue is the only type (currently) that has open periods
-        self.group.type = MetricIssue.type_id
-        self.group.save()
+        self.group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.LOW)
 
         # Link detector to group
         DetectorGroup.objects.create(detector=self.detector, group=self.group)
@@ -52,12 +48,12 @@ class OrganizationOpenPeriodsTest(APITestCase):
     def test_no_group_link(self) -> None:
         # Create a new detector with no linked group
         detector = self.create_detector()
-        resp = self.get_error_response(
+        resp = self.get_success_response(
             self.organization.slug,
             qs_params={"detectorId": detector.id},
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=200,
         )
-        assert resp.data["detail"] == "Group not found. Could not query open periods."
+        assert resp.data == []
 
     def test_open_period_linked_to_group(self) -> None:
         response = self.get_success_response(
@@ -67,7 +63,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         open_period = response.data[0]
         assert open_period["start"] == self.group.first_seen
         assert open_period["end"] is None
-        assert open_period["duration"] is None
         assert open_period["isOpen"] is True
         assert len(open_period["activities"]) == 1
         assert open_period["activities"][0] == {
@@ -103,7 +98,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["id"] == str(self.group_open_period.id)
         assert resp["start"] == self.group.first_seen
         assert resp["end"] is None
-        assert resp["duration"] is None
         assert resp["isOpen"] is True
         assert resp["lastChecked"] >= last_checked
         assert resp["activities"][0] == {
@@ -143,7 +137,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["id"] == str(open_period.id)
         assert resp["start"] == self.group.first_seen
         assert resp["end"] == resolved_time
-        assert resp["duration"] == resolved_time - self.group.first_seen
         assert resp["isOpen"] is False
         assert resp["lastChecked"].replace(second=0, microsecond=0) == activity.datetime.replace(
             second=0, microsecond=0
@@ -229,7 +222,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["id"] == str(open_period2.id)
         assert resp["start"] == unresolved_time
         assert resp["end"] == second_resolved_time
-        assert resp["duration"] == second_resolved_time - unresolved_time
         assert resp["isOpen"] is False
         assert resp["lastChecked"].replace(second=0, microsecond=0) == second_resolved_time.replace(
             second=0, microsecond=0
@@ -251,7 +243,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp2["id"] == str(open_period.id)
         assert resp2["start"] == self.group.first_seen
         assert resp2["end"] == resolved_time
-        assert resp2["duration"] == resolved_time - self.group.first_seen
         assert resp2["isOpen"] is False
         assert resp2["lastChecked"].replace(second=0, microsecond=0) == resolved_time.replace(
             second=0, microsecond=0
@@ -325,7 +316,6 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["id"] == str(open_period.id)
         assert resp["start"] == unresolved_time
         assert resp["end"] == second_resolved_time
-        assert resp["duration"] == second_resolved_time - unresolved_time
         assert resp["isOpen"] is False
         assert resp["lastChecked"].replace(second=0, microsecond=0) == second_resolved_time.replace(
             second=0, microsecond=0

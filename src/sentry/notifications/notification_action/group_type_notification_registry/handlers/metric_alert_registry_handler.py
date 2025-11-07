@@ -46,10 +46,14 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
         target_type = action.config.get("target_type")
         if target_type == ActionTarget.USER.value:
             dcga = DataConditionGroupAction.objects.get(action=action)
-            return OrganizationMember.objects.get(
-                user_id=int(target_identifier),
-                organization=dcga.condition_group.organization,
-            )
+            try:
+                return OrganizationMember.objects.get(
+                    user_id=int(target_identifier),
+                    organization=dcga.condition_group.organization,
+                )
+            except OrganizationMember.DoesNotExist:
+                # user is no longer a member of the organization
+                pass
         elif target_type == ActionTarget.TEAM.value:
             try:
                 return Team.objects.get(id=int(target_identifier))

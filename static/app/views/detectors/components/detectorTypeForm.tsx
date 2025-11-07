@@ -17,11 +17,7 @@ export function DetectorTypeForm() {
   return (
     <FormContainer>
       <Header>
-        <h3>{t('Monitor type')}</h3>
-        <p>
-          {t("Monitor type can't be edited once the monitor has been created.")}{' '}
-          <a href="#">{t('Learn more about monitor types.')}</a>
-        </p>
+        <h3>{t('Select monitor type')}</h3>
       </Header>
       <MonitorTypeField />
     </FormContainer>
@@ -129,7 +125,6 @@ function MonitorTypeField() {
 const FormContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  max-width: ${p => p.theme.breakpoints.xl};
   gap: ${p => p.theme.space.xl};
 `;
 
@@ -144,6 +139,7 @@ const OptionBody = styled('div')`
   justify-content: space-between;
   padding: ${p => p.theme.space.xl};
   align-items: center;
+  gap: ${p => p.theme.space.sm};
 `;
 
 const OptionLabel = styled('label')<{disabled?: boolean}>`

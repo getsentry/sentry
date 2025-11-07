@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {
   useDeleteAutomationMutation,
   useUpdateAutomation,
@@ -36,9 +35,7 @@ export function EditAutomationActions({automation}: EditAutomationActionsProps) 
       },
       {
         onSuccess: data => {
-          addSuccessMessage(
-            data.enabled ? t('Automation enabled') : t('Automation disabled')
-          );
+          addSuccessMessage(data.enabled ? t('Alert enabled') : t('Alert disabled'));
         },
       }
     );
@@ -46,7 +43,7 @@ export function EditAutomationActions({automation}: EditAutomationActionsProps) 
 
   const handleDelete = useCallback(() => {
     openConfirmModal({
-      message: t('Are you sure you want to delete this automation?'),
+      message: t('Are you sure you want to delete this alert?'),
       confirmText: t('Delete'),
       priority: 'danger',
       onConfirm: async () => {
@@ -59,7 +56,6 @@ export function EditAutomationActions({automation}: EditAutomationActionsProps) 
   return (
     <div>
       <ButtonBar>
-        <AutomationFeedbackButton />
         <Button
           priority="default"
           size="sm"

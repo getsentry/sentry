@@ -45,6 +45,7 @@ interface SidebarItemDropdownProps {
   children?: React.ReactNode;
   disableTooltip?: boolean;
   onOpen?: MouseEventHandler<HTMLButtonElement>;
+  triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }
 
 interface SidebarButtonProps {
@@ -114,6 +115,7 @@ export function SidebarMenu({
   label,
   onOpen,
   disableTooltip,
+  triggerWrap: TriggerWrap = Fragment,
 }: SidebarItemDropdownProps) {
   const theme = useTheme();
   // This component can be rendered without an organization in some cases
@@ -134,28 +136,30 @@ export function SidebarMenu({
             showLabel={showLabel}
             disableTooltip={disableTooltip}
           >
-            <NavButton
-              {...props}
-              aria-label={showLabel ? undefined : label}
-              onClick={event => {
-                if (organization) {
-                  recordPrimaryItemClick(analyticsKey, organization);
+            <TriggerWrap>
+              <NavButton
+                {...props}
+                aria-label={showLabel ? undefined : label}
+                onClick={event => {
+                  if (organization) {
+                    recordPrimaryItemClick(analyticsKey, organization);
+                  }
+                  props.onClick?.(event);
+                  onOpen?.(event);
+                }}
+                isMobile={layout === NavLayout.MOBILE}
+                icon={
+                  showLabel ? (
+                    <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon>
+                  ) : null
                 }
-                props.onClick?.(event);
-                onOpen?.(event);
-              }}
-              isMobile={layout === NavLayout.MOBILE}
-              icon={
-                showLabel ? (
-                  <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon>
-                ) : null
-              }
-            >
-              {theme.isChonk ? null : (
-                <InteractionStateLayer hasSelectedBackground={isOpen} />
-              )}
-              {showLabel ? label : children}
-            </NavButton>
+              >
+                {theme.isChonk ? null : (
+                  <InteractionStateLayer hasSelectedBackground={isOpen} />
+                )}
+                {showLabel ? label : children}
+              </NavButton>
+            </TriggerWrap>
           </SidebarItem>
         );
       }}

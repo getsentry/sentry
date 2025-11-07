@@ -57,7 +57,7 @@ export function useSentryAppExternalIssues({
     );
     if (externalIssue) {
       result.linkedIssues.push({
-        key: externalIssue.id,
+        key: `sentryapp-linked-${externalIssue.id}`,
         displayName: externalIssue.displayName,
         url: externalIssue.webUrl,
         // Some display names look like PROJ#1234
@@ -80,7 +80,7 @@ export function useSentryAppExternalIssues({
       });
     } else {
       result.integrations.push({
-        key: component.sentryApp.slug,
+        key: `sentryapp-${component.sentryApp.slug}`,
         displayName: appDisplayName,
         displayIcon,
         disabled: Boolean(component.error),

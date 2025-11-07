@@ -15,6 +15,7 @@ from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
@@ -36,6 +37,7 @@ from sentry.types.actor import Actor
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 class ProjectTest(APITestCase, TestCase):
@@ -248,7 +250,7 @@ class ProjectTest(APITestCase, TestCase):
             integration_id=integration.id,
         )
 
-        RepositoryProjectPathConfig.objects.create(
+        repository_project_path_config = RepositoryProjectPathConfig.objects.create(
             repository=repository,
             project=project,
             organization_integration_id=org_integration.id,
@@ -259,12 +261,20 @@ class ProjectTest(APITestCase, TestCase):
             default_branch="main",
         )
 
+        ProjectCodeOwners.objects.create(
+            project=project,
+            repository_project_path_config=repository_project_path_config,
+            raw="*.py @getsentry/test-team",
+        )
+
         project.transfer_to(organization=to_org)
 
         assert RepositoryProjectPathConfig.objects.filter(organization_id=from_org.id).count() == 0
         assert RepositoryProjectPathConfig.objects.filter(organization_id=to_org.id).count() == 0
 
         assert RepositoryProjectPathConfig.objects.filter(project_id=project.id).count() == 0
+
+        assert ProjectCodeOwners.objects.filter(project_id=project.id).count() == 0
 
     def test_transfer_to_organization_alert_rules(self) -> None:
         from_org = self.create_organization()
@@ -467,13 +477,14 @@ class ProjectTest(APITestCase, TestCase):
         assert alert_rule.team_id is None
         assert alert_rule.user_id is None
 
-    def test_project_detector(self) -> None:
+    def test_project_detectors(self) -> None:
         project = self.create_project()
-        assert not Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+        assert not Detector.objects.filter(project=project).exists()
 
         with self.feature({"organizations:workflow-engine-issue-alert-dual-write": True}):
             project = self.create_project()
             assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+            assert Detector.objects.filter(project=project, type=IssueStreamGroupType.slug).exists()
 
 
 class ProjectOptionsTests(TestCase):

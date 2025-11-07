@@ -6,12 +6,35 @@ export function parseGroupBy(
   groupName: string,
   fields: string[]
 ): TimeSeriesGroupBy[] | null {
+  // "Other", by definition, does not have any known group by values
   if (groupName === 'Other') {
     return null;
   }
 
+  if (fields.length === 0) {
+    return null;
+  }
+
   const groupKeys = fields;
-  const groupValues = groupName.split(',');
+
+  // `/events-stats/` converts Python's `None` into `"None"`. Here, we do the reverse
+  if (groupName === 'None') {
+    return groupKeys.map(groupKey => ({
+      key: groupKey,
+      value: null,
+    }));
+  }
+
+  const groupValues = groupName.split(DELIMITER);
+
+  // If the `groupName` contains commas, that will result in more values than
+  // keys. In this case, concatenate the values back together until the number
+  // of keys and values matches. Do this greedily, which is not always accurate,
+  // but in practice this doesn't make a UI difference since all values are
+  // eventually concatenated with commas.
+  while (groupValues.length > groupKeys.length) {
+    groupValues.splice(0, 2, `${groupValues[0]!}${DELIMITER}${groupValues[1]!}`);
+  }
 
   const groupBys = zipWith(groupKeys, groupValues, (key, value) => {
     return {
@@ -24,3 +47,5 @@ export function parseGroupBy(
 
   return groupBys.length > 0 ? groupBys : null;
 }
+
+const DELIMITER = ',';

@@ -2,6 +2,10 @@ import {useMemo} from 'react';
 
 import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {
+  CaseInsensitive,
+  SetCaseInsensitive,
+} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
@@ -19,7 +23,11 @@ export type TraceItemSearchQueryBuilderProps = {
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  caseInsensitive?: CaseInsensitive;
+  disabled?: boolean;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  namespace?: string;
+  onCaseInsensitiveClick?: SetCaseInsensitive;
   replaceRawSearchKeys?: string[];
 } & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
@@ -69,8 +77,11 @@ export function useSearchQueryBuilderProps({
   portalTarget,
   projects,
   supportedAggregates = [],
+  namespace,
   replaceRawSearchKeys,
   matchKeySuggestions,
+  caseInsensitive,
+  onCaseInsensitiveClick,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
@@ -103,11 +114,14 @@ export function useSearchQueryBuilderProps({
     getTagValues: getTraceItemAttributeValues,
     disallowUnsupportedFilters: true,
     recentSearches: itemTypeToRecentSearches(itemType),
+    namespace,
     showUnsubmittedIndicator: true,
     portalTarget,
     replaceRawSearchKeys,
     matchKeySuggestions,
     filterKeyAliases: {...numberSecondaryAliases, ...stringSecondaryAliases},
+    caseInsensitive,
+    onCaseInsensitiveClick,
   };
 }
 
@@ -132,6 +146,7 @@ export function TraceItemSearchQueryBuilder({
   portalTarget,
   projects,
   supportedAggregates = [],
+  disabled,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useSearchQueryBuilderProps({
     itemType,
@@ -150,7 +165,13 @@ export function TraceItemSearchQueryBuilder({
     supportedAggregates,
   });
 
-  return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;
+  return (
+    <SearchQueryBuilder
+      autoFocus={autoFocus}
+      disabled={disabled}
+      {...searchQueryBuilderProps}
+    />
+  );
 }
 
 function useFunctionTags(
@@ -196,7 +217,7 @@ function useFilterKeySections(
       ...itemTypeToFilterKeySections(itemType).map(section => {
         return {
           ...section,
-          children: section.children.filter(key => stringAttributes.hasOwnProperty(key)),
+          children: section.children.filter(key => key in stringAttributes),
         };
       }),
       {
@@ -213,7 +234,7 @@ function itemTypeToRecentSearches(itemType: TraceItemDataset) {
     return SavedSearchType.SPAN;
   }
   if (itemType === TraceItemDataset.TRACEMETRICS) {
-    return SavedSearchType.METRIC;
+    return SavedSearchType.TRACEMETRIC;
   }
   return SavedSearchType.LOG;
 }

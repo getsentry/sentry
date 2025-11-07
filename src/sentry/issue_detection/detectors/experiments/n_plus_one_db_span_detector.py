@@ -124,7 +124,11 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
         self._maybe_store_problem()
 
     def _is_db_op(self, op: str) -> bool:
-        return op.startswith("db") and not op.startswith("db.redis")
+        return (
+            op.startswith("db")
+            and not op.startswith("db.redis")
+            and not op.startswith("db.connection")
+        )
 
     def _maybe_use_as_source(self, span: Span) -> None:
         parent_span_id = span.get("parent_span_id", None)
@@ -279,6 +283,11 @@ def get_valid_db_span_description(span: Span) -> str | None:
     """
     default_description = span.get("description", "")
     db_system = span.get("sentry_tags", {}).get("system", "")
+
+    # Connection spans can have `op` as `db` but we don't want to trigger on them.
+    if "pg-pool.connect" in default_description:
+        return None
+
     # Trigger pathway on `mongodb`, `mongoose`, etc...
     if "mongo" in db_system:
         description = span.get("sentry_tags", {}).get("description")

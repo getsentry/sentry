@@ -198,7 +198,7 @@ export default function TokenTypesWidget() {
           }}
         />
       </div>
-      <FooterText>{t('Input Tokens (Cached)')}</FooterText>
+      <FooterText>{t('Input Tokens / Cached')}</FooterText>
       <span>
         <TokenTypeCount
           value={Number(sums['sum(gen_ai.usage.input_tokens)'] || 0)}
@@ -213,7 +213,7 @@ export default function TokenTypesWidget() {
           }}
         />
       </div>
-      <FooterText>{t('Output Tokens (Reasoning)')}</FooterText>
+      <FooterText>{t('Output Tokens / Reasoning')}</FooterText>
       <span>
         <TokenTypeCount
           value={Number(sums['sum(gen_ai.usage.output_tokens)'] || 0)}
@@ -280,9 +280,8 @@ function TokenTypeCount({
   return (
     <TokenTypeCountWrapper>
       <Count value={value} />
-      <span>
-        (<Count value={secondaryValue} />)
-      </span>
+      /
+      <Count value={secondaryValue} />
     </TokenTypeCountWrapper>
   );
 }

@@ -96,7 +96,10 @@ function AutomationListTable({
     setSelected(newSelected);
   };
   const automationIds = new Set(automations.map(a => a.id));
-  const pageSelected = !isPending && automationIds.difference(selected).size === 0;
+  const pageSelected =
+    !isPending &&
+    automationIds.size !== 0 &&
+    automationIds.difference(selected).size === 0;
   const anySelected = selected.size > 0;
 
   const canEnable = useMemo(
@@ -170,9 +173,9 @@ function AutomationListTable({
         />
       )}
       {isSuccess && automations.length === 0 && (
-        <SimpleTable.Empty>{t('No automations found')}</SimpleTable.Empty>
+        <SimpleTable.Empty>{t('No alerts found')}</SimpleTable.Empty>
       )}
-      {isError && <LoadingError message={t('Error loading automations')} />}
+      {isError && <LoadingError message={t('Error loading alerts')} />}
       {isPending && <LoadingSkeletons />}
       {isSuccess &&
         automations.map(automation => (
@@ -216,7 +219,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 2.5fr 1fr 1fr 1fr;
+    grid-template-columns: 2.5fr minmax(160px, 1fr) 1fr 1fr;
 
     [data-column-name='last-triggered'] {
       display: flex;
@@ -224,7 +227,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: minmax(0, 3fr) 1fr 1fr 1fr 1fr;
+    grid-template-columns: minmax(0, 3fr) minmax(160px, 1fr) 1fr 1fr 1fr;
 
     [data-column-name='connected-monitors'] {
       display: flex;

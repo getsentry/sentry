@@ -24,8 +24,6 @@ import {
   hasAccessToSubscriptionOverview,
   hasNewBillingUI,
   hasPartnerMigrationFeature,
-  hasPerformance,
-  isBizPlanFamily,
 } from 'getsentry/utils/billing';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import PartnershipNote from 'getsentry/views/subscriptionPage/partnershipNote';
@@ -181,7 +179,7 @@ function SubscriptionHeader(props: Props) {
   }
 
   return (
-    <Flex direction="column" gap="xl">
+    <Flex direction="column" gap="xl" background="secondary">
       <SentryDocumentTitle title={t('Subscription')} orgSlug={organization.slug} />
 
       <Flex
@@ -194,7 +192,12 @@ function SubscriptionHeader(props: Props) {
         <Heading as="h1" size="md">
           {t('Subscription')}
         </Heading>
-        <Flex justify="between" align="center">
+        <Flex
+          justify="between"
+          align={{xs: 'start', sm: 'center'}}
+          direction={{xs: 'column', sm: 'row'}}
+          gap="xl"
+        >
           <Flex align="center" gap="sm">
             {isValidElement(planIcon)
               ? cloneElement(planIcon, {size: 'md'} as SVGIconProps)
@@ -285,15 +288,6 @@ function BodyWithoutBillingPerms({
   subscription: Subscription;
 }) {
   const isNewBillingUI = hasNewBillingUI(organization);
-
-  // if a current tier self serve business plan, we have nothing to render in this section
-  if (
-    isBizPlanFamily(subscription?.planDetails) &&
-    hasPerformance(subscription.planDetails) &&
-    subscription.canSelfServe
-  ) {
-    return null;
-  }
   return (
     <Fragment>
       <TrialAlert subscription={subscription} organization={organization} />

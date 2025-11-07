@@ -139,8 +139,3 @@ const BreadcrumbDividerIcon = styled(Chevron)`
   margin: 0 ${space(0.5)};
   flex-shrink: 0;
 `;
-
-// TODO(epurkhiser): Remove once removed from getsentry
-const DO_NOT_USE = Breadcrumbs;
-
-export default DO_NOT_USE;

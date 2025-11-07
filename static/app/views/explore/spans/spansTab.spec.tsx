@@ -14,7 +14,6 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
@@ -29,11 +28,9 @@ import type {PickableDays} from 'sentry/views/explore/utils';
 function Wrapper({children}: {children: ReactNode}) {
   return (
     <SpansQueryParamsProvider>
-      <PageParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-          {children}
-        </TraceItemAttributeProvider>
-      </PageParamsProvider>
+      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+        {children}
+      </TraceItemAttributeProvider>
     </SpansQueryParamsProvider>
   );
 }
@@ -68,6 +65,7 @@ describe('SpansTabContent', () => {
         'gen-ai-features',
         'gen-ai-explore-traces',
         'gen-ai-explore-traces-consent-ui',
+        'search-query-builder-case-insensitivity',
       ],
     },
   });
@@ -92,9 +90,8 @@ describe('SpansTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
       method: 'GET',
-      body: {},
+      body: [],
     });
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spans/fields/`,
       method: 'GET',
@@ -251,6 +248,84 @@ describe('SpansTabContent', () => {
     expect(screen.getByLabelText('Expand sidebar')).toBeInTheDocument();
   });
 
+  describe('case sensitivity', () => {
+    it('renders the case sensitivity toggle', () => {
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const caseSensitivityToggle = screen.getByRole('button', {
+        name: 'Ignore case',
+      });
+      expect(caseSensitivityToggle).toBeInTheDocument();
+    });
+
+    it('toggles case sensitivity', async () => {
+      const {router} = render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const caseSensitivityToggle = screen.getByRole('button', {
+        name: 'Ignore case',
+      });
+      expect(caseSensitivityToggle).toBeInTheDocument();
+      await userEvent.click(caseSensitivityToggle);
+
+      expect(caseSensitivityToggle).toHaveAttribute('aria-pressed', 'true');
+      expect(router.location.query.caseInsensitive).toBe('1');
+    });
+
+    it('appends case sensitive to the query', async () => {
+      const eventsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {},
+      });
+      const eventsStatsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+        method: 'GET',
+        body: {},
+      });
+
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const caseSensitivityToggle = screen.getByRole('button', {
+        name: 'Ignore case',
+      });
+      expect(caseSensitivityToggle).toBeInTheDocument();
+      await userEvent.click(caseSensitivityToggle);
+
+      await waitFor(() =>
+        expect(eventsMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events/`,
+          expect.objectContaining({
+            query: expect.objectContaining({caseInsensitive: '1'}),
+          })
+        )
+      );
+
+      await waitFor(() =>
+        expect(eventsStatsMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/events-stats/`,
+          expect.objectContaining({
+            query: expect.objectContaining({caseInsensitive: 1}),
+          })
+        )
+      );
+    });
+  });
+
   describe('schema hints', () => {
     let spies: jest.SpyInstance[];
 
@@ -339,6 +414,24 @@ describe('SpansTabContent', () => {
             userHasAcknowledged: true,
           },
         }),
+      });
+    });
+
+    describe('when the AI features are disabled', () => {
+      it('does not display the Ask Seer combobox', async () => {
+        render(
+          <Wrapper>
+            <SpansTabContent datePageFilterProps={datePageFilterProps} />
+          </Wrapper>,
+          {organization: {...organization, features: []}}
+        );
+
+        const input = screen.getByRole('combobox');
+        await userEvent.click(input);
+
+        expect(
+          screen.queryByText(/Ask Seer to build your query/)
+        ).not.toBeInTheDocument();
       });
     });
 

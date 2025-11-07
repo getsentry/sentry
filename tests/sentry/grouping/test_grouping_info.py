@@ -16,7 +16,7 @@ from tests.sentry.grouping import run_as_grouping_inputs_snapshot_test, to_json
 def test_grouping_info(
     variants: dict[str, BaseVariant], create_snapshot: InstaSnapshotter, **kwargs: Any
 ) -> None:
-    grouping_info = get_grouping_info_from_variants(variants, use_legacy_format=False)
+    grouping_info = get_grouping_info_from_variants(variants)
     create_snapshot(to_json(grouping_info, pretty_print=True))
 
 
@@ -27,9 +27,9 @@ class GroupingInfoTest(TestCase):
 
         grouping_info = get_grouping_info(default_grouping_config, self.project, event)
 
-        assert grouping_info["message"]["type"] == "component"
-        assert grouping_info["message"]["description"] == "message"
-        assert grouping_info["message"]["component"]["contributes"] is True
-        assert grouping_info["message"]["config"]["id"] == DEFAULT_GROUPING_CONFIG
-        assert grouping_info["message"]["key"] == "message"
-        assert grouping_info["message"]["contributes"] is True
+        assert grouping_info["grouping_config"] == DEFAULT_GROUPING_CONFIG
+        assert grouping_info["variants"]["message"]["type"] == "component"
+        assert grouping_info["variants"]["message"]["description"] == "message"
+        assert grouping_info["variants"]["message"]["component"]["contributes"] is True
+        assert grouping_info["variants"]["message"]["key"] == "message"
+        assert grouping_info["variants"]["message"]["contributes"] is True

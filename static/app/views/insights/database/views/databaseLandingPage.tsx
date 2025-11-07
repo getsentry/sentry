@@ -32,6 +32,8 @@ import {
 } from 'sentry/views/insights/database/components/tables/queriesTable';
 import {useSystemSelectorOptions} from 'sentry/views/insights/database/components/useSystemSelectorOptions';
 import {BASE_FILTERS} from 'sentry/views/insights/database/settings';
+import useHasDashboardsPlatformizedQueries from 'sentry/views/insights/database/utils/useHasDashboardsPlatformaizedQueries';
+import {PlatformizedQueriesOverview} from 'sentry/views/insights/database/views/platformizedOverview';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 export function DatabaseLandingPage() {
@@ -127,7 +129,7 @@ export function DatabaseLandingPage() {
     <React.Fragment>
       <ModuleFeature moduleName={ModuleName.DB}>
         <Layout.Body>
-          <Layout.Main fullWidth>
+          <Layout.Main width="full">
             <ModuleLayout.Layout>
               {hasModuleData && !onboardingProject && !isCriticalDataLoading && (
                 <NoDataMessage
@@ -194,6 +196,10 @@ function AlertBanner(props: Omit<AlertProps, 'type' | 'showIcon'>) {
 const LIMIT = 25;
 
 function PageWithProviders() {
+  const hasDashboardsPlatformizedQueries = useHasDashboardsPlatformizedQueries();
+  if (hasDashboardsPlatformizedQueries) {
+    return <PlatformizedQueriesOverview />;
+  }
   return (
     <ModulePageProviders moduleName="db" analyticEventName="insight.page_loads.db">
       <DatabaseLandingPage />

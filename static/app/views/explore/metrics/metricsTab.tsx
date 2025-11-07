@@ -1,35 +1,44 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
-  BottomSectionBody,
-  FilterBarContainer,
-  StyledPageFilterBar,
-  TopSectionBody,
-} from 'sentry/views/explore/logs/styles';
+  ExploreBodyContent,
+  ExploreBodySearch,
+  ExploreContentSection,
+  ExploreControlSection,
+} from 'sentry/views/explore/components/styles';
+import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
+import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
+import {MetricSaveAs} from 'sentry/views/explore/metrics/metricToolbar/metricSaveAs';
 import {
   MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
   useMultiMetricsQueryParams,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {
+  FilterBarWithSaveAsContainer,
+  StyledPageFilterBar,
+} from 'sentry/views/explore/metrics/styles';
 import type {PickableDays} from 'sentry/views/explore/utils';
 
-type LogsTabProps = PickableDays;
+const MAX_METRICS_ALLOWED = 4;
+
+type MetricsTabProps = PickableDays;
 
 export function MetricsTabContent({
   defaultPeriod,
   maxPickableDays,
   relativeOptions,
-}: LogsTabProps) {
+}: MetricsTabProps) {
   return (
     <MultiMetricsQueryParamsProvider>
       <MetricsTabFilterSection
@@ -37,6 +46,7 @@ export function MetricsTabContent({
         maxPickableDays={maxPickableDays}
         relativeOptions={relativeOptions}
       />
+      <MetricsQueryBuilderSection />
       <MetricsTabBodySection />
     </MultiMetricsQueryParamsProvider>
   );
@@ -48,9 +58,9 @@ function MetricsTabFilterSection({
   relativeOptions,
 }: PickableDays) {
   return (
-    <TopSectionBody noRowGap>
-      <Layout.Main fullWidth>
-        <FilterBarContainer>
+    <ExploreBodySearch>
+      <Layout.Main width="full">
+        <FilterBarWithSaveAsContainer>
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
@@ -61,49 +71,76 @@ function MetricsTabFilterSection({
               searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
             />
           </StyledPageFilterBar>
-        </FilterBarContainer>
+          <MetricSaveAs />
+        </FilterBarWithSaveAsContainer>
       </Layout.Main>
-    </TopSectionBody>
+    </ExploreBodySearch>
+  );
+}
+
+function MetricsQueryBuilderSection() {
+  const metricQueries = useMultiMetricsQueryParams();
+  const addMetricQuery = useAddMetricQuery();
+  return (
+    <MetricsQueryBuilderContainer borderTop="primary" padding="md" style={{flexGrow: 0}}>
+      <Flex direction="column" gap="lg" align="start">
+        {metricQueries.map((metricQuery, index) => {
+          return (
+            <MetricsQueryParamsProvider
+              key={`queryBuilder-${index}`}
+              queryParams={metricQuery.queryParams}
+              setQueryParams={metricQuery.setQueryParams}
+              traceMetric={metricQuery.metric}
+              setTraceMetric={metricQuery.setTraceMetric}
+              removeMetric={metricQuery.removeMetric}
+            >
+              <MetricToolbar traceMetric={metricQuery.metric} queryIndex={index} />
+            </MetricsQueryParamsProvider>
+          );
+        })}
+        <ToolbarVisualizeAddChart
+          add={addMetricQuery}
+          disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+          label={t('Add Metric')}
+        />
+      </Flex>
+    </MetricsQueryBuilderContainer>
   );
 }
 
 function MetricsTabBodySection() {
   const metricQueries = useMultiMetricsQueryParams();
-  const addMetricQuery = useAddMetricQuery();
+  const [interval] = useChartInterval();
+  useMetricsAnalytics({interval, metricQueries});
 
   return (
-    <BottomSectionBody>
-      <Flex direction="column" gap="lg">
-        {metricQueries.map((metricQuery, index) => {
-          return (
-            // TODO: figure out a better `key`
-            <MetricsQueryParamsProvider
-              key={index}
-              queryParams={metricQuery.queryParams}
-              setQueryParams={metricQuery.setQueryParams}
-              setMetricName={metricQuery.setMetricName}
-            >
-              <MetricPanel traceMetric={metricQuery.metric} />
-            </MetricsQueryParamsProvider>
-          );
-        })}
-        <AddMetricButtonContainer>
-          <Button
-            size="sm"
-            priority="default"
-            icon={<IconAdd />}
-            onClick={addMetricQuery}
-          >
-            {t('Add Metric')}
-          </Button>
-        </AddMetricButtonContainer>
-      </Flex>
-    </BottomSectionBody>
+    <ExploreBodyContent>
+      <ExploreControlSection expanded={false} />
+      <ExploreContentSection expanded={false}>
+        <Flex direction="column" gap="lg">
+          {metricQueries.map((metricQuery, index) => {
+            return (
+              <MetricsQueryParamsProvider
+                key={`queryPanel-${index}`}
+                queryParams={metricQuery.queryParams}
+                setQueryParams={metricQuery.setQueryParams}
+                traceMetric={metricQuery.metric}
+                setTraceMetric={metricQuery.setTraceMetric}
+                removeMetric={metricQuery.removeMetric}
+              >
+                <MetricPanel traceMetric={metricQuery.metric} queryIndex={index} />
+              </MetricsQueryParamsProvider>
+            );
+          })}
+        </Flex>
+      </ExploreContentSection>
+    </ExploreBodyContent>
   );
 }
 
-const AddMetricButtonContainer = styled('div')`
-  button {
-    width: 100%;
-  }
+const MetricsQueryBuilderContainer = styled(Container)`
+  padding: ${p => `${p.theme.space.xl} ${p.theme.space['3xl']}`};
+  background-color: ${p => p.theme.background};
+  border-top: none;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;

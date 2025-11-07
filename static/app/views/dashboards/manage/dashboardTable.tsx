@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {
   updateDashboardFavorite,
   updateDashboardPermissions,
@@ -267,7 +269,7 @@ function DashboardTable({
               <DateStatus />
             )}
           </DateSelected>
-          <ActionsIconWrapper>
+          <Flex gap="xs">
             <DashboardCreateLimitWrapper>
               {({
                 hasReachedDashboardLimit,
@@ -283,6 +285,7 @@ function DashboardTable({
                       onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
                     });
                   }}
+                  priority="transparent"
                   aria-label={t('Duplicate Dashboard')}
                   data-test-id="dashboard-duplicate"
                   icon={<IconCopy />}
@@ -301,13 +304,14 @@ function DashboardTable({
                   onConfirm: () => handleDeleteDashboard(dataRow, 'table'),
                 });
               }}
+              priority="transparent"
               aria-label={t('Delete Dashboard')}
               data-test-id="dashboard-delete"
               icon={<IconDelete />}
               size="sm"
               disabled={dashboards && dashboards.length <= 1}
             />
-          </ActionsIconWrapper>
+          </Flex>
         </BodyCellContainer>
       );
     }
@@ -319,8 +323,6 @@ function DashboardTable({
   return (
     <GridEditable
       data={dashboards ?? []}
-      // necessary for edit access dropdown
-      bodyStyle={{overflow: 'scroll'}}
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
@@ -332,9 +334,10 @@ function DashboardTable({
             key: ResponseKeys.FAVORITE,
             name: t('Favorite'),
           };
+
           if (isHeader) {
             return [
-              <StyledIconStar
+              <IconStar
                 color="yellow300"
                 isSolid
                 aria-label={t('Star Column')}
@@ -381,15 +384,7 @@ const BodyCellContainer = styled('div')`
   align-items: center;
 `;
 
-const ActionsIconWrapper = styled('div')`
-  display: flex;
-`;
-
 const StyledButton = styled(Button)`
   border: none;
   box-shadow: none;
-`;
-
-const StyledIconStar = styled(IconStar)`
-  margin-left: ${space(0.25)};
 `;

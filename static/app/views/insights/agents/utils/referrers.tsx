@@ -2,6 +2,7 @@ export enum Referrer {
   MODELS_TABLE = 'api.insights.agent-monitoring.models-table',
   TOOLS_TABLE = 'api.insights.agent-monitoring.tools-table',
   TRACE_DRAWER = 'api.insights.agent-monitoring.trace-drawer',
+  TRACE_DRAWER_TOOL_USAGE = 'api.insights.agent-monitoring.trace-drawer-tool-usage',
   TRACES_TABLE = 'api.insights.agent-monitoring.traces-table',
   TOKEN_USAGE_WIDGET = 'api.insights.agent-monitoring.token-usage-widget',
   MODEL_COST_WIDGET = 'api.insights.agent-monitoring.token-cost-widget',

@@ -10,13 +10,14 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import namespaces
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
+from sentry.utils.exceptions import timeout_grouping_context
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.tasks.utils import (
     build_workflow_event_data_from_activity,
     build_workflow_event_data_from_event,
 )
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.utils import log_context, timeout_grouping_context
+from sentry.workflow_engine.utils import log_context
 
 logger = log_context.get_logger(__name__)
 

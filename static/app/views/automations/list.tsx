@@ -2,7 +2,6 @@ import {useCallback} from 'react';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -11,6 +10,7 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -78,11 +78,22 @@ export default function AutomationsList() {
   }, [pageLinks]);
 
   return (
-    <SentryDocumentTitle title={t('Automations')}>
-      <PageFiltersContainer>
-        <ListLayout actions={<Actions />} title={t('Automations')}>
-          <TableHeader />
-          <div>
+    <SentryDocumentTitle title={t('Alerts')}>
+      <ListLayout
+        actions={<Actions />}
+        title={t('Alerts')}
+        description={t(
+          'Alerts are triggered when issue changes state, is created, or passes a threshold. They perform external actions like sending notifications, creating tickets, or calling webhooks and integrations.'
+        )}
+        docsUrl="https://docs.sentry.io/product/automations/"
+      >
+        <TableHeader />
+        <div>
+          <VisuallyCompleteWithData
+            hasData={(automations?.length ?? 0) > 0}
+            id="AutomationsList-Table"
+            isLoading={isLoading}
+          >
             <AutomationListTable
               automations={automations ?? []}
               isPending={isLoading}
@@ -92,18 +103,18 @@ export default function AutomationsList() {
               queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
               allResultsVisible={allResultsVisible()}
             />
-            <Pagination
-              pageLinks={pageLinks}
-              onCursor={newCursor => {
-                navigate({
-                  pathname: location.pathname,
-                  query: {...location.query, cursor: newCursor},
-                });
-              }}
-            />
-          </div>
-        </ListLayout>
-      </PageFiltersContainer>
+          </VisuallyCompleteWithData>
+          <Pagination
+            pageLinks={pageLinks}
+            onCursor={newCursor => {
+              navigate({
+                pathname: location.pathname,
+                query: {...location.query, cursor: newCursor},
+              });
+            }}
+          />
+        </div>
+      </ListLayout>
     </SentryDocumentTitle>
   );
 }
@@ -145,7 +156,7 @@ function Actions() {
         icon={<IconAdd />}
         size="sm"
       >
-        {t('Create Automation')}
+        {t('Create Alert')}
       </LinkButton>
     </Flex>
   );

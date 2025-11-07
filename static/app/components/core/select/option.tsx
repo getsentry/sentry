@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import {ClassNames, css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ChonkCheckWrap} from '@sentry/scraps/select/select.chonk';
+
 import {MenuListItem, type MenuListItemProps} from 'sentry/components/core/menuListItem';
-import {ChonkCheckWrap} from 'sentry/components/core/select/index.chonk';
 import type {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {defined} from 'sentry/utils';

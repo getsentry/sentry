@@ -59,29 +59,4 @@ describe('BillingInfoCard', () => {
     await screen.findByText('No billing details on file');
     expect(screen.getByText('No payment method on file')).toBeInTheDocument();
   });
-
-  it('does not render for self-serve partner customers', () => {
-    const subscription = SubscriptionFixture({organization, isSelfServePartner: true});
-    render(<BillingInfoCard organization={organization} subscription={subscription} />);
-
-    expect(screen.queryByText('Billing information')).not.toBeInTheDocument();
-  });
-
-  it('does not render for managed customers', () => {
-    const subscription = SubscriptionFixture({organization, canSelfServe: false});
-    render(<BillingInfoCard organization={organization} subscription={subscription} />);
-
-    expect(screen.queryByText('Billing information')).not.toBeInTheDocument();
-  });
-
-  it('renders for managed customers with legacy invoiced OD', () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      canSelfServe: false,
-      onDemandInvoiced: true,
-    });
-    render(<BillingInfoCard organization={organization} subscription={subscription} />);
-
-    expect(screen.getByText('Billing information')).toBeInTheDocument();
-  });
 });

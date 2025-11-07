@@ -618,6 +618,19 @@ class ProfileFunctionRegressionType(GroupType):
 
 
 @dataclass(frozen=True)
+class LLMDetectedExperimentalGroupType(GroupType):
+    type_id = 3501
+    slug = "llm_detected_experimental"
+    description = "LLM Detected Issue"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.METRIC.value
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
 class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     type_id = 5002
     slug = "replay_click_rage"
@@ -672,7 +685,7 @@ class MetricIssuePOC(GroupType):
 
 
 @dataclass(frozen=True)
-class WebVitalsGroup(GroupType):
+class WebVitalsGroup(GroupType):  # TODO: Rename to WebVitalsGroupType
     type_id = 10001
     slug = "web_vitals"
     description = "Web Vitals"

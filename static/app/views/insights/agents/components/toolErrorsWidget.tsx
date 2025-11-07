@@ -36,7 +36,9 @@ export default function ToolErrorsWidget() {
 
   const theme = useTheme();
 
-  const fullQuery = useCombinedQuery('span.op:gen_ai.execute_tool span.status:unknown');
+  const fullQuery = useCombinedQuery(
+    'span.op:gen_ai.execute_tool span.status:internal_error'
+  );
 
   const toolsRequest = useSpans(
     {

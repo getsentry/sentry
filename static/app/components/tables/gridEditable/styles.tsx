@@ -175,6 +175,7 @@ export const GridHeadCellStatic = styled('th')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+  justify-content: center;
 
   &:first-child {
     padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.md}
@@ -192,7 +193,7 @@ export const GridBody = styled('tbody')`
   grid-column: 1/-1;
 `;
 
-export const GridRow = styled('tr')`
+export const GridRow = styled('tr')<{isClickable?: boolean}>`
   display: grid;
   position: relative;
   grid-template-columns: subgrid;
@@ -210,6 +211,12 @@ export const GridRow = styled('tr')`
       border-bottom-right-radius: ${p => p.theme.borderRadius};
     }
   }
+
+  ${p =>
+    p.isClickable &&
+    css`
+      cursor: pointer;
+    `}
 `;
 
 export const GridBodyCell = styled('td')`

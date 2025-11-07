@@ -6,10 +6,10 @@ import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import options
+from sentry import features, options
 from sentry import ratelimits as ratelimiter
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.ingest.grouphash_metadata import (
     check_grouphashes_for_positive_fingerprint_match,
 )
@@ -18,7 +18,7 @@ from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
-from sentry.seer.similarity.types import SimilarIssuesEmbeddingsRequest
+from sentry.seer.similarity.types import GroupingVersion, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
     SEER_INELIGIBLE_EVENT_PLATFORMS,
     ReferrerOptions,
@@ -57,7 +57,6 @@ def should_call_seer_for_grouping(
 
     if (
         _has_custom_fingerprint(event, variants)
-        or _has_too_many_contributing_frames(event, variants)
         or _is_race_condition_skipped_event(event, event_grouphash)
         or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
         or _circuit_breaker_broken(event, project)
@@ -65,6 +64,8 @@ def should_call_seer_for_grouping(
         # because it calculates the stacktrace string, which we only want to spend the time to do if we already
         # know the other checks have passed.
         or _has_empty_stacktrace_string(event, variants)
+        # do this after the empty stacktrace string check because it calculates the stacktrace string
+        or _has_too_many_contributing_frames(event, variants)
         # **Do not add any new checks after this.** The rate limit check MUST remain the last of all
         # the checks.
         #
@@ -240,7 +241,7 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
 
 
 def _has_empty_stacktrace_string(event: Event, variants: dict[str, BaseVariant]) -> bool:
-    stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
+    stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants_legacy(variants))
     if not stacktrace_string:
         if stacktrace_string == "":
             record_did_call_seer_metric(event, call_made=False, blocker="empty-stacktrace-string")
@@ -268,8 +269,13 @@ def get_seer_similar_issues(
 
     stacktrace_string = event.data.get(
         "stacktrace_string",
-        get_stacktrace_string(get_grouping_info_from_variants(variants)),
+        get_stacktrace_string(get_grouping_info_from_variants_legacy(variants)),
     )
+
+    # Get model configuration from feature flags
+    use_v2_model = features.has("projects:similarity-grouping-v2-model", event.project)
+    model_version = GroupingVersion.V2 if use_v2_model else GroupingVersion.V1
+    training_mode = False  # PR #B will add the smart logic
 
     request_data: SimilarIssuesEmbeddingsRequest = {
         "event_id": event.event_id,
@@ -280,10 +286,16 @@ def get_seer_similar_issues(
         "k": options.get("seer.similarity.ingest.num_matches_to_request"),
         "referrer": "ingest",
         "use_reranking": options.get("seer.similarity.ingest.use_reranking"),
+        "model": model_version,
+        "training_mode": training_mode,
     }
     event.data.pop("stacktrace_string", None)
 
-    seer_request_metric_tags = {"platform": event.platform or "unknown"}
+    seer_request_metric_tags: dict[str, str | int | bool] = {
+        "platform": event.platform or "unknown",
+        "model_version": model_version.value,
+        "training_mode": training_mode,
+    }
 
     seer_results = get_similarity_data_from_seer(
         request_data,

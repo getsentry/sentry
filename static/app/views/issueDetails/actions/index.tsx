@@ -661,6 +661,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 <GuideAnchor target="resolve" position="bottom" offset={20}>
                   <ResolveActions
                     disableResolveInRelease={!resolveInReleaseCap.enabled}
+                    hasSemverReleaseFeature={hasSemverReleaseFeature}
                     disabled={disabled}
                     disableDropdown={disabled}
                     hasRelease={hasRelease}

@@ -1,13 +1,11 @@
-import {MemoryRouter} from 'react-router-dom';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {initializeLogsTest, LogFixture} from 'sentry-fixture/log';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {QueryClientProvider, type InfiniteData} from 'sentry/utils/queryClient';
+import {type InfiniteData} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   LOGS_AUTO_REFRESH_KEY,
@@ -24,7 +22,6 @@ import {
   updateVirtualStreamingTimestamp,
   useVirtualStreaming,
 } from 'sentry/views/explore/logs/useVirtualStreaming';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
@@ -61,18 +58,12 @@ describe('useVirtualStreaming', () => {
         })
       );
       return (
-        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
-          <QueryClientProvider client={makeTestQueryClient()}>
-            <OrganizationContext.Provider value={organization}>
-              <LogsQueryParamsProvider
-                analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                source="location"
-              >
-                {children}
-              </LogsQueryParamsProvider>
-            </OrganizationContext.Provider>
-          </QueryClientProvider>
-        </MemoryRouter>
+        <LogsQueryParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+          source="location"
+        >
+          {children}
+        </LogsQueryParamsProvider>
       );
     };
   };
@@ -111,9 +102,10 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    const {result} = renderHook(() => useVirtualStreaming({data: mockData}), {
-      wrapper: createWrapper({autoRefresh: 'enabled'}),
-    });
+    const {result} = renderHookWithProviders(
+      () => useVirtualStreaming({data: mockData}),
+      {additionalWrapper: createWrapper({autoRefresh: 'enabled'}), organization}
+    );
 
     await waitFor(() => {
       expect(result.current.virtualStreamedTimestamp).toBeDefined();
@@ -135,9 +127,10 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    const {result} = renderHook(() => useVirtualStreaming({data: mockData}), {
-      wrapper: createWrapper({autoRefresh: 'idle'}),
-    });
+    const {result} = renderHookWithProviders(
+      () => useVirtualStreaming({data: mockData}),
+      {additionalWrapper: createWrapper({autoRefresh: 'idle'}), organization}
+    );
 
     expect(result.current.virtualStreamedTimestamp).toBeUndefined();
   });
@@ -152,8 +145,9 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    renderHook(() => useVirtualStreaming({data: mockData}), {
-      wrapper: createWrapper({autoRefresh: 'enabled'}),
+    renderHookWithProviders(() => useVirtualStreaming({data: mockData}), {
+      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      organization,
     });
 
     await waitFor(() => {
@@ -171,9 +165,10 @@ describe('useVirtualStreaming', () => {
       }),
     ]);
 
-    const {unmount} = renderHook(() => useVirtualStreaming({data: mockData}), {
-      wrapper: createWrapper({autoRefresh: 'enabled'}),
-    });
+    const {unmount} = renderHookWithProviders(
+      () => useVirtualStreaming({data: mockData}),
+      {additionalWrapper: createWrapper({autoRefresh: 'enabled'})}
+    );
 
     await waitFor(() => {
       expect(requestAnimationFrameSpy).toHaveBeenCalled();
@@ -182,8 +177,9 @@ describe('useVirtualStreaming', () => {
     unmount();
 
     // Re-render with disabled autorefresh
-    renderHook(() => useVirtualStreaming({data: mockData}), {
-      wrapper: createWrapper({autoRefresh: 'idle'}),
+    renderHookWithProviders(() => useVirtualStreaming({data: mockData}), {
+      additionalWrapper: createWrapper({autoRefresh: 'idle'}),
+      organization,
     });
 
     await waitFor(() => {

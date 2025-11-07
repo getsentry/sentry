@@ -55,7 +55,7 @@ describe('DemoTours', () => {
       [DemoTour.RELEASES]: {
         currentStepId: null,
         isCompleted: false,
-        orderedStepIds: [DemoTourStep.RELEASES_COMPARE, DemoTourStep.RELEASES_DETAILS],
+        orderedStepIds: [DemoTourStep.RELEASES_LIST, DemoTourStep.RELEASES_CHART],
         isRegistered: true,
         tourKey: DemoTour.RELEASES,
       },
@@ -122,8 +122,8 @@ describe('DemoTours', () => {
       expect(tour?.currentStepId).toBeNull();
       expect(tour?.isCompleted).toBe(false);
       expect(tour?.orderedStepIds).toEqual([
-        DemoTourStep.RELEASES_COMPARE,
-        DemoTourStep.RELEASES_DETAILS,
+        DemoTourStep.RELEASES_LIST,
+        DemoTourStep.RELEASES_CHART,
       ]);
     });
 
@@ -135,19 +135,17 @@ describe('DemoTours', () => {
       const tour = result.current;
 
       act(() => {
-        tour?.startTour(DemoTourStep.RELEASES_COMPARE);
+        tour?.startTour(DemoTourStep.RELEASES_LIST);
       });
 
-      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(
-        DemoTourStep.RELEASES_COMPARE
-      );
+      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
 
       act(() => {
-        tour?.setStep(DemoTourStep.RELEASES_DETAILS);
+        tour?.setStep(DemoTourStep.RELEASES_CHART);
       });
 
       expect(mockState[DemoTour.RELEASES].currentStepId).toBe(
-        DemoTourStep.RELEASES_DETAILS
+        DemoTourStep.RELEASES_CHART
       );
 
       act(() => {
@@ -180,29 +178,25 @@ describe('DemoTours', () => {
       const issuesTour = issuesResult.current;
 
       act(() => {
-        sidebarTour?.startTour(DemoTourStep.RELEASES_COMPARE);
+        sidebarTour?.startTour(DemoTourStep.RELEASES_LIST);
       });
 
-      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(
-        DemoTourStep.RELEASES_COMPARE
-      );
+      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
       expect(mockState[DemoTour.ISSUES].currentStepId).toBeNull();
 
       act(() => {
         issuesTour?.startTour(DemoTourStep.ISSUES_STREAM);
       });
 
-      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(
-        DemoTourStep.RELEASES_COMPARE
-      );
+      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
       expect(mockState[DemoTour.ISSUES].currentStepId).toBe(DemoTourStep.ISSUES_STREAM);
 
       act(() => {
-        sidebarTour?.setStep(DemoTourStep.RELEASES_DETAILS);
+        sidebarTour?.setStep(DemoTourStep.RELEASES_CHART);
       });
 
       expect(mockState[DemoTour.RELEASES].currentStepId).toBe(
-        DemoTourStep.RELEASES_DETAILS
+        DemoTourStep.RELEASES_CHART
       );
       expect(mockState[DemoTour.ISSUES].currentStepId).toBe(DemoTourStep.ISSUES_STREAM);
 
@@ -226,17 +220,15 @@ describe('DemoTours', () => {
       const sidebarTour = result.current;
 
       act(() => {
-        sidebarTour?.startTour(DemoTourStep.RELEASES_COMPARE);
+        sidebarTour?.startTour(DemoTourStep.RELEASES_LIST);
       });
-      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(
-        DemoTourStep.RELEASES_COMPARE
-      );
+      expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
 
       act(() => {
-        sidebarTour?.setStep(DemoTourStep.RELEASES_DETAILS);
+        sidebarTour?.setStep(DemoTourStep.RELEASES_CHART);
       });
       expect(mockState[DemoTour.RELEASES].currentStepId).toBe(
-        DemoTourStep.RELEASES_DETAILS
+        DemoTourStep.RELEASES_CHART
       );
 
       act(() => {
@@ -252,7 +244,7 @@ describe('DemoTours', () => {
       render(
         <DemoToursProvider>
           <DemoTourElement
-            id={DemoTourStep.RELEASES_COMPARE}
+            id={DemoTourStep.RELEASES_LIST}
             title="Test Title"
             description="Test Description"
           >

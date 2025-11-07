@@ -395,8 +395,6 @@ function recordAnalytics(
   isMigratingPartnerAccount: boolean
 ) {
   trackMarketingEvent('Upgrade', {plan: data.plan});
-  const isNewCheckout = hasNewCheckout(organization);
-
   const currentData: CheckoutData = {
     plan: data.plan,
   };
@@ -440,14 +438,12 @@ function recordAnalytics(
     subscription,
     ...previousData,
     ...currentData,
-    isNewCheckout,
   });
 
   trackGetsentryAnalytics('checkout.product_select', {
     organization,
     subscription,
     ...productSelectAnalyticsData,
-    isNewCheckout,
   });
 
   let {onDemandBudget} = data;
@@ -485,7 +481,6 @@ function recordAnalytics(
       applyNow: data.applyNow ?? false,
       daysLeft: moment(subscription.contractPeriodEnd).diff(moment(), 'days'),
       partner: subscription.partner?.partnership.id,
-      isNewCheckout,
     });
   }
 }
@@ -735,14 +730,11 @@ export function useSubmitCheckout({
         }
         onSubmitting?.(false);
 
-        // Don't capture 402 errors as that status code is used for
-        // customer credit card failures.
-        if (error.status !== 402) {
-          Sentry.withScope(scope => {
-            scope.setExtras({data: _variables.data});
-            Sentry.captureException(error);
-          });
-        }
+        // TODO: add 402 ignoring once we've confirmed all valid error states
+        Sentry.withScope(scope => {
+          scope.setExtras({data: _variables.data});
+          Sentry.captureException(error);
+        });
       }
     },
   });
@@ -831,14 +823,11 @@ export async function submitCheckout(
       addErrorMessage(msg);
       onSubmitting?.(false);
 
-      // Don't capture 402 errors as that status code is used for
-      // customer credit card failures.
-      if (error.status !== 402) {
-        Sentry.withScope(scope => {
-          scope.setExtras({data});
-          Sentry.captureException(error);
-        });
-      }
+      // TODO: add 402 ignoring once we've confirmed all valid error states
+      Sentry.withScope(scope => {
+        scope.setExtras({data});
+        Sentry.captureException(error);
+      });
     }
   }
 }

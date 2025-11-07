@@ -116,6 +116,14 @@ class Referrer(StrEnum):
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
     API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
     API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
+    API_EXPLORE_SPANS_RAW_COUNT_NORMAL = "api.explore.spans.raw-count.normal"
+    API_EXPLORE_SPANS_RAW_COUNT_HIGH_ACCURACY = "api.explore.spans.raw-count.high-accuracy"
+    API_EXPLORE_LOGS_RAW_COUNT_NORMAL = "api.explore.logs.raw-count.normal"
+    API_EXPLORE_LOGS_RAW_COUNT_HIGH_ACCURACY = "api.explore.logs.raw-count.high-accuracy"
+    API_EXPLORE_TRACEMETRICS_RAW_COUNT_NORMAL = "api.explore.tracemetrics.raw-count.normal"
+    API_EXPLORE_TRACEMETRICS_RAW_COUNT_HIGH_ACCURACY = (
+        "api.explore.tracemetrics.raw-count.high-accuracy"
+    )
     DATA_EXPORT_TASKS_EXPLORE = "data_export.tasks.explore"
 
     # ** Insights **
@@ -469,6 +477,9 @@ class Referrer(StrEnum):
     API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
+    API_AI_CONVERSATIONS = "api.ai-conversations"
+    API_AI_CONVERSATIONS_COMPLETE = "api.ai-conversations.complete"
+    API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
     API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PROFILING_ONBOARDING = "profiling-onboarding"
@@ -548,6 +559,8 @@ class Referrer(StrEnum):
     API_SPANS_FREQUENCY_STATS_RPC = "api.spans.fields-stats.rpc"
     API_SPANS_TAG_VALUES_RPC = "api.spans.tags-values.rpc"
     API_SPANS_TRACE_VIEW = "api.spans.trace-view"
+    API_TRACE_METRICS_TAG_KEYS_RPC = "api.tracemetrics.tags-keys.rpc"
+    API_TRACE_METRICS_TAG_VALUES_RPC = "api.tracemetrics.tags-values.rpc"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"

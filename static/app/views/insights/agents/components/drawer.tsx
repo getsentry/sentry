@@ -6,19 +6,16 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/agents/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/agents/hooks/useAITrace';
-import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
 import {useNodeDetailsLink} from 'sentry/views/insights/agents/hooks/useNodeDetailsLink';
 import {useUrlTraceDrawer} from 'sentry/views/insights/agents/hooks/useUrlTraceDrawer';
 import {getDefaultSelectedNode} from 'sentry/views/insights/agents/utils/getDefaultSelectedNode';
 import {getNodeId} from 'sentry/views/insights/agents/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
-import {DrawerUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
+import {useTraceDrawerQueryState} from 'sentry/views/insights/agents/utils/urlParams';
 import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -35,32 +32,28 @@ interface UseTraceViewDrawerProps {
 const TraceViewDrawer = memo(function TraceViewDrawer({
   traceSlug,
   closeDrawer,
+  timestamp,
 }: {
   closeDrawer: () => void;
   traceSlug: string;
+  timestamp?: number;
 }) {
   const organization = useOrganization();
-  const {nodes, isLoading, error} = useAITrace(traceSlug);
-  const [selectedNodeKey, setSelectedNodeKey, removeSelectedNodeParam] =
-    useLocationSyncedState(DrawerUrlParams.SELECTED_SPAN, decodeScalar);
-
-  useEffect(() => {
-    return () => {
-      removeSelectedNodeParam();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
-  }, []);
+  const {nodes, isLoading, error} = useAITrace(traceSlug, timestamp);
+  const [traceDrawerQueryState, setTraceDrawerQueryState] = useTraceDrawerQueryState();
+  const selectedNodeKey = traceDrawerQueryState.spanId;
 
   const handleSelectNode = useCallback(
     (node: AITraceSpanNode) => {
-      const uniqueKey = getNodeId(node);
-      setSelectedNodeKey(uniqueKey);
-
+      const id = getNodeId(node);
+      setTraceDrawerQueryState({
+        spanId: id,
+      });
       trackAnalytics('agent-monitoring.drawer.span-select', {
         organization,
       });
     },
-    [setSelectedNodeKey, organization]
+    [setTraceDrawerQueryState, organization]
   );
 
   const selectedNode =
@@ -106,18 +99,24 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
   );
 });
 
-export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProps) {
+export function useTraceViewDrawer({onClose}: UseTraceViewDrawerProps = {}) {
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, drawerUrlState, closeDrawer} = useUrlTraceDrawer();
 
   const openTraceViewDrawer = useCallback(
-    (traceSlug: string) => {
+    (traceSlug: string, spanId?: string, timestamp?: number) => {
       trackAnalytics('agent-monitoring.drawer.open', {
         organization,
       });
 
       return openDrawer(
-        () => <TraceViewDrawer traceSlug={traceSlug} closeDrawer={closeDrawer} />,
+        () => (
+          <TraceViewDrawer
+            traceSlug={traceSlug}
+            timestamp={timestamp}
+            closeDrawer={closeDrawer}
+          />
+        ),
         {
           ariaLabel: t('Abbreviated Trace'),
           onClose,
@@ -125,6 +124,8 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
           drawerWidth: `${DRAWER_WIDTH}px`,
           resizable: true,
           traceSlug,
+          timestamp,
+          spanId,
           drawerKey: 'abbreviated-trace-view-drawer',
         }
       );
@@ -133,8 +134,12 @@ export function useTraceViewDrawer({onClose = undefined}: UseTraceViewDrawerProp
   );
 
   useEffect(() => {
-    if (drawerUrlState.trace && !isDrawerOpen) {
-      openTraceViewDrawer(drawerUrlState.trace);
+    if (drawerUrlState.traceId && !isDrawerOpen) {
+      openTraceViewDrawer(
+        drawerUrlState.traceId,
+        drawerUrlState.spanId ?? undefined,
+        drawerUrlState.timestamp ?? undefined
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
@@ -221,7 +226,7 @@ const LeftPanel = styled('div')`
   flex: 1;
   min-width: ${LEFT_PANEL_WIDTH}px;
   min-height: 0;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   border-right: 1px solid ${p => p.theme.border};
   overflow-y: auto;
   overflow-x: hidden;
@@ -252,7 +257,7 @@ const LoadingContainer = styled('div')`
 `;
 
 const StyledDrawerHeader = styled(DrawerHeader)`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   display: flex;
 `;
 
@@ -266,5 +271,5 @@ const HeaderContent = styled('div')`
 const SpansHeader = styled('h6')`
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;

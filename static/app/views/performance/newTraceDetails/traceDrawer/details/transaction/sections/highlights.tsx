@@ -53,6 +53,7 @@ export function TransactionHighlights(props: HighlightProps) {
       <CopyToClipboardButton
         borderless
         size="zero"
+        aria-label={t('Copy transaction name to clipboard')}
         text={props.node.value.transaction}
         tooltipProps={{disabled: true}}
       />
@@ -89,6 +90,7 @@ export function TransactionHighlights(props: HighlightProps) {
       hideNodeActions={props.hideNodeActions}
       highlightedAttributes={getHighlightedSpanAttributes({
         attributes: props.event.contexts.trace?.data,
+        spanId: props.node.value.span_id,
         op: props.node.value['transaction.op'],
       })}
     />

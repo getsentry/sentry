@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -12,9 +12,21 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
+from sentry.api.endpoints.timeseries import (
+    EMPTY_STATS_RESPONSE,
+    Row,
+    SeriesMeta,
+    StatsMeta,
+    StatsResponse,
+    TimeSeries,
+)
 from sentry.api.utils import handle_query_errors
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
+from sentry.search.eap.trace_metrics.config import (
+    TraceMetricsSearchResolverConfig,
+    get_trace_metric_from_request,
+)
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
@@ -26,9 +38,11 @@ from sentry.snuba import (
     spans_metrics,
     transactions,
 )
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.utils.snuba import SnubaTSResult
 
@@ -39,6 +53,8 @@ TOP_EVENTS_DATASETS = {
     metrics_enhanced_performance,
     spans_metrics,
     Spans,
+    OurLogs,
+    TraceMetrics,
     errors,
     transactions,
 }
@@ -46,49 +62,6 @@ TOP_EVENTS_DATASETS = {
 # Assumed ingestion delay for timeseries, this is a static number for now just to match how the frontend was doing it
 INGESTION_DELAY = 90
 INGESTION_DELAY_MESSAGE = "INCOMPLETE_BUCKET"
-
-
-class StatsMeta(TypedDict):
-    dataset: str
-    start: float
-    end: float
-
-
-class Row(TypedDict):
-    timestamp: float
-    value: float
-    incomplete: bool
-    comparisonValue: NotRequired[float]
-    sampleCount: NotRequired[float]
-    sampleRate: NotRequired[float | None]
-    confidence: NotRequired[Literal["low", "high"] | None]
-    incompleteReason: NotRequired[str]
-
-
-class SeriesMeta(TypedDict):
-    order: NotRequired[int]
-    isOther: NotRequired[str]
-    valueUnit: str | None
-    dataScanned: NotRequired[Literal["partial", "full"]]
-    valueType: str
-    interval: float
-
-
-class GroupBy(TypedDict):
-    key: str
-    value: str
-
-
-class TimeSeries(TypedDict):
-    values: list[Row]
-    yAxis: str
-    groupBy: NotRequired[list[GroupBy]]
-    meta: SeriesMeta
-
-
-class StatsResponse(TypedDict):
-    meta: StatsMeta
-    timeSeries: list[TimeSeries]
 
 
 def null_zero(value: float) -> float | None:
@@ -171,7 +144,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 if dataset not in TOP_EVENTS_DATASETS:
                     raise ParseError(detail=f"{dataset} doesn't support topEvents yet")
 
-            metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
+            metrics_enhanced = dataset in {
+                metrics_performance,
+                metrics_enhanced_performance,
+            }
             use_rpc = dataset in RPC_DATASETS
 
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
@@ -181,7 +157,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     organization,
                 )
             except NoProjects:
-                return Response([], status=200)
+                return Response(EMPTY_STATS_RESPONSE, status=200)
 
         with handle_query_errors():
             self.validate_comparison_delta(comparison_delta, snuba_params, organization)
@@ -242,6 +218,34 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             )
         )
 
+        def get_rpc_config():
+            if dataset not in RPC_DATASETS:
+                raise NotImplementedError
+
+            if dataset == TraceMetrics:
+                # tracemetrics uses aggregate conditions
+                metric_name, metric_type, metric_unit = get_trace_metric_from_request(request)
+                return TraceMetricsSearchResolverConfig(
+                    metric_name=metric_name,
+                    metric_type=metric_type,
+                    metric_unit=metric_unit,
+                    auto_fields=False,
+                    use_aggregate_conditions=True,
+                    disable_aggregate_extrapolation=request.GET.get(
+                        "disableAggregateExtrapolation", "0"
+                    )
+                    == "1",
+                )
+
+            return SearchResolverConfig(
+                auto_fields=False,
+                use_aggregate_conditions=True,
+                disable_aggregate_extrapolation=request.GET.get(
+                    "disableAggregateExtrapolation", "0"
+                )
+                == "1",
+            )
+
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
             if len(raw_groupby) == 0:
@@ -258,12 +262,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     limit=top_events,
                     include_other=include_other,
                     referrer=referrer,
-                    config=SearchResolverConfig(
-                        auto_fields=False,
-                        use_aggregate_conditions=True,
-                        disable_aggregate_extrapolation="disableAggregateExtrapolation"
-                        in request.GET,
-                    ),
+                    config=get_rpc_config(),
                     sampling_mode=snuba_params.sampling_mode,
                     equations=self.get_equation_list(organization, request, param_name="groupBy"),
                 )
@@ -292,11 +291,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 query_string=query,
                 y_axes=query_columns,
                 referrer=referrer,
-                config=SearchResolverConfig(
-                    auto_fields=False,
-                    use_aggregate_conditions=True,
-                    disable_aggregate_extrapolation="disableAggregateExtrapolation" in request.GET,
-                ),
+                config=get_rpc_config(),
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
             )

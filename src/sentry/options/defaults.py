@@ -338,7 +338,28 @@ register(
 # Deletions
 register(
     "deletions.group-hashes-batch-size",
-    default=10000,
+    default=100,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "deletions.group-hash-metadata.batch-size",
+    default=1000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "deletions.group-hash-metadata.use-old-update-method",
+    default=False,  # Default using new update method
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+register(
+    "cleanup.abort_execution",
+    default=False,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -368,7 +389,11 @@ register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIAB
 register("fileblob.upload.use_blobid_cache", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # New `objectstore` service configuration
-register("objectstore.config", default={}, flags=FLAG_NOSTORE)
+register(
+    "objectstore.config",
+    default={"base_url": "http://127.0.0.1:8888"},
+    flags=FLAG_NOSTORE,
+)
 
 
 # Symbol server
@@ -513,6 +538,20 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enable new msgspec-based recording parser.
+register(
+    "replay.consumer.msgspec_recording_parser",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Enable new database query caching.
+register(
+    "replay.consumer.enable_new_query_caching_system",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Trace sampling rates for replay summary endpoint.
 register(
     "replay.endpoints.project_replay_summary.trace_sample_rate_post",
@@ -596,6 +635,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -607,10 +647,11 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register(
-    "slack.default-workspace", default="example-workspace-name", flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register("slack.default-channel", default="general", flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Debug values are used for the Notification Debug CLI
+register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Log unfurl payloads for debugging
+register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Issue Summary on Alerts (timeout in seconds)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -634,6 +675,8 @@ register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIOR
 register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # if a region is in this list, it's safe to forward to codecov
 register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# if a region is in this list, it's safe to forward to overwatch
+register("overwatch.enabled-regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -741,6 +784,9 @@ register("discord.application-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_M
 register("discord.public-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("discord.bot-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("discord.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+# Debug values are used for the Notification Debug CLI
+register("discord.debug-server", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -800,6 +846,7 @@ register(
 )
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("snuba.preprocess-group-redirects", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -1107,6 +1154,14 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls whether token count metrics are collected for stacktraces sent to Seer
+register(
+    "seer.similarity.token_count_metrics_enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL,
 )
 
 # seer nearest neighbour endpoint timeout
@@ -1928,6 +1983,11 @@ register(
     default=3,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "performance.issues.web_vitals.count_threshold",
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Adjusting some time buffers in the trace endpoint
 register(
@@ -2123,6 +2183,14 @@ register(
     "dynamic-sampling.check_span_feature_flag",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
+# List of organization IDs that should be using spans for rebalancing in dynamic sampling.
+register(
+    "dynamic-sampling.measure.spans",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # === Hybrid cloud subsystem options ===
@@ -2398,6 +2466,10 @@ register(
 # are listed in 'extended_widget_spec_orgs' option.
 register("on_demand.extended_max_widget_specs", default=750, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("on_demand.extended_widget_spec_orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Some organizations can have more alert specs on a case-by-case basis. Widgets using this limit
+# are listed in 'extended_alert_spec_orgs' option.
+register("on_demand.extended_max_alert_specs", default=750, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("on_demand.extended_alert_spec_orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "on_demand.max_widget_cardinality.count",
     default=10000,
@@ -2765,12 +2837,22 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
 # transitioned to the optimized logic, and before the next config change, we probably either want to
 # turn this down or get rid of it in favor of the default 10% sample rate
 register(
     "grouping.config_transition.metrics_sample_rate",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# This is here in case we want to roll out a new config gradually. Can also be used as a killswitch
+# for config upgrades if one is ever needed.
+register(
+    "grouping.config_transition.config_upgrade_sample_rate",
     type=Float,
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2834,13 +2916,6 @@ register(
     default=10 * 1024 * 1024,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Maximum number of spans in a segment. Larger segments drop the oldest spans.
-register(
-    "spans.buffer.max-segment-spans",
-    type=Int,
-    default=1001,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # TTL for keys in Redis. This is a downside protection in case of bugs.
 register(
     "spans.buffer.redis-ttl",
@@ -2894,6 +2969,11 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.process-segments.schema-validation",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "indexed-spans.agg-span-waterfall.enable",
@@ -2919,26 +2999,6 @@ register(
     default=[],
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Options for setting LLM providers and usecases
-register("llm.provider.options", default={}, flags=FLAG_NOSTORE)
-# Example provider:
-#     "openai": {
-#         "options": {
-#             "api_key": "",
-#         },
-#         "models": ["gpt-4-turbo", "gpt-3.5-turbo"],
-#     }
-
-register("llm.usecases.options", default={}, flags=FLAG_NOSTORE, type=Dict)
-# Example usecase:
-#     "suggestedfix": {
-#         "provider": "openai",
-#         "options": {
-#             "model": "gpt-3.5-turbo",
-#         },
-#     }
-# }
 
 register(
     "feedback.filter_garbage_messages",
@@ -3142,6 +3202,26 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "workflow_engine.num_cohorts",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "workflow_engine.use_cohort_selection",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.schedule.min_cohort_scheduling_age_seconds",
+    type=Int,
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
 # table.
@@ -3171,20 +3251,6 @@ register(
     type=Dict,
     default={},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "uptime.date_cutoff_epoch_seconds",
-    type=Int,
-    default=0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "uptime.snuba_uptime_results.enabled",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Controls whether uptime monitoring creates issues via the issue platform.
@@ -3369,6 +3435,13 @@ register(
 )
 
 
+# Enable HTTP/2 transport in Sentry SDK
+register(
+    "sdk_http2_experiment.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "sdk-deprecation.profile-chunk.python",
     default="2.24.1",
@@ -3438,12 +3511,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Whether the new objectstore implementation is being used for attachments
-register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Whether the new objectstore implementation is being used for attachments in a double-write
-# configuration where it writes to the new objectstore alongside the existing filestore.
-# This is mutually exclusive with the above setting.
+# Fraction of attachments that are double-written to the new objectstore alongside the existing attachments store.
+# This is mutually exclusive with the below setting.
 register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Fraction of attachments that are being stored exclusively in the new objectstore.
+register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Fraction of events that use the processing store (the transient event payload) for attachment metadata (independant from payloads).
+register("objectstore.processing_store.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# This forces symbolication to use the "stored attachment" codepath,
+# regardless of whether the attachment has already been stored.
+register("objectstore.force-stored-symbolication", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 
 # option used to enable/disable tracking
 # rate of potential functions metrics to
@@ -3453,13 +3531,6 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "commit.dual-write-start-date",
-    type=String,
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Killswitch for linking identities for demo users
@@ -3515,4 +3586,93 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rate at which to forward events to eap_items. 1.0
+# means that 100% of projects will forward events to eap_items.
+register(
+    "eventstream.eap_forwarding_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswich for LLM issue detection
+register(
+    "issue-detection.llm-detection.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Allow list for projects with LLM issue detection enabled
+register(
+    "issue-detection.llm-detection.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The allowlist of organization IDs for which deletion from EAP is enabled.
+register(
+    "eventstream.eap.deletion_enabled.organization_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Send logs for sentry app webhooks sent. Should only be enabled for debugging a specific app or installation.
+register(
+    "sentry-apps.webhook-logging.enabled",
+    type=Dict,
+    default={
+        "sentry_app_slug": [],
+        "installation_uuid": [],
+    },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Which issue categories should we send issue.created webhooks for
+register(
+    "sentry-apps.expanded-webhook-categories",
+    type=Sequence,
+    default=[
+        1,  # ERROR
+        4,  # CRON
+        6,  # FEEDBACK
+        7,  # UPTIME
+        10,  # OUTAGE
+    ],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for web vital issue detection
+register(
+    "issue-detection.web-vitals-detection.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Allow list for projects with web vital issue detection enabled
+register(
+    "issue-detection.web-vitals-detection.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables or disables Github webhook routing based on the type of webhook
+register(
+    "github.webhook-type-routing.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Sets the sample rate for profiles collected via the JoinProfiler arroyo strategy
+register(
+    "consumer.join.profiling.rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

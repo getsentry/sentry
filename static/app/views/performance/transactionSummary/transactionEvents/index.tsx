@@ -2,36 +2,22 @@ import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  isAggregateField,
-  SPAN_OP_BREAKDOWN_FIELDS,
-  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-} from 'sentry/utils/discover/fields';
-import {WebVital} from 'sentry/utils/fields';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
 import {
   decodeFilterFromLocation,
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
-import type {ChildProps} from 'sentry/views/performance/transactionSummary/pageLayout';
-import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
-import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {
   ZOOM_END,
   ZOOM_START,
 } from 'sentry/views/performance/transactionSummary/transactionOverview/latencyChart/utils';
+import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 
 import EventsContent from './content';
 import {
@@ -40,44 +26,18 @@ import {
   filterEventsDisplayToLocationQuery,
   getEventsFilterOptions,
   getPercentilesEventView,
+  getWebVital,
   mapPercentileValues,
 } from './utils';
 
 type PercentileValues = Record<EventsDisplayFilterName, number>;
 
-type Props = {
-  location: Location;
-  organization: Organization;
-  projects: Project[];
-};
+function TransactionEvents() {
+  const {organization, eventView, transactionName, setError, projectId, projects} =
+    useTransactionSummaryContext();
 
-function TransactionEvents(props: Props) {
-  const {location, organization, projects} = props;
-
-  return (
-    <PageLayout
-      location={location}
-      organization={organization}
-      projects={projects}
-      tab={Tab.EVENTS}
-      getDocumentTitle={getDocumentTitle}
-      generateEventView={generateEventView}
-      childComponent={EventsContentWrapper}
-    />
-  );
-}
-
-function EventsContentWrapper(props: ChildProps) {
-  const {
-    location,
-    organization,
-    eventView,
-    transactionName,
-    setError,
-    projectId,
-    projects,
-  } = props;
   const navigate = useNavigate();
+  const location = useLocation();
   const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
   const webVital = getWebVital(location);
@@ -169,7 +129,7 @@ function EventsContentWrapper(props: ChildProps) {
       {({isLoading, tableData}) => {
         if (isLoading) {
           return (
-            <Layout.Main fullWidth>
+            <Layout.Main width="full">
               <LoadingIndicator />
             </Layout.Main>
           );
@@ -200,81 +160,4 @@ function EventsContentWrapper(props: ChildProps) {
   );
 }
 
-function getDocumentTitle(transactionName: string): string {
-  const hasTransactionName =
-    typeof transactionName === 'string' && String(transactionName).trim().length > 0;
-
-  if (hasTransactionName) {
-    return [String(transactionName).trim(), t('Events')].join(' \u2014 ');
-  }
-
-  return [t('Summary'), t('Events')].join(' \u2014 ');
-}
-
-function getWebVital(location: Location): WebVital | undefined {
-  const webVital = decodeScalar(location.query.webVital, '') as WebVital;
-  if (Object.values(WebVital).includes(webVital)) {
-    return webVital;
-  }
-  return undefined;
-}
-
-function generateEventView({
-  location,
-  transactionName,
-}: {
-  location: Location;
-  organization: Organization;
-  shouldUseOTelFriendlyUI: boolean;
-  transactionName: string;
-}): EventView {
-  const query = decodeScalar(location.query.query, '');
-  const conditions = new MutableSearch(query);
-
-  conditions.setFilterValues('event.type', ['transaction']);
-  conditions.setFilterValues('transaction', [transactionName]);
-
-  Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) {
-      conditions.removeFilter(field);
-    }
-  });
-
-  const orderby = decodeScalar(location.query.sort, '-timestamp');
-
-  // Default fields for relative span view
-  const fields = [
-    'id',
-    'user.display',
-    ...(orderby.endsWith('http.method') ? ['http.method'] : []),
-    SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-    'transaction.duration',
-    'trace',
-    'timestamp',
-  ];
-  const breakdown = decodeFilterFromLocation(location);
-  if (breakdown === SpanOperationBreakdownFilter.NONE) {
-    fields.push(...SPAN_OP_BREAKDOWN_FIELDS);
-  } else {
-    fields.splice(2, 1, `spans.${breakdown}`);
-  }
-  const webVital = getWebVital(location);
-  if (webVital) {
-    fields.splice(3, 0, webVital);
-  }
-
-  return EventView.fromNewQueryWithLocation(
-    {
-      id: undefined,
-      version: 2,
-      name: transactionName,
-      fields,
-      query: conditions.formatString(),
-      projects: [],
-      orderby,
-    },
-    location
-  );
-}
-
-export default withProjects(withOrganization(TransactionEvents));
+export default TransactionEvents;

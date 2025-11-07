@@ -7,6 +7,7 @@ import {AreaChart} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
+import {Alert} from 'sentry/components/core/alert';
 import {Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
@@ -294,46 +295,65 @@ function MetricDetectorChart({
 
   if (isLoading) {
     return (
-      <Flex height={CHART_HEIGHT} justify="center" align="center">
-        <Placeholder height={`${CHART_HEIGHT}px`} />
-      </Flex>
+      <ChartContainer>
+        <ChartContainerBody>
+          <Flex height={CHART_HEIGHT} justify="center" align="center">
+            <Placeholder height={`${CHART_HEIGHT}px`} />
+          </Flex>
+        </ChartContainerBody>
+      </ChartContainer>
     );
   }
 
   if (error) {
+    const errorMessage =
+      typeof error?.responseJSON?.detail === 'string' ? error.responseJSON.detail : null;
     return (
-      <Flex height={CHART_HEIGHT} justify="center" align="center">
-        <ErrorPanel>
-          <IconWarning color="gray300" size="lg" />
-          <div>{t('Error loading chart data')}</div>
-        </ErrorPanel>
-      </Flex>
+      <ChartContainer style={{overflow: 'hidden'}}>
+        {errorMessage && (
+          <Alert system type="error">
+            {errorMessage}
+          </Alert>
+        )}
+        <ChartContainerBody>
+          <Flex justify="center" align="center">
+            <ErrorPanel height={`${CHART_HEIGHT - 45}px`}>
+              <IconWarning color="gray300" size="lg" />
+              <div>{t('Error loading chart data')}</div>
+            </ErrorPanel>
+          </Flex>
+        </ChartContainerBody>
+      </ChartContainer>
     );
   }
 
   return (
-    <AreaChart
-      showTimeInTooltip
-      height={CHART_HEIGHT}
-      stacked={false}
-      series={series}
-      additionalSeries={additionalSeries}
-      yAxes={yAxes.length > 1 ? yAxes : undefined}
-      yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
-      grid={grid}
-      xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
-      tooltip={{
-        valueFormatter: getDetectorChartFormatters({
-          detectionType,
-          aggregate: snubaQuery.aggregate,
-        }).formatTooltipValue,
-      }}
-      {...chartZoomProps}
-      onChartReady={chart => {
-        chartZoomProps.onChartReady(chart);
-        openPeriodMarkerResult.onChartReady(chart);
-      }}
-    />
+    <ChartContainer>
+      <ChartContainerBody>
+        <AreaChart
+          showTimeInTooltip
+          height={CHART_HEIGHT}
+          stacked={false}
+          series={series}
+          additionalSeries={additionalSeries}
+          yAxes={yAxes.length > 1 ? yAxes : undefined}
+          yAxis={yAxes.length === 1 ? yAxes[0] : undefined}
+          grid={grid}
+          xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
+          tooltip={{
+            valueFormatter: getDetectorChartFormatters({
+              detectionType,
+              aggregate: snubaQuery.aggregate,
+            }).formatTooltipValue,
+          }}
+          {...chartZoomProps}
+          onChartReady={chart => {
+            chartZoomProps.onChartReady(chart);
+            openPeriodMarkerResult.onChartReady(chart);
+          }}
+        />
+      </ChartContainerBody>
+    </ChartContainer>
   );
 }
 
@@ -348,16 +368,12 @@ export function MetricDetectorDetailsChart({
   const dateParams = start && end ? {start, end} : {statsPeriod};
 
   return (
-    <ChartContainer>
-      <ChartContainerBody>
-        <MetricDetectorChart
-          detector={detector}
-          // Pass snubaQuery separately to avoid checking null in all places
-          snubaQuery={snubaQuery}
-          {...dateParams}
-        />
-      </ChartContainerBody>
-    </ChartContainer>
+    <MetricDetectorChart
+      detector={detector}
+      // Pass snubaQuery separately to avoid checking null in all places
+      snubaQuery={snubaQuery}
+      {...dateParams}
+    />
   );
 }
 

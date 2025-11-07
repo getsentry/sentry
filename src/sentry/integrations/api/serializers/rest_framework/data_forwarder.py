@@ -1,7 +1,8 @@
 import re
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict
 
+from django.db import router, transaction
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
@@ -9,6 +10,7 @@ from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
+from sentry.models.project import Project
 from sentry_plugins.amazon_sqs.plugin import get_regions
 
 
@@ -49,6 +51,9 @@ class DataForwarderSerializer(Serializer):
         ]
     )
     config = serializers.DictField(child=serializers.CharField(allow_blank=False), default=dict)
+    project_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=True, required=True
+    )
 
     def validate_config(self, config) -> SQSConfig | SegmentConfig | SplunkConfig:
         provider = self.initial_data.get("provider")
@@ -61,6 +66,24 @@ class DataForwarderSerializer(Serializer):
             return self._validate_splunk_config(config)
 
         raise ValidationError(f"Invalid provider: {provider}")
+
+    def validate_project_ids(self, project_ids: list[int]) -> list[int]:
+        if not project_ids:
+            return project_ids
+
+        valid_project_ids = set(
+            Project.objects.filter(
+                organization_id=self.context["organization"].id, id__in=project_ids
+            ).values_list("id", flat=True)
+        )
+
+        if len(valid_project_ids) != len(project_ids):
+            invalid_ids = set(project_ids) - valid_project_ids
+            raise ValidationError(
+                f"Invalid project IDs for this organization: {', '.join(map(str, invalid_ids))}"
+            )
+
+        return project_ids
 
     def _validate_all_fields_present(
         self,
@@ -124,7 +147,7 @@ class DataForwarderSerializer(Serializer):
             if not re.match(splunk_token_pattern, token):
                 errors.append("token must be a valid Splunk HEC token format")
 
-    def validate(self, attrs: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+    def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         organization_id = attrs.get("organization_id")
         provider = attrs.get("provider")
 
@@ -178,6 +201,47 @@ class DataForwarderSerializer(Serializer):
 
         return config
 
+    def create(self, validated_data: Mapping[str, Any]) -> DataForwarder:
+        project_ids: list[int] = validated_data["project_ids"]
+        data = {k: v for k, v in validated_data.items() if k != "project_ids"}
+
+        with transaction.atomic(using=router.db_for_write(DataForwarder)):
+            data_forwarder = DataForwarder.objects.create(**data)
+
+            # Enroll specified projects
+            if project_ids:
+                for project_id in project_ids:
+                    DataForwarderProject.objects.create(
+                        data_forwarder=data_forwarder,
+                        project_id=project_id,
+                        is_enabled=False,
+                    )
+        return data_forwarder
+
+    def update(self, instance: DataForwarder, validated_data: Mapping[str, Any]) -> DataForwarder:
+        project_ids: list[int] = validated_data["project_ids"]
+
+        with transaction.atomic(using=router.db_for_write(DataForwarder)):
+            for attr, value in validated_data.items():
+                if attr != "project_ids":
+                    setattr(instance, attr, value)
+            instance.save()
+
+            # Enroll or update specified projects
+            for project_id in project_ids:
+                DataForwarderProject.objects.update_or_create(
+                    data_forwarder=instance,
+                    project_id=project_id,
+                    defaults={"is_enabled": True},
+                )
+
+            # Unenroll projects not in the list
+            DataForwarderProject.objects.filter(data_forwarder=instance).exclude(
+                project_id__in=project_ids
+            ).delete()
+
+        return instance
+
 
 class DataForwarderProjectSerializer(Serializer):
     data_forwarder_id = serializers.IntegerField()
@@ -226,3 +290,20 @@ class DataForwarderProjectSerializer(Serializer):
             )
 
         return attrs
+
+    def create(self, validated_data: MutableMapping[str, Any]) -> DataForwarderProject:
+        project = validated_data.pop("project")
+        validated_data["project_id"] = project.id
+        return DataForwarderProject.objects.create(**validated_data)
+
+    def update(
+        self, instance: DataForwarderProject, validated_data: MutableMapping[str, Any]
+    ) -> DataForwarderProject:
+        project = validated_data.pop("project", None)
+        if project:
+            validated_data["project_id"] = project.id
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance

@@ -684,14 +684,16 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
     data_source field (MonitorDataSourceValidator).
     """
 
-    data_source = MonitorDataSourceValidator(required=False)
     data_sources = serializers.ListField(child=MonitorDataSourceValidator(), required=False)
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
         super().update(instance, validated_data)
 
-        if "data_source" in validated_data:
-            data_source_data = validated_data.pop("data_source")
+        data_source_data = None
+        if "data_sources" in validated_data:
+            data_source_data = validated_data.pop("data_sources")[0]
+
+        if data_source_data is not None:
             data_source = DataSource.objects.get(detectors=instance)
             monitor = Monitor.objects.get(id=data_source.source_id)
 

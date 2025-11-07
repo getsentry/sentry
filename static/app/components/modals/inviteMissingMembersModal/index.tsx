@@ -16,7 +16,7 @@ import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomi
 import PanelItem from 'sentry/components/panels/panelItem';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
-import TeamSelector from 'sentry/components/teamSelector';
+import {TeamSelector} from 'sentry/components/teamSelector';
 import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

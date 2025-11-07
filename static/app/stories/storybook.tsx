@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {Children, Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {Heading} from 'sentry/components/core/text';
 import {makeStorybookDocumentTitle} from 'sentry/stories/view/storyExports';
@@ -46,7 +47,7 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
           <Story key={i} name={name} render={render} />
         ))}
         {APIDocumentation.map((documentation, i) => (
-          <Storybook.APIReference key={i} types={documentation} />
+          <Storybook.APIReference key={i} componentProps={documentation} />
         ))}
       </Fragment>
     );
@@ -59,16 +60,12 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
 
   return (
     <Storybook.Section>
-      <StoryHeadingContainer>
+      <Container borderBottom="primary">
         <StoryHeading as="h2" size="2xl">
           {props.name}
         </StoryHeading>
-      </StoryHeadingContainer>
+      </Container>
       {isOneChild ? children : <Storybook.SideBySide>{children}</Storybook.SideBySide>}
     </Storybook.Section>
   );
 }
-
-const StoryHeadingContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-`;

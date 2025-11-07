@@ -1,4 +1,7 @@
+import {useMemo} from 'react';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
+import qs from 'query-string';
 
 import {
   openAddToDashboardModal,
@@ -6,15 +9,18 @@ import {
 } from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Link} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   MEPState,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
@@ -31,6 +37,7 @@ import {
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 
@@ -49,27 +56,123 @@ export const useIndexedEventsWarning = (): string | null => {
 
 export const useTransactionsDeprecationWarning = ({
   widget,
+  selection,
 }: {
+  selection: PageFilters;
   widget: Widget;
 }): React.JSX.Element | null => {
   const organization = useOrganization();
 
-  if (
-    organization.features.includes('transaction-widget-deprecation-explore-view') &&
-    widget.widgetType === WidgetType.TRANSACTIONS &&
-    widget.exploreUrls &&
-    widget.exploreUrls.length > 0
-  ) {
-    return tct(
-      'Transactions widgets are in the process of being migrated to spans widgets. To see what your query could look like, open it in [explore:Explore].',
-      {
-        explore: <Link to={widget.exploreUrls[0]!} />,
-      }
+  // memoize the URL to avoid recalculating it on every render
+  const exploreUrl = useMemo(() => {
+    if (
+      !organization.features.includes('transaction-widget-deprecation-explore-view') ||
+      widget.widgetType !== WidgetType.TRANSACTIONS ||
+      !widget.exploreUrls ||
+      widget.exploreUrls.length === 0
+    ) {
+      return null;
+    }
+    return createExploreUrl(widget.exploreUrls[0]!, selection, organization);
+  }, [organization, widget.widgetType, widget.exploreUrls, selection]);
+
+  if (!exploreUrl) {
+    return null;
+  }
+
+  return tct(
+    'Transaction based widgets will soon be migrated to spans widgets. To see what your query could look like, open it in [explore:Explore].',
+    {
+      explore: <Link to={exploreUrl} />,
+    }
+  );
+};
+
+const createExploreUrl = (
+  baseUrl: string,
+  selection: PageFilters,
+  organization: Organization
+): string => {
+  const parsedUrl = safeURL(baseUrl);
+  const queryParams = qs.parse(parsedUrl?.search ?? '');
+
+  if (queryParams.aggregateField) {
+    // we need to parse the aggregateField because it comes in stringified but needs to be passed in JSON format
+    if (typeof queryParams.aggregateField === 'string') {
+      queryParams.aggregateField = JSON.parse(queryParams.aggregateField);
+    } else if (Array.isArray(queryParams.aggregateField)) {
+      queryParams.aggregateField = queryParams.aggregateField.map(item =>
+        JSON.parse(item)
+      );
+    }
+  }
+  return getExploreUrl({organization, selection, ...queryParams});
+};
+
+export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | null => {
+  if (!widget.changedReason) {
+    return null;
+  }
+
+  const columnsDropped = [];
+  const equationsDropped = [];
+  const orderbyDropped = [];
+  for (const changedReason of widget.changedReason) {
+    if (changedReason.selected_columns.length > 0) {
+      columnsDropped.push(...changedReason.selected_columns);
+    }
+    if (changedReason.equations) {
+      equationsDropped.push(
+        ...changedReason.equations.map(equation => equation.equation)
+      );
+    }
+    if (changedReason.orderby) {
+      orderbyDropped.push(
+        ...changedReason.orderby.flatMap(orderby =>
+          typeof orderby.reason === 'string' ? orderby.orderby : orderby.reason
+        )
+      );
+    }
+  }
+
+  const orderbyDroppedWithoutNegation = orderbyDropped.map(orderby =>
+    orderby.startsWith('-') ? orderby.replace('-', '') : orderby
+  );
+  const equationsDroppedParsed = equationsDropped.map(equation => {
+    if (isEquation(equation)) {
+      return stripEquationPrefix(equation);
+    }
+    return equation;
+  });
+  const combinedWarnings = [
+    ...columnsDropped,
+    ...equationsDroppedParsed,
+    ...orderbyDroppedWithoutNegation,
+  ];
+  const allWarningsSet = new Set(combinedWarnings);
+  const allWarnings = [...allWarningsSet];
+
+  if (allWarnings.length > 0) {
+    return (
+      <div>
+        <StyledText as="p">
+          {tct(
+            'This widget looks different because it was migrated to the spans dataset and [columns] is not supported.',
+            {
+              columns: allWarnings.join(', '),
+            }
+          )}
+        </StyledText>
+      </div>
     );
   }
 
   return null;
 };
+
+const StyledText = styled(Text)`
+  padding-bottom: ${p => p.theme.space.xs};
+`;
 
 export function getMenuOptions(
   dashboardFilters: DashboardFilters | undefined,

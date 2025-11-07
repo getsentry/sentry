@@ -11,7 +11,7 @@ import socket
 import sys
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, Union, overload
+from typing import Any, Final, Literal, Union, cast, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -189,6 +189,11 @@ SENTRY_SPAN_BUFFER_CLUSTER = "default"
 SENTRY_ASSEMBLE_CLUSTER = "default"
 SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
+SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER = "default"
+SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER = "default"
+SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER = "default"
+SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
+SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -479,6 +484,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
+    "sentry.prevent",
 )
 
 # Silence internal hints from Django's system checks
@@ -775,6 +781,7 @@ TIMEDELTA_ALLOW_LIST = {
     "deliver-from-outbox-control",
     "deliver-webhooks-control",
     "flush-buffers",
+    "flush-delayed-workflows",
     "sync-options",
     "sync-options-control",
     "schedule-digests",
@@ -821,6 +828,7 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
     "sentry.deletions.tasks.hybrid_cloud",
@@ -863,7 +871,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
-    "sentry.releases.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.replays.tasks",
@@ -893,8 +900,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
-    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.groupowner",
+    "sentry.tasks.llm_issue_detection",
     "sentry.tasks.merge",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.options",
@@ -914,9 +921,10 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
     "sentry.tasks.user_report",
+    "sentry.tasks.web_vitals_issue_detection",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
-    "sentry.uptime.detectors.tasks",
+    "sentry.uptime.autodetect.tasks",
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.tasks.delayed_workflows",
@@ -948,7 +956,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+        "schedule": timedelta(seconds=15),
     },
     "sync-options": {
         "task": "options:sentry.tasks.options.sync_options",
@@ -1102,9 +1110,17 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
         "schedule": task_crontab("*/30", "*", "*", "*", "*"),
     },
+    "llm-issue-detection": {
+        "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
+        "schedule": task_crontab("*/30", "*", "*", "*", "*"),
+    },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
         "schedule": task_crontab("0", "*", "*", "*", "*"),
+    },
+    "web-vitals-issue-detection": {
+        "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
+        "schedule": task_crontab("0", "0", "*", "1,15", "*"),
     },
 }
 
@@ -1243,6 +1259,7 @@ LOGGING: LoggingConfig = {
         },
         "boto3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
         "botocore": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+        "rediscluster": {"level": "WARNING", "handlers": ["console"], "propagate": False},
     },
 }
 
@@ -1722,6 +1739,7 @@ SENTRY_SCOPES = {
     "project:write",
     "project:admin",
     "project:releases",
+    "project:distribution",
     "event:read",
     "event:write",
     "event:admin",
@@ -1760,6 +1778,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "project:write": {"project:read", "project:write"},
     "project:admin": {"project:read", "project:write", "project:admin"},
     "project:releases": {"project:releases"},
+    "project:distribution": {"project:distribution"},
     "event:read": {"event:read"},
     "event:write": {"event:read", "event:write"},
     "event:admin": {"event:read", "event:write", "event:admin"},
@@ -2096,7 +2115,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.9.0"
+SELF_HOSTED_STABLE_VERSION = "25.10.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2545,7 +2564,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "monitors-clock-tasks": "default",
     "monitors-incident-occurrences": "default",
     "uptime-results": "default",
-    "snuba-uptime-results": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
@@ -2879,6 +2897,7 @@ SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
 SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
 
@@ -3102,6 +3121,12 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 # Stage: "https://stage-api.codecov.dev/"
 CODECOV_API_BASE_URL = "https://api.codecov.io"
 
+OVERWATCH_REGION_URLS: dict[str, str] = cast(
+    dict[str, str], env("OVERWATCH_REGION_URLS", {}, type=env_types.Dict)
+)
+OVERWATCH_REGION_URL: str | None = os.getenv("OVERWATCH_REGION_URL")
+OVERWATCH_WEBHOOK_SECRET: str | None = os.getenv("OVERWATCH_WEBHOOK_SECRET")
+
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host:
@@ -3171,3 +3196,13 @@ if ngrok_host and SILO_DEVSERVER:
     # the region API URL template is set to the ngrok host.
     SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
     SENTRY_FEATURES["system:multi-region"] = True
+
+CONDUIT_GATEWAY_PRIVATE_KEY: str | None = os.getenv("CONDUIT_GATEWAY_PRIVATE_KEY")
+CONDUIT_GATEWAY_URL: str = os.getenv("CONDUIT_GATEWAY_URL", "http://127.0.0.1:9096")
+CONDUIT_GATEWAY_JWT_ISSUER: str = os.getenv("CONDUIT_GATEWAY_JWT_ISSUER", "sentry.io")
+CONDUIT_GATEWAY_JWT_AUDIENCE: str = os.getenv("CONDUIT_GATEWAY_JWT_AUDIENCE", "conduit")
+
+CONDUIT_PUBLISH_SECRET: str | None = os.getenv("CONDUIT_PUBLISH_SECRET")
+CONDUIT_PUBLISH_URL: str = os.getenv("CONDUIT_PUBLISH_URL", "http://127.0.0.1:9097")
+CONDUIT_PUBLISH_JWT_ISSUER: str = os.getenv("CONDUIT_PUBLISH_JWT_ISSUER", "sentry.io")
+CONDUIT_PUBLISH_JWT_AUDIENCE: str = os.getenv("CONDUIT_PUBLISH_JWT_AUDIENCE", "conduit")

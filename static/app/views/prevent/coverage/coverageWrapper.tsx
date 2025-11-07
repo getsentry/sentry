@@ -1,7 +1,7 @@
 import {Outlet} from 'react-router-dom';
-import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Flex} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,26 +14,19 @@ export default function CoveragePageWrapper() {
     <SentryDocumentTitle title={COVERAGE_PAGE_TITLE} orgSlug={organization.slug}>
       <Layout.Header unified>
         <Layout.HeaderContent>
-          <HeaderContentBar>
+          <Flex align="center" justify="between" direction="row">
             <Layout.Title>
               {COVERAGE_PAGE_TITLE}
               <FeatureBadge type="new" />
             </Layout.Title>
-          </HeaderContentBar>
+          </Flex>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <Layout.Main width="full">
           <Outlet />
         </Layout.Main>
       </Layout.Body>
     </SentryDocumentTitle>
   );
 }
-
-const HeaderContentBar = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
-`;
