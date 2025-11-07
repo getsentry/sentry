@@ -269,7 +269,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
     disabled: !hasEveryAccess(['project:write'], {organization, project}),
   };
 
-  const team = project.teams.length ? project.teams?.[0] : undefined;
+  const team = project.teams?.[0];
 
   // XXX: HACK
   //
@@ -441,6 +441,10 @@ export default function ProjectGeneralSettingsContainer() {
     },
     [navigate, organization.slug, routes, location]
   );
+
+  if (!project?.id) {
+    return null;
+  }
 
   return <ProjectGeneralSettings project={project} onChangeSlug={handleChangeSlug} />;
 }
