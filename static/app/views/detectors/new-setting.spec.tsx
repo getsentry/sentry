@@ -237,11 +237,9 @@ describe('DetectorEdit', () => {
 
       await screen.findByText('New Monitor');
 
-      // Select a template from the dropdown
-      const templateSelect = screen.getByPlaceholderText('Choose a template (optional)');
-      await userEvent.click(templateSelect);
+      await userEvent.click(screen.getByLabelText('Throughput'));
       await userEvent.click(
-        await screen.findByRole('menuitemradio', {name: 'Number of Errors'})
+        await screen.findByRole('option', {name: 'Number of Errors'})
       );
 
       // Verify form fields are pre-filled with template values
@@ -267,9 +265,11 @@ describe('DetectorEdit', () => {
                 expect.objectContaining({
                   aggregate: 'count()',
                   dataset: 'events',
-                  eventTypes: ['error'],
+                  environment: null,
+                  eventTypes: ['error', 'default'],
                   query: '',
                   queryType: 0,
+                  timeWindow: 3600,
                 }),
               ],
             }),

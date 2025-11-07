@@ -21,8 +21,9 @@ export function useDatasetChoices(): Array<SelectValue<DetectorDataset>> {
   const savedDataset = (detector as MetricDetector | undefined)?.dataSources[0]?.queryObj
     ?.snubaQuery?.dataset;
   const isExistingTransactionsDetector =
-    Boolean(detector) &&
-    [Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(savedDataset as Dataset);
+    detector &&
+    savedDataset &&
+    [Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(savedDataset);
   const shouldHideTransactionsDataset =
     !isExistingTransactionsDetector && deprecateTransactionAlerts(organization);
 
