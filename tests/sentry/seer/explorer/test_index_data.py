@@ -82,18 +82,21 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
 
         # Create multiple traces with different span counts
         traces_data = [
-            (2, "trace-small"),  # 2 spans - smallest
-            (5, "trace-medium"),  # 5 spans - median
-            (8, "trace-large"),  # 8 spans - largest
+            (5, "trace-medium", 0),  # 5 spans - starts at offset 0 (earliest)
+            (2, "trace-small", 10),  # 2 spans - starts at offset 10 minutes
+            (8, "trace-large", 20),  # 8 spans - starts at offset 20 minutes
         ]
 
         spans = []
         trace_ids = []
+        expected_trace_id = None
 
-        for span_count, trace_suffix in traces_data:
+        for span_count, trace_suffix, start_offset_minutes in traces_data:
             # Generate a unique trace ID
             trace_id = uuid.uuid4().hex
             trace_ids.append(trace_id)
+            if trace_suffix == "trace-medium":
+                expected_trace_id = trace_id
 
             for i in range(span_count):
                 # Create spans for this trace
@@ -105,7 +108,7 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
                         "parent_span_id": None if i == 0 else f"parent-{i-1}",
                         "is_segment": i == 0,  # First span is the transaction span
                     },
-                    start_ts=self.ten_mins_ago + timedelta(minutes=i),
+                    start_ts=self.ten_mins_ago + timedelta(minutes=start_offset_minutes + i),
                 )
                 spans.append(span)
 
@@ -120,7 +123,8 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
         assert result.project_id == self.project.id
         assert result.trace_id in trace_ids
 
-        # Should choose the median trace (5 spans) - middle of [2, 5, 8]
+        # Should choose the first trace by start_ts (trace-medium with 5 spans)
+        assert result.trace_id == expected_trace_id
         assert result.total_spans == 5
         assert len(result.spans) == 5
 
@@ -132,7 +136,7 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
             assert hasattr(result_span, "span_op")
             assert result_span.span_description is not None
             assert result_span.span_description.startswith("span-")
-            assert "trace-medium" in result_span.span_description  # Should be from the median trace
+            assert "trace-medium" in result_span.span_description  # Should be from the first trace
 
         # Verify parent-child relationships are preserved
         root_spans = [s for s in result.spans if s.parent_span_id is None]
