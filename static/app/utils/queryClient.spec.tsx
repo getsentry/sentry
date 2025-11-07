@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {disableFetchMocks} from 'jest-fetch-mock';
 import {http, HttpResponse} from 'msw';
 
 import {server} from 'sentry-test/msw';
@@ -77,7 +76,10 @@ describe('queryClient', () => {
 
   describe('useQuery', () => {
     beforeEach(() => {
-      // disableFetchMocks();
+      globalThis.__USE_REAL_API__ = true;
+    });
+    afterEach(() => {
+      globalThis.__USE_REAL_API__ = false;
     });
     it('can do a simple fetch', async () => {
       const requests: Request[] = [];

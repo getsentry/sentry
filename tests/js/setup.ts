@@ -67,7 +67,7 @@ jest.mock('lodash/debounce', () =>
   })
 );
 jest.mock('sentry/utils/recreateRoute');
-// jest.mock('sentry/api');
+jest.mock('sentry/api');
 jest
   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
   .mockImplementation(props => props.children as ReactElement);
@@ -249,6 +249,10 @@ declare global {
    * Used to mock API requests
    */
   var MockApiClient: typeof Client;
+  /**
+   * Flag to use real API client instead of mock for MSW tests
+   */
+  var __USE_REAL_API__: boolean;
 }
 
 // needed by cbor-web for webauthn
