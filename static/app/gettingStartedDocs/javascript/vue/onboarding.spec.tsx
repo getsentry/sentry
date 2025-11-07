@@ -4,9 +4,9 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './react';
+import docs from '.';
 
-describe('javascript-react onboarding docs', () => {
+describe('javascript-vue onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
@@ -20,7 +20,7 @@ describe('javascript-react onboarding docs', () => {
 
     // Includes import statement
     expect(
-      screen.getByText(textWithMarkupMatcher(/import \* as Sentry from "@sentry\/react"/))
+      screen.getByText(textWithMarkupMatcher(/import \* as Sentry from "@sentry\/vue"/))
     ).toBeInTheDocument();
   });
 
