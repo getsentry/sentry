@@ -75,7 +75,7 @@ export function StreamlinedExternalIssueList({
   });
 
   if (isLoading) {
-    return <Placeholder height="25px" testId="issue-tracking-loading" />;
+    return <Placeholder height="25px" data-test-id="issue-tracking-loading" />;
   }
 
   const hasLinkedIssuesOrIntegrations = integrations.length || linkedIssues.length;

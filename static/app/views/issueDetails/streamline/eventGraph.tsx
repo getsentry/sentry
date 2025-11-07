@@ -496,7 +496,7 @@ export function EventGraph({
           <div />
         )}
         <LoadingChartContainer ref={chartContainerRef}>
-          <Placeholder height="96px" testId="event-graph-loading" />
+          <Placeholder height="96px" data-test-id="event-graph-loading" />
         </LoadingChartContainer>
       </Grid>
     );

@@ -347,7 +347,7 @@ class VitalCard extends Component<Props, State> {
                   {...zoomRenderProps}
                 />
               ),
-              fixed: <Placeholder testId="skeleton-ui" height="200px" />,
+              fixed: <Placeholder data-test-id="skeleton-ui" height="200px" />,
             })}
           </Container>
         )}

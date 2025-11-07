@@ -432,7 +432,7 @@ function TagsHeatMap(
                 {...chartOptions}
               />
             ),
-            fixed: <Placeholder height="290px" testId="skeleton-ui" />,
+            fixed: <Placeholder height="290px" data-test-id="skeleton-ui" />,
           })}
         </Fragment>
       </TransitionChart>

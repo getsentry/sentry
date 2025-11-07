@@ -146,7 +146,7 @@ function MetricIssueChartContent({
 function MetricIssuePlaceholder({type}: {type: 'loading' | 'error'}) {
   return type === 'loading' ? (
     <PlaceholderContainer>
-      <Placeholder height="96px" testId="metric-issue-chart-loading" />
+      <Placeholder height="96px" data-test-id="metric-issue-chart-loading" />
     </PlaceholderContainer>
   ) : (
     <MetricChartAlert type="error" showIcon data-test-id="metric-issue-chart-error">

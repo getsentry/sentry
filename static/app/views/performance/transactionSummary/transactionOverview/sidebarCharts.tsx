@@ -126,7 +126,7 @@ function SidebarCharts({
                 value: (
                   <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
                 ),
-                fixed: <Placeholder height="300px" testId="skeleton-ui" />,
+                fixed: <Placeholder height="300px" data-test-id="skeleton-ui" />,
               })}
             </TransitionChart>
           );

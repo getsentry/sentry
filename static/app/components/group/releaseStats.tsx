@@ -1,6 +1,8 @@
 import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout/container';
+
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import GroupReleaseChart from 'sentry/components/group/releaseChart';
@@ -72,7 +74,9 @@ function GroupReleaseStats({
   return (
     <div>
       {!group || !allEnvironments ? (
-        <Placeholder height="346px" bottomGutter={4} />
+        <Container marginBottom="xs">
+          <Placeholder height="346px" />
+        </Container>
       ) : (
         <Fragment>
           <GraphContainer>

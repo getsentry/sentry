@@ -161,7 +161,7 @@ function Content({
                     ]}
                   />
                 ),
-                fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                fixed: <Placeholder height="200px" data-test-id="skeleton-ui" />,
               })}
             </TransitionChart>
           )}

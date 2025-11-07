@@ -65,7 +65,9 @@ export default function TagPanel() {
   );
 
   if (!replayRecord) {
-    return <PaddedPlaceholder testId="replay-tags-loading-placeholder" height="100%" />;
+    return (
+      <PaddedPlaceholder data-test-id="replay-tags-loading-placeholder" height="100%" />
+    );
   }
   const filteredTags = Object.entries(items);
 

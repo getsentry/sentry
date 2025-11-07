@@ -136,7 +136,7 @@ export function Chart(props: ChartProps) {
                       {...(disableZoom ? {} : zoomRenderProps)}
                     />
                   ),
-                  fixed: <Placeholder height="250px" testId="skeleton-ui" />,
+                  fixed: <Placeholder height="250px" data-test-id="skeleton-ui" />,
                 })}
               </MaskContainer>
             </BarChartContainer>

@@ -183,7 +183,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
           <TableComponent tableResults={tableResults} {...props} />
         </TransitionChart>
       ),
-      fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+      fixed: <Placeholder height="200px" data-test-id="skeleton-ui" />,
     });
   }
 
@@ -460,7 +460,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                           },
                           widget
                         ),
-                        fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                        fixed: <Placeholder height="200px" data-test-id="skeleton-ui" />,
                       })}
                     </RenderedChartContainer>
 
