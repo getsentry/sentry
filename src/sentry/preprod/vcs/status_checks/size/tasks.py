@@ -24,7 +24,7 @@ from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
-from sentry.shared_integrations.exceptions import ApiForbiddenError, IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
@@ -352,41 +352,49 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 response = self.client.create_check_run(repo=repo, data=check_data)
                 check_id = response.get("id")
                 return str(check_id) if check_id else None
-            except ApiForbiddenError as e:
+            except ApiError as e:
                 lifecycle.record_failure(e)
-                # 403 errors are typically not transient (permission or configuration issues)
-                # so we convert them to IntegrationConfigurationError to prevent retries
-                error_message = str(e).lower()
-                if (
-                    "resource not accessible" in error_message
-                    or "insufficient" in error_message
-                    or "permission" in error_message
-                ):
+
+                # 4xx client errors (except 429) are not transient (our fault or configuration issues)
+                # Convert them to IntegrationConfigurationError to prevent retries
+                # 429 rate limits, 5xx server errors, and other transient issues will bubble up and be retriable.
+                if e.code and 400 <= e.code < 500 and e.code != 429:
+                    if e.code == 403:
+                        error_message = str(e).lower()
+                        if (
+                            "resource not accessible" in error_message
+                            or "insufficient" in error_message
+                            or "permission" in error_message
+                        ):
+                            logger.exception(
+                                "preprod.status_checks.create.insufficient_permissions",
+                                extra={
+                                    "organization_id": self.organization_id,
+                                    "integration_id": self.integration_id,
+                                    "repo": repo,
+                                },
+                            )
+                            raise IntegrationConfigurationError(
+                                "GitHub App lacks permissions to create check runs. "
+                                "Please ensure the app has the required permissions and that "
+                                "the organization has accepted any updated permissions."
+                            ) from e
+
                     logger.exception(
-                        "preprod.status_checks.create.insufficient_permissions",
+                        "preprod.status_checks.create.client_error",
                         extra={
                             "organization_id": self.organization_id,
                             "integration_id": self.integration_id,
                             "repo": repo,
+                            "status_code": e.code,
                         },
                     )
                     raise IntegrationConfigurationError(
-                        "GitHub App lacks permissions to create check runs. "
-                        "Please ensure the app has the required permissions and that "
-                        "the organization has accepted any updated permissions."
+                        f"GitHub API returned {e.code} client error when creating check run"
                     ) from e
-                else:
-                    logger.exception(
-                        "preprod.status_checks.create.forbidden",
-                        extra={
-                            "organization_id": self.organization_id,
-                            "integration_id": self.integration_id,
-                            "repo": repo,
-                        },
-                    )
-                    raise IntegrationConfigurationError(
-                        f"GitHub API returned 403 Forbidden when creating check run: {e}"
-                    ) from e
+
+                # For 5xx or other errors, re-raise to allow retries
+                raise
 
 
 GITHUB_STATUS_CHECK_STATUS_MAPPING: dict[StatusCheckStatus, GitHubCheckStatus] = {
