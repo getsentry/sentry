@@ -19,6 +19,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
 import Hook from 'sentry/components/hook';
+import LoadingError from 'sentry/components/loadingError';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -269,7 +270,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
     disabled: !hasEveryAccess(['project:write'], {organization, project}),
   };
 
-  const team = project.teams.length ? project.teams?.[0] : undefined;
+  const team = project.teams?.[0];
 
   // XXX: HACK
   //
@@ -441,6 +442,10 @@ export default function ProjectGeneralSettingsContainer() {
     },
     [navigate, organization.slug, routes, location]
   );
+
+  if (!project?.id) {
+    return <LoadingError message={t('Failed to load project.')} />;
+  }
 
   return <ProjectGeneralSettings project={project} onChangeSlug={handleChangeSlug} />;
 }
