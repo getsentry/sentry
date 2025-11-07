@@ -24,6 +24,7 @@ from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
+from sentry.shared_integrations.exceptions import ApiForbiddenError, IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
     name="sentry.preprod.tasks.create_preprod_status_check",
     namespace=integrations_tasks,
     processing_deadline_duration=30,
-    retry=Retry(times=3),
+    retry=Retry(times=3, ignore=(IntegrationConfigurationError,)),
     silo_mode=SiloMode.REGION,
 )
 def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
@@ -351,6 +352,32 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 response = self.client.create_check_run(repo=repo, data=check_data)
                 check_id = response.get("id")
                 return str(check_id) if check_id else None
+            except ApiForbiddenError as e:
+                lifecycle.record_failure(e)
+
+                # Check if this is a permission error
+                error_message = str(e).lower()
+                if (
+                    "resource not accessible" in error_message
+                    or "insufficient" in error_message
+                    or "permission" in error_message
+                ):
+                    logger.exception(
+                        "preprod.status_checks.create.insufficient_permissions",
+                        extra={
+                            "organization_id": self.organization_id,
+                            "integration_id": self.integration_id,
+                            "repo": repo,
+                        },
+                    )
+                    raise IntegrationConfigurationError(
+                        "GitHub App lacks permissions to create check runs. "
+                        "Please ensure the app has the required permissions and that "
+                        "the organization has accepted any updated permissions."
+                    ) from e
+
+                # For other 403 errors, re-raise the original exception
+                raise
             except Exception as e:
                 lifecycle.record_failure(e)
                 return None
