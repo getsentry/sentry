@@ -322,19 +322,44 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 )
                 return None
 
+            truncated_text = _truncate_to_byte_limit(text, GITHUB_MAX_TEXT_FIELD_LENGTH)
+            truncated_summary = _truncate_to_byte_limit(summary, GITHUB_MAX_SUMMARY_FIELD_LENGTH)
+
+            if text and len(truncated_text) != len(text):
+                logger.warning(
+                    "preprod.status_checks.create.text_truncated",
+                    extra={
+                        "original_bytes": len(text.encode("utf-8")),
+                        "truncated_bytes": len(truncated_text.encode("utf-8")),
+                        "organization_id": self.organization_id,
+                        "organization_slug": self.organization_slug,
+                    },
+                )
+
+            if summary and len(truncated_summary) != len(summary):
+                logger.warning(
+                    "preprod.status_checks.create.summary_truncated",
+                    extra={
+                        "original_bytes": len(summary.encode("utf-8")),
+                        "truncated_bytes": len(truncated_summary.encode("utf-8")),
+                        "organization_id": self.organization_id,
+                        "organization_slug": self.organization_slug,
+                    },
+                )
+
             check_data: dict[str, Any] = {
                 "name": title,
                 "head_sha": sha,
                 "external_id": external_id,
                 "output": {
                     "title": subtitle,
-                    "summary": summary,
+                    "summary": truncated_summary,
                 },
                 "status": mapped_status.value,
             }
 
-            if text:
-                check_data["output"]["text"] = text
+            if truncated_text:
+                check_data["output"]["text"] = truncated_text
 
             if mapped_conclusion:
                 check_data["conclusion"] = mapped_conclusion.value
@@ -395,6 +420,27 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
 
                 # For 5xx or other errors, re-raise to allow retries
                 raise
+
+
+GITHUB_MAX_SUMMARY_FIELD_LENGTH = 65535
+GITHUB_MAX_TEXT_FIELD_LENGTH = 65535
+
+
+def _truncate_to_byte_limit(text: str | None, byte_limit: int) -> str | None:
+    """Truncate text to fit within byte limit while ensuring valid UTF-8."""
+    if not text:
+        return text
+
+    encoded = text.encode("utf-8")
+    if len(encoded) <= byte_limit:
+        return text
+
+    # Truncate to byte_limit - 10 (a bit of wiggle room) to make room for "..."
+    # Note: this can break formatting you have and is more of a catch-all,
+    # broken formatting is better than silently erroring for the user.
+    # Templating logic itself should try to more contextually trim the content if possible.
+    truncated = encoded[: byte_limit - 10].decode("utf-8", errors="ignore")
+    return truncated + "..."
 
 
 GITHUB_STATUS_CHECK_STATUS_MAPPING: dict[StatusCheckStatus, GitHubCheckStatus] = {
