@@ -275,7 +275,8 @@ def update_group_hash_metadata_in_batches(hash_ids: Sequence[int]) -> None:
 
     # Use cursor-based pagination with the primary key to efficiently
     # process large datasets without loading all IDs into memory or
-    # creating large NOT IN clauses
+    # creating large NOT IN clauses. We fetch IDs without ORDER BY to avoid
+    # database sorting overhead, then sort the small batch in Python.
     last_max_id = 0
     while True:
         # Note: hash_ids is bounded to ~100 items (deletions.group-hashes-batch-size)
@@ -283,19 +284,22 @@ def update_group_hash_metadata_in_batches(hash_ids: Sequence[int]) -> None:
         batch_metadata_ids = list(
             GroupHashMetadata.objects.filter(
                 seer_matched_grouphash_id__in=hash_ids, id__gt=last_max_id
-            )
-            .order_by("id")
-            .values_list("id", flat=True)[:batch_size]
+            ).values_list("id", flat=True)[:batch_size]
         )
         if not batch_metadata_ids:
             break
+
+        # Sort in Python to ensure we process lowest IDs first and can safely
+        # advance the cursor. Sorting a small batch (e.g., 1000 items) in Python
+        # is trivial and avoids database ORDER BY overhead.
+        batch_metadata_ids.sort()
 
         updated = GroupHashMetadata.objects.filter(id__in=batch_metadata_ids).update(
             seer_matched_grouphash=None
         )
         metrics.incr("deletions.group_hash_metadata.rows_updated", amount=updated, sample_rate=1.0)
 
-        last_max_id = max(batch_metadata_ids)
+        last_max_id = batch_metadata_ids[-1]  # Last element after sorting
 
 
 def update_group_hash_metadata_in_batches_old(hash_ids: Sequence[int]) -> int:
