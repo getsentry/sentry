@@ -591,15 +591,52 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
 
 
 class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator):
+    def create_static_detector(self) -> None:
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            static_detector = validator.save()
+
+        # Verify condition group in DB
+        condition_group = DataConditionGroup.objects.get(
+            id=static_detector.workflow_condition_group_id
+        )
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY
+        assert condition_group.organization_id == self.project.organization_id
+
+        # Verify conditions in DB
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 1
+        condition = conditions[0]
+        assert condition.type == Condition.GREATER
+        assert condition.comparison == 100
+        assert condition.condition_result == DetectorPriorityLevel.HIGH
+
+        return static_detector
+
+    def create_dynamic_detector(self) -> None:
+        validator = MetricIssueDetectorValidator(
+            data=self.valid_anomaly_detection_data,
+            context=self.context,
+        )
+        assert validator.is_valid(), validator.errors
+
+        with self.tasks():
+            detector = validator.save()
+
+        return detector
+
     def test_update_with_valid_data(self) -> None:
         """
         Test a simple update
         """
-        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
-        assert validator.is_valid(), validator.errors
-        detector = validator.save()
+        detector = self.create_static_detector()
 
-        # # the front end passes _all_ of the data, not just what changed
+        # the front end passes _all_ of the data, not just what changed
         new_name = "Testing My Cool Detector"
         update_data = {
             **self.valid_data,
@@ -637,29 +674,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         Test that if a static detector is changed to become a dynamic one
         we send the historical data to Seer for that detector
         """
-        validator = MetricIssueDetectorValidator(
-            data=self.valid_data,
-            context=self.context,
-        )
-        assert validator.is_valid(), validator.errors
-
-        with self.tasks():
-            static_detector = validator.save()
-
-        # Verify condition group in DB
-        condition_group = DataConditionGroup.objects.get(
-            id=static_detector.workflow_condition_group_id
-        )
-        assert condition_group.logic_type == DataConditionGroup.Type.ANY
-        assert condition_group.organization_id == self.project.organization_id
-
-        # Verify conditions in DB
-        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 1
-        condition = conditions[0]
-        assert condition.type == Condition.GREATER
-        assert condition.comparison == 100
-        assert condition.condition_result == DetectorPriorityLevel.HIGH
+        static_detector = self.create_static_detector()
 
         mock_audit.assert_called()
         mock_audit.reset_mock()
@@ -724,14 +739,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
-        validator = MetricIssueDetectorValidator(
-            data=self.valid_anomaly_detection_data,
-            context=self.context,
-        )
-        assert validator.is_valid(), validator.errors
-
-        with self.tasks():
-            detector = validator.save()
+        detector = self.self.create_dynamic_detector()
 
         # Verify detector in DB
         self.assert_validated(detector)
@@ -854,31 +862,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         """
         Test that if the call to Seer fails when we try to change a detector's type to dynamic from static that we do not update the detector or data condition
         """
-
-        # Create static detector
-        validator = MetricIssueDetectorValidator(
-            data=self.valid_data,
-            context=self.context,
-        )
-        assert validator.is_valid(), validator.errors
-
-        with self.tasks():
-            static_detector = validator.save()
-
-        # Verify condition group in DB
-        condition_group = DataConditionGroup.objects.get(
-            id=static_detector.workflow_condition_group_id
-        )
-        assert condition_group.logic_type == DataConditionGroup.Type.ANY
-        assert condition_group.organization_id == self.project.organization_id
-
-        # Verify conditions in DB
-        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 1
-        condition = conditions[0]
-        assert condition.type == Condition.GREATER
-        assert condition.comparison == 100
-        assert condition.condition_result == DetectorPriorityLevel.HIGH
+        static_detector = self.create_static_detector()
 
         # Attempt to convert detector to dynamic type
         mock_seer_request.side_effect = TimeoutError
@@ -921,14 +905,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
-        validator = MetricIssueDetectorValidator(
-            data=self.valid_anomaly_detection_data,
-            context=self.context,
-        )
-        assert validator.is_valid(), validator.errors
-
-        with self.tasks():
-            detector = validator.save()
+        detector = self.create_dynamic_detector()
 
         # Attempt to change the snuba query's query
         mock_seer_request.side_effect = TimeoutError
