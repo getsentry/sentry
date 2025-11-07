@@ -1,4 +1,5 @@
 import {Fragment, useRef, useState} from 'react';
+import type {Responsive} from 'setnry/core/layout/styles';
 
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
@@ -6,15 +7,17 @@ import {Input} from 'sentry/components/core/input';
 import {Container} from 'sentry/components/core/layout/container';
 import {Radio} from 'sentry/components/core/radio';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import type {
-  DataCondition,
-  DataConditionGroup,
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+  type DataCondition,
+  type DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
 
 import PageHeader from 'admin/components/pageHeader';
 
 enum AlertDebugSelectionType {
-  ISSUE_ID = 'Issue ID',
+  ISSUE_ID = 'Issue ID(s)',
   TIME_RANGE = 'Date Range',
 }
 
@@ -26,6 +29,71 @@ interface AlertDebugFormData {
   };
   issueIds?: number[];
 }
+
+const MOCK_WORKFLOW: Automation = {
+  id: '1234',
+  name: 'Mock Alert',
+  createdBy: 'Josh',
+  dateCreated: Date.now().toLocaleString(),
+  dateUpdated: Date.now().toLocaleString(),
+  lastTriggered: Date.now().toLocaleString(),
+  config: {
+    frequency: 10,
+  },
+  detectorIds: ['33', '732', '8'],
+  enabled: true,
+  environment: 'DEBUGGING -- TEST FIXTURE',
+  actionFilters: [
+    {
+      id: 'mock-action-filter',
+      logicType: DataConditionGroupLogicType.ANY,
+      conditions: [
+        {
+          id: 'Condition 1',
+          comparison: 10,
+          type: DataConditionType.EVENT_FREQUENCY_COUNT,
+          conditionResult: true,
+        },
+        {
+          id: 'Condition 2',
+          comparison: 100,
+          type: DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+          conditionResult: true,
+        },
+      ],
+    },
+    {
+      id: 'mock-action-filter',
+      logicType: DataConditionGroupLogicType.ANY,
+      conditions: [
+        {
+          id: 'Condition 1',
+          comparison: 10,
+          type: DataConditionType.EVENT_FREQUENCY_COUNT,
+          conditionResult: true,
+        },
+        {
+          id: 'Condition 2',
+          comparison: 100,
+          type: DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+          conditionResult: true,
+        },
+      ],
+    },
+  ],
+  triggers: {
+    id: 'mock-data-condition-group',
+    logicType: DataConditionGroupLogicType.ANY,
+    conditions: [
+      {
+        id: 'mock-data-condition',
+        comparison: 'comparison',
+        type: DataConditionType.GREATER_OR_EQUAL,
+        conditionResult: 75,
+      },
+    ],
+  },
+};
 
 // eslint-disable-next-line
 const TimeInput = () => (
@@ -135,7 +203,10 @@ const AlertDebugForm = ({
         <div>
           {issueIds.length > 0 && (
             <div>
-              <strong>Selected Issue IDs:</strong>
+              <p>
+                This evaluation will take a list of Issue IDs then replay each, in order.
+              </p>
+              <strong>Selected Issue ID(s):</strong>
               <ul>
                 {issueIds.map(issueId => (
                   <li key={issueId}>{issueId}</li>
@@ -195,21 +266,68 @@ function AlertDataAttribute({dataKey, value}: {dataKey: string; value: any}) {
 }
 
 // eslint-disable-next-line
-const AlertCondition = ({condition}: {condition: DataCondition}) => (
-  <div>{condition.id}</div>
+const AlertCondition = ({
+  condition,
+  background = 'primray',
+}: {
+  condition: DataCondition;
+  background?: Responsive<'primary' | 'secondary' | 'tertiary'>;
+}) => (
+  <Container
+    padding="md"
+    background={background}
+    radius="md"
+    style={{border: '1px solid #E0DCE5'}}
+  >
+    <span>
+      {Object.entries(condition).map(([key, value]) => (
+        <AlertDataAttribute dataKey={key} key={key} value={value} />
+      ))}
+    </span>
+  </Container>
 );
 
 // eslint-disable-next-line
 const AlertConditionGroup = ({group}: {group: DataConditionGroup}) => (
-  <Container>
-    <div>{group.id}</div>
+  <Container
+    radius="md"
+    padding="xl"
+    background="primary"
+    style={{
+      border: '1px solid #E0DCE5',
+      gap: 16,
+      margin: '16px 0',
+      display: 'flex',
+      flexDirection: 'column',
+    }}
+  >
+    <div>
+      <h6>Configuration</h6>
+      <div>
+        <strong>ID:&nbsp;</strong>
+        {group.id}
+      </div>
+      <div>
+        <strong>Logic Type:&nbsp;</strong>
+        {group.logicType}
+      </div>
+    </div>
 
     {group.conditions && (
       <div>
-        <strong>Condtions</strong>
-        <ol>
+        <h6>Conditions</h6>
+
+        <ol
+          style={{
+            padding: 0,
+            margin: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
           {group.conditions?.map(condition => (
-            <li style={{margin: '16px 0'}} key={condition.id}>
+            <li key={condition.id} style={{listStyleType: 'none'}}>
               <AlertCondition condition={condition} />
             </li>
           ))}
@@ -256,7 +374,7 @@ const AlertDetails = ({workflow}: {workflow: Automation}) => (
 
     {workflow.detectorIds.length && (
       <div style={{flex: '1'}}>
-        <h6>Connected Monitors</h6>
+        <h4>Connected Monitors</h4>
         <ul>
           {workflow.detectorIds.map(detectorId => (
             <li key={detectorId}>
@@ -267,16 +385,16 @@ const AlertDetails = ({workflow}: {workflow: Automation}) => (
       </div>
     )}
 
-    <div style={{display: 'flex'}}>
+    <div style={{display: 'flex', gap: 16}}>
       <div style={{flex: '1'}}>
-        <h6>Workflow Triggers</h6>
+        <h4>Workflow Triggers</h4>
         {workflow.triggers && <AlertConditionGroup group={workflow.triggers} />}
         {!workflow.triggers && <span>None</span>}
       </div>
 
       {workflow.actionFilters && (
         <div style={{flex: '1'}}>
-          <h6>Action Filters</h6>
+          <h4>Action Filters</h4>
           {workflow.actionFilters?.length === 0 && <span>None</span>}
           {workflow.actionFilters.map(actionFilter => (
             <AlertConditionGroup key={actionFilter.id} group={actionFilter} />
@@ -287,30 +405,13 @@ const AlertDetails = ({workflow}: {workflow: Automation}) => (
   </Fragment>
 );
 
-const MOCK_WORKFLOW: Automation = {
-  id: '1234',
-  name: 'Mock Alert',
-  createdBy: 'Josh',
-  dateCreated: Date.now().toLocaleString(),
-  dateUpdated: Date.now().toLocaleString(),
-  lastTriggered: Date.now().toLocaleString(),
-  config: {
-    frequency: 10,
-  },
-  detectorIds: ['33', '732', '8'],
-  enabled: true,
-  environment: 'DEBUGGING -- TEST FIXTURE',
-  actionFilters: [],
-  triggers: null,
-};
-
 function AlertsDebug() {
   const [results, setResults] = useState<AlertDebugFormData>();
   const workflowRef = useRef<HTMLInputElement>(null);
 
   // TOOD make this be workflow and track with react query?
-  const [workflowId, setWorkflowId] = useState<number>();
-  const [workflow, setWorkflow] = useState<Automation>();
+  const [workflowId, setWorkflowId] = useState<number>(Number(MOCK_WORKFLOW.id));
+  const [workflow, setWorkflow] = useState<Automation>(MOCK_WORKFLOW);
 
   const updateApi = (data: AlertDebugFormData) => {
     // todo - send data to server rather than UI
