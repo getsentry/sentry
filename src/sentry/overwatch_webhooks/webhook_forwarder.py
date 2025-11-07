@@ -53,8 +53,23 @@ class OverwatchGithubWebhookForwarder:
         org_integrations = OrganizationIntegration.objects.filter(
             integration=integration, status=ObjectStatus.ACTIVE
         )
+        logger.info(
+            "overwatch.debug.org_integrations.fetched",
+            extra={
+                "integration_id": integration.id,
+                "org_integration_ids": [oi.organization_id for oi in org_integrations],
+                "count": len(org_integrations),
+            },
+        )
         organization_ids = [org_integration.organization_id for org_integration in org_integrations]
         org_mappings = OrganizationMapping.objects.filter(organization_id__in=organization_ids)
+        logger.info(
+            "overwatch.debug.org_mappings.fetched",
+            extra={
+                "org_mapping_ids": [om.organization_id for om in org_mappings],
+                "count": len(org_mappings),
+            },
+        )
         org_mappings_by_id = {
             org_mapping.organization_id: org_mapping for org_mapping in org_mappings
         }
@@ -71,37 +86,87 @@ class OverwatchGithubWebhookForwarder:
                     organization_mapping=org_mapping,
                 )
             )
+            logger.info(
+                "overwatch.debug.organizations.grouped_by_region",
+                extra={
+                    "region_name": region_name,
+                    "org_id": org_integration.organization_id,
+                },
+            )
+
+        logger.info(
+            "overwatch.debug.org_contexts_by_region.final",
+            extra={
+                "regions": list(org_contexts_by_region.keys()),
+                "counts_per_region": {k: len(v) for k, v in org_contexts_by_region.items()},
+            },
+        )
 
         return org_contexts_by_region
 
     def forward_if_applicable(self, event: Mapping[str, Any], headers: Mapping[str, str]):
+        region_name = None
         try:
             enabled_regions = options.get("overwatch.enabled-regions")
+            logger.info(
+                "overwatch.debug.enabled_regions", extra={"enabled_regions": enabled_regions}
+            )
             if not enabled_regions:
                 # feature isn't enabled, no work to do
+                logger.info("overwatch.debug.excluded.feature_not_enabled", extra={})
                 return
 
             orgs_by_region = self._get_org_summaries_by_region_for_integration(
                 integration=self.integration
             )
+            logger.info(
+                "overwatch.debug.orgs_by_region",
+                extra={
+                    "regions": list(orgs_by_region.keys()),
+                    "counts_per_region": {k: len(v) for k, v in orgs_by_region.items()},
+                },
+            )
 
             if not orgs_by_region or not self.should_forward_to_overwatch(headers):
+                logger.info(
+                    "overwatch.debug.skipped_forwarding",
+                    extra={
+                        "orgs_by_region_empty": not orgs_by_region,
+                        "event_in_forward_list": self.should_forward_to_overwatch(headers),
+                    },
+                )
                 return
 
             # We can conditionally opt into forwarding on a per-region basis,
             # similar to codecov's current implementation.
             for region_name, org_summaries in orgs_by_region.items():
+                logger.info(
+                    "overwatch.debug.check_region",
+                    extra={
+                        "region_name": region_name,
+                        "enabled": region_name in enabled_regions,
+                        "org_summaries_count": len(org_summaries),
+                    },
+                )
                 if region_name not in enabled_regions:
                     continue
 
                 raw_app_id = headers.get(
                     GITHUB_INSTALLATION_TARGET_ID_HEADER,
                 ) or headers.get(DJANGO_HTTP_GITHUB_INSTALLATION_TARGET_ID_HEADER)
+                logger.info(
+                    "overwatch.debug.raw_app_id",
+                    extra={"region_name": region_name, "raw_app_id": raw_app_id},
+                )
                 app_id: int | None = None
                 if raw_app_id is not None:
                     try:
                         app_id = int(raw_app_id)
                     except (TypeError, ValueError):
+                        logger.info(
+                            "overwatch.debug.app_id_parse_error",
+                            extra={"region_name": region_name, "raw_app_id": raw_app_id},
+                        )
                         app_id = None
 
                 webhook_detail = WebhookDetails(
@@ -112,16 +177,24 @@ class OverwatchGithubWebhookForwarder:
                     region=region_name,
                     app_id=app_id,
                 )
+                logger.info(
+                    "overwatch.debug.webhook_detail.created",
+                    extra={"region_name": region_name, "app_id": app_id},
+                )
 
                 publisher = OverwatchWebhookPublisher(
                     integration_provider=self.integration.provider,
                     region=get_region_by_name(region_name),
                 )
+                logger.info("overwatch.debug.enqueue_webhook", extra={"region_name": region_name})
                 publisher.enqueue_webhook(webhook_detail)
                 metrics.incr(
                     "overwatch.forward-webhooks.success",
                     sample_rate=1.0,
                     tags={"forward_region": region_name},
+                )
+                logger.info(
+                    "overwatch.debug.metrics_incr.success", extra={"region_name": region_name}
                 )
         except Exception:
             metrics.incr(
