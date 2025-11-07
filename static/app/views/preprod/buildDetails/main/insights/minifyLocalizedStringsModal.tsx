@@ -1,9 +1,9 @@
-import {CodeBlock} from '@sentry/scraps/code';
-import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-import {Heading} from '@sentry/scraps/text/heading';
-
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
+import {CodeBlock} from 'sentry/components/core/code';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Text} from 'sentry/components/core/text';
+import {Heading} from 'sentry/components/core/text/heading';
 import {t, tct} from 'sentry/locale';
 import {
   CodeBlockWrapper,
@@ -51,21 +51,17 @@ function getMinifyLocalizedStringsContent() {
           <Heading as="h3" size="md">
             {t('Option 1: Keep the format lean')}
           </Heading>
-          <ul>
-            <li>
-              <Text>
-                {tct(
-                  'Encode localized strings as plain text ([example]), not binary plists. Set [setting] ([key]) to [value] in Xcode.',
-                  {
-                    example: <InlineCode>"key" = "value";</InlineCode>,
-                    setting: <InlineCode>Strings File Output Encoding</InlineCode>,
-                    key: <InlineCode>STRINGS_FILE_OUTPUT_ENCODING</InlineCode>,
-                    value: <InlineCode>UTF-8</InlineCode>,
-                  }
-                )}
-              </Text>
-            </li>
-          </ul>
+          <Text>
+            {tct(
+              'Use the newer [link:String Catalog] to store strings in a more efficient format. Ensure [key] to get an efficient encoding that automatically strips whitespace and comments.',
+              {
+                link: (
+                  <ExternalLink href="https://developer.apple.com/documentation/xcode/localizing-and-varying-text-with-a-string-catalog" />
+                ),
+                key: <InlineCode>STRINGS_FILE_OUTPUT_ENCODING = binary</InlineCode>,
+              }
+            )}
+          </Text>
         </Flex>
 
         <Flex direction="column" gap="md">
@@ -74,7 +70,7 @@ function getMinifyLocalizedStringsContent() {
           </Heading>
           <Text>
             {t(
-              'String files can have comments that ship with the bundle. They help during translation but take space in production. A typical comment may look like:'
+              'If strings are encoded as text, these files can have extra comments and whitespace that ship with the bundle. They help during translation but take space in production. A typical comment may look like:'
             )}
           </Text>
           <CodeBlockWrapper>
