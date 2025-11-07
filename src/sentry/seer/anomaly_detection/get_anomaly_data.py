@@ -287,16 +287,6 @@ def get_anomaly_threshold_data_from_seer(
     """
     Get anomaly detection threshold data from Seer for a specific alert rule and time range.
     Returns data points with yhat_lower and yhat_upper threshold values.
-
-    {
-    "alert": {
-      "id": null,
-      "source_id": 261045,
-      "source_type": 1
-    },
-    "start": 1729178100.0,
-    "end": 1729179000.0
-    }
     """
     source_id = subscription.id
     source_type = DataSourceType.SNUBA_QUERY_SUBSCRIPTION
