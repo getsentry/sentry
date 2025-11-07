@@ -16,27 +16,12 @@ export default Storybook.story('Breadcrumbs', story => {
           crumbs={[
             {label: 'Organization', to: '/organizations/sentry/'},
             {label: 'Projects', to: '/organizations/sentry/projects/'},
-            {label: 'Project Settings', to: '/settings/projects/javascript/'},
+            {
+              label: 'Project Settings',
+              to: '/settings/projects/javascript/',
+              preservePageFilters: true,
+            },
             {label: 'General', to: null},
-          ]}
-        />
-      </Storybook.SizingWindow>
-    </Fragment>
-  ));
-
-  story('With Last Item Linked', () => (
-    <Fragment>
-      <p>
-        Set <Storybook.JSXProperty name="linkLastItem" value /> to make the last
-        breadcrumb clickable.
-      </p>
-      <Storybook.SizingWindow display="block">
-        <Breadcrumbs
-          linkLastItem
-          crumbs={[
-            {label: 'Organization', to: '/organizations/sentry/'},
-            {label: 'Projects', to: '/organizations/sentry/projects/'},
-            {label: 'All Projects', to: '/organizations/sentry/projects/all/'},
           ]}
         />
       </Storybook.SizingWindow>
