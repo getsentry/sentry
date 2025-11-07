@@ -2,6 +2,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Functi
 
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
+    AggregateDefinition,
     AttributeArgumentDefinition,
     TraceMetricAggregateDefinition,
     ValueArgumentDefinition,
@@ -23,7 +24,7 @@ TRACE_METRICS_ALWAYS_PRESENT_ATTRIBUTES = [
     AttributeKey(name="sentry.value", type=AttributeKey.Type.TYPE_DOUBLE),
 ]
 
-TRACE_METRICS_AGGREGATE_DEFINITIONS = {
+TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
     "count": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         infer_search_type_from_arguments=False,
