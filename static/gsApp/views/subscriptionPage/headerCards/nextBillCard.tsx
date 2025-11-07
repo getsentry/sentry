@@ -98,7 +98,7 @@ function NextBillCard({
           )}
         </Flex>,
         isLoading ? (
-          <Placeholder style={{flexGrow: 1}} />
+          <Placeholder flexGrow={1} />
         ) : isError ? (
           <Alert type="error">
             {t('Could not compute next bill. Please try again later.')}

@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {DateTime} from 'sentry/components/dateTime';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
@@ -87,7 +89,9 @@ function ActivityItem({
       {id && <a id={id} />}
 
       {author && (
-        <StyledActivityAvatar type={author.type} user={author.user} size={avatarSize} />
+        <Container marginRight="md">
+          <ActivityAvatar type={author.type} user={author.user} size={avatarSize} />
+        </Container>
       )}
 
       <StyledActivityBubble {...bubbleProps}>
@@ -137,10 +141,6 @@ const ActivityHeaderContent = styled('div')`
 const ActivityBody = styled('div')`
   padding: ${space(2)} ${space(2)};
   ${textStyles}
-`;
-
-const StyledActivityAvatar = styled(ActivityAvatar)`
-  margin-right: ${space(1)};
 `;
 
 const StyledTimeSince = styled(TimeSince)`

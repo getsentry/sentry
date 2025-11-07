@@ -110,7 +110,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       <Stack gap="lg" width="100%">
         <Flex width="100%" justify="between" align="center" gap="md">
           <Placeholder width="92px" height="40px" />
-          <Placeholder style={{flex: 1}} height="40px" />
+          <Placeholder flex={1} height="40px" />
         </Flex>
         <Placeholder width="100%" height="540px" />
         <Placeholder height="140px" />

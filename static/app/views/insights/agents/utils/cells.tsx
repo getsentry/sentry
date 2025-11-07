@@ -1,3 +1,5 @@
+import {Container} from '@sentry/scraps/layout';
+
 import {Link} from 'sentry/components/core/link';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
@@ -25,5 +27,9 @@ export function ErrorCell({
 }
 
 export function NumberPlaceholder() {
-  return <Placeholder style={{marginLeft: 'auto'}} height="14px" width="50px" />;
+  return (
+    <Container marginLeft="auto">
+      {props => <Placeholder height="14px" width="50px" {...props} />}
+    </Container>
+  );
 }

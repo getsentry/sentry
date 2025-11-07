@@ -7,33 +7,25 @@ import type {AvatarUser} from 'sentry/types/user';
 
 type Props = {
   type: 'system' | 'user';
-  className?: string;
   size?: number;
   user?: AvatarUser;
 };
 
-export function ActivityAvatar({className, type, user, size = 38}: Props) {
+export function ActivityAvatar({type, user, size = 38}: Props) {
   if (user) {
-    return <UserAvatar user={user} size={size} className={className} />;
+    return <UserAvatar user={user} size={size} />;
   }
 
   if (type === 'system') {
     // Return Sentry avatar
     return (
-      <SystemAvatar className={className} size={size}>
+      <SystemAvatar size={size}>
         <StyledIconSentry size="md" />
       </SystemAvatar>
     );
   }
 
-  return (
-    <Placeholder
-      className={className}
-      width={`${size}px`}
-      height={`${size}px`}
-      shape="circle"
-    />
-  );
+  return <Placeholder width={`${size}px`} height={`${size}px`} shape="circle" />;
 }
 
 type SystemAvatarProps = {

@@ -2,6 +2,10 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {type ContainerElement} from '@sentry/scraps/layout/container';
 
 export type PlaceholderProps<T extends ContainerElement = 'div'> = FlexProps<T> & {
+  /**
+   * @deprecated Do not use this component as a replacement for empty state.
+   */
+  children?: React.ReactNode;
   shape?: 'circle';
 };
 

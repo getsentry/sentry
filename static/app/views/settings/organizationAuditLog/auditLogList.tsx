@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -44,7 +46,11 @@ const getAvatarDisplay = (logEntryUser: User | undefined) => {
     logEntryUser?.isSuperuser ||
     (logEntryUser?.name === 'Sentry' && logEntryUser?.email === undefined)
   ) {
-    return <SentryAvatar type="system" size={36} />;
+    return (
+      <Container marginRight="md">
+        <ActivityAvatar type="system" size={36} />
+      </Container>
+    );
   }
   // Display user's avatar for non-superusers-initiated events
   if (logEntryUser !== undefined) {
@@ -392,10 +398,6 @@ function AuditLogList({
     </div>
   );
 }
-
-const SentryAvatar = styled(ActivityAvatar)`
-  margin-right: ${space(1)};
-`;
 
 const Name = styled('strong')`
   font-size: ${p => p.theme.fontSize.md};

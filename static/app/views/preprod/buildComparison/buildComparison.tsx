@@ -1,6 +1,5 @@
-import {useTheme} from '@emotion/react';
-
 import {Alert} from '@sentry/scraps/alert';
+import {Container} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -18,7 +17,6 @@ import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDeta
 
 export default function BuildComparison() {
   const organization = useOrganization();
-  const theme = useTheme();
   const params = useParams<{
     headArtifactId: string;
     // eslint-disable-next-line typescript-sort-keys/interface
@@ -46,11 +44,9 @@ export default function BuildComparison() {
       <SentryDocumentTitle title={t('Build comparison')}>
         <Layout.Page>
           <Layout.Header>
-            <Placeholder
-              height="20px"
-              width="200px"
-              style={{marginBottom: theme.space.md}}
-            />
+            <Container marginBottom="md">
+              <Placeholder height="20px" width="200px" />
+            </Container>
           </Layout.Header>
 
           <Layout.Body>

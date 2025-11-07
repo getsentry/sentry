@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptor} from 'history';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Link} from 'sentry/components/core/link';
@@ -342,19 +344,15 @@ function DifferentialFlamegraphChangedFunctions(
             return (
               <DifferentialFlamegraphChangedFunctionContainer key={idx}>
                 <div>
-                  <Placeholder
-                    height="16px"
-                    width="66%"
-                    style={MARGIN_BOTTOM_PLACEHOLDER_STYLES}
-                  />
+                  <Container marginBottom="xs">
+                    {p => <Placeholder height="16px" width="66%" {...p} />}
+                  </Container>
                   <Placeholder height="16px" width="48%" />
                 </div>
                 <DifferentialFlamegraphChangedFunctionStats>
-                  <Placeholder
-                    height="16px"
-                    width="32px"
-                    style={RIGHT_ALIGN_PLACEHOLDER_STYLES}
-                  />
+                  <Container marginBottom="xs" marginLeft="auto" justifySelf="flex-end">
+                    {p => <Placeholder height="16px" width="32px" {...p} />}
+                  </Container>
                   <Placeholder height="16px" width="56px" />
                 </DifferentialFlamegraphChangedFunctionStats>
               </DifferentialFlamegraphChangedFunctionContainer>
@@ -435,16 +433,6 @@ const DifferentialFlamegraphFunctionColorIndicator = styled('div')`
   margin-right: ${space(0.25)};
   background-color: ${p => p.theme.green300};
 `;
-
-const RIGHT_ALIGN_PLACEHOLDER_STYLES: React.CSSProperties = {
-  marginBottom: '4px',
-  marginLeft: 'auto',
-  justifySelf: 'flex-end',
-};
-
-const MARGIN_BOTTOM_PLACEHOLDER_STYLES: React.CSSProperties = {
-  marginBottom: '4px',
-};
 
 const DifferentialFlamegraphChangedFunctionStats = styled('div')`
   text-align: right;

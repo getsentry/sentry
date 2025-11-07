@@ -1,5 +1,7 @@
 import React from 'react';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {useEventGroupingInfo} from 'sentry/components/events/groupingInfo/useEventGroupingInfo';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -34,11 +36,9 @@ export function GroupInfoSummary({
 
   if (isPending && !hasPerformanceGrouping) {
     return (
-      <Placeholder
-        height="20px"
-        width="unset"
-        style={{flexGrow: 1, marginBottom: '20px'}}
-      />
+      <Container marginBottom="xl">
+        {props => <Placeholder height="20px" width="unset" flexGrow={1} {...props} />}
+      </Container>
     );
   }
 

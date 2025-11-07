@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -179,7 +179,9 @@ function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
 
       {/* VCS info skeleton - matches KeyValueData.Card structure */}
       <SkeletonCard>
-        <Placeholder width="80px" height="18px" style={{marginBottom: space(3)}} />
+        <Container marginBottom="2xl">
+          <Placeholder width="80px" height="18px" />
+        </Container>
         <Flex direction="column" gap="md">
           <Flex justify="between">
             <Placeholder width="40px" height="14px" />

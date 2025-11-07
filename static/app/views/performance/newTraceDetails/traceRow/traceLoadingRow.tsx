@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 
-import {Placeholder} from 'sentry/components/placeholder';
+import Placeholder from 'sentry/components/placeholder';
 import {isTraceNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
@@ -65,7 +65,6 @@ export function TraceLoadingRow(props: {
             ) : null}
           </div>
           <Placeholder
-            className="Placeholder"
             height="12px"
             width={randomBetween(20, 80) + '%'}
             style={{
@@ -85,7 +84,6 @@ export function TraceLoadingRow(props: {
         }}
       >
         <Placeholder
-          className="Placeholder"
           height="12px"
           width={randomBetween(20, 80) + '%'}
           style={{
