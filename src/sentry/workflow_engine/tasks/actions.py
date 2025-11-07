@@ -67,7 +67,6 @@ def build_trigger_action_task_params(
 @retry(timeouts=True, raise_on_no_retries=False, ignore_and_capture=Action.DoesNotExist)
 def trigger_action(
     action_id: int,
-    detector_id: int,
     workflow_id: int,
     event_id: str | None,
     activity_id: int | None,
@@ -76,6 +75,8 @@ def trigger_action(
     group_state: GroupState,
     has_reappeared: bool,
     has_escalated: bool,
+    detector_id: int | None = None,
+    project_id: int | None = None,
 ) -> None:
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 
@@ -96,7 +97,8 @@ def trigger_action(
         sample_rate=1.0,
     )
 
-    project_id = detector.project_id
+    if project_id is None:
+        project_id = detector.project_id
 
     if event_id is not None:
         event_data = build_workflow_event_data_from_event(
@@ -130,7 +132,7 @@ def trigger_action(
         # Set up a timeout grouping context because we want to make sure any Sentry timeout reporting
         # in this scope is grouped properly.
         with timeout_grouping_context(action.type):
-            action.trigger(event_data, detector)
+            action.trigger(event_data)
     else:
         logger.info(
             "workflow_engine.triggered_actions.dry-run",
