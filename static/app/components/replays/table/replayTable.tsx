@@ -12,6 +12,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type SortProps =
@@ -24,10 +25,10 @@ type SortProps =
 type Props = SortProps & {
   columns: readonly ReplayTableColumn[];
   error: RequestError | null | undefined;
-  eventView: EventView | null;
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
+  eventView?: EventView;
   ref?: RefObject<HTMLDivElement | null>;
 };
 
@@ -44,8 +45,12 @@ export default function ReplayTable({
 }: Props) {
   const gridTemplateColumns = columns.map(col => col.width ?? 'max-content').join(' ');
   const hasInteractiveColumn = columns.some(col => col.interactive);
+  const location = useLocation();
+  if (!eventView) {
+    eventView = EventView.fromLocation(location);
+  }
 
-  if (isPending || !eventView) {
+  if (isPending) {
     return (
       <StyledSimpleTable
         data-test-id="replay-table-loading"

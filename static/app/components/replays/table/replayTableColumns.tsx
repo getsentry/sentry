@@ -26,7 +26,7 @@ import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView, {encodeSorts} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -318,16 +318,14 @@ export const ReplayDetailsLinkColumn: ReplayTableColumn = {
   sortKey: undefined,
   Component: ({replay, eventView}) => {
     const organization = useOrganization();
+    let toLink = {
+      pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
+    };
+    if (eventView) {
+      toLink = {...toLink, ...eventView.generateQueryStringObject()};
+    }
     return (
-      <DetailsLink
-        to={{
-          pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
-          query: {
-            query: eventView.query,
-            sorts: encodeSorts(eventView.sorts),
-          },
-        }}
-      >
+      <DetailsLink to={toLink}>
         <Tooltip title={t('See Full Replay')}>
           <IconOpen />
         </Tooltip>
@@ -515,9 +513,8 @@ export const ReplaySessionColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
-  Component: ({replay}) => {
+  Component: ({replay, eventView}) => {
     const routes = useRoutes();
-    const location = useLocation();
     const organization = useOrganization();
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});
 
@@ -531,7 +528,6 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     );
 
     const referrer = getRouteStringFromRoutes(routes);
-    const eventView = EventView.fromLocation(location);
 
     const replayDetailsPathname = makeReplaysPathname({
       path: `/${replay.id}/`,
