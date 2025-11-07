@@ -53,13 +53,12 @@ function getMinifyLocalizedStringsContent() {
           </Heading>
           <Text>
             {tct(
-              'Use the newer [link:String Catalog] to store strings in a more efficient format. Ensure [key] is set to [value] to get an efficient encoding that automatically strips whitespace and comments.',
+              'Use the newer [link:String Catalog] to store strings in a more efficient format. Ensure [key] to get an efficient encoding that automatically strips whitespace and comments.',
               {
                 link: (
                   <ExternalLink href="https://developer.apple.com/documentation/xcode/localizing-and-varying-text-with-a-string-catalog" />
                 ),
-                key: <InlineCode>STRINGS_FILE_OUTPUT_ENCODING</InlineCode>,
-                value: <InlineCode>bplist</InlineCode>,
+                key: <InlineCode>STRINGS_FILE_OUTPUT_ENCODING = binary</InlineCode>,
               }
             )}
           </Text>
