@@ -353,7 +353,6 @@ register(
     default=False,  # Default using new update method
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-    description="If any problems arise, set the option to True to use the old update method.",
 )
 
 
