@@ -32,6 +32,7 @@ from sentry.testutils.cases import (
     APITransactionTestCase,
     OurLogTestCase,
     PerformanceIssueTestCase,
+    ProfileFunctionsTestCase,
     ProfilesSnubaTestCase,
     SnubaTestCase,
     SpanTestCase,
@@ -51,7 +52,12 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsEndpointTestBase(
-    APITransactionTestCase, SnubaTestCase, SpanTestCase, OurLogTestCase, TraceMetricsTestCase
+    APITransactionTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+    OurLogTestCase,
+    TraceMetricsTestCase,
+    ProfileFunctionsTestCase,
 ):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"

@@ -190,9 +190,12 @@ TRACE_ITEM_TYPE_MAP = {
     "uptime_result": TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
     "replay": TraceItemType.TRACE_ITEM_TYPE_REPLAY,
     "metric": TraceItemType.TRACE_ITEM_TYPE_METRIC,
+    "profile_functions": TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
 }
 
-TRACE_ITEM_TYPES = TLiteral["span", "error", "log", "uptime_result", "replay", "metric"]  # noqa
+TRACE_ITEM_TYPES = TLiteral[
+    "span", "error", "log", "uptime_result", "replay", "metric", "profile_functions"  # noqa
+]
 
 
 class RequestMeta(TypedDict):
