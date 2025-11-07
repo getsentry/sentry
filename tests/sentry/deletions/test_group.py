@@ -1,7 +1,7 @@
 import os
 import random
 from datetime import datetime, timedelta
-from time import time
+from time import sleep, time
 from typing import Any
 from unittest import mock
 from uuid import uuid4
@@ -11,7 +11,7 @@ from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from sentry import deletions, nodestore
 from sentry.deletions.defaults.group import update_group_hash_metadata_in_batches
 from sentry.deletions.tasks.groups import delete_groups_for_project
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
@@ -441,6 +441,72 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     def tenant_ids(self) -> dict[str, str]:
         return {"referrer": self.referrer, "organization_id": self.organization.id}
 
+    def test_simple_issue_platform(self) -> None:
+        # Adding this query here to make sure that the cache is not being used
+        assert self.select_error_events(self.project.id) is None
+        assert self.select_issue_platform_events(self.project.id) is None
+
+        # Create initial error event and occurrence related to it; two different groups will exist
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence_event, issue_platform_group = self.create_occurrence(
+            event, type_id=FeedbackGroup.type_id
+        )
+
+        # Assertions after creation
+        assert occurrence_event.id != event.event_id
+        assert event.group_id != issue_platform_group.id
+        assert event.group.issue_category == GroupCategory.ERROR
+        assert issue_platform_group.issue_category == GroupCategory.FEEDBACK
+        assert issue_platform_group.type == FeedbackGroup.type_id
+
+        # Assert that the error event has been inserted in the nodestore & Snuba
+        event_node_id = Event.generate_node_id(event.project_id, event.event_id)
+        assert nodestore.backend.get(event_node_id)
+        expected_error = {"event_id": event.event_id, "group_id": event.group_id}
+        assert self.select_error_events(self.project.id) == expected_error
+
+        # Assert that the occurrence event has been inserted in Snuba
+        expected_occurrence_event = {
+            "event_id": occurrence_event.event_id,
+            "group_id": issue_platform_group.id,
+            "occurrence_id": occurrence_event.id,
+        }
+        assert self.select_issue_platform_events(self.project.id) == expected_occurrence_event
+
+        # This will delete the group and the events from the node store and Snuba
+        with self.tasks():
+            delete_groups_for_project(
+                object_ids=[issue_platform_group.id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
+
+        # The Issue Platform group and occurrence have been deleted from Postgres
+        assert not Group.objects.filter(id=issue_platform_group.id).exists()
+
+        # Verify events are deleted from Snuba
+        # ClickHouse light deletes are eventually consistent, so poll with timeout
+        # Give ClickHouse a moment to start processing the deletion before we start checking
+        sleep(0.5)
+        max_attempts = 30  # Up to 6 seconds total (0.5s initial + 30 * 0.2s)
+        for attempt in range(max_attempts):
+            result = self.select_issue_platform_events(self.project.id)
+            if result is None:
+                break  # Success - events deleted
+            if attempt < max_attempts - 1:
+                sleep(0.2)  # Slower polling to avoid overwhelming Snuba
+        else:
+            # If we exhausted all attempts, fail with helpful message
+            result = self.select_issue_platform_events(self.project.id)
+            raise AssertionError(
+                f"Issue platform events not deleted from Snuba after ~6.5 seconds. Found: {result}"
+            )
+
+        # The original error event and group still exist (checked after issue platform polling)
+        assert Group.objects.filter(id=event.group_id).exists()
+        assert nodestore.backend.get(event_node_id)
+        assert self.select_error_events(self.project.id) == expected_error
+
     @mock.patch("sentry.deletions.tasks.nodestore.bulk_snuba_queries")
     def test_issue_platform_batching(self, mock_bulk_snuba_queries: mock.Mock) -> None:
         # Patch max_rows_to_delete to a small value for testing
@@ -454,19 +520,18 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             group3 = self.create_group(project=self.project)
             group4 = self.create_group(project=self.project)
 
-            # Set times_seen for each group
-            Group.objects.filter(id=group1.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
-            Group.objects.filter(id=group2.id).update(times_seen=1, type=GroupCategory.FEEDBACK)
-            Group.objects.filter(id=group3.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
-            Group.objects.filter(id=group4.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
+            # Set times_seen and type for each group
+            Group.objects.filter(id=group1.id).update(times_seen=3, type=FeedbackGroup.type_id)
+            Group.objects.filter(id=group2.id).update(times_seen=1, type=FeedbackGroup.type_id)
+            Group.objects.filter(id=group3.id).update(times_seen=3, type=FeedbackGroup.type_id)
+            Group.objects.filter(id=group4.id).update(times_seen=3, type=FeedbackGroup.type_id)
 
             # This will delete the group and the events from the node store and Snuba
-            with self.tasks():
-                delete_groups_for_project(
-                    object_ids=[group1.id, group2.id, group3.id, group4.id],
-                    transaction_id=uuid4().hex,
-                    project_id=self.project.id,
-                )
+            delete_groups_for_project(
+                object_ids=[group1.id, group2.id, group3.id, group4.id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
 
             assert mock_bulk_snuba_queries.call_count == 1
             # There should be two batches with max_rows_to_delete=6
