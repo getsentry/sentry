@@ -10,7 +10,7 @@ import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {csharpFeedbackOnboarding} from 'sentry/gettingStartedDocs/dotnet/dotnet';
+import {feedback} from 'sentry/gettingStartedDocs/dotnet/dotnet/feedback';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -230,7 +230,7 @@ const crashReportOnboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
+  feedbackOnboardingCrashApi: feedback,
   crashReportOnboarding,
 };
 
