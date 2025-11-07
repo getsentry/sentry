@@ -150,7 +150,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["sum(value)"] == 8
+        assert data[0]["sum(value,request_count,counter,none)"] == 8
         assert meta["fields"]["sum(value,request_count,counter,none)"] == "number"
         assert meta["dataset"] == "tracemetrics"
 

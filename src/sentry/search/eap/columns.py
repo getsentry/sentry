@@ -389,11 +389,11 @@ class TraceMetricAggregateDefinition(FunctionDefinition):
         if self.attribute_resolver is not None:
             resolved_attribute = self.attribute_resolver(resolved_attribute)
 
-        if all(resolved_argument != "" for resolved_argument in resolved_arguments[1:-1]):
+        if all(resolved_argument != "" for resolved_argument in resolved_arguments[1:]):
             # a metric was passed
             # TODO: we need to put it into the top level query conditions
             pass
-        elif all(resolved_argument == "" for resolved_argument in resolved_arguments[1:-1]):
+        elif all(resolved_argument == "" for resolved_argument in resolved_arguments[1:]):
             # no metrics were specified, assume we query all metrics
             pass
         else:
