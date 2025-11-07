@@ -46,7 +46,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
         disabled={isLoading}
         size="sm"
         title={t('Next breadcrumb')}
-        icon={<IconChevron direction="right" />}
+        icon={<IconChevron size="sm" direction="right" />}
         onClick={() => {
           if (!replay) {
             return;
