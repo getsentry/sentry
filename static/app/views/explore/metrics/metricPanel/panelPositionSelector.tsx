@@ -1,20 +1,39 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
+import {
+  useMetricVisualize,
+  useSetMetricVisualize,
+} from 'sentry/views/explore/metrics/metricsQueryParams';
 
 export function PanelPositionSelector({
   orientation,
-  setOrientation,
   disabled,
 }: {
   orientation: TableOrientation;
-  setOrientation: (orientation: TableOrientation) => void;
   disabled?: boolean;
 }) {
+  const visualize = useMetricVisualize();
+  const setVisualize = useSetMetricVisualize();
+
+  const setOrientation = useCallback(
+    (newOrientation: TableOrientation) => {
+      setVisualize(
+        visualize.replace({
+          tableConfig: {
+            ...visualize.tableConfig,
+            orientation: newOrientation,
+          },
+        })
+      );
+    },
+    [setVisualize, visualize]
+  );
+
   return (
     <Fragment>
       <Button
