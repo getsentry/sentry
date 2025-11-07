@@ -267,33 +267,35 @@ def update_group_hash_metadata_in_batches(hash_ids: Sequence[int]) -> None:
 
     This function performs the update in smaller batches to reduce lock
     contention and prevent statement timeouts when many rows need updating.
+    Uses cursor-based pagination with the primary key to avoid loading all
+    IDs into memory and to avoid growing NOT IN clauses.
     """
     option_batch_size = options.get("deletions.group-hash-metadata.batch-size", 1000)
     batch_size = max(1, option_batch_size)
 
-    # Collect all metadata_ids first, then batch UPDATE operations to avoid
-    # large IN clauses in UPDATE statements and reduce lock contention
-    metadata_id_batches = []
-    collected_ids: set[int] = set()
+    # Use cursor-based pagination with the primary key to efficiently
+    # process large datasets without loading all IDs into memory or
+    # creating large NOT IN clauses
+    last_max_id = 0
     while True:
+        # Note: hash_ids is bounded to ~100 items (deletions.group-hashes-batch-size)
+        # from the caller, so this IN clause is intentionally not batched
         batch_metadata_ids = list(
-            # Note: hash_ids is bounded to ~100 items (deletions.group-hashes-batch-size)
-            # from the caller, so this IN clause is intentionally not batched
-            GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids)
-            .exclude(id__in=collected_ids)
+            GroupHashMetadata.objects.filter(
+                seer_matched_grouphash_id__in=hash_ids, id__gt=last_max_id
+            )
+            .order_by("id")
             .values_list("id", flat=True)[:batch_size]
         )
         if not batch_metadata_ids:
             break
-        metadata_id_batches.append(batch_metadata_ids)
-        collected_ids.update(batch_metadata_ids)
 
-    if not metadata_id_batches:
-        return
-
-    for batch in metadata_id_batches:
-        updated = GroupHashMetadata.objects.filter(id__in=batch).update(seer_matched_grouphash=None)
+        updated = GroupHashMetadata.objects.filter(id__in=batch_metadata_ids).update(
+            seer_matched_grouphash=None
+        )
         metrics.incr("deletions.group_hash_metadata.rows_updated", amount=updated, sample_rate=1.0)
+
+        last_max_id = max(batch_metadata_ids)
 
 
 def update_group_hash_metadata_in_batches_old(hash_ids: Sequence[int]) -> int:
