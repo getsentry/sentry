@@ -205,6 +205,8 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                 extra={
                     "trace_id": trace.trace_id,
                     "project_id": project_id,
+                    "total_spans": trace.total_spans,
+                    "transaction_name": trace.transaction_name,
                 },
             )
 
