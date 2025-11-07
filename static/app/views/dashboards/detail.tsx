@@ -227,7 +227,7 @@ class DashboardDetail extends Component<Props, State> {
     if (
       prevProps.organization !== this.props.organization ||
       prevProps.location !== this.props.location ||
-      prevProps.router !== this.props.router ||
+      prevProps.navigate !== this.props.navigate ||
       prevProps.dashboard !== this.props.dashboard
     ) {
       this.setState({
