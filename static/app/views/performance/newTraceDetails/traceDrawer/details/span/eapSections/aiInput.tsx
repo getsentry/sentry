@@ -4,9 +4,10 @@ import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Container} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {Button} from 'sentry/components/core/button';
-import {t} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -186,7 +187,7 @@ export function AIInputSection({
 }) {
   const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
   const messagesMeta = attributesMeta?.['gen_ai.request.messages']?.meta as any;
-  const isTruncated = messagesMeta?.['']?.len > 0;
+  const originalMessagesLength: number | undefined = messagesMeta?.['']?.len;
 
   let promptMessages = shouldRender
     ? getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes)
@@ -231,20 +232,18 @@ export function AIInputSection({
       title={t('Input')}
       disableCollapsePersistence
     >
-      {isTruncated ? (
-        <Container paddingBottom="lg">
-          <Alert type="muted">
-            {t('Due to size limitations, the message history on this span is truncated.')}
-          </Alert>
-        </Container>
-      ) : null}
       {/* If parsing fails, we'll just show the raw string */}
       {typeof messages === 'string' ? (
         <TraceDrawerComponents.MultilineText>
           {messages}
         </TraceDrawerComponents.MultilineText>
       ) : null}
-      {Array.isArray(messages) ? <MessagesArrayRenderer messages={messages} /> : null}
+      {Array.isArray(messages) ? (
+        <MessagesArrayRenderer
+          messages={messages}
+          originalLength={originalMessagesLength}
+        />
+      ) : null}
       {toolArgs ? (
         <TraceDrawerComponents.MultilineJSON value={toolArgs} maxDefaultDepth={1} />
       ) : null}
@@ -265,8 +264,16 @@ const MAX_MESSAGES_TO_SHOW = MAX_MESSAGES_AT_START + MAX_MESSAGES_AT_END;
  * As the whole message history takes up too much space we only show the first two (as those often contain the system and initial user prompt)
  * and the last messages with the option to expand
  */
-function MessagesArrayRenderer({messages}: {messages: AIMessage[]}) {
+function MessagesArrayRenderer({
+  messages,
+  originalLength,
+}: {
+  messages: AIMessage[];
+  originalLength?: number;
+}) {
   const [isExpanded, setIsExpanded] = useState(messages.length <= MAX_MESSAGES_TO_SHOW);
+  const truncatedMessages = originalLength ? originalLength - messages.length : 0;
+  const isTruncated = truncatedMessages > 0;
 
   // Reset the expanded state when the messages length changes
   const previousMessagesLength = usePrevious(messages.length);
@@ -300,6 +307,21 @@ function MessagesArrayRenderer({messages}: {messages: AIMessage[]}) {
 
   return (
     <Fragment>
+      {isTruncated ? (
+        <Container paddingBottom="lg">
+          <Alert type="muted">
+            {tct(
+              'Due to [link:size limitations], the oldest [count] got dropped from the history.',
+              {
+                count: tn('message', '%s messages', truncatedMessages),
+                link: (
+                  <ExternalLink href="https://develop.sentry.dev/sdk/expected-features/data-handling/#variable-size" />
+                ),
+              }
+            )}
+          </Alert>
+        </Container>
+      ) : null}
       {messages.slice(0, MAX_MESSAGES_AT_START).map(renderMessage)}
       <ButtonDivider>
         <Button onClick={() => setIsExpanded(true)} size="xs">
