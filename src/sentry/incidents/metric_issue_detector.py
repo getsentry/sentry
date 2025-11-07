@@ -212,6 +212,31 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             return True
         return False
 
+    def is_invalid_extrapolation_mode(
+        self, snuba_query: SnubaQuery, data_source: SnubaQueryDataSourceType
+    ) -> bool:
+        if data_source.get("dataset") == Dataset.EventsAnalyticsPlatform:
+            new_extrapolation_mode = data_source.get(
+                "extrapolation_mode", snuba_query.extrapolation_mode
+            )
+            old_extrapolation_mode = snuba_query.extrapolation_mode
+            if (
+                new_extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.value
+                and old_extrapolation_mode != ExtrapolationMode.SERVER_WEIGHTED.value
+            ):
+                return True
+            if (
+                new_extrapolation_mode == ExtrapolationMode.NONE.value
+                and old_extrapolation_mode != ExtrapolationMode.NONE.value
+            ):
+                return True
+            if (
+                new_extrapolation_mode == ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED.value
+                or new_extrapolation_mode == ExtrapolationMode.UNKNOWN.value
+            ):
+                return False
+        return False
+
     def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
         try:
             source_instance = DataSource.objects.get(detector=instance)
@@ -235,6 +260,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 "Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
             )
 
+        if self.is_invalid_extrapolation_mode(snuba_query, data_source):
+            raise serializers.ValidationError("Invalid extrapolation mode")
+
         update_snuba_query(
             snuba_query=snuba_query,
             query_type=data_source.get("query_type", snuba_query.type),
@@ -245,6 +273,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             resolution=timedelta(seconds=data_source.get("resolution", snuba_query.resolution)),
             environment=data_source.get("environment", snuba_query.environment),
             event_types=data_source.get("event_types", [event_type for event_type in event_types]),
+            extrapolation_mode=data_source.get(
+                "extrapolation_mode", snuba_query.extrapolation_mode
+            ),
         )
 
     def update(self, instance: Detector, validated_data: dict[str, Any]):
@@ -278,9 +309,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         if "data_sources" in validated_data:
             for validated_data_source in validated_data["data_sources"]:
                 self._validate_transaction_dataset_deprecation(validated_data_source.get("dataset"))
-
-        if "extrapolation_mode" in validated_data:
-            self._validate_extrapolation_mode(validated_data.get("extrapolation_mode"))
+                self._validate_extrapolation_mode(validated_data_source.get("extrapolation_mode"))
 
         detector = super().create(validated_data)
 

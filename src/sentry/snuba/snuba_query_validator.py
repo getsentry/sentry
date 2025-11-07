@@ -86,6 +86,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         required=False,
         allow_empty=False,
     )
+    extrapolation_mode = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         model = QuerySubscription
@@ -412,6 +413,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             environment=validated_data["environment"],
             event_types=validated_data["event_types"],
             group_by=validated_data.get("group_by"),
+            extrapolation_mode=validated_data.get("extrapolation_mode"),
         )
         return create_snuba_subscription(
             project=self.context["project"],
