@@ -27,6 +27,7 @@ from sentry.issues.grouptype import (
     PerformanceUncompressedAssetsGroupType,
     ProfileFunctionRegressionType,
     QueryInjectionVulnerabilityGroupType,
+    WebVitalsGroup,
 )
 
 MAX_VALUE = 2147483647
@@ -76,6 +77,8 @@ class ConfigurableThresholds(Enum):
     HTTP_OVERHEAD_REQUEST_DELAY = "http_request_delay_threshold"
     DB_QUERY_INJECTION = "db_query_injection_detection_enabled"
     SQL_INJECTION_QUERY_VALUE_LENGTH = "sql_injection_query_value_length_threshold"
+    WEB_VITALS = "web_vitals_detection_enabled"
+    WEB_VITALS_COUNT = "web_vitals_count"
 
 
 project_settings_to_group_map: dict[str, type[GroupType]] = {
@@ -93,6 +96,7 @@ project_settings_to_group_map: dict[str, type[GroupType]] = {
     InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: PerformanceP95EndpointRegressionGroupType,
     InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: ProfileFunctionRegressionType,
     ConfigurableThresholds.DB_QUERY_INJECTION.value: QueryInjectionVulnerabilityGroupType,
+    ConfigurableThresholds.WEB_VITALS.value: WebVitalsGroup,
 }
 """
 A mapping of the management settings to the group type that the detector spawns.
@@ -114,6 +118,7 @@ thresholds_to_manage_map: dict[str, str] = {
     ConfigurableThresholds.CONSECUTIVE_HTTP_SPANS_MIN_TIME_SAVED.value: ConfigurableThresholds.CONSECUTIVE_HTTP_SPANS.value,
     ConfigurableThresholds.HTTP_OVERHEAD_REQUEST_DELAY.value: ConfigurableThresholds.HTTP_OVERHEAD.value,
     ConfigurableThresholds.SQL_INJECTION_QUERY_VALUE_LENGTH.value: ConfigurableThresholds.DB_QUERY_INJECTION.value,
+    ConfigurableThresholds.WEB_VITALS_COUNT.value: ConfigurableThresholds.WEB_VITALS.value,
 }
 """
 A mapping of threshold setting to the parent setting that manages it's detection.
@@ -164,6 +169,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     http_request_delay_threshold = serializers.IntegerField(
         required=False, min_value=200, max_value=TEN_SECONDS  # ms
     )
+    web_vitals_count = serializers.IntegerField(required=False, min_value=5, max_value=100)
     uncompressed_assets_detection_enabled = serializers.BooleanField(required=False)
     consecutive_http_spans_detection_enabled = serializers.BooleanField(required=False)
     large_http_payload_detection_enabled = serializers.BooleanField(required=False)
@@ -178,6 +184,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     transaction_duration_regression_detection_enabled = serializers.BooleanField(required=False)
     function_duration_regression_detection_enabled = serializers.BooleanField(required=False)
     db_query_injection_detection_enabled = serializers.BooleanField(required=False)
+    web_vitals_detection_enabled = serializers.BooleanField(required=False)
     sql_injection_query_value_length_threshold = serializers.IntegerField(
         required=False, min_value=3, max_value=10
     )

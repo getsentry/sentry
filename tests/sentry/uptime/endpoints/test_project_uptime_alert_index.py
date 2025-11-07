@@ -2,7 +2,6 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.quotas.base import SeatAssignmentResult
 from sentry.uptime.endpoints.validators import MAX_REQUEST_SIZE_BYTES
 from sentry.uptime.models import get_uptime_subscription
 from sentry.uptime.types import (
@@ -10,6 +9,7 @@ from sentry.uptime.types import (
     DEFAULT_RECOVERY_THRESHOLD,
     UptimeMonitorMode,
 )
+from sentry.utils.outcomes import Outcome
 from sentry.workflow_engine.models import Detector
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
@@ -303,10 +303,10 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
             )
 
     @mock.patch(
-        "sentry.quotas.backend.check_assign_seat",
-        return_value=SeatAssignmentResult(assignable=False, reason="Testing"),
+        "sentry.quotas.backend.assign_seat",
+        return_value=Outcome.RATE_LIMITED,
     )
-    def test_no_seat_assignment(self, _mock_check_assign_seat: mock.MagicMock) -> None:
+    def test_no_seat_assignment(self, _mock_assign_seat: mock.MagicMock) -> None:
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
