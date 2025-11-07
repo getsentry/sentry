@@ -110,7 +110,7 @@ function createSeriesAndCount(stats: EventsStats) {
   );
 }
 
-export function GraphPlaceholder({
+function GraphPlaceholder({
   ref,
   height = 96,
 }: {
