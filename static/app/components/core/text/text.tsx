@@ -68,10 +68,10 @@ export interface BaseTextProps {
   textWrap?: 'wrap' | 'nowrap' | 'balance' | 'pretty' | 'stable';
 
   /**
-   * Determines if the text should be underlined.
-   * @default false
+   * Determines how text should be underlined.
+   * @default undefined
    */
-  underline?: boolean;
+  underline?: boolean | 'dotted';
 
   /**
    * Uppercase the text.

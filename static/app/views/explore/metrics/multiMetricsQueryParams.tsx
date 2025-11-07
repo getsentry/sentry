@@ -39,16 +39,18 @@ const [
 
 interface MultiMetricsQueryParamsProviderProps {
   children: ReactNode;
+  allowUpTo?: number;
 }
 
 export function MultiMetricsQueryParamsProvider({
   children,
+  allowUpTo,
 }: MultiMetricsQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
   const value: MultiMetricsQueryParamsContextValue = useMemo(() => {
-    const metricQueries = getMultiMetricsQueryParamsFromLocation(location);
+    const metricQueries = getMultiMetricsQueryParamsFromLocation(location, allowUpTo);
 
     function setQueryParamsForIndex(i: number) {
       return function (newQueryParams: ReadableQueryParams) {
@@ -96,13 +98,8 @@ export function MultiMetricsQueryParamsProvider({
                 // the currently selected aggregation isn't supported on the new metric
                 const defaultAggregation =
                   DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'per_second';
-                const args =
-                  defaultAggregation === 'per_second' ||
-                  defaultAggregation === 'per_minute'
-                    ? `value,${newTraceMetric.type}`
-                    : 'value';
                 aggregateFields = [
-                  new VisualizeFunction(`${defaultAggregation}(${args})`),
+                  new VisualizeFunction(`${defaultAggregation}(value)`),
                   ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
                 ];
               } else if (
@@ -114,9 +111,7 @@ export function MultiMetricsQueryParamsProvider({
 
                 // the currently selected aggregation changed types
                 aggregateFields = [
-                  new VisualizeFunction(
-                    `${selectedAggregation}(value,${newTraceMetric.type})`
-                  ),
+                  new VisualizeFunction(`${selectedAggregation}(value)`),
                   ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
                 ];
               }
@@ -165,7 +160,7 @@ export function MultiMetricsQueryParamsProvider({
         };
       }),
     };
-  }, [location, navigate]);
+  }, [location, navigate, allowUpTo]);
 
   return (
     <MultiMetricsQueryParamsContext value={value}>
@@ -174,14 +169,17 @@ export function MultiMetricsQueryParamsProvider({
   );
 }
 
-function getMultiMetricsQueryParamsFromLocation(location: Location): BaseMetricQuery[] {
+function getMultiMetricsQueryParamsFromLocation(
+  location: Location,
+  limit?: number
+): BaseMetricQuery[] {
   const rawQueryParams = decodeList(location.query.metric);
 
   const metricQueries = rawQueryParams.map(decodeMetricsQueryParams).filter(defined);
-  if (metricQueries.length) {
-    return metricQueries;
-  }
-  return [defaultMetricQuery()];
+
+  const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
+
+  return limit ? queries.slice(0, limit) : queries;
 }
 
 export function useMultiMetricsQueryParams() {
@@ -204,5 +202,26 @@ export function useAddMetricQuery() {
     target.query.metric = newMetricQueries;
 
     navigate(target);
+  };
+}
+
+export function SingleMetricQueryParamsProvider({children}: {children: ReactNode}) {
+  return (
+    <MultiMetricsQueryParamsProvider allowUpTo={1}>
+      {children}
+    </MultiMetricsQueryParamsProvider>
+  );
+}
+
+export function useSingleMetricQueryParams() {
+  const metricQueries = useMultiMetricsQueryParams();
+  const metricQuery = metricQueries[0]!;
+
+  return {
+    queryParams: metricQuery.queryParams,
+    setQueryParams: metricQuery.setQueryParams,
+    metric: metricQuery.metric,
+    setTraceMetric: metricQuery.setTraceMetric,
+    removeMetric: metricQuery.removeMetric,
   };
 }

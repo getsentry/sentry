@@ -10,6 +10,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {parseFunction} from 'sentry/utils/discover/fields';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
@@ -23,7 +24,11 @@ import {
   StyledTopResultsIndicator,
   TransparentLoadingMask,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
-import {createMetricNameFilter, getMetricsUnit} from 'sentry/views/explore/metrics/utils';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  createTraceMetricFilter,
+  getMetricsUnit,
+} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -35,17 +40,17 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 const RESULT_LIMIT = 50;
 
 interface AggregatesTabProps {
-  metricName: string;
+  traceMetric: TraceMetric;
 }
 
-export function AggregatesTab({metricName}: AggregatesTabProps) {
+export function AggregatesTab({traceMetric}: AggregatesTabProps) {
   const topEvents = useTopEvents();
   const tableRef = useRef<HTMLDivElement>(null);
 
   const {result, eventView, fields} = useMetricAggregatesTable({
-    enabled: Boolean(metricName),
+    enabled: Boolean(traceMetric.name),
     limit: RESULT_LIMIT,
-    metricName,
+    traceMetric,
   });
 
   const columns = useMemo(
@@ -56,19 +61,19 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
   const setSorts = useSetQueryParamsAggregateSortBys();
   const groupBys = useQueryParamsGroupBys();
 
-  const metricNameFilter = createMetricNameFilter(metricName);
+  const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
   const {attributes: numberTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'number',
-    enabled: Boolean(metricNameFilter),
-    query: metricNameFilter,
+    enabled: Boolean(traceMetricFilter),
+    query: traceMetricFilter,
   });
   const {attributes: stringTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'string',
-    enabled: Boolean(metricNameFilter),
-    query: metricNameFilter,
+    enabled: Boolean(traceMetricFilter),
+    query: traceMetricFilter,
   });
 
   const meta = result.meta ?? {};
@@ -154,13 +159,13 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
         {fields.map((field, i) => {
           let label = field;
           const tag = stringTags?.[field] ?? numberTags?.[field] ?? null;
-          if (tag) {
-            label = tag.name;
-          }
-
           const func = parseFunction(field);
           if (func) {
             label = `${func.name}(…)`;
+          } else if (tag) {
+            label = tag.name;
+          } else {
+            label = prettifyTagKey(field);
           }
 
           const direction = sorts.find(s => s.field === field)?.kind;
@@ -201,10 +206,9 @@ export function AggregatesTab({metricName}: AggregatesTabProps) {
               {fields.map((field, j) => (
                 <StickyCompatibleStyledRowCell
                   key={j}
-                  hasPadding
                   data-sticky-column={isLastColumn(j) ? 'true' : 'false'}
                   isSticky={isLastColumn(j)}
-                  offset={j === 0 ? firstColumnOffset : '0px'}
+                  offset={j === 0 ? firstColumnOffset : undefined}
                 >
                   <FieldRenderer
                     column={columns[j]}
@@ -249,7 +253,9 @@ const StickyCompatibleStyledHeaderCell = styled(StyledSimpleTableHeaderCell)<{
   isSticky: boolean;
 }>`
   justify-content: ${p => (p.isSticky ? 'flex-end' : 'flex-start')};
-  padding: 0 4px;
+  padding: ${p => (p.noPadding ? 0 : p.theme.space.lg)};
+  padding-top: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
+  padding-bottom: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
   ${p =>
     p.isSticky &&
     css`
@@ -263,9 +269,13 @@ const StickyCompatibleStyledHeaderCell = styled(StyledSimpleTableHeaderCell)<{
 
 const StickyCompatibleStyledRowCell = styled(StyledSimpleTableRowCell)<{
   isSticky: boolean;
-  offset: string;
+  offset?: string;
 }>`
-  padding-left: ${p => p.offset};
+  ${p =>
+    p.offset &&
+    css`
+      padding-left: ${p.offset};
+    `}
   ${p =>
     p.isSticky &&
     css`

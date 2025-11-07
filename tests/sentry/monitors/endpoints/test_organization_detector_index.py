@@ -58,6 +58,7 @@ class OrganizationDetectorIndexGetTest(BaseDetectorTestCase):
                 "id": str(self.detector.id),
                 "projectId": str(self.project.id),
                 "name": "Original Detector",
+                "description": None,
                 "type": MonitorIncidentType.slug,
                 "workflowIds": [],
                 "owner": None,

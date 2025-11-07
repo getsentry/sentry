@@ -39,12 +39,18 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
+import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
-import SchemaHintsList, {
-  SchemaHintsSection,
-} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {ChartSelectionProvider} from 'sentry/views/explore/components/suspectTags/chartSelectionContext';
+import {
+  ExploreBodyContent,
+  ExploreBodySearch,
+  ExploreContentSection,
+  ExploreControlSection,
+  ExploreFilterSection,
+  ExploreSchemaHintsSection,
+} from 'sentry/views/explore/components/styles';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -103,6 +109,7 @@ export function SpansTabOnboarding({
         <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <OnboardingContentSection>
+        <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
         <Onboarding project={project} organization={organization} />
       </OnboardingContentSection>
     </Layout.Body>
@@ -137,10 +144,10 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
 
   return (
     <Fragment>
-      <BodySearch>
+      <ExploreBodySearch>
         <SpanTabSearchSection datePageFilterProps={datePageFilterProps} />
-      </BodySearch>
-      <BodyContent>
+      </ExploreBodySearch>
+      <ExploreBodyContent>
         <SpanTabControlSection
           organization={organization}
           controlSectionExpanded={controlSectionExpanded}
@@ -150,7 +157,7 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
           setControlSectionExpanded={setControlSectionExpanded}
           controlSectionExpanded={controlSectionExpanded}
         />
-      </BodyContent>
+      </ExploreBodyContent>
     </Fragment>
   );
 }
@@ -292,7 +299,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
           position="bottom"
           margin={-8}
         >
-          <FilterSection>
+          <ExploreFilterSection>
             <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
@@ -301,8 +308,8 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
             <SpansSearchBar
               eapSpanSearchQueryBuilderProps={eapSpanSearchQueryBuilderProps}
             />
-          </FilterSection>
-          <StyledSchemaHintsSection>
+          </ExploreFilterSection>
+          <ExploreSchemaHintsSection>
             <SchemaHintsList
               supportedAggregates={
                 mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
@@ -313,7 +320,7 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
               exploreQuery={query}
               source={SchemaHintsSources.EXPLORE}
             />
-          </StyledSchemaHintsSection>
+          </ExploreSchemaHintsSection>
         </TourElement>
       </SearchQueryBuilderProvider>
     </Layout.Main>
@@ -336,7 +343,7 @@ function SpanTabControlSection({
   ];
 
   return (
-    <ControlSection expanded={controlSectionExpanded}>
+    <ExploreControlSection expanded={controlSectionExpanded}>
       <TourElement<ExploreSpansTour>
         tourContext={ExploreSpansTourContext}
         id={ExploreSpansTour.TOOLBAR}
@@ -349,7 +356,7 @@ function SpanTabControlSection({
       >
         {controlSectionExpanded && <ExploreToolbar width={300} extras={toolbarExtras} />}
       </TourElement>
-    </ControlSection>
+    </ExploreControlSection>
   );
 }
 
@@ -432,22 +439,6 @@ function SpanTabContentSection({
     interval,
   });
 
-  const resultsLength =
-    {
-      aggregate: aggregatesTableResult.result.data?.length,
-      samples: spansTableResult.result.data?.length,
-      traces: tracesTableResult.result.data?.data?.length,
-    }[queryType] ?? 0;
-
-  const hasResults = !!resultsLength;
-
-  const resultsLoading =
-    queryType === 'aggregate'
-      ? aggregatesTableResult.result.isPending
-      : queryType === 'samples'
-        ? spansTableResult.result.isPending
-        : tracesTableResult.result.isPending;
-
   const error = defined(timeseriesResult.error)
     ? null // if the timeseries errors, we prefer to show that error in the chart
     : queryType === 'samples'
@@ -459,7 +450,7 @@ function SpanTabContentSection({
           : null;
 
   return (
-    <ContentSection expanded={controlSectionExpanded}>
+    <ExploreContentSection expanded={controlSectionExpanded}>
       <OverChartButtonGroup>
         <ChevronButton
           aria-label={
@@ -489,9 +480,7 @@ function SpanTabContentSection({
         </ActionButtonsGroup>
       </OverChartButtonGroup>
       {defined(id) && <DroppedFieldsAlert />}
-      {!resultsLoading && !hasResults && (
-        <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
-      )}
+      <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       <ExtrapolationEnabledAlert />
       {defined(error) && (
         <Alert.Container>
@@ -534,7 +523,7 @@ function SpanTabContentSection({
           />
         </ChartSelectionProvider>
       </TourElement>
-    </ContentSection>
+    </ExploreContentSection>
   );
 }
 
@@ -546,88 +535,6 @@ function checkIsAllowedSelection(
   const selectedMinutes = getDiffInMinutes(selection.datetime);
   return selectedMinutes <= maxPickableMinutes;
 }
-
-const BodySearch = styled(Layout.Body)`
-  flex-grow: 0;
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding-bottom: ${p => p.theme.space.xl};
-  }
-`;
-
-const BodyContent = styled('div')`
-  background-color: ${p => p.theme.background};
-  flex-grow: 1;
-
-  display: flex;
-  flex-direction: column;
-  padding: 0px;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: flex;
-    flex-direction: row;
-    padding: 0px;
-    gap: 0px;
-  }
-`;
-
-const ControlSection = styled('aside')<{expanded: boolean}>`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.border};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    border-bottom: none;
-    ${p =>
-      p.expanded
-        ? css`
-            width: 343px; /* 300px for the toolbar + padding */
-            padding: ${p.theme.space.xl} ${p.theme.space.lg} ${p.theme.space.md}
-              ${p.theme.space['3xl']};
-            border-right: 1px solid ${p.theme.border};
-          `
-        : css`
-            overflow: hidden;
-            width: 0px;
-            padding: 0px;
-            border-right: none;
-          `}
-  }
-`;
-
-const ContentSection = styled('section')<{expanded: boolean}>`
-  background-color: ${p => p.theme.backgroundSecondary};
-  flex: 1 1 auto;
-  min-width: 0;
-
-  padding-top: ${p => p.theme.space.md};
-  padding-right: ${p => p.theme.space.xl};
-  padding-bottom: ${p => p.theme.space['2xl']};
-  padding-left: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    ${p =>
-      p.expanded
-        ? css`
-            padding: ${p.theme.space.md} ${p.theme.space['3xl']} ${p.theme.space['2xl']}
-              ${p.theme.space.lg};
-          `
-        : css`
-            padding: ${p.theme.space.md} ${p.theme.space['3xl']} ${p.theme.space['2xl']}
-              ${p.theme.space['3xl']};
-          `}
-  }
-`;
-
-const FilterSection = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: minmax(300px, auto) 1fr;
-  }
-`;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
@@ -679,13 +586,3 @@ const ChevronButton = withChonk(
       `}
   `
 );
-
-const StyledSchemaHintsSection = styled(SchemaHintsSection)`
-  margin-top: ${p => p.theme.space.md};
-  margin-bottom: 0px;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    margin-top: ${p => p.theme.space.md};
-    margin-bottom: 0px;
-  }
-`;
