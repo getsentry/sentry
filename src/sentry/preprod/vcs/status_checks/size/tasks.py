@@ -354,32 +354,30 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 return str(check_id) if check_id else None
             except ApiError as e:
                 lifecycle.record_failure(e)
-
-                # 4xx client errors (except 429) are not transient (our fault or configuration issues)
-                # Convert them to IntegrationConfigurationError to prevent retries
-                # 429 rate limits, 5xx server errors, and other transient issues will bubble up and be retriable.
-                if e.code and 400 <= e.code < 500 and e.code != 429:
-                    if e.code == 403:
-                        error_message = str(e).lower()
-                        if (
-                            "resource not accessible" in error_message
-                            or "insufficient" in error_message
-                            or "permission" in error_message
-                        ):
-                            logger.exception(
-                                "preprod.status_checks.create.insufficient_permissions",
-                                extra={
-                                    "organization_id": self.organization_id,
-                                    "integration_id": self.integration_id,
-                                    "repo": repo,
-                                },
-                            )
-                            raise IntegrationConfigurationError(
-                                "GitHub App lacks permissions to create check runs. "
-                                "Please ensure the app has the required permissions and that "
-                                "the organization has accepted any updated permissions."
-                            ) from e
-
+                # Only convert specific permission 403s as IntegrationConfigurationError
+                # GitHub can return 403 for various reasons (rate limits, temporary issues, permissions)
+                if e.code == 403:
+                    error_message = str(e).lower()
+                    if (
+                        "resource not accessible" in error_message
+                        or "insufficient" in error_message
+                        or "permission" in error_message
+                    ):
+                        logger.exception(
+                            "preprod.status_checks.create.insufficient_permissions",
+                            extra={
+                                "organization_id": self.organization_id,
+                                "integration_id": self.integration_id,
+                                "repo": repo,
+                                "error_message": str(e),
+                            },
+                        )
+                        raise IntegrationConfigurationError(
+                            "GitHub App lacks permissions to create check runs. "
+                            "Please ensure the app has the required permissions and that "
+                            "the organization has accepted any updated permissions."
+                        ) from e
+                elif e.code and 400 <= e.code < 500 and e.code != 429:
                     logger.exception(
                         "preprod.status_checks.create.client_error",
                         extra={
@@ -393,7 +391,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                         f"GitHub API returned {e.code} client error when creating check run"
                     ) from e
 
-                # For 5xx or other errors, re-raise to allow retries
+                # For non-permission 403s, 429s, 5xx, and other error
                 raise
 
 
