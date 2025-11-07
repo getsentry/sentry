@@ -100,7 +100,7 @@ class GithubRequestParser(BaseRequestParser):
             if codecov_regions:
                 self.try_forward_to_codecov(event=event)
 
-        logger.debug(
+        logger.info(
             "overwatch.debug.forward_if_applicable.begin",
             extra={
                 "headers_keys": list(self.request.headers.keys()),
