@@ -41,4 +41,3 @@ describe('aspnetcore onboarding docs', () => {
     ).toBeInTheDocument();
   });
 });
-
