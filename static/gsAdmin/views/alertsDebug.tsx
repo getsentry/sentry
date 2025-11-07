@@ -1,9 +1,15 @@
 import {Fragment, useRef, useState} from 'react';
 
 import {Button} from 'sentry/components/core/button';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {Input} from 'sentry/components/core/input';
+import {Container} from 'sentry/components/core/layout/container';
 import {Radio} from 'sentry/components/core/radio';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import type {
+  DataCondition,
+  DataConditionGroup,
+} from 'sentry/types/workflowEngine/dataConditions';
 
 import PageHeader from 'admin/components/pageHeader';
 
@@ -50,7 +56,7 @@ const AlertDebugForm = ({
   workflowId: number;
   onSubmit?: (data: AlertDebugFormData) => void;
 }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const issueIdInputRef = useRef<HTMLInputElement>(null);
   const [selectedInputType, setInputType] = useState<AlertDebugSelectionType>(
     AlertDebugSelectionType.ISSUE_ID
   );
@@ -65,24 +71,31 @@ const AlertDebugForm = ({
     };
 
     const formData = new FormData(e.currentTarget);
-    const start = new Date(`${formData.get('start_date')} ${formData.get('start_time')}`);
-    const end = new Date(`${formData.get('end_date')} ${formData.get('end_time')}`);
 
-    if (issueIds.length) data.issueIds = issueIds;
-    if (start && end) data.dateRange = {start, end};
-
-    if (onSubmit) {
-      onSubmit(data);
+    switch (selectedInputType) {
+      case AlertDebugSelectionType.ISSUE_ID:
+        data.issueIds = issueIds;
+        break;
+      case AlertDebugSelectionType.TIME_RANGE:
+        data.dateRange = {
+          start: new Date(`${formData.get('start_date')} ${formData.get('start_time')}`),
+          end: new Date(`${formData.get('end_date')} ${formData.get('end_time')}`),
+        };
+        break;
+      default:
+        throw new Error(`Unknown Replay Type ${selectedInputType}`);
     }
+
+    if (onSubmit) onSubmit(data);
   };
 
   const addId = (e: any) => {
     e.preventDefault();
 
-    if (inputRef.current) {
-      const issueId = Number(inputRef.current.value);
+    if (issueIdInputRef.current) {
+      const issueId = Number(issueIdInputRef.current.value);
       setIssueIds([...issueIds, issueId]);
-      inputRef.current.value = '';
+      issueIdInputRef.current.value = '';
     }
   };
 
@@ -91,7 +104,7 @@ const AlertDebugForm = ({
 
     // reset inputs
     setIssueIds([]);
-    if (inputRef.current) inputRef.current.value = '';
+    if (issueIdInputRef.current) issueIdInputRef.current.value = '';
   };
 
   return (
@@ -102,7 +115,7 @@ const AlertDebugForm = ({
       <Input name="workflowId" type="hidden" required />
 
       <div style={{display: 'flex', gap: 8, flexDirection: 'column'}}>
-        <strong>Alert replay by:</strong>
+        <h3>Alert Replay</h3>
         <fieldset>
           {Object.entries(AlertDebugSelectionType).map(entry => (
             <label key={entry[0]} style={{display: 'flex', gap: 4, alignItems: 'center'}}>
@@ -132,11 +145,17 @@ const AlertDebugForm = ({
           )}
 
           <div style={{display: 'flex', gap: 8}}>
-            <Input name="issueId" type="number" placeholder="Issue ID" ref={inputRef} />
+            <Input
+              name="issueId"
+              type="number"
+              placeholder="Issue ID"
+              ref={issueIdInputRef}
+            />
             <Button onClick={addId}>Add Issue</Button>
           </div>
         </div>
       )}
+
       {selectedInputType === AlertDebugSelectionType.TIME_RANGE && <TimeInput />}
 
       <Button priority="primary" type="submit">
@@ -154,61 +173,127 @@ const AlertDebugResults = ({results}: {results: any}) => (
   </div>
 );
 
+function AlertDataAttribute({dataKey, value}: {dataKey: string; value: any}) {
+  if (typeof value === 'object') return null;
+
+  let displayValue = value;
+
+  switch (typeof value) {
+    case 'boolean':
+      displayValue = <Checkbox checked={value} disabled />;
+      break;
+    default:
+      displayValue = value;
+  }
+
+  return (
+    <div>
+      <strong>{dataKey}:&nbsp;</strong>
+      {displayValue}
+    </div>
+  );
+}
+
+// eslint-disable-next-line
+const AlertCondition = ({condition}: {condition: DataCondition}) => (
+  <div>{condition.id}</div>
+);
+
+// eslint-disable-next-line
+const AlertConditionGroup = ({group}: {group: DataConditionGroup}) => (
+  <Container>
+    <div>{group.id}</div>
+
+    {group.conditions && (
+      <div>
+        <strong>Condtions</strong>
+        <ol>
+          {group.conditions?.map(condition => (
+            <li style={{margin: '16px 0'}} key={condition.id}>
+              <AlertCondition condition={condition} />
+            </li>
+          ))}
+        </ol>
+      </div>
+    )}
+
+    {group.actions && (
+      <div>
+        <strong>Actions</strong>
+        <ul>
+          {group.actions?.map(action => (
+            <Fragment key={action.id}>
+              {/* TODO -- Make an action card? */}
+              <div>{action.id}</div>
+            </Fragment>
+          ))}
+        </ul>
+      </div>
+    )}
+  </Container>
+);
+
 // eslint-disable-next-line
 const AlertDetails = ({workflow}: {workflow: Automation}) => (
-  <div>
-    <h4>{workflow.name}</h4>
+  <Fragment>
+    <h1>{workflow.name}</h1>
 
     <div style={{marginBottom: 16}}>
-      {Object.entries(workflow).map(([key, value]) => {
-        if (typeof value === 'object' || typeof key === 'object') return null;
-
-        return (
-          <div key={key}>
-            <strong>{key}:&nbsp;</strong>
-            {value}
+      <h6>Settings</h6>
+      <Container
+        background="primary"
+        padding="lg"
+        radius="md"
+        style={{border: '1px solid #E0DCE5'}}
+      >
+        {Object.entries(workflow).map(([key, value]) => (
+          <div key={key} style={{margin: '8px 0'}}>
+            <AlertDataAttribute dataKey={key} value={value} />
           </div>
-        );
-      })}
+        ))}
+      </Container>
     </div>
+
+    {workflow.detectorIds.length && (
+      <div style={{flex: '1'}}>
+        <h6>Connected Monitors</h6>
+        <ul>
+          {workflow.detectorIds.map(detectorId => (
+            <li key={detectorId}>
+              <a href="#">{detectorId}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
 
     <div style={{display: 'flex'}}>
-      {workflow.detectorIds.length && (
-        <div style={{flex: '1'}}>
-          <h6>Connected Monitors</h6>
-          <ul>
-            {workflow.detectorIds.map(detectorId => (
-              <li key={detectorId}>
-                <a href="#">{detectorId}</a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div style={{flex: '1'}}>
+        <h6>Workflow Triggers</h6>
+        {workflow.triggers && <AlertConditionGroup group={workflow.triggers} />}
+        {!workflow.triggers && <span>None</span>}
+      </div>
 
-      {workflow.detectorIds.length && (
+      {workflow.actionFilters && (
         <div style={{flex: '1'}}>
           <h6>Action Filters</h6>
-          <ul>
-            {workflow.actionFilters.map(actionFilter => (
-              <li key={actionFilter.id}>
-                <a href="#">{actionFilter.id}</a>
-              </li>
-            ))}
-          </ul>
+          {workflow.actionFilters?.length === 0 && <span>None</span>}
+          {workflow.actionFilters.map(actionFilter => (
+            <AlertConditionGroup key={actionFilter.id} group={actionFilter} />
+          ))}
         </div>
       )}
     </div>
-  </div>
+  </Fragment>
 );
 
 const MOCK_WORKFLOW: Automation = {
   id: '1234',
   name: 'Mock Alert',
   createdBy: 'Josh',
-  dateCreated: Date.now().toString(),
-  dateUpdated: Date.now().toString(),
-  lastTriggered: Date.now().toString(),
+  dateCreated: Date.now().toLocaleString(),
+  dateUpdated: Date.now().toLocaleString(),
+  lastTriggered: Date.now().toLocaleString(),
   config: {
     frequency: 10,
   },
@@ -264,7 +349,11 @@ function AlertsDebug() {
         <div style={{marginTop: 16}}>
           <AlertDetails workflow={workflow} />
           <div
-            style={{width: '100%', borderBottom: '1px solid #E0DCE5', margin: '64px 0'}}
+            style={{width: '100%', borderBottom: '1px solid #E0DCE5', margin: '32px 0'}}
+          />
+          <h5>History</h5>
+          <div
+            style={{width: '100%', borderBottom: '1px solid #E0DCE5', margin: '32px 0'}}
           />
         </div>
       )}
