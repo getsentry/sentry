@@ -12,7 +12,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-function ReplayCurrentUrl() {
+export default function ReplayCurrentUrl() {
   const replay = useReplayReader();
   const {currentTime} = useReplayContext();
   const replayRecord = replay?.getReplay();
@@ -31,52 +31,34 @@ function ReplayCurrentUrl() {
     }
   }, [replayRecord, frames, currentTime]);
 
-  if (!replay || !url) {
-    return (
-      <TextCopyInput aria-label={t('Current URL')} size="sm" disabled>
-        {''}
-      </TextCopyInput>
-    );
-  }
-
-  if (url.includes('[Filtered]')) {
-    return (
-      <Tooltip
-        title={tct(
-          "Funny looking URL? It contains content scrubbed by our [filters] and may no longer be valid. This is to protect your users' privacy. If necessary, you can turn this off in your [settings].",
-          {
-            filters: (
-              <ExternalLink href="https://docs.sentry.io/product/data-management-settings/scrubbing/server-side-scrubbing/">
-                {'Data Scrubber'}
-              </ExternalLink>
-            ),
-            settings: projSlug ? (
-              <Link
-                to={normalizeUrl(
-                  `/settings/${organization.slug}/projects/${projSlug}/security-and-privacy/`
-                )}
-              >
-                {'Settings, under Security & Privacy'}
-              </Link>
-            ) : (
-              'Settings, under Security & Privacy'
-            ),
-          }
-        )}
-        isHoverable
-      >
-        <TextCopyInput aria-label={t('Current URL')} size="sm">
-          {url}
-        </TextCopyInput>
-      </Tooltip>
-    );
-  }
-
+  const tooltipText = url?.includes('[Filtered]')
+    ? tct(
+        "Funny looking URL? It contains content scrubbed by our [filters] and may no longer be valid. This is to protect your users' privacy. If necessary, you can turn this off in your [settings].",
+        {
+          filters: (
+            <ExternalLink href="https://docs.sentry.io/product/data-management-settings/scrubbing/server-side-scrubbing/">
+              {'Data Scrubber'}
+            </ExternalLink>
+          ),
+          settings: projSlug ? (
+            <Link
+              to={normalizeUrl(
+                `/settings/${organization.slug}/projects/${projSlug}/security-and-privacy/`
+              )}
+            >
+              {'Settings, under Security & Privacy'}
+            </Link>
+          ) : (
+            'Settings, under Security & Privacy'
+          ),
+        }
+      )
+    : undefined;
   return (
-    <TextCopyInput aria-label={t('Current URL')} size="sm">
-      {url}
-    </TextCopyInput>
+    <Tooltip title={tooltipText} disabled={!tooltipText} isHoverable>
+      <TextCopyInput aria-label={t('Current URL')} size="sm" disabled={!url}>
+        {url}
+      </TextCopyInput>
+    </Tooltip>
   );
 }
-
-export default ReplayCurrentUrl;
