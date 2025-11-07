@@ -214,7 +214,7 @@ export function DetectorsTableActions({
         </ActionsBarWrapper>
       </SimpleTable.Header>
       {pageSelected && !allResultsVisible && (
-        <FullWidthAlert type="warning" showIcon={false}>
+        <FullWidthAlert type="warning" system showIcon={false}>
           <Flex justify="center" wrap="wrap" gap="md">
             {allInQuerySelected ? (
               tct('Selected all [count] monitors that match this search query.', {
@@ -243,9 +243,6 @@ export function DetectorsTableActions({
 
 const FullWidthAlert = styled(Alert)`
   grid-column: 1 / -1;
-  border-radius: 0;
-  border: none;
-  border-bottom: 1px solid ${p => p.theme.yellow300};
 `;
 
 const ActionsBarWrapper = styled('div')`
