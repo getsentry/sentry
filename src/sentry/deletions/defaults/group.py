@@ -271,11 +271,14 @@ def update_group_hash_metadata_in_batches(hash_ids: Sequence[int]) -> None:
     option_batch_size = options.get("deletions.group-hash-metadata.batch-size", 1000)
     batch_size = max(1, option_batch_size)
 
-    # Collect all metadata_ids in batches to avoid large IN clauses in SELECT
+    # Collect all metadata_ids first, then batch UPDATE operations to avoid
+    # large IN clauses in UPDATE statements and reduce lock contention
     metadata_id_batches = []
-    collected_ids = set()
+    collected_ids: set[int] = set()
     while True:
         batch_metadata_ids = list(
+            # Note: hash_ids is bounded to ~100 items (deletions.group-hashes-batch-size)
+            # from the caller, so this IN clause is intentionally not batched
             GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids)
             .exclude(id__in=collected_ids)
             .values_list("id", flat=True)[:batch_size]

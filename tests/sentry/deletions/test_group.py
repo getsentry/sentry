@@ -383,8 +383,11 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         # Verify that the metadata records still exist but with seer_matched_grouphash=None
         for grouphash in additional_grouphashes:
-            grouphash.metadata.refresh_from_db()
-            assert grouphash.metadata.seer_matched_grouphash is None
+            if grouphash.metadata is not None:
+                grouphash.metadata.refresh_from_db()
+                assert grouphash.metadata.seer_matched_grouphash is None
+            else:
+                raise AssertionError("GroupHashMetadata is None for grouphash id=%s" % grouphash.id)
 
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
