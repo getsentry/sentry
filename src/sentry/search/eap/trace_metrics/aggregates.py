@@ -2,10 +2,12 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Functi
 
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
-    AggregateDefinition,
     AttributeArgumentDefinition,
+    TraceMetricAggregateDefinition,
+    ValueArgumentDefinition,
     count_argument_resolver_optimized,
 )
+from sentry.search.eap.validator import literal_validator
 
 
 def count_processor(count_value: int | None) -> int:
@@ -22,7 +24,7 @@ TRACE_METRICS_ALWAYS_PRESENT_ATTRIBUTES = [
 ]
 
 TRACE_METRICS_AGGREGATE_DEFINITIONS = {
-    "count": AggregateDefinition(
+    "count": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         infer_search_type_from_arguments=False,
         processor=count_processor,
@@ -34,14 +36,27 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS = {
                     "number",
                     "integer",
                 },
-                default_arg="value",
-            )
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
         attribute_resolver=count_argument_resolver_optimized(
             TRACE_METRICS_ALWAYS_PRESENT_ATTRIBUTES
         ),
     ),
-    "count_unique": AggregateDefinition(
+    "count_unique": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_UNIQ,
         default_search_type="integer",
         infer_search_type_from_arguments=False,
@@ -58,10 +73,24 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
-            )
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
     ),
-    "sum": AggregateDefinition(
+    "sum": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_SUM,
         default_search_type="number",
         arguments=[
@@ -74,10 +103,24 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
-            )
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
     ),
-    "avg": AggregateDefinition(
+    "avg": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
         default_search_type="number",
         arguments=[
@@ -91,10 +134,24 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
-            )
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
     ),
-    "p50": AggregateDefinition(
+    "p50": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_P50,
         default_search_type="number",
         arguments=[
@@ -108,10 +165,24 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
-            )
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
     ),
-    "p75": AggregateDefinition(
+    "p75": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_P75,
         default_search_type="number",
         arguments=[
@@ -125,10 +196,24 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
-            )
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg="non"),
         ],
     ),
-    "p90": AggregateDefinition(
+    "p90": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_P90,
         default_search_type="number",
         arguments=[
@@ -142,10 +227,24 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
-            )
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
     ),
-    "p95": AggregateDefinition(
+    "p95": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_P95,
         default_search_type="number",
         arguments=[
@@ -159,10 +258,24 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
-            )
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
     ),
-    "p99": AggregateDefinition(
+    "p99": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_P99,
         default_search_type="number",
         arguments=[
@@ -176,10 +289,24 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
-            )
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
     ),
-    "max": AggregateDefinition(
+    "max": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_MAX,
         default_search_type="number",
         arguments=[
@@ -193,10 +320,24 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
-            )
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
     ),
-    "min": AggregateDefinition(
+    "min": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_MIN,
         default_search_type="number",
         arguments=[
@@ -210,7 +351,21 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
-            )
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
+            ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
     ),
 }

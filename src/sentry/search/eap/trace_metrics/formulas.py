@@ -17,6 +17,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
 )
 from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
+from sentry.search.eap.validator import literal_validator
 
 
 def _rate_internal(
@@ -89,10 +90,20 @@ TRACE_METRICS_FORMULA_DEFINITIONS = {
                 },
                 default_arg="value",
             ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
-                default_arg="counter",
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
             ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
         formula_resolver=per_second,
         is_aggregate=True,
@@ -109,10 +120,20 @@ TRACE_METRICS_FORMULA_DEFINITIONS = {
                 },
                 default_arg="value",
             ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
-                default_arg="counter",
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
             ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
         formula_resolver=per_minute,
         is_aggregate=True,
