@@ -1,39 +1,20 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
-import {
-  useMetricVisualize,
-  useSetMetricVisualize,
-} from 'sentry/views/explore/metrics/metricsQueryParams';
 
 export function PanelPositionSelector({
   orientation,
   disabled,
+  updateTableConfig,
 }: {
   orientation: TableOrientation;
+  updateTableConfig: ({newOrientation}: {newOrientation?: TableOrientation}) => void;
   disabled?: boolean;
 }) {
-  const visualize = useMetricVisualize();
-  const setVisualize = useSetMetricVisualize();
-
-  const setOrientation = useCallback(
-    (newOrientation: TableOrientation) => {
-      setVisualize(
-        visualize.replace({
-          tableConfig: {
-            ...visualize.tableConfig,
-            orientation: newOrientation,
-          },
-        })
-      );
-    },
-    [setVisualize, visualize]
-  );
-
   return (
     <Fragment>
       <Button
@@ -41,7 +22,7 @@ export function PanelPositionSelector({
         aria-label={t('Table bottom')}
         icon={<IconPanel direction="down" />}
         borderless
-        onClick={() => setOrientation('bottom')}
+        onClick={() => updateTableConfig({newOrientation: 'bottom'})}
         disabled={disabled || orientation === 'bottom'}
         title={t('Table bottom')}
       />
@@ -50,7 +31,7 @@ export function PanelPositionSelector({
         aria-label={t('Table right')}
         icon={<IconPanel direction="right" />}
         borderless
-        onClick={() => setOrientation('right')}
+        onClick={() => updateTableConfig({newOrientation: 'right'})}
         disabled={disabled || orientation === 'right'}
         title={t('Table right')}
       />

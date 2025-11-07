@@ -17,26 +17,33 @@ export function StackedOrientation({
   orientation,
   canChangeOrientation,
   infoContentHidden,
-  setInfoContentHidden,
+  updateTableConfig,
 }: {
   canChangeOrientation: boolean;
   infoContentHidden: boolean;
   orientation: TableOrientation;
   queryIndex: number;
-  setInfoContentHidden: (hidden: boolean) => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
   traceMetric: TraceMetric;
+  updateTableConfig: ({
+    visible,
+    newOrientation,
+  }: {
+    newOrientation?: TableOrientation;
+    visible?: boolean;
+  }) => void;
 }) {
   const additionalInfoTabActions = (
     <Flex direction="row">
       <PanelPositionSelector
+        updateTableConfig={updateTableConfig}
         orientation={orientation}
         disabled={!canChangeOrientation || infoContentHidden}
       />
       <HideContentButton
         orientation={orientation}
         infoContentHidden={infoContentHidden}
-        onToggle={() => setInfoContentHidden(!infoContentHidden)}
+        onToggle={() => updateTableConfig({visible: !infoContentHidden})}
       />
     </Flex>
   );
