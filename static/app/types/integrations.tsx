@@ -24,6 +24,7 @@ export type Permissions = {
   Release: PermissionValue;
   Team: PermissionValue;
   Alerts?: PermissionValue;
+  Distribution?: PermissionValue;
 };
 
 export type PermissionResource = keyof Permissions;

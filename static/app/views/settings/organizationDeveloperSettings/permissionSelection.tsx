@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormContext from 'sentry/components/forms/formContext';
-import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
+import {SENTRY_APP_PERMISSIONS, type PermissionObj} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {
   PermissionResource,
@@ -84,6 +84,12 @@ type Props = {
   appPublished: boolean;
   onChange: (permissions: Permissions) => void;
   permissions: Permissions;
+  /**
+   * Optional list of permissions to display in the selection.
+   * Defaults to SENTRY_APP_PERMISSIONS if not provided.
+   * Useful for limiting permissions available to personal tokens vs integration tokens.
+   */
+  displayedPermissions?: PermissionObj[];
 };
 
 type State = {
@@ -132,10 +138,11 @@ export default class PermissionSelection extends Component<Props, State> {
 
   render() {
     const {permissions} = this.state;
+    const {displayedPermissions = SENTRY_APP_PERMISSIONS} = this.props;
 
     return (
       <Fragment>
-        {SENTRY_APP_PERMISSIONS.map(config => {
+        {displayedPermissions.map(config => {
           const options = Object.entries(config.choices).map(([value, {label}]) => ({
             value,
             label,
