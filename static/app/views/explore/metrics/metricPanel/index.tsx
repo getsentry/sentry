@@ -4,6 +4,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {TraceSamplesTableColumns} from 'sentry/views/explore/metrics/constants';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
@@ -35,16 +36,17 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     canChangeOrientation,
   } = useTableOrientationControl();
   const [infoContentHidden, setInfoContentHidden] = useState(false);
+  const {isMetricOptionsEmpty} = useMetricOptions({enabled: Boolean(traceMetric.name)});
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
-    enabled: Boolean(traceMetric.name),
+    enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
   });
 
   const columns = TraceSamplesTableColumns;
   const fields = columns.filter(c => getMetricTableColumnType(c) !== 'stat');
 
   const metricSamplesTableResult = useMetricSamplesTable({
-    disabled: !traceMetric?.name,
+    disabled: !traceMetric?.name || isMetricOptionsEmpty,
     limit: RESULT_LIMIT,
     traceMetric,
     fields,
@@ -52,7 +54,7 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
   });
 
   const metricAggregatesTableResult = useMetricAggregatesTable({
-    enabled: Boolean(traceMetric.name),
+    enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
     limit: RESULT_LIMIT,
     traceMetric,
   });
@@ -87,6 +89,7 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
             orientation={orientation}
             infoContentHidden={infoContentHidden}
             setInfoContentHidden={setInfoContentHidden}
+            isMetricOptionsEmpty={isMetricOptionsEmpty}
           />
         ) : (
           <StackedOrientation
@@ -98,6 +101,7 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
             canChangeOrientation={canChangeOrientation}
             infoContentHidden={infoContentHidden}
             setInfoContentHidden={setInfoContentHidden}
+            isMetricOptionsEmpty={isMetricOptionsEmpty}
           />
         )}
       </PanelBody>

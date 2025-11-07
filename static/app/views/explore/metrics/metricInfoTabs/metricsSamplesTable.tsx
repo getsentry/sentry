@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons';
@@ -22,6 +21,7 @@ import {SampleTableRow} from 'sentry/views/explore/metrics/metricInfoTabs/metric
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
+import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const RESULT_LIMIT = 50;
 const TWO_MINUTE_DELAY = 120;
@@ -31,12 +31,14 @@ export const SAMPLES_PANEL_MIN_WIDTH = 350;
 
 interface MetricsSamplesTableProps {
   embedded?: boolean;
+  isMetricOptionsEmpty?: boolean;
   traceMetric?: TraceMetric;
 }
 
 export function MetricsSamplesTable({
   traceMetric,
   embedded = false,
+  isMetricOptionsEmpty,
 }: MetricsSamplesTableProps) {
   const columns = embedded ? TraceSamplesTableEmbeddedColumns : TraceSamplesTableColumns;
   const fields = columns.filter(c => getMetricTableColumnType(c) !== 'stat');
@@ -47,7 +49,7 @@ export function MetricsSamplesTable({
     error,
     isFetching,
   } = useMetricSamplesTable({
-    disabled: embedded ? false : !traceMetric?.name,
+    disabled: embedded ? false : !traceMetric?.name || isMetricOptionsEmpty,
     limit: RESULT_LIMIT,
     traceMetric,
     fields,
@@ -92,9 +94,7 @@ export function MetricsSamplesTable({
           </SimpleTable.Empty>
         ) : (
           <SimpleTable.Empty>
-            <EmptyStateWarning>
-              <p>{t('No samples found')}</p>
-            </EmptyStateWarning>
+            <GenericWidgetEmptyStateWarning title={t('No samples found')} message="" />
           </SimpleTable.Empty>
         )}
       </StyledSimpleTableBody>

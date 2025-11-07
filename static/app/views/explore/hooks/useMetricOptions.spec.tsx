@@ -114,6 +114,7 @@ describe('useMetricOptions', () => {
           dataset: 'tracemetrics',
           field: ['metric.name', 'metric.type', 'metric.unit', 'count(metric.name)'],
           referrer: 'api.explore.metric-options',
+          statsPeriod: '3d',
         }),
       })
     );
