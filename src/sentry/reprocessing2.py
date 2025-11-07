@@ -114,12 +114,10 @@ logger = logging.getLogger("sentry.reprocessing")
 
 # Group-related models are only a few per-group and are migrated at
 # once.
-GROUP_MODELS_TO_MIGRATE_RAW = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
-
 # If we were to move groupinbox to the new, empty group, inbox would show the
 # empty, unactionable group while it is reprocessing. Let post-process take
 # care of assigning GroupInbox like normally.
-GROUP_MODELS_TO_MIGRATE = tuple(x for x in GROUP_MODELS_TO_MIGRATE_RAW if x != models.GroupInbox)
+GROUP_MODELS_TO_MIGRATE = tuple(x for x in DIRECT_GROUP_RELATED_MODELS if x != models.GroupInbox)
 
 # Event attachments and group reports are per-event. This means that:
 #
