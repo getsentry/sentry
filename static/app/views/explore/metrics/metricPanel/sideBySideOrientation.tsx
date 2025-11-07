@@ -25,16 +25,22 @@ export function SideBySideOrientation({
   traceMetric,
   orientation,
   infoContentHidden,
-  setInfoContentHidden,
   isMetricOptionsEmpty,
+  updateTableConfig,
 }: {
   infoContentHidden: boolean;
   isMetricOptionsEmpty: boolean;
   orientation: TableOrientation;
   queryIndex: number;
-  setInfoContentHidden: (hidden: boolean) => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
   traceMetric: TraceMetric;
+  updateTableConfig: ({
+    visible,
+    newOrientation,
+  }: {
+    newOrientation?: TableOrientation;
+    visible?: boolean;
+  }) => void;
 }) {
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
@@ -49,11 +55,15 @@ export function SideBySideOrientation({
 
   const additionalActions = (
     <Flex direction="row" marginTop={infoContentHidden ? undefined : 'md'}>
-      <PanelPositionSelector orientation={orientation} disabled={infoContentHidden} />
+      <PanelPositionSelector
+        orientation={orientation}
+        disabled={infoContentHidden}
+        updateTableConfig={updateTableConfig}
+      />
       <HideContentButton
         orientation={orientation}
         infoContentHidden={infoContentHidden}
-        onToggle={() => setInfoContentHidden(!infoContentHidden)}
+        onToggle={() => updateTableConfig({visible: !infoContentHidden})}
       />
     </Flex>
   );
