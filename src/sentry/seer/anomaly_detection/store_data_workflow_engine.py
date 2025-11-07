@@ -43,7 +43,7 @@ seer_anomaly_detection_connection_pool = connection_from_url(
 
 def _fetch_related_models(
     detector: Detector, method: str
-) -> tuple[DataSource, DataCondition, SnubaQuery] | None:
+) -> tuple[DataSource, DataCondition, SnubaQuery]:
     # XXX: it is technically possible (though not used today) that a detector could have multiple data sources
     data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()
     if not data_source_detector:
@@ -84,6 +84,7 @@ def update_detector_data(
     updated_fields: dict[str, Any],
 ) -> None:
     data_source, data_condition, snuba_query = _fetch_related_models(detector, "update")
+
     # use setattr to avoid saving the models until the Seer call has successfully finished,
     # otherwise they would be in a bad state
     updated_data_condition_data = updated_fields.get("condition_group", {}).get("conditions")
@@ -127,6 +128,7 @@ def send_new_detector_data(detector: Detector) -> None:
     Send historical data for a new Detector to Seer.
     """
     data_source, data_condition, snuba_query = _fetch_related_models(detector, "create")
+
     try:
         handle_send_historical_data_to_seer(
             detector, data_source, data_condition, snuba_query, detector.project, SeerMethod.CREATE

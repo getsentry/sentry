@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 from rest_framework import serializers
 
@@ -280,7 +280,8 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 "query"
             ) or snuba_query.aggregate != data_source.get("aggregate"):
                 try:
-                    update_detector_data(instance, data_source)
+                    validated_data_source = cast(dict[str, Any], data_source)
+                    update_detector_data(instance, validated_data_source)
                 except Exception:
                     # don't update the snuba query if we failed to send data to Seer
                     raise serializers.ValidationError(

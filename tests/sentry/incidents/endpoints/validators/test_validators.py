@@ -195,7 +195,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             },
         }
 
-    def create_static_detector(self) -> None:
+    def create_static_detector(self) -> Detector:
         validator = MetricIssueDetectorValidator(
             data=self.valid_data,
             context=self.context,
@@ -225,7 +225,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 
         return static_detector
 
-    def create_dynamic_detector(self) -> None:
+    def create_dynamic_detector(self) -> Detector:
         validator = MetricIssueDetectorValidator(
             data=self.valid_anomaly_detection_data,
             context=self.context,
