@@ -286,7 +286,8 @@ class TestGroupOwners(TestCase):
         )
 
         date_added_before_update = go.date_added
-        assert go.context == {"suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED}
+        assert "commitId" in go.context
+        assert go.context["suspectCommitStrategy"] == SuspectCommitStrategy.RELEASE_BASED
 
         process_suspect_commits(
             event_id=self.event.event_id,
@@ -297,7 +298,8 @@ class TestGroupOwners(TestCase):
         )
         go.refresh_from_db()
         assert go.date_added > date_added_before_update
-        assert go.context == {"suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED}
+        assert "commitId" in go.context
+        assert go.context["suspectCommitStrategy"] == SuspectCommitStrategy.RELEASE_BASED
         assert GroupOwner.objects.filter(group=self.event.group).count() == 1
         assert GroupOwner.objects.get(
             group=self.event.group,
@@ -341,9 +343,14 @@ class TestGroupOwners(TestCase):
     def test_keep_highest_score(self, patched_committers: MagicMock) -> None:
         self.user2 = self.create_user(email="user2@sentry.io")
         self.user3 = self.create_user(email="user3@sentry.io")
+
+        mock_commit1 = MagicMock(id=1)
+        mock_commit2 = MagicMock(id=2)
+        mock_commit3 = MagicMock(id=3)
+
         patched_committers.return_value = [
             {
-                "commits": [(None, 3)],
+                "commits": [(mock_commit1, 3)],
                 "author": {
                     "username": self.user.email,
                     "lastLogin": None,
@@ -367,7 +374,7 @@ class TestGroupOwners(TestCase):
                 },
             },
             {
-                "commits": [(None, 1)],
+                "commits": [(mock_commit2, 1)],
                 "author": {
                     "username": self.user2.email,
                     "lastLogin": None,
@@ -391,7 +398,7 @@ class TestGroupOwners(TestCase):
                 },
             },
             {
-                "commits": [(None, 2)],
+                "commits": [(mock_commit3, 2)],
                 "author": {
                     "username": self.user3.email,
                     "lastLogin": None,
@@ -424,17 +431,21 @@ class TestGroupOwners(TestCase):
             project_id=self.event.project_id,
         )
         # Doesn't use self.user2 due to low score.
-        assert GroupOwner.objects.get(user_id=self.user.id)
-        assert GroupOwner.objects.get(user_id=self.user3.id)
+        user1_owner = GroupOwner.objects.get(user_id=self.user.id)
+        user3_owner = GroupOwner.objects.get(user_id=self.user3.id)
         assert not GroupOwner.objects.filter(user_id=self.user2.id).exists()
+
+        assert user1_owner.context["commitId"] == 1
+        assert user3_owner.context["commitId"] == 3
 
     @patch("sentry.tasks.groupowner.get_event_file_committers")
     def test_low_suspect_committer_score(self, patched_committers: MagicMock) -> None:
         self.user = self.create_user()
+        mock_commit = MagicMock(id=1)
         patched_committers.return_value = [
             {
                 # score < MIN_COMMIT_SCORE
-                "commits": [(None, 1)],
+                "commits": [(mock_commit, 1)],
                 "author": {
                     "id": self.user.id,
                 },
