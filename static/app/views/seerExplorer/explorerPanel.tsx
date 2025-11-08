@@ -170,24 +170,18 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   }, [focusedBlockIndex]);
 
   useEffect(() => {
-    if (!isVisible || isMinimized) {
+    if (!isVisible || isMinimized || menuMode !== 'hidden') {
       return undefined;
     }
 
-    // Global keyboard event listeners for when the panel is open.
+    // Global keyboard event listeners for when the panel is open and menu is closed.
+    // Menu keyboard listeners are in the menu component.
     const handleKeyDown = (e: KeyboardEvent) => {
       const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
       if (e.key === 'Escape' && isPolling && !interruptRequested) {
         e.preventDefault();
         interruptRun();
-      } else if (e.key === 'Escape' && menuMode === 'slash-commands-keyboard') {
-        e.preventDefault();
-        setInputValue('');
-        setMenuMode('hidden');
-      } else if (e.key === 'Escape' && menuMode !== 'hidden') {
-        e.preventDefault();
-        setMenuMode('hidden');
       } else if (e.key === 'Escape') {
         e.preventDefault();
         setIsMinimized(true);
@@ -198,10 +192,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
           setFocusedBlockIndex(-1);
           textareaRef.current?.focus();
           setInputValue(prev => prev + e.key);
-        } else if (menuMode === 'slash-commands-manual') {
-          setMenuMode('slash-commands-keyboard');
-        } else if (menuMode === 'session-history') {
-          setMenuMode('hidden');
         }
       }
     };

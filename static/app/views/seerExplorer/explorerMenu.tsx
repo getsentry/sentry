@@ -16,8 +16,15 @@ export interface MenuItemProps {
 }
 
 export function ExplorerMenu() {
-  const {menuMode, setMenuMode, inputValue, clearInput, textAreaRef, panelSize} =
-    useExplorerPanelContext();
+  const {
+    menuMode,
+    setMenuMode,
+    inputValue,
+    clearInput,
+    onInputClick,
+    textAreaRef,
+    panelSize,
+  } = useExplorerPanelContext();
 
   const allSlashCommands = useSlashCommands();
 
@@ -47,6 +54,11 @@ export function ExplorerMenu() {
     }
   }, [menuMode, allSlashCommands, filteredSlashCommands, sessionItems]);
 
+  const closeMenu = useCallback(() => {
+    setMenuMode('hidden');
+    onInputClick();
+  }, [setMenuMode, onInputClick]);
+
   const onSelect = useCallback(
     (item: MenuItemProps) => {
       // Execute custom handler.
@@ -66,21 +78,21 @@ export function ExplorerMenu() {
         refetchSessions();
       } else {
         // Close the menu.
-        setMenuMode('hidden');
+        closeMenu();
       }
     },
     // clearInput and textAreaRef are both expected to be stable.
-    [menuMode, clearInput, textAreaRef, setMenuMode, refetchSessions]
+    [menuMode, clearInput, textAreaRef, setMenuMode, refetchSessions, closeMenu]
   );
 
   // Toggle between slash-commands-keyboard and hidden modes based on filteredSlashCommands.
   useEffect(() => {
     if (menuMode === 'slash-commands-keyboard' && filteredSlashCommands.length === 0) {
-      setMenuMode('hidden');
+      closeMenu();
     } else if (menuMode === 'hidden' && filteredSlashCommands.length > 0) {
       setMenuMode('slash-commands-keyboard');
     }
-  }, [menuMode, setMenuMode, filteredSlashCommands]);
+  }, [menuMode, setMenuMode, closeMenu, filteredSlashCommands]);
 
   const isVisible = menuMode !== 'hidden';
 
@@ -96,29 +108,38 @@ export function ExplorerMenu() {
     (e: KeyboardEvent) => {
       if (!isVisible) return;
 
-      switch (e.key) {
-        case 'ArrowUp':
+      const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedIndex(prev => Math.max(0, prev - 1));
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+        setSelectedIndex(prev => Math.min(menuItems.length - 1, prev + 1));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (menuItems[selectedIndex]) {
+          onSelect(menuItems[selectedIndex]);
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        closeMenu();
+        if (menuMode === 'slash-commands-keyboard') {
+          clearInput();
+        }
+      } else if (isPrintableChar) {
+        if (menuMode !== 'slash-commands-keyboard') {
           e.preventDefault();
           e.stopPropagation();
-          setSelectedIndex(prev => Math.max(0, prev - 1));
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          e.stopPropagation();
-          setSelectedIndex(prev => Math.min(menuItems.length - 1, prev + 1));
-          break;
-        case 'Enter':
-          e.preventDefault();
-          e.stopPropagation();
-          if (menuItems[selectedIndex]) {
-            onSelect(menuItems[selectedIndex]);
-          }
-          break;
-        default:
-          break;
+          closeMenu();
+        }
       }
     },
-    [isVisible, selectedIndex, menuItems, onSelect]
+    [isVisible, selectedIndex, menuItems, onSelect, clearInput, menuMode, closeMenu]
   );
 
   useEffect(() => {

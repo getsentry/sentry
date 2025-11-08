@@ -37,48 +37,47 @@ function InputSection({
     if (isPolling) {
       return 'Press Esc to interrupt';
     }
-    if (menuMode === 'hidden') {
-      return 'Type your message or / command and press Enter ↵';
-    }
-    return 'Type your message and press Enter ↵';
+    return 'Type your message or / command and press Enter ↵';
   };
 
   const onMenuButtonClick = useCallback(() => {
     if (menuMode === 'hidden') {
       setMenuMode('slash-commands-manual');
+      textAreaRef.current?.blur();
     } else if (menuMode === 'slash-commands-keyboard') {
       clearInput();
       setMenuMode('hidden');
+      onInputClick();
     } else {
       setMenuMode('hidden');
+      onInputClick();
     }
-  }, [menuMode, setMenuMode, clearInput]);
+  }, [menuMode, setMenuMode, clearInput, textAreaRef, onInputClick]);
 
   return (
     <InputBlock>
-      <InputContainer onClick={onInputClick}>
-        <ExplorerMenu />
-        <InputRow>
-          <ButtonContainer>
-            <Button
-              priority="default"
-              aria-label="Toggle Menu"
-              onClick={onMenuButtonClick}
-              icon={<IconMenu size="md" />}
-            />
-          </ButtonContainer>
-          <InputTextarea
-            ref={textAreaRef}
-            value={inputValue}
-            onChange={onInputChange}
-            onKeyDown={onKeyDown}
-            placeholder={getPlaceholder()}
-            rows={1}
-            data-test-id="seer-explorer-input"
+      <ExplorerMenu />
+      <InputRow>
+        <ButtonContainer>
+          <Button
+            priority="default"
+            aria-label="Toggle Menu"
+            onClick={onMenuButtonClick}
+            icon={<IconMenu size="md" />}
           />
-        </InputRow>
-        {focusedBlockIndex === -1 && <FocusIndicator />}
-      </InputContainer>
+        </ButtonContainer>
+        <InputTextarea
+          ref={textAreaRef}
+          value={inputValue}
+          onChange={onInputChange}
+          onKeyDown={onKeyDown}
+          onClick={onInputClick}
+          placeholder={getPlaceholder()}
+          rows={1}
+          data-test-id="seer-explorer-input"
+        />
+      </InputRow>
+      {focusedBlockIndex === -1 && <FocusIndicator />}
     </InputBlock>
   );
 }
@@ -92,11 +91,6 @@ const InputBlock = styled('div')`
   background: ${p => p.theme.background};
   position: sticky;
   bottom: 0;
-`;
-
-const InputContainer = styled('div')`
-  position: relative;
-  width: 100%;
 `;
 
 const InputRow = styled('div')`
