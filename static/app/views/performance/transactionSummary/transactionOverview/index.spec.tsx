@@ -630,7 +630,9 @@ describe('Performance > TransactionSummary', () => {
 
       // Renders Apdex widget
       await screen.findByRole('heading', {name: 'Apdex'});
-      expect(await screen.findByTestId('apdex-summary-value')).toHaveTextContent('0.6');
+      await waitFor(() => {
+        expect(screen.getByTestId('apdex-summary-value')).toHaveTextContent('0.6');
+      });
 
       // Renders Failure Rate widget
       expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
