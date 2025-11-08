@@ -43,7 +43,15 @@ const formGroups: JsonFormObject[] = [
         name: 'sentry:feedback_ai_spam_detection',
         type: 'boolean',
         label: t('Enable Spam Detection'),
-        help: t('Toggles whether or not to enable auto spam detection in User Feedback.'),
+        help: () =>
+          tct(
+            'Toggles whether or not to enable auto spam detection in User Feedback. Powered by generative AI. Learn more about our [link:AI privacy principles].',
+            {
+              link: (
+                <a href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/" />
+              ),
+            }
+          ),
         getData: data => ({options: data}),
         visible: ({features, hasAiEnabled}) =>
           features.has('user-feedback-spam-ingest') && hasAiEnabled,
