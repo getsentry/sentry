@@ -525,8 +525,8 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     const referrer = getRouteStringFromRoutes(routes);
     const eventView = EventView.fromLocation(location);
 
-    // HACK: EventView only fetches sort from location if `fields` is in the URL
-    // instead, we directly get it from location query
+    // HACK!!! Because the sort field needs to be in the eventView, but I cannot
+    // ask the server for compound fields like `os.name`.
     const sort = location.query.sort ?? encodeSort(DEFAULT_SORT);
 
     const {statsPeriod, ...eventViewQuery} = eventView.generateQueryStringObject();
@@ -536,6 +536,10 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     if (!eventViewQuery.start && !eventViewQuery.end && typeof statsPeriod === 'string') {
       const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(statsPeriod);
       query = {...query, ...{playlistStart, playlistEnd}};
+    }
+
+    if (location.query.cursor) {
+      query = {...query, ...{cursor: location.query.cursor}};
     }
 
     const replayDetailsPathname = makeReplaysPathname({
