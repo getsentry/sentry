@@ -83,7 +83,7 @@ describe('queryClient', () => {
     });
     it('can do a simple fetch', async () => {
       const requests: Request[] = [];
-      server.events.on('request:start', ({request}) => {
+      server.events.on('response:mocked', ({request}) => {
         requests.push(request);
       });
 
@@ -126,7 +126,7 @@ describe('queryClient', () => {
 
     it('can do a fetch with provided query object', async () => {
       const requests: Request[] = [];
-      server.events.on('request:start', ({request}) => {
+      server.events.on('response:mocked', ({request}) => {
         requests.push(request);
       });
 
