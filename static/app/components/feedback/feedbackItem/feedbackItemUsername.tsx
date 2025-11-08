@@ -1,14 +1,13 @@
 import {Fragment, useCallback, useId, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from '@sentry/scraps/link/link';
-
+import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {IconMail} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {selectText} from 'sentry/utils/selectText';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -71,16 +70,9 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
       <Flex align="center" wrap="wrap" gap="xs">
         {isAiSummaryEnabled && summary && (
           <Fragment>
-            <Tooltip
-              isHoverable
-              title={tct(`[link:Learn more]`, {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/" />
-                ),
-              })}
-            >
+            <AiPrivacyTooltip>
               <strong>{summary}</strong>
-            </Tooltip>
+            </AiPrivacyTooltip>
             <Purple>•</Purple>
           </Fragment>
         )}
