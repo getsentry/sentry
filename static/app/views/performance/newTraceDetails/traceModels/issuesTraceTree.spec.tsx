@@ -8,7 +8,6 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
 import {IssuesTraceTree} from './issuesTraceTree';
@@ -201,7 +200,6 @@ describe('IssuesTraceTree', () => {
 
       await txn.fetchChildren(true, tree, {
         api: new MockApiClient(),
-        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
       const span = tree.root.findChild(

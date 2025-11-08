@@ -10,8 +10,9 @@ import {
   type SectionCardKeyValueList,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 
 export function useSpanAncestryAndGroupingItems({
@@ -19,14 +20,14 @@ export function useSpanAncestryAndGroupingItems({
   onParentClick,
 }: {
   location: Location;
-  node: TraceTreeNode<TraceTree.Span>;
-  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  node: SpanNode;
+  onParentClick: (node: BaseNode) => void;
   organization: Organization;
 }): SectionCardKeyValueList {
-  const parentTransaction = useMemo(() => TraceTree.ParentTransaction(node), [node]);
+  const parentTransaction = useMemo(() => node.findParentTransaction(), [node]);
   const childTransactions = useMemo(() => {
-    const transactions: Array<TraceTreeNode<TraceTree.Transaction>> = [];
-    TraceTree.ForEachChild(node, c => {
+    const transactions: TransactionNode[] = [];
+    node.forEachChild(c => {
       if (isTransactionNode(c)) {
         transactions.push(c);
       }

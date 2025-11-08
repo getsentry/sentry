@@ -13,7 +13,9 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceHeader';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {RootNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/rootNode';
+import {TraceNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/traceNode';
+import {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
 import {makeUptimeCheck} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 jest.mock('sentry/views/performance/newTraceDetails/traceState/traceStateProvider');
@@ -190,9 +192,8 @@ describe('TraceMetaDataHeader', () => {
       const tree = new TraceTree();
 
       // Create the tree root (this is tree.root)
-      const treeRoot = new TraceTreeNode(null, null, {
-        project_slug: 'test-project',
-        event_id: 'tree-root',
+      const treeRoot = new RootNode(null, null, {
+        organization,
       });
       tree.root = treeRoot;
 
@@ -201,16 +202,14 @@ describe('TraceMetaDataHeader', () => {
         transactions: [],
         orphan_errors: [],
       };
-      const traceNode = new TraceTreeNode(treeRoot, traceNodeValue, {
-        project_slug: 'test-project',
-        event_id: 'trace-node',
+      const traceNode = new TraceNode(treeRoot, traceNodeValue, {
+        organization,
       });
       treeRoot.children.push(traceNode);
 
       // Add uptime check as first child of trace node
-      const uptimeCheckNode = new TraceTreeNode(traceNode, uptimeCheckEvent, {
-        project_slug: 'test-project',
-        event_id: 'uptime-event-id',
+      const uptimeCheckNode = new UptimeCheckNode(traceNode, uptimeCheckEvent, {
+        organization,
       });
       traceNode.children.push(uptimeCheckNode);
 

@@ -16,8 +16,8 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {isTraceOccurence} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 type IssueProps = {
   issue: TraceTree.TraceIssue;
@@ -182,14 +182,14 @@ const SummaryWrapper = styled('div')`
 
 type IssueListProps = {
   issues: TraceTree.TraceIssue[];
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   organization: Organization;
 };
 
 export function IssueList({issues, node, organization}: IssueListProps) {
   const uniqueIssues = [
-    ...TraceTree.UniqueErrorIssues(node).sort(sortIssuesByLevel),
-    ...TraceTree.UniqueOccurrences(node),
+    ...node.uniqueErrorIssues.sort(sortIssuesByLevel),
+    ...node.uniqueOccurrenceIssues,
   ];
 
   if (!issues.length) {

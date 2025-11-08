@@ -13,8 +13,7 @@ import {
   isSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 // TODO(aknaus): Remove the special handling for tags once the endpoint returns the correct type
 function getAttributeValue(
@@ -37,7 +36,7 @@ function getAttributeValue(
 }
 
 export function ensureAttributeObject(
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: AITraceSpanNode,
   event?: EventTransaction,
   attributes?: TraceItemResponseAttribute[]
 ) {
@@ -66,7 +65,7 @@ export function ensureAttributeObject(
 
 export function getTraceNodeAttribute(
   name: string,
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: AITraceSpanNode,
   event?: EventTransaction,
   attributes?: TraceItemResponseAttribute[]
 ): string | number | boolean | undefined {
@@ -75,7 +74,7 @@ export function getTraceNodeAttribute(
 }
 
 function createGetIsAiNode(predicate: ({op}: {op?: string}) => boolean) {
-  return (node: TraceTreeNode<TraceTree.NodeValue>): node is AITraceSpanNode => {
+  return (node: BaseNode): node is AITraceSpanNode => {
     if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
       return false;
     }

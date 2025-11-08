@@ -2,8 +2,7 @@ import React from 'react';
 import {PlatformIcon} from 'platformicons';
 
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 import {
   makeTraceNodeBarColor,
   TraceBar,
@@ -16,9 +15,7 @@ import {
   type TraceRowProps,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
-export function TraceTransactionRow(
-  props: TraceRowProps<TraceTreeNode<TraceTree.Transaction>>
-) {
+export function TraceTransactionRow(props: TraceRowProps<TransactionNode>) {
   return (
     <div
       key={props.index}
@@ -41,13 +38,13 @@ export function TraceTransactionRow(
         <div className="TraceLeftColumnInner" style={props.listColumnStyle}>
           <div className={props.listColumnClassName}>
             <TraceRowConnectors node={props.node} manager={props.manager} />
-            {props.node.children.length > 0 || props.node.canFetch ? (
+            {props.node.children.length > 0 || props.node.canFetchChildren ? (
               <TraceChildrenButton
                 icon={
-                  props.node.canFetch ? (
+                  props.node.canFetchChildren ? (
                     props.node.fetchStatus === 'idle' ? (
                       '+'
-                    ) : props.node.zoomedIn ? (
+                    ) : props.node.hasFetchedChildren ? (
                       <TraceIcons.Chevron direction="up" />
                     ) : (
                       '+'
@@ -57,10 +54,10 @@ export function TraceTransactionRow(
                   )
                 }
                 status={props.node.fetchStatus}
-                expanded={props.node.expanded || props.node.zoomedIn}
+                expanded={props.node.expanded || props.node.hasFetchedChildren}
                 onDoubleClick={props.onExpandDoubleClick}
                 onClick={e => {
-                  if (props.node.canFetch) {
+                  if (props.node.canFetchChildren) {
                     props.onZoomIn(e);
                   } else {
                     props.onExpand(e);

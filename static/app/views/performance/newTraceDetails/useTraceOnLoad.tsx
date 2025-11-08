@@ -11,7 +11,7 @@ import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceMod
 import {TraceTree} from './traceModels/traceTree';
 import type {TracePreferencesState} from './traceState/tracePreferences';
 import {useTraceState} from './traceState/traceStateProvider';
-import {isEAPTraceNode, isEAPTransactionNode, isTransactionNode} from './traceGuards';
+import {isEAPTransactionNode, isTransactionNode} from './traceGuards';
 import type {TraceReducerState} from './traceState';
 import type {useTraceScrollToPath} from './useTraceScrollToPath';
 
@@ -35,27 +35,26 @@ async function maybeAutoExpandTrace(
 
   if (
     !(
-      tree.transactions_count < AUTO_EXPAND_TRANSACTIONS_THRESHOLD ||
+      tree.collapsed_nodes < AUTO_EXPAND_TRANSACTIONS_THRESHOLD ||
       // We only collect the spans count for EAP traces atm, so we can't auto expand non-EAP traces
       // by spans count.
-      (isEAPTraceNode(traceNode) && tree.eap_spans_count < AUTO_EXPAND_SPANS_THRESHOLD)
+      (tree.eap_spans_count && tree.eap_spans_count < AUTO_EXPAND_SPANS_THRESHOLD)
     )
   ) {
     return tree;
   }
 
-  const transactions = TraceTree.FindAll(
-    tree.root,
+  const transactions = tree.root.findAllChildren(
     node => isTransactionNode(node) || isEAPTransactionNode(node)
   );
   // Expand each transaction, either by zooming (if it has spans to fetch)
   // or just expanding in place. Note that spans are always expanded by default.
   const promises: Array<Promise<any>> = [];
   for (const transaction of transactions) {
-    if (transaction.canFetch) {
-      promises.push(tree.zoom(transaction, true, options));
+    if (transaction.canFetchChildren) {
+      promises.push(tree.fetchNodeSubTree(true, transaction, options));
     } else {
-      tree.expand(transaction, true);
+      transaction.expand(true, tree);
     }
   }
 

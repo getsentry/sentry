@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {NoInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/noInstrumentationNode';
 import {
   makeTraceNodeBarColor,
   MissingInstrumentationTraceBar,
@@ -13,7 +12,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 export function TraceMissingInstrumentationRow(
-  props: TraceRowProps<TraceTreeNode<TraceTree.MissingInstrumentationSpan>>
+  props: TraceRowProps<NoInstrumentationNode>
 ) {
   return (
     <div

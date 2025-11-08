@@ -19,7 +19,7 @@ import {
   isSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 export function TraceProfiles({tree}: {tree: TraceTree}) {
   const {projects} = useProjects();
@@ -59,7 +59,7 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
       </ProfilesTableRow>
 
       {profiles.map((node, index) => {
-        const profile = node.profiles?.[0];
+        const profile = Array.from(node.profiles)?.[0];
 
         if (!profile) {
           return null;
@@ -71,7 +71,7 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
             }
           : isSpanNode(node)
             ? {
-                eventId: TraceTree.ParentTransaction(node)?.value?.event_id,
+                eventId: node.findParentTransaction()?.value?.event_id,
               }
             : {};
 
@@ -82,12 +82,12 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
                 profilerId: profile.profiler_id,
                 start: new Date(node.space[0]).toISOString(),
                 end: new Date(node.space[0] + node.space[1]).toISOString(),
-                projectSlug: node.metadata.project_slug as string,
+                projectSlug: node.projectSlug ?? '',
                 query,
               })
             : generateProfileFlamechartRouteWithQuery({
                 organization,
-                projectSlug: node.metadata.project_slug as string,
+                projectSlug: node.projectSlug ?? '',
                 profileId: profile.profile_id,
                 query,
               });

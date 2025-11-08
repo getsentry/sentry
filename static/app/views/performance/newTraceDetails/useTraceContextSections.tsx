@@ -4,7 +4,7 @@ import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {getIsAiNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 export function useTraceContextSections({
   tree,
@@ -26,7 +26,7 @@ export function useTraceContextSections({
   );
 
   const hasSummary: boolean = organization.features.includes('single-trace-summary');
-  const hasAiSpans = !!TraceTree.Find(tree.root, getIsAiNode);
+  const hasAiSpans = !!tree.root.findChild(getIsAiNode);
 
   return useMemo(
     () => ({

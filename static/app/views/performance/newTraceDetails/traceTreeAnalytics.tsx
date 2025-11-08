@@ -1,7 +1,6 @@
 import type {TracingEventParameters} from 'sentry/utils/analytics/tracingEventMap';
 
-import type {TraceTree} from './traceModels/traceTree';
-import type {TraceTreeNode} from './traceModels/traceTreeNode';
+import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {
   isAutogroupedNode,
   isEAPErrorNode,
@@ -16,7 +15,7 @@ import {
 } from './traceGuards';
 
 // Name of node for analytics purposes
-export function traceNodeAnalyticsName(node: TraceTreeNode<TraceTree.NodeValue>): string {
+export function traceNodeAnalyticsName(node: BaseNode): string {
   if (isAutogroupedNode(node)) {
     return isParentAutogroupedNode(node) ? 'parent autogroup' : 'sibling autogroup';
   }
@@ -49,15 +48,15 @@ export function traceNodeAnalyticsName(node: TraceTreeNode<TraceTree.NodeValue>)
 
 // Adds some extra properties to the node for analytics purposes
 export function traceNodeAdjacentAnalyticsProperties(
-  node: TraceTreeNode<TraceTree.NodeValue>
+  node: BaseNode
 ): Pick<
   TracingEventParameters['trace.trace_layout.span_row_click'],
   'next_op' | 'parent_op' | 'previous_op'
 > {
   if (isMissingInstrumentationNode(node)) {
     return {
-      previous_op: node.previous.value.op,
-      next_op: node.next.value.op,
+      previous_op: node.previous.op,
+      next_op: node.next.op,
     };
   }
 

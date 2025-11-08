@@ -261,16 +261,6 @@ export function makeUptimeCheckTiming(
   } as TraceTree.UptimeCheckTiming;
 }
 
-export function makeNodeMetadata(
-  overrides: Partial<TraceTree.Metadata> = {}
-): TraceTree.Metadata {
-  return {
-    event_id: undefined,
-    project_slug: undefined,
-    ...overrides,
-  };
-}
-
 export function mockSpansResponse(
   spans: TraceTree.Span[],
   project_slug: string,

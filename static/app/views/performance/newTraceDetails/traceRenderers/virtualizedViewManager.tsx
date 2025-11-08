@@ -14,7 +14,7 @@ import {
   isMissingInstrumentationNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
 import {TraceTextMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTextMeasurer';
 import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
@@ -36,7 +36,7 @@ function getHorizontalDelta(x: number, y: number): number {
 }
 
 type ViewColumn = {
-  column_nodes: Array<TraceTreeNode<TraceTree.NodeValue>>;
+  column_nodes: BaseNode[];
   column_refs: Array<HTMLElement | undefined>;
   translate: [number, number];
   width: number;
@@ -54,8 +54,7 @@ type VerticalIndicator = {
 export type ViewManagerScrollAnchor = 'top' | 'center if outside' | 'center';
 
 export class VirtualizedViewManager {
-  row_measurer: TraceRowWidthMeasurer<TraceTreeNode<TraceTree.NodeValue>> =
-    new TraceRowWidthMeasurer();
+  row_measurer: TraceRowWidthMeasurer<BaseNode> = new TraceRowWidthMeasurer();
   indicator_label_measurer: TraceRowWidthMeasurer<TraceTree['indicators'][0]> =
     new TraceRowWidthMeasurer();
   text_measurer: TraceTextMeasurer;
@@ -370,7 +369,7 @@ export class VirtualizedViewManager {
     column: string,
     ref: HTMLElement | null,
     index: number,
-    node: TraceTreeNode<any>
+    node: BaseNode
   ) {
     if (column === 'list' && ref) {
       const scrollableElement = ref.children[0] as HTMLElement | undefined;
@@ -949,7 +948,7 @@ export class VirtualizedViewManager {
     const translation = this.columns.list.translate[0];
     let min = Number.POSITIVE_INFINITY;
     let max = Number.NEGATIVE_INFINITY;
-    let innerMostNode: TraceTreeNode<any> | undefined;
+    let innerMostNode: BaseNode | undefined;
 
     for (let i = 5; i < this.columns.span_list.column_refs.length - 5; i++) {
       const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]!);
@@ -980,7 +979,7 @@ export class VirtualizedViewManager {
     }
   }
 
-  isOutsideOfView(node: TraceTreeNode<any>): boolean {
+  isOutsideOfView(node: BaseNode): boolean {
     const width = this.row_measurer.cache.get(node);
 
     if (width === undefined) {
@@ -997,7 +996,7 @@ export class VirtualizedViewManager {
   }
 
   scrollRowIntoViewHorizontally(
-    node: TraceTreeNode<any>,
+    node: BaseNode,
     duration = 600,
     offset_px = 0,
     position: 'exact' | 'measured' = 'measured'
@@ -1129,7 +1128,7 @@ export class VirtualizedViewManager {
   }
 
   computeSpanTextPlacement(
-    node: TraceTreeNode<TraceTree.NodeValue>,
+    node: BaseNode,
     span_space: [number, number],
     text: string
   ): [number, number] {
@@ -1449,7 +1448,7 @@ export class VirtualizedViewManager {
     );
   }
 
-  drawSpanText(span_text: this['span_text'][0], node: TraceTreeNode<any> | undefined) {
+  drawSpanText(span_text: this['span_text'][0], node: BaseNode | undefined) {
     if (!span_text) {
       return;
     }
@@ -1689,7 +1688,7 @@ export class VirtualizedViewManager {
 // of the span to include the icon. We need this because when the icon is close to the edge
 // it can extend it and cause overlaps with duration labels
 function getIconTimestamps(
-  node: TraceTreeNode<any>,
+  node: BaseNode,
   span_space: [number, number],
   icon_width: number
 ) {

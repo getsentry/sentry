@@ -10,10 +10,9 @@ import {
   isSpanNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
-function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
+function getNodeId(node: BaseNode): string | undefined {
   if (isTransactionNode(node)) {
     return node.value.event_id;
   }
@@ -24,11 +23,11 @@ function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined
 }
 
 // In the current version, a segment is a parent transaction
-function getEventId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
+function getEventId(node: BaseNode): string | undefined {
   if (isTransactionNode(node)) {
     return node.value.event_id;
   }
-  return TraceTree.ParentTransaction(node)?.value?.event_id;
+  return node.findParentTransaction()?.value?.event_id;
 }
 
 export function makeTransactionProfilingLink(
@@ -54,7 +53,7 @@ export function makeTransactionProfilingLink(
  * Generates a link to a continuous profile for a given trace element type
  */
 export function makeTraceContinuousProfilingLink(
-  node: TraceTreeNode<TraceTree.NodeValue>,
+  node: BaseNode,
   profilerId: string,
   options: {
     organization: Organization;
@@ -70,7 +69,7 @@ export function makeTraceContinuousProfilingLink(
 
   // We compute a time offset based on the duration of the span so that
   // users can see some context of things that occurred before and after the span.
-  const transaction = isTransactionNode(node) ? node : TraceTree.ParentTransaction(node);
+  const transaction = isTransactionNode(node) ? node : node.findParentTransaction();
   if (!transaction) {
     return null;
   }

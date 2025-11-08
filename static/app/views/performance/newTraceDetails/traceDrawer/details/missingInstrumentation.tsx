@@ -11,17 +11,19 @@ import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/
 import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDetails/traceConfigurations';
 import {ProfilePreview} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/profiling/profilePreview';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {
+  isEAPSpanNode,
+  isSpanNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
+import type {NoInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/noInstrumentationNode';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
 import {TraceDrawerComponents} from './styles';
 import {getProfileMeta} from './utils';
 
-interface BaseProps extends TraceTreeNodeDetailsProps<MissingInstrumentationNode> {
+interface BaseProps extends TraceTreeNodeDetailsProps<NoInstrumentationNode> {
   event: EventTransaction | null;
   profileId: string | undefined;
   profileMeta: ReturnType<typeof getProfileMeta>;
@@ -31,7 +33,7 @@ interface BaseProps extends TraceTreeNodeDetailsProps<MissingInstrumentationNode
 
 export function MissingInstrumentationNodeDetails({
   ...props
-}: TraceTreeNodeDetailsProps<MissingInstrumentationNode>) {
+}: TraceTreeNodeDetailsProps<NoInstrumentationNode>) {
   const {node} = props;
   const {projects} = useProjects();
 
@@ -39,31 +41,35 @@ export function MissingInstrumentationNodeDetails({
     return <EAPMissingInstrumentationNodeDetails {...props} projects={projects} />;
   }
 
-  const event = node.previous.event ?? node.next.event ?? null;
-  const project = projects.find(proj => proj.slug === event?.projectSlug);
-  const profileMeta = getProfileMeta(event) || '';
-  const profileContext = event?.contexts?.profile ?? {};
+  if (isSpanNode(node.previous)) {
+    const event = node.previous.event;
+    const project = projects.find(proj => proj.slug === event?.projectSlug);
+    const profileMeta = getProfileMeta(event) || '';
+    const profileContext = event?.contexts?.profile ?? {};
 
-  return (
-    <BaseMissingInstrumentationNodeDetails
-      {...props}
-      profileMeta={profileMeta}
-      project={project}
-      event={event}
-      profileId={profileContext.profile_id}
-      profilerId={profileContext.profiler_id}
-    />
-  );
+    return (
+      <BaseMissingInstrumentationNodeDetails
+        {...props}
+        profileMeta={profileMeta}
+        project={project}
+        event={event}
+        profileId={profileContext.profile_id}
+        profilerId={profileContext.profiler_id}
+      />
+    );
+  }
+
+  return null;
 }
 
 function EAPMissingInstrumentationNodeDetails({
   projects,
   ...props
-}: TraceTreeNodeDetailsProps<MissingInstrumentationNode> & {
+}: TraceTreeNodeDetailsProps<NoInstrumentationNode> & {
   projects: Project[];
 }) {
   const {node} = props;
-  const previous = node.previous as TraceTreeNode<TraceTree.EAPSpan>;
+  const previous = node.previous as EapSpanNode;
 
   const {
     data: eventTransaction = null,

@@ -19,11 +19,11 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 export type TraceSearchResult = {
   index: number;
-  value: TraceTreeNode<TraceTree.NodeValue>;
+  value: BaseNode;
 };
 
 const {info, fmt} = Sentry.logger;
@@ -41,11 +41,11 @@ const {info, fmt} = Sentry.logger;
 export function searchInTraceTreeTokens(
   tree: TraceTree,
   tokens: Array<TokenResult<Token>>,
-  previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
+  previousNode: BaseNode | null,
   cb: (
     results: [
       readonly TraceSearchResult[],
-      Map<TraceTreeNode<TraceTree.NodeValue>, number>,
+      Map<BaseNode, number>,
       {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
     ]
   ) => void
@@ -117,25 +117,20 @@ export function searchInTraceTreeTokens(
     return handle;
   }
 
-  let result_map: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
+  let result_map: Map<BaseNode, number> = new Map();
 
   let ti = 0;
   let li = 0;
   let ri = 0;
 
   let bool: TokenResult<Token.LOGIC_BOOLEAN> | null = null;
-  let leftToken:
-    | ProcessedTokenResult
-    | Map<TraceTreeNode<TraceTree.NodeValue>, number>
-    | null = null;
+  let leftToken: ProcessedTokenResult | Map<BaseNode, number> | null = null;
   let rightToken: ProcessedTokenResult | null = null;
 
-  const left: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
-  const right: Map<TraceTreeNode<TraceTree.NodeValue>, number> = new Map();
+  const left: Map<BaseNode, number> = new Map();
+  const right: Map<BaseNode, number> = new Map();
 
-  const stack: Array<
-    ProcessedTokenResult | Map<TraceTreeNode<TraceTree.NodeValue>, number>
-  > = [];
+  const stack: Array<ProcessedTokenResult | Map<BaseNode, number>> = [];
 
   function search(): void {
     const ts = performance.now();
@@ -271,11 +266,11 @@ export function searchInTraceTreeTokens(
 export function searchInTraceTreeText(
   tree: TraceTree,
   query: string,
-  previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
+  previousNode: BaseNode | null,
   cb: (
     results: [
       readonly TraceSearchResult[],
-      Map<TraceTreeNode<TraceTree.NodeValue>, number>,
+      Map<BaseNode, number>,
       {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
     ]
   ) => void
@@ -362,10 +357,10 @@ function evaluateTokenForValue(token: ProcessedTokenResult, value: any): boolean
 }
 
 function booleanResult(
-  left: Map<TraceTreeNode<TraceTree.NodeValue>, number>,
-  right: Map<TraceTreeNode<TraceTree.NodeValue>, number>,
+  left: Map<BaseNode, number>,
+  right: Map<BaseNode, number>,
   operator: BooleanOperator
-): Map<TraceTreeNode<TraceTree.NodeValue>, number> {
+): Map<BaseNode, number> {
   if (operator === BooleanOperator.AND) {
     const result = new Map();
     for (const [key, value] of left) {
@@ -469,10 +464,7 @@ const SPAN_DURATION_ALIASES = new Set(['duration', 'span.duration', 'span.total_
 const SPAN_SELF_TIME_ALIASES = new Set(['span.self_time', 'span.exclusive_time']);
 
 // Pulls the value from the node based on the key in the token
-function resolveValueFromKey(
-  node: TraceTreeNode<TraceTree.NodeValue>,
-  token: ProcessedTokenResult
-): any | null {
+function resolveValueFromKey(node: BaseNode, token: ProcessedTokenResult): any | null {
   const value = node.value;
 
   if (!value) {
@@ -538,7 +530,7 @@ function resolveValueFromKey(
             return node.errors.size > 0 || node.occurrences.size > 0;
           case 'profile':
           case 'profiles':
-            return node.profiles.length > 0;
+            return node.profiles.size > 0;
           default: {
             break;
           }
@@ -593,10 +585,7 @@ function resolveValueFromKey(
  * Evaluates the node based on freetext. This is a simple search that checks if the query
  * is present in a very small subset of the node's properties.
  */
-function evaluateNodeFreeText(
-  query: string,
-  node: TraceTreeNode<TraceTree.NodeValue>
-): boolean {
+function evaluateNodeFreeText(query: string, node: BaseNode): boolean {
   if (isSpanNode(node) || isEAPSpanNode(node)) {
     if (node.value.op?.includes(query)) {
       return true;
@@ -667,9 +656,9 @@ function evaluateNodeFreeText(
 
 function enforceVisibilityForAllMatches(
   tree: TraceTree,
-  predicate: (node: TraceTreeNode<TraceTree.NodeValue>) => boolean
+  predicate: (node: BaseNode) => boolean
 ): void {
-  TraceTree.ForEachChild(tree.root, node => {
+  tree.root.forEachChild(node => {
     if (predicate(node)) {
       TraceTree.EnforceVisibility(tree, node);
     }

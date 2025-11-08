@@ -13,8 +13,7 @@ import {
   isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import {TraceBackgroundPatterns} from 'sentry/views/performance/newTraceDetails/traceRow/traceBackgroundPatterns';
 import {
@@ -22,10 +21,7 @@ import {
   TraceOccurenceIcons,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
 
-export function makeTraceNodeBarColor(
-  theme: Theme,
-  node: TraceTreeNode<TraceTree.NodeValue>
-): string {
+export function makeTraceNodeBarColor(theme: Theme, node: BaseNode): string {
   if (isTransactionNode(node)) {
     return pickBarColor(
       getStylingSliceName(node.value.project_slug, node.value.sdk_name) ??
@@ -152,12 +148,12 @@ export function MissingInstrumentationTraceBar(
 
 interface TraceBarProps {
   color: string;
-  errors: TraceTreeNode<TraceTree.Transaction>['errors'];
+  errors: BaseNode['errors'];
   manager: VirtualizedViewManager;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   node_space: [number, number] | null;
-  occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
-  profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
+  occurrences: BaseNode['occurrences'];
+  profiles: BaseNode['profiles'];
   virtualized_index: number;
 }
 
@@ -221,7 +217,7 @@ export function TraceBar(props: TraceBarProps) {
         ) : null}
         {props.occurrences.size > 0 ||
         props.errors.size > 0 ||
-        props.profiles.length > 0 ? (
+        props.profiles.size > 0 ? (
           <TraceBackgroundPatterns
             node_space={props.node_space}
             occurrences={props.occurrences}
@@ -240,12 +236,12 @@ export function TraceBar(props: TraceBarProps) {
 interface AutogroupedTraceBarProps {
   color: string;
   entire_space: [number, number] | null;
-  errors: TraceTreeNode<TraceTree.Transaction>['errors'];
+  errors: BaseNode['errors'];
   manager: VirtualizedViewManager;
-  node: TraceTreeNode<TraceTree.NodeValue>;
+  node: BaseNode;
   node_spaces: Array<[number, number]>;
-  occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
-  profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
+  occurrences: BaseNode['occurrences'];
+  profiles: BaseNode['profiles'];
   virtualized_index: number;
 }
 
