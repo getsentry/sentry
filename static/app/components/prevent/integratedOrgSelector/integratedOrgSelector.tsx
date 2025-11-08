@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
@@ -20,6 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 import type {IntegrationInformation} from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
+import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
 const DEFAULT_ORG_LABEL = 'Select GitHub Org';
 
@@ -70,22 +72,34 @@ function OrgFooterMessage() {
       {isIntegrationInfoPending ? (
         <LoadingIndicator />
       ) : provider ? (
-        <AddIntegration
-          provider={provider}
-          onInstall={handleAddIntegration}
-          organization={organization}
-        >
-          {openDialog => (
-            <Button
-              size="xs"
-              icon={<IconAdd />}
-              priority="default"
-              onClick={() => openDialog()}
-            >
-              {t('GitHub Organization')}
-            </Button>
-          )}
-        </AddIntegration>
+        <Access access={['org:integrations']} organization={organization}>
+          {({hasAccess}) =>
+            hasAccess ? (
+              <AddIntegration
+                provider={provider}
+                onInstall={handleAddIntegration}
+                organization={organization}
+              >
+                {openDialog => (
+                  <Button
+                    size="xs"
+                    icon={<IconAdd />}
+                    priority="default"
+                    onClick={() => openDialog()}
+                  >
+                    {t('GitHub Organization')}
+                  </Button>
+                )}
+              </AddIntegration>
+            ) : (
+              <RequestIntegrationButton
+                name={provider.name}
+                slug={provider.slug}
+                type="first_party"
+              />
+            )
+          }
+        </Access>
       ) : (
         <LinkButton
           href="https://github.com/apps/sentry/installations/select_target"
