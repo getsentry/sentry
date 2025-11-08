@@ -120,7 +120,7 @@ export default function ReplayDetailsPageBreadcrumbs({
               disabled={!previousReplay}
               to={{
                 pathname: previousReplay
-                  ? `/explore/replays/${previousReplay.id}/`
+                  ? makeReplaysPathname({path: `/${previousReplay.id}/`, organization})
                   : undefined,
                 query: location.query,
               }}
@@ -130,7 +130,9 @@ export default function ReplayDetailsPageBreadcrumbs({
               icon={<IconNext />}
               disabled={!nextReplay}
               to={{
-                pathname: nextReplay ? `/explore/replays/${nextReplay.id}/` : undefined,
+                pathname: nextReplay
+                  ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
+                  : undefined,
                 query: location.query,
               }}
             />
