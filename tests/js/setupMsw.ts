@@ -1,3 +1,5 @@
+import {http, passthrough} from 'msw';
+
 import {server} from 'sentry-test/msw';
 
 beforeAll(() =>
@@ -8,5 +10,11 @@ beforeAll(() =>
     onUnhandledRequest: 'error',
   })
 );
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  server.use(
+    // jest project under Sentry organization (dev productivity team)
+    http.all('*3fe1dce93e3a4267979ebad67f3de327*', passthrough)
+  );
+});
 afterAll(() => server.close());
