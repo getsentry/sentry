@@ -10,7 +10,7 @@ export type PlaceholderProps<T extends ContainerElement = 'div'> = FlexProps<T> 
 };
 
 export function Placeholder(props: PlaceholderProps<'div'>) {
-  const {radius, shape, ...rest} = props;
+  const {radius, shape, ['data-test-id']: dataTestId, ...rest} = props;
   return (
     <Flex
       direction="column"
@@ -21,6 +21,7 @@ export function Placeholder(props: PlaceholderProps<'div'>) {
       width={props.width ?? '100%'}
       height={props.height ?? '60px'}
       radius={shape === 'circle' ? 'full' : (radius ?? 'md')}
+      data-test-id={dataTestId ?? 'loading-placeholder'}
       {...rest}
     />
   );
