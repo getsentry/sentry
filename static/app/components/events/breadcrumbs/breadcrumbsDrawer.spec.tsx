@@ -257,7 +257,7 @@ describe('BreadcrumbsDrawer', () => {
       );
       
       expect(mockTrackAnalytics).toHaveBeenCalledWith('breadcrumbs.drawer.copy_all', {
-        organization: {slug: 'test-org'},
+        organization: {slug: 'org-slug'},
         count: expect.any(Number),
         timeDisplay: 'absolute',
         hasFilters: false,
@@ -298,7 +298,7 @@ describe('BreadcrumbsDrawer', () => {
       });
       
       expect(mockTrackAnalytics).toHaveBeenCalledWith('breadcrumbs.drawer.copy_all_failed', {
-        organization: {slug: 'test-org'},
+        organization: {slug: 'org-slug'},
         count: expect.any(Number),
       });
     });
@@ -333,7 +333,7 @@ describe('BreadcrumbsDrawer', () => {
       expect(copiedText).not.toContain('Log Category');
       
       expect(mockTrackAnalytics).toHaveBeenCalledWith('breadcrumbs.drawer.copy_all', {
-        organization: {slug: 'test-org'},
+        organization: {slug: 'org-slug'},
         count: expect.any(Number),
         timeDisplay: 'absolute',
         hasFilters: false,
