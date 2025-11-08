@@ -1,6 +1,6 @@
 import dataclasses
 import logging
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import ClassVar, NoReturn, TypeVar
 
 import sentry_sdk
@@ -15,6 +15,13 @@ from sentry.workflow_engine.utils import scopedstats
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+
+def _find_error(
+    items: list["TriggerResult"], predicate: Callable[["TriggerResult"], bool]
+) -> ConditionError | None:
+    """Helper to find an error from items matching the predicate."""
+    return next((item.error for item in items if predicate(item)), None)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -39,36 +46,107 @@ class TriggerResult:
     TRUE: ClassVar["TriggerResult"]
     FALSE: ClassVar["TriggerResult"]
 
+    def is_tainted(self) -> bool:
+        """
+        Returns True if this result is less trustworthy due to an error during
+        evaluation.
+        """
+        return self.error is not None
+
     @staticmethod
     def any(items: Iterable["TriggerResult"]) -> "TriggerResult":
+        """
+        Like `any()`, but for TriggerResult. If any inputs had errors that could
+        impact the result, the result will contain an error from one of them.
+        """
         items_list = list(items)
-        for _ in (item for item in items_list if item.triggered and item.error is None):
-            return TriggerResult(triggered=True, error=None)
-        # If we didn't have any untained Trues, the result is tainted.
-        some_error = next((item.error for item in items_list if item.error is not None), None)
-        return TriggerResult(triggered=any(item.triggered for item in items_list), error=some_error)
+        result = any(item.triggered for item in items_list)
+
+        if result:
+            # Result is True. If we have any untainted True, the result is clean.
+            # Only tainted if all Trues are tainted.
+            if any(item.triggered and not item.is_tainted() for item in items_list):
+                return TriggerResult(triggered=True, error=None)
+            # All Trues are tainted
+            return TriggerResult(
+                triggered=True, error=_find_error(items_list, lambda x: x.triggered)
+            )
+        else:
+            # Result is False. Any tainted item could have changed the result.
+            return TriggerResult(
+                triggered=False,
+                error=_find_error(items_list, lambda x: x.is_tainted()),
+            )
 
     @staticmethod
     def all(items: Iterable["TriggerResult"]) -> "TriggerResult":
+        """
+        Like `all()`, but for TriggerResult. If any inputs had errors that could
+        impact the result, the result will contain an error from one of them.
+        """
         items_list = list(items)
-        some_error = next((item.error for item in items_list if item.error is not None), None)
-        # if anything was tainted, the result is tainted.
-        return TriggerResult(
-            triggered=all(item.triggered for item in items_list),
-            error=some_error,
-        )
+        result = all(item.triggered for item in items_list)
+
+        if result:
+            # Result is True. Any tainted item could have changed the result.
+            return TriggerResult(
+                triggered=True,
+                error=_find_error(items_list, lambda x: x.is_tainted()),
+            )
+        else:
+            # Result is False. If we have any untainted False, the result is clean.
+            # Only tainted if all Falses are tainted.
+            if any(not item.triggered and not item.is_tainted() for item in items_list):
+                return TriggerResult(triggered=False, error=None)
+            # All Falses are tainted
+            return TriggerResult(
+                triggered=False,
+                error=_find_error(items_list, lambda x: not x.triggered),
+            )
+
+    @staticmethod
+    def none(items: Iterable["TriggerResult"]) -> "TriggerResult":
+        """
+        Like `not any()`, but for TriggerResult. If any inputs had errors that could
+        impact the result, the result will contain an error from one of them.
+        """
+        items_list = list(items)
+
+        # No items is guaranteed True, no possible error.
+        if not items_list:
+            return TriggerResult(triggered=True, error=None)
+
+        result = all(not item.triggered for item in items_list)
+
+        if result:
+            # Result is True (no conditions triggered)
+            # Any tainted item could have changed the result
+            return TriggerResult(
+                triggered=True,
+                error=_find_error(items_list, lambda x: x.is_tainted()),
+            )
+        else:
+            # Result is False (at least one condition triggered)
+            # If we have any untainted True, the result is clean
+            if any(item.triggered and not item.is_tainted() for item in items_list):
+                return TriggerResult(triggered=False, error=None)
+            # All triggered items are tainted
+            return TriggerResult(
+                triggered=False,
+                error=_find_error(items_list, lambda x: x.triggered),
+            )
 
     def __or__(self, other: "TriggerResult") -> "TriggerResult":
-        return TriggerResult(
-            triggered=self.triggered or other.triggered,
-            error=self.error or other.error,
-        )
+        """
+        OR operation, equivalent to TriggerResult.any([self, other]).
+        """
+        return TriggerResult.any([self, other])
 
     def __and__(self, other: "TriggerResult") -> "TriggerResult":
-        return TriggerResult(
-            triggered=self.triggered and other.triggered,
-            error=self.error or other.error,
-        )
+        """
+        AND operation, equivalent to TriggerResult.all([self, other]).
+        """
+        return TriggerResult.all([self, other])
 
     def __bool__(self) -> NoReturn:
         raise AssertionError("TriggerResult cannot be used as a boolean")
@@ -146,7 +224,9 @@ def evaluate_condition_group_results(
     if logic_type == DataConditionGroup.Type.NONE:
         # if we get to this point, no conditions were met
         # because we would have short-circuited
-        logic_result = TriggerResult.TRUE
+        logic_result = TriggerResult.none(
+            condition_result.logic_result for condition_result in condition_results
+        )
 
     elif logic_type == DataConditionGroup.Type.ANY:
         logic_result = TriggerResult.any(

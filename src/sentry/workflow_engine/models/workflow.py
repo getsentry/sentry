@@ -19,7 +19,7 @@ from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
 from sentry.workflow_engine.processors.data_condition_group import TriggerResult
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
 from .json_config import JSONConfigBase
 
@@ -117,7 +117,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 "DataConditionGroup does not exist",
                 extra={"id": self.when_condition_group_id},
             )
-            return TriggerResult.FALSE, []
+            return TriggerResult(False, ConditionError(msg="DataConditionGroup does not exist")), []
         group_evaluation, remaining_conditions = process_data_condition_group(
             group, workflow_event_data, when_data_conditions
         )

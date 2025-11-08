@@ -345,6 +345,20 @@ class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
 
         assert result == expected_result
 
+    def test_evaluate_data_conditions__error_with_no_pass__tainted_true(self) -> None:
+        error = ConditionError(msg="test error")
+        with (
+            mock.patch.object(self.data_condition, "evaluate_value", return_value=None),
+            mock.patch.object(self.data_condition_two, "evaluate_value", return_value=error),
+        ):
+            result = evaluate_data_conditions(
+                self.get_conditions_to_evaluate(10), self.data_condition_group.logic_type
+            )
+
+        assert result.logic_result.triggered is True
+        assert result.logic_result.error == error
+        assert result.condition_results == []
+
 
 class TestEvaluateConditionGroupWithSlowConditions(TestCase):
     def setUp(self) -> None:
@@ -526,7 +540,7 @@ class TestTriggerResult(unittest.TestCase):
         assert result.triggered is True
         assert result.error == error
 
-    def test_all_with_false_and_tainted_returns_tainted_false(self):
+    def test_all_with_untainted_false_and_tainted_true_returns_clean_false(self):
         error = ConditionError(msg="test error")
         items = [
             TriggerResult(triggered=True, error=None),
@@ -535,7 +549,17 @@ class TestTriggerResult(unittest.TestCase):
         ]
         result = TriggerResult.all(items)
         assert result.triggered is False
-        assert result.error == error
+        assert result.error is None  # Clean because we have untainted False
+
+    def test_all_with_only_tainted_false_returns_tainted_false(self):
+        error = ConditionError(msg="test error")
+        items = [
+            TriggerResult(triggered=True, error=None),
+            TriggerResult(triggered=False, error=error),
+        ]
+        result = TriggerResult.all(items)
+        assert result.triggered is False
+        assert result.error == error  # Tainted because only False is tainted
 
     def test_all_all_false_untainted_returns_untainted_false(self):
         items = [
@@ -558,6 +582,26 @@ class TestTriggerResult(unittest.TestCase):
         assert result.triggered is False
         assert result.error == error
 
+    def test_any_untainted_true_with_tainted_false_returns_clean_true(self):
+        error = ConditionError(msg="test error")
+        items = [
+            TriggerResult(triggered=True, error=None),
+            TriggerResult(triggered=False, error=error),
+        ]
+        result = TriggerResult.any(items)
+        assert result.triggered is True
+        assert result.error is None
+
+    def test_all_untainted_false_with_tainted_true_returns_clean_false(self):
+        error = ConditionError(msg="test error")
+        items = [
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=True, error=error),
+        ]
+        result = TriggerResult.all(items)
+        assert result.triggered is False
+        assert result.error is None
+
     def test_all_with_generator_preserves_error(self):
         error = ConditionError(msg="test error")
         items = [
@@ -566,5 +610,105 @@ class TestTriggerResult(unittest.TestCase):
             TriggerResult(triggered=True, error=None),
         ]
         result = TriggerResult.all(item for item in items)
+        assert result.triggered is True
+        assert result.error == error
+
+    def test_none_empty_returns_untainted_true(self):
+        result = TriggerResult.none([])
+        assert result.triggered is True
+        assert result.error is None
+
+    def test_none_all_false_untainted_returns_untainted_true(self):
+        items = [
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=False, error=None),
+        ]
+        result = TriggerResult.none(items)
+        assert result.triggered is True
+        assert result.error is None
+
+    def test_none_all_false_with_error_returns_tainted_true(self):
+        error = ConditionError(msg="test error")
+        items = [
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=False, error=error),
+            TriggerResult(triggered=False, error=None),
+        ]
+        result = TriggerResult.none(items)
+        assert result.triggered is True
+        assert result.error == error
+
+    def test_none_one_true_returns_untainted_false(self):
+        items = [
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=True, error=None),
+            TriggerResult(triggered=False, error=None),
+        ]
+        result = TriggerResult.none(items)
+        assert result.triggered is False
+        assert result.error is None
+
+    def test_none_one_true_with_error_returns_tainted_false(self):
+        error = ConditionError(msg="test error")
+        items = [
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=True, error=error),
+            TriggerResult(triggered=False, error=None),
+        ]
+        result = TriggerResult.none(items)
+        assert result.triggered is False
+        assert result.error == error
+
+    def test_none_untainted_true_with_tainted_false_returns_clean_false(self):
+        error = ConditionError(msg="test error")
+        items = [
+            TriggerResult(triggered=True, error=None),
+            TriggerResult(triggered=False, error=error),
+        ]
+        result = TriggerResult.none(items)
+        assert result.triggered is False
+        assert result.error is None
+
+    def test_or_with_untainted_true_returns_clean_true(self):
+        error = ConditionError(msg="test error")
+        left = TriggerResult(triggered=True, error=None)
+        right = TriggerResult(triggered=False, error=error)
+        result = left | right
+        assert result.triggered is True
+        assert result.error is None  # Clean because we have untainted True
+
+    def test_or_with_only_tainted_true_returns_tainted_true(self):
+        error = ConditionError(msg="test error")
+        left = TriggerResult(triggered=True, error=error)
+        right = TriggerResult(triggered=False, error=None)
+        result = left | right
+        assert result.triggered is True
+        assert result.error == error  # Tainted because only True is tainted
+
+    def test_and_with_untainted_false_returns_clean_false(self):
+        error = ConditionError(msg="test error")
+        left = TriggerResult(triggered=False, error=None)
+        right = TriggerResult(triggered=True, error=error)
+        result = left & right
+        assert result.triggered is False
+        assert result.error is None  # Clean because we have untainted False
+
+    def test_and_with_only_tainted_false_returns_tainted_false(self):
+        error = ConditionError(msg="test error")
+        left = TriggerResult(triggered=True, error=None)
+        right = TriggerResult(triggered=False, error=error)
+        result = left & right
+        assert result.triggered is False
+        assert result.error == error  # Tainted because only False is tainted
+
+    def test_none_with_generator_preserves_error(self):
+        error = ConditionError(msg="test error")
+        items = [
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=False, error=error),
+            TriggerResult(triggered=False, error=None),
+        ]
+        result = TriggerResult.none(item for item in items)
         assert result.triggered is True
         assert result.error == error
