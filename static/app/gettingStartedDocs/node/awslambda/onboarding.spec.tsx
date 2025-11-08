@@ -1,3 +1,6 @@
+import {http, HttpResponse} from 'msw';
+
+import {server} from 'sentry-test/msw';
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -8,6 +11,13 @@ import {InstallationMethod} from './utils';
 import docs from '.';
 
 describe('awslambda onboarding docs', () => {
+  beforeEach(() => {
+    server.use(
+      http.get('https://release-registry.services.sentry.io/aws-lambda-layers', () =>
+        HttpResponse.json({})
+      )
+    );
+  });
   describe('Lambda Layer', () => {
     it('renders onboarding docs correctly', () => {
       renderWithOnboardingLayout(docs);
