@@ -182,6 +182,7 @@ class QuerySubscription(Model):
 
 @data_source_type_registry.register(DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription]):
+    @override
     @staticmethod
     def bulk_get_query_object(
         data_sources: list[DataSource],
@@ -203,6 +204,7 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
         }
         return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
 
+    @override
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
         return [ModelRelation(QuerySubscription, {"id": instance.source_id})]
@@ -223,3 +225,8 @@ class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription
                 QuerySubscription.Status.UPDATING.value,
             ),
         ).count()
+
+    @override
+    @staticmethod
+    def get_relocation_model_name() -> str:
+        return "sentry.querysubscription"

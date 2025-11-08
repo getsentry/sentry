@@ -814,6 +814,7 @@ class MonitorEnvBrokenDetection(Model):
 
 @data_source_type_registry.register(DATA_SOURCE_CRON_MONITOR)
 class CronMonitorDataSourceHandler(DataSourceTypeHandler[Monitor]):
+    @override
     @staticmethod
     def bulk_get_query_object(
         data_sources: list[DataSource],
@@ -834,6 +835,7 @@ class CronMonitorDataSourceHandler(DataSourceTypeHandler[Monitor]):
         }
         return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
 
+    @override
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
         return [ModelRelation(Monitor, {"id": instance.source_id})]
@@ -848,3 +850,8 @@ class CronMonitorDataSourceHandler(DataSourceTypeHandler[Monitor]):
     def get_current_instance_count(org: Organization) -> int:
         # We don't have a limit at the moment, so no need to count.
         raise NotImplementedError
+
+    @override
+    @staticmethod
+    def get_relocation_model_name() -> str:
+        return "monitors.monitor"
