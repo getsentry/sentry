@@ -394,7 +394,7 @@ class StatefulDetectorHandler(
                 group_data_values[group_key]
             )
 
-            if condition_results is not None and condition_results.logic_result.error is not None:
+            if condition_results is not None and condition_results.logic_result.is_tainted():
                 tainted = True
 
             if condition_results is None or condition_results.logic_result.triggered is False:
