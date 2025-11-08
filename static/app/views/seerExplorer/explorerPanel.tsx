@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 
 import useOrganization from 'sentry/utils/useOrganization';
@@ -13,14 +13,14 @@ import ExplorerPanelContext, {
 } from './explorerPanelContext';
 import InputSection from './inputSection';
 import PanelContainers, {BlocksContainer} from './panelContainers';
-import type {Block, ExplorerPanelProps} from './types';
+import type {Block, ExplorerPanelProps, MenuMode} from './types';
 
 function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const organization = useOrganization({allowNull: true});
 
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
   const [isMinimized, setIsMinimized] = useState(false); // state for slide-down
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -169,22 +169,39 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     }
   }, [focusedBlockIndex]);
 
-  // Auto-focus input when user starts typing while a block is focused
   useEffect(() => {
-    if (!isVisible) {
+    if (!isVisible || isMinimized) {
       return undefined;
     }
 
+    // Global keyboard event listeners for when the panel is open.
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (focusedBlockIndex !== -1) {
-        const isPrintableChar =
-          e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+      const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
-        if (isPrintableChar) {
+      if (e.key === 'Escape' && isPolling && !interruptRequested) {
+        e.preventDefault();
+        interruptRun();
+      } else if (e.key === 'Escape' && menuMode === 'slash-commands-keyboard') {
+        e.preventDefault();
+        setInputValue('');
+        setMenuMode('hidden');
+      } else if (e.key === 'Escape' && menuMode !== 'hidden') {
+        e.preventDefault();
+        setMenuMode('hidden');
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsMinimized(true);
+      } else if (isPrintableChar) {
+        if (focusedBlockIndex !== -1) {
+          // If a block is focused, auto-focus input when user starts typing.
           e.preventDefault();
           setFocusedBlockIndex(-1);
           textareaRef.current?.focus();
           setInputValue(prev => prev + e.key);
+        } else if (menuMode === 'slash-commands-manual') {
+          setMenuMode('slash-commands-keyboard');
+        } else if (menuMode === 'session-history') {
+          setMenuMode('hidden');
         }
       }
     };
@@ -193,13 +210,18 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isVisible, focusedBlockIndex]);
+  }, [
+    isVisible,
+    isPolling,
+    focusedBlockIndex,
+    interruptRun,
+    interruptRequested,
+    isMinimized,
+    menuMode,
+  ]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Escape' && isPolling) {
-      e.preventDefault();
-      interruptRun();
-    } else if (e.key === 'Enter' && !e.shiftKey) {
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (inputValue.trim() && !isPolling) {
         sendMessage(inputValue.trim(), undefined);
@@ -242,9 +264,13 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setIsMinimized(false);
   };
 
-  const handlePanelBackgroundClick = () => {
+  const handlePanelBackgroundClick = useCallback(() => {
     setIsMinimized(false);
-  };
+    if (menuMode === 'slash-commands-keyboard') {
+      setInputValue('');
+    }
+    setMenuMode('hidden');
+  }, [menuMode]);
 
   // Useful callbacks and state for the input controls.
   const contextValue: ExplorerPanelContextType = {
@@ -253,10 +279,10 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     focusedBlockIndex,
     isPolling,
     interruptRequested,
+    menuMode,
+    setMenuMode,
     onInputChange: handleInputChange,
-    onKeyDown: handleKeyDown,
     onInputClick: handleInputClick,
-    onMenuVisibilityChange: setIsMenuOpen,
     onMaxSize: handleMaxSize,
     onMedSize: handleMedSize,
     onNew: startNewSession,
@@ -265,59 +291,59 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   };
 
   const panelContent = (
-    <PanelContainers
-      ref={panelRef}
-      isOpen={isVisible}
-      isMinimized={isMinimized}
-      panelSize={panelSize}
-      onUnminimize={() => setIsMinimized(false)}
-    >
-      <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
-        {blocks.length === 0 ? (
-          <EmptyState />
-        ) : (
-          blocks.map((block: Block, index: number) => (
-            <BlockComponent
-              key={block.id}
-              ref={el => {
-                blockRefs.current[index] = el;
-              }}
-              block={block}
-              blockIndex={index}
-              isLast={index === blocks.length - 1}
-              isFocused={focusedBlockIndex === index}
-              isPolling={isPolling}
-              onClick={() => handleBlockClick(index)}
-              onMouseEnter={() => {
-                // Don't change focus while slash commands menu is open or if already on this block
-                if (isMenuOpen || hoveredBlockIndex.current === index) {
-                  return;
-                }
+    <ExplorerPanelContext.Provider value={contextValue}>
+      <PanelContainers
+        ref={panelRef}
+        isOpen={isVisible}
+        isMinimized={isMinimized}
+        panelSize={panelSize}
+        onUnminimize={() => setIsMinimized(false)}
+      >
+        <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
+          {blocks.length === 0 ? (
+            <EmptyState />
+          ) : (
+            blocks.map((block: Block, index: number) => (
+              <BlockComponent
+                key={block.id}
+                ref={el => {
+                  blockRefs.current[index] = el;
+                }}
+                block={block}
+                blockIndex={index}
+                isLast={index === blocks.length - 1}
+                isFocused={focusedBlockIndex === index}
+                isPolling={isPolling}
+                onClick={() => handleBlockClick(index)}
+                onMouseEnter={() => {
+                  // Don't change focus while slash commands menu is open or if already on this block
+                  if (menuMode !== 'hidden' || hoveredBlockIndex.current === index) {
+                    return;
+                  }
 
-                hoveredBlockIndex.current = index;
-                setFocusedBlockIndex(index);
-                if (document.activeElement === textareaRef.current) {
-                  textareaRef.current?.blur();
-                }
-              }}
-              onMouseLeave={() => {
-                if (hoveredBlockIndex.current === index) {
-                  hoveredBlockIndex.current = -1;
-                }
-              }}
-              onDelete={() => deleteFromIndex(index)}
-              onNavigate={() => setIsMinimized(true)}
-              onRegisterEnterHandler={handler => {
-                blockEnterHandlers.current.set(index, handler);
-              }}
-            />
-          ))
-        )}
-      </BlocksContainer>
-      <ExplorerPanelContext.Provider value={contextValue}>
-        <InputSection />
-      </ExplorerPanelContext.Provider>
-    </PanelContainers>
+                  hoveredBlockIndex.current = index;
+                  setFocusedBlockIndex(index);
+                  if (document.activeElement === textareaRef.current) {
+                    textareaRef.current?.blur();
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (hoveredBlockIndex.current === index) {
+                    hoveredBlockIndex.current = -1;
+                  }
+                }}
+                onDelete={() => deleteFromIndex(index)}
+                onNavigate={() => setIsMinimized(true)}
+                onRegisterEnterHandler={handler => {
+                  blockEnterHandlers.current.set(index, handler);
+                }}
+              />
+            ))
+          )}
+        </BlocksContainer>
+        <InputSection onKeyDown={handleInputKeyDown} />
+      </PanelContainers>
+    </ExplorerPanelContext.Provider>
   );
 
   if (!organization?.features.includes('seer-explorer') || organization.hideAiFeatures) {

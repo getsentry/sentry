@@ -3,13 +3,17 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import {IconChevron, IconMenu} from 'sentry/icons';
+import {IconMenu} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-import {useExplorerMenu} from './explorerMenu';
+import {ExplorerMenu} from './explorerMenu';
 import {useExplorerPanelContext} from './explorerPanelContext';
 
-function InputSection() {
+function InputSection({
+  onKeyDown,
+}: {
+  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+}) {
   const {
     inputValue,
     clearInput,
@@ -17,23 +21,11 @@ function InputSection() {
     isPolling,
     interruptRequested,
     onInputChange,
-    onKeyDown,
     onInputClick,
     textAreaRef,
+    menuMode,
+    setMenuMode,
   } = useExplorerPanelContext();
-
-  const {menu, menuMode, setMenuMode} = useExplorerMenu();
-
-  const onMenuButtonClick = useCallback(() => {
-    if (menuMode === 'hidden') {
-      setMenuMode('slash-commands-manual');
-    } else if (menuMode === 'slash-commands-keyboard') {
-      clearInput();
-      setMenuMode('hidden');
-    } else {
-      setMenuMode('hidden');
-    }
-  }, [menuMode, setMenuMode, clearInput]);
 
   const getPlaceholder = () => {
     if (focusedBlockIndex !== -1) {
@@ -51,18 +43,30 @@ function InputSection() {
     return 'Type your message and press Enter ↵';
   };
 
+  const onMenuButtonClick = useCallback(() => {
+    if (menuMode === 'hidden') {
+      setMenuMode('slash-commands-manual');
+    } else if (menuMode === 'slash-commands-keyboard') {
+      clearInput();
+      setMenuMode('hidden');
+    } else {
+      setMenuMode('hidden');
+    }
+  }, [menuMode, setMenuMode, clearInput]);
+
   return (
     <InputBlock>
       <InputContainer onClick={onInputClick}>
-        {menu}
+        <ExplorerMenu />
         <InputRow>
-          <Button onClick={onMenuButtonClick}>
-            {menuMode === 'hidden' ? (
-              <IconMenu size="sm" />
-            ) : (
-              <IconChevron direction="down" size="sm" />
-            )}
-          </Button>
+          <ButtonContainer>
+            <Button
+              priority="default"
+              aria-label="Toggle Menu"
+              onClick={onMenuButtonClick}
+              icon={<IconMenu size="md" />}
+            />
+          </ButtonContainer>
           <InputTextarea
             ref={textAreaRef}
             value={inputValue}
@@ -97,17 +101,26 @@ const InputContainer = styled('div')`
 
 const InputRow = styled('div')`
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   width: 100%;
+  padding: 0;
+  gap: ${space(1)};
 `;
 
-// const ChevronIcon = styled(IconChevron)`
-//   color: ${p => p.theme.subText};
-//   margin-top: 18px;
-//   margin-left: ${space(2)};
-//   margin-right: ${space(1)};
-//   flex-shrink: 0;
-// `;
+const ButtonContainer = styled('div')`
+  display: flex;
+  align-items: stretch;
+
+  button {
+    flex: 1;
+    height: 100%;
+    min-height: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-top: none;
+    border-bottom: none;
+  }
+`;
 
 const FocusIndicator = styled('div')`
   position: absolute;

@@ -1,19 +1,21 @@
 import {createContext, useContext} from 'react';
 
+import type {MenuMode} from './types';
+
 export interface ExplorerPanelContextType {
   clearInput: () => void;
   focusedBlockIndex: number;
   inputValue: string;
   interruptRequested: boolean;
   isPolling: boolean;
+  menuMode: MenuMode;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onInputClick: () => void;
-  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onMaxSize: () => void;
   onMedSize: () => void;
-  onMenuVisibilityChange: (isVisible: boolean) => void;
   onNew: () => void;
   onResume: (runId: number) => void;
+  setMenuMode: (mode: MenuMode) => void;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
