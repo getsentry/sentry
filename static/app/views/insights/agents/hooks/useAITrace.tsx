@@ -93,7 +93,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
         await Promise.all(zoomPromises);
 
         // Keep only transactions that include AI spans and the AI spans themselves
-        const flattenedNodes = tree.root.findAllChildren(node => {
+        const flattenedNodes = tree.root.findAllChildren<AITraceSpanNode>(node => {
           if (
             !isTransactionNodeEquivalent(node) &&
             !isSpanNode(node) &&
