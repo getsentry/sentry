@@ -13,6 +13,7 @@ export interface ExplorerPanelContextType {
   onMedSize: () => void;
   onMenuVisibilityChange: (isVisible: boolean) => void;
   onNew: () => void;
+  onResume: (runId: number) => void;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 

@@ -1,8 +1,10 @@
 import {Activity, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 
 import {useExplorerPanelContext} from './explorerPanelContext';
 
@@ -23,7 +25,9 @@ export function useExplorerMenu() {
   const {inputValue, clearInput, onMenuVisibilityChange, textAreaRef} =
     useExplorerPanelContext();
 
-  const allSlashCommands = useSlashCommands();
+  const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
+
+  const allSlashCommands = useSlashCommands({setMenuMode});
 
   const filteredSlashCommands = useMemo(() => {
     // Filter commands based on current input
@@ -34,23 +38,21 @@ export function useExplorerMenu() {
     return allSlashCommands.filter(cmd => cmd.title.toLowerCase().startsWith(query));
   }, [allSlashCommands, inputValue]);
 
-  // const sessionHistory: MenuItemProps[] = [];
+  const sessions = useSessionHistory({setMenuMode});
 
   // Menu items and select handlers change based on the mode.
-  const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
-
   const menuItems = useMemo(() => {
     switch (menuMode) {
       case 'slash-commands-keyboard':
         return filteredSlashCommands;
       case 'slash-commands-manual':
         return allSlashCommands;
-      // case 'session-history':
-      //   return sessionHistory;
+      case 'session-history':
+        return sessions;
       default:
         return [];
     }
-  }, [menuMode, allSlashCommands, filteredSlashCommands]);
+  }, [menuMode, allSlashCommands, filteredSlashCommands, sessions]);
 
   const onSelect = useCallback(
     (item: MenuItemProps) => {
@@ -134,16 +136,21 @@ export function useExplorerMenu() {
   const menu = (
     <Activity mode={isVisible ? 'visible' : 'hidden'}>
       <MenuPanel>
-        {menuItems.map((command, index) => (
+        {menuItems.map((item, index) => (
           <MenuItem
-            key={command.title}
+            key={item.title}
             isSelected={index === selectedIndex}
-            onClick={() => onSelect(command)}
+            onClick={() => onSelect(item)}
           >
-            <ItemName>{command.title}</ItemName>
-            <ItemDescription>{command.description}</ItemDescription>
+            <ItemName>{item.title}</ItemName>
+            <ItemDescription>{item.description}</ItemDescription>
           </MenuItem>
         ))}
+        {menuItems.length === 0 && (
+          <MenuItem key="empty-state" isSelected={false}>
+            No results found
+          </MenuItem>
+        )}
       </MenuPanel>
     </Activity>
   );
@@ -155,7 +162,11 @@ export function useExplorerMenu() {
   };
 }
 
-function useSlashCommands(): MenuItemProps[] {
+function useSlashCommands({
+  setMenuMode,
+}: {
+  setMenuMode: (mode: MenuMode) => void;
+}): MenuItemProps[] {
   const {onMaxSize, onMedSize, onNew} = useExplorerPanelContext();
 
   const openFeedbackForm = useFeedbackForm();
@@ -167,6 +178,14 @@ function useSlashCommands(): MenuItemProps[] {
         key: '/new',
         description: 'Start a new session',
         handler: onNew,
+      },
+      {
+        title: '/resume',
+        key: '/resume',
+        description: 'View your session history to resume past sessions',
+        handler: () => {
+          setMenuMode('session-history');
+        },
       },
       {
         title: '/max-size',
@@ -198,8 +217,36 @@ function useSlashCommands(): MenuItemProps[] {
           ]
         : []),
     ],
-    [onNew, onMaxSize, onMedSize, openFeedbackForm]
+    [onNew, onMaxSize, onMedSize, openFeedbackForm, setMenuMode]
   );
+}
+
+function useSessionHistory({
+  setMenuMode,
+}: {
+  setMenuMode: (mode: MenuMode) => void;
+}): MenuItemProps[] {
+  const {data, isPending, isError} = useExplorerSessions({limit: 20});
+  const {onResume} = useExplorerPanelContext();
+
+  const formatDate = (date: string) => {
+    return moment(date).format('MM/DD/YYYY HH:mm');
+  };
+
+  return useMemo(() => {
+    if (isPending || isError) {
+      return [];
+    }
+    return data?.data.map(session => ({
+      title: session.title,
+      key: session.run_id.toString(),
+      description: `Last updated at ${formatDate(session.last_triggered_at)}`,
+      handler: () => {
+        onResume(session.run_id);
+        setMenuMode('hidden');
+      },
+    }));
+  }, [data, isPending, isError, onResume, setMenuMode]);
 }
 
 const MenuPanel = styled('div')`

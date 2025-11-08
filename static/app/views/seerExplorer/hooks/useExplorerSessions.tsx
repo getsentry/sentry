@@ -1,38 +1,33 @@
-import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {ExplorerSession} from 'sentry/views/seerExplorer/types';
 
-interface RunsResponse {
+interface SessionsResponse {
   data: ExplorerSession[];
 }
 
 export function useExplorerSessions({
-  perPage,
+  limit,
   enabled = true,
 }: {
-  perPage: number;
+  limit: number;
   enabled?: boolean;
 }) {
   const organization = useOrganization({allowNull: true});
-  const query = useInfiniteApiQuery<RunsResponse>({
-    queryKey: [
-      'infinite',
+  const query = useApiQuery<SessionsResponse>(
+    [
       `/organizations/${organization?.slug ?? ''}/seer/explorer-runs/`,
       {
         query: {
-          per_page: perPage,
+          per_page: limit,
         },
       },
     ],
-    enabled: enabled && Boolean(organization),
-  });
-
-  // // Deduplicate sessions in case pages shift (new runs, order changes).
-  // const sessions = useMemo(
-  //   () =>
-  //     uniqBy(query.data?.pages.flatMap(result => result[0]?.data ?? []) ?? [], 'run_id'),
-  //   [query.data]
-  // );
+    {
+      staleTime: 10_000,
+      enabled: enabled && Boolean(organization),
+    }
+  );
 
   return {
     ...query,

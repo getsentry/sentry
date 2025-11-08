@@ -42,6 +42,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     isPolling,
     interruptRun,
     interruptRequested,
+    resumeSession,
   } = useSeerExplorer();
 
   // Get blocks from session data or empty array
@@ -259,6 +260,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     onMaxSize: handleMaxSize,
     onMedSize: handleMedSize,
     onNew: startNewSession,
+    onResume: resumeSession,
     textAreaRef: textareaRef,
   };
 
