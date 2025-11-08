@@ -70,7 +70,6 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
   renderDetails<NodeType extends BaseNode>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    // Won't need this cast once we use BaseNode type for props.node
     return <MissingInstrumentationNodeDetails {...props} node={this} />;
   }
 

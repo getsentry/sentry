@@ -200,13 +200,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
   renderDetails<T extends BaseNode>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
-    return (
-      <TransactionNodeDetails
-        {...props}
-        // Won't need this cast once we use BaseNode type for props.node
-        node={this}
-      />
-    );
+    return <TransactionNodeDetails {...props} node={this} />;
   }
 
   printNode(): string {
