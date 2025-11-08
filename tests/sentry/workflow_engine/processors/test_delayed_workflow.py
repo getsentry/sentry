@@ -39,6 +39,7 @@ from sentry.workflow_engine.models.data_condition import (
 )
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
+    TriggerResult,
     get_slow_conditions_for_groups,
 )
 from sentry.workflow_engine.processors.delayed_workflow import (
@@ -940,7 +941,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
     def test_fire_actions_for_groups__workflow_fire_history(self, mock_process: MagicMock) -> None:
         mock_process.return_value = (
-            ProcessedDataConditionGroup(logic_result=True, condition_results=[]),
+            ProcessedDataConditionGroup(logic_result=TriggerResult.TRUE, condition_results=[]),
             [],
         )
 

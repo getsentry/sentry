@@ -49,6 +49,11 @@ DataConditionResult = DetectorPriorityLevel | int | float | bool | None
 
 
 @dataclass(frozen=True)
+class ConditionError:
+    msg: str
+
+
+@dataclass(frozen=True)
 class DetectorEvaluationResult:
     # TODO - Should group key live at this level?
     group_key: DetectorGroupKey

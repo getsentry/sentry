@@ -1,6 +1,7 @@
 import dataclasses
 import logging
-from typing import TypeVar
+from collections.abc import Iterable
+from typing import ClassVar, NoReturn, TypeVar
 
 import sentry_sdk
 
@@ -8,7 +9,7 @@ from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import is_slow_condition
 from sentry.workflow_engine.processors.data_condition import split_conditions_by_speed
-from sentry.workflow_engine.types import DataConditionResult
+from sentry.workflow_engine.types import ConditionError, DataConditionResult
 from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
@@ -16,16 +17,77 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
+@dataclasses.dataclass(frozen=True)
+class TriggerResult:
+    """
+    Represents the result of a trigger evaluation with taint tracking.
+
+    The triggered field indicates whether the trigger condition was met.
+
+    The error field contains error information if the evaluation was tainted.
+    When error is not None, it indicates that the result may not be accurate due to
+    errors encountered during evaluation. Note that there may have been additional
+    errors beyond the one captured here - this field contains a representative error
+    from the evaluation, not necessarily all errors that occurred.
+    """
+
+    triggered: bool
+    error: ConditionError | None
+
+    # Constant untainted TriggerResult values (initialized after class definition).
+    # These represent clean success/failure with no errors.
+    TRUE: ClassVar["TriggerResult"]
+    FALSE: ClassVar["TriggerResult"]
+
+    @staticmethod
+    def any(items: Iterable["TriggerResult"]) -> "TriggerResult":
+        for _ in (item for item in items if item.triggered and item.error is None):
+            return TriggerResult(triggered=True, error=None)
+        # If we didn't have any untained Trues, the result is tainted.
+        some_error = next((item.error for item in items if item.error is not None), None)
+        return TriggerResult(triggered=any(item.triggered for item in items), error=some_error)
+
+    @staticmethod
+    def all(items: Iterable["TriggerResult"]) -> "TriggerResult":
+        some_error = next((item.error for item in items if item.error is not None), None)
+        # if anything was tainted, the result is tainted.
+        return TriggerResult(
+            triggered=all(item.triggered for item in items),
+            error=some_error,
+        )
+
+    def __or__(self, other: "TriggerResult") -> "TriggerResult":
+        return TriggerResult(
+            triggered=self.triggered or other.triggered,
+            error=self.error or other.error,
+        )
+
+    def __and__(self, other: "TriggerResult") -> "TriggerResult":
+        return TriggerResult(
+            triggered=self.triggered and other.triggered,
+            error=self.error or other.error,
+        )
+
+    def __bool__(self) -> NoReturn:
+        raise AssertionError("TriggerResult cannot be used as a boolean")
+
+
+# Constant untainted TriggerResult values for common cases.
+# These are singleton instances representing clean success/failure with no errors.
+TriggerResult.TRUE = TriggerResult(triggered=True, error=None)
+TriggerResult.FALSE = TriggerResult(triggered=False, error=None)
+
+
 @dataclasses.dataclass()
 class ProcessedDataCondition:
-    logic_result: bool
+    logic_result: TriggerResult
     condition: DataCondition
     result: DataConditionResult
 
 
 @dataclasses.dataclass()
 class ProcessedDataConditionGroup:
-    logic_result: bool
+    logic_result: TriggerResult
     condition_results: list[ProcessedDataCondition]
 
 
@@ -76,35 +138,35 @@ def evaluate_condition_group_results(
     condition_results: list[ProcessedDataCondition],
     logic_type: DataConditionGroup.Type,
 ) -> ProcessedDataConditionGroup:
-    logic_result = False
+    logic_result = TriggerResult.FALSE
     group_condition_results: list[ProcessedDataCondition] = []
 
     if logic_type == DataConditionGroup.Type.NONE:
         # if we get to this point, no conditions were met
         # because we would have short-circuited
-        logic_result = True
+        logic_result = TriggerResult.TRUE
 
     elif logic_type == DataConditionGroup.Type.ANY:
-        logic_result = any(
-            [condition_result.logic_result for condition_result in condition_results]
+        logic_result = TriggerResult.any(
+            condition_result.logic_result for condition_result in condition_results
         )
 
-        if logic_result:
+        if logic_result.triggered:
             group_condition_results = [
                 condition_result
                 for condition_result in condition_results
-                if condition_result.logic_result
+                if condition_result.logic_result.triggered
             ]
 
     elif logic_type == DataConditionGroup.Type.ALL:
         conditions_met = [condition_result.logic_result for condition_result in condition_results]
-        logic_result = all(conditions_met)
+        logic_result = TriggerResult.all(conditions_met)
 
-        if logic_result:
+        if logic_result.triggered:
             group_condition_results = [
                 condition_result
                 for condition_result in condition_results
-                if condition_result.logic_result
+                if condition_result.logic_result.triggered
             ]
 
     return ProcessedDataConditionGroup(
@@ -126,33 +188,44 @@ def evaluate_data_conditions(
 
     if len(conditions_to_evaluate) == 0:
         # if we don't have any conditions, always return True
-        return ProcessedDataConditionGroup(logic_result=True, condition_results=[])
+        return ProcessedDataConditionGroup(logic_result=TriggerResult.TRUE, condition_results=[])
 
     for condition, value in conditions_to_evaluate:
         evaluation_result = condition.evaluate_value(value)
-        is_condition_triggered = evaluation_result is not None
+        cleaned_result: DataConditionResult
+        if isinstance(evaluation_result, ConditionError):
+            cleaned_result = None
+        else:
+            cleaned_result = evaluation_result
+        trigger_result = TriggerResult(
+            triggered=cleaned_result is not None,
+            error=evaluation_result if isinstance(evaluation_result, ConditionError) else None,
+        )
 
-        if is_condition_triggered:
+        if trigger_result.triggered:
             # Check for short-circuiting evaluations
             if logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
                 condition_result = ProcessedDataCondition(
-                    logic_result=True,
+                    logic_result=trigger_result,
                     condition=condition,
-                    result=evaluation_result,
+                    result=cleaned_result,
                 )
 
                 return ProcessedDataConditionGroup(
-                    logic_result=is_condition_triggered,
+                    logic_result=trigger_result,
                     condition_results=[condition_result],
                 )
 
             if logic_type == DataConditionGroup.Type.NONE:
-                return ProcessedDataConditionGroup(logic_result=False, condition_results=[])
+                return ProcessedDataConditionGroup(
+                    logic_result=TriggerResult(triggered=False, error=trigger_result.error),
+                    condition_results=[],
+                )
 
         result = ProcessedDataCondition(
-            logic_result=is_condition_triggered,
+            logic_result=trigger_result,
             condition=condition,
-            result=evaluation_result,
+            result=cleaned_result,
         )
         condition_results.append(result)
 
@@ -177,7 +250,10 @@ def process_data_condition_group(
             "Invalid DataConditionGroup.logic_type found in process_data_condition_group",
             extra={"logic_type": group.logic_type},
         )
-        return ProcessedDataConditionGroup(logic_result=False, condition_results=[]), []
+        trigger_result = TriggerResult(
+            triggered=False, error=ConditionError(msg="Invalid DataConditionGroup.logic_type")
+        )
+        return ProcessedDataConditionGroup(logic_result=trigger_result, condition_results=[]), []
 
     # Check if conditions are already prefetched before using cache
     all_conditions: list[DataCondition]
@@ -197,7 +273,7 @@ def process_data_condition_group(
         # there are only slow conditions to evaluate, do not evaluate an empty list of conditions
         # which would evaluate to True
         condition_group_result = ProcessedDataConditionGroup(
-            logic_result=False,
+            logic_result=TriggerResult.FALSE,
             condition_results=condition_results,
         )
         return condition_group_result, split_conds.slow
@@ -208,8 +284,8 @@ def process_data_condition_group(
     logic_result = processed_condition_group.logic_result
 
     # Check to see if we should return any remaining conditions based on the results
-    is_short_circuit_all = not logic_result and logic_type == DataConditionGroup.Type.ALL
-    is_short_circuit_any = logic_result and logic_type in (
+    is_short_circuit_all = not logic_result.triggered and logic_type == DataConditionGroup.Type.ALL
+    is_short_circuit_any = logic_result.triggered and logic_type in (
         DataConditionGroup.Type.ANY,
         DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
     )

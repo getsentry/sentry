@@ -1,3 +1,4 @@
+import unittest
 from unittest import mock
 
 from sentry.testutils.cases import TestCase
@@ -6,12 +7,13 @@ from sentry.workflow_engine.models.data_condition import Condition, DataConditio
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataCondition,
     ProcessedDataConditionGroup,
+    TriggerResult,
     evaluate_data_conditions,
     get_data_conditions_for_group,
     get_slow_conditions_for_groups,
     process_data_condition_group,
 )
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel
 
 
 class TestGetDataConditionsForGroup(TestCase):
@@ -32,7 +34,7 @@ class TestProcessDataConditionGroup(TestCase):
         )
 
         expected_result = ProcessedDataConditionGroup(
-            logic_result=False,
+            logic_result=TriggerResult.FALSE,
             condition_results=[],
         )
         expected_remaining_conditions: list[DataCondition] = []
@@ -50,10 +52,10 @@ class TestProcessDataConditionGroup(TestCase):
             condition_result=DetectorPriorityLevel.HIGH,
         )
         expected_result = ProcessedDataConditionGroup(
-            logic_result=True,
+            logic_result=TriggerResult.TRUE,
             condition_results=[
                 ProcessedDataCondition(
-                    logic_result=True,
+                    logic_result=TriggerResult.TRUE,
                     condition=self.condition,
                     result=DetectorPriorityLevel.HIGH,
                 )
@@ -128,15 +130,15 @@ class TestEvaluationConditionCase(TestCase):
 class TestEvaluateConditionGroupTypeAny(TestEvaluationConditionCase):
     def test_evaluate_data_conditions__passes_all(self) -> None:
         expected_result = ProcessedDataConditionGroup(
-            logic_result=True,
+            logic_result=TriggerResult.TRUE,
             condition_results=[
                 ProcessedDataCondition(
-                    logic_result=True,
+                    logic_result=TriggerResult.TRUE,
                     condition=self.data_condition,
                     result=DetectorPriorityLevel.HIGH,
                 ),
                 ProcessedDataCondition(
-                    logic_result=True,
+                    logic_result=TriggerResult.TRUE,
                     condition=self.data_condition_two,
                     result=DetectorPriorityLevel.LOW,
                 ),
@@ -152,10 +154,10 @@ class TestEvaluateConditionGroupTypeAny(TestEvaluationConditionCase):
 
     def test_evaluate_data_conditions__passes_one(self) -> None:
         expected_result = ProcessedDataConditionGroup(
-            logic_result=True,
+            logic_result=TriggerResult.TRUE,
             condition_results=[
                 ProcessedDataCondition(
-                    logic_result=True,
+                    logic_result=TriggerResult.TRUE,
                     condition=self.data_condition_two,
                     result=DetectorPriorityLevel.LOW,
                 )
@@ -171,7 +173,7 @@ class TestEvaluateConditionGroupTypeAny(TestEvaluationConditionCase):
 
     def test_evaluate_data_conditions__fails_all(self) -> None:
         expected_result = ProcessedDataConditionGroup(
-            logic_result=False,
+            logic_result=TriggerResult.FALSE,
             condition_results=[],
         )
 
@@ -185,7 +187,7 @@ class TestEvaluateConditionGroupTypeAny(TestEvaluationConditionCase):
     def test_evaluate_data_conditions__passes_without_conditions(self) -> None:
         result = evaluate_data_conditions([], self.data_condition_group.logic_type)
         expected_result = ProcessedDataConditionGroup(
-            logic_result=True,
+            logic_result=TriggerResult.TRUE,
             condition_results=[],
         )
 
@@ -201,10 +203,10 @@ class TestEvaluateConditionGroupTypeAnyShortCircuit(TestEvaluationConditionCase)
         assert evaluate_data_conditions(
             self.get_conditions_to_evaluate(10), self.data_condition_group.logic_type
         ) == ProcessedDataConditionGroup(
-            logic_result=True,
+            logic_result=TriggerResult.TRUE,
             condition_results=[
                 ProcessedDataCondition(
-                    logic_result=True,
+                    logic_result=TriggerResult.TRUE,
                     condition=self.data_condition,
                     result=DetectorPriorityLevel.HIGH,
                 )
@@ -218,10 +220,10 @@ class TestEvaluateConditionGroupTypeAnyShortCircuit(TestEvaluationConditionCase)
         )
 
         expected_result = ProcessedDataConditionGroup(
-            logic_result=True,
+            logic_result=TriggerResult.TRUE,
             condition_results=[
                 ProcessedDataCondition(
-                    logic_result=True,
+                    logic_result=TriggerResult.TRUE,
                     condition=self.data_condition_two,
                     result=DetectorPriorityLevel.LOW,
                 )
@@ -235,14 +237,14 @@ class TestEvaluateConditionGroupTypeAnyShortCircuit(TestEvaluationConditionCase)
             self.data_condition_group.logic_type,
         )
         expected_result = ProcessedDataConditionGroup(
-            logic_result=False,
+            logic_result=TriggerResult.FALSE,
             condition_results=[],
         )
         assert result == expected_result
 
     def test_evaluate_data_conditions__passes_without_conditions(self) -> None:
         expected_result = ProcessedDataConditionGroup(
-            logic_result=True,
+            logic_result=TriggerResult.TRUE,
             condition_results=[],
         )
         result = evaluate_data_conditions([], self.data_condition_group.logic_type)
@@ -260,15 +262,15 @@ class TestEvaluateConditionGroupTypeAll(TestEvaluationConditionCase):
         )
 
         expected_result = ProcessedDataConditionGroup(
-            logic_result=True,
+            logic_result=TriggerResult.TRUE,
             condition_results=[
                 ProcessedDataCondition(
-                    logic_result=True,
+                    logic_result=TriggerResult.TRUE,
                     condition=self.data_condition,
                     result=DetectorPriorityLevel.HIGH,
                 ),
                 ProcessedDataCondition(
-                    logic_result=True,
+                    logic_result=TriggerResult.TRUE,
                     condition=self.data_condition_two,
                     result=DetectorPriorityLevel.LOW,
                 ),
@@ -281,7 +283,7 @@ class TestEvaluateConditionGroupTypeAll(TestEvaluationConditionCase):
             self.get_conditions_to_evaluate(4), self.data_condition_group.logic_type
         )
         expected_result = ProcessedDataConditionGroup(
-            logic_result=False,
+            logic_result=TriggerResult.FALSE,
             condition_results=[],
         )
         assert result == expected_result
@@ -292,7 +294,7 @@ class TestEvaluateConditionGroupTypeAll(TestEvaluationConditionCase):
         )
 
         expected_result = ProcessedDataConditionGroup(
-            logic_result=False,
+            logic_result=TriggerResult.FALSE,
             condition_results=[],
         )
         assert result == expected_result
@@ -300,7 +302,7 @@ class TestEvaluateConditionGroupTypeAll(TestEvaluationConditionCase):
     def test_evaluate_data_conditions__passes_without_conditions(self) -> None:
         result = evaluate_data_conditions([], self.data_condition_group.logic_type)
         expected_result = ProcessedDataConditionGroup(
-            logic_result=True,
+            logic_result=TriggerResult.TRUE,
             condition_results=[],
         )
         assert result == expected_result
@@ -317,7 +319,7 @@ class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
         )
 
         expected_result = ProcessedDataConditionGroup(
-            logic_result=False,
+            logic_result=TriggerResult.FALSE,
             condition_results=[],
         )
         assert result == expected_result
@@ -327,7 +329,7 @@ class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
             self.get_conditions_to_evaluate(4), self.data_condition_group.logic_type
         )
         expected_result = ProcessedDataConditionGroup(
-            logic_result=False,
+            logic_result=TriggerResult.FALSE,
             condition_results=[],
         )
         assert result == expected_result
@@ -337,7 +339,7 @@ class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
             self.get_conditions_to_evaluate(1), self.data_condition_group.logic_type
         )
         expected_result = ProcessedDataConditionGroup(
-            logic_result=True,
+            logic_result=TriggerResult.TRUE,
             condition_results=[],
         )
 
@@ -366,7 +368,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
 
     def test_basic_remaining_conditions(self) -> None:
         expected_condition_result = ProcessedDataCondition(
-            logic_result=True, condition=self.data_condition, result=True
+            logic_result=TriggerResult.TRUE, condition=self.data_condition, result=True
         )
 
         group_evaluation, remaining_conditions = process_data_condition_group(
@@ -374,7 +376,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
             10,
         )
 
-        assert group_evaluation.logic_result is True
+        assert group_evaluation.logic_result.triggered is True
         assert (
             group_evaluation.condition_results[0].condition.id
             == expected_condition_result.condition.id
@@ -388,7 +390,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
             10,
         )
 
-        assert group_evaluation.logic_result is False
+        assert group_evaluation.logic_result.triggered is False
         assert group_evaluation.condition_results == []
         assert remaining_conditions == [self.slow_condition]
 
@@ -398,7 +400,7 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
             1,
         )
 
-        assert group_evaluation.logic_result is False
+        assert group_evaluation.logic_result.triggered is False
         assert group_evaluation.condition_results == []
         assert remaining_conditions == []
 
@@ -409,9 +411,11 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
             10,
         )
 
-        assert group_evaluation.logic_result is True
+        assert group_evaluation.logic_result.triggered is True
         assert group_evaluation.condition_results == [
-            ProcessedDataCondition(logic_result=True, condition=self.data_condition, result=True)
+            ProcessedDataCondition(
+                logic_result=TriggerResult.TRUE, condition=self.data_condition, result=True
+            )
         ]
         assert remaining_conditions == []
 
@@ -456,3 +460,89 @@ class TestGetSlowConditionsForGroups(TestCase):
             dcg2.id: [condition2, condition4],
             dcg3.id: [condition5],
         }
+
+
+class TestTriggerResult(unittest.TestCase):
+    def test_any_all_untainted_true_returns_untainted_true(self):
+        items = [
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=True, error=None),
+            TriggerResult(triggered=False, error=None),
+        ]
+        result = TriggerResult.any(items)
+        assert result.triggered is True
+        assert result.error is None
+
+    def test_any_only_tainted_true_returns_tainted_true(self):
+        error = ConditionError(msg="test error")
+        items = [
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=True, error=error),
+            TriggerResult(triggered=False, error=None),
+        ]
+        result = TriggerResult.any(items)
+        assert result.triggered is True
+        assert result.error == error
+
+    def test_any_no_true_returns_false_with_error_if_present(self):
+        error = ConditionError(msg="test error")
+        items = [
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=False, error=error),
+            TriggerResult(triggered=False, error=None),
+        ]
+        result = TriggerResult.any(items)
+        assert result.triggered is False
+        assert result.error == error
+
+    def test_any_all_false_untainted_returns_untainted_false(self):
+        items = [
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=False, error=None),
+        ]
+        result = TriggerResult.any(items)
+        assert result.triggered is False
+        assert result.error is None
+
+    def test_all_all_untainted_true_returns_untainted_true(self):
+        items = [
+            TriggerResult(triggered=True, error=None),
+            TriggerResult(triggered=True, error=None),
+            TriggerResult(triggered=True, error=None),
+        ]
+        result = TriggerResult.all(items)
+        assert result.triggered is True
+        assert result.error is None
+
+    def test_all_any_tainted_returns_tainted(self):
+        error = ConditionError(msg="test error")
+        items = [
+            TriggerResult(triggered=True, error=None),
+            TriggerResult(triggered=True, error=error),
+            TriggerResult(triggered=True, error=None),
+        ]
+        result = TriggerResult.all(items)
+        assert result.triggered is True
+        assert result.error == error
+
+    def test_all_with_false_and_tainted_returns_tainted_false(self):
+        error = ConditionError(msg="test error")
+        items = [
+            TriggerResult(triggered=True, error=None),
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=True, error=error),
+        ]
+        result = TriggerResult.all(items)
+        assert result.triggered is False
+        assert result.error == error
+
+    def test_all_all_false_untainted_returns_untainted_false(self):
+        items = [
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=False, error=None),
+        ]
+        result = TriggerResult.all(items)
+        assert result.triggered is False
+        assert result.error is None
