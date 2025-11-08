@@ -1,7 +1,7 @@
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {type ContainerElement} from '@sentry/scraps/layout/container';
 
-export type PlaceholderProps<T extends ContainerElement = 'div'> = FlexProps<T> & {
+type PlaceholderProps<T extends ContainerElement = 'div'> = FlexProps<T> & {
   /**
    * @deprecated Do not use this component as a replacement for empty state.
    */
@@ -26,5 +26,3 @@ export function Placeholder(props: PlaceholderProps<'div'>) {
     />
   );
 }
-
-export default Placeholder;
