@@ -3,7 +3,6 @@ import {uuid4} from '@sentry/core';
 import {t} from 'sentry/locale';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 import {BaseNode} from './baseNode';
@@ -36,7 +35,7 @@ export class RootNode extends BaseNode<null> {
     return null;
   }
 
-  renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<T extends BaseNode>(
     _props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
     return null;

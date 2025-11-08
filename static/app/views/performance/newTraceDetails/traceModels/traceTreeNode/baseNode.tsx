@@ -5,9 +5,15 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Organization} from 'sentry/types/organization';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import {
+  isEAPTransactionNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
+
+import type {EapSpanNode} from './eapSpanNode';
+import type {TransactionNode} from './transactionNode';
 
 export interface TraceTreeNodeExtra {
   organization: Organization;
@@ -254,8 +260,16 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return [...this.uniqueErrorIssues, ...this.uniqueOccurrenceIssues];
   }
 
+  get hasErrors(): boolean {
+    return this.errors.size > 0;
+  }
+
+  get hasOccurrences(): boolean {
+    return this.occurrences.size > 0;
+  }
+
   get hasIssues(): boolean {
-    return this.errors.size > 0 || this.occurrences.size > 0;
+    return this.hasErrors || this.hasOccurrences;
   }
 
   get visibleChildren(): BaseNode[] {
@@ -310,6 +324,22 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return `${this.type}-${this.id}`;
   }
 
+  get transactionId(): string | null {
+    const parentTransaction = this.findParentTransaction();
+
+    if (parentTransaction) {
+      return parentTransaction.transactionId;
+    }
+
+    const parentEapTransaction = this.findParentEapTransaction();
+
+    if (parentEapTransaction) {
+      return parentEapTransaction.transactionId;
+    }
+
+    return null;
+  }
+
   isRootNodeChild(): boolean {
     return this.parent?.value === null;
   }
@@ -319,7 +349,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       return false;
     }
 
-    const visibleChildren = this.parent.visibleChildren;
+    const visibleChildren = this.parent.directVisibleChildren;
     return visibleChildren[visibleChildren.length - 1] === this;
   }
 
@@ -334,7 +364,13 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     const hasMatchingOccurrences = Array.from(this.occurrences).some(
       occurrence => occurrence.event_id === id
     );
-    return this.id === id || hasMatchingErrors || hasMatchingOccurrences;
+
+    return (
+      this.id === id ||
+      this.transactionId === id ||
+      hasMatchingErrors ||
+      hasMatchingOccurrences
+    );
   }
 
   invalidate() {
@@ -346,14 +382,16 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return this.children;
   }
 
-  findChild(predicate: (child: BaseNode) => boolean): BaseNode | null {
+  findChild<ChildType extends BaseNode = BaseNode>(
+    predicate: (child: BaseNode) => boolean
+  ): ChildType | null {
     const queue: BaseNode[] = [...this.getNextTraversalNodes()];
 
     while (queue.length > 0) {
       const next = queue.pop()!;
 
       if (predicate(next)) {
-        return next;
+        return next as ChildType;
       }
 
       const children = next.getNextTraversalNodes();
@@ -365,15 +403,17 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return null;
   }
 
-  findAllChildren(predicate: (child: BaseNode) => boolean): BaseNode[] {
+  findAllChildren<ChildType extends BaseNode = BaseNode>(
+    predicate: (child: BaseNode) => boolean
+  ): ChildType[] {
     const queue: BaseNode[] = [...this.getNextTraversalNodes()];
-    const results: BaseNode[] = [];
+    const results: ChildType[] = [];
 
     while (queue.length > 0) {
       const next = queue.pop()!;
 
       if (predicate(next)) {
-        results.push(next);
+        results.push(next as ChildType);
       }
 
       const children = next.getNextTraversalNodes();
@@ -400,15 +440,25 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     }
   }
 
-  findParent(predicate: (parent: BaseNode) => boolean): BaseNode | null {
+  findParent<ChildType extends BaseNode = BaseNode>(
+    predicate: (parent: BaseNode) => boolean
+  ): ChildType | null {
     let current = this.parent;
     while (current) {
       if (predicate(current)) {
-        return current;
+        return current as ChildType;
       }
       current = current.parent;
     }
     return null;
+  }
+
+  findParentTransaction(): TransactionNode | null {
+    return this.findParent<TransactionNode>(p => isTransactionNode(p));
+  }
+
+  findParentEapTransaction(): EapSpanNode | null {
+    return this.findParent<EapSpanNode>(p => isEAPTransactionNode(p));
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {
@@ -506,7 +556,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     props: TraceRowProps<NodeType>
   ): React.ReactNode;
 
-  abstract renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
+  abstract renderDetails<NodeType extends BaseNode>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode;
 

@@ -6,7 +6,6 @@ import type {EventTransaction} from 'sentry/types/event';
 import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
 
@@ -45,16 +44,8 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     );
   }
 
-  get description(): string | undefined {
-    return this.value.description;
-  }
-
   get endTimestamp(): number {
     return this.value.timestamp;
-  }
-
-  get startTimestamp(): number {
-    return this.value.start_timestamp;
   }
 
   get drawerTabsTitle(): string {
@@ -70,6 +61,12 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
 
   get sdkName(): string | undefined {
     return this.event?.sdk?.name ?? undefined;
+  }
+
+  get projectSlug(): string {
+    // The span value does not have a project slug, so we need to find a parent that has one.
+    // If we don't find one, we return the default project slug.
+    return this.findParent(p => !!p.projectSlug)?.projectSlug ?? 'default';
   }
 
   makeBarColor(theme: Theme): string {
@@ -94,15 +91,13 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<T>
   ): React.ReactNode {
-    return <TraceSpanRow {...props} node={props.node} />;
+    return <TraceSpanRow {...props} node={this} />;
   }
 
-  renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<T extends BaseNode>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
-    return (
-      <SpanNodeDetails {...props} node={props.node as TraceTreeNode<TraceTree.Span>} />
-    );
+    return <SpanNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

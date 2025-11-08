@@ -1,7 +1,6 @@
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isTraceSplitResult} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceRootRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceRootNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
@@ -53,10 +52,10 @@ export class TraceNode extends BaseNode<TraceTree.Trace> {
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<T>
   ): React.ReactNode {
-    return <TraceRootRow {...props} node={props.node} />;
+    return <TraceRootRow {...props} node={this} />;
   }
 
-  renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<T extends BaseNode>(
     _props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
     return null;

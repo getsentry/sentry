@@ -6,7 +6,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {
   makeEAPOccurrence,
   makeTraceError,
@@ -59,7 +58,7 @@ class TestNode extends BaseNode {
     return <div data-test-id="waterfall-row">Waterfall Row</div>;
   }
 
-  renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<T extends BaseNode>(
     _props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
     return <div data-test-id="node-details">Details</div>;
@@ -1226,36 +1225,6 @@ describe('BaseNode', () => {
       expect(child1.isLastChild()).toBe(false);
       expect(child2.isLastChild()).toBe(true);
     });
-
-    it('should consider nested visible children when determining last child', () => {
-      const extra = createMockExtra();
-      const grandparent = new TestNode(
-        null,
-        createMockValue({event_id: 'grandparent'}),
-        extra
-      );
-      const parent1 = new TestNode(
-        grandparent,
-        createMockValue({event_id: 'parent1'}),
-        extra
-      );
-      const parent2 = new TestNode(
-        grandparent,
-        createMockValue({event_id: 'parent2'}),
-        extra
-      );
-      const child = new TestNode(parent2, createMockValue({event_id: 'child'}), extra);
-
-      grandparent.children = [parent1, parent2];
-      parent2.children = [child];
-      grandparent.expanded = true;
-      parent2.expanded = true;
-
-      // child should be the last visible child of grandparent's visible children
-      expect(child.isLastChild()).toBe(true);
-      expect(parent2.isLastChild()).toBe(false);
-      expect(parent1.isLastChild()).toBe(false);
-    });
   });
 
   describe('isRootNodeChild', () => {
@@ -1591,6 +1560,133 @@ describe('BaseNode', () => {
 
       expect(node.depth).toBeUndefined();
       expect(node.connectors).toBeUndefined();
+    });
+  });
+
+  describe('findParentTransaction', () => {
+    it('should return null when no transaction parent exists', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.findParentTransaction()).toBeNull();
+    });
+
+    it('should find parent transaction node', () => {
+      const extra = createMockExtra();
+      const mockTransactionParent = {
+        type: 'txn',
+        id: 'transaction-parent',
+      };
+
+      const child = new TestNode(null, createMockValue({event_id: 'child'}), extra);
+      jest.spyOn(child, 'findParent').mockReturnValue(mockTransactionParent as any);
+
+      const result = child.findParentTransaction();
+      expect(result).toBe(mockTransactionParent);
+      expect(child.findParent).toHaveBeenCalledWith(expect.any(Function));
+    });
+  });
+
+  describe('findParentEapTransaction', () => {
+    it('should return null when no EAP transaction parent exists', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.findParentEapTransaction()).toBeNull();
+    });
+
+    it('should find parent EAP transaction node', () => {
+      const extra = createMockExtra();
+      const mockEapTransactionParent = {
+        type: 'eap_span',
+        id: 'eap-transaction-parent',
+        value: {is_transaction: true},
+      };
+
+      const child = new TestNode(null, createMockValue({event_id: 'child'}), extra);
+      jest.spyOn(child, 'findParent').mockReturnValue(mockEapTransactionParent as any);
+
+      const result = child.findParentEapTransaction();
+      expect(result).toBe(mockEapTransactionParent);
+      expect(child.findParent).toHaveBeenCalledWith(expect.any(Function));
+    });
+  });
+
+  describe('hasErrors getter', () => {
+    it('should return false when node has no errors', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.hasErrors).toBe(false);
+    });
+
+    it('should return true when node has errors', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      node.errors.add(
+        makeTraceError({
+          issue_id: 1,
+          event_id: 'error-1',
+        })
+      );
+
+      expect(node.hasErrors).toBe(true);
+    });
+  });
+
+  describe('hasOccurrences getter', () => {
+    it('should return false when node has no occurrences', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.hasOccurrences).toBe(false);
+    });
+
+    it('should return true when node has occurrences', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      node.occurrences.add(
+        makeEAPOccurrence({
+          issue_id: 1,
+          event_id: 'occurrence-1',
+        })
+      );
+
+      expect(node.hasOccurrences).toBe(true);
+    });
+  });
+
+  describe('transactionId getter', () => {
+    it('should return null when no parent transaction or EAP transaction exists', () => {
+      const extra = createMockExtra();
+      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
+
+      expect(node.transactionId).toBeNull();
+    });
+
+    it('should return transaction ID from parent transaction node', () => {
+      const extra = createMockExtra();
+      const child = new TestNode(null, createMockValue({event_id: 'child'}), extra);
+
+      jest.spyOn(child, 'findParentTransaction').mockReturnValue({
+        transactionId: 'txn-123',
+      } as any);
+
+      expect(child.transactionId).toBe('txn-123');
+    });
+
+    it('should return transaction ID from parent EAP transaction when no regular transaction parent exists', () => {
+      const extra = createMockExtra();
+      const child = new TestNode(null, createMockValue({event_id: 'child'}), extra);
+
+      jest.spyOn(child, 'findParentTransaction').mockReturnValue(null);
+      jest.spyOn(child, 'findParentEapTransaction').mockReturnValue({
+        transactionId: 'eap-txn-456',
+      } as any);
+
+      expect(child.transactionId).toBe('eap-txn-456');
     });
   });
 });

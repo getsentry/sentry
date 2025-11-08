@@ -11,7 +11,6 @@ import {
   isEAPTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
 
@@ -50,19 +49,18 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     this.canAutogroup = !value.is_transaction;
     this.allowNoInstrumentationNodes = !value.is_transaction;
 
-    if (!value.is_transaction) {
-      if (this.parent) {
-        // Propagate errors to the closest EAP transaction for visibility in the initially collapsed
-        // eap-transactions only view, on load
-        for (const error of value.errors) {
-          this.parent.errors.add(error);
-        }
+    const closestEAPTransaction = this.findParentEapTransaction();
+    if (!value.is_transaction && closestEAPTransaction) {
+      // Propagate errors to the closest EAP transaction for visibility in the initially collapsed
+      // eap-transactions only view, on load
+      for (const error of value.errors) {
+        closestEAPTransaction.errors.add(error);
+      }
 
-        // Propagate occurrences to the closest EAP transaction for visibility in the initially collapsed
-        // eap-transactions only view, on load
-        for (const occurrence of value.occurrences) {
-          this.parent.occurrences.add(occurrence);
-        }
+      // Propagate occurrences to the closest EAP transaction for visibility in the initially collapsed
+      // eap-transactions only view, on load
+      for (const occurrence of value.occurrences) {
+        closestEAPTransaction.occurrences.add(occurrence);
       }
     }
 
@@ -116,6 +114,14 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     }
 
     return super.directVisibleChildren;
+  }
+
+  get transactionId(): string | null {
+    if (this.value.is_transaction) {
+      return this.value.transaction_id;
+    }
+
+    return super.transactionId;
   }
 
   private _reparentSSRUnderBrowserRequestSpan(node: BaseNode) {
@@ -250,15 +256,13 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   renderWaterfallRow<T extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<T>
   ): React.ReactNode {
-    return <TraceSpanRow {...props} node={props.node} />;
+    return <TraceSpanRow {...props} node={this} />;
   }
 
-  renderDetails<T extends TraceTreeNode<TraceTree.NodeValue>>(
+  renderDetails<T extends BaseNode>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
-    return (
-      <SpanNodeDetails {...props} node={props.node as TraceTreeNode<TraceTree.EAPSpan>} />
-    );
+    return <SpanNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {
