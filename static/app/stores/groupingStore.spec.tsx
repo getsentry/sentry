@@ -1,107 +1,106 @@
+import {http, HttpResponse} from 'msw';
+
+import {server} from 'sentry-test/msw';
+
 import * as GroupActionCreators from 'sentry/actionCreators/group';
 import GroupingStore from 'sentry/stores/groupingStore';
 
 describe('Grouping Store', () => {
   let trigger!: jest.SpyInstance;
 
-  beforeAll(() => {
-    MockApiClient.asyncDelay = 1;
-  });
-
-  afterAll(() => {
-    MockApiClient.asyncDelay = undefined;
-  });
-
   beforeEach(() => {
     GroupingStore.init();
     trigger = jest.spyOn(GroupingStore, 'trigger');
-    MockApiClient.addMockResponse({
-      url: '/issues/groupId/hashes/',
-      body: [
-        {
-          latestEvent: {
-            eventID: 'event-1',
-          },
-          state: 'locked',
-          id: '1',
-        },
-        {
-          latestEvent: {
-            eventID: 'event-2',
-          },
-          state: 'unlocked',
-          id: '2',
-          mergedBySeer: true,
-        },
-        {
-          latestEvent: {
-            eventID: 'event-3',
-          },
-          state: 'unlocked',
-          id: '3',
-        },
-        {
-          latestEvent: {
-            eventID: 'event-4',
-          },
-          state: 'unlocked',
-          id: '4',
-          mergedBySeer: true,
-        },
-        {
-          latestEvent: {
-            eventID: 'event-5',
-          },
-          state: 'locked',
-          id: '5',
-        },
-      ],
-    });
-    MockApiClient.addMockResponse({
-      url: '/issues/groupId/similar/',
-      body: [
-        [
+
+    globalThis.__USE_REAL_API__ = true;
+
+    server.use(
+      http.get('*/issues/groupId/hashes/', () => {
+        return HttpResponse.json([
           {
-            id: '274',
+            latestEvent: {
+              eventID: 'event-1',
+            },
+            state: 'locked',
+            id: '1',
           },
           {
-            'exception:stacktrace:pairs': 0.375,
-            'exception:stacktrace:application-chunks': 0.175,
-            'message:message:character-shingles': 0.775,
-          },
-        ],
-        [
-          {
-            id: '275',
-          },
-          {'exception:stacktrace:pairs': 1.0},
-        ],
-        [
-          {
-            id: '216',
+            latestEvent: {
+              eventID: 'event-2',
+            },
+            state: 'unlocked',
+            id: '2',
+            mergedBySeer: true,
           },
           {
-            'exception:stacktrace:application-chunks': 0.000235,
-            'exception:stacktrace:pairs': 0.001488,
-          },
-        ],
-        [
-          {
-            id: '217',
+            latestEvent: {
+              eventID: 'event-3',
+            },
+            state: 'unlocked',
+            id: '3',
           },
           {
-            'exception:message:character-shingles': null,
-            'exception:stacktrace:application-chunks': 0.25,
-            'exception:stacktrace:pairs': 0.25,
-            'message:message:character-shingles': 0.7,
+            latestEvent: {
+              eventID: 'event-4',
+            },
+            state: 'unlocked',
+            id: '4',
+            mergedBySeer: true,
           },
-        ],
-      ],
-    });
+          {
+            latestEvent: {
+              eventID: 'event-5',
+            },
+            state: 'locked',
+            id: '5',
+          },
+        ]);
+      }),
+      http.get('*/issues/groupId/similar/', () => {
+        return HttpResponse.json([
+          [
+            {
+              id: '274',
+            },
+            {
+              'exception:stacktrace:pairs': 0.375,
+              'exception:stacktrace:application-chunks': 0.175,
+              'message:message:character-shingles': 0.775,
+            },
+          ],
+          [
+            {
+              id: '275',
+            },
+            {'exception:stacktrace:pairs': 1.0},
+          ],
+          [
+            {
+              id: '216',
+            },
+            {
+              'exception:stacktrace:application-chunks': 0.000235,
+              'exception:stacktrace:pairs': 0.001488,
+            },
+          ],
+          [
+            {
+              id: '217',
+            },
+            {
+              'exception:message:character-shingles': null,
+              'exception:stacktrace:application-chunks': 0.25,
+              'exception:stacktrace:pairs': 0.25,
+              'message:message:character-shingles': 0.7,
+            },
+          ],
+        ]);
+      })
+    );
   });
 
   afterEach(() => {
-    MockApiClient.clearMockResponses();
+    globalThis.__USE_REAL_API__ = false;
     jest.resetAllMocks();
     jest.restoreAllMocks();
   });
@@ -177,12 +176,16 @@ describe('Grouping Store', () => {
     });
 
     it('unsuccessfully fetches list of similar items', () => {
-      MockApiClient.clearMockResponses();
-      MockApiClient.addMockResponse({
-        url: '/issues/groupId/similar/',
-        statusCode: 500,
-        body: {message: 'failed'},
-      });
+      server.use(
+        http.get('*/issues/groupId/similar/', () => {
+          return HttpResponse.json(
+            {message: 'failed'},
+            {
+              status: 500,
+            }
+          );
+        })
+      );
 
       const promise = GroupingStore.onFetch([
         {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
@@ -267,12 +270,16 @@ describe('Grouping Store', () => {
     });
 
     it('unsuccessfully fetches list of hashes items', () => {
-      MockApiClient.clearMockResponses();
-      MockApiClient.addMockResponse({
-        url: '/issues/groupId/hashes/',
-        statusCode: 500,
-        body: {message: 'failed'},
-      });
+      server.use(
+        http.get('*/issues/groupId/hashes/', () => {
+          return HttpResponse.json(
+            {message: 'failed'},
+            {
+              status: 500,
+            }
+          );
+        })
+      );
 
       const promise = GroupingStore.onFetch([
         {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
@@ -342,11 +349,11 @@ describe('Grouping Store', () => {
 
     describe('onMerge', () => {
       beforeEach(() => {
-        MockApiClient.clearMockResponses();
-        MockApiClient.addMockResponse({
-          method: 'PUT',
-          url: '/projects/orgId/projectId/issues/',
-        });
+        server.use(
+          http.put('*/projects/orgId/projectId/issues/', () => {
+            return HttpResponse.json({});
+          })
+        );
         GroupingStore.init();
       });
 
@@ -467,13 +474,16 @@ describe('Grouping Store', () => {
       });
 
       it('resets busy state and has same items checked after error when trying to merge', async () => {
-        MockApiClient.clearMockResponses();
-        MockApiClient.addMockResponse({
-          method: 'PUT',
-          url: '/projects/orgId/projectId/issues/',
-          statusCode: 500,
-          body: {},
-        });
+        server.use(
+          http.put('*/projects/orgId/projectId/issues/', () => {
+            return HttpResponse.json(
+              {},
+              {
+                status: 500,
+              }
+            );
+          })
+        );
 
         GroupingStore.onToggleMerge('1');
         mergeList = ['1'];
@@ -626,11 +636,11 @@ describe('Grouping Store', () => {
     // add a beforeEach(() => GroupingStore.init())
     describe('onUnmerge', () => {
       beforeEach(() => {
-        MockApiClient.clearMockResponses();
-        MockApiClient.addMockResponse({
-          method: 'PUT',
-          url: '/organizations/org-slug/issues/groupId/hashes/',
-        });
+        server.use(
+          http.put('*/organizations/org-slug/issues/groupId/hashes/', () => {
+            return HttpResponse.json({});
+          })
+        );
       });
 
       it('can not toggle unmerge for a locked item', () => {
@@ -728,13 +738,16 @@ describe('Grouping Store', () => {
       });
 
       it('resets busy state and has same items checked after error when trying to merge', async () => {
-        MockApiClient.clearMockResponses();
-        MockApiClient.addMockResponse({
-          method: 'PUT',
-          url: '/organizations/org-slug/issues/groupId/hashes/',
-          statusCode: 500,
-          body: {},
-        });
+        server.use(
+          http.put('*/organizations/org-slug/issues/groupId/hashes/', () => {
+            return HttpResponse.json(
+              {},
+              {
+                status: 500,
+              }
+            );
+          })
+        );
 
         GroupingStore.onToggleUnmerge(['2', 'event-2']);
         unmergeList.set('2', 'event-2');
