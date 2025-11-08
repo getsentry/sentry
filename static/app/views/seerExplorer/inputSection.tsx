@@ -54,6 +54,13 @@ function InputSection({
     }
   }, [menuMode, setMenuMode, clearInput, textAreaRef, onInputClick]);
 
+  const onInputClickWithCloseMenu = useCallback(() => {
+    onInputClick();
+    if (menuMode !== 'slash-commands-keyboard') {
+      setMenuMode('hidden');
+    }
+  }, [onInputClick, setMenuMode, menuMode]);
+
   return (
     <InputBlock>
       <ExplorerMenu />
@@ -71,7 +78,7 @@ function InputSection({
           value={inputValue}
           onChange={onInputChange}
           onKeyDown={onKeyDown}
-          onClick={onInputClick}
+          onClick={onInputClickWithCloseMenu}
           placeholder={getPlaceholder()}
           rows={1}
           data-test-id="seer-explorer-input"
