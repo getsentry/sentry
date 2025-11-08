@@ -98,10 +98,11 @@ function formatBreadcrumbsForCopy(
           timestamp = `${diffMs > 0 ? '+' : ''}${diffMs}ms`;
         } else {
           // More than 1 minute, show minutes and seconds
-          const diffSeconds = Math.floor(diffMs / 1000);
-          const minutes = Math.floor(diffSeconds / 60);
-          const seconds = diffSeconds % 60;
-          timestamp = `${diffSeconds > 0 ? '+' : ''}${minutes}min ${Math.abs(seconds)}s`;
+          const absDiffSeconds = Math.abs(Math.floor(diffMs / 1000));
+          const minutes = Math.floor(absDiffSeconds / 60);
+          const seconds = absDiffSeconds % 60;
+          const sign = diffMs > 0 ? '+' : '';
+          timestamp = `${sign}${minutes}min ${seconds}s`;
         }
       } else {
         // Use absolute timestamp in a readable format
