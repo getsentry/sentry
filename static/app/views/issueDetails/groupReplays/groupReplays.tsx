@@ -244,6 +244,7 @@ function GroupReplaysTable({
 
   const replayTable = (
     <ReplayTable
+      eventView={eventView}
       columns={[
         ...(selectedReplay ? [ReplayPlayPauseColumn] : []),
         ...(allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
