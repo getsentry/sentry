@@ -527,7 +527,7 @@ def get_replay_metadata(
 
     Returns:
         A dict containing the metadata for the replay, or None if it's not found.
-        The return type is ReplayDetailsResponse.
+        The return type should conform to ReplayDetailsResponse (may have extra fields).
     """
     try:
         organization = Organization.objects.get(id=organization_id)
@@ -567,4 +567,9 @@ def get_replay_metadata(
         )
         return None
 
-    return resp.data["data"]
+    # Add project_slug field.
+    result = resp.data["data"]
+    project = Project.objects.get(id=result["project_id"])
+    result["project_slug"] = project.slug
+
+    return result

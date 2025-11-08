@@ -272,8 +272,7 @@ class Client implements ApiNamespace.Client {
             abort: () => {},
             then: () => {},
             error: () => {},
-          },
-          new XMLHttpRequest()
+          }
         );
 
         this.handleRequestError(
