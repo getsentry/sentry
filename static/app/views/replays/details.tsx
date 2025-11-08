@@ -61,18 +61,25 @@ export default function ReplayDetails() {
     },
   });
 
-  const start = playlistStart === '' ? query.start : playlistStart;
-  const end = playlistEnd === '' ? query.end : playlistEnd;
+  let playlistEnabled = false;
+  if (
+    playlistStart !== '' &&
+    playlistEnd !== '' &&
+    organization.features.includes('replay-playlist-view')
+  ) {
+    playlistEnabled = true;
+    query.start = playlistStart;
+    query.end = playlistEnd;
+  }
 
   const queryKey = useReplayListQueryKey({
-    options: {query: {...query, start, end}},
+    options: {query: {...query}},
     organization,
     queryReferrer: 'replayList',
   });
   const {data} = useApiQuery<{
     data: ReplayListRecord[];
-    enabled: true;
-  }>(queryKey, {staleTime: 0});
+  }>(queryKey, {staleTime: 0, enabled: playlistEnabled});
 
   const replays = useMemo(() => data?.data?.map(mapResponseToReplayRecord) ?? [], [data]);
 
