@@ -567,7 +567,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     query.sort = location.query.sort ?? encodeSort(DEFAULT_SORT);
 
     if (location.query.cursor) {
-      query = {...query, ...{cursor: location.query.cursor}};
+      query.cursor = location.query.cursor;
     }
 
     const replayDetailsPathname = makeReplaysPathname({
