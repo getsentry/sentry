@@ -9,6 +9,7 @@ import {useSeerExplorer} from './hooks/useSeerExplorer';
 import BlockComponent from './blockComponents';
 import EmptyState from './emptyState';
 import type {MenuAction} from './explorerMenu';
+import ExplorerPanelContext from './explorerPanelContext';
 import InputSection from './inputSection';
 import PanelContainers, {BlocksContainer} from './panelContainers';
 import type {Block, ExplorerPanelProps} from './types';
@@ -256,6 +257,22 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     }
   };
 
+  // Useful callbacks and state for the input controls.
+  const contextValue = {
+    inputValue,
+    focusedBlockIndex,
+    isPolling,
+    interruptRequested,
+    onInputChange: handleInputChange,
+    onKeyDown: handleKeyDown,
+    onInputClick: handleInputClick,
+    onCommandSelect: handleCommandSelect,
+    onMenuVisibilityChange: setIsMenuOpen,
+    onMaxSize: handleMaxSize,
+    onMedSize: handleMedSize,
+    onNew: startNewSession,
+  };
+
   const panelContent = (
     <PanelContainers
       ref={panelRef}
@@ -306,21 +323,9 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
           ))
         )}
       </BlocksContainer>
-      <InputSection
-        ref={textareaRef}
-        inputValue={inputValue}
-        focusedBlockIndex={focusedBlockIndex}
-        isPolling={isPolling}
-        interruptRequested={interruptRequested}
-        onInputChange={handleInputChange}
-        onKeyDown={handleKeyDown}
-        onInputClick={handleInputClick}
-        onCommandSelect={handleCommandSelect}
-        onMenuVisibilityChange={setIsMenuOpen}
-        onMaxSize={handleMaxSize}
-        onMedSize={handleMedSize}
-        onNew={startNewSession}
-      />
+      <ExplorerPanelContext.Provider value={contextValue}>
+        <InputSection textAreaRef={textareaRef} />
+      </ExplorerPanelContext.Provider>
     </PanelContainers>
   );
 

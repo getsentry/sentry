@@ -5,39 +5,24 @@ import {Button} from '@sentry/scraps/button';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-import ExplorerMenu, {type MenuAction} from './explorerMenu';
-
-interface InputSectionProps {
-  focusedBlockIndex: number;
-  inputValue: string;
-  interruptRequested: boolean;
-  isPolling: boolean;
-  onCommandSelect: (command: MenuAction) => void;
-  onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onInputClick: () => void;
-  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  onMaxSize: () => void;
-  onMedSize: () => void;
-  onMenuVisibilityChange: (isVisible: boolean) => void;
-  onNew: () => void;
-  ref?: React.RefObject<HTMLTextAreaElement | null>;
-}
+import ExplorerMenu from './explorerMenu';
+import {useExplorerPanelContext} from './explorerPanelContext';
 
 function InputSection({
-  inputValue,
-  focusedBlockIndex,
-  isPolling,
-  interruptRequested,
-  onNew,
-  onInputChange,
-  onKeyDown,
-  onInputClick,
-  onCommandSelect,
-  onMenuVisibilityChange,
-  onMaxSize,
-  onMedSize,
-  ref,
-}: InputSectionProps) {
+  textAreaRef,
+}: {
+  textAreaRef?: React.RefObject<HTMLTextAreaElement | null>;
+}) {
+  const {
+    inputValue,
+    focusedBlockIndex,
+    isPolling,
+    interruptRequested,
+    onInputChange,
+    onKeyDown,
+    onInputClick,
+  } = useExplorerPanelContext();
+
   const getPlaceholder = () => {
     if (focusedBlockIndex !== -1) {
       return 'Press Tab ⇥ to return here';
@@ -54,20 +39,13 @@ function InputSection({
   return (
     <InputBlock>
       <InputContainer onClick={onInputClick}>
-        <ExplorerMenu
-          inputValue={inputValue}
-          onCommandSelect={onCommandSelect}
-          onVisibilityChange={onMenuVisibilityChange}
-          onMaxSize={onMaxSize}
-          onMedSize={onMedSize}
-          onNew={onNew}
-        />
+        <ExplorerMenu />
         <InputRow>
           <Button onClick={() => {}}>
             <ChevronIcon direction="right" size="sm" />
           </Button>
           <InputTextarea
-            ref={ref}
+            ref={textAreaRef}
             value={inputValue}
             onChange={onInputChange}
             onKeyDown={onKeyDown}

@@ -4,29 +4,23 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
+import {useExplorerPanelContext} from './explorerPanelContext';
+
 export interface MenuAction {
   description: string;
   handler: () => void;
   title: string;
 }
 
-interface ExplorerMenuProps {
-  inputValue: string;
-  onCommandSelect: (command: MenuAction) => void;
-  onMaxSize: () => void;
-  onMedSize: () => void;
-  onNew: () => void;
-  onVisibilityChange?: (isVisible: boolean) => void;
-}
-
-function ExplorerMenu({
-  inputValue,
-  onCommandSelect,
-  onMaxSize,
-  onMedSize,
-  onNew,
-  onVisibilityChange,
-}: ExplorerMenuProps) {
+function ExplorerMenu() {
+  const {
+    inputValue,
+    onCommandSelect,
+    onMaxSize,
+    onMedSize,
+    onNew,
+    onMenuVisibilityChange,
+  } = useExplorerPanelContext();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const openFeedbackForm = useFeedbackForm();
 
@@ -70,6 +64,9 @@ function ExplorerMenu({
 
   // Filter commands based on current input
   const filteredCommands = useMemo(() => {
+    if (!inputValue.startsWith('/') || inputValue.includes(' ')) {
+      return [];
+    }
     const query = inputValue.toLowerCase();
     return DEFAULT_SLASH_COMMANDS.filter(cmd =>
       cmd.title.toLowerCase().startsWith(query)
@@ -86,8 +83,8 @@ function ExplorerMenu({
 
   // Notify parent when visibility changes
   useEffect(() => {
-    onVisibilityChange?.(showSuggestions);
-  }, [showSuggestions, onVisibilityChange]);
+    onMenuVisibilityChange?.(showSuggestions);
+  }, [showSuggestions, onMenuVisibilityChange]);
 
   // Handle keyboard navigation with higher priority
   const handleKeyDown = useCallback(
