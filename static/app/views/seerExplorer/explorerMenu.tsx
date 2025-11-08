@@ -16,7 +16,7 @@ export interface MenuItemProps {
 }
 
 export function ExplorerMenu() {
-  const {menuMode, setMenuMode, inputValue, clearInput, textAreaRef} =
+  const {menuMode, setMenuMode, inputValue, clearInput, textAreaRef, panelSize} =
     useExplorerPanelContext();
 
   const allSlashCommands = useSlashCommands();
@@ -132,7 +132,7 @@ export function ExplorerMenu() {
 
   return (
     <Activity mode={isVisible ? 'visible' : 'hidden'}>
-      <MenuPanel>
+      <MenuPanel panelSize={panelSize}>
         {menuItems.map((item, index) => (
           <MenuItem
             key={item.key}
@@ -244,7 +244,9 @@ function useSessions() {
   };
 }
 
-const MenuPanel = styled('div')`
+const MenuPanel = styled('div')<{
+  panelSize: 'max' | 'med';
+}>`
   position: absolute;
   bottom: 100%;
   left: ${space(2)};
@@ -254,7 +256,8 @@ const MenuPanel = styled('div')`
   border-bottom: none;
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  max-height: 500px;
+  max-height: ${p =>
+    p.panelSize === 'max' ? 'calc(100vh - 120px)' : `calc(50vh - 80px)`};
   overflow-y: auto;
   z-index: 10;
 `;

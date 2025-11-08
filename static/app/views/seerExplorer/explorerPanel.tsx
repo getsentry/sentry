@@ -288,6 +288,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     onNew: startNewSession,
     onResume: resumeSession,
     textAreaRef: textareaRef,
+    panelSize,
   };
 
   const panelContent = (
