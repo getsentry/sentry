@@ -37,10 +37,7 @@ export class Client extends MockClient {
 
   requestPromise(path: string, options?: any): Promise<any> {
     if (globalThis.__USE_REAL_API__) {
-      return (
-        this.realClient?.requestPromise(path, options) ??
-        Promise.reject(new Error('Real client not initialized'))
-      );
+      return this.realClient?.requestPromise(path, options);
     }
     return super.requestPromise(path, options);
   }
