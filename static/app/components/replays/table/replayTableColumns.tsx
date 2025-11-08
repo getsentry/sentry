@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 import invariant from 'invariant';
 import {PlatformIcon} from 'platformicons';
 
@@ -555,15 +556,15 @@ export const ReplaySessionColumn: ReplayTableColumn = {
 
     const referrer = getRouteStringFromRoutes(routes);
 
-    // HACK!!! Because the sort field needs to be in the eventView, but I cannot
-    // ask the server for compound fields like `os.name`.
-    const sort = location.query.sort ?? encodeSort(DEFAULT_SORT);
-
-    let query = {referrer, sort};
+    let query: Query = {referrer};
 
     if (eventView) {
       query = {...query, ...generateQueryStringObjectWithPlaylist(eventView)};
     }
+
+    // HACK!!! Because the sort field needs to be in the eventView, but I cannot
+    // ask the server for compound fields like `os.name`.
+    query.sort = location.query.sort ?? encodeSort(DEFAULT_SORT);
 
     if (location.query.cursor) {
       query = {...query, ...{cursor: location.query.cursor}};
