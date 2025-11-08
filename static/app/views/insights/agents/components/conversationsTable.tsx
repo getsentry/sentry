@@ -1,7 +1,10 @@
 import {Fragment, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import Pagination, {type CursorHandler} from 'sentry/components/pagination';
+import {Flex} from '@sentry/scraps/layout';
+
+import {Button} from 'sentry/components/core/button';
+import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -11,13 +14,14 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
 import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
 import {hasGenAiConversationsFeature} from 'sentry/views/insights/agents/utils/features';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
@@ -52,9 +56,10 @@ export function ConversationsTable() {
 const EMPTY_ARRAY: never[] = [];
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
-  {key: 'conversationId', name: t('Conversation ID'), width: 150},
+  {key: 'conversationId', name: t('Conversation ID'), width: 135},
+  {key: 'traceIds', name: t('Traces'), width: 130},
   {key: 'flow', name: t('Flow'), width: COL_WIDTH_UNDEFINED}, // Containing summary of the conversation or list of agents
-  {key: 'duration', name: t('Root Duration'), width: 130},
+  {key: 'duration', name: t('Duration'), width: 130},
   {key: 'errors', name: t('Errors'), width: 100},
   {key: 'llmCalls', name: t('LLM Calls'), width: 110},
   {key: 'toolCalls', name: t('Tool Calls'), width: 110},
@@ -69,21 +74,20 @@ const rightAlignColumns = new Set([
   'toolCalls',
   'totalTokens',
   'totalCost',
+  'timestamp',
+  'duration',
 ]);
 
 function ConversationsTableInner() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const organization = useOrganization();
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
   });
 
-  // Fetch data from the API
-  const queryCursor =
-    typeof location.query.tableCursor === 'string'
-      ? location.query.tableCursor
-      : undefined;
+  const {cursor, setCursor} = useTableCursor();
+  const pageFilters = usePageFilters();
+
+  const {start, end, period, utc} = pageFilters.selection.datetime;
 
   const {
     data = [],
@@ -93,7 +97,17 @@ function ConversationsTableInner() {
   } = useApiQuery<TableData[]>(
     [
       `/organizations/${organization.slug}/ai-conversations/`,
-      {query: {cursor: queryCursor}},
+      {
+        query: {
+          cursor,
+          project: pageFilters.selection.projects,
+          environment: pageFilters.selection.environments,
+          period,
+          start: start instanceof Date ? getUtcDateString(start) : start,
+          end: end instanceof Date ? getUtcDateString(end) : end,
+          utc,
+        },
+      },
     ],
     {
       staleTime: 0,
@@ -101,19 +115,6 @@ function ConversationsTableInner() {
   );
 
   const pageLinks = getResponseHeader?.('Link');
-
-  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
-    navigate(
-      {
-        pathname,
-        query: {
-          ...previousQuery,
-          tableCursor: cursor,
-        },
-      },
-      {replace: true, preventScrollReset: true}
-    );
-  };
 
   const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
     return (
@@ -149,7 +150,7 @@ function ConversationsTableInner() {
           }}
         />
       </GridEditableContainer>
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Pagination pageLinks={pageLinks} onCursor={setCursor} />
     </Fragment>
   );
 }
@@ -164,10 +165,26 @@ const BodyCell = memo(function BodyCell({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const {openTraceViewDrawer} = useTraceViewDrawer();
 
   switch (column.key) {
     case 'conversationId':
-      return <span>{dataRow.conversationId}</span>;
+      return dataRow.conversationId.slice(0, 8);
+    case 'traceIds':
+      return (
+        <Flex align="start" direction="column" gap="sm">
+          {dataRow.traceIds.length > 0 &&
+            dataRow.traceIds.map(traceId => (
+              <TraceIdButton
+                key={traceId}
+                priority="link"
+                onClick={() => openTraceViewDrawer(traceId)}
+              >
+                {traceId.slice(0, 8)}
+              </TraceIdButton>
+            ))}
+        </Flex>
+      );
     case 'flow':
       return <span>{dataRow.flow.join(' → ')}</span>;
     case 'duration':
@@ -225,4 +242,8 @@ const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   align-items: center;
   gap: ${p => p.theme.space.xs};
   justify-content: ${p => (p.align === 'right' ? 'flex-end' : 'flex-start')};
+`;
+
+const TraceIdButton = styled(Button)`
+  font-weight: normal;
 `;

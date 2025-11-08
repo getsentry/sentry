@@ -396,14 +396,18 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([]);
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
 export const withoutMetricsSupport: Set<PlatformKey> = new Set([]);
 
+export const limitedMetricsSupportPrefixes: Set<string> = new Set([
+  'javascript',
+  'node',
+  'python',
+]);
+
 export const profiling: PlatformKey[] = [
   'android',
   'apple',
   'apple-ios',
   'apple-macos',
   'dotnet',
-  'dotnet-winforms',
-  'dotnet-wpf',
   'flutter',
   'javascript',
   'javascript-angular',
@@ -421,6 +425,7 @@ export const profiling: PlatformKey[] = [
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
   'javascript-vue',
+
   'node',
   'node-awslambda',
   'node-azurefunctions',
@@ -725,6 +730,11 @@ export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   'javascript-solidstart',
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
+  ...platformKeys.filter(id => id.startsWith('node')),
+  ...platformKeys.filter(id => id.startsWith('python')),
+]);
+
+export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   ...platformKeys.filter(id => id.startsWith('node')),
   ...platformKeys.filter(id => id.startsWith('python')),
 ]);

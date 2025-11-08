@@ -50,10 +50,7 @@ export function ColumnEditorModal({
   const tags: Array<SelectOption<string>> = useMemo(() => {
     let allTags = [
       ...columns
-        .filter(
-          column =>
-            !stringTags.hasOwnProperty(column) && !numberTags.hasOwnProperty(column)
-        )
+        .filter(column => !(column in stringTags) && !(column in numberTags))
         .map(column => {
           const kind = classifyTagKey(column);
           const label = prettifyTagKey(column);

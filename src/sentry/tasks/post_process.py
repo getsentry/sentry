@@ -1046,13 +1046,6 @@ def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    org = job["event"].project.organization
-    if not (
-        features.has("organizations:workflow-engine-process-metric-issue-workflows", org)
-        or features.has("organizations:workflow-engine-single-process-metric-issues", org)
-    ):
-        return
-
     process_workflow_engine(job)
 
 
@@ -1263,6 +1256,9 @@ def process_service_hooks(job: PostProcessJob) -> None:
 
 
 def process_resource_change_bounds(job: PostProcessJob) -> None:
+    if not should_process_resource_change_bounds(job):
+        return
+
     if job["is_reprocessed"]:
         return
 
@@ -1282,6 +1278,64 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
         process_resource_change_bound.delay(
             action="created", sender="Group", instance_id=event.group_id
         )
+
+
+def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
+    # Feature flag check for expanded sentry apps webhooks
+    has_expanded_sentry_apps_webhooks = features.has(
+        "organizations:expanded-sentry-apps-webhooks", job["event"].project.organization
+    )
+    group_category = job["event"].group.issue_category
+
+    if group_category != GroupCategory.ERROR and not has_expanded_sentry_apps_webhooks:
+        return False
+
+    supported_group_categories = [
+        GroupCategory(category)
+        for category in options.get("sentry-apps.expanded-webhook-categories")
+    ]
+    if group_category not in supported_group_categories:
+        return False
+
+    return True
+
+
+def process_data_forwarding(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    event = job["event"]
+
+    if not features.has("organizations:data-forwarding-revamp-access", event.project.organization):
+        return
+
+    from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
+    from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+
+    data_forwarder_projects = DataForwarderProject.objects.filter(
+        project_id=event.project_id,
+        is_enabled=True,
+        data_forwarder__is_enabled=True,
+    ).select_related("data_forwarder")
+
+    for data_forwarder_project in data_forwarder_projects:
+        provider = data_forwarder_project.data_forwarder.provider
+        try:
+            # GroupEvent is compatible with Event for all operations forwarders need
+            FORWARDER_REGISTRY[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
+            metrics.incr(
+                "data_forwarding.forward_event",
+                tags={"provider": provider},
+            )
+        except Exception:
+            metrics.incr(
+                "data_forwarding.forward_event.error",
+                tags={"provider": provider},
+            )
+            logger.exception(
+                "data_forwarding.forward_event.error",
+                extra={"provider": provider, "project_id": event.project_id},
+            )
 
 
 def process_plugins(job: PostProcessJob) -> None:
@@ -1612,7 +1666,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if lock.locked():
         return
 
-    seer_enabled = get_seer_org_acknowledgement(group.organization.id)
+    seer_enabled = get_seer_org_acknowledgement(group.organization)
     if not seer_enabled:
         return
 
@@ -1647,6 +1701,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_workflow_engine_issue_alerts,
         process_service_hooks,
         process_resource_change_bounds,
+        process_data_forwarding,
         process_plugins,
         process_code_mappings,
         process_similarity,
@@ -1662,6 +1717,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         feedback_filter_decorator(process_snoozes),
         feedback_filter_decorator(process_inbox_adds),
         feedback_filter_decorator(process_rules),
+        feedback_filter_decorator(process_resource_change_bounds),
     ],
     GroupCategory.METRIC_ALERT: [
         process_workflow_engine_metric_issues,
@@ -1673,4 +1729,6 @@ GENERIC_POST_PROCESS_PIPELINE = [
     process_inbox_adds,
     kick_off_seer_automation,
     process_rules,
+    process_resource_change_bounds,
+    process_data_forwarding,
 ]

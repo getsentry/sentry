@@ -10,7 +10,7 @@ from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
-from typing import Any, TypedDict, Union
+from typing import Any, Literal, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import UUID, uuid4
@@ -1172,6 +1172,17 @@ class SnubaTestCase(BaseTestCase):
         files = {
             f"trace_metric_{i}": trace_metric.SerializeToString()
             for i, trace_metric in enumerate(trace_metrics)
+        }
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            files=files,
+        )
+        assert response.status_code == 200
+
+    def store_profile_functions(self, profile_functions):
+        files = {
+            f"profile_functions_{i}": profile_function.SerializeToString()
+            for i, profile_function in enumerate(profile_functions)
         }
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
@@ -3480,6 +3491,8 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
         self,
         metric_name: str,
         metric_value: float,
+        metric_type: Literal["counter", "distribution", "gauge"],
+        metric_unit: str | None = None,
         organization: Organization | None = None,
         project: Project | None = None,
         timestamp: datetime | None = None,
@@ -3505,8 +3518,17 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
 
         attributes_proto = {
             "sentry.metric_name": AnyValue(string_value=metric_name),
+            "sentry.metric_type": AnyValue(string_value=metric_type),
             "sentry.value": AnyValue(double_value=metric_value),
+            f"sentry._internal.cooccuring.name.{metric_name}": AnyValue(bool_value=True),
+            f"sentry._internal.cooccuring.type.{metric_type}": AnyValue(bool_value=True),
         }
+
+        if metric_unit is not None:
+            attributes_proto["sentry.metric_unit"] = AnyValue(string_value=metric_unit)
+            attributes_proto[f"sentry._internal.cooccuring.unit.{metric_unit}"] = AnyValue(
+                bool_value=True
+            )
 
         if attributes:
             for k, v in attributes.items():
@@ -3516,6 +3538,51 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
             organization_id=organization.id,
             project_id=project.id,
             item_type=TraceItemType.TRACE_ITEM_TYPE_METRIC,
+            timestamp=timestamp_proto,
+            trace_id=trace_id or uuid4().hex,
+            item_id=item_id.bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes=attributes_proto,
+        )
+
+
+class ProfileFunctionsTestCase(BaseTestCase, TraceItemTestCase):
+    def create_profile_function(
+        self,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        timestamp: datetime | None = None,
+        trace_id: str | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> TraceItem:
+        if organization is None:
+            organization = self.organization
+            assert organization is not None
+
+        if project is None:
+            project = self.project
+            assert project is not None
+
+        if timestamp is None:
+            timestamp = datetime.now() - timedelta(minutes=1)
+            assert timestamp is not None
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        item_id = self.random_item_id()
+
+        attributes_proto = {}
+
+        if attributes:
+            for k, v in attributes.items():
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
             timestamp=timestamp_proto,
             trace_id=trace_id or uuid4().hex,
             item_id=item_id.bytes,

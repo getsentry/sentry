@@ -30,6 +30,7 @@ import {
 } from 'sentry/views/alerts/rules/crons/utils';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
+import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
@@ -228,6 +229,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 showUnknownLegend={showUnknownLegend}
               />
             </Section>
+            <DetectorDetailsDescription description={detector.description} />
             <DetectorExtraDetails>
               <KeyValueTableRow
                 keyName={t('Monitor slug')}
@@ -236,6 +238,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                     <Text ellipsis>{dataSource.queryObj.slug}</Text>
                     <CopyToClipboardButton
                       text={dataSource.queryObj.slug}
+                      aria-label={t('Copy monitor slug to clipboard')}
                       size="zero"
                       borderless
                     />

@@ -2,7 +2,6 @@ import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
-import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -12,9 +11,6 @@ import GridEditable, {
 import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -26,10 +22,11 @@ import {
 } from 'sentry/views/insights/agents/components/common';
 import {
   HeadSortCell,
-  useTableSortParams,
+  useTableSort,
 } from 'sentry/views/insights/agents/components/headSortCell';
 import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
+import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
 import {formatLLMCosts} from 'sentry/views/insights/agents/utils/formatLLMCosts';
 import {getAIGenerationsFilter} from 'sentry/views/insights/agents/utils/query';
@@ -87,8 +84,6 @@ const rightAlignColumns = new Set([
 ]);
 
 export function ModelsTable() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const organization = useOrganization();
   const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
     columns: defaultColumnOrder,
@@ -96,22 +91,9 @@ export function ModelsTable() {
 
   const fullQuery = useCombinedQuery(getAIGenerationsFilter());
 
-  const handleCursor: CursorHandler = (cursor, pathname, previousQuery) => {
-    navigate(
-      {
-        pathname,
-        query: {
-          ...previousQuery,
-          modelsCursor: cursor,
-        },
-      },
-      {replace: true, preventScrollReset: true}
-    );
-  };
+  const {cursor, setCursor} = useTableCursor();
 
-  const {sortField, sortOrder} = useTableSortParams();
-
-  const cursor = decodeScalar(location.query?.modelsCursor);
+  const {tableSort} = useTableSort();
 
   const modelsRequest = useSpans(
     {
@@ -127,7 +109,7 @@ export function ModelsTable() {
         'p95(span.duration)',
         'count_if(span.status,equals,internal_error)',
       ],
-      sorts: [{field: sortField, kind: sortOrder}],
+      sorts: [tableSort],
       search: fullQuery,
       limit: 10,
       cursor,
@@ -172,7 +154,7 @@ export function ModelsTable() {
       return (
         <HeadSortCell
           sortKey={column.key}
-          cursorParamName="modelsCursor"
+          currentSort={tableSort}
           forceCellGrow={column.key === 'model'}
           align={rightAlignColumns.has(column.key) ? 'right' : undefined}
           onClick={handleSort}
@@ -181,7 +163,7 @@ export function ModelsTable() {
         </HeadSortCell>
       );
     },
-    [handleSort]
+    [handleSort, tableSort]
   );
 
   const renderBodyCell = useCallback(
@@ -209,7 +191,7 @@ export function ModelsTable() {
         />
         {modelsRequest.isPlaceholderData && <LoadingOverlay />}
       </GridEditableContainer>
-      <Pagination pageLinks={modelsRequest.pageLinks} onCursor={handleCursor} />
+      <Pagination pageLinks={modelsRequest.pageLinks} onCursor={setCursor} />
     </Fragment>
   );
 }

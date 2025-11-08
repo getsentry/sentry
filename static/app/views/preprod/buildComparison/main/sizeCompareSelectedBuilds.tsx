@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Flex} from '@sentry/scraps/layout/flex';
+import {Text} from '@sentry/scraps/text';
+
 import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -46,11 +47,13 @@ function BuildButton({buildDetails, icon, label, onRemove}: BuildButtonProps) {
             </Flex>
           )}
         </Flex>
-        <BuildBranch>
-          <Text size="sm" variant="muted">
-            {branchName}
-          </Text>
-        </BuildBranch>
+        {branchName && (
+          <BuildBranch>
+            <Text size="sm" variant="muted">
+              {branchName}
+            </Text>
+          </BuildBranch>
+        )}
         {onRemove && (
           <Button
             onClick={e => {

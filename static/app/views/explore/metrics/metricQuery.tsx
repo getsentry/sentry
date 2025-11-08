@@ -1,3 +1,5 @@
+import type {Location} from 'history';
+
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -11,7 +13,6 @@ import {
   VisualizeFunction,
   type BaseVisualize,
 } from 'sentry/views/explore/queryParams/visualize';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export interface TraceMetric {
   name: string;
@@ -136,9 +137,20 @@ function defaultSortBys(): Sort[] {
 }
 
 function defaultAggregateFields(): AggregateField[] {
-  return [new VisualizeFunction('sum(value)', {chartType: ChartType.BAR})];
+  return [new VisualizeFunction('per_second(value)')];
 }
 
 function defaultAggregateSortBys(): Sort[] {
-  return [{field: 'sum(value)', kind: 'desc'}];
+  return [{field: 'per_second(value)', kind: 'desc'}];
+}
+
+export function stripMetricParamsFromLocation(location: Location): Location {
+  const target: Location = {...location, query: {...location.query}};
+  for (const key in ReadableQueryParams.prototype) {
+    delete target.query[key];
+  }
+  // Metric context
+  delete target.query.metric;
+
+  return target;
 }

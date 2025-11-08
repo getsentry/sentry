@@ -348,10 +348,6 @@ export function isAmPlan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am');
 }
 
-export function isAm1Plan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am1');
-}
-
 export function isAm2Plan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am2');
 }
@@ -466,8 +462,7 @@ export const isNewPayingCustomer = (
  * instead of a Plan
  */
 
-export const getBusinessPlanOfTier = (plan: string) =>
-  plan.startsWith('am2_') ? 'am2_business' : 'am1_business';
+export const getBusinessPlanOfTier = (plan: string) => plan.slice(0, 4) + 'business';
 
 export const isTeamPlan = (plan: string) => plan.includes('team');
 
@@ -798,6 +793,7 @@ export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) 
 export const RETENTION_SETTINGS_CATEGORIES = new Set([
   DataCategory.SPANS,
   DataCategory.LOG_BYTE,
+  DataCategory.TRANSACTIONS,
 ]);
 
 export function getCredits({

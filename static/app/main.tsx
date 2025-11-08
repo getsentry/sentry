@@ -5,11 +5,11 @@ import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
 import {AppQueryClientProvider} from 'sentry/appQueryClient';
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {SENTRY_RELEASE_VERSION, USE_REACT_QUERY_DEVTOOL} from 'sentry/constants';
-import {routes} from 'sentry/routes';
-import {SentryTrackingProvider} from 'sentry/tracking';
+import {routes} from 'sentry/router/routes';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 
 function buildRouter() {
@@ -27,11 +27,11 @@ function Main() {
     <AppQueryClientProvider>
       <FrontendVersionProvider releaseVersion={SENTRY_RELEASE_VERSION ?? null}>
         <ThemeAndStyleProvider>
-          <SentryTrackingProvider>
-            <NuqsAdapter defaultOptions={{shallow: false}}>
+          <NuqsAdapter defaultOptions={{shallow: false}}>
+            <CommandPaletteProvider>
               <RouterProvider router={router} />
-            </NuqsAdapter>
-          </SentryTrackingProvider>
+            </CommandPaletteProvider>
+          </NuqsAdapter>
           {USE_REACT_QUERY_DEVTOOL && (
             <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
           )}

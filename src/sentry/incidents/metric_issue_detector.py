@@ -82,7 +82,13 @@ def schedule_update_project_config(detector: Detector) -> None:
 
 class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
     supported_conditions = frozenset(
-        (Condition.GREATER, Condition.LESS, Condition.ANOMALY_DETECTION)
+        (
+            Condition.GREATER,
+            Condition.LESS,
+            Condition.GREATER_OR_EQUAL,
+            Condition.LESS_OR_EQUAL,
+            Condition.ANOMALY_DETECTION,
+        )
     )
     supported_condition_results = frozenset(
         (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM, DetectorPriorityLevel.OK)
@@ -132,11 +138,16 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
         MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
             raise_exception=True
         )
+        if not any(
+            condition["condition_result"] == DetectorPriorityLevel.OK for condition in value
+        ) and not any(condition["type"] == Condition.ANOMALY_DETECTION for condition in value):
+            raise serializers.ValidationError(
+                "Resolution condition required for metric issue detector."
+            )
         return value
 
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
-    data_source = SnubaQueryValidator(required=False, timeWindowSeconds=True)
     data_sources = serializers.ListField(
         child=SnubaQueryValidator(timeWindowSeconds=True), required=False
     )
@@ -147,7 +158,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         if "condition_group" in attrs:
             conditions = attrs.get("condition_group", {}).get("conditions")
-            if len(conditions) > 2:
+            if len(conditions) > 3:
                 raise serializers.ValidationError("Too many conditions")
 
         return attrs
@@ -253,9 +264,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         data_source: SnubaQueryDataSourceType | None = None
 
-        if "data_source" in validated_data:
-            data_source = validated_data.pop("data_source")
-        elif "data_sources" in validated_data:
+        if "data_sources" in validated_data:
             data_source = validated_data.pop("data_sources")[0]
 
         if data_source is not None:
@@ -267,11 +276,6 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return instance
 
     def create(self, validated_data: dict[str, Any]):
-        if "data_source" in validated_data:
-            self._validate_transaction_dataset_deprecation(
-                validated_data["data_source"].get("dataset")
-            )
-
         if "data_sources" in validated_data:
             for validated_data_source in validated_data["data_sources"]:
                 self._validate_transaction_dataset_deprecation(validated_data_source.get("dataset"))

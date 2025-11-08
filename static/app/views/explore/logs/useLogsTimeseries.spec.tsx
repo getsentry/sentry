@@ -5,7 +5,6 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
@@ -18,7 +17,7 @@ function Wrapper({children}: {children: ReactNode}) {
       analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
       source="location"
     >
-      <PageParamsProvider>{children}</PageParamsProvider>
+      {children}
     </LogsQueryParamsProvider>
   );
 }
@@ -100,6 +99,10 @@ describe('useLogsTimeseries', () => {
             isFetchingNextPage: false,
             isFetchingPreviousPage: false,
             lastPageLength: 0,
+            bytesScanned: 0,
+            dataScanned: undefined,
+            canResumeAutoFetch: false,
+            resumeAutoFetch: () => {},
           },
         }),
       {additionalWrapper: Wrapper}

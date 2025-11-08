@@ -14,13 +14,12 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
-import {
-  PageParamsProvider,
-  useExploreId,
-  useExploreTitle,
-} from 'sentry/views/explore/contexts/pageParamsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  useQueryParamsId,
+  useQueryParamsTitle,
+} from 'sentry/views/explore/queryParams/context';
 import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
@@ -71,9 +70,7 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
       <SpansQueryParamsProvider>
-        <PageParamsProvider>
-          <ExploreTagsProvider>{children}</ExploreTagsProvider>
-        </PageParamsProvider>
+        <ExploreTagsProvider>{children}</ExploreTagsProvider>
       </SpansQueryParamsProvider>
     </SpansTabTourProvider>
   );
@@ -120,8 +117,8 @@ function ExploreTagsProvider({children}: SpansTabContextProps) {
 }
 
 function SpansTabHeader() {
-  const id = useExploreId();
-  const title = useExploreTitle();
+  const id = useQueryParamsId();
+  const title = useQueryParamsTitle();
   const {data: savedQuery} = useGetSavedQuery(id);
 
   return (

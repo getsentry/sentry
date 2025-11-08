@@ -1,13 +1,29 @@
-import {useCallback, useMemo, useState, type ComponentProps} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+} from 'react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {
+  GridLineLabels,
+  GridLineOverlay,
+} from 'sentry/components/checkInTimeline/gridLines';
+import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
+import {Container, Flex} from 'sentry/components/core/layout';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DetectorsTableActions} from 'sentry/views/detectors/components/detectorListTable/actions';
@@ -15,8 +31,13 @@ import {
   DetectorListRow,
   DetectorListRowSkeleton,
 } from 'sentry/views/detectors/components/detectorListTable/detectorListRow';
-import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
+import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
+import {
+  useMonitorViewContext,
+  type MonitorListAdditionalColumn,
+} from 'sentry/views/detectors/monitorViewContext';
 import {useCanEditDetectors} from 'sentry/views/detectors/utils/useCanEditDetector';
+import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 
 type DetectorListTableProps = {
   allResultsVisible: boolean;
@@ -34,14 +55,14 @@ function LoadingSkeletons() {
   ));
 }
 
-function HeaderCell({
+export function HeaderCell({
   children,
   sortKey,
   sort,
   ...props
 }: {
-  children: React.ReactNode;
   sort: Sort | undefined;
+  children?: React.ReactNode;
   divider?: boolean;
   sortKey?: string;
 } & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
@@ -119,9 +140,20 @@ function DetectorListTable({
   const selectedDetectors = detectors.filter(d => selected.has(d.id));
   const canEditDetectors = useCanEditDetectors({detectors: selectedDetectors});
 
+  const elementRef = useRef<HTMLDivElement>(null);
+  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const timelineWidth = useDebouncedValue(containerWidth, 1000);
+  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+
+  const {additionalColumns = [], renderVisualization} = useMonitorViewContext();
+  const hasVisualization = defined(renderVisualization);
+
   return (
-    <Container>
-      <DetectorListSimpleTable>
+    <TableContainer>
+      <DetectorListSimpleTable
+        hasVisualization={hasVisualization}
+        additionalColumns={additionalColumns}
+      >
         {selected.size === 0 ? (
           <SimpleTable.Header>
             <HeaderCell sortKey="name" sort={sort}>
@@ -155,6 +187,19 @@ function DetectorListTable({
             >
               {t('Alerts')}
             </HeaderCell>
+            {additionalColumns.map(col => (
+              <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
+            ))}
+            {hasVisualization && (
+              <Container
+                data-column-name="visualization"
+                ref={elementRef}
+                borderLeft="muted"
+                minHeight="50px"
+              >
+                <GridLineLabels timeWindowConfig={timeWindowConfig} />
+              </Container>
+            )}
           </SimpleTable.Header>
         ) : (
           <DetectorsTableActions
@@ -184,28 +229,32 @@ function DetectorListTable({
             onSelect={handleSelect}
           />
         ))}
+        {hasVisualization && (
+          <PositionedGridLineOverlay
+            stickyCursor
+            allowZoom
+            showCursor
+            cursorOffsets={{right: 40}}
+            additionalUi={<CronServiceIncidents timeWindowConfig={timeWindowConfig} />}
+            timeWindowConfig={timeWindowConfig}
+            cursorOverlayAnchor="top"
+            cursorOverlayAnchorOffset={10}
+          />
+        )}
       </DetectorListSimpleTable>
-    </Container>
+    </TableContainer>
   );
 }
 
-const Container = styled('div')`
+const TableContainer = styled('div')`
   container-type: inline-size;
 `;
 
-const DetectorListSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 1fr;
-
-  margin-bottom: ${space(2)};
-
-  [data-column-name='type'],
-  [data-column-name='last-issue'],
-  [data-column-name='assignee'],
-  [data-column-name='connected-automations'] {
-    display: none;
-  }
-
-  @container (min-width: ${p => p.theme.breakpoints.xs}) {
+const gridDefinitions = (
+  p: {theme: Theme},
+  additionalColumns: MonitorListAdditionalColumn[]
+) => css`
+  @container (min-width: ${p.theme.breakpoints.xs}) {
     grid-template-columns: 3fr 0.8fr;
 
     [data-column-name='type'] {
@@ -213,7 +262,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @container (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p.theme.breakpoints.sm}) {
     grid-template-columns: 3fr 0.8fr 1.5fr;
 
     [data-column-name='last-issue'] {
@@ -221,7 +270,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @container (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p.theme.breakpoints.md}) {
     grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
     [data-column-name='assignee'] {
@@ -229,12 +278,117 @@ const DetectorListSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @container (min-width: ${p => p.theme.breakpoints.lg}) {
+  @container (min-width: ${p.theme.breakpoints.lg}) {
     grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 1.1fr;
 
     [data-column-name='connected-automations'] {
       display: flex;
     }
+  }
+
+  @container (min-width: ${p.theme.breakpoints.xl}) {
+    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 1.1fr ${additionalColumns
+        .map(col => col.columnWidth ?? 'auto')
+        .join(' ')};
+
+    ${additionalColumns.map(
+      col => css`
+        [data-column-name='${col.id}'] {
+          display: flex;
+        }
+      `
+    )}
+  }
+`;
+
+// When there is a visualization, replace the "Type" column with the visualization
+const gridDefinitionsWithVisualization = (
+  p: {theme: Theme},
+  additionalColumns: MonitorListAdditionalColumn[]
+) => css`
+  @container (min-width: ${p.theme.breakpoints.sm}) {
+    grid-template-columns: 3fr 1.5fr;
+
+    [data-column-name='last-issue'] {
+      display: flex;
+    }
+  }
+
+  @container (min-width: ${p.theme.breakpoints.md}) {
+    grid-template-columns: 3fr 1.5fr auto;
+
+    [data-column-name='assignee'] {
+      display: flex;
+    }
+  }
+
+  @container (min-width: ${p.theme.breakpoints.lg}) {
+    grid-template-columns: 4fr 1.5fr auto 1fr;
+
+    [data-column-name='connected-automations'] {
+      display: flex;
+    }
+  }
+
+  @container (min-width: ${p.theme.breakpoints.xl}) {
+    grid-template-columns: 4.5fr 2fr auto 1.1fr ${additionalColumns
+        .map(col => col.columnWidth ?? 'auto')
+        .join(' ')} 6fr;
+
+    [data-column-name='visualization'] {
+      display: block;
+    }
+
+    ${additionalColumns.map(
+      col => css`
+        [data-column-name='${col.id}'] {
+          display: flex;
+        }
+      `
+    )}
+  }
+`;
+
+const DetectorListSimpleTable = styled(SimpleTable)<{
+  additionalColumns: MonitorListAdditionalColumn[];
+  hasVisualization: boolean;
+}>`
+  grid-template-columns: 1fr;
+  margin-bottom: ${space(2)};
+
+  [data-column-name='type'],
+  [data-column-name='last-issue'],
+  [data-column-name='assignee'],
+  [data-column-name='connected-automations'],
+  [data-column-name='visualization'] {
+    display: none;
+  }
+
+  ${p =>
+    p.additionalColumns.map(
+      col => css`
+        [data-column-name='${col.id}'] {
+          display: none;
+        }
+      `
+    )}
+
+  ${p =>
+    p.hasVisualization
+      ? gridDefinitionsWithVisualization(p, p.additionalColumns)
+      : gridDefinitions(p, p.additionalColumns)}
+`;
+
+const PositionedGridLineOverlay = styled(GridLineOverlay)`
+  grid-column: -2/-1;
+  grid-row: 1 / auto;
+  pointer-events: none;
+  z-index: 3;
+
+  display: none;
+
+  @container (min-width: ${p => p.theme.breakpoints.xl}) {
+    display: block;
   }
 `;
 

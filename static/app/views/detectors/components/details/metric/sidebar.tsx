@@ -18,6 +18,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
+import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {MetricDetectorDetailsDetect} from 'sentry/views/detectors/components/details/metric/detect';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
@@ -97,7 +98,7 @@ function DetectorResolve({detector}: {detector: MetricDetector}) {
   const description = getResolutionDescription({
     detectionType,
     conditionType: mainCondition?.type,
-    conditionValue:
+    highThreshold:
       typeof mainCondition?.comparison === 'number'
         ? mainCondition.comparison
         : undefined,
@@ -143,6 +144,7 @@ export function MetricDetectorDetailsSidebar({detector}: DetectorDetailsSidebarP
       <Section title={t('Resolve')}>
         <DetectorResolve detector={detector} />
       </Section>
+      <DetectorDetailsDescription description={detector.description} />
       <DetectorExtraDetails>
         <DetectorExtraDetails.DateCreated detector={detector} />
         <DetectorExtraDetails.CreatedBy detector={detector} />

@@ -268,6 +268,7 @@ class ProjectDetailsTest(APITestCase):
             "sentry:error_messages", ["TypeError*", "*: integer division by modulo or zero"]
         )
         self.project.update_option("sentry:log_messages", ["Updated*", "*.sentry.io"])
+        self.project.update_option("sentry:trace_metric_names", ["counter.*", "*.duration"])
 
         resp = self.get_success_response(self.project.organization.slug, self.project.slug)
 
@@ -277,6 +278,7 @@ class ProjectDetailsTest(APITestCase):
             == "TypeError*\n*: integer division by modulo or zero"
         )
         assert resp.data["options"]["filters:log_messages"] == "Updated*\n*.sentry.io"
+        assert resp.data["options"]["filters:trace_metric_names"] == "counter.*\n*.duration"
 
 
 class ProjectUpdateTestTokenAuthenticated(APITestCase):

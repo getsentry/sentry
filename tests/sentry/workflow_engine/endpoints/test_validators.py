@@ -5,6 +5,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ValidationError
 
 from sentry import audit_log
+from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import (
     MetricIssueComparisonConditionValidator,
@@ -101,7 +103,7 @@ class MockConditionGroupValidator(BaseDataConditionGroupValidator):
 
 
 class MockDetectorValidator(BaseDetectorTypeValidator):
-    data_source = MockDataSourceValidator()
+    data_sources = serializers.ListField(child=MockDataSourceValidator(), required=True)
     condition_group = MockConditionGroupValidator()
 
 
@@ -165,10 +167,12 @@ class DetectorValidatorTest(BaseValidatorTest):
         self.valid_data = {
             "name": "Test Detector",
             "type": MetricIssue.slug,
-            "dataSource": {
-                "field1": "test",
-                "field2": 123,
-            },
+            "dataSources": [
+                {
+                    "field1": "test",
+                    "field2": 123,
+                }
+            ],
             "conditionGroup": {
                 "id": self.data_condition_group.id,
                 "organizationId": self.organization.id,
@@ -245,3 +249,19 @@ class DetectorValidatorTest(BaseValidatorTest):
             assert validator.errors.get("type") == [
                 ErrorDetail(string="Detector type not compatible with detectors", code="invalid")
             ]
+
+    def test_delete(self) -> None:
+        """Test that delete() schedules the detector for deletion"""
+        validator = MockDetectorValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+        detector = validator.save()
+
+        delete_validator = MockDetectorValidator(instance=detector, data={}, context=self.context)
+        delete_validator.delete()
+
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=detector.id
+        ).exists()
+
+        detector.refresh_from_db()
+        assert detector.status == ObjectStatus.PENDING_DELETION

@@ -29,6 +29,7 @@ interface CreditCardPanelProps {
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
   isNewBillingUI?: boolean;
+  maxPanelWidth?: string;
   shouldExpandInitially?: boolean;
 }
 
@@ -52,6 +53,7 @@ function CreditCardPanel({
   ftcLocation,
   analyticsEvent,
   shouldExpandInitially,
+  maxPanelWidth,
 }: CreditCardPanelProps) {
   const [cardLastFourDigits, setCardLastFourDigits] = useState<string | null>(null);
   const [cardZipCode, setCardZipCode] = useState<string | null>(null);
@@ -61,6 +63,11 @@ function CreditCardPanel({
   const [expandInitially, setExpandInitially] = useState(shouldExpandInitially);
 
   const handleCardUpdated = useCallback((data: Subscription) => {
+    // if the card was successfully updated, reset the billing failure state
+    // so we don't trigger side effects nor render outdated content
+    setFromBillingFailure(false);
+    setReferrer(undefined);
+
     setCardLastFourDigits(data.paymentSource?.last4 || null);
     setCardZipCode(data.paymentSource?.zipCode || null);
     SubscriptionStore.set(data.slug, data);
@@ -158,6 +165,7 @@ function CreditCardPanel({
       border="primary"
       radius="md"
       data-test-id="credit-card-panel"
+      maxWidth={maxPanelWidth}
     >
       <Flex direction="column" gap="lg" width="100%">
         <Heading as="h2" size="lg">

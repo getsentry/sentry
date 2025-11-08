@@ -24,7 +24,6 @@ import {useParams} from 'sentry/utils/useParams';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {
   AutomationBuilderContext,
-  initialAutomationBuilderState,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
@@ -43,7 +42,6 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -53,21 +51,16 @@ function AutomationDocumentTitle() {
 function AutomationBreadcrumbs({automationId}: {automationId: string}) {
   const title = useFormField('name');
   const organization = useOrganization();
-  const {automationsLinkPrefix} = useMonitorViewContext();
   return (
     <Breadcrumbs
       crumbs={[
         {
           label: t('Alerts'),
-          to: makeAutomationBasePathname(organization.slug, automationsLinkPrefix),
+          to: makeAutomationBasePathname(organization.slug),
         },
         {
           label: title,
-          to: makeAutomationDetailsPathname(
-            organization.slug,
-            automationId,
-            automationsLinkPrefix
-          ),
+          to: makeAutomationDetailsPathname(organization.slug, automationId),
         },
         {label: t('Configure')},
       ]}
@@ -101,7 +94,6 @@ export default function AutomationEdit() {
 function AutomationEditForm({automation}: {automation: Automation}) {
   const navigate = useNavigate();
   const organization = useOrganization();
-  const {automationsLinkPrefix} = useMonitorViewContext();
   const params = useParams<{automationId: string}>();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
@@ -120,7 +112,11 @@ function AutomationEditForm({automation}: {automation: Automation}) {
     return {
       triggers: automation.triggers
         ? automation.triggers
-        : initialAutomationBuilderState.triggers,
+        : {
+            id: 'when',
+            logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+            conditions: [],
+          },
       actionFilters: automation.actionFilters,
     };
   }, [automation]);
@@ -156,23 +152,10 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           ...formData,
         };
         const updatedAutomation = await updateAutomation(updatedData);
-        navigate(
-          makeAutomationDetailsPathname(
-            organization.slug,
-            updatedAutomation.id,
-            automationsLinkPrefix
-          )
-        );
+        navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
       }
     },
-    [
-      automation.id,
-      organization.slug,
-      navigate,
-      updateAutomation,
-      state,
-      automationsLinkPrefix,
-    ]
+    [automation.id, organization.slug, navigate, updateAutomation, state]
   );
 
   return (

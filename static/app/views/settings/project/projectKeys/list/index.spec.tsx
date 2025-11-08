@@ -44,7 +44,11 @@ describe('ProjectKeys', () => {
       method: 'GET',
       body: [],
     });
-    render(<ProjectKeys project={project} />, {initialRouterConfig});
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
 
     expect(
       await screen.findByText('There are no keys active for this project.')
@@ -52,7 +56,11 @@ describe('ProjectKeys', () => {
   });
 
   it('has clippable box', async () => {
-    render(<ProjectKeys project={ProjectFixture()} />, {initialRouterConfig});
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
+      initialRouterConfig,
+    });
 
     const expandButton = await screen.findByRole('button', {name: 'Expand'});
     await userEvent.click(expandButton);
@@ -61,7 +69,9 @@ describe('ProjectKeys', () => {
   });
 
   it('renders for default project', async () => {
-    render(<ProjectKeys project={ProjectFixture({platform: 'other'})} />, {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture({platform: 'other'})},
       initialRouterConfig,
     });
 
@@ -102,7 +112,9 @@ describe('ProjectKeys', () => {
   });
 
   it('renders for javascript project', async () => {
-    render(<ProjectKeys project={ProjectFixture({platform: 'javascript'})} />, {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture({platform: 'javascript'})},
       initialRouterConfig,
     });
 
@@ -135,7 +147,9 @@ describe('ProjectKeys', () => {
   });
 
   it('renders for javascript-react project', async () => {
-    render(<ProjectKeys project={ProjectFixture({platform: 'javascript-react'})} />, {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture({platform: 'javascript-react'})},
       initialRouterConfig,
     });
 
@@ -176,6 +190,7 @@ describe('ProjectKeys', () => {
           crons: '',
           playstation:
             'http://dev.getsentry.net:8000/api/1/playstation?sentry_key=188ee45a58094d939428d8585aa6f662',
+          integration: 'http://dev.getsentry.net:8000/api/1/integration/',
           otlp_traces: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/traces',
           otlp_logs: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/logs',
         },
@@ -212,7 +227,9 @@ describe('ProjectKeys', () => {
       body: multipleProjectKeys,
     });
 
-    render(<ProjectKeys project={ProjectFixture({platform: 'other'})} />, {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture({platform: 'other'})},
       initialRouterConfig,
     });
 
@@ -221,7 +238,9 @@ describe('ProjectKeys', () => {
   });
 
   it('deletes key', async () => {
-    render(<ProjectKeys project={ProjectFixture()} />, {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
       initialRouterConfig,
     });
 
@@ -233,7 +252,9 @@ describe('ProjectKeys', () => {
   });
 
   it('disable and enables key', async () => {
-    render(<ProjectKeys project={ProjectFixture()} />, {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
       initialRouterConfig,
     });
 
@@ -291,7 +312,9 @@ describe('ProjectKeys', () => {
       match: [MockApiClient.matchQuery({cursor: '2:0:0'})],
     });
 
-    const {router} = render(<ProjectKeys project={ProjectFixture()} />, {
+    const {router} = render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
       initialRouterConfig,
     });
 
@@ -308,7 +331,9 @@ describe('ProjectKeys', () => {
   });
 
   it('hides pagination when there is none', async () => {
-    render(<ProjectKeys project={ProjectFixture()} />, {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
       initialRouterConfig,
     });
 

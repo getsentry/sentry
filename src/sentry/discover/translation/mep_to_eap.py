@@ -41,6 +41,14 @@ COLUMNS_TO_DROP = (
 FIELDS_TO_DROP = ("total.count",)
 
 
+def _flatten(seq, flattened_list):
+    for item in seq:
+        if isinstance(item, list):
+            _flatten(item, flattened_list)
+        else:
+            flattened_list.append(item)
+
+
 def format_percentile_term(term):
     function, args, alias = fields.parse_function(term)
 
@@ -186,6 +194,59 @@ class TranslationVisitor(NodeVisitor):
 
         return children or node.text
 
+    def visit_numeric_filter(self, node, children):
+        term, did_update = search_term_switcheroo(node.text)
+        if did_update:
+            return term
+
+        _, parsed_key, _, _, _ = children
+        flattened_parsed_key: list[str] = []
+        _flatten(parsed_key, flattened_parsed_key)
+        flattened_parsed_key_str = "".join(flattened_parsed_key)
+        if flattened_parsed_key_str:
+            if (
+                not flattened_parsed_key_str.startswith("tags[")
+                and flattened_parsed_key_str not in SPAN_ATTRIBUTE_DEFINITIONS
+            ):
+                new_parsed_key = [f"tags[{flattened_parsed_key_str},number]"]
+                children[1] = new_parsed_key
+
+        return children or node.text
+
+    def visit_boolean_filter(self, node, children):
+        term, did_update = search_term_switcheroo(node.text)
+        if did_update:
+            return term
+
+        negation, parsed_key, sep, boolean_val = children
+        flattened_parsed_key: list[str] = []
+        _flatten(parsed_key, flattened_parsed_key)
+        flattened_parsed_key_str = "".join(flattened_parsed_key)
+
+        flattened_parsed_val: list[str] = []
+        _flatten(boolean_val, flattened_parsed_val)
+        flattened_parsed_val_str = "".join(flattened_parsed_val)
+        if (
+            flattened_parsed_key_str
+            and not flattened_parsed_key_str.startswith("tags[")
+            and flattened_parsed_key_str not in SPAN_ATTRIBUTE_DEFINITIONS
+        ):
+            if flattened_parsed_val_str in ["0", "1"]:
+                new_parsed_key = [f"tags[{flattened_parsed_key_str},number]"]
+                children[1] = new_parsed_key
+
+                return children or node.text
+
+            flattened_parsed_val_num = None
+            if negation == "":
+                if flattened_parsed_val_str.lower() == "true":
+                    flattened_parsed_val_num = "1"
+                elif flattened_parsed_val_str.lower() == "false":
+                    flattened_parsed_val_num = "0"
+                return f"(tags[{flattened_parsed_key_str},number]:{flattened_parsed_val_num if flattened_parsed_val_num is not None else flattened_parsed_val_str} OR {flattened_parsed_key_str}:{flattened_parsed_val_str})"
+
+        return children or node.text
+
     def visit_text_filter(self, node, children):
         term, did_update = search_term_switcheroo(node.text)
         if did_update:
@@ -224,18 +285,11 @@ class ArithmeticTranslationVisitor(NodeVisitor):
 
 
 def translate_query(query: str):
-    flattened_query = []
-
-    def _flatten(seq):
-        for item in seq:
-            if isinstance(item, list):
-                _flatten(item)
-            else:
-                flattened_query.append(item)
+    flattened_query: list[str] = []
 
     tree = event_search_grammar.parse(query)
     parsed = TranslationVisitor().visit(tree)
-    _flatten(parsed)
+    _flatten(parsed, flattened_query)
 
     return apply_is_segment_condition("".join(flattened_query))
 
@@ -293,7 +347,7 @@ def translate_equations(equations):
 
     for equation in equations:
 
-        flattened_equation = []
+        flattened_equation: list[str] = []
 
         # strip equation prefix
         if arithmetic.is_equation(equation):
@@ -306,18 +360,10 @@ def translate_equations(equations):
             translated_equations.append(equation)
             continue
 
-        # function to flatten the parsed + updated equation
-        def _flatten(seq):
-            for item in seq:
-                if isinstance(item, list):
-                    _flatten(item)
-                else:
-                    flattened_equation.append(item)
-
         tree = arithmetic.arithmetic_grammar.parse(arithmetic_equation)
         translation_visitor = ArithmeticTranslationVisitor()
         parsed = translation_visitor.visit(tree)
-        _flatten(parsed)
+        _flatten(parsed, flattened_equation)
 
         # record dropped fields and equations and skip these translations
         if len(translation_visitor.dropped_fields) > 0:

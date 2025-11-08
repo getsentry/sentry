@@ -1,5 +1,4 @@
 import {Fragment, useLayoutEffect, useRef, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -10,6 +9,10 @@ import InteractionStateLayer from 'sentry/components/core/interactionStateLayer'
 import {DateTime} from 'sentry/components/dateTime';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
+import {
+  BaseGridCell,
+  FilterWrapper,
+} from 'sentry/components/searchQueryBuilder/tokens/components';
 import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKey';
 import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
@@ -20,7 +23,7 @@ import {
   isAggregateFilterToken,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
-import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
+import {GridInvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
   FilterType,
   Token,
@@ -234,6 +237,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         token={token}
         state={state}
         item={item}
+        columnCount={4}
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
       >
@@ -281,48 +285,6 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     </FilterWrapper>
   );
 }
-
-const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
-  position: relative;
-  border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
-  height: 24px;
-  /* Ensures that filters do not grow outside of the container */
-  min-width: 0;
-
-  :focus,
-  &[aria-selected='true'] {
-    background-color: ${p => p.theme.gray100};
-    border-color: ${p => (p.theme.isChonk ? p.theme.tokens.border.accent : undefined)};
-    outline: none;
-  }
-
-  ${p =>
-    p.state === 'invalid'
-      ? css`
-          border-color: ${p.theme.red200};
-          background-color: ${p.theme.red100};
-        `
-      : p.state === 'warning'
-        ? css`
-            border-color: ${p.theme.gray300};
-            background-color: ${p.theme.gray100};
-          `
-        : ''}
-`;
-
-const GridInvalidTokenTooltip = styled(InvalidTokenTooltip)`
-  display: grid;
-  grid-template-columns: auto auto auto auto;
-  align-items: stretch;
-  height: 22px;
-`;
-
-const BaseGridCell = styled('div')`
-  display: flex;
-  align-items: stretch;
-  position: relative;
-`;
 
 const FilterValueGridCell = styled(BaseGridCell)`
   /* When we run out of space, shrink the value */
