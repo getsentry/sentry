@@ -14,7 +14,9 @@ beforeAll(() =>
 beforeEach(() => {
   server.use(
     // jest project under Sentry organization (dev productivity team)
-    http.all('*3fe1dce93e3a4267979ebad67f3de327*', passthrough)
+    http.all('https://o1.ingest.us.sentry.io/*', () => {
+      passthrough();
+    })
   );
 });
 
