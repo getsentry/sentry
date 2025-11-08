@@ -32,6 +32,8 @@ const scrollToMock = jest.fn();
 window.scrollTo = scrollToMock;
 window.scrollY = 100;
 
+const rafTimeout = 50;
+
 let scrollWidth = 100;
 let clientWidth = 100;
 
@@ -90,7 +92,7 @@ describe('VirtualFileRenderer', () => {
       .mockImplementation(cb => {
         setTimeout(() => {
           cb(1);
-        }, 50);
+        }, rafTimeout);
         return 1;
       });
     cancelAnimationFrameSpy = jest.spyOn(window, 'cancelAnimationFrame');
@@ -207,19 +209,32 @@ describe('VirtualFileRenderer', () => {
   });
 
   describe('toggling pointer events', () => {
-    it('disables pointer events on scroll and resets after timeout', async () => {
-      render(
-        <VirtualFileRenderer content={code} coverage={coverageData} fileName="tsx" />
-      );
+    describe('with fake timers', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
+      });
+      afterEach(() => {
+        jest.useRealTimers();
+      });
 
-      const lines = await screen.findAllByText(/{ pageName: 'repo', text: repo },/);
-      expect(lines[0]).toBeInTheDocument();
+      it('disables pointer events on scroll and resets after timeout', async () => {
+        render(
+          <VirtualFileRenderer content={code} coverage={coverageData} fileName="tsx" />
+        );
 
-      fireEvent.scroll(window, {target: {scrollX: 100}});
+        const lines = await screen.findAllByText(/{ pageName: 'repo', text: repo },/);
+        expect(lines[0]).toBeInTheDocument();
 
-      const codeRenderer = screen.getByTestId('virtual-file-renderer');
-      await waitFor(() => expect(codeRenderer).toHaveStyle('pointer-events: none'));
-      await waitFor(() => expect(codeRenderer).toHaveStyle('pointer-events: auto'));
+        fireEvent.scroll(window, {target: {scrollX: 100}});
+
+        const codeRenderer = screen.getByTestId('virtual-file-renderer');
+        await waitFor(() => expect(codeRenderer).toHaveStyle('pointer-events: none'));
+
+        // Advance timers to complete the setTimeout in the mocked requestAnimationFrame
+        jest.advanceTimersByTime(rafTimeout);
+
+        await waitFor(() => expect(codeRenderer).toHaveStyle('pointer-events: auto'));
+      });
     });
 
     it('calls cancelAnimationFrame', async () => {
