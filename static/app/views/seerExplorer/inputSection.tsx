@@ -1,27 +1,39 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconMenu} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-import ExplorerMenu from './explorerMenu';
+import {useExplorerMenu} from './explorerMenu';
 import {useExplorerPanelContext} from './explorerPanelContext';
 
-function InputSection({
-  textAreaRef,
-}: {
-  textAreaRef?: React.RefObject<HTMLTextAreaElement | null>;
-}) {
+function InputSection() {
   const {
     inputValue,
+    clearInput,
     focusedBlockIndex,
     isPolling,
     interruptRequested,
     onInputChange,
     onKeyDown,
     onInputClick,
+    textAreaRef,
   } = useExplorerPanelContext();
+
+  const {menu, menuMode, setMenuMode} = useExplorerMenu();
+
+  const onMenuButtonClick = useCallback(() => {
+    if (menuMode === 'hidden') {
+      setMenuMode('slash-commands-manual');
+    } else if (menuMode === 'slash-commands-keyboard') {
+      clearInput();
+      setMenuMode('hidden');
+    } else {
+      setMenuMode('hidden');
+    }
+  }, [menuMode, setMenuMode, clearInput]);
 
   const getPlaceholder = () => {
     if (focusedBlockIndex !== -1) {
@@ -33,16 +45,23 @@ function InputSection({
     if (isPolling) {
       return 'Press Esc to interrupt';
     }
-    return 'Type your message or / command and press Enter ↵';
+    if (menuMode === 'hidden') {
+      return 'Type your message or / command and press Enter ↵';
+    }
+    return 'Type your message and press Enter ↵';
   };
 
   return (
     <InputBlock>
       <InputContainer onClick={onInputClick}>
-        <ExplorerMenu />
+        {menu}
         <InputRow>
-          <Button onClick={() => {}}>
-            <ChevronIcon direction="right" size="sm" />
+          <Button onClick={onMenuButtonClick}>
+            {menuMode === 'hidden' ? (
+              <IconMenu size="sm" />
+            ) : (
+              <IconChevron direction="down" size="sm" />
+            )}
           </Button>
           <InputTextarea
             ref={textAreaRef}
@@ -82,13 +101,13 @@ const InputRow = styled('div')`
   width: 100%;
 `;
 
-const ChevronIcon = styled(IconChevron)`
-  color: ${p => p.theme.subText};
-  margin-top: 18px;
-  margin-left: ${space(2)};
-  margin-right: ${space(1)};
-  flex-shrink: 0;
-`;
+// const ChevronIcon = styled(IconChevron)`
+//   color: ${p => p.theme.subText};
+//   margin-top: 18px;
+//   margin-left: ${space(2)};
+//   margin-right: ${space(1)};
+//   flex-shrink: 0;
+// `;
 
 const FocusIndicator = styled('div')`
   position: absolute;

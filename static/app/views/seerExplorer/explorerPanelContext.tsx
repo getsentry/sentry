@@ -1,13 +1,11 @@
 import {createContext, useContext} from 'react';
 
-import type {MenuAction} from './explorerMenu';
-
-interface ExplorerPanelContextType {
+export interface ExplorerPanelContextType {
+  clearInput: () => void;
   focusedBlockIndex: number;
   inputValue: string;
   interruptRequested: boolean;
   isPolling: boolean;
-  onCommandSelect: (command: MenuAction) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onInputClick: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -15,6 +13,7 @@ interface ExplorerPanelContextType {
   onMedSize: () => void;
   onMenuVisibilityChange: (isVisible: boolean) => void;
   onNew: () => void;
+  textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 const ExplorerPanelContext = createContext<ExplorerPanelContextType | undefined>(

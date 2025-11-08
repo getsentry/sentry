@@ -8,8 +8,9 @@ import {usePanelSizing} from './hooks/usePanelSizing';
 import {useSeerExplorer} from './hooks/useSeerExplorer';
 import BlockComponent from './blockComponents';
 import EmptyState from './emptyState';
-import type {MenuAction} from './explorerMenu';
-import ExplorerPanelContext from './explorerPanelContext';
+import ExplorerPanelContext, {
+  type ExplorerPanelContextType,
+} from './explorerPanelContext';
 import InputSection from './inputSection';
 import PanelContainers, {BlocksContainer} from './panelContainers';
 import type {Block, ExplorerPanelProps} from './types';
@@ -244,33 +245,21 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setIsMinimized(false);
   };
 
-  const handleCommandSelect = (command: MenuAction) => {
-    // Execute the command
-    command.handler();
-
-    // Clear input
-    setInputValue('');
-
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
-  };
-
   // Useful callbacks and state for the input controls.
-  const contextValue = {
+  const contextValue: ExplorerPanelContextType = {
     inputValue,
+    clearInput: () => setInputValue(''),
     focusedBlockIndex,
     isPolling,
     interruptRequested,
     onInputChange: handleInputChange,
     onKeyDown: handleKeyDown,
     onInputClick: handleInputClick,
-    onCommandSelect: handleCommandSelect,
     onMenuVisibilityChange: setIsMenuOpen,
     onMaxSize: handleMaxSize,
     onMedSize: handleMedSize,
     onNew: startNewSession,
+    textAreaRef: textareaRef,
   };
 
   const panelContent = (
@@ -324,7 +313,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         )}
       </BlocksContainer>
       <ExplorerPanelContext.Provider value={contextValue}>
-        <InputSection textAreaRef={textareaRef} />
+        <InputSection />
       </ExplorerPanelContext.Provider>
     </PanelContainers>
   );

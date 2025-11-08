@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Activity, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -6,39 +6,177 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
 import {useExplorerPanelContext} from './explorerPanelContext';
 
-export interface MenuAction {
+export interface MenuItemProps {
   description: string;
   handler: () => void;
+  key: string;
   title: string;
 }
 
-function ExplorerMenu() {
-  const {
-    inputValue,
-    onCommandSelect,
-    onMaxSize,
-    onMedSize,
-    onNew,
-    onMenuVisibilityChange,
-  } = useExplorerPanelContext();
+type MenuMode =
+  | 'slash-commands-keyboard'
+  | 'slash-commands-manual'
+  | 'session-history'
+  | 'hidden';
+
+export function useExplorerMenu() {
+  const {inputValue, clearInput, onMenuVisibilityChange, textAreaRef} =
+    useExplorerPanelContext();
+
+  const allSlashCommands = useSlashCommands();
+
+  const filteredSlashCommands = useMemo(() => {
+    // Filter commands based on current input
+    if (!inputValue.startsWith('/') || inputValue.includes(' ')) {
+      return [];
+    }
+    const query = inputValue.toLowerCase();
+    return allSlashCommands.filter(cmd => cmd.title.toLowerCase().startsWith(query));
+  }, [allSlashCommands, inputValue]);
+
+  // const sessionHistory: MenuItemProps[] = [];
+
+  // Menu items and select handlers change based on the mode.
+  const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
+
+  const menuItems = useMemo(() => {
+    switch (menuMode) {
+      case 'slash-commands-keyboard':
+        return filteredSlashCommands;
+      case 'slash-commands-manual':
+        return allSlashCommands;
+      // case 'session-history':
+      //   return sessionHistory;
+      default:
+        return [];
+    }
+  }, [menuMode, allSlashCommands, filteredSlashCommands]);
+
+  const onSelect = useCallback(
+    (item: MenuItemProps) => {
+      // Execute custom handler.
+      item.handler();
+
+      if (menuMode === 'slash-commands-keyboard') {
+        // Clear input and reset textarea height  // TODO: is this needed for all selects?
+        clearInput();
+        if (textAreaRef.current) {
+          textAreaRef.current.style.height = 'auto';
+        }
+      }
+    },
+    // clearInput and textAreaRef are both expected to be stable.
+    [menuMode, clearInput, textAreaRef]
+  );
+
+  // Toggle between slash-commands-keyboard and hidden modes based on filteredSlashCommands.
+  useEffect(() => {
+    if (menuMode === 'slash-commands-keyboard' && filteredSlashCommands.length === 0) {
+      setMenuMode('hidden');
+    } else if (menuMode === 'hidden' && filteredSlashCommands.length > 0) {
+      setMenuMode('slash-commands-keyboard');
+    }
+  }, [menuMode, setMenuMode, filteredSlashCommands]);
+
+  const isVisible = menuMode !== 'hidden';
+
+  // Notify parent of menu visibility changes.
+  useEffect(() => {
+    onMenuVisibilityChange(isVisible);
+  }, [isVisible, onMenuVisibilityChange]);
+
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // Reset selected index when items change
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [menuItems]);
+
+  // Handle keyboard navigation with higher priority
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!isVisible) return;
+
+      switch (e.key) {
+        case 'ArrowUp':
+          e.preventDefault();
+          e.stopPropagation();
+          setSelectedIndex(prev => Math.max(0, prev - 1));
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          e.stopPropagation();
+          setSelectedIndex(prev => Math.min(menuItems.length - 1, prev + 1));
+          break;
+        case 'Enter':
+          e.preventDefault();
+          e.stopPropagation();
+          if (menuItems[selectedIndex]) {
+            onSelect(menuItems[selectedIndex]);
+          }
+          break;
+        default:
+          break;
+      }
+    },
+    [isVisible, selectedIndex, menuItems, onSelect]
+  );
+
+  useEffect(() => {
+    if (isVisible) {
+      // Use capture phase to intercept events before they reach other handlers
+      document.addEventListener('keydown', handleKeyDown, true);
+      return () => document.removeEventListener('keydown', handleKeyDown, true);
+    }
+    return undefined;
+  }, [handleKeyDown, isVisible]);
+
+  const menu = (
+    <Activity mode={isVisible ? 'visible' : 'hidden'}>
+      <MenuPanel>
+        {menuItems.map((command, index) => (
+          <MenuItem
+            key={command.title}
+            isSelected={index === selectedIndex}
+            onClick={() => onSelect(command)}
+          >
+            <ItemName>{command.title}</ItemName>
+            <ItemDescription>{command.description}</ItemDescription>
+          </MenuItem>
+        ))}
+      </MenuPanel>
+    </Activity>
+  );
+
+  return {
+    menu,
+    menuMode,
+    setMenuMode,
+  };
+}
+
+function useSlashCommands(): MenuItemProps[] {
+  const {onMaxSize, onMedSize, onNew} = useExplorerPanelContext();
+
   const openFeedbackForm = useFeedbackForm();
 
-  // Default slash commands
-  const DEFAULT_SLASH_COMMANDS = useMemo(
-    (): MenuAction[] => [
+  return useMemo(
+    (): MenuItemProps[] => [
       {
         title: '/new',
+        key: '/new',
         description: 'Start a new session',
         handler: onNew,
       },
       {
         title: '/max-size',
+        key: '/max-size',
         description: 'Expand panel to full viewport height',
         handler: onMaxSize,
       },
       {
         title: '/med-size',
+        key: '/med-size',
         description: 'Set panel to medium size (default)',
         handler: onMedSize,
       },
@@ -46,6 +184,7 @@ function ExplorerMenu() {
         ? [
             {
               title: '/feedback',
+              key: '/feedback',
               description: 'Open feedback form to report issues or suggestions',
               handler: () =>
                 openFeedbackForm({
@@ -61,91 +200,7 @@ function ExplorerMenu() {
     ],
     [onNew, onMaxSize, onMedSize, openFeedbackForm]
   );
-
-  // Filter commands based on current input
-  const filteredCommands = useMemo(() => {
-    if (!inputValue.startsWith('/') || inputValue.includes(' ')) {
-      return [];
-    }
-    const query = inputValue.toLowerCase();
-    return DEFAULT_SLASH_COMMANDS.filter(cmd =>
-      cmd.title.toLowerCase().startsWith(query)
-    );
-  }, [inputValue, DEFAULT_SLASH_COMMANDS]);
-
-  // Show suggestions panel
-  const showSuggestions = filteredCommands.length > 0;
-
-  // Reset selected index when filtered commands change
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [filteredCommands]);
-
-  // Notify parent when visibility changes
-  useEffect(() => {
-    onMenuVisibilityChange?.(showSuggestions);
-  }, [showSuggestions, onMenuVisibilityChange]);
-
-  // Handle keyboard navigation with higher priority
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (!showSuggestions) return;
-
-      switch (e.key) {
-        case 'ArrowUp':
-          e.preventDefault();
-          e.stopPropagation();
-          setSelectedIndex(prev => Math.max(0, prev - 1));
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          e.stopPropagation();
-          setSelectedIndex(prev => Math.min(filteredCommands.length - 1, prev + 1));
-          break;
-        case 'Enter':
-          e.preventDefault();
-          e.stopPropagation();
-          if (filteredCommands[selectedIndex]) {
-            onCommandSelect(filteredCommands[selectedIndex]);
-          }
-          break;
-        default:
-          break;
-      }
-    },
-    [showSuggestions, selectedIndex, filteredCommands, onCommandSelect]
-  );
-
-  useEffect(() => {
-    if (showSuggestions) {
-      // Use capture phase to intercept events before they reach other handlers
-      document.addEventListener('keydown', handleKeyDown, true);
-      return () => document.removeEventListener('keydown', handleKeyDown, true);
-    }
-    return undefined;
-  }, [handleKeyDown, showSuggestions]);
-
-  if (!showSuggestions) {
-    return null;
-  }
-
-  return (
-    <MenuPanel>
-      {filteredCommands.map((command, index) => (
-        <MenuItem
-          key={command.title}
-          isSelected={index === selectedIndex}
-          onClick={() => onCommandSelect(command)}
-        >
-          <ActionName>{command.title}</ActionName>
-          <ActionDescription>{command.description}</ActionDescription>
-        </MenuItem>
-      ))}
-    </MenuPanel>
-  );
 }
-
-export default ExplorerMenu;
 
 const MenuPanel = styled('div')`
   position: absolute;
@@ -177,13 +232,13 @@ const MenuItem = styled('div')<{isSelected: boolean}>`
   }
 `;
 
-const ActionName = styled('div')`
+const ItemName = styled('div')`
   font-weight: 600;
   color: ${p => p.theme.purple400};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
-const ActionDescription = styled('div')`
+const ItemDescription = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.xs};
   margin-top: 2px;
