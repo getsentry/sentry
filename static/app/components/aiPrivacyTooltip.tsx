@@ -11,7 +11,6 @@ interface AiPrivacyTooltipProps extends Omit<TooltipProps, 'title' | 'children'>
 
 /**
  * A tooltip wrapper that links to AI privacy and security documentation.
- * Used for AI-generated content like summaries and categories.
  */
 export function AiPrivacyTooltip({children, ...tooltipProps}: AiPrivacyTooltipProps) {
   return (
