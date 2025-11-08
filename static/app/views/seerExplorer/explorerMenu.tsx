@@ -131,12 +131,8 @@ export function ExplorerMenu() {
         if (menuMode === 'slash-commands-keyboard') {
           clearInput();
         }
-      } else if (isPrintableChar) {
-        if (menuMode !== 'slash-commands-keyboard') {
-          e.preventDefault();
-          e.stopPropagation();
-          closeMenu();
-        }
+      } else if (isPrintableChar && menuMode !== 'slash-commands-keyboard') {
+        closeMenu();
       }
     },
     [isVisible, selectedIndex, menuItems, onSelect, clearInput, menuMode, closeMenu]
