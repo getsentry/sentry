@@ -525,17 +525,17 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     const referrer = getRouteStringFromRoutes(routes);
     const eventView = EventView.fromLocation(location);
 
-    const {start, end, statsPeriod, ...eventViewQuery} =
-      eventView.generateQueryStringObject();
-
-    // EventView only fetches sort from location if the corresponding fields are also in the URL
+    // HACK: EventView only fetches sort from location if `fields` is in the URL
+    // instead, we directly get it from location query
     const sort = location.query.sort ?? encodeSort(DEFAULT_SORT);
 
-    let query = {referrer, ...eventViewQuery};
+    const {statsPeriod, ...eventViewQuery} = eventView.generateQueryStringObject();
 
-    if (!start && !end && typeof statsPeriod === 'string') {
+    let query = {referrer, ...eventViewQuery, sort};
+
+    if (!eventViewQuery.start && !eventViewQuery.end && typeof statsPeriod === 'string') {
       const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(statsPeriod);
-      query = {...query, ...{playlistStart, playlistEnd, sort}};
+      query = {...query, ...{playlistStart, playlistEnd}};
     }
 
     const replayDetailsPathname = makeReplaysPathname({

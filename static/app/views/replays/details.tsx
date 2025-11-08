@@ -61,13 +61,11 @@ export default function ReplayDetails() {
     },
   });
 
-  let playlistEnabled = false;
   if (
     playlistStart !== '' &&
     playlistEnd !== '' &&
     organization.features.includes('replay-playlist-view')
   ) {
-    playlistEnabled = true;
     query.start = playlistStart;
     query.end = playlistEnd;
   }
@@ -79,7 +77,10 @@ export default function ReplayDetails() {
   });
   const {data} = useApiQuery<{
     data: ReplayListRecord[];
-  }>(queryKey, {staleTime: 0, enabled: playlistEnabled});
+  }>(queryKey, {
+    staleTime: 0,
+    enabled: Boolean(query.start && query.end && query.sort),
+  });
 
   const replays = useMemo(() => data?.data?.map(mapResponseToReplayRecord) ?? [], [data]);
 
