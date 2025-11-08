@@ -570,9 +570,19 @@ describe('DetectorEdit', () => {
               projectId: project.id,
               owner: null,
               workflowIds: [],
-              // Dynamic detection should have empty conditions (no resolution thresholds)
+              // Dynamic detection should have anomaly detection condition
               conditionGroup: {
-                conditions: [],
+                conditions: [
+                  {
+                    type: 'anomaly_detection',
+                    comparison: {
+                      sensitivity: 'high',
+                      seasonality: 'auto',
+                      threshold_type: 0,
+                    },
+                    conditionResult: 75,
+                  },
+                ],
                 logicType: 'any',
               },
               config: {

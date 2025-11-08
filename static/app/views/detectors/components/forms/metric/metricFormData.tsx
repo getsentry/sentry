@@ -183,6 +183,22 @@ interface NewDataSource {
   timeWindow: number;
 }
 
+function createAnomalyDetectionCondition(
+  data: Pick<MetricDetectorFormData, 'sensitivity' | 'thresholdType'>
+): NewConditionGroup['conditions'] {
+  return [
+    {
+      type: DataConditionType.ANOMALY_DETECTION,
+      comparison: {
+        sensitivity: data.sensitivity,
+        seasonality: 'auto' as const,
+        threshold_type: data.thresholdType,
+      },
+      conditionResult: DetectorPriorityLevel.HIGH,
+    },
+  ];
+}
+
 /**
  * Creates escalation conditions based on priority level and available thresholds
  */
@@ -303,7 +319,11 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
 export function metricDetectorFormDataToEndpointPayload(
   data: MetricDetectorFormData
 ): MetricDetectorUpdatePayload {
-  const conditions = createConditions(data);
+  const conditions =
+    data.detectionType === 'dynamic'
+      ? createAnomalyDetectionCondition(data)
+      : createConditions(data);
+
   const dataSource = createDataSource(data);
 
   // Create config based on detection type
@@ -424,6 +444,30 @@ function processDetectorConditions(
 }
 
 /**
+ * Extracts thresholdType from anomaly detection condition
+ * Backend serializes threshold_type as thresholdType (camelCase)
+ */
+function extractThresholdTypeFromAnomalyCondition(
+  detector: MetricDetector
+): AlertRuleThresholdType | undefined {
+  const anomalyCondition = detector.conditionGroup?.conditions?.find(
+    condition => condition.type === DataConditionType.ANOMALY_DETECTION
+  );
+
+  const comparison = anomalyCondition?.comparison;
+  if (
+    comparison &&
+    typeof comparison === 'object' &&
+    'thresholdType' in comparison &&
+    typeof comparison.thresholdType === 'number'
+  ) {
+    return comparison.thresholdType as AlertRuleThresholdType;
+  }
+
+  return undefined;
+}
+
+/**
  * Converts a Detector to MetricDetectorFormData for editing
  */
 export function metricSavedDetectorToFormData(
@@ -438,6 +482,7 @@ export function metricSavedDetectorToFormData(
   const snubaQuery = dataSource.queryObj?.snubaQuery;
 
   const conditionData = processDetectorConditions(detector);
+  const isDynamic = detector.config.detectionType === 'dynamic';
 
   const dataset = snubaQuery?.dataset
     ? getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes)
@@ -471,15 +516,14 @@ export function metricSavedDetectorToFormData(
         ? detector.config.comparisonDelta
         : DEFAULT_THRESHOLD_METRIC_FORM_DATA.conditionComparisonAgo,
 
-    // Dynamic fields - extract from config for dynamic detectors
+    // Dynamic fields - extract from anomaly detection condition for dynamic detectors
     sensitivity:
-      detector.config.detectionType === 'dynamic' && defined(detector.config.sensitivity)
+      isDynamic && defined(detector.config.sensitivity)
         ? detector.config.sensitivity
         : DEFAULT_THRESHOLD_METRIC_FORM_DATA.sensitivity,
-    thresholdType:
-      detector.config.detectionType === 'dynamic' &&
-      defined(detector.config.thresholdType)
-        ? detector.config.thresholdType
-        : DEFAULT_THRESHOLD_METRIC_FORM_DATA.thresholdType,
+    thresholdType: isDynamic
+      ? (extractThresholdTypeFromAnomalyCondition(detector) ??
+        DEFAULT_THRESHOLD_METRIC_FORM_DATA.thresholdType)
+      : DEFAULT_THRESHOLD_METRIC_FORM_DATA.thresholdType,
   };
 }

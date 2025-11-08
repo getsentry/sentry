@@ -24,7 +24,12 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleSensitivity,
+  AlertRuleThresholdType,
+  Dataset,
+  EventTypes,
+} from 'sentry/views/alerts/rules/metric/types';
 import {SnubaQueryType} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import DetectorEdit from 'sentry/views/detectors/edit';
 
@@ -625,6 +630,60 @@ describe('DetectorEdit', () => {
 
       // Verify interval changed to 15 minutes
       expect(await screen.findByText('15 minutes')).toBeInTheDocument();
+    });
+
+    it('prefills thresholdType from anomaly detection condition when editing dynamic detector', async () => {
+      const dynamicDetector = MetricDetectorFixture({
+        name: 'Dynamic Detector',
+        projectId: project.id,
+        config: {
+          detectionType: 'dynamic',
+          thresholdPeriod: 1,
+          sensitivity: AlertRuleSensitivity.HIGH,
+        },
+        conditionGroup: {
+          id: 'cg-dynamic',
+          logicType: DataConditionGroupLogicType.ANY,
+          conditions: [
+            {
+              id: 'c-anomaly',
+              type: DataConditionType.ANOMALY_DETECTION,
+              comparison: {
+                sensitivity: 'high',
+                seasonality: 'auto',
+                threshold_type: AlertRuleThresholdType.BELOW,
+              },
+              conditionResult: DetectorPriorityLevel.HIGH,
+            },
+          ],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${dynamicDetector.id}/`,
+        body: dynamicDetector,
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/monitors/:detectorId/edit/',
+          location: {
+            pathname: `/organizations/${organization.slug}/monitors/${dynamicDetector.id}/edit/`,
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: 'Dynamic Detector'})
+      ).toBeInTheDocument();
+
+      expect(screen.getByRole('radio', {name: 'Dynamic'})).toBeChecked();
+
+      // Verify thresholdType field is prefilled with "Below"
+      const thresholdTypeField = screen.getByLabelText('Direction of anomaly movement');
+      expect(thresholdTypeField).toHaveValue('1'); // BELOW = 1
+      expect(screen.getByText('Below')).toBeInTheDocument();
     });
 
     it('calls anomaly API when using dynamic detection', async () => {
