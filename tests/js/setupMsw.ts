@@ -10,11 +10,15 @@ beforeAll(() =>
     onUnhandledRequest: 'error',
   })
 );
-afterEach(() => {
-  server.resetHandlers();
+
+beforeEach(() => {
   server.use(
     // jest project under Sentry organization (dev productivity team)
     http.all('*3fe1dce93e3a4267979ebad67f3de327*', passthrough)
   );
+});
+
+afterEach(() => {
+  server.resetHandlers();
 });
 afterAll(() => server.close());
