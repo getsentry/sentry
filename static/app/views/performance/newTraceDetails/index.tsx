@@ -13,6 +13,10 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import TraceAiSpans from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
+  TraceViewMetricsDataProvider,
+  TraceViewMetricsSection,
+} from 'sentry/views/performance/newTraceDetails/traceMetrics';
+import {
   TraceViewLogsDataProvider,
   TraceViewLogsSection,
 } from 'sentry/views/performance/newTraceDetails/traceOurlogs';
@@ -35,6 +39,7 @@ import {
 import {TraceStateProvider} from './traceState/traceStateProvider';
 import {ErrorsOnlyWarnings} from './traceTypeWarnings/errorsOnlyWarnings';
 import {TraceMetaDataHeader} from './traceHeader';
+import {useInitialTraceMetricData} from './useInitialTraceMetricData';
 import {useTraceEventView} from './useTraceEventView';
 import {useTraceQueryParams} from './useTraceQueryParams';
 import useTraceStateAnalytics from './useTraceStateAnalytics';
@@ -69,12 +74,14 @@ export default function TraceView() {
 
   return (
     <TraceViewLogsDataProvider traceSlug={traceSlug}>
-      <TraceStateProvider
-        initialPreferences={preferences}
-        preferencesStorageKey={TRACE_VIEW_PREFERENCES_KEY}
-      >
-        <TraceViewImpl traceSlug={traceSlug} />
-      </TraceStateProvider>
+      <TraceViewMetricsDataProvider traceSlug={traceSlug}>
+        <TraceStateProvider
+          initialPreferences={preferences}
+          preferencesStorageKey={TRACE_VIEW_PREFERENCES_KEY}
+        >
+          <TraceViewImpl traceSlug={traceSlug} />
+        </TraceStateProvider>
+      </TraceViewMetricsDataProvider>
     </TraceViewLogsDataProvider>
   );
 }
@@ -101,6 +108,11 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
   const logsData = useInitialLogsData();
+  const {metricsData} = useInitialTraceMetricData({
+    traceId: traceSlug,
+    queryParams,
+    enabled: true,
+  });
   const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
@@ -125,6 +137,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
     tree,
     logs: logsData,
+    metrics: metricsData,
   });
 
   return (
@@ -142,6 +155,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
             traceSlug={traceSlug}
             traceEventView={traceEventView}
             logs={logsData}
+            metrics={metricsData}
           />
           <TraceInnerLayout ref={traceInnerLayoutRef}>
             <ErrorsOnlyWarnings
@@ -177,6 +191,9 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
             ) : null}
             {currentTab === TraceLayoutTabKeys.LOGS ? (
               <TraceViewLogsSection scrollContainer={traceInnerLayoutRef} />
+            ) : null}
+            {currentTab === TraceLayoutTabKeys.METRICS ? (
+              <TraceViewMetricsSection />
             ) : null}
             {currentTab === TraceLayoutTabKeys.SUMMARY ? (
               <TraceSummarySection traceSlug={traceSlug} />
