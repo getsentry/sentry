@@ -4,54 +4,54 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
-export interface SlashCommand {
-  command: string;
+export interface MenuAction {
   description: string;
   handler: () => void;
+  title: string;
 }
 
-interface SlashCommandsProps {
+interface ExplorerMenuProps {
   inputValue: string;
-  onCommandSelect: (command: SlashCommand) => void;
+  onCommandSelect: (command: MenuAction) => void;
   onMaxSize: () => void;
   onMedSize: () => void;
   onNew: () => void;
   onVisibilityChange?: (isVisible: boolean) => void;
 }
 
-function SlashCommands({
+function ExplorerMenu({
   inputValue,
   onCommandSelect,
   onMaxSize,
   onMedSize,
   onNew,
   onVisibilityChange,
-}: SlashCommandsProps) {
+}: ExplorerMenuProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const openFeedbackForm = useFeedbackForm();
 
   // Default slash commands
-  const DEFAULT_COMMANDS = useMemo(
-    (): SlashCommand[] => [
+  const DEFAULT_SLASH_COMMANDS = useMemo(
+    (): MenuAction[] => [
       {
-        command: '/new',
+        title: '/new',
         description: 'Start a new session',
         handler: onNew,
       },
       {
-        command: '/max-size',
+        title: '/max-size',
         description: 'Expand panel to full viewport height',
         handler: onMaxSize,
       },
       {
-        command: '/med-size',
+        title: '/med-size',
         description: 'Set panel to medium size (default)',
         handler: onMedSize,
       },
       ...(openFeedbackForm
         ? [
             {
-              command: '/feedback',
+              title: '/feedback',
               description: 'Open feedback form to report issues or suggestions',
               handler: () =>
                 openFeedbackForm({
@@ -70,13 +70,11 @@ function SlashCommands({
 
   // Filter commands based on current input
   const filteredCommands = useMemo(() => {
-    if (!inputValue.startsWith('/') || inputValue.includes(' ')) {
-      return [];
-    }
-
     const query = inputValue.toLowerCase();
-    return DEFAULT_COMMANDS.filter(cmd => cmd.command.toLowerCase().startsWith(query));
-  }, [inputValue, DEFAULT_COMMANDS]);
+    return DEFAULT_SLASH_COMMANDS.filter(cmd =>
+      cmd.title.toLowerCase().startsWith(query)
+    );
+  }, [inputValue, DEFAULT_SLASH_COMMANDS]);
 
   // Show suggestions panel
   const showSuggestions = filteredCommands.length > 0;
@@ -135,24 +133,24 @@ function SlashCommands({
   }
 
   return (
-    <SuggestionsPanel>
+    <MenuPanel>
       {filteredCommands.map((command, index) => (
-        <SuggestionItem
-          key={command.command}
+        <MenuItem
+          key={command.title}
           isSelected={index === selectedIndex}
           onClick={() => onCommandSelect(command)}
         >
-          <CommandName>{command.command}</CommandName>
-          <CommandDescription>{command.description}</CommandDescription>
-        </SuggestionItem>
+          <ActionName>{command.title}</ActionName>
+          <ActionDescription>{command.description}</ActionDescription>
+        </MenuItem>
       ))}
-    </SuggestionsPanel>
+    </MenuPanel>
   );
 }
 
-export default SlashCommands;
+export default ExplorerMenu;
 
-const SuggestionsPanel = styled('div')`
+const MenuPanel = styled('div')`
   position: absolute;
   bottom: 100%;
   left: ${space(2)};
@@ -167,7 +165,7 @@ const SuggestionsPanel = styled('div')`
   z-index: 10;
 `;
 
-const SuggestionItem = styled('div')<{isSelected: boolean}>`
+const MenuItem = styled('div')<{isSelected: boolean}>`
   padding: ${space(1.5)} ${space(2)};
   cursor: pointer;
   background: ${p => (p.isSelected ? p.theme.hover : 'transparent')};
@@ -182,13 +180,13 @@ const SuggestionItem = styled('div')<{isSelected: boolean}>`
   }
 `;
 
-const CommandName = styled('div')`
+const ActionName = styled('div')`
   font-weight: 600;
   color: ${p => p.theme.purple400};
   font-size: ${p => p.theme.fontSize.sm};
 `;
 
-const CommandDescription = styled('div')`
+const ActionDescription = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.xs};
   margin-top: 2px;

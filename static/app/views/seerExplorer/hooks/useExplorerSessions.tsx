@@ -1,6 +1,3 @@
-import {useMemo} from 'react';
-import uniqBy from 'lodash/uniqBy';
-
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {ExplorerSession} from 'sentry/views/seerExplorer/types';
@@ -17,15 +14,7 @@ export function useExplorerSessions({
   enabled?: boolean;
 }) {
   const organization = useOrganization({allowNull: true});
-  const {
-    data,
-    isFetching,
-    isError,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-    refetch,
-  } = useInfiniteApiQuery<RunsResponse>({
+  const query = useInfiniteApiQuery<RunsResponse>({
     queryKey: [
       'infinite',
       `/organizations/${organization?.slug ?? ''}/seer/explorer-runs/`,
@@ -38,19 +27,14 @@ export function useExplorerSessions({
     enabled: enabled && Boolean(organization),
   });
 
-  // Deduplicate sessions in case pages shift (new runs, order changes).
-  const sessions = useMemo(
-    () => uniqBy(data?.pages.flatMap(result => result[0]?.data ?? []) ?? [], 'run_id'),
-    [data]
-  );
+  // // Deduplicate sessions in case pages shift (new runs, order changes).
+  // const sessions = useMemo(
+  //   () =>
+  //     uniqBy(query.data?.pages.flatMap(result => result[0]?.data ?? []) ?? [], 'run_id'),
+  //   [query.data]
+  // );
 
   return {
-    sessions,
-    isFetching,
-    isError,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-    refetch,
+    ...query,
   };
 }

@@ -123,7 +123,7 @@ export const useSeerExplorer = () => {
   );
 
   const sendMessage = useCallback(
-    async (query: string, insertIndex?: number, onNewSession?: () => void) => {
+    async (query: string, insertIndex?: number) => {
       if (!orgSlug) {
         return;
       }
@@ -190,7 +190,6 @@ export const useSeerExplorer = () => {
         // Set run ID if this is a new session
         if (!runId) {
           setRunId(response.run_id);
-          onNewSession?.();
         }
 
         // Invalidate queries to fetch fresh data

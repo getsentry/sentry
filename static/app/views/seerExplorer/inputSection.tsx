@@ -1,23 +1,25 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-import SlashCommands, {type SlashCommand} from './slashCommands';
+import ExplorerMenu, {type MenuAction} from './explorerMenu';
 
 interface InputSectionProps {
   focusedBlockIndex: number;
   inputValue: string;
   interruptRequested: boolean;
   isPolling: boolean;
-  onCommandSelect: (command: SlashCommand) => void;
+  onCommandSelect: (command: MenuAction) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onInputClick: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onMaxSize: () => void;
   onMedSize: () => void;
+  onMenuVisibilityChange: (isVisible: boolean) => void;
   onNew: () => void;
-  onSlashCommandsVisibilityChange: (isVisible: boolean) => void;
   ref?: React.RefObject<HTMLTextAreaElement | null>;
 }
 
@@ -31,7 +33,7 @@ function InputSection({
   onKeyDown,
   onInputClick,
   onCommandSelect,
-  onSlashCommandsVisibilityChange,
+  onMenuVisibilityChange,
   onMaxSize,
   onMedSize,
   ref,
@@ -52,16 +54,18 @@ function InputSection({
   return (
     <InputBlock>
       <InputContainer onClick={onInputClick}>
-        <SlashCommands
+        <ExplorerMenu
           inputValue={inputValue}
           onCommandSelect={onCommandSelect}
-          onVisibilityChange={onSlashCommandsVisibilityChange}
+          onVisibilityChange={onMenuVisibilityChange}
           onMaxSize={onMaxSize}
           onMedSize={onMedSize}
           onNew={onNew}
         />
         <InputRow>
-          <ChevronIcon direction="right" size="sm" />
+          <Button onClick={() => {}}>
+            <ChevronIcon direction="right" size="sm" />
+          </Button>
           <InputTextarea
             ref={ref}
             value={inputValue}

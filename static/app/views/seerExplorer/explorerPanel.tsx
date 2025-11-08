@@ -1,24 +1,16 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
-
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {useBlockNavigation} from './hooks/useBlockNavigation';
-import {useExplorerSessions} from './hooks/useExplorerSessions';
 import {usePanelSizing} from './hooks/usePanelSizing';
 import {useSeerExplorer} from './hooks/useSeerExplorer';
 import BlockComponent from './blockComponents';
 import EmptyState from './emptyState';
+import type {MenuAction} from './explorerMenu';
 import InputSection from './inputSection';
 import PanelContainers, {BlocksContainer} from './panelContainers';
-import {SessionDropdown} from './sessionDropdown';
-import type {SlashCommand} from './slashCommands';
 import type {Block, ExplorerPanelProps} from './types';
 
 function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
@@ -26,7 +18,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
-  const [isSlashCommandsVisible, setIsSlashCommandsVisible] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false); // state for slide-down
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -40,7 +32,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   // Custom hooks
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
-  const sessionsResult = useExplorerSessions({perPage: 20, enabled: isVisible});
   const {
     sessionData,
     sendMessage,
@@ -49,24 +40,10 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     isPolling,
     interruptRun,
     interruptRequested,
-    runId,
-    setRunId,
   } = useSeerExplorer();
 
   // Get blocks from session data or empty array
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData]);
-
-  // Get active session title for display
-  const activeSessionTitle = useMemo(() => {
-    const session = sessionsResult.sessions.find(s => s.run_id === runId);
-    const title = session?.title ?? 'New Session';
-
-    const createdDate = session?.created_at
-      ? moment(session.created_at).format('MM/DD h:mm A')
-      : moment(Date.now()).format('MM/DD h:mm A');
-
-    return `${createdDate} - ${title}`.trim();
-  }, [runId, sessionsResult.sessions]);
 
   useBlockNavigation({
     isOpen: isVisible,
@@ -222,9 +199,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (inputValue.trim() && !isPolling) {
-        sendMessage(inputValue.trim(), undefined, () => {
-          sessionsResult.refetch();
-        });
+        sendMessage(inputValue.trim(), undefined);
         setInputValue('');
         // Reset scroll state so we auto-scroll to show the response
         userScrolledUpRef.current = false;
@@ -268,7 +243,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setIsMinimized(false);
   };
 
-  const handleCommandSelect = (command: SlashCommand) => {
+  const handleCommandSelect = (command: MenuAction) => {
     // Execute the command
     command.handler();
 
@@ -290,20 +265,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       onUnminimize={() => setIsMinimized(false)}
     >
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
-        <SessionHeader>
-          <Flex gap="xl" align="center">
-            {organization && (
-              <SessionDropdown
-                organization={organization}
-                activeRunId={runId}
-                startNewSession={startNewSession}
-                onSelectSession={setRunId}
-                useExplorerSessionsResult={sessionsResult}
-              />
-            )}
-            <SessionTitle as="h2">{activeSessionTitle}</SessionTitle>
-          </Flex>
-        </SessionHeader>
         {blocks.length === 0 ? (
           <EmptyState />
         ) : (
@@ -321,7 +282,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
               onClick={() => handleBlockClick(index)}
               onMouseEnter={() => {
                 // Don't change focus while slash commands menu is open or if already on this block
-                if (isSlashCommandsVisible || hoveredBlockIndex.current === index) {
+                if (isMenuOpen || hoveredBlockIndex.current === index) {
                   return;
                 }
 
@@ -355,7 +316,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         onKeyDown={handleKeyDown}
         onInputClick={handleInputClick}
         onCommandSelect={handleCommandSelect}
-        onSlashCommandsVisibilityChange={setIsSlashCommandsVisible}
+        onMenuVisibilityChange={setIsMenuOpen}
         onMaxSize={handleMaxSize}
         onMedSize={handleMedSize}
         onNew={startNewSession}
@@ -370,25 +331,5 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   // Render to portal for proper z-index management
   return createPortal(panelContent, document.body);
 }
-
-const SessionHeader = styled('div')`
-  padding: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.background};
-  position: sticky;
-  top: 0;
-  z-index: 1;
-`;
-
-const SessionTitle = styled(Heading)`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.textColor};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-`;
 
 export default ExplorerPanel;
