@@ -41,18 +41,20 @@ class TriggerResult:
 
     @staticmethod
     def any(items: Iterable["TriggerResult"]) -> "TriggerResult":
-        for _ in (item for item in items if item.triggered and item.error is None):
+        items_list = list(items)
+        for _ in (item for item in items_list if item.triggered and item.error is None):
             return TriggerResult(triggered=True, error=None)
         # If we didn't have any untained Trues, the result is tainted.
-        some_error = next((item.error for item in items if item.error is not None), None)
-        return TriggerResult(triggered=any(item.triggered for item in items), error=some_error)
+        some_error = next((item.error for item in items_list if item.error is not None), None)
+        return TriggerResult(triggered=any(item.triggered for item in items_list), error=some_error)
 
     @staticmethod
     def all(items: Iterable["TriggerResult"]) -> "TriggerResult":
-        some_error = next((item.error for item in items if item.error is not None), None)
+        items_list = list(items)
+        some_error = next((item.error for item in items_list if item.error is not None), None)
         # if anything was tainted, the result is tainted.
         return TriggerResult(
-            triggered=all(item.triggered for item in items),
+            triggered=all(item.triggered for item in items_list),
             error=some_error,
         )
 

@@ -546,3 +546,25 @@ class TestTriggerResult(unittest.TestCase):
         result = TriggerResult.all(items)
         assert result.triggered is False
         assert result.error is None
+
+    def test_any_with_generator_preserves_error(self):
+        error = ConditionError(msg="test error")
+        items = [
+            TriggerResult(triggered=False, error=None),
+            TriggerResult(triggered=False, error=error),
+            TriggerResult(triggered=False, error=None),
+        ]
+        result = TriggerResult.any(item for item in items)
+        assert result.triggered is False
+        assert result.error == error
+
+    def test_all_with_generator_preserves_error(self):
+        error = ConditionError(msg="test error")
+        items = [
+            TriggerResult(triggered=True, error=None),
+            TriggerResult(triggered=True, error=error),
+            TriggerResult(triggered=True, error=None),
+        ]
+        result = TriggerResult.all(item for item in items)
+        assert result.triggered is True
+        assert result.error == error
