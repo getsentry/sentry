@@ -61,11 +61,7 @@ export default function ReplayDetails() {
     },
   });
 
-  if (
-    playlistStart !== '' &&
-    playlistEnd !== '' &&
-    organization.features.includes('replay-playlist-view')
-  ) {
+  if (playlistStart !== '' && playlistEnd !== '') {
     query.start = playlistStart;
     query.end = playlistEnd;
   }

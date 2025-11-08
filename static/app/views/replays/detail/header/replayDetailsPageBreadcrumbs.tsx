@@ -112,32 +112,34 @@ export default function ReplayDetailsPageBreadcrumbs({
             />
           </Tooltip>
         </Flex>
-        <Flex>
-          <ButtonBar merged gap="0">
-            <LinkButton
-              size="xs"
-              icon={<IconPrevious />}
-              disabled={!previousReplay}
-              to={{
-                pathname: previousReplay
-                  ? makeReplaysPathname({path: `/${previousReplay.id}/`, organization})
-                  : undefined,
-                query: location.query,
-              }}
-            />
-            <LinkButton
-              size="xs"
-              icon={<IconNext />}
-              disabled={!nextReplay}
-              to={{
-                pathname: nextReplay
-                  ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
-                  : undefined,
-                query: location.query,
-              }}
-            />
-          </ButtonBar>
-        </Flex>
+        {organization.features.includes('replay-playlist-view') && (
+          <Flex>
+            <ButtonBar merged gap="0">
+              <LinkButton
+                size="xs"
+                icon={<IconPrevious />}
+                disabled={!previousReplay}
+                to={{
+                  pathname: previousReplay
+                    ? makeReplaysPathname({path: `/${previousReplay.id}/`, organization})
+                    : undefined,
+                  query: location.query,
+                }}
+              />
+              <LinkButton
+                size="xs"
+                icon={<IconNext />}
+                disabled={!nextReplay}
+                to={{
+                  pathname: nextReplay
+                    ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
+                    : undefined,
+                  query: location.query,
+                }}
+              />
+            </ButtonBar>
+          </Flex>
+        )}
       </Flex>
     ) : (
       <Placeholder width="100%" height="16px" />
