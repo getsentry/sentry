@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -20,19 +20,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 interface Props {
-  nextReplay: ReplayListRecord | undefined;
-  previousReplay: ReplayListRecord | undefined;
   readerResult: ReturnType<typeof useLoadReplayReader>;
+  replays: ReplayRecord[];
 }
 
-export default function ReplayDetailsPageBreadcrumbs({
-  readerResult,
-  nextReplay,
-  previousReplay,
-}: Props) {
+export default function ReplayDetailsPageBreadcrumbs({readerResult, replays}: Props) {
   const replayRecord = readerResult.replayRecord;
   const organization = useOrganization();
   const location = useLocation();
@@ -40,6 +35,23 @@ export default function ReplayDetailsPageBreadcrumbs({
   const project = useProjectFromId({project_id: replayRecord?.project_id ?? undefined});
   const [isHovered, setIsHovered] = useState(false);
   const {currentTime} = useReplayContext();
+
+  const currentReplayIndex = useMemo(
+    () => replays.findIndex(r => r.id === replayRecord?.id),
+    [replays, replayRecord]
+  );
+
+  const nextReplay = useMemo(
+    () =>
+      currentReplayIndex >= 0 && currentReplayIndex < replays.length - 1
+        ? replays[currentReplayIndex + 1]
+        : undefined,
+    [replays, currentReplayIndex]
+  );
+  const previousReplay = useMemo(
+    () => (currentReplayIndex > 0 ? replays[currentReplayIndex - 1] : undefined),
+    [replays, currentReplayIndex]
+  );
   // Create URL with current timestamp for copying
   const replayUrlWithTimestamp = replayRecord
     ? (() => {

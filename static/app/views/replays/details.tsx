@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
@@ -42,22 +42,6 @@ export default function ReplayDetails() {
   });
   const {replay, replayRecord} = readerResult;
   const replays = useReplayPlaylist({organization});
-  const currentReplayIndex = useMemo(
-    () => replays.findIndex(r => r.id === replayRecord?.id),
-    [replays, replayRecord]
-  );
-
-  const nextReplay = useMemo(
-    () =>
-      currentReplayIndex >= 0 && currentReplayIndex < replays.length - 1
-        ? replays[currentReplayIndex + 1]
-        : undefined,
-    [replays, currentReplayIndex]
-  );
-  const previousReplay = useMemo(
-    () => (currentReplayIndex > 0 ? replays[currentReplayIndex - 1] : undefined),
-    [replays, currentReplayIndex]
-  );
 
   useReplayPageview('replay.details-time-spent');
   useRouteAnalyticsEventNames('replay_details.viewed', 'Replay Details: Viewed');
@@ -76,11 +60,7 @@ export default function ReplayDetails() {
   const content = (
     <Fragment>
       <Header>
-        <ReplayDetailsPageBreadcrumbs
-          readerResult={readerResult}
-          nextReplay={nextReplay}
-          previousReplay={previousReplay}
-        />
+        <ReplayDetailsPageBreadcrumbs readerResult={readerResult} replays={replays} />
         <ReplayDetailsHeaderActions readerResult={readerResult} />
         <ReplayDetailsUserBadge readerResult={readerResult} />
         <ReplayDetailsMetadata readerResult={readerResult} />
