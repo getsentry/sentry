@@ -12,6 +12,7 @@ export enum TabKey {
   TAGS = 'tags',
   TRACE = 'trace',
   LOGS = 'logs',
+  PLAYLIST = 'playlist',
 }
 
 function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}) {
