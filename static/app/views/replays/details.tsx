@@ -8,15 +8,12 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import useReplayListQueryKey from 'sentry/utils/replays/hooks/useReplayListQueryKey';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
-import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
+import useReplayPlaylist from 'sentry/utils/replays/hooks/useReplayPlaylist';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -27,7 +24,6 @@ import ReplayDetailsMetadata from 'sentry/views/replays/detail/header/replayDeta
 import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
 import ReplayDetailsUserBadge from 'sentry/views/replays/detail/header/replayDetailsUserBadge';
 import ReplayDetailsPage from 'sentry/views/replays/detail/page';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 export default function ReplayDetails() {
   const user = useUser();
@@ -45,41 +41,7 @@ export default function ReplayDetails() {
     orgSlug,
   });
   const {replay, replayRecord} = readerResult;
-
-  const {playlistStart, playlistEnd, ...query} = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-      end: decodeScalar,
-      environment: decodeList,
-      playlistEnd: decodeScalar,
-      playlistStart: decodeScalar,
-      project: decodeList,
-      query: decodeScalar,
-      sort: decodeScalar,
-      start: decodeScalar,
-      utc: decodeScalar,
-    },
-  });
-
-  if (playlistStart !== '' && playlistEnd !== '') {
-    query.start = playlistStart;
-    query.end = playlistEnd;
-  }
-
-  const queryKey = useReplayListQueryKey({
-    options: {query: {...query}},
-    organization,
-    queryReferrer: 'replayList',
-  });
-  const {data} = useApiQuery<{
-    data: ReplayListRecord[];
-  }>(queryKey, {
-    staleTime: 0,
-    enabled: Boolean(query.start && query.end && query.sort),
-  });
-
-  const replays = useMemo(() => data?.data?.map(mapResponseToReplayRecord) ?? [], [data]);
-
+  const replays = useReplayPlaylist({organization});
   const currentReplayIndex = useMemo(
     () => replays.findIndex(r => r.id === replayRecord?.id),
     [replays, replayRecord]
