@@ -6,8 +6,9 @@ import * as echarts from 'echarts/core';
  * visible elements onto a character grid based on their bounding rectangles.
  * Elements within any ancestor marked with `data-seer-explorer-root` are excluded.
  */
-function useAsciiSnapshot() {
+function useAsciiSnapshot(options?: {onlyOnUrlChange?: boolean}) {
   const mousePosRef = useRef<{inWindow: boolean; x: number; y: number} | null>(null);
+  const lastCapturedUrlRef = useRef<string>('');
 
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
@@ -31,6 +32,13 @@ function useAsciiSnapshot() {
   const capture = useCallback(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') {
       return '';
+    }
+
+    const currentUrl = window.location.href;
+
+    // Return null if URL hasn't changed and onlyOnUrlChange is enabled
+    if (options?.onlyOnUrlChange && currentUrl === lastCapturedUrlRef.current) {
+      return null;
     }
 
     const viewportWidth = Math.max(0, Math.floor(window.innerWidth));
@@ -565,10 +573,12 @@ function useAsciiSnapshot() {
     }
 
     // Top line: full URL of the current page
-    const url = window.location.href;
-    const result = url + '\n' + grid.map(row => row.join('')).join('\n');
+    const result = currentUrl + '\n' + grid.map(row => row.join('')).join('\n');
+
+    lastCapturedUrlRef.current = currentUrl;
+
     return result;
-  }, []);
+  }, [options?.onlyOnUrlChange]);
 
   return capture;
 }

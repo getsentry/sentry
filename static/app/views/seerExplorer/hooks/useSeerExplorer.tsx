@@ -92,7 +92,7 @@ export const useSeerExplorer = () => {
   const queryClient = useQueryClient();
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
-  const captureAsciiSnapshot = useAsciiSnapshot();
+  const captureAsciiSnapshot = useAsciiSnapshot({onlyOnUrlChange: true});
 
   const [currentRunId, setCurrentRunId] = useState<number | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
