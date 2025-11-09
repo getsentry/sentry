@@ -339,7 +339,7 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         ],
         orderby=[],
         offset=0,
-        limit=10,
+        limit=5,
         referrer=Referrer.SEER_RPC,
         config=config,
         sampling_mode="NORMAL",
@@ -396,7 +396,7 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
         for p in profile_data
     ]
 
-    with ThreadPoolExecutor(max_workers=min(len(profiles_to_fetch), 10)) as executor:
+    with ThreadPoolExecutor(max_workers=min(len(profiles_to_fetch), 5)) as executor:
         future_to_profile = {
             executor.submit(
                 _fetch_and_process_profile,
