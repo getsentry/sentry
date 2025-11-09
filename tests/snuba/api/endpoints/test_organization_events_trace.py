@@ -15,7 +15,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
     url_name: str
     FEATURES = [
         "organizations:performance-view",
-        "organizations:trace-view-load-more",
     ]
 
     def setUp(self) -> None:
