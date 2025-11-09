@@ -34,7 +34,7 @@ export default function useReplayPlaylist({organization}: Props): ReplayRecord[]
   }
 
   const queryKey = useReplayListQueryKey({
-    options: {query: {...query}},
+    options: {query},
     organization,
     queryReferrer: 'playlist',
   });
