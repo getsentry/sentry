@@ -11,7 +11,6 @@ import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
-import useReplayPlaylist from 'sentry/utils/replays/hooks/useReplayPlaylist';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -41,7 +40,6 @@ export default function ReplayDetails() {
     orgSlug,
   });
   const {replay, replayRecord} = readerResult;
-  const replays = useReplayPlaylist({organization});
 
   useReplayPageview('replay.details-time-spent');
   useRouteAnalyticsEventNames('replay_details.viewed', 'Replay Details: Viewed');
@@ -60,7 +58,7 @@ export default function ReplayDetails() {
   const content = (
     <Fragment>
       <Header>
-        <ReplayDetailsPageBreadcrumbs readerResult={readerResult} replays={replays} />
+        <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
         <ReplayDetailsHeaderActions readerResult={readerResult} />
         <ReplayDetailsUserBadge readerResult={readerResult} />
         <ReplayDetailsMetadata readerResult={readerResult} />

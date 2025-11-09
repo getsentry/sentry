@@ -5,9 +5,11 @@ import {Provider as ReplayContextProvider} from 'sentry/components/replays/repla
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
+import useReplayPlaylist from 'sentry/utils/replays/hooks/useReplayPlaylist';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerSizeContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
+import {ReplayPlaylistProvider} from 'sentry/utils/replays/playback/providers/replayPlaylistProvider';
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -38,6 +40,8 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
     }
   }, [markAsViewed, organization, projectSlug, replayRecord]);
 
+  const replays = useReplayPlaylist({organization});
+
   useLogReplayDataLoaded({projectId: replayRecord.project_id, replay});
 
   return (
@@ -53,7 +57,9 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
                 replay={replay}
               >
                 <ReplaySummaryContextProvider replay={replay} projectSlug={projectSlug}>
-                  {children}
+                  <ReplayPlaylistProvider replays={replays}>
+                    {children}
+                  </ReplayPlaylistProvider>
                 </ReplaySummaryContextProvider>
               </ReplayContextProvider>
             </ReplayPlayerSizeContextProvider>

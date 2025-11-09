@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -45,7 +43,7 @@ export default function useReplayPlaylist({organization}: Props): ReplayRecord[]
     enabled: Boolean(query.start && query.end && query.sort),
   });
 
-  const replays = useMemo(() => data?.data?.map(mapResponseToReplayRecord) ?? [], [data]);
+  const replays = data?.data?.map(mapResponseToReplayRecord) ?? [];
 
   return replays;
 }

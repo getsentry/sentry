@@ -15,19 +15,18 @@ import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import useReplayPlaylist from 'sentry/utils/replays/hooks/useReplayPlaylist';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import type {ReplayRecord} from 'sentry/views/replays/types';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
-  replays: ReplayRecord[];
 }
 
-export default function ReplayDetailsPageBreadcrumbs({readerResult, replays}: Props) {
+export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const replayRecord = readerResult.replayRecord;
   const organization = useOrganization();
   const location = useLocation();
@@ -35,6 +34,8 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult, replays}: Pr
   const project = useProjectFromId({project_id: replayRecord?.project_id ?? undefined});
   const [isHovered, setIsHovered] = useState(false);
   const {currentTime} = useReplayContext();
+
+  const replays = useReplayPlaylist({organization});
 
   const currentReplayIndex = useMemo(
     () => replays.findIndex(r => r.id === replayRecord?.id),
