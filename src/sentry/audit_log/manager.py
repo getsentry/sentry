@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, cast, dataclass_transform
 
 if TYPE_CHECKING:
     from sentry.models.auditlogentry import AuditLogEntry
@@ -54,18 +54,18 @@ To add a new audit log event:
 @dataclass(init=False)
 class AuditLogEvent:
     # Unique event ID (ex. 1)
-    event_id: int
+    event_id: ClassVar[int]
 
     # Unique event name (ex. MEMBER_INVITE)
-    name: str
+    name: ClassVar[str]
 
     # Unique event api name (ex. member.invite)
-    api_name: str
+    api_name: ClassVar[str]
 
     # Simple template for rendering the audit log message using
     # the AuditLogEntry.data fields. For more complicated messages,
     # subclass AuditLogEvent and override the render method.
-    template: str | None = None
+    template: ClassVar[str | None] = None
 
     def __init__(self, event_id, name, api_name, template=None):
         self.event_id = event_id
@@ -79,13 +79,48 @@ class AuditLogEvent:
         return self.template.format(**audit_log_entry.data)
 
 
+@dataclass(kw_only=True)
+class NewAuditLogEvent:
+    # Unique event ID (ex. 1)
+    event_id: ClassVar[int]
+
+    # Unique event name (ex. MEMBER_INVITE)
+    name: ClassVar[str]
+
+    # Unique event api name (ex. member.invite)
+    api_name: ClassVar[str]
+
+    # Simple template for rendering the audit log message using
+    # the AuditLogEntry.data fields. For more complicated messages,
+    # subclass AuditLogEvent and override the render method.
+    template: ClassVar[str | None] = None
+
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        if not self.template:
+            return ""
+        return self.template.format(**audit_log_entry.data)
+
+
+@dataclass_transform(kw_only_default=True)
+def auditlog_class(event_id: int, name: str, api_name: str, template: str | None = None):
+    def wrapper(cls: type[NewAuditLogEvent]) -> type[NewAuditLogEvent]:
+        cls.event_id = event_id
+        cls.name = name
+        cls.api_name = api_name
+        if template is not None:
+            cls.template = template
+        return cast(type[NewAuditLogEvent], dataclass(kw_only=True)(cls))
+
+    return wrapper
+
+
 class AuditLogEventManager:
     def __init__(self) -> None:
-        self._event_registry: dict[str, AuditLogEvent] = {}
-        self._event_id_lookup: dict[int, AuditLogEvent] = {}
-        self._api_name_lookup: dict[str, AuditLogEvent] = {}
+        self._event_registry: dict[str, AuditLogEvent | NewAuditLogEvent] = {}
+        self._event_id_lookup: dict[int, AuditLogEvent | NewAuditLogEvent] = {}
+        self._api_name_lookup: dict[str, AuditLogEvent | NewAuditLogEvent] = {}
 
-    def add(self, audit_log_event: AuditLogEvent) -> None:
+    def add(self, audit_log_event: AuditLogEvent | NewAuditLogEvent) -> None:
         if (
             audit_log_event.name in self._event_registry
             or audit_log_event.event_id in self._event_id_lookup
@@ -99,7 +134,7 @@ class AuditLogEventManager:
         self._event_id_lookup[audit_log_event.event_id] = audit_log_event
         self._api_name_lookup[audit_log_event.api_name] = audit_log_event
 
-    def get(self, event_id: int) -> AuditLogEvent:
+    def get(self, event_id: int) -> AuditLogEvent | NewAuditLogEvent:
         if event_id not in self._event_id_lookup:
             raise AuditLogEventNotRegistered(f"Event ID {event_id} does not exist")
         return self._event_id_lookup[event_id]
