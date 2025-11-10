@@ -11,6 +11,7 @@ import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
 import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
+import {useWidgetQueryQueue} from 'sentry/views/dashboards/widgetQueryQueue';
 
 import IssueWidgetQueries from './issueWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
@@ -64,11 +65,13 @@ export function WidgetCardDataLoader({
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
+  const {queue} = useWidgetQueryQueue();
 
   if (widget.widgetType === WidgetType.ISSUE) {
     return (
       <IssueWidgetQueries
         api={api}
+        queue={queue}
         organization={organization}
         widget={widget}
         selection={selection}
@@ -107,6 +110,7 @@ export function WidgetCardDataLoader({
     return (
       <SpansWidgetQueries
         api={api}
+        queue={queue}
         widget={widget}
         selection={selection}
         limit={tableItemLimit}
