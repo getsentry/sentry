@@ -21,7 +21,9 @@ import {
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
 
-const getSdkSetupSnippet = (params: DocsParams) => `
+type Params = DocsParams;
+
+const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 
 sentry_sdk.init(
@@ -82,7 +84,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: DocsParams) => [
+  configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -107,7 +109,7 @@ app = Bottle()
       ],
     },
   ],
-  verify: (params: DocsParams) => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -149,7 +151,7 @@ run(app, host='localhost', port=8000)
       ],
     },
   ],
-  nextSteps: (params: DocsParams) => {
+  nextSteps: (params: Params) => {
     const steps = [];
     if (params.isLogsSelected) {
       steps.push({
