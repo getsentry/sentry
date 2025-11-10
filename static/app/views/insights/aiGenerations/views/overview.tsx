@@ -14,6 +14,7 @@ import {
   useEAPSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconChevron, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
@@ -58,6 +59,7 @@ function AIGenerationsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
+  const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
@@ -93,12 +95,16 @@ function AIGenerationsPage() {
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
         {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
       ],
+      caseInsensitive,
+      onCaseInsensitiveClick: setCaseInsensitive,
     }),
     [
+      caseInsensitive,
       hasRawSearchReplacement,
       numberSecondaryAliases,
       numberTags,
       searchQuery,
+      setCaseInsensitive,
       setSearchQuery,
       stringSecondaryAliases,
       stringTags,
