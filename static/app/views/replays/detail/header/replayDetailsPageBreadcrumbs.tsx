@@ -15,7 +15,7 @@ import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import useReplayPlaylist from 'sentry/utils/replays/hooks/useReplayPlaylist';
+import {useReplayPlaylist} from 'sentry/utils/replays/playback/providers/replayPlaylistProvider';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -35,22 +35,22 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const [isHovered, setIsHovered] = useState(false);
   const {currentTime} = useReplayContext();
 
-  const replays = useReplayPlaylist({organization});
+  const replays = useReplayPlaylist();
 
   const currentReplayIndex = useMemo(
-    () => replays.findIndex(r => r.id === replayRecord?.id),
+    () => replays?.findIndex(r => r.id === replayRecord?.id) ?? -1,
     [replays, replayRecord]
   );
 
   const nextReplay = useMemo(
     () =>
-      currentReplayIndex >= 0 && currentReplayIndex < replays.length - 1
-        ? replays[currentReplayIndex + 1]
+      currentReplayIndex >= 0 && currentReplayIndex < (replays?.length ?? 0) - 1
+        ? replays?.[currentReplayIndex + 1]
         : undefined,
     [replays, currentReplayIndex]
   );
   const previousReplay = useMemo(
-    () => (currentReplayIndex > 0 ? replays[currentReplayIndex - 1] : undefined),
+    () => (currentReplayIndex > 0 ? replays?.[currentReplayIndex - 1] : undefined),
     [replays, currentReplayIndex]
   );
   // Create URL with current timestamp for copying

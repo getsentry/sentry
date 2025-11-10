@@ -44,6 +44,7 @@ import type {
   ReplayListRecord,
   ReplayRecordNestedFieldName,
 } from 'sentry/views/replays/types';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
 type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 
@@ -525,17 +526,20 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     const referrer = getRouteStringFromRoutes(routes);
     const eventView = EventView.fromLocation(location);
 
-    // HACK!!! Because the sort field needs to be in the eventView, but I cannot
-    // ask the server for compound fields like `os.name`.
     const sort = location.query.sort ?? encodeSort(DEFAULT_SORT);
 
     const {statsPeriod, ...eventViewQuery} = eventView.generateQueryStringObject();
 
-    let query = {referrer, ...eventViewQuery, sort};
+    let query = {
+      referrer,
+      ...eventViewQuery,
+      sort,
+      field: REPLAY_LIST_FIELDS.map(field => field.split('.')[0] as string),
+    };
 
     if (!eventViewQuery.start && !eventViewQuery.end && typeof statsPeriod === 'string') {
-      const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(statsPeriod);
-      query = {...query, ...{playlistStart, playlistEnd}};
+      const {start, end} = parseStatsPeriod(statsPeriod);
+      query = {...query, ...{start, end}};
     }
 
     if (location.query.cursor) {
