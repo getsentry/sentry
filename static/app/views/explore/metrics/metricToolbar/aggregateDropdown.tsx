@@ -6,6 +6,7 @@ import {
   useMetricVisualize,
   useSetMetricVisualize,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
+import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 
 export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
   const visualize = useMetricVisualize();
@@ -19,12 +20,7 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
       options={OPTIONS_BY_TYPE[traceMetric.type] ?? []}
       value={visualize.parsedFunction?.name ?? ''}
       onChange={option => {
-        setVisualize(
-          visualize.replace({
-            yAxis: `${option.value}(value)`,
-            chartType: undefined, // Reset chart type to let determineDefaultChartType decide
-          })
-        );
+        setVisualize(updateVisualizeYAxis(visualize, option.value, traceMetric));
       }}
     />
   );

@@ -27,6 +27,7 @@ import {
   type SampleTableColumnKey,
 } from 'sentry/views/explore/metrics/types';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import type {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import type {PickableDays} from 'sentry/views/explore/utils';
 
@@ -198,4 +199,36 @@ export function getMetricTableColumnType(
     return 'metric_value'; // Special cased for headers and rendering usually.
   }
   return 'value';
+}
+
+export function makeMetricsAggregate({
+  aggregate,
+  traceMetric,
+  attribute,
+}: {
+  aggregate: string;
+  traceMetric: TraceMetric;
+  attribute?: string;
+}) {
+  const args = [
+    attribute ?? 'value', // hard coded to `value` for now, but can be other attributes
+    traceMetric.name,
+    traceMetric.type,
+    '-', // hard coded to `-` for now, but can be other units`
+  ];
+  return `${aggregate}(${args.join(',')})`;
+}
+
+export function updateVisualizeYAxis(
+  visualize: VisualizeFunction,
+  aggregate: string,
+  traceMetric: TraceMetric
+): VisualizeFunction {
+  return visualize.replace({
+    yAxis: makeMetricsAggregate({
+      aggregate,
+      traceMetric,
+    }),
+    chartType: undefined,
+  });
 }
