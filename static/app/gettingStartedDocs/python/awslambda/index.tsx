@@ -3,12 +3,13 @@ import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMoni
 import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
 import {logs} from 'sentry/gettingStartedDocs/python/python/logs';
 
-import {onboarding, profilingOnboarding} from './onboarding';
+import {onboarding} from './onboarding';
+import {profiling} from './profiling';
 
 const docs: Docs = {
   onboarding,
   crashReportOnboarding: crashReport,
-  profilingOnboarding,
+  profilingOnboarding: profiling,
   agentMonitoringOnboarding: agentMonitoring,
   logsOnboarding: logs(),
 };
