@@ -1,7 +1,7 @@
 import os
 import random
 from datetime import datetime, timedelta
-from time import time
+from time import sleep, time
 from typing import Any
 from unittest import mock
 from uuid import uuid4
@@ -23,7 +23,6 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
-from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.referrer import Referrer
@@ -479,6 +478,8 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         }
         assert self.select_issue_platform_events(self.project.id) == expected_occurrence_event
 
+        sleep(2.0)
+
         # This will delete the group and the events from the node store and Snuba
         with self.tasks():
             delete_groups_for_project(
@@ -492,17 +493,22 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert nodestore.backend.get(event_node_id)
         assert self.select_error_events(self.project.id) == expected_error
 
-        # The Issue Platform group and occurrence have been deleted
+        # The Issue Platform group and occurrence have been deleted from Postgres and Snuba
         assert not Group.objects.filter(id=issue_platform_group.id).exists()
         # assert not nodestore.backend.get(occurrence_node_id)
-        conditions = eventstore.Filter(
-            project_ids=[self.project.id], group_ids=[issue_platform_group.id]
-        )
-        tenant_ids = {"organization_id": self.organization.id, "referrer": "test_deletions"}
-        events = eventstore.backend.get_events(
-            conditions, dataset=Dataset.IssuePlatform, tenant_ids=tenant_ids
-        )
-        assert len(events) == 0
+
+        # Poll to ensure the event is actually deleted from Snuba
+        max_attempts = 100
+        event_deleted = False
+        for attempt in range(max_attempts):
+            result = self.select_issue_platform_events(self.project.id)
+            if result is None:
+                event_deleted = True
+                break
+            if attempt < max_attempts - 1:
+                sleep(0.1)  # Wait 100ms between attempts
+
+        assert event_deleted, f"Event still exists in Snuba after deletion: {result}"
 
     @mock.patch("sentry.deletions.tasks.nodestore.bulk_snuba_queries")
     def test_issue_platform_batching(self, mock_bulk_snuba_queries: mock.Mock) -> None:
