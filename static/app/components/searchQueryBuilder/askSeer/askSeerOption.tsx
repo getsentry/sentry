@@ -58,13 +58,13 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
       <IconSeer />
       <Tooltip
         title={tct(
-          'The assistant requires Generative AI which is subject to our [dataProcessingPolicy:data processing policy].',
+          'Powered by generative AI. Learn more about our [dataProcessingPolicy:AI privacy principles].',
           {
             dataProcessingPolicy: (
               <ExternalLink
                 onMouseOver={() => setOptionDisableOverride(true)}
                 onMouseOut={() => setOptionDisableOverride(false)}
-                href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features"
+                href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/"
               />
             ),
           }
