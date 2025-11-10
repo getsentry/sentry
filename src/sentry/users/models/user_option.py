@@ -59,7 +59,8 @@ class UserOptionManager(OptionManager["UserOption"]):
         """
         This isn't implemented for user-organization scoped options yet, because it hasn't been needed.
         """
-        self.filter(user=user, project=project, key=key).delete()
+        project_id: int | None = project.id if isinstance(project, Model) else project
+        self.filter(user=user, project_id=project_id, key=key).delete()
 
         if not hasattr(self, "_metadata"):
             return
