@@ -19,8 +19,6 @@ KNOWN_MAJOR_COMPONENT_NAMES = {
     "exception": "exception",
     "stacktrace": "stacktrace",
     "threads": "thread",
-    "thread_id": "thread-id",
-    "thread_name": "thread-name",
     "hostname": "hostname",
     "violation": "violation",
     "uri": "URL",
@@ -273,10 +271,6 @@ class NSErrorGroupingComponent(
     id: str = "ns_error"
 
 
-class ThreadNameGroupingComponent(BaseGroupingComponent[str]):
-    id: str = "thread_name"
-
-
 FrameGroupingComponentChild = (
     ContextLineGroupingComponent
     | FilenameGroupingComponent
@@ -465,7 +459,6 @@ class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent
     id: str = "threads"
     key: str = "thread_stacktrace"
     frame_counts: Counter[str]
-    metadata: list[BaseGroupingComponent[str]]
 
     def __init__(
         self,
@@ -473,20 +466,9 @@ class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent
         hint: str | None = None,
         contributes: bool | None = None,
         frame_counts: Counter[str] | None = None,
-        metadata: list[BaseGroupingComponent[str]] | None = None,
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.frame_counts = frame_counts or Counter()
-        self.metadata = metadata or []
-
-    def iter_values(self) -> Generator[str | int]:
-        """Include both stacktrace values and metadata in hash calculation."""
-        # First yield values from stacktrace components
-        yield from super().iter_values()
-        # Then yield values from metadata components
-        for meta in self.metadata:
-            if meta.contributes:
-                yield from meta.iter_values()
 
 
 class CSPGroupingComponent(
