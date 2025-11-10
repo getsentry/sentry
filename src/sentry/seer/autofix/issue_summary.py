@@ -278,6 +278,7 @@ def _run_automation(
     stopping_point = None
     if features.has("projects:triage-signals-v0", group.project):
         stopping_point = _get_stopping_point_from_fixability(issue_summary.scores.fixability_score)
+        logger.info("Fixability-based stopping point: %s", stopping_point)
 
     _trigger_autofix_task.delay(
         group_id=group.id,
