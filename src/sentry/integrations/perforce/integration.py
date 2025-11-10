@@ -138,36 +138,84 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
         return False
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
+    def matches_repository_depot_path(self, repo: Repository, filepath: str) -> bool:
         """
-        TODO: How to integrate streams/revisions?
-        Format source URL for stacktrace linking.
+        Check if a file path matches this repository's depot path.
+
+        When SRCSRV transformers remap paths to absolute depot paths (e.g.,
+        //depot/project/src/file.cpp), this method verifies that the depot path
+        matches the repository's configured depot_path.
 
         Args:
             repo: Repository object
-            filepath: File path relative to depot root
-            branch: Not used for Perforce (streams are part of depot_path)
+            filepath: File path (may be absolute depot path or relative path)
 
         Returns:
-            Formatted URL (p4:// or web viewer URL)
+            True if the filepath matches this repository's depot
         """
         depot_path = repo.config.get("depot_path", repo.name)
-        filepath = filepath.lstrip("/")
-        full_path = f"{depot_path}/{filepath}"
+
+        # If filepath is absolute depot path, check if it starts with depot_path
+        if filepath.startswith("//"):
+            return filepath.startswith(depot_path)
+
+        # Relative paths always match (will be prepended with depot_path)
+        return True
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
+        """
+        Format source URL for stacktrace linking with revision support.
+
+        When the transformer remaps paths using SRCSRV data, it stores the revision
+        in the branch parameter as "revision:<number>". This method extracts that
+        revision and includes it in the generated URL.
+
+        Args:
+            repo: Repository object
+            filepath: File path (can be depot path or relative path)
+            branch: Revision info in format "revision:<number>" or None
+
+        Returns:
+            Formatted URL (p4:// or web viewer URL) with revision anchor
+        """
+        # Extract revision from branch if present (from SRCSRV transformer)
+        revision = None
+        if branch and branch.startswith("revision:"):
+            revision = branch.split(":", 1)[1]
+
+        # Handle absolute depot paths (from SRCSRV transformer)
+        if filepath.startswith("//"):
+            full_path = filepath
+        else:
+            # Relative path - prepend depot_path
+            depot_path = repo.config.get("depot_path", repo.name)
+            filepath = filepath.lstrip("/")
+            full_path = f"{depot_path}/{filepath}"
+
+        # Add revision specifier if available
+        if revision:
+            full_path_with_rev = f"{full_path}#{revision}"
+        else:
+            full_path_with_rev = full_path
 
         # If web viewer is configured, use it
         web_url = self.model.metadata.get("web_url")
         if web_url:
-            # Common formats: P4Web, Swarm, etc.
             viewer_type = self.model.metadata.get("web_viewer_type", "p4web")
 
             if viewer_type == "swarm":
+                # Swarm format: /files/<depot_path>?v=<revision>
+                if revision:
+                    return f"{web_url}/files{full_path}?v={revision}"
                 return f"{web_url}/files{full_path}"
             elif viewer_type == "p4web":
+                # P4Web format: <depot_path>?ac=64&rev1=<revision>
+                if revision:
+                    return f"{web_url}{full_path}?ac=64&rev1={revision}"
                 return f"{web_url}{full_path}?ac=64"
 
-        # Default: p4:// protocol URL
-        return f"p4://{full_path}"
+        # Default: p4:// protocol URL with revision
+        return f"p4://{full_path_with_rev}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
         """
@@ -179,13 +227,28 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         return ""
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        """Extract file path from URL.
-        TODO: How to extract revision properly?"""
+        """
+        Extract file path from URL, removing revision specifiers.
+
+        Handles URLs with revisions like:
+        - p4://depot/path/file.cpp#42
+        - https://swarm/files//depot/path/file.cpp?v=42
+
+        Returns just the file path without revision info.
+        """
         depot_path = repo.config.get("depot_path", repo.name)
 
         # Remove p4:// prefix
         if url.startswith("p4://"):
             url = url[5:]
+
+        # Remove revision specifier (#revision)
+        if "#" in url:
+            url = url.split("#")[0]
+
+        # Remove query parameters (for web viewers)
+        if "?" in url:
+            url = url.split("?")[0]
 
         # Remove depot prefix to get relative path
         if url.startswith(depot_path):
