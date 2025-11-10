@@ -124,9 +124,10 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         return action_handler_registry.get(action_type)
 
     def trigger(self, event_data: WorkflowEventData) -> None:
-        from sentry.workflow_engine.processors.detector import get_detector_by_event
+        from sentry.workflow_engine.processors.detector import get_detector_by_group
 
-        detector = get_detector_by_event(event_data)
+        detector = get_detector_by_group(event_data.group)
+
         with metrics.timer(
             "workflow_engine.action.trigger.execution_time",
             tags={"action_type": self.type, "detector_type": detector.type},
