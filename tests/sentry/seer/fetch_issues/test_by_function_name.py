@@ -398,6 +398,7 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
         )
 
         # Basic structure checks
+        assert "error" not in seer_response
         assert "issues" in seer_response
         assert "issues_full" in seer_response
         assert len(seer_response["issues"]) > 0
