@@ -133,8 +133,25 @@ export function defaultFields(): string[] {
 }
 
 export function defaultSortBys(fields: string[]): Sort[] {
-  // TODO: Handle compound sort-by.
-  return [{field: fields[0]!, kind: 'desc'}];
+  if (fields.includes('timestamp')) {
+    return [
+      {
+        field: 'timestamp',
+        kind: 'desc' as const,
+      },
+    ];
+  }
+
+  if (fields.length) {
+    return [
+      {
+        field: fields[0]!,
+        kind: 'desc' as const,
+      },
+    ];
+  }
+
+  return [];
 }
 
 export function defaultAggregateFields(): AggregateField[] {
