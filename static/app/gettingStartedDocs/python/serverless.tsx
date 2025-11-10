@@ -10,12 +10,12 @@ import {
 import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
 import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
 import {t, tct} from 'sentry/locale';
+import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
 import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
+  alternativeProfiling,
+  profiling,
+} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 
 type Params = DocsParams;
 
@@ -122,7 +122,7 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
       ],
     },
   ],
@@ -144,7 +144,7 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: getVerifySnippet(),
         },
-        getVerifyLogsContent(params),
+        verify(params),
         {
           type: 'text',
           text: t(
@@ -172,7 +172,7 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  profilingOnboarding: getPythonProfilingOnboarding(),
+  profilingOnboarding: profiling(),
   crashReportOnboarding: crashReport,
   agentMonitoringOnboarding: agentMonitoring,
 };

@@ -7,13 +7,13 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
 import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
-import {t, tct} from 'sentry/locale';
+import {logs} from 'sentry/gettingStartedDocs/python/python/logs';
 import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-} from 'sentry/utils/gettingStartedDocs/python';
+  alternativeProfiling,
+  profiling,
+} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
+import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
@@ -161,7 +161,7 @@ const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
       ],
     },
   ],
@@ -243,16 +243,14 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
-const logsOnboarding = getPythonLogsOnboarding({
-  packageName: 'sentry-sdk[rq]',
-});
-
 const docs: Docs = {
   onboarding,
-  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[rq]'}),
+  profilingOnboarding: profiling({basePackage: 'sentry-sdk[rq]'}),
   crashReportOnboarding: crashReport,
   agentMonitoringOnboarding: agentMonitoring,
-  logsOnboarding,
+  logsOnboarding: logs({
+    packageName: 'sentry-sdk[rq]',
+  }),
 };
 
 export default docs;

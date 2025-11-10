@@ -12,16 +12,17 @@ import {
 import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
 import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
 import {featureFlag} from 'sentry/gettingStartedDocs/python/python/featureFlag';
+import {logs, verify} from 'sentry/gettingStartedDocs/python/python/logs';
 import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
-import {t, tct} from 'sentry/locale';
 import {
-  alternativeProfilingConfiguration,
+  alternativeProfiling,
+  profiling,
+} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {
   getPythonAiocontextvarsCodeBlocks,
   getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
+} from 'sentry/gettingStartedDocs/python/python/utils';
+import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
@@ -112,7 +113,7 @@ class MainHandler(tornado.web.RequestHandler):
     # ...
 `,
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
       ],
     },
   ],
@@ -151,7 +152,7 @@ async def main():
 asyncio.run(main())
 `,
         },
-        getVerifyLogsContent(params),
+        verify(params),
         {
           type: 'text',
           text: [
@@ -186,20 +187,18 @@ asyncio.run(main())
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding({
-  packageName: 'sentry-sdk[tornado]',
-});
-
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  profilingOnboarding: getPythonProfilingOnboarding(),
+  profilingOnboarding: profiling(),
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
-  logsOnboarding,
+  logsOnboarding: logs({
+    packageName: 'sentry-sdk[tornado]',
+  }),
 };
 
 export default docs;

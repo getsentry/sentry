@@ -12,15 +12,14 @@ import {
 import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
 import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
 import {featureFlag} from 'sentry/gettingStartedDocs/python/python/featureFlag';
+import {logs, verify} from 'sentry/gettingStartedDocs/python/python/logs';
 import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
-import {t, tct} from 'sentry/locale';
 import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
+  alternativeProfiling,
+  profiling,
+} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
+import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
@@ -107,7 +106,7 @@ ${getSdkSetupSnippet(params)}
 api = falcon.API()
       `,
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
       ],
     },
   ],
@@ -136,7 +135,7 @@ app = falcon.App()
 app.add_route('/', HelloWorldResource())
 `,
         },
-        getVerifyLogsContent(params),
+        verify(params),
         {
           type: 'text',
           text: [
@@ -171,20 +170,18 @@ app.add_route('/', HelloWorldResource())
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding({
-  packageName: 'sentry-sdk[falcon]',
-});
-
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[falcon]'}),
+  profilingOnboarding: profiling({basePackage: 'sentry-sdk[falcon]'}),
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
-  logsOnboarding,
+  logsOnboarding: logs({
+    packageName: 'sentry-sdk[falcon]',
+  }),
 };
 
 export default docs;

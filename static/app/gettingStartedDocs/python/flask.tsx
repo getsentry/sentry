@@ -12,15 +12,14 @@ import {
 import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
 import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
 import {featureFlag} from 'sentry/gettingStartedDocs/python/python/featureFlag';
+import {logs, verify} from 'sentry/gettingStartedDocs/python/python/logs';
 import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
-import {t, tct} from 'sentry/locale';
 import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
+  alternativeProfiling,
+  profiling,
+} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
+import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
@@ -105,7 +104,7 @@ const onboarding: OnboardingConfig = {
 app = Flask(__name__)
 `,
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
         {
           type: 'text',
           text: tct(
@@ -138,7 +137,7 @@ def hello_world():
     return "<p>Hello, World!</p>"
 `,
         },
-        getVerifyLogsContent(params),
+        verify(params),
         {
           type: 'text',
           text: [
@@ -244,21 +243,19 @@ sentry_sdk.init(
   nextSteps: () => [],
 };
 
-const logsOnboarding = getPythonLogsOnboarding({
-  packageName: 'sentry-sdk[flask]',
-});
-
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[flask]'}),
+  profilingOnboarding: profiling({basePackage: 'sentry-sdk[flask]'}),
   performanceOnboarding,
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
-  logsOnboarding,
+  logsOnboarding: logs({
+    packageName: 'sentry-sdk[flask]',
+  }),
 };
 
 export default docs;

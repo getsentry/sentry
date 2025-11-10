@@ -12,13 +12,10 @@ import {
 import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
 import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
 import {featureFlag} from 'sentry/gettingStartedDocs/python/python/featureFlag';
+import {logs, verify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {profiling} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
-import {
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -113,7 +110,7 @@ if __name__ == '__main__':
     server.serve_forever()
               `,
         },
-        getVerifyLogsContent(params),
+        verify(params),
         {
           type: 'text',
           text: tct(
@@ -142,17 +139,15 @@ if __name__ == '__main__':
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
-
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
-  profilingOnboarding: getPythonProfilingOnboarding(),
+  profilingOnboarding: profiling(),
   agentMonitoringOnboarding: agentMonitoring,
-  logsOnboarding,
+  logsOnboarding: logs(),
 };
 
 export default docs;

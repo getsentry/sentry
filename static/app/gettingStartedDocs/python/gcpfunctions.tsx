@@ -7,15 +7,14 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
 import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
+import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
 import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
-import {t, tct} from 'sentry/locale';
 import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
+  alternativeProfiling,
+  profiling,
+} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
+import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
@@ -103,7 +102,7 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
         {
           type: 'text',
           text: tct("Check out Sentry's [link:GCP sample apps] for detailed examples.", {
@@ -171,7 +170,7 @@ const onboarding: OnboardingConfig = {
             'Deploy your function and invoke it to generate an error, then check Sentry for the captured event.'
           ),
         },
-        getVerifyLogsContent(params),
+        verify(params),
       ],
     },
   ],
@@ -191,15 +190,13 @@ const onboarding: OnboardingConfig = {
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
-
 const docs: Docs = {
   onboarding,
   crashReportOnboarding: crashReport,
-  profilingOnboarding: getPythonProfilingOnboarding(),
+  profilingOnboarding: profiling(),
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
-  logsOnboarding,
+  logsOnboarding: logs(),
 };
 
 export default docs;

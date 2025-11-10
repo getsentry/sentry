@@ -12,16 +12,17 @@ import {
 import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
 import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
 import {featureFlag} from 'sentry/gettingStartedDocs/python/python/featureFlag';
+import {logs, verify} from 'sentry/gettingStartedDocs/python/python/logs';
 import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
-import {t, tct} from 'sentry/locale';
 import {
-  alternativeProfilingConfiguration,
+  alternativeProfiling,
+  profiling,
+} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {
   getPythonAiocontextvarsCodeBlocks,
   getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
+} from 'sentry/gettingStartedDocs/python/python/utils';
+import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
@@ -110,7 +111,7 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
       ],
     },
   ],
@@ -138,7 +139,7 @@ app.add_routes([web.get('/', hello)])
 web.run_app(app)
 `,
         },
-        getVerifyLogsContent(params),
+        verify(params),
         {
           type: 'text',
           text: [
@@ -173,18 +174,16 @@ web.run_app(app)
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
-
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  profilingOnboarding: getPythonProfilingOnboarding(),
+  profilingOnboarding: profiling(),
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
-  logsOnboarding,
+  logsOnboarding: logs(),
 };
 
 export default docs;

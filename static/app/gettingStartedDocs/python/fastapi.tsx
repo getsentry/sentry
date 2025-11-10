@@ -12,15 +12,14 @@ import {
 import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
 import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
 import {featureFlag} from 'sentry/gettingStartedDocs/python/python/featureFlag';
+import {logs, verify} from 'sentry/gettingStartedDocs/python/python/logs';
 import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
-import {t, tct} from 'sentry/locale';
 import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
+  alternativeProfiling,
+  profiling,
+} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
+import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
@@ -110,7 +109,7 @@ ${getSdkSetupSnippet(params)}
 app = FastAPI()
 `,
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
         {
           type: 'text',
           text: tct(
@@ -142,7 +141,7 @@ async def trigger_error():
     division_by_zero = 1 / 0
 `,
         },
-        getVerifyLogsContent(params),
+        verify(params),
         {
           type: 'text',
           text: [
@@ -177,20 +176,18 @@ async def trigger_error():
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding({
-  packageName: 'sentry-sdk[fastapi]',
-});
-
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[fastapi]'}),
+  profilingOnboarding: profiling({basePackage: 'sentry-sdk[fastapi]'}),
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
-  logsOnboarding,
+  logsOnboarding: logs({
+    packageName: 'sentry-sdk[fastapi]',
+  }),
 };
 
 export default docs;
