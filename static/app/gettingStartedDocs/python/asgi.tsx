@@ -5,19 +5,16 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
+import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
+import {logs, verify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
 import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-  mcpOnboarding,
-} from 'sentry/gettingStartedDocs/python/python';
+  alternativeProfiling,
+  profiling,
+} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
-import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -130,7 +127,7 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
         {
           type: 'text',
           text: t('The middleware supports both ASGI 2 and ASGI 3 transparently.'),
@@ -151,7 +148,7 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: getVerifySnippet(),
         },
-        getVerifyLogsContent(params),
+        verify(params),
         {
           type: 'text',
           text: tct(
@@ -187,15 +184,13 @@ const onboarding: OnboardingConfig = {
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
-
 const docs: Docs = {
   onboarding,
-  crashReportOnboarding: crashReportOnboardingPython,
-  profilingOnboarding: getPythonProfilingOnboarding(),
-  agentMonitoringOnboarding,
-  mcpOnboarding,
-  logsOnboarding,
+  crashReportOnboarding: crashReport,
+  profilingOnboarding: profiling(),
+  agentMonitoringOnboarding: agentMonitoring,
+  mcpOnboarding: mcp,
+  logsOnboarding: logs(),
 };
 
 export default docs;
