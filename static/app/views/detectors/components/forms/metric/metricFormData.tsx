@@ -339,7 +339,6 @@ export function metricDetectorFormDataToEndpointPayload(
     case 'dynamic':
       config = {
         detectionType: 'dynamic',
-        sensitivity: data.sensitivity,
       };
       break;
     case 'static':
