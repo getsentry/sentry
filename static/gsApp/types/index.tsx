@@ -378,11 +378,12 @@ export type Subscription = {
   onDemandSpendUsed: number;
   partner: Partner | null;
   paymentSource: {
-    countryCode: string;
-    expMonth: number;
-    expYear: number;
-    last4: string;
-    zipCode: string;
+    brand: string | null;
+    countryCode: string | null;
+    expMonth: number | null;
+    expYear: number | null;
+    last4: string | null;
+    zipCode: string | null;
   } | null;
   pendingChanges: PendingChanges | null;
   // Subscription details
