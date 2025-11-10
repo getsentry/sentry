@@ -3,24 +3,14 @@ import {Fragment} from 'react';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
-  type Docs,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
-import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
-import {logs} from 'sentry/gettingStartedDocs/python/python/logs';
-import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
-import {
-  alternativeProfiling,
-  profiling,
-} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = (params: DocsParams) => `
 import sentry_sdk
 from sentry_sdk.integrations.wsgi import SentryWsgiMiddleware
 
@@ -84,7 +74,7 @@ app = SentryWsgiMiddleware(app)
 from wsgiref.simple_server import make_server
 make_server('', 8000, app).serve_forever()`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () => (
     <Fragment>
       <p>
@@ -170,7 +160,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [] as any[];
     if (params.isLogsSelected) {
       steps.push({
@@ -185,14 +175,3 @@ const onboarding: OnboardingConfig = {
     return steps;
   },
 };
-
-const docs: Docs = {
-  onboarding,
-  profilingOnboarding: profiling(),
-  crashReportOnboarding: crashReport,
-  agentMonitoringOnboarding: agentMonitoring,
-  mcpOnboarding: mcp,
-  logsOnboarding: logs(),
-};
-
-export default docs;
