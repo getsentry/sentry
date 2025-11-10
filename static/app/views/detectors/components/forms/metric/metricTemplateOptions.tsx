@@ -3,7 +3,7 @@ import {SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
-export interface TemplateOption {
+interface TemplateOption {
   aggregate: string;
   detectorDataset: DetectorDataset;
   key: MetricAlertType;
