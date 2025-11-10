@@ -170,7 +170,7 @@ describe('JsonForm', () => {
   });
 
   describe('fields prop', () => {
-    const jsonFormFields = [fields.name, fields.platform] as FieldObject[];
+    const jsonFormFields = [fields.slug, fields.platform] as FieldObject[];
 
     it('default', () => {
       render(<JsonForm fields={jsonFormFields} />);
