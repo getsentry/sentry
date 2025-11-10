@@ -1,23 +1,14 @@
 import {
   StepType,
-  type Docs,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
-import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
-import {logs, verify} from 'sentry/gettingStartedDocs/python/python/logs';
-import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
-import {
-  alternativeProfiling,
-  profiling,
-} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = (params: DocsParams) => `
 import sentry_sdk
 from chalice import Chalice
 
@@ -74,7 +65,7 @@ def index():
     1/0  # raises an error
     return {"hello": "world"}`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
@@ -92,7 +83,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -111,7 +102,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -138,16 +129,3 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-const docs: Docs = {
-  onboarding,
-  profilingOnboarding: profiling({basePackage: 'sentry-sdk[chalice]'}),
-  crashReportOnboarding: crashReport,
-  agentMonitoringOnboarding: agentMonitoring,
-  mcpOnboarding: mcp,
-  logsOnboarding: logs({
-    packageName: 'sentry-sdk[chalice]',
-  }),
-};
-
-export default docs;
