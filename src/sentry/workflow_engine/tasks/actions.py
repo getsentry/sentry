@@ -75,7 +75,7 @@ def trigger_action(
     group_state: GroupState,
     has_reappeared: bool,
     has_escalated: bool,
-    detector_id: int | None = None,
+    detector_id: int | None = None,  # TODO: remove
 ) -> None:
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
     from sentry.workflow_engine.processors.detector import get_detector_from_event_data
