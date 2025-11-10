@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Any
 
 from sentry.constants import ObjectStatus
@@ -42,9 +43,18 @@ logger = logging.getLogger(__name__)
 )
 def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     try:
-        preprod_artifact = PreprodArtifact.objects.get(id=preprod_artifact_id)
+        preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.get(
+            id=preprod_artifact_id
+        )
     except PreprodArtifact.DoesNotExist:
         logger.exception(
+            "preprod.status_checks.create.artifact_not_found",
+            extra={"artifact_id": preprod_artifact_id},
+        )
+        return
+
+    if not preprod_artifact or not isinstance(preprod_artifact, PreprodArtifact):
+        logger.error(
             "preprod.status_checks.create.artifact_not_found",
             extra={"artifact_id": preprod_artifact_id},
         )
@@ -115,6 +125,10 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
 
     target_url = get_preprod_artifact_url(preprod_artifact)
 
+    completed_at: datetime | None = None
+    if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
+        completed_at = preprod_artifact.date_updated
+
     check_id = provider.create_status_check(
         repo=commit_comparison.head_repo_name,
         sha=commit_comparison.head_sha,
@@ -125,6 +139,8 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         summary=summary,
         external_id=str(preprod_artifact.id),
         target_url=target_url,
+        started_at=preprod_artifact.date_added,
+        completed_at=completed_at,
     )
     if check_id is None:
         logger.error(
@@ -301,6 +317,8 @@ class _StatusCheckProvider(ABC):
         text: str | None,
         summary: str,
         external_id: str,
+        started_at: datetime,
+        completed_at: datetime | None = None,
         target_url: str | None = None,
     ) -> str | None:
         """Create a status check using provider-specific format."""
@@ -318,6 +336,8 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         text: str | None,
         summary: str,
         external_id: str,
+        started_at: datetime,
+        completed_at: datetime | None = None,
         target_url: str | None = None,
     ) -> str | None:
         with self._create_scm_interaction_event().capture() as lifecycle:
@@ -372,6 +392,12 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
 
             if mapped_conclusion:
                 check_data["conclusion"] = mapped_conclusion.value
+
+            if started_at:
+                check_data["started_at"] = started_at.isoformat()
+
+            if completed_at:
+                check_data["completed_at"] = completed_at.isoformat()
 
             if target_url:
                 if target_url.startswith("http"):
