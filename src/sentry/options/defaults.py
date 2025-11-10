@@ -3641,6 +3641,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Manual option for disabling misbehaving sentry apps from sending webhooks.
+register(
+    "sentry-apps.webhook.restricted-webhook-sending",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for web vital issue detection
 register(
     "issue-detection.web-vitals-detection.enabled",
