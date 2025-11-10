@@ -6,17 +6,12 @@ import {
   type OnboardingConfig,
   type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-} from 'sentry/gettingStartedDocs/python/python';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
+import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
+import {logs, verify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
-import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -99,7 +94,7 @@ const configureStep = (params: Params): OnboardingStep => ({
       language: 'python',
       code: getSdkSetupSnippet(params),
     },
-    alternativeProfilingConfiguration(params),
+    alternativeProfiling(params),
     {
       type: 'text',
       text: tct("Check out Sentry's [link:AWS sample apps] for detailed examples.", {
@@ -181,7 +176,7 @@ const onboarding: OnboardingConfig = {
             'Deploy your function and invoke it to generate an error, then check Sentry for the captured event.'
           ),
         },
-        getVerifyLogsContent(params),
+        verify(params),
       ],
     },
   ],
@@ -219,14 +214,12 @@ const profilingOnboarding: OnboardingConfig = {
   ],
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
-
 const docs: Docs = {
   onboarding,
-  crashReportOnboarding: crashReportOnboardingPython,
+  crashReportOnboarding: crashReport,
   profilingOnboarding,
-  agentMonitoringOnboarding,
-  logsOnboarding,
+  agentMonitoringOnboarding: agentMonitoring,
+  logsOnboarding: logs(),
 };
 
 export default docs;

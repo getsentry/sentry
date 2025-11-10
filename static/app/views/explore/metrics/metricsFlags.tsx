@@ -3,7 +3,7 @@
 
 import type {Organization} from 'sentry/types/organization';
 
-const canUseMetricsUI = (organization: Organization) => {
+export const canUseMetricsUI = (organization: Organization) => {
   return organization.features.includes('tracemetrics-enabled');
 };
 

@@ -730,14 +730,11 @@ export function useSubmitCheckout({
         }
         onSubmitting?.(false);
 
-        // Don't capture 402 errors as that status code is used for
-        // customer credit card failures.
-        if (error.status !== 402) {
-          Sentry.withScope(scope => {
-            scope.setExtras({data: _variables.data});
-            Sentry.captureException(error);
-          });
-        }
+        // TODO: add 402 ignoring once we've confirmed all valid error states
+        Sentry.withScope(scope => {
+          scope.setExtras({data: _variables.data});
+          Sentry.captureException(error);
+        });
       }
     },
   });
@@ -826,14 +823,11 @@ export async function submitCheckout(
       addErrorMessage(msg);
       onSubmitting?.(false);
 
-      // Don't capture 402 errors as that status code is used for
-      // customer credit card failures.
-      if (error.status !== 402) {
-        Sentry.withScope(scope => {
-          scope.setExtras({data});
-          Sentry.captureException(error);
-        });
-      }
+      // TODO: add 402 ignoring once we've confirmed all valid error states
+      Sentry.withScope(scope => {
+        scope.setExtras({data});
+        Sentry.captureException(error);
+      });
     }
   }
 }

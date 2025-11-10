@@ -175,6 +175,7 @@ function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
     data: automation,
     isPending,
     isError,
+    error,
     refetch,
   } = useAutomationQuery(automationId);
 
@@ -183,7 +184,12 @@ function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
   }
 
   if (isError) {
-    return <LoadingError onRetry={refetch} />;
+    return (
+      <LoadingError
+        message={error.status === 404 ? t('The alert could not be found.') : undefined}
+        onRetry={refetch}
+      />
+    );
   }
 
   return <AutomationDetailContent automation={automation} />;
