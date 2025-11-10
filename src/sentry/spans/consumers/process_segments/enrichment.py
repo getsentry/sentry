@@ -76,14 +76,13 @@ class TreeEnricher:
         self._ttfd_ts = _timestamp_by_op(spans, "ui.load.full_display")
 
         self._span_map: dict[str, list[tuple[int, int]]] = {}
+        self._span_hierarchy: dict[str, SpanEvent] = {}
         for span in spans:
+            if "span_id" in span:
+                self._span_hierarchy[span["span_id"]] = span
             if parent_span_id := span.get("parent_span_id"):
                 interval = _span_interval(span)
                 self._span_map.setdefault(parent_span_id, []).append(interval)
-
-        self._span_hierarchy: dict[str, SpanEvent] = {
-            span["span_id"]: span for span in spans if "span_id" in span
-        }
 
     def _attributes(self, span: SpanEvent) -> dict[str, Any]:
         attributes: dict[str, Any] = {**(span.get("attributes") or {})}
@@ -133,10 +132,10 @@ class TreeEnricher:
 
             if op in GENAI_SPAN_OPS_AGENT_CHILDREN and "gen_ai.agent.name" not in attributes:
                 for ancestor in self._iter_ancestors(span):
-                    if "gen_ai.agent.name" in ancestor.get("attributes") or {}:
+                    if (agent_name := attribute_value(ancestor, "gen_ai.agent.name")) is not None:
                         attributes["gen_ai.agent.name"] = {
                             "type": "string",
-                            "value": attribute_value(ancestor, "gen_ai.agent.name"),
+                            "value": agent_name,
                         }
                         break
 
