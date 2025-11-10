@@ -32,10 +32,6 @@ class WorkflowGroupsPaginatedTest(TestCase):
             project_id=self.project.id,
             type=MetricIssue.slug,
         )
-        self.create_detector_workflow(
-            detector=self.detector_1,
-            workflow=self.workflow,
-        )
         DetectorGroup.objects.create(
             detector=self.detector_1,
             group=self.group,
@@ -55,10 +51,6 @@ class WorkflowGroupsPaginatedTest(TestCase):
             project_id=self.project.id,
             type=MetricIssue.slug,
         )
-        self.create_detector_workflow(
-            detector=self.detector_2,
-            workflow=self.workflow,
-        )
         DetectorGroup.objects.create(
             detector=self.detector_2,
             group=self.group_2,
@@ -76,10 +68,6 @@ class WorkflowGroupsPaginatedTest(TestCase):
         self.detector_3 = self.create_detector(
             project_id=self.project.id,
             type=MetricIssue.slug,
-        )
-        self.create_detector_workflow(
-            detector=self.detector_3,
-            workflow=self.workflow,
         )
         DetectorGroup.objects.create(
             detector=self.detector_3,
