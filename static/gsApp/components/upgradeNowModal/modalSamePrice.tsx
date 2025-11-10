@@ -75,7 +75,7 @@ function UpgradeNowModal({
       });
     } catch (err) {
       Sentry.captureException(err);
-      redirectToManage(organization);
+      redirectToManage();
       addErrorMessage(
         t(
           'Oops! Unable to update Subscription automatically. Click through to update manually.'

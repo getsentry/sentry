@@ -606,7 +606,7 @@ function CheckoutSuccess({
             </LinkButton>
             <LinkButton
               aria-label={t('Edit plan')}
-              to="/settings/billing/checkout/?referrer=checkout_success"
+              to="/checkout/?referrer=checkout_success"
             >
               {t('Edit plan')}
             </LinkButton>

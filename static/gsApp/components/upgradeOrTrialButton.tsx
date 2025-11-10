@@ -62,7 +62,6 @@ function UpgradeOrTrialButton({
   ...props
 }: BaseButtonProps &
   (Omit<LinkButtonProps, 'children'> | Omit<ButtonProps, 'children'>)) {
-  const {slug} = organization;
   const hasAccess = organization.access.includes('org:billing');
 
   // can override action if we want
@@ -153,8 +152,8 @@ function UpgradeOrTrialButton({
   if (hasAccess) {
     // send self-serve directly to checkout
     const baseUrl = subscription.canSelfServe
-      ? `/settings/${slug}/billing/checkout/`
-      : `/settings/${slug}/billing/overview/`;
+      ? '/checkout/'
+      : '/settings/:orgId/billing/overview/';
 
     return (
       <LinkButton
