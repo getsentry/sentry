@@ -114,17 +114,16 @@ function TraceAiSpans({traceSlug}: {traceSlug: string}) {
         />
       </LeftPanel>
       <RightPanel>
-        {selectedNode &&
-          selectedNode.renderDetails({
-            node: selectedNode,
-            manager: null,
-            onParentClick: () => {},
-            onTabScrollToNode: () => {},
-            organization,
-            replay: null,
-            traceId: traceSlug,
-            hideNodeActions: true,
-          })}
+        {selectedNode?.renderDetails({
+          node: selectedNode,
+          manager: null,
+          onParentClick: () => {},
+          onTabScrollToNode: () => {},
+          organization,
+          replay: null,
+          traceId: traceSlug,
+          hideNodeActions: true,
+        })}
       </RightPanel>
     </Wrapper>
   );
