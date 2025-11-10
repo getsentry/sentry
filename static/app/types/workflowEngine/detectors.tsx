@@ -100,8 +100,6 @@ interface MetricDetectorConfigPercent {
  */
 interface MetricDetectorConfigDynamic {
   detectionType: 'dynamic';
-  sensitivity?: 'low' | 'medium' | 'high';
-  thresholdType?: AlertRuleThresholdType;
 }
 
 export type MetricDetectorConfig =
