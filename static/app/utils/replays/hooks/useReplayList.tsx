@@ -12,10 +12,10 @@ import type {
 } from 'sentry/views/replays/types';
 
 type Options = {
-  enabled: boolean;
   eventView: EventView;
   location: Location<ReplayListLocationQuery>;
   organization: Organization;
+  enabled?: boolean;
   perPage?: number;
   queryReferrer?: ReplayListQueryReferrer;
 };
@@ -25,7 +25,7 @@ type State = Awaited<ReturnType<typeof fetchReplayList>> & {isFetching: boolean}
 type Result = State;
 
 function useReplayList({
-  enabled,
+  enabled = true,
   eventView,
   location,
   organization,
