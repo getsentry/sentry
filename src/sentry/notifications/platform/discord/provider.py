@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
@@ -8,6 +10,10 @@ from sentry.notifications.platform.target import (
     PreparedIntegrationNotificationTarget,
 )
 from sentry.notifications.platform.types import (
+    NotificationBodyFormattingBlock,
+    NotificationBodyFormattingBlockType,
+    NotificationBodyTextBlock,
+    NotificationBodyTextBlockType,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
@@ -18,6 +24,9 @@ from sentry.organizations.services.organization.model import RpcOrganizationSumm
 
 if TYPE_CHECKING:
     from sentry.integrations.discord.message_builder.base.base import DiscordMessage
+    from sentry.integrations.discord.message_builder.base.embed.field import (
+        DiscordMessageEmbedField,
+    )
 
 # TODO(ecosystem): Proper typing - https://discord.com/developers/docs/resources/message#create-message
 type DiscordRenderable = DiscordMessage
@@ -51,10 +60,12 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
         components: list[DiscordMessageComponent] = []
         embeds = []
 
+        body_blocks = cls.render_body_blocks(rendered_template.body)
+
         embeds.append(
             DiscordMessageEmbed(
                 title=rendered_template.subject,
-                description=rendered_template.body,
+                fields=body_blocks,
                 image=(
                     DiscordMessageEmbedImage(url=rendered_template.chart.url)
                     if rendered_template.chart
@@ -81,6 +92,42 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
         builder = DiscordMessageBuilder(embeds=embeds, components=components)
 
         return builder.build()
+
+    @classmethod
+    def render_body_blocks(
+        cls, body: list[NotificationBodyFormattingBlock]
+    ) -> list[DiscordMessageEmbedField]:
+        from sentry.integrations.discord.message_builder.base.embed.field import (
+            DiscordMessageEmbedField,
+        )
+
+        fields = []
+        for block in body:
+            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
+                fields.append(
+                    DiscordMessageEmbedField(
+                        name=block.type.value, value=cls.render_text_blocks(block.blocks)
+                    )
+                )
+            elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+                fields.append(
+                    DiscordMessageEmbedField(
+                        name=block.type.value, value=f"```{cls.render_text_blocks(block.blocks)}```"
+                    )
+                )
+        return fields
+
+    @classmethod
+    def render_text_blocks(cls, blocks: list[NotificationBodyTextBlock]) -> str:
+        texts = []
+        for block in blocks:
+            if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
+                texts.append(block.text)
+            elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
+                texts.append(f"**{block.text}**")
+            elif block.type == NotificationBodyTextBlockType.CODE:
+                texts.append(f"`{block.text}`")
+        return " ".join(texts)
 
 
 @provider_registry.register(NotificationProviderKey.DISCORD)
