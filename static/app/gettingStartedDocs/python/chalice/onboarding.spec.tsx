@@ -6,7 +6,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './chalice';
+import docs from '.';
 
 describe('chalice onboarding docs', () => {
   it('renders doc correctly', () => {
