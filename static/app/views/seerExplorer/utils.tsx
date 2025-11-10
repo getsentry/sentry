@@ -32,9 +32,10 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   telemetry_live_search: (args, isLoading) => {
     const question = args.question || 'data';
     const dataset = args.dataset || 'spans';
-    const projectSlug = args.project_slug;
+    const projectSlugs = args.project_slugs;
 
-    const projectInfo = projectSlug ? ` in ${projectSlug}` : '';
+    const projectInfo =
+      projectSlugs && projectSlugs.length > 0 ? ` in ${projectSlugs.join(', ')}` : '';
 
     if (dataset === 'issues') {
       return isLoading
@@ -200,7 +201,7 @@ export function buildToolLinkUrl(
 ): LocationDescriptor | null {
   switch (toolLink.kind) {
     case 'telemetry_live_search': {
-      const {dataset, query, stats_period, project_slug, sort} = toolLink.params;
+      const {dataset, query, stats_period, project_slugs, sort} = toolLink.params;
 
       if (dataset === 'issues') {
         // Build URL for issues search
@@ -208,11 +209,13 @@ export function buildToolLinkUrl(
           query: query || '',
         };
 
-        // If project_slug is provided, look up the project ID
-        if (project_slug && projects) {
-          const project = projects.find(p => p.slug === project_slug);
-          if (project) {
-            queryParams.project = project.id;
+        // If project_slugs is provided, look up the project IDs
+        if (project_slugs && project_slugs.length > 0 && projects) {
+          const projectIds = project_slugs
+            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+            .filter((id: string | undefined) => id !== undefined);
+          if (projectIds.length > 0) {
+            queryParams.project = projectIds;
           }
         }
 
@@ -238,11 +241,13 @@ export function buildToolLinkUrl(
         project: null,
       };
 
-      // If project_slug is provided, look up the project ID
-      if (project_slug && projects) {
-        const project = projects.find(p => p.slug === project_slug);
-        if (project) {
-          queryParams.project = project.id;
+      // If project_slugs is provided, look up the project IDs
+      if (project_slugs && project_slugs.length > 0 && projects) {
+        const projectIds = project_slugs
+          .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+          .filter((id: string | undefined) => id !== undefined);
+        if (projectIds.length > 0) {
+          queryParams.project = projectIds;
         }
       }
 
