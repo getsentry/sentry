@@ -6,6 +6,7 @@ from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING
 
 import sentry_sdk
+from django.core.cache import cache
 
 from sentry import options
 from sentry.exceptions import HashDiscarded
@@ -231,7 +232,13 @@ def get_or_create_grouphashes(
         hashes = filter(lambda hash_value: hash_value in existing_hashes, hashes)
 
     for hash_value in hashes:
-        grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
+        cache_key = f"grouphash:{project.id}:{hash_value}"
+        grouphash = cache.get(cache_key)
+        created = False
+
+        if grouphash is None:
+            grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
+            cache.set(cache_key, grouphash, timeout=3600)
 
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
             try:
