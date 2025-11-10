@@ -19,7 +19,10 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {
+  useLogsAutoRefresh,
+  useLogsAutoRefreshEnabled,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
@@ -405,6 +408,13 @@ export function useInfiniteLogsQuery({
 } = {}) {
   const _referrer = referrer ?? 'api.explore.logs-table';
   const autoRefresh = useLogsAutoRefreshEnabled();
+  const {hasInitialized: autoRefreshHasInitialized} = useLogsAutoRefresh();
+
+  // High fidelity and auto refresh are disjoint features and cannot
+  // be used together. So if auto refresh was ever initialized, we must
+  // disable high fidelity mode.
+  highFidelity = autoRefreshHasInitialized ? false : highFidelity;
+
   const {queryKey: queryKeyWithInfinite, other} = useLogsQueryKeyWithInfinite({
     referrer: _referrer,
     autoRefresh,
