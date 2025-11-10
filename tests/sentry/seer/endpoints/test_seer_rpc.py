@@ -540,20 +540,23 @@ class TestSeerRpcMethods(APITestCase):
 
         # By default the organization has pr_review turned off
         result = get_sentry_organization_ids(external_id="1234567890")
-        assert result == {"org_ids": []}
+        assert result == {"org_ids": [], "org_slugs": []}
 
         # Turn on pr_review
         OrganizationOption.objects.set_value(
             self.organization, "sentry:enable_pr_review_test_generation", True
         )
         result = get_sentry_organization_ids(external_id="1234567890")
-        assert result == {"org_ids": [self.organization.id]}
+        assert result == {
+            "org_ids": [self.organization.id],
+            "org_slugs": [self.organization.slug],
+        }
 
     def test_get_sentry_organization_ids_repository_not_found(self) -> None:
         """Test when repository does not exist"""
         result = get_sentry_organization_ids(external_id="1234567890")
 
-        assert result == {"org_ids": []}
+        assert result == {"org_ids": [], "org_slugs": []}
 
     def test_get_sentry_organization_ids_repository_inactive(self) -> None:
         """Test when repository exists but is not active"""
@@ -570,7 +573,7 @@ class TestSeerRpcMethods(APITestCase):
         result = get_sentry_organization_ids(external_id="1234567890")
 
         # Should not find the repository because it's not active
-        assert result == {"org_ids": []}
+        assert result == {"org_ids": [], "org_slugs": []}
 
     def test_get_sentry_organization_ids_different_provider(self) -> None:
         """Test when repository exists but with different provider"""
@@ -588,7 +591,7 @@ class TestSeerRpcMethods(APITestCase):
         result = get_sentry_organization_ids(external_id="1234567890")
 
         # Should not find the repository because provider doesn't match
-        assert result == {"org_ids": []}
+        assert result == {"org_ids": [], "org_slugs": []}
 
     def test_get_sentry_organization_ids_multiple_repos_same_name_different_providers(self) -> None:
         """Test when multiple repositories exist with same name but different providers"""
@@ -659,7 +662,10 @@ class TestSeerRpcMethods(APITestCase):
         # Search for GitHub provider
         result = get_sentry_organization_ids(external_id="1234567890")
 
-        assert result == {"org_ids": [self.organization.id]}
+        assert result == {
+            "org_ids": [self.organization.id],
+            "org_slugs": [self.organization.slug],
+        }
 
         # Search for GitLab provider
         result = get_sentry_organization_ids(
@@ -667,7 +673,7 @@ class TestSeerRpcMethods(APITestCase):
             external_id="1234567890",
         )
 
-        assert result == {"org_ids": [org2.id]}
+        assert result == {"org_ids": [org2.id], "org_slugs": [org2.slug]}
 
     def test_get_sentry_organization_ids_multiple_orgs_same_repo(self) -> None:
         """Test when multiple repositories exist with same name but different providers and provider is provided"""
@@ -772,6 +778,7 @@ class TestSeerRpcMethods(APITestCase):
         result = get_sentry_organization_ids(external_id="1234567890")
 
         assert set(result["org_ids"]) == {self.organization.id, org2.id}
+        assert set(result["org_slugs"]) == {self.organization.slug, org2.slug}
 
     def test_get_sentry_organization_ids_no_repo_project_path_config(self) -> None:
         """Test when repository exists but has no RepositoryProjectPathConfig"""
@@ -792,7 +799,7 @@ class TestSeerRpcMethods(APITestCase):
         # Should not find the organization because there's no RepositoryProjectPathConfig
         result = get_sentry_organization_ids(external_id="1234567890")
 
-        assert result == {"org_ids": []}
+        assert result == {"org_ids": [], "org_slugs": []}
 
     def test_send_seer_webhook_invalid_event_name(self) -> None:
         """Test that send_seer_webhook returns error for invalid event names"""

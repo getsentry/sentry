@@ -312,7 +312,10 @@ def get_sentry_organization_ids(
     # We then filter out all orgs that didn't give us consent to use AI features.
     orgs_with_consent = [org for org in organizations if _can_use_prevent_ai_features(org)]
 
-    return {"org_ids": [organization.id for organization in orgs_with_consent]}
+    return {
+        "org_ids": [organization.id for organization in orgs_with_consent],
+        "org_slugs": [organization.slug for organization in orgs_with_consent],
+    }
 
 
 def get_organization_autofix_consent(*, org_id: int) -> dict:
