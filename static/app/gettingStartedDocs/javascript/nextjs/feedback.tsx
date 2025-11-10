@@ -69,7 +69,7 @@ export const feedback: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Note: The User Feedback integration only needs to be added to your [code:instrumentation-client.js] file. Adding it to any server-side configuration files (like [code:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
+            'Note: The User Feedback integration only needs to be added to your [code:instrumentation-client.js] file. Adding it to any server-side configuration files (like [code:instrumentation.ts]) will break your build because the Feedback integration depends on Browser APIs.',
             {
               code: <code />,
             }
