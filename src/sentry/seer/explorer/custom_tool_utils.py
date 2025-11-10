@@ -1,8 +1,3 @@
-"""
-Utilities for extracting and validating custom explorer tools.
-Uses Pydantic's built-in capabilities for type validation and schema generation.
-"""
-
 from __future__ import annotations
 
 import importlib
