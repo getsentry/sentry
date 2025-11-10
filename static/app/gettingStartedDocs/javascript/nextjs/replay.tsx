@@ -53,7 +53,7 @@ export const replay: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Note: The Replay integration only needs to be added to your [code:sentry.client.config.js] file. Adding it to any server-side configuration files (like [code:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
+            'Note: The Replay integration only needs to be added to your [code:instrumentation-client.js] file. Adding it to any server-side configuration files (like [code:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
             {
               code: <code />,
             }
