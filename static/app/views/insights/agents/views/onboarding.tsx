@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -247,8 +249,20 @@ export function Onboarding() {
         <DescriptionWrapper>
           <p>
             {tct(
-              'Fiddlesticks. Agent Insights are not available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
-              {platform: currentPlatform?.name || project.slug}
+              'Fiddlesticks. Auto instrumentation of AI Agents is not available for your [platform] project. ',
+              {
+                platform: currentPlatform?.name || project.slug,
+              }
+            )}
+          </p>
+          <p>
+            {tct(
+              'However, you can still manually instrument your agents using the Sentry SDK tracing API. See [link:custom instrumentation docs] for details.',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+                ),
+              }
             )}
           </p>
         </DescriptionWrapper>
