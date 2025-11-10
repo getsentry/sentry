@@ -23,13 +23,13 @@ import {
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
+import {getNodeAgentMonitoringOnboarding} from 'sentry/gettingStartedDocs/node/node/utils';
 import {t, tct, tctCode} from 'sentry/locale';
 import {
   getJavascriptLogsFullStackOnboarding,
   getJavascriptMetricsFullStackOnboarding,
   getJavascriptProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/javascript';
-import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 

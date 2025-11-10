@@ -1,15 +1,14 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button as ScrapsButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+import {ButtonBar} from '@sentry/scraps/button/buttonBar';
+import {Flex} from '@sentry/scraps/layout/flex';
 import {Stack} from '@sentry/scraps/layout/stack';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconAdd, IconFix, IconSubtract} from 'sentry/icons';
@@ -166,9 +165,9 @@ export function SizeCompareItemDiffTable({
                 {t('No results found')}
               </Text>
               {originalItemCount > 0 && (
-                <ScrapsButton priority="primary" onClick={disableHideSmallChanges}>
+                <Button priority="primary" onClick={disableHideSmallChanges}>
                   {t('Show all changes')}
-                </ScrapsButton>
+                </Button>
               )}
             </Stack>
           </SimpleTable.Empty>
