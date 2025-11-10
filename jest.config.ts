@@ -341,12 +341,10 @@ const config: Config.InitialOptions = {
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)
-        dsn: CI
-          ? 'https://3fe1dce93e3a4267979ebad67f3de327@o1.ingest.us.sentry.io/4857230'
-          : false,
+        dsn: false,
         // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
-        tracesSampleRate: CI ? 0.75 : 0,
+        tracesSampleRate: 0,
         profilesSampleRate: 0,
         transportOptions: {keepAlive: true},
       },
