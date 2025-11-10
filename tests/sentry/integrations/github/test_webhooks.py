@@ -1038,8 +1038,8 @@ class IssuesEventWebhookTest(APITestCase):
             data=ISSUES_ASSIGNED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="issues",
-            HTTP_X_HUB_SIGNATURE="sha1=e19d80f5a6e09e20d126e923464778bb4b601a7e",
-            HTTP_X_HUB_SIGNATURE_256="sha256=e91927e8d8e0db9cb1f5ead889bba2deb24aa2f8925a8eae85ba732424604489",
+            HTTP_X_HUB_SIGNATURE="sha1=75deab06ede0068fe16b5f1f6ee1a9509738e006",
+            HTTP_X_HUB_SIGNATURE_256="sha256=1703af48011c6709662f776163fce1e86772eff189f94e1ebff5ad66a81b711e",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -1081,9 +1081,11 @@ class IssuesEventWebhookTest(APITestCase):
 
         rpc_integration = integration_service.get_integration(integration_id=self.integration.id)
 
+        # With the fix, we now use issue.assignees (current state) instead of assignee (delta)
+        # ISSUES_UNASSIGNED_EVENT_EXAMPLE has assignees=[], so we deassign
         mock_sync.assert_called_once_with(
             integration=rpc_integration,
-            external_user_name="@octocat",
+            external_user_name="",
             external_issue_key="baxterthehacker/public-repo#2",
             assign=False,
         )
@@ -1123,8 +1125,8 @@ class IssuesEventWebhookTest(APITestCase):
             data=ISSUES_ASSIGNED_EVENT_EXAMPLE,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="issues",
-            HTTP_X_HUB_SIGNATURE="sha1=e19d80f5a6e09e20d126e923464778bb4b601a7e",
-            HTTP_X_HUB_SIGNATURE_256="sha256=e91927e8d8e0db9cb1f5ead889bba2deb24aa2f8925a8eae85ba732424604489",
+            HTTP_X_HUB_SIGNATURE="sha1=75deab06ede0068fe16b5f1f6ee1a9509738e006",
+            HTTP_X_HUB_SIGNATURE_256="sha256=1703af48011c6709662f776163fce1e86772eff189f94e1ebff5ad66a81b711e",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
