@@ -1146,7 +1146,7 @@ class DeleteGroupsTest(TestCase):
 
 
 class GetSemverReleasesTest(TestCase):
-    def _test_get_semver_releases_helper(self, with_build_code: bool) -> None:
+    def _test_greatest_semver_releases_helper(self, with_build_code: bool) -> None:
         """Test that get_semver_releases returns releases in correct semver order."""
         release_1 = self.create_release(version="test@2.2", project=self.project)
         release_2 = self.create_release(version="test@10.0+1000", project=self.project)
@@ -1200,14 +1200,14 @@ class GetSemverReleasesTest(TestCase):
         assert len(releases) == len(expected_order)
         assert [r.id for r in releases] == [r.id for r in expected_order]
 
-    def test_get_semver_releases(self) -> None:
+    def test_greatest_semver_releases(self) -> None:
         """Test get_semver_releases orders releases by semver."""
-        self._test_get_semver_releases_helper(with_build_code=False)
+        self._test_greatest_semver_releases_helper(with_build_code=False)
 
-    def test_get_semver_releases_with_build_code(self) -> None:
+    def test_greatest_semver_releases_with_build_code(self) -> None:
         """Test get_semver_releases orders releases by semver and build code."""
         with self.feature("organizations:semver-ordering-with-build-code"):
-            self._test_get_semver_releases_helper(with_build_code=True)
+            self._test_greatest_semver_releases_helper(with_build_code=True)
 
     def test_greatest_semver_release(self) -> None:
         """Test that greatest_semver_release returns the highest version release."""

@@ -254,10 +254,10 @@ class IsNewerReleaseTest(TestCase):
             )
 
     def test_is_newer_release_semver(self) -> None:
-        """Test is_newer_release without build code ordering."""
+        """Test is_newer_release compares releases by semver."""
         self._test_is_newer_release_semver_helper(with_build_code=False)
 
     def test_is_newer_release_semver_with_build_code(self) -> None:
-        """Test is_newer_release with build code ordering feature flag."""
+        """Test is_newer_release compares releases by semver and build code."""
         with self.feature("organizations:semver-ordering-with-build-code"):
             self._test_is_newer_release_semver_helper(with_build_code=True)
