@@ -640,7 +640,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert validator.is_valid(), validator.errors
         with self.assertRaisesMessage(
             ValidationError,
-            expected_message="server_weighted extrapolation mode is not supported for new alerts.",
+            expected_message="server_weighted extrapolation mode is not supported for new detectors.",
         ):
             validator.save()
 
@@ -686,6 +686,6 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert update_validator.is_valid(), update_validator.errors
         with self.assertRaisesMessage(
             ValidationError,
-            expected_message="Invalid extrapolation mode for this alert type.",
+            expected_message="Invalid extrapolation mode for this detector type.",
         ):
             update_validator.save()

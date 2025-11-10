@@ -38,6 +38,7 @@ from sentry.incidents.logic import (
     delete_alert_rule,
     get_slack_actions_with_async_lookups,
 )
+from sentry.incidents.metric_issue_detector import is_invalid_extrapolation_mode
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
@@ -104,15 +105,6 @@ def fetch_alert_rule(
     return Response(serialized_rule)
 
 
-def _is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode) -> bool:
-    if (
-        new_extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.name.lower()
-        and old_extrapolation_mode != ExtrapolationMode.SERVER_WEIGHTED.name.lower()
-    ):
-        return True
-    return False
-
-
 def update_alert_rule(
     request: Request, organization: Organization, alert_rule: AlertRule
 ) -> Response:
@@ -138,7 +130,7 @@ def update_alert_rule(
                     alert_rule.snuba_query.extrapolation_mode
                 ).name.lower()
                 new_extrapolation_mode = data.get("extrapolation_mode", old_extrapolation_mode)
-                if _is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode):
+                if is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode):
                     raise serializers.ValidationError(
                         "Invalid extrapolation mode for this alert type."
                     )
