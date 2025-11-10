@@ -109,7 +109,7 @@ def semver_filter_converter(params: SnubaParams, search_filter: SearchFilter) ->
         project_ids=params.project_ids,
     )
     if order_by_build_code:
-        qs = qs.annotate_build_code_column()
+        qs = qs.annotate_build_code_column()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
     qs = qs.values_list("version", flat=True).order_by(*order_by)[: constants.MAX_SEARCH_RELEASES]
     versions = list(qs)
     final_operator: Literal["IN", "NOT IN"] = "IN"
@@ -126,7 +126,7 @@ def semver_filter_converter(params: SnubaParams, search_filter: SearchFilter) ->
             organization_id, parse_semver(version, operator)
         )
         if order_by_build_code:
-            qs_flipped = qs_flipped.annotate_build_code_column()
+            qs_flipped = qs_flipped.annotate_build_code_column()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
         qs_flipped = qs_flipped.order_by(*map(_flip_field_sort, order_by)).values_list(
             "version", flat=True
         )[: constants.MAX_SEARCH_RELEASES]

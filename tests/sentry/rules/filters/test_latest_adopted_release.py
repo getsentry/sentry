@@ -2,9 +2,9 @@ from datetime import UTC, datetime, timedelta
 
 from sentry.rules.filters.latest_adopted_release_filter import (
     LatestAdoptedReleaseFilter,
-    LatestReleaseOrders,
     is_newer_release,
 )
+from sentry.search.utils import LatestReleaseOrders
 from sentry.testutils.cases import RuleTestCase, TestCase
 
 

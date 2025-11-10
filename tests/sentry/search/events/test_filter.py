@@ -334,7 +334,7 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
             project_id=[project_2.id],
         )
 
-    def test_build_code_ordering_with_limit(self) -> None:
+    def test_build_code_ordering(self) -> None:
         """
         Test that build code ordering affects which releases are returned when
         MAX_SEARCH_RELEASES limit is hit and feature flag is enabled.
