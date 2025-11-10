@@ -33,7 +33,7 @@ export const performance: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'To configure, set [code:tracesSampleRate] in your config files, [code:sentry.server.config.js], [code:sentry.client.config.js], and [code:sentry.edge.config.js]:',
+            'To configure, set [code:tracesSampleRate] in your config files, [code:sentry.server.config.js], [code:instrumentation-client.js], and [code:sentry.edge.config.js]:',
             {code: <code />}
           ),
         },
