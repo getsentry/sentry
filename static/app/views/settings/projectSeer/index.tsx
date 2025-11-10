@@ -6,6 +6,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
+import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
@@ -324,6 +325,11 @@ function ProjectSeer({
         })}
       />
       <ProjectSeerGeneralForm project={project} />
+      <CursorIntegrationCta
+        project={project}
+        organization={organization}
+        variant="settings"
+      />
       <AutofixRepositories project={project} />
       <Center>
         <LinkButton

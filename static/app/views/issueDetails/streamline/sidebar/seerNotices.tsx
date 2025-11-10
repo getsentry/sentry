@@ -1,25 +1,37 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
+import alertsEmptyStateImg from 'sentry-images/spot/alerts-empty-state.svg';
 import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 import onboardingCompass from 'sentry-images/spot/onboarding-compass.svg';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
-import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import {
+  makeProjectSeerPreferencesQueryKey,
+  useProjectSeerPreferences,
+} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
-import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
+import {
+  useAutofixRepos,
+  useCodingAgentIntegrations,
+} from 'sentry/components/events/autofix/useAutofix';
 import {
   GuidedSteps,
   useGuidedStepsContext,
 } from 'sentry/components/guidedSteps/guidedSteps';
 import {IconChevron, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
@@ -82,12 +94,15 @@ function CustomStepButtons({
 
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {repos} = useAutofixRepos(groupId);
   const {
     preference,
     isLoading: isLoadingPreferences,
     codeMappingRepos,
   } = useProjectSeerPreferences(project);
+  const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
+  const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
   const {starredViews: views} = useStarredIssueViews();
 
   const detailedProject = useDetailedProject({
@@ -97,6 +112,15 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
 
   const hasIssueViews = useHasIssueViews();
   const isStarredViewAllowed = hasIssueViews;
+
+  const cursorIntegration = codingAgentIntegrations?.integrations.find(
+    integration => integration.provider === 'cursor'
+  );
+  // const hasCursorFeatureFlagEnabled = Boolean(
+  //   organization.features.includes('integrations-cursor')
+  // );
+  const hasCursorFeatureFlagEnabled = true;
+  const isCursorHandoffConfigured = Boolean(preference?.automation_handoff);
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
   const githubRepos = unreadableRepos.filter(repo => repo.provider.includes('github'));
@@ -122,11 +146,18 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const hasMultipleUnreadableRepos = unreadableRepos.length > 1;
   const hasSingleUnreadableRepo = unreadableRepos.length === 1;
 
-  // Use localStorage for collapsed state
+  // Use localStorage for collapsed state and cursor step skip
   const [stepsCollapsed, setStepsCollapsed] = useLocalStorageState(
     `seer-onboarding-collapsed:${project.id}`,
     false
   );
+  const [cursorStepSkipped, setCursorStepSkipped] = useLocalStorageState(
+    `seer-onboarding-cursor-skipped:${project.id}`,
+    false
+  );
+
+  const needsCursorIntegration =
+    (!isCursorHandoffConfigured || !cursorIntegration) && !cursorStepSkipped;
 
   // Calculate incomplete steps
   const stepConditions = [
@@ -134,7 +165,46 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     needsRepoSelection,
     needsAutomation,
     needsFixabilityView,
+    needsCursorIntegration,
   ];
+
+  const handleSetupCursorHandoff = useCallback(() => {
+    if (!cursorIntegration) {
+      return;
+    }
+    updateProjectSeerPreferences(
+      {
+        repositories: preference?.repositories || [],
+        automated_run_stopping_point: 'root_cause',
+        automation_handoff: {
+          handoff_point: 'root_cause',
+          target: 'cursor_background_agent',
+          integration_id: parseInt(cursorIntegration.id, 10),
+        },
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: [
+              makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
+            ],
+          });
+        },
+      }
+    );
+  }, [
+    cursorIntegration,
+    updateProjectSeerPreferences,
+    preference?.repositories,
+    queryClient,
+    organization.slug,
+    project.slug,
+  ]);
+
+  const handleSkipCursorStep = useCallback(() => {
+    setCursorStepSkipped(true);
+    setStepsCollapsed(true);
+  }, [setCursorStepSkipped, setStepsCollapsed]);
   const incompleteStepIndices = stepConditions
     .map((needed, idx) => (needed ? idx : null))
     .filter(idx => idx !== null);
@@ -349,13 +419,110 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   <CustomStepButtons
                     showBack={firstIncompleteIdx !== 3}
                     showNext={lastIncompleteIdx !== 3}
-                    showSkip={lastIncompleteIdx === 3}
+                    showSkip={lastIncompleteIdx === 3 && !needsCursorIntegration}
                     onSkip={() => setStepsCollapsed(true)}
                   >
                     <StarFixabilityViewButton
                       isCompleted={!needsFixabilityView}
                       project={project}
                     />
+                  </CustomStepButtons>
+                </GuidedSteps.Step>
+              )}
+
+              {/* Step 5: Cursor Integration */}
+              {hasCursorFeatureFlagEnabled && (
+                <GuidedSteps.Step
+                  key="cursor-integration"
+                  stepKey="cursor-integration"
+                  title={
+                    <Flex align="center" gap="sm">
+                      <PluginIcon pluginId="cursor" />
+                      {t('Hand Off to Cursor Background Agents')}
+                    </Flex>
+                  }
+                  isCompleted={!needsCursorIntegration}
+                >
+                  <StepContentRow>
+                    <StepTextCol>
+                      <CardDescription>
+                        {cursorIntegration ? (
+                          <Fragment>
+                            <span>
+                              {t(
+                                'Enable automatic handoff to Cursor Background Agents when Seer identifies a root cause.'
+                              )}
+                            </span>
+                            <span>
+                              {tct(
+                                'During automation, Seer will trigger Cursor Background Agents to generate and submit pull requests directly to your repos. Configure in [seerProjectSettings:Seer project settings] or [docsLink:read the docs] to learn more.',
+                                {
+                                  seerProjectSettings: (
+                                    <Link
+                                      to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                                    />
+                                  ),
+                                  docsLink: (
+                                    <ExternalLink href="https://docs.sentry.io/integrations/cursor/" />
+                                  ),
+                                }
+                              )}
+                            </span>
+                          </Fragment>
+                        ) : (
+                          <Fragment>
+                            <span>
+                              {t(
+                                'Connect Cursor to automatically hand off Seer root cause analysis to Cursor Background Agents for seamless code fixes.'
+                              )}
+                            </span>
+                            <span>
+                              {tct(
+                                'Set up the [integrationLink:Cursor Integration] to enable automatic handoff. [docsLink:Read the docs] to learn more.',
+                                {
+                                  integrationLink: (
+                                    <Link to="/settings/integrations/cursor/" />
+                                  ),
+                                  docsLink: (
+                                    <ExternalLink href="https://docs.sentry.io/integrations/cursor/" />
+                                  ),
+                                }
+                              )}
+                            </span>
+                          </Fragment>
+                        )}
+                      </CardDescription>
+                    </StepTextCol>
+                    <StepImageCol>
+                      <CursorCardIllustration
+                        src={alertsEmptyStateImg}
+                        alt="Cursor Integration"
+                      />
+                    </StepImageCol>
+                  </StepContentRow>
+                  <CustomStepButtons
+                    showBack={firstIncompleteIdx !== 4}
+                    showNext={false}
+                    showSkip={lastIncompleteIdx === 4}
+                    onSkip={handleSkipCursorStep}
+                  >
+                    {cursorIntegration ? (
+                      <Button
+                        onClick={handleSetupCursorHandoff}
+                        size="sm"
+                        priority="primary"
+                      >
+                        {t('Set Seer to hand off to Cursor')}
+                      </Button>
+                    ) : (
+                      <LinkButton
+                        to="/settings/integrations/cursor/"
+                        size="sm"
+                        priority="primary"
+                      >
+                        {t('Install Cursor Integration')}
+                      </LinkButton>
+                    )}
                   </CustomStepButtons>
                 </GuidedSteps.Step>
               )}
@@ -442,6 +609,10 @@ const CardIllustration = styled('img')`
   object-fit: contain;
   margin-bottom: -6px;
   margin-right: 10px;
+`;
+
+const CursorCardIllustration = styled(CardIllustration)`
+  max-width: 160px;
 `;
 
 const StepContentRow = styled('div')`
