@@ -149,9 +149,7 @@ import * as Sentry from "@sentry/nextjs";
 Sentry.init({
   dsn: "${params.dsn.public}",
 
-  _experiments: {
-    enableLogs: true,
-  },
+  enableLogs: true,
 });
 \`\`\`
 
