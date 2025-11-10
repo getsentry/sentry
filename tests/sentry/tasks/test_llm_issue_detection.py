@@ -118,8 +118,7 @@ class LLMIssueDetectionTest(TestCase):
         event_data = call_kwargs["event_data"]
         assert event_data["project_id"] == self.project.id
         assert event_data["platform"] == "other"
-        assert event_data["tags"]["trace_id"] == "abc123xyz"
-        assert event_data["tags"]["transaction"] == "test_transaction"
+        assert event_data["contexts"]["trace"]["trace_id"] == "abc123xyz"
         assert "event_id" in event_data
         assert "received" in event_data
         assert "timestamp" in event_data
