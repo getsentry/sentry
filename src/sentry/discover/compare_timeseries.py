@@ -91,6 +91,7 @@ def make_rpc_request(
         y_axes=query_parts["selected_columns"],
         referrer=Referrer.JOB_COMPARE_TIMESERIES.value,
         config=SearchResolverConfig(),
+        # TODO: change sampling mode
         sampling_mode=None,
     )
 
@@ -343,14 +344,6 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
     project = alert_rule.projects.first()
     if not project:
         return {"is_close": False, "skipped": True, "mismatches": {}}
-
-    if "apdex" in snuba_query.aggregate or "percentile" in snuba_query.aggregate:
-        logger.info(
-            "Skipping alert %s, %s aggregate not yet supported by RPC",
-            alert_rule.id,
-            snuba_query.aggregate,
-        )
-        return {"skipped": True, "is_close": False}
 
     if parse_mri_field(snuba_query.aggregate):
         logger.info(
