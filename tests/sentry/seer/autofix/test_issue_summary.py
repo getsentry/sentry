@@ -16,6 +16,7 @@ from sentry.seer.autofix.issue_summary import (
     _call_seer,
     _get_event,
     _get_stopping_point_from_fixability,
+    _run_automation,
     get_issue_summary,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
@@ -725,8 +726,6 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     def test_high_fixability_open_pr(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
     ):
-        from sentry.seer.autofix.issue_summary import _run_automation
-
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
@@ -751,8 +750,6 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     def test_medium_fixability_solution(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
     ):
-        from sentry.seer.autofix.issue_summary import _run_automation
-
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
@@ -775,8 +772,6 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_without_feature_flag(self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger):
-        from sentry.seer.autofix.issue_summary import _run_automation
-
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
