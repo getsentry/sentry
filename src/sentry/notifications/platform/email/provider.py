@@ -1,5 +1,6 @@
 from django.core.mail import EmailMultiAlternatives
 from django.core.mail.message import make_msgid
+from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
 from sentry import options
@@ -82,32 +83,37 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
     def render_body_blocks_to_html_string(cls, body: list[NotificationBodyFormattingBlock]) -> str:
         body_blocks = []
         for block in body:
-            if block.type == NotificationBodyFormattingBlockType.SECTION:
-                body_blocks.append(f"<br>{cls.render_text_blocks_to_html_string(block.blocks)}")
+            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
+                safe_content = cls.render_text_blocks_to_html_string(block.blocks)
+                body_blocks.append(f"<p>{safe_content}</p>")
             elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
-                body_blocks.append(
-                    f"<br><code>{cls.render_text_blocks_to_html_string(block.blocks)}</code>"
-                )
-        # Mark as safe so Django doesn't escape the HTML tags
-        return mark_safe(" ".join(body_blocks))
+                safe_content = cls.render_text_blocks_to_html_string(block.blocks)
+                body_blocks.append(f"<pre><code>{safe_content}</code></pre>")
+
+        return mark_safe("".join(body_blocks))
 
     @classmethod
     def render_text_blocks_to_html_string(cls, blocks: list[NotificationBodyTextBlock]) -> str:
-        texts = []
+        texts: list[str] = []
         for block in blocks:
+            # Escape user content to prevent XSS
+            escaped_text = escape(block.text)
+
             if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
-                texts.append(block.text)
+                texts.append(escaped_text)
             elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
-                texts.append(f"<strong>{block.text}</strong>")
+                # HTML tags are safe, content is escaped
+                texts.append(f"<strong>{escaped_text}</strong>")
             elif block.type == NotificationBodyTextBlockType.CODE:
-                texts.append(f"<code>{block.text}</code>")
-        return mark_safe(" ".join(texts))
+                texts.append(f"<code>{escaped_text}</code>")
+
+        return " ".join(texts)
 
     @classmethod
     def render_body_blocks_to_txt_string(cls, blocks: list[NotificationBodyFormattingBlock]) -> str:
         body_blocks = []
         for block in blocks:
-            if block.type == NotificationBodyFormattingBlockType.SECTION:
+            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
                 body_blocks.append(f"\n{cls.render_text_blocks_to_txt_string(block.blocks)}")
             elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
                 body_blocks.append(f"\n```{cls.render_text_blocks_to_txt_string(block.blocks)}```")

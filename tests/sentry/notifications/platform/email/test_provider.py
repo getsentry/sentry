@@ -32,9 +32,16 @@ def validate_text_block(
 def validate_formatting_block(
     formatting_block: NotificationBodyFormattingBlock, text_content: str, html_content: str
 ) -> None:
-    if formatting_block.type == NotificationBodyFormattingBlockType.SECTION:
+    if formatting_block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
         assert "\n" in text_content
-        assert "br" in html_content
+        assert "<p" in html_content
+        assert "</p>" in html_content
+    elif formatting_block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
+        assert "\n" in text_content
+        assert "<pre" in html_content
+        assert "</pre>" in html_content
+        assert "<code" in html_content
+        assert "</code>" in html_content
 
 
 class EmailRendererTest(TestCase):
@@ -57,7 +64,6 @@ class EmailRendererTest(TestCase):
         assert content_type == "text/html"
         text_content = email.body
 
-        # Helping the type checker
         assert self.rendered_template.chart is not None
         assert self.rendered_template.footer is not None
 
@@ -77,6 +83,52 @@ class EmailRendererTest(TestCase):
             validate_formatting_block(block, str(text_content), str(html_content))
             for text_block in block.blocks:
                 validate_text_block(text_block, str(text_content), str(html_content))
+
+    def test_xss_protection(self) -> None:
+        from sentry.notifications.platform.types import (
+            BoldTextBlock,
+            NotificationBodyFormattingBlockType,
+            NotificationBodyTextBlockType,
+            NotificationRenderedTemplate,
+            ParagraphBlock,
+            PlainTextBlock,
+        )
+
+        # Create template with XSS attempt in user content
+        xss_template = NotificationRenderedTemplate(
+            subject="Test XSS",
+            body=[
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text="<script>alert('xss')</script>",
+                        ),
+                        BoldTextBlock(
+                            type=NotificationBodyTextBlockType.BOLD_TEXT,
+                            text="<img src=x onerror=alert('xss')>",
+                        ),
+                    ],
+                )
+            ],
+        )
+
+        email = EmailRenderer.render(data=self.data, rendered_template=xss_template)
+        [html_content, _] = email.alternatives[0]
+
+        # User content should be escaped (not executable)
+        assert "&lt;script&gt;alert('xss')&lt;/script&gt;" in str(html_content)
+        assert "&lt;img src=x onerror=alert('xss')&gt;" in str(html_content)
+
+        # Our HTML tags should NOT be escaped (should render)
+        assert "<p" in str(html_content)
+        assert "</p>" in str(html_content)
+        assert "<strong" in str(html_content)
+        assert "</strong>" in str(html_content)
+
+        # Malicious tags should NOT be present in unescaped form
+        assert "<script>" not in str(html_content)
 
 
 class EmailNotificationProviderTest(TestCase):

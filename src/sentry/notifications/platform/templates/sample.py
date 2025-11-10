@@ -15,8 +15,8 @@ from sentry.notifications.platform.types import (
     NotificationRenderedImage,
     NotificationRenderedTemplate,
     NotificationTemplate,
+    ParagraphBlock,
     PlainTextBlock,
-    SectionBlock,
 )
 
 
@@ -53,8 +53,8 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
         return NotificationRenderedTemplate(
             subject=f"{data.error_count} new {data.error_type} errors in {data.project_name}",
             body=[
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -74,8 +74,8 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
                         ),
                     ],
                 ),
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -92,8 +92,8 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
                         ),
                     ],
                 ),
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -146,8 +146,8 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
         return NotificationRenderedTemplate(
             subject=f"Deployment to {data.environment}: {data.version}",
             body=[
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -155,8 +155,8 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
                         )
                     ],
                 ),
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -164,8 +164,8 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
                         )
                     ],
                 ),
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -219,8 +219,8 @@ class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetri
         return NotificationRenderedTemplate(
             subject=f"{data.severity.upper()}: {data.alert_type} in {data.project_name}",
             body=[
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -270,8 +270,8 @@ class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlert
         return NotificationRenderedTemplate(
             subject=f"Performance Alert: {data.metric_name} threshold exceeded",
             body=[
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -279,8 +279,8 @@ class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlert
                         )
                     ],
                 ),
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -288,8 +288,8 @@ class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlert
                         )
                     ],
                 ),
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -335,8 +335,8 @@ class TeamUpdateNotificationTemplate(NotificationTemplate[TeamUpdateData]):
         return NotificationRenderedTemplate(
             subject=f"Team Update: {data.update_type}",
             body=[
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -344,8 +344,8 @@ class TeamUpdateNotificationTemplate(NotificationTemplate[TeamUpdateData]):
                         )
                     ],
                 ),
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -353,8 +353,8 @@ class TeamUpdateNotificationTemplate(NotificationTemplate[TeamUpdateData]):
                         )
                     ],
                 ),
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,

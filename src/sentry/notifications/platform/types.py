@@ -195,7 +195,7 @@ class NotificationBodyFormattingBlockType(StrEnum):
     The type of formatting to be applied to the encapsulated blocks.
     """
 
-    SECTION = "section"
+    PARAGRAPH = "paragraph"
     """
     A block of text with a line break before.
     """
@@ -212,11 +212,11 @@ class NotificationBodyFormattingBlock(Protocol):
 
     type: NotificationBodyFormattingBlockType
     """
-    The type of the block, such as SectionBlock, BoldTextBlock, etc.
+    The type of the block, such as ParagraphBlock, BoldTextBlock, etc.
     """
     blocks: list[NotificationBodyTextBlock]
     """
-    Some blocks may want to contain other blocks, such as a SectionBlock containing a BoldTextBlock.
+    Some blocks may want to contain other blocks, such as a ParagraphBlock containing a BoldTextBlock.
     """
 
 
@@ -236,8 +236,8 @@ class NotificationBodyTextBlock(Protocol):
 
 
 @dataclass
-class SectionBlock(NotificationBodyFormattingBlock):
-    type: Literal[NotificationBodyFormattingBlockType.SECTION]
+class ParagraphBlock(NotificationBodyFormattingBlock):
+    type: Literal[NotificationBodyFormattingBlockType.PARAGRAPH]
     blocks: list[NotificationBodyTextBlock]
 
 

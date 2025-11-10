@@ -73,7 +73,7 @@ class DiscordRendererTest(TestCase):
         fields = list(embed["fields"])
         assert len(fields) == 1
         field = fields[0]
-        assert field["name"] == "section"
+        assert field["name"] == "paragraph"
         assert field["value"] == "test"
         assert embed["title"] == "Mock Notification"
         assert embed["footer"]["text"] == "This is a mock footer"
@@ -100,15 +100,15 @@ class DiscordRendererTest(TestCase):
             NotificationBodyTextBlockType,
             NotificationRenderedAction,
             NotificationRenderedTemplate,
+            ParagraphBlock,
             PlainTextBlock,
-            SectionBlock,
         )
 
         rendered_template = NotificationRenderedTemplate(
             subject="Test Without Chart",
             body=[
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -142,15 +142,15 @@ class DiscordRendererTest(TestCase):
             NotificationRenderedAction,
             NotificationRenderedImage,
             NotificationRenderedTemplate,
+            ParagraphBlock,
             PlainTextBlock,
-            SectionBlock,
         )
 
         rendered_template = NotificationRenderedTemplate(
             subject="Test Without Footer",
             body=[
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -186,15 +186,15 @@ class DiscordRendererTest(TestCase):
             NotificationBodyTextBlockType,
             NotificationRenderedImage,
             NotificationRenderedTemplate,
+            ParagraphBlock,
             PlainTextBlock,
-            SectionBlock,
         )
 
         rendered_template = NotificationRenderedTemplate(
             subject="Test Without Actions",
             body=[
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,
@@ -230,8 +230,8 @@ class DiscordRendererTest(TestCase):
             NotificationRenderedAction,
             NotificationRenderedImage,
             NotificationRenderedTemplate,
+            ParagraphBlock,
             PlainTextBlock,
-            SectionBlock,
         )
 
         actions = [
@@ -244,8 +244,8 @@ class DiscordRendererTest(TestCase):
         rendered_template = NotificationRenderedTemplate(
             subject="Test Multiple Actions",
             body=[
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT,

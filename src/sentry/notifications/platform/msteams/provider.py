@@ -93,7 +93,7 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
         body_blocks: list[Block] = []
         for block in body:
-            if block.type == NotificationBodyFormattingBlockType.SECTION:
+            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
                 body_blocks.append(create_text_block(text=cls.render_text_blocks(block.blocks)))
             elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
                 body_blocks.append(create_code_block(text=cls.render_text_blocks(block.blocks)))

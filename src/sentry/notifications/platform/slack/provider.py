@@ -71,7 +71,7 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
     def _render_body(cls, body: list[NotificationBodyFormattingBlock]) -> list[Block]:
         blocks: list[Block] = []
         for block in body:
-            if block.type == NotificationBodyFormattingBlockType.SECTION:
+            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
                 text = cls._render_text_blocks(block.blocks)
                 blocks.append(SectionBlock(text=MarkdownTextObject(text=text)))
             elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:

@@ -103,7 +103,7 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
 
         fields = []
         for block in body:
-            if block.type == NotificationBodyFormattingBlockType.SECTION:
+            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
                 fields.append(
                     DiscordMessageEmbedField(
                         name=block.type.value, value=cls.render_text_blocks(block.blocks)
