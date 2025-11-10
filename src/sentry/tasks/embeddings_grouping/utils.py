@@ -24,7 +24,7 @@ from sentry.seer.similarity.utils import (
     event_content_has_stacktrace,
     filter_null_from_string,
     get_stacktrace_string,
-    has_too_many_contributing_frames,
+    stacktrace_exceeds_limits,
 )
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
@@ -401,7 +401,7 @@ def get_events_from_nodestore(
         if event and event_content_has_stacktrace(event):
             variants = event.get_grouping_variants(normalize_stacktraces=True)
 
-            if has_too_many_contributing_frames(event, variants, ReferrerOptions.BACKFILL):
+            if stacktrace_exceeds_limits(event, variants, ReferrerOptions.BACKFILL):
                 invalid_event_group_ids.append(group_id)
                 invalid_event_reasons["excess_frames"] += 1
                 continue

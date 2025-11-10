@@ -14,7 +14,7 @@ from sentry.seer.similarity.utils import (
     filter_null_from_string,
     get_stacktrace_string,
     get_token_count,
-    has_too_many_contributing_frames,
+    stacktrace_exceeds_limits,
 )
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
@@ -906,7 +906,7 @@ class HasTooManyFramesTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
                 is expected_result
             )
 
@@ -925,7 +925,7 @@ class HasTooManyFramesTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
                 is expected_result
             )
 
@@ -950,7 +950,7 @@ class HasTooManyFramesTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
                 is expected_result
             )
 
@@ -976,7 +976,7 @@ class HasTooManyFramesTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
                 is expected_result
             )
 
@@ -994,7 +994,7 @@ class HasTooManyFramesTest(TestCase):
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
         assert (
-            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
             is False  # Not flagged as too many because only contributing frames are counted
         )
 
@@ -1011,7 +1011,7 @@ class HasTooManyFramesTest(TestCase):
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
         assert (
-            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
             is False  # Not flagged as too many because only in-app frames are counted
         )
 
@@ -1031,10 +1031,7 @@ class HasTooManyFramesTest(TestCase):
             contributing_variant, _ = get_contributing_variant_and_component(variants)
             assert contributing_variant.variant_name == expected_variant_name
 
-            assert (
-                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
-                is True
-            )
+            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is True
 
     def test_ignores_events_not_grouped_on_stacktrace(self) -> None:
         self.event.data["platform"] = "java"
@@ -1049,7 +1046,7 @@ class HasTooManyFramesTest(TestCase):
         assert isinstance(contributing_variant, CustomFingerprintVariant)
 
         assert (
-            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
             is False  # Not flagged as too many because it's grouped by fingerprint
         )
 
