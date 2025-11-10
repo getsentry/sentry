@@ -1,27 +1,15 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
-  type Docs,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-  mcpOnboarding,
-} from 'sentry/gettingStartedDocs/python/python';
+import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
-import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
 
-type Params = DocsParams;
-
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = (params: DocsParams) => `
 import sentry_sdk
 from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 
@@ -92,7 +80,7 @@ def app(scope):
 
 app = SentryAsgiMiddleware(app)`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
       'The ASGI middleware can be used to instrument any bare bones ASGI application. If you have a ASGI based web framework (like FastAPI, Starlette, or others), please use the specific integration for the framework.',
@@ -115,7 +103,7 @@ const onboarding: OnboardingConfig = {
     },
   ],
 
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -130,7 +118,7 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
         {
           type: 'text',
           text: t('The middleware supports both ASGI 2 and ASGI 3 transparently.'),
@@ -138,7 +126,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -151,7 +139,7 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: getVerifySnippet(),
         },
-        getVerifyLogsContent(params),
+        verify(params),
         {
           type: 'text',
           text: tct(
@@ -171,7 +159,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [] as any[];
     if (params.isLogsSelected) {
       steps.push({
@@ -186,16 +174,3 @@ const onboarding: OnboardingConfig = {
     return steps;
   },
 };
-
-const logsOnboarding = getPythonLogsOnboarding();
-
-const docs: Docs = {
-  onboarding,
-  crashReportOnboarding: crashReportOnboardingPython,
-  profilingOnboarding: getPythonProfilingOnboarding(),
-  agentMonitoringOnboarding,
-  mcpOnboarding,
-  logsOnboarding,
-};
-
-export default docs;
