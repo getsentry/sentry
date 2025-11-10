@@ -152,7 +152,6 @@ class TagStorage(Service):
         environment_id,
         key: str,
         tenant_ids=None,
-        include_empty_values=False,
     ):
         """
         >>> get_group_tag_key(group, 3, "key1")
@@ -227,7 +226,6 @@ class TagStorage(Service):
         limit: int = 1000,
         offset: int = 0,
         tenant_ids: dict[str, int | str] | None = None,
-        include_empty_values=False,
     ) -> list[GroupTagValue]:
         """
         >>> get_group_tag_value_iter(group, 2, 3, 'environment')
@@ -241,7 +239,6 @@ class TagStorage(Service):
         key: str,
         order_by="-id",
         tenant_ids=None,
-        include_empty_values=False,
     ):
         """
         >>> get_group_tag_value_paginator(group, 3, 'environment')
@@ -282,7 +279,6 @@ class TagStorage(Service):
         environment_id,
         key: str,
         tenant_ids=None,
-        include_empty_values=False,
     ):
         """
         >>> get_group_tag_value_count(group, 3, 'key1')
@@ -296,7 +292,6 @@ class TagStorage(Service):
         key: str,
         limit=TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
-        include_empty_values=False,
     ):
         """
         >>> get_top_group_tag_values(group, 3, 'key1')
@@ -328,7 +323,6 @@ class TagStorage(Service):
         keys: list[str] | None = None,
         value_limit=TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
-        include_empty_values=False,
         **kwargs,
     ):
 

@@ -170,7 +170,6 @@ class SnubaTagStorage(TagStorage):
         limit=3,
         raise_on_empty=True,
         tenant_ids=None,
-        include_empty_values=False,
         **kwargs,
     ):
         tag = self.format_string.format(key)
@@ -181,8 +180,6 @@ class SnubaTagStorage(TagStorage):
         aggregations = kwargs.get("aggregations", [])
 
         dataset, filters = self.apply_group_filters(group, filters)
-        if not include_empty_values:
-            conditions.append([tag, "!=", ""])
         aggregations += [
             ["uniq", tag, "values_seen"],
             ["count()", "", "count"],
@@ -508,7 +505,6 @@ class SnubaTagStorage(TagStorage):
         environment_id,
         key,
         tenant_ids=None,
-        include_empty_values=None,
     ):
         return self.__get_tag_key_and_top_values(
             group.project_id,
@@ -517,7 +513,6 @@ class SnubaTagStorage(TagStorage):
             key,
             limit=TOP_VALUES_DEFAULT_LIMIT,
             tenant_ids=tenant_ids,
-            include_empty_values=include_empty_values,
         )
 
     def get_group_tag_keys(
@@ -667,15 +662,11 @@ class SnubaTagStorage(TagStorage):
         environment_id,
         key: str,
         tenant_ids=None,
-        include_empty_values=False,
     ):
-        tag = self.format_string.format(key)
         filters = {"project_id": get_project_list(group.project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
-        conditions = [[tag, "!=", ""]]
-        if include_empty_values:
-            conditions = []
+        conditions = []
         aggregations = [["count()", "", "count"]]
         dataset, filters = self.apply_group_filters(group, filters)
 
@@ -695,7 +686,6 @@ class SnubaTagStorage(TagStorage):
         key: str,
         limit=TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
-        include_empty_values=False,
     ):
         tag = self.__get_tag_key_and_top_values(
             group.project_id,
@@ -704,7 +694,6 @@ class SnubaTagStorage(TagStorage):
             key,
             limit,
             tenant_ids=tenant_ids,
-            include_empty_values=include_empty_values,
         )
         return tag.top_values
 
@@ -715,7 +704,6 @@ class SnubaTagStorage(TagStorage):
         keys: list[str] | None = None,
         value_limit: int = TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
-        include_empty_values=False,
         **kwargs,
     ):
         # Similar to __get_tag_key_and_top_values except we get the top values
@@ -758,33 +746,32 @@ class SnubaTagStorage(TagStorage):
             tenant_ids=tenant_ids,
         )
 
-        if include_empty_values:
-            keys_to_check = list(values_by_key.keys()) or [k.key for k in keys_with_counts]
-            empty_stats_map = self.__get_empty_value_stats_map(
-                dataset=dataset,
-                filters=filters,
-                conditions=conditions,
-                keys_to_check=keys_to_check,
-                tenant_ids=tenant_ids,
-                start=kwargs.get("start"),
-                end=kwargs.get("end"),
-            )
-            for k, stats in empty_stats_map.items():
-                if not stats or stats.get("count", 0) <= 0:
-                    continue
-                vals = values_by_key.get(k, {})
-                vals[""] = stats
-                # Re-sort after adding empty count and trim to value_limit
-                sorted_items = sorted(vals.items(), key=lambda kv: (-kv[1]["count"], str(kv[0])))[
-                    :value_limit
-                ]
-                values_by_key[k] = {vk: vd for vk, vd in sorted_items}
+        keys_to_check = list(values_by_key.keys()) or [k.key for k in keys_with_counts]
+        empty_stats_map = self.__get_empty_value_stats_map(
+            dataset=dataset,
+            filters=filters,
+            conditions=conditions,
+            keys_to_check=keys_to_check,
+            tenant_ids=tenant_ids,
+            start=kwargs.get("start"),
+            end=kwargs.get("end"),
+        )
+        for k, stats in empty_stats_map.items():
+            if not stats or stats.get("count", 0) <= 0:
+                continue
+            vals = values_by_key.get(k, {})
+            vals[""] = stats
+            # Re-sort after adding empty count and trim to value_limit
+            sorted_items = sorted(vals.items(), key=lambda kv: (-kv[1]["count"], str(kv[0])))[
+                :value_limit
+            ]
+            values_by_key[k] = {vk: vd for vk, vd in sorted_items}
 
-            # Increase the count of the key by the count of empty values
-            for keyobj in keys_with_counts:
-                empty_stats: dict[str, Any] | None = empty_stats_map.get(keyobj.key)
-                if empty_stats and empty_stats.get("count", 0) > 0:
-                    keyobj.count = (keyobj.count or 0) + empty_stats["count"]
+        # Increase the count of the key by the count of empty values
+        for keyobj in keys_with_counts:
+            empty_stats: dict[str, Any] | None = empty_stats_map.get(keyobj.key)
+            if empty_stats and empty_stats.get("count", 0) > 0:
+                keyobj.count = (keyobj.count or 0) + empty_stats["count"]
 
         for keyobj in keys_with_counts:
             key = keyobj.key
@@ -1480,16 +1467,10 @@ class SnubaTagStorage(TagStorage):
         limit: int = 1000,
         offset: int = 0,
         tenant_ids: dict[str, int | str] | None = None,
-        include_empty_values=False,
     ) -> list[GroupTagValue]:
         filters: dict[str, list[Any]] = {
             "project_id": get_project_list(group.project_id),
-            self.key_column: [key],
         }
-        # When you filter by tags_key = ["foo"], we're filtering to where the tags_key array contains "foo".
-        # In order to get the total count with empty values, we need to remove the filter.
-        if include_empty_values:
-            del filters[self.key_column]
         dataset, filters = self.apply_group_filters(group, filters)
 
         if environment_ids:
@@ -1526,7 +1507,6 @@ class SnubaTagStorage(TagStorage):
         key: str,
         order_by="-id",
         tenant_ids=None,
-        include_empty_values=False,
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -1544,7 +1524,6 @@ class SnubaTagStorage(TagStorage):
             key,
             orderby="-last_seen",
             tenant_ids=tenant_ids,
-            include_empty_values=include_empty_values,
         )
 
         desc = order_by.startswith("-")
