@@ -74,7 +74,7 @@ export function MetricsSamplesTable({
       <MetricsSamplesTableHeader columns={columns} embedded={embedded} />
       <StyledSimpleTableBody>
         {error ? (
-          <SimpleTable.Empty>
+          <SimpleTable.Empty style={{minHeight: '140px'}}>
             <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
           </SimpleTable.Empty>
         ) : data?.length ? (
@@ -89,11 +89,11 @@ export function MetricsSamplesTable({
             />
           ))
         ) : isFetching ? (
-          <SimpleTable.Empty>
-            <LoadingIndicator />
+          <SimpleTable.Empty style={{minHeight: '140px'}}>
+            <LoadingIndicator size={40} style={{margin: '1em 1em'}} />
           </SimpleTable.Empty>
         ) : (
-          <SimpleTable.Empty>
+          <SimpleTable.Empty style={{minHeight: '140px'}}>
             <GenericWidgetEmptyStateWarning title={t('No samples found')} message="" />
           </SimpleTable.Empty>
         )}
@@ -107,6 +107,7 @@ const SimpleTableWithHiddenColumns = styled(StyledSimpleTable)<{
   numColumns: number;
 }>`
   grid-template-columns: repeat(${p => p.numColumns}, min-content) 1fr;
+  grid-column: 1 / -1;
 
   ${p =>
     !p.embedded &&

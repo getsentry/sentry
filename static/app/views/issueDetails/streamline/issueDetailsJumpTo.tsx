@@ -23,6 +23,7 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
   [SectionKey.TRACE]: t('Trace'),
   [SectionKey.LOGS]: t('Logs'),
+  [SectionKey.METRICS]: t('Metrics'),
   [SectionKey.TAGS]: t('Tags'),
   [SectionKey.CONTEXTS]: t('Context'),
   [SectionKey.USER_FEEDBACK]: t('User Feedback'),
@@ -41,6 +42,9 @@ export function IssueDetailsJumpTo() {
     }
     if (!features.includes('ourlogs-enabled')) {
       excluded.push(SectionKey.LOGS);
+    }
+    if (!features.includes('tracemetrics-enabled')) {
+      excluded.push(SectionKey.METRICS);
     }
     return excluded;
   }, [organization.features]);
