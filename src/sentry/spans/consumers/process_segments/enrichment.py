@@ -75,14 +75,14 @@ class TreeEnricher:
         self._ttid_ts = _timestamp_by_op(spans, "ui.load.initial_display")
         self._ttfd_ts = _timestamp_by_op(spans, "ui.load.full_display")
 
-        self._span_map: dict[str, list[tuple[int, int]]] = {}
-        self._span_hierarchy: dict[str, SpanEvent] = {}
+        self._span_intervals: dict[str, list[tuple[int, int]]] = {}
+        self._spans_by_id: dict[str, SpanEvent] = {}
         for span in spans:
             if "span_id" in span:
                 self._span_hierarchy[span["span_id"]] = span
             if parent_span_id := span.get("parent_span_id"):
                 interval = _span_interval(span)
-                self._span_map.setdefault(parent_span_id, []).append(interval)
+                self._span_intervals.setdefault(parent_span_id, []).append(interval)
 
     def _attributes(self, span: SpanEvent) -> dict[str, Any]:
         attributes: dict[str, Any] = {**(span.get("attributes") or {})}
@@ -152,7 +152,7 @@ class TreeEnricher:
         while current is not None:
             parent_span_id = current.get("parent_span_id")
             if parent_span_id is not None:
-                current = self._span_hierarchy.get(parent_span_id)
+                current = self._spans_by_id.get(parent_span_id)
             else:
                 current = None
             if current is not None:
@@ -168,7 +168,7 @@ class TreeEnricher:
         of all time intervals where no child span was active.
         """
 
-        intervals = self._span_map.get(span["span_id"], [])
+        intervals = self._span_intervals.get(span["span_id"], [])
         # Sort by start ASC, end DESC to skip over nested intervals efficiently
         intervals.sort(key=lambda x: (x[0], -x[1]))
 
