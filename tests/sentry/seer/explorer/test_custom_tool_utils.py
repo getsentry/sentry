@@ -60,7 +60,7 @@ def _optional_tool(text: str) -> str | None:
     return text if text else None
 
 
-def _no_annotation_tool(text) -> str:  # type: ignore[no-untyped-def]
+def _no_annotation_tool(text) -> str:
     """Tool missing parameter annotation."""
     return str(text)
 
@@ -70,7 +70,7 @@ def _wrong_return_type_tool(text: str) -> int:
     return len(text)
 
 
-def _no_return_annotation_tool(text: str):  # type: ignore[no-untyped-def]
+def _no_return_annotation_tool(text: str):
     """Tool missing return annotation."""
     return text
 
@@ -127,7 +127,7 @@ class CustomToolUtilsTest(TestCase):
         lambda_func = lambda x: str(x)  # noqa: E731
 
         with pytest.raises(ValueError) as cm:
-            extract_tool_schema(lambda_func)  # type: ignore[arg-type]
+            extract_tool_schema(lambda_func)
         assert "lambda" in str(cm.value).lower()
 
     def test_validate_tool_function_class_method(self):

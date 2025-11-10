@@ -80,7 +80,7 @@ def extract_tool_schema(func: Callable) -> CustomToolDefinition:
         )
 
     # Validate all parameters have annotations and build Pydantic model fields
-    fields = {}
+    fields: dict[str, Any] = {}
     for param_name, param in sig.parameters.items():
         if param.annotation is inspect.Parameter.empty:
             raise ValueError(
