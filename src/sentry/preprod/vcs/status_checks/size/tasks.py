@@ -24,6 +24,7 @@ from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
+from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
     name="sentry.preprod.tasks.create_preprod_status_check",
     namespace=integrations_tasks,
     processing_deadline_duration=30,
-    retry=Retry(times=3),
+    retry=Retry(times=3, ignore=(IntegrationConfigurationError,)),
     silo_mode=SiloMode.REGION,
 )
 def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
@@ -86,6 +87,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         client,
         commit_comparison.provider,
         preprod_artifact.project.organization_id,
+        preprod_artifact.project.organization.slug,
         repository.integration_id,
     )
     if not provider:
@@ -246,10 +248,16 @@ def _get_status_check_client(
 
 
 def _get_status_check_provider(
-    client: StatusCheckClient, provider: str | None, organization_id: int, integration_id: int
+    client: StatusCheckClient,
+    provider: str | None,
+    organization_id: int,
+    organization_slug: str,
+    integration_id: int,
 ) -> _StatusCheckProvider | None:
     if provider == IntegrationProviderSlug.GITHUB:
-        return _GitHubStatusCheckProvider(client, provider, organization_id, integration_id)
+        return _GitHubStatusCheckProvider(
+            client, provider, organization_id, organization_slug, integration_id
+        )
     else:
         return None
 
@@ -265,11 +273,13 @@ class _StatusCheckProvider(ABC):
         client: StatusCheckClient,
         provider_key: str,
         organization_id: int,
+        organization_slug: str,
         integration_id: int,
     ):
         self.client = client
         self.provider_key = provider_key
         self.organization_id = organization_id
+        self.organization_slug = organization_slug
         self.integration_id = integration_id
 
     def _create_scm_interaction_event(self) -> SCMIntegrationInteractionEvent:
@@ -321,19 +331,44 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 )
                 return None
 
+            truncated_text = _truncate_to_byte_limit(text, GITHUB_MAX_TEXT_FIELD_LENGTH)
+            truncated_summary = _truncate_to_byte_limit(summary, GITHUB_MAX_SUMMARY_FIELD_LENGTH)
+
+            if text and truncated_text and len(truncated_text) != len(text):
+                logger.warning(
+                    "preprod.status_checks.create.text_truncated",
+                    extra={
+                        "original_bytes": len(text.encode("utf-8")),
+                        "truncated_bytes": len(truncated_text.encode("utf-8")),
+                        "organization_id": self.organization_id,
+                        "organization_slug": self.organization_slug,
+                    },
+                )
+
+            if summary and truncated_summary and len(truncated_summary) != len(summary):
+                logger.warning(
+                    "preprod.status_checks.create.summary_truncated",
+                    extra={
+                        "original_bytes": len(summary.encode("utf-8")),
+                        "truncated_bytes": len(truncated_summary.encode("utf-8")),
+                        "organization_id": self.organization_id,
+                        "organization_slug": self.organization_slug,
+                    },
+                )
+
             check_data: dict[str, Any] = {
                 "name": title,
                 "head_sha": sha,
                 "external_id": external_id,
                 "output": {
                     "title": subtitle,
-                    "summary": summary,
+                    "summary": truncated_summary,
                 },
                 "status": mapped_status.value,
             }
 
-            if text:
-                check_data["output"]["text"] = text
+            if truncated_text:
+                check_data["output"]["text"] = truncated_text
 
             if mapped_conclusion:
                 check_data["conclusion"] = mapped_conclusion.value
@@ -351,9 +386,76 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 response = self.client.create_check_run(repo=repo, data=check_data)
                 check_id = response.get("id")
                 return str(check_id) if check_id else None
-            except Exception as e:
+            except ApiError as e:
                 lifecycle.record_failure(e)
-                return None
+                # Only convert specific permission 403s as IntegrationConfigurationError
+                # GitHub can return 403 for various reasons (rate limits, temporary issues, permissions)
+                if e.code == 403:
+                    error_message = str(e).lower()
+                    if (
+                        "resource not accessible" in error_message
+                        or "insufficient" in error_message
+                        or "permission" in error_message
+                    ):
+                        logger.exception(
+                            "preprod.status_checks.create.insufficient_permissions",
+                            extra={
+                                "organization_id": self.organization_id,
+                                "integration_id": self.integration_id,
+                                "repo": repo,
+                                "error_message": str(e),
+                            },
+                        )
+                        raise IntegrationConfigurationError(
+                            "GitHub App lacks permissions to create check runs. "
+                            "Please ensure the app has the required permissions and that "
+                            "the organization has accepted any updated permissions."
+                        ) from e
+                elif e.code and 400 <= e.code < 500 and e.code != 429:
+                    logger.exception(
+                        "preprod.status_checks.create.client_error",
+                        extra={
+                            "organization_id": self.organization_id,
+                            "integration_id": self.integration_id,
+                            "repo": repo,
+                            "status_code": e.code,
+                        },
+                    )
+                    raise IntegrationConfigurationError(
+                        f"GitHub API returned {e.code} client error when creating check run"
+                    ) from e
+
+                # For non-permission 403s, 429s, 5xx, and other error
+                raise
+
+
+# See: https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#create-a-check-run
+GITHUB_MAX_SUMMARY_FIELD_LENGTH = 65535
+GITHUB_MAX_TEXT_FIELD_LENGTH = 65535
+
+
+def _truncate_to_byte_limit(text: str | None, byte_limit: int) -> str | None:
+    """Truncate text to fit within byte limit while ensuring valid UTF-8."""
+    if not text:
+        return text
+
+    TRUNCATE_AMOUNT = 10
+
+    encoded = text.encode("utf-8")
+    if len(encoded) <= byte_limit:
+        return text
+
+    if byte_limit <= TRUNCATE_AMOUNT:
+        # This shouldn't happen, but just in case.
+        truncated = encoded[:byte_limit].decode("utf-8", errors="ignore")
+        return truncated
+
+    # Truncate to byte_limit - 10 (a bit of wiggle room) to make room for "..."
+    # Note: this can break formatting you have and is more of a catch-all,
+    # broken formatting is better than silently erroring for the user.
+    # Templating logic itself should try to more contextually trim the content if possible.
+    truncated = encoded[: byte_limit - TRUNCATE_AMOUNT].decode("utf-8", errors="ignore")
+    return truncated + "..."
 
 
 GITHUB_STATUS_CHECK_STATUS_MAPPING: dict[StatusCheckStatus, GitHubCheckStatus] = {
