@@ -49,7 +49,7 @@ describe('PreventAIOnboarding', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: 'Ship Code That Breaks Less With Code Reviews And Tests',
+        name: 'Ship Code That Breaks Less With Code Reviews',
       })
     ).toBeInTheDocument();
 
@@ -158,7 +158,7 @@ describe('PreventAIOnboarding', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(
-      screen.getByText('AI Code Review helps you ship better code with three features:')
+      screen.getByText('AI Code Review helps you ship better code with new features:')
     ).toBeInTheDocument();
 
     expect(
@@ -173,14 +173,6 @@ describe('PreventAIOnboarding', () => {
       screen.getByText(
         textWithMarkupMatcher(
           'It predicts which errors your code will cause. This happens automatically when you mark a PR ready for review, and when you trigger a PR review with @sentry review.'
-        )
-      )
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'It generates unit tests for your PR when you prompt @sentry generate-test.'
         )
       )
     ).toBeInTheDocument();
