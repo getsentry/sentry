@@ -159,7 +159,10 @@ def is_newer_release(
         and comparison_release.is_semver_release
     ):
         organization = Organization.objects.get_from_cache(id=release.organization_id)
-        if features.has("organizations:semver-ordering-with-build-code", organization):
+        order_by_build_code = features.has(
+            "organizations:semver-ordering-with-build-code", organization
+        )
+        if order_by_build_code:
             return (
                 release.semver_tuple_with_build_code
                 > comparison_release.semver_tuple_with_build_code

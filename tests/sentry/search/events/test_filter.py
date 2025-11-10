@@ -334,6 +334,26 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
             project_id=[project_2.id],
         )
 
+    def test_build_code_ordering_with_limit(self) -> None:
+        """
+        Test that build code ordering affects which releases are returned when
+        MAX_SEARCH_RELEASES limit is hit and feature flag is enabled.
+        """
+        release_1 = self.create_release(version="test@1.0.0+zzz")
+        release_2 = self.create_release(version="test@1.0.0")
+        release_3 = self.create_release(version="test@1.0.0+100")
+        self.create_release(version="test@1.0.0+200")
+        self.create_release(version="test@1.0.0+300")
+
+        # should return the 2 releases closest to 1.0.0 (lowest/no build codes)
+        with self.feature("organizations:semver-ordering-with-build-code"):
+            with patch("sentry.search.events.filter.MAX_SEARCH_RELEASES", 2):
+                self.run_test(">=", "1.0.0", "IN", [release_2.version, release_3.version])
+
+        # build codes ignored -> tiebreaker is insertion order (asc)
+        with patch("sentry.search.events.filter.MAX_SEARCH_RELEASES", 2):
+            self.run_test(">=", "1.0.0", "IN", [release_1.version, release_2.version])
+
 
 class SemverPackageFilterConverterTest(BaseSemverConverterTest):
     key = SEMVER_PACKAGE_ALIAS

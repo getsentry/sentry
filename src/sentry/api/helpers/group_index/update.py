@@ -850,15 +850,21 @@ def greatest_semver_release(project: Project) -> Release | None:
 
 
 def get_semver_releases(project: Project) -> QuerySet[Release]:
+    order_by_build_code = features.has(
+        "organizations:semver-ordering-with-build-code", project.organization
+    )
+
+    semver_cols = (
+        Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
+    )
+
     qs = (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
         .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
     )
-    semver_cols = Release.SEMVER_COLS
-    if features.has("organizations:semver-ordering-with-build-code", project.organization):
+    if order_by_build_code:
         qs = qs.annotate_build_code_column()
-        semver_cols = Release.SEMVER_COLS_WITH_BUILD_CODE
     return qs.order_by(*[f"-{col}" for col in semver_cols])
 
 
