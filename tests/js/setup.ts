@@ -219,6 +219,15 @@ jest.mock('@sentry/react', function sentryReact() {
         end: jest.fn(),
       }),
     }),
+    logger: {
+      warn: jest.fn(),
+      error: jest.fn(),
+      fatal: jest.fn(),
+      info: jest.fn(),
+      debug: jest.fn(),
+      trace: jest.fn(),
+      fmt: jest.fn(),
+    },
   };
 });
 
