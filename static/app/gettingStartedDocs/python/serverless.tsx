@@ -9,13 +9,13 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
 import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
-import {t, tct} from 'sentry/locale';
 import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
 import {
   alternativeProfiling,
   profiling,
 } from 'sentry/gettingStartedDocs/python/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
+import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
