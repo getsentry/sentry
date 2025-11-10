@@ -22,6 +22,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
+from sentry.search.eap.extrapolation_mode import resolve_extrapolation_mode
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 
@@ -340,11 +341,7 @@ class AggregateDefinition(FunctionDefinition):
             search_type=search_type,
             internal_type=self.internal_type,
             processor=self.processor,
-            extrapolation_mode=(
-                self.extrapolation_mode
-                if not search_config.disable_aggregate_extrapolation
-                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
-            ),
+            extrapolation_mode=resolve_extrapolation_mode(search_config, self.extrapolation_mode),
             argument=resolved_attribute,
         )
 
@@ -407,11 +404,7 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
             search_type=search_type,
             internal_type=self.internal_type,
             processor=self.processor,
-            extrapolation_mode=(
-                self.extrapolation_mode
-                if not search_config.disable_aggregate_extrapolation
-                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
-            ),
+            extrapolation_mode=resolve_extrapolation_mode(search_config, self.extrapolation_mode),
             argument=resolved_attribute,
         )
 
@@ -448,11 +441,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
             filter=aggregate_filter,
             key=key,
             processor=self.processor,
-            extrapolation_mode=(
-                self.extrapolation_mode
-                if not search_config.disable_aggregate_extrapolation
-                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
-            ),
+            extrapolation_mode=resolve_extrapolation_mode(search_config, self.extrapolation_mode),
         )
 
 
@@ -478,11 +467,7 @@ class FormulaDefinition(FunctionDefinition):
         search_config: SearchResolverConfig,
     ) -> ResolvedFormula:
         resolver_settings = ResolverSettings(
-            extrapolation_mode=(
-                self.extrapolation_mode
-                if self.extrapolation_mode and not search_config.disable_aggregate_extrapolation
-                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
-            ),
+            extrapolation_mode=resolve_extrapolation_mode(search_config, self.extrapolation_mode),
             snuba_params=snuba_params,
             query_result_cache=query_result_cache,
             search_config=search_config,
