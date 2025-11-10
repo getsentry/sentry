@@ -12,11 +12,11 @@ import type {
 } from 'sentry/types/echarts';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
-import {QueryQueueProvider} from 'sentry/views/dashboards/queryQueue';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/widgetQueryQueue';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
 import WidgetCardChart from './chart';
@@ -110,7 +110,7 @@ export function WidgetCardChartContainer({
   }
 
   return (
-    <QueryQueueProvider>
+    <WidgetQueryQueueProvider>
       <WidgetCardDataLoader
         widget={widget}
         dashboardFilters={dashboardFilters}
@@ -190,6 +190,6 @@ export function WidgetCardChartContainer({
           );
         }}
       </WidgetCardDataLoader>
-    </QueryQueueProvider>
+    </WidgetQueryQueueProvider>
   );
 }

@@ -222,12 +222,12 @@ importers:
       '@swc/plugin-emotion':
         specifier: 11.0.3
         version: 11.0.3
-      '@tanstack/pacer':
-        specifier: ^0.16.0
-        version: 0.16.0
       '@tanstack/query-async-storage-persister':
         specifier: 5.83.1
         version: 5.83.1
+      '@tanstack/react-pacer':
+        specifier: ^0.17.0
+        version: 0.17.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@tanstack/react-query':
         specifier: 5.85.0
         version: 5.85.0(react@19.2.0)
@@ -3360,6 +3360,13 @@ packages:
   '@tanstack/query-persist-client-core@5.83.1':
     resolution: {integrity: sha512-GPWt1tj8kmo3LA1WPpSmJA3JGCdQfaggb1LheFEfr3RuwbTchWd09xD/fZ40m9ai0pJupvyguLiWF8On8sQWPw==}
 
+  '@tanstack/react-pacer@0.17.0':
+    resolution: {integrity: sha512-zJE6BJ61R1xVvVIlv3XFf9bVWXtuF84Mst3kX8IbCKhWyYvju0B3fvKUHsdQBncK88nKM8KuLGdzmOxgUt/PUQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      react: '>=16.8'
+      react-dom: '>=16.8'
+
   '@tanstack/react-query-devtools@5.85.0':
     resolution: {integrity: sha512-Q/lmGAY2I3KkhxSJKLKQUeUBOc9Mv/OrCTw4CfUCq2Za+XhDsB5ZfVTOANAJyDZ+SiUu27Cw1eHNE+xJdACJiw==}
     peerDependencies:
@@ -3376,6 +3383,12 @@ packages:
     resolution: {integrity: sha512-t1HMfToVMGfwEJRya6GG7gbK0luZJd+9IySFNePL1BforU1F3LqQ3tBC2Rpvr88bOrlU6PXyMLgJD0Yzn4ztUw==}
     peerDependencies:
       react: ^18 || ^19
+
+  '@tanstack/react-store@0.7.7':
+    resolution: {integrity: sha512-qqT0ufegFRDGSof9D/VqaZgjNgp4tRPHZIJq2+QIHkMUtHjaJ0lYrrXjeIUJvjnTbgPfSD1XgOMEt0lmANn6Zg==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   '@tanstack/react-virtual@3.13.6':
     resolution: {integrity: sha512-WT7nWs8ximoQ0CDx/ngoFP7HbQF9Q2wQe4nh2NB+u2486eX3nZRE40P9g6ccCVq7ZfTSH5gFOuCoVH5DLNS/aA==}
@@ -12341,6 +12354,13 @@ snapshots:
     dependencies:
       '@tanstack/query-core': 5.83.1
 
+  '@tanstack/react-pacer@0.17.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+    dependencies:
+      '@tanstack/pacer': 0.16.0
+      '@tanstack/react-store': 0.7.7(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+
   '@tanstack/react-query-devtools@5.85.0(@tanstack/react-query@5.85.0(react@19.2.0))(react@19.2.0)':
     dependencies:
       '@tanstack/query-devtools': 5.84.0
@@ -12357,6 +12377,13 @@ snapshots:
     dependencies:
       '@tanstack/query-core': 5.83.1
       react: 19.2.0
+
+  '@tanstack/react-store@0.7.7(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+    dependencies:
+      '@tanstack/store': 0.7.7
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+      use-sync-external-store: 1.5.0(react@19.2.0)
 
   '@tanstack/react-virtual@3.13.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:

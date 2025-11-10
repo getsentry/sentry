@@ -16,9 +16,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
-import {useQueryQueue} from 'sentry/views/dashboards/queryQueue';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
+import {useWidgetQueryQueue} from 'sentry/views/dashboards/widgetQueryQueue';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
@@ -118,7 +118,7 @@ function SpansWidgetQueriesSingleRequestImpl({
   getConfidenceInformation,
 }: SpansWidgetQueriesImplProps) {
   const config = SpansConfig;
-  const {queue} = useQueryQueue() ?? {};
+  const {queue} = useWidgetQueryQueue() ?? {};
 
   const organization = useOrganization();
   const [confidence, setConfidence] = useState<Confidence | null>(null);

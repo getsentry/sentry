@@ -15,10 +15,10 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import type {QueueItem} from 'sentry/views/dashboards/queryQueue';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
+import type {QueueItem} from 'sentry/views/dashboards/widgetQueryQueue';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 export function getReferrer(displayType: DisplayType) {
