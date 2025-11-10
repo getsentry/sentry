@@ -5,7 +5,7 @@ import logging
 import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from cryptography.fernet import Fernet
@@ -57,6 +57,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
@@ -279,21 +280,34 @@ def _can_use_prevent_ai_features(org: Organization) -> bool:
 
 
 def get_sentry_organization_ids(
-    *, full_repo_name: str, external_id: str, provider: str = "integrations:github"
-) -> dict:
+    *, external_id: str, provider: str = "integrations:github", **kwargs
+) -> dict[Literal["org_ids"], list[int]]:
     """
     Get the Sentry organization ID for a given Repository.
 
     Args:
-        full_repo_name: The full name of the repository (e.g. "getsentry/sentry")
         external_id: The id of the repo in the provider's system
         provider: The provider of the repository (e.g. "integrations:github")
     """
 
     # It's possible that multiple orgs will be returned for a given repo.
-    organization_ids = Repository.objects.filter(
-        name=full_repo_name, provider=provider, status=ObjectStatus.ACTIVE, external_id=external_id
-    ).values_list("organization_id", flat=True)
+    repositories = Repository.objects.filter(
+        provider=provider,
+        external_id=external_id,
+        status=ObjectStatus.ACTIVE,
+    )
+    repo_ids = repositories.values_list("id", flat=True)
+
+    # Filter to only repositories that have code mappings.
+    repo_ids_with_config = (
+        RepositoryProjectPathConfig.objects.filter(repository_id__in=repo_ids)
+        .values_list("repository_id", flat=True)
+        .distinct()
+    )
+
+    organization_ids = repositories.filter(id__in=repo_ids_with_config).values_list(
+        "organization_id", flat=True
+    )
     organizations = Organization.objects.filter(id__in=organization_ids)
     # We then filter out all orgs that didn't give us consent to use AI features.
     orgs_with_consent = [org for org in organizations if _can_use_prevent_ai_features(org)]
