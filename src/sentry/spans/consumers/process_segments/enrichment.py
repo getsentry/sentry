@@ -122,17 +122,13 @@ class TreeEnricher:
                 if attributes.get(key) is None:
                     attributes[key] = value
 
-            GENAI_SPAN_OPS_AGENT_CHILDREN = [
-                "gen_ai.execute_tool",
-                "gen_ai.handoff",
-                "gen_ai.run",
-                "gen_ai.create_agent",
-            ]
-            op = get_span_op(span)
-
-            if op in GENAI_SPAN_OPS_AGENT_CHILDREN and "gen_ai.agent.name" not in attributes:
+            if get_span_op(span).startswith("gen_ai.") and "gen_ai.agent.name" not in attributes:
                 for ancestor in self._iter_ancestors(span):
-                    if (agent_name := attribute_value(ancestor, "gen_ai.agent.name")) is not None:
+                    if (
+                        get_span_op(ancestor) == "gen_ai.invoke_agent"
+                        and (agent_name := attribute_value(ancestor, "gen_ai.agent.name"))
+                        is not None
+                    ):
                         attributes["gen_ai.agent.name"] = {
                             "type": "string",
                             "value": agent_name,
