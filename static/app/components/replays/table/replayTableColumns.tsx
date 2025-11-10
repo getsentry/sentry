@@ -534,7 +534,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       referrer,
       ...eventViewQuery,
       sort,
-      field: REPLAY_LIST_FIELDS.map(field => field.split('.')[0] as string),
+      field: REPLAY_LIST_FIELDS,
     };
 
     if (!eventViewQuery.start && !eventViewQuery.end && typeof statsPeriod === 'string') {
