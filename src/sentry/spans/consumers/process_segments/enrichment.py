@@ -79,7 +79,7 @@ class TreeEnricher:
         self._spans_by_id: dict[str, SpanEvent] = {}
         for span in spans:
             if "span_id" in span:
-                self._span_hierarchy[span["span_id"]] = span
+                self._spans_by_id[span["span_id"]] = span
             if parent_span_id := span.get("parent_span_id"):
                 interval = _span_interval(span)
                 self._span_intervals.setdefault(parent_span_id, []).append(interval)
