@@ -10,13 +10,14 @@ import {logs} from 'sentry/gettingStartedDocs/python/python/logs';
 import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
 import {profiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 
-import {onboarding, performanceOnboarding} from './onboarding';
+import {onboarding} from './onboarding';
+import {performance} from './performance';
 
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   profilingOnboarding: profiling({basePackage: 'sentry-sdk[django]'}),
-  performanceOnboarding,
+  performanceOnboarding: performance,
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
