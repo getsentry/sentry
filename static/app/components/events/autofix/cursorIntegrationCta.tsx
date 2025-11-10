@@ -58,9 +58,9 @@ export function CursorIntegrationCta({
     return localStorage.getItem(dismissKey) === 'true';
   });
 
-  const hasCursorIntegration = Boolean(
-    organization?.features.includes('integrations-cursor') && cursorIntegration
-  );
+  const hasCursorIntegrationFeatureFlag =
+    organization?.features.includes('integrations-cursor');
+  const hasCursorIntegration = Boolean(cursorIntegration);
   const isConfigured = Boolean(preference?.automation_handoff);
 
   // Determine the current stage
@@ -130,6 +130,10 @@ export function CursorIntegrationCta({
   }
 
   if (isDismissed) {
+    return null;
+  }
+
+  if (!hasCursorIntegrationFeatureFlag) {
     return null;
   }
 
