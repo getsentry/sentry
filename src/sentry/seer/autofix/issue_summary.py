@@ -55,10 +55,6 @@ auto_run_source_map = {
 def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStoppingPoint | None:
     """
     Determine the autofix stopping point based on fixability score.
-
-    Low fixability (< 0.40): No autofix (returns None)
-    Medium fixability (0.40 - 0.66): Stop at SOLUTION (before coding)
-    High fixability (>= 0.66): Go to OPEN_PR (full automation)
     """
     if fixability_score < FixabilityScoreThresholds.MEDIUM.value:
         return None

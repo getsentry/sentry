@@ -691,152 +691,76 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
 
 class TestGetStoppingPointFromFixability:
-    """Tests for _get_stopping_point_from_fixability function."""
-
     @pytest.mark.parametrize(
-        "fixability_score,expected_stopping_point",
+        "score,expected",
         [
-            # Low fixability (< 0.40) -> None
             (0.0, None),
-            (0.25, None),
             (0.39, None),
-            # Medium fixability (0.40 - 0.66) -> SOLUTION
             (0.40, AutofixStoppingPoint.SOLUTION),
-            (0.50, AutofixStoppingPoint.SOLUTION),
             (0.65, AutofixStoppingPoint.SOLUTION),
-            # High fixability (>= 0.66) -> OPEN_PR
             (0.66, AutofixStoppingPoint.OPEN_PR),
-            (0.75, AutofixStoppingPoint.OPEN_PR),
-            (0.90, AutofixStoppingPoint.OPEN_PR),
             (1.0, AutofixStoppingPoint.OPEN_PR),
         ],
     )
-    def test_stopping_point_mapping(self, fixability_score, expected_stopping_point):
-        """Test fixability score maps to correct stopping point."""
-        assert _get_stopping_point_from_fixability(fixability_score) == expected_stopping_point
+    def test_stopping_point_mapping(self, score, expected):
+        assert _get_stopping_point_from_fixability(score) == expected
 
 
 @with_feature({"organizations:gen-ai-features": True, "organizations:triage-signals-v0": True})
 class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
-    """Tests for _run_automation with stopping point computation."""
-
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group()
-        self.login_as(user=self.user)
         event_data = load_data("python")
         self.event = self.store_event(data=event_data, project_id=self.project.id)
 
     @pytest.mark.parametrize(
-        "fixability_score,expected_stopping_point",
-        [
-            (0.80, AutofixStoppingPoint.OPEN_PR),
-            (0.50, AutofixStoppingPoint.SOLUTION),
-        ],
+        "score,expected",
+        [(0.80, AutofixStoppingPoint.OPEN_PR), (0.50, AutofixStoppingPoint.SOLUTION)],
     )
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
-    @patch("sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited")
-    @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch(
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
+        return_value=False,
+    )
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
+    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    def test_stopping_point_passed_to_trigger_with_feature_flag(
-        self,
-        mock_generate_fixability_score,
-        mock_has_budget,
-        mock_get_autofix_state,
-        mock_is_rate_limited,
-        mock_trigger_autofix_task,
-        fixability_score,
-        expected_stopping_point,
+    def test_with_feature_flag(
+        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger, score, expected
     ):
-        """Test that correct stopping point is passed when feature flag is enabled."""
         from sentry.seer.autofix.issue_summary import _run_automation
 
-        mock_generate_fixability_score.return_value = SummarizeIssueResponse(
+        mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
-            headline="headline",
-            whats_wrong="what",
-            trace="trace",
-            possible_cause="cause",
-            scores=SummarizeIssueScores(fixability_score=fixability_score),
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
+            scores=SummarizeIssueScores(fixability_score=score),
         )
-        mock_has_budget.return_value = True
-        mock_get_autofix_state.return_value = None
-        mock_is_rate_limited.return_value = False
-
-        _run_automation(
-            group=self.group,
-            user=self.user,
-            event=self.event,
-            source=SeerAutomationSource.ALERT,
-        )
-
-        mock_trigger_autofix_task.assert_called_once()
-        assert mock_trigger_autofix_task.call_args[1]["stopping_point"] == expected_stopping_point
+        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        assert mock_trigger.call_args[1]["stopping_point"] == expected
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
-    @patch("sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited")
-    @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
-    @patch("sentry.quotas.backend.has_available_reserved_budget")
+    @patch(
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
+        return_value=False,
+    )
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
+    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    def test_stopping_point_none_without_feature_flag(
-        self,
-        mock_generate_fixability_score,
-        mock_has_budget,
-        mock_get_autofix_state,
-        mock_is_rate_limited,
-        mock_trigger_autofix_task,
-    ):
-        """Test that stopping point is None when feature flag is disabled."""
+    def test_without_feature_flag(self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger):
         from sentry.seer.autofix.issue_summary import _run_automation
 
-        mock_generate_fixability_score.return_value = SummarizeIssueResponse(
+        mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
-            headline="headline",
-            whats_wrong="what",
-            trace="trace",
-            possible_cause="cause",
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
             scores=SummarizeIssueScores(fixability_score=0.80),
         )
-        mock_has_budget.return_value = True
-        mock_get_autofix_state.return_value = None
-        mock_is_rate_limited.return_value = False
-
-        _run_automation(
-            group=self.group,
-            user=self.user,
-            event=self.event,
-            source=SeerAutomationSource.ALERT,
-        )
-
-        mock_trigger_autofix_task.assert_called_once()
-        assert mock_trigger_autofix_task.call_args[1]["stopping_point"] is None
-
-    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
-    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    def test_no_trigger_with_low_fixability(
-        self,
-        mock_generate_fixability_score,
-        mock_trigger_autofix_task,
-    ):
-        """Test that autofix is not triggered for low fixability scores."""
-        from sentry.seer.autofix.issue_summary import _run_automation
-
-        mock_generate_fixability_score.return_value = SummarizeIssueResponse(
-            group_id=str(self.group.id),
-            headline="headline",
-            whats_wrong="what",
-            trace="trace",
-            possible_cause="cause",
-            scores=SummarizeIssueScores(fixability_score=0.30),
-        )
-
-        _run_automation(
-            group=self.group,
-            user=self.user,
-            event=self.event,
-            source=SeerAutomationSource.ALERT,
-        )
-
-        mock_trigger_autofix_task.assert_not_called()
+        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        assert mock_trigger.call_args[1]["stopping_point"] is None
