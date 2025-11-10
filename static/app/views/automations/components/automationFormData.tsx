@@ -54,7 +54,7 @@ export function getNewAutomationData(
   state: AutomationBuilderState
 ): NewAutomation {
   const result = {
-    name: data.name,
+    name: data.name || 'New Alert',
     triggers: stripDataConditionGroupId(state.triggers),
     environment: data.environment,
     actionFilters: state.actionFilters.map(stripDataConditionGroupId),
