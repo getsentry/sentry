@@ -219,7 +219,7 @@ class GroupType:
     enable_workflow_notifications = True
 
     # Controls whether users are able to manually update the group's priority.
-    enable_user_priority_changes = True
+    enable_user_status_and_priority_changes = True
 
     # Controls whether Seer automation is always triggered for this group type.
     always_trigger_seer_automation = False
@@ -685,7 +685,7 @@ class MetricIssuePOC(GroupType):
 
 
 @dataclass(frozen=True)
-class WebVitalsGroup(GroupType):
+class WebVitalsGroup(GroupType):  # TODO: Rename to WebVitalsGroupType
     type_id = 10001
     slug = "web_vitals"
     description = "Web Vitals"

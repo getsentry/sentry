@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {Disclosure} from 'sentry/components/core/disclosure';
@@ -75,7 +76,8 @@ export default function FeedbackSummaryCategories() {
           }
         >
           <Flex gap="xs" align="center">
-            {t('Summary')} <FeatureBadge type="beta" />
+            <AiPrivacyTooltip>{t('Summary')}</AiPrivacyTooltip>
+            <FeatureBadge type="new" />
           </Flex>
         </Disclosure.Title>
         <Disclosure.Content>
@@ -101,7 +103,7 @@ const SummaryContainer = styled('div')`
 `;
 
 const SummaryIconContainer = styled('div')`
-  padding: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;

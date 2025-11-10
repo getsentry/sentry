@@ -48,8 +48,9 @@ export function useFlagSeries({event, flags}: FlagSeriesProps) {
           }
         );
 
-        const eventIsBefore = moment(event?.dateCreated).isBefore(moment(time));
-        const formattedDate = moment(time).from(event?.dateCreated, true);
+        const timeObject = moment(data.xAxis);
+        const eventIsBefore = moment(event?.dateCreated).isBefore(timeObject);
+        const formattedDate = timeObject.from(event?.dateCreated, true);
         const suffix = eventIsBefore
           ? t(' (%s after this event)', formattedDate)
           : t(' (%s before this event)', formattedDate);

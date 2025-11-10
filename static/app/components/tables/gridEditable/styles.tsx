@@ -175,6 +175,7 @@ export const GridHeadCellStatic = styled('th')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+  justify-content: center;
 
   &:first-child {
     padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.md}
