@@ -72,10 +72,7 @@ import {isEAPTraceNode, isTraceNode} from './traceGuards';
 import {TracePreferencesDropdown} from './tracePreferencesDropdown';
 import {TraceResetZoomButton} from './traceResetZoomButton';
 import type {TraceReducer, TraceReducerState} from './traceState';
-import {
-  traceNodeAdjacentAnalyticsProperties,
-  traceNodeAnalyticsName,
-} from './traceTreeAnalytics';
+import {traceNodeAdjacentAnalyticsProperties} from './traceTreeAnalytics';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
@@ -349,7 +346,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       trackAnalytics('trace.trace_layout.span_row_click', {
         organization,
         num_children: node.children.length,
-        type: traceNodeAnalyticsName(node),
+        type: node.analyticsName(),
         project_platform:
           projects.find(p => p.slug === node.projectSlug)?.platform || 'other',
         ...traceNodeAdjacentAnalyticsProperties(node),
@@ -449,11 +446,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       viewManager.maybeInitializeTraceViewFromQS(query.fov);
     }
 
-    TraceTree.ApplyPreferences(props.tree.root, {
-      preferences: traceStateRef.current.preferences,
-      organization: props.organization,
-    });
-
     // Construct the visual representation of the tree
     props.tree.build();
 
@@ -517,7 +509,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     traceScheduler,
     scrollQueueRef,
     props.tree,
-    props.organization,
   ]);
 
   // Setup the middleware for the trace reducer

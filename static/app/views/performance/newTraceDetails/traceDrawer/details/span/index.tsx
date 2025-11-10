@@ -69,40 +69,6 @@ import {hasSpanKeys, SpanKeys} from './sections/keys';
 import Measurements, {hasSpanMeasurements} from './sections/measurements';
 import {hasSpanTags, Tags} from './sections/tags';
 
-function SpanNodeDetailHeader({
-  node,
-  organization,
-  onTabScrollToNode,
-  hideNodeActions,
-}: {
-  node: SpanNode | EapSpanNode;
-  onTabScrollToNode: (node: BaseNode) => void;
-  organization: Organization;
-  hideNodeActions?: boolean;
-}) {
-  const spanId = isEAPSpanNode(node) ? node.value.event_id : node.value.span_id;
-  return (
-    <TraceDrawerComponents.HeaderContainer>
-      <TraceDrawerComponents.Title>
-        <TraceDrawerComponents.LegacyTitleText>
-          <TraceDrawerComponents.TitleText>{t('Span')}</TraceDrawerComponents.TitleText>
-          <TraceDrawerComponents.SubtitleWithCopyButton
-            subTitle={`ID: ${spanId}`}
-            clipboardText={spanId}
-          />
-        </TraceDrawerComponents.LegacyTitleText>
-      </TraceDrawerComponents.Title>
-      {!hideNodeActions && (
-        <TraceDrawerComponents.NodeActions
-          node={node}
-          organization={organization}
-          onTabScrollToNode={onTabScrollToNode}
-        />
-      )}
-    </TraceDrawerComponents.HeaderContainer>
-  );
-}
-
 function SpanSections({
   node,
   organization,
@@ -261,12 +227,27 @@ function SpanNodeDetailsContent({
 }) {
   return (
     <TraceDrawerComponents.DetailContainer>
-      <SpanNodeDetailHeader
-        node={node}
-        organization={organization}
-        onTabScrollToNode={onTabScrollToNode}
-        hideNodeActions={hideNodeActions}
-      />
+      <TraceDrawerComponents.HeaderContainer>
+        <TraceDrawerComponents.Title>
+          <TraceDrawerComponents.LegacyTitleText>
+            <TraceDrawerComponents.TitleText>{t('Span')}</TraceDrawerComponents.TitleText>
+            <TraceDrawerComponents.SubtitleWithCopyButton
+              subTitle={`ID: ${node.id}`}
+              clipboardText={node.id}
+            />
+          </TraceDrawerComponents.LegacyTitleText>
+        </TraceDrawerComponents.Title>
+        {!hideNodeActions && (
+          <TraceDrawerComponents.NodeActions
+            node={node}
+            organization={organization}
+            profileId={node.event?.contexts?.profile?.profile_id}
+            profilerId={node.value.sentry_tags?.profiler_id}
+            threadId={node.value.data?.['thread.id']}
+            onTabScrollToNode={onTabScrollToNode}
+          />
+        )}
+      </TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.BodyContainer>
         <Alerts node={node} />
         {issues.length > 0 ? (
@@ -458,12 +439,25 @@ function EAPSpanNodeDetailsContent({
 
   return (
     <TraceDrawerComponents.DetailContainer>
-      <SpanNodeDetailHeader
-        node={node}
-        organization={organization}
-        onTabScrollToNode={onTabScrollToNode}
-        hideNodeActions={hideNodeActions}
-      />
+      <TraceDrawerComponents.HeaderContainer>
+        <TraceDrawerComponents.Title>
+          <TraceDrawerComponents.LegacyTitleText>
+            <TraceDrawerComponents.TitleText>{t('Span')}</TraceDrawerComponents.TitleText>
+            <TraceDrawerComponents.SubtitleWithCopyButton
+              subTitle={`ID: ${node.id}`}
+              clipboardText={node.id}
+            />
+          </TraceDrawerComponents.LegacyTitleText>
+        </TraceDrawerComponents.Title>
+        {!hideNodeActions && (
+          <TraceDrawerComponents.NodeActions
+            node={node}
+            organization={organization}
+            onTabScrollToNode={onTabScrollToNode}
+            showJSONLink={node.value.is_transaction}
+          />
+        )}
+      </TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.BodyContainer>
         {issues.length > 0 ? (
           <IssueList organization={organization} issues={issues} node={node} />

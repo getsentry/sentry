@@ -1,18 +1,6 @@
 import {Fragment, useCallback} from 'react';
-import type {Theme} from '@emotion/react';
 
-import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
-import {getStylingSliceName} from 'sentry/views/explore/tables/tracesTable/utils';
-import {
-  isAutogroupedNode,
-  isEAPErrorNode,
-  isEAPSpanNode,
-  isMissingInstrumentationNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import {TraceBackgroundPatterns} from 'sentry/views/performance/newTraceDetails/traceRow/traceBackgroundPatterns';
@@ -20,40 +8,6 @@ import {
   TraceErrorIcons,
   TraceOccurenceIcons,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
-
-export function makeTraceNodeBarColor(theme: Theme, node: BaseNode): string {
-  if (isTransactionNode(node)) {
-    return pickBarColor(
-      getStylingSliceName(node.value.project_slug, node.value.sdk_name) ??
-        node.value['transaction.op'],
-      theme
-    );
-  }
-  if (isSpanNode(node) || isEAPSpanNode(node)) {
-    return pickBarColor(node.value.op, theme);
-  }
-  if (isAutogroupedNode(node)) {
-    if (node.errors.size > 0) {
-      return theme.red300;
-    }
-    return theme.blue300;
-  }
-  if (isMissingInstrumentationNode(node)) {
-    return theme.gray300;
-  }
-
-  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
-    // Theme defines this as orange, yet everywhere in our product we show red for errors
-    if (node.value.level === 'error' || node.value.level === 'fatal') {
-      return theme.red300;
-    }
-    if (node.value.level) {
-      return theme.level[node.value.level] ?? theme.red300;
-    }
-    return theme.red300;
-  }
-  return pickBarColor('default', theme);
-}
 
 interface InvisibleTraceBarProps {
   children: React.ReactNode;
@@ -155,18 +109,14 @@ interface TraceBarProps {
   occurrences: BaseNode['occurrences'];
   profiles: BaseNode['profiles'];
   virtualized_index: number;
+  durationPrecision?: number;
 }
 
 export function TraceBar(props: TraceBarProps) {
   let duration: string | null = null;
 
   if (props.node_space) {
-    // Since transactions have ms precision, we show 2 decimal places only if the duration is greater than 1 second.
-    const precision = isTransactionNode(props.node)
-      ? props.node_space[1] >= 1000
-        ? 2
-        : 0
-      : 2;
+    const precision = props.durationPrecision ?? 2;
     duration = formatTraceDuration(props.node_space[1], precision);
   }
 

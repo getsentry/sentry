@@ -11,7 +11,6 @@ import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceMod
 import {TraceTree} from './traceModels/traceTree';
 import type {TracePreferencesState} from './traceState/tracePreferences';
 import {useTraceState} from './traceState/traceStateProvider';
-import {isEAPTransactionNode, isTransactionNode} from './traceGuards';
 import type {TraceReducerState} from './traceState';
 import type {useTraceScrollToPath} from './useTraceScrollToPath';
 
@@ -44,17 +43,17 @@ async function maybeAutoExpandTrace(
     return tree;
   }
 
-  const transactions = tree.root.findAllChildren(
-    node => isTransactionNode(node) || isEAPTransactionNode(node)
+  const collapsedNodes = tree.root.findAllChildren(
+    node => node.canFetchChildren || !node.expanded
   );
   // Expand each transaction, either by zooming (if it has spans to fetch)
   // or just expanding in place. Note that spans are always expanded by default.
   const promises: Array<Promise<any>> = [];
-  for (const transaction of transactions) {
-    if (transaction.canFetchChildren) {
-      promises.push(tree.fetchNodeSubTree(true, transaction, options));
+  for (const node of collapsedNodes) {
+    if (node.canFetchChildren) {
+      promises.push(tree.fetchNodeSubTree(true, node, options));
     } else {
-      transaction.expand(true, tree);
+      node.expand(true, tree);
     }
   }
 

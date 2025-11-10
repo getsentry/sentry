@@ -77,9 +77,13 @@ function TransactionNodeDetailHeader({
       {!hideNodeActions && (
         <TraceDrawerComponents.NodeActions
           node={node}
+          profileId={node.value.profile_id}
+          profilerId={node.value.profiler_id}
+          threadId={event?.contexts?.trace?.data?.['thread.id']}
           organization={organization}
           onTabScrollToNode={onTabScrollToNode}
           eventSize={event?.size}
+          showJSONLink
         />
       )}
     </TraceDrawerComponents.HeaderContainer>

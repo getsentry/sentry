@@ -26,11 +26,7 @@ export function isMissingInstrumentationNode(
 }
 
 export function isSpanNode(node: BaseNode): node is SpanNode {
-  return (
-    !!(node.value && !('transaction' in node.value) && 'span_id' in node.value) &&
-    !isMissingInstrumentationNode(node) &&
-    !isAutogroupedNode(node)
-  );
+  return !!(node.value && !('transaction' in node.value) && 'span_id' in node.value);
 }
 
 export function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
@@ -61,19 +57,8 @@ export function isUptimeCheckTimingNode(node: BaseNode): node is UptimeCheckTimi
   );
 }
 
-export function isNonTransactionEAPSpanNode(node: BaseNode): node is EapSpanNode {
-  return isEAPSpanNode(node) && !isEAPTransactionNode(node);
-}
-
 export function isTransactionNode(node: BaseNode): node is TransactionNode {
-  return (
-    !!(node.value && 'transaction' in node.value) &&
-    !isAutogroupedNode(node) &&
-    !isEAPSpanNode(node) &&
-    !isUptimeCheckNode(node) &&
-    !isUptimeCheckTimingNode(node) &&
-    !isEAPErrorNode(node)
-  );
+  return !!(node.value && 'transaction.op' in node.value);
 }
 
 export function isUptimeCheck(
@@ -188,12 +173,6 @@ export function isJavascriptSDKEvent(value: TraceTree.NodeValue): boolean {
       value.sdk_name
     )
   );
-}
-
-export function isTransactionNodeEquivalent(
-  node: BaseNode
-): node is TransactionNode | EapSpanNode {
-  return isTransactionNode(node) || isEAPTransaction(node.value);
 }
 
 export function isBrowserRequestNode(node: BaseNode): boolean {

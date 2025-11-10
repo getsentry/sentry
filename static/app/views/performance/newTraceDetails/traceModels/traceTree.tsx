@@ -15,7 +15,6 @@ import type {
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
-  isAutogroupedNode,
   isEAPError,
   isEAPSpan,
   isJavascriptSDKEvent,
@@ -927,7 +926,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       queue.push(...node.getNextTraversalNodes());
 
-      if (node.children.length < 5 || isAutogroupedNode(node)) {
+      if (node.children.length < 5) {
         continue;
       }
 

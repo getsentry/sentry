@@ -42,12 +42,7 @@ import {
   type VirtualizedRow,
 } from './traceRenderers/traceVirtualizedList';
 import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
-import {TraceAutogroupedRow} from './traceRow/traceAutogroupedRow';
-import {TraceCollapsedRow} from './traceRow/traceCollapsedRow';
-import {TraceErrorRow} from './traceRow/traceErrorRow';
 import {TraceLoadingRow} from './traceRow/traceLoadingRow';
-import {TraceMissingInstrumentationRow} from './traceRow/traceMissingInstrumentationRow';
-import {TraceRootRow} from './traceRow/traceRootNode';
 import {
   TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME,
   TRACE_CHILDREN_COUNT_WRAPPER_ORPHANED_CLASSNAME,
@@ -55,26 +50,11 @@ import {
   TRACE_RIGHT_COLUMN_ODD_CLASSNAME,
   type TraceRowProps,
 } from './traceRow/traceRow';
-import {TraceSpanRow} from './traceRow/traceSpanRow';
-import {TraceTransactionRow} from './traceRow/traceTransactionRow';
 import {
   getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
 } from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
-import {
-  isAutogroupedNode,
-  isCollapsedNode,
-  isEAPSpanNode,
-  isEAPTraceNode,
-  isErrorNode,
-  isMissingInstrumentationNode,
-  isSpanNode,
-  isTraceNode,
-  isTransactionNode,
-  isUptimeCheckNode,
-  isUptimeCheckTimingNode,
-} from './traceGuards';
 import type {TraceReducerState} from './traceState';
 
 function computeNextIndexFromAction(
@@ -210,10 +190,6 @@ export function Trace({
       node: BaseNode,
       value: boolean
     ) => {
-      if (!isTransactionNode(node) && !isSpanNode(node)) {
-        throw new TypeError('Node must be a transaction or span');
-      }
-
       event.stopPropagation();
       rerenderRef.current();
 
@@ -603,7 +579,7 @@ function RenderTraceRow(props: {
       ? TRACE_RIGHT_COLUMN_ODD_CLASSNAME
       : TRACE_RIGHT_COLUMN_EVEN_CLASSNAME;
 
-  const listColumnClassName = isTraceNode(node)
+  const listColumnClassName = node.isRootNodeChild()
     ? TRACE_CHILDREN_COUNT_WRAPPER_ORPHANED_CLASSNAME
     : TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME;
 
@@ -638,40 +614,7 @@ function RenderTraceRow(props: {
     registerSpanArrowRef,
   };
 
-  if (isTransactionNode(node)) {
-    return <TraceTransactionRow {...rowProps} node={node} />;
-  }
-
-  if (
-    isSpanNode(node) ||
-    isEAPSpanNode(node) ||
-    isUptimeCheckNode(node) ||
-    isUptimeCheckTimingNode(node)
-  ) {
-    return <TraceSpanRow {...rowProps} node={node} />;
-  }
-
-  if (isMissingInstrumentationNode(node)) {
-    return <TraceMissingInstrumentationRow {...rowProps} node={node} />;
-  }
-
-  if (isAutogroupedNode(node)) {
-    return <TraceAutogroupedRow {...rowProps} node={node} />;
-  }
-
-  if (isErrorNode(node)) {
-    return <TraceErrorRow {...rowProps} node={node} />;
-  }
-
-  if (isTraceNode(node) || isEAPTraceNode(node)) {
-    return <TraceRootRow {...rowProps} node={node} />;
-  }
-
-  if (isCollapsedNode(node)) {
-    return <TraceCollapsedRow {...rowProps} node={node} />;
-  }
-
-  return null;
+  return node.renderWaterfallRow(rowProps);
 }
 
 function VerticalTimestampIndicators({

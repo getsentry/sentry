@@ -2,10 +2,6 @@ import type {Client} from 'sentry/api';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
-import {
-  isEAPTransactionNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
@@ -99,9 +95,8 @@ export class IssuesTraceTree extends TraceTree {
     const preserveNodes = new Set(preserveLeafNodes);
 
     for (const node of preserveLeafNodes) {
-      const parentTransaction = node.findParent(
-        p => isTransactionNode(p) || isEAPTransactionNode(p)
-      );
+      const parentTransaction =
+        node.findParentTransaction() ?? node.findParentEapTransaction();
       if (parentTransaction) {
         preserveNodes.add(parentTransaction);
       }

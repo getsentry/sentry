@@ -18,7 +18,6 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 
 type GeneralInfoProps = {
   cacheMetrics: Array<Pick<SpanResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>>;
@@ -53,6 +52,8 @@ function GeneralInfo(props: GeneralInfoProps) {
           node={node}
           duration={durationInSeconds}
           baseline={undefined}
+          // Since transactions have ms precision, we show 2 decimal places only if the duration is greater than 1 second.
+          precision={durationInSeconds > 1 ? 2 : 0}
         />
       ),
     },
@@ -90,7 +91,7 @@ function GeneralInfo(props: GeneralInfoProps) {
       subject: t('Parent Transaction'),
       value: (
         <a onClick={() => onParentClick(parentTransaction)}>
-          {getTraceTabTitle(parentTransaction)}
+          {parentTransaction.drawerTabsTitle}
         </a>
       ),
     });
