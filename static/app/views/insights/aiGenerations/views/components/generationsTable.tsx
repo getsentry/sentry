@@ -6,18 +6,23 @@ import {Container, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
+import type {NewQuery} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
 import {
   HeadSortCell,
@@ -34,7 +39,7 @@ import {
 import {Referrer} from 'sentry/views/insights/aiGenerations/views/utils/referrer';
 import {useFieldsQueryParam} from 'sentry/views/insights/aiGenerations/views/utils/useFieldsQueryParam';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -87,6 +92,8 @@ export function GenerationsTable() {
   const location = useLocation();
   const organization = useOrganization();
   const theme = useTheme();
+  const {selection} = usePageFilters();
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const fieldsToQuery = useMemo(() => {
     return [
@@ -97,22 +104,44 @@ export function GenerationsTable() {
     ];
   }, [fields]);
 
-  const {data, meta, isLoading, error, pageLinks, isPlaceholderData} = useSpans(
-    {
-      search: query,
-      fields: [...REQUIRED_FIELDS, ...fieldsToQuery] as any,
-      cursor,
-      sorts: [tableSort],
-      keepPreviousData: true,
-      limit: 20,
-    },
-    Referrer.GENERATIONS_TABLE
-  );
+  const eventView = useMemo(() => {
+    const queryFields = [...REQUIRED_FIELDS, ...fieldsToQuery];
 
-  type TableData = (typeof data)[number];
+    const discoverQuery: NewQuery = {
+      id: undefined,
+      name: 'AI Generations',
+      fields: queryFields,
+      orderby: [`${tableSort.kind === 'desc' ? '-' : ''}${tableSort.field}`],
+      query,
+      version: 2,
+      dataset: DiscoverDatasets.SPANS,
+    };
+
+    return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
+  }, [fieldsToQuery, query, selection, tableSort.field, tableSort.kind]);
+
+  const {
+    data = [],
+    meta,
+    isLoading,
+    error,
+    pageLinks,
+    isPlaceholderData,
+  } = useSpansQuery<Array<Record<string, any>>>({
+    eventView,
+    cursor,
+    limit: 20,
+    referrer: Referrer.GENERATIONS_TABLE,
+    initialData: [],
+    allowAggregateConditions: false,
+    trackResponseAnalytics: false,
+    queryExtras: {caseInsensitive},
+  });
+
+  type TableData = Record<string, any>;
 
   const renderBodyCell = useCallback(
-    (column: GridColumnOrder<GenerationFields>, dataRow: TableData) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       if (column.key === SpanFields.ID) {
         return (
           <div>
@@ -120,13 +149,13 @@ export function GenerationsTable() {
               priority="link"
               onClick={() => {
                 openTraceViewDrawer(
-                  dataRow.trace!,
+                  dataRow.trace,
                   dataRow.id,
                   getTimeStampFromTableDateField(dataRow.timestamp)
                 );
               }}
             >
-              {getShortEventId(dataRow.id!)}
+              {getShortEventId(dataRow.id)}
             </Button>
           </div>
         );
@@ -196,7 +225,7 @@ export function GenerationsTable() {
       if (column.key === SpanFields.TIMESTAMP) {
         return (
           <TextAlignRight>
-            <TimeSince unitStyle="short" date={new Date(dataRow.timestamp!)} />
+            <TimeSince unitStyle="short" date={new Date(dataRow.timestamp)} />
           </TextAlignRight>
         );
       }
@@ -212,7 +241,7 @@ export function GenerationsTable() {
   );
 
   const renderHeadCell = useCallback(
-    (column: GridColumnOrder<keyof TableData>) => {
+    (column: GridColumnOrder<string>) => {
       return (
         <HeadSortCell
           align={column.key === SpanFields.TIMESTAMP ? 'right' : 'left'}
@@ -236,7 +265,7 @@ export function GenerationsTable() {
         isLoading={isLoading}
         error={error}
         initialColumnOrder={fields.map(
-          (field): GridColumnOrder<GenerationFields> => ({
+          (field): GridColumnOrder<string> => ({
             key: field,
             name: prettyFieldNames[field] ?? field,
             width: columnWidths[field] ?? COL_WIDTH_UNDEFINED,
