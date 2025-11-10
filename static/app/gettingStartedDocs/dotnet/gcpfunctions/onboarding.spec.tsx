@@ -2,7 +2,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs from './gcpfunctions';
+import docs from './index';
 
 describe('gcpfunctions onboarding docs', () => {
   it('renders docs correctly', async () => {
@@ -24,7 +24,7 @@ describe('gcpfunctions onboarding docs', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          /Install-Package Sentry.Google.Cloud.Functions -Version 1\.99\.9/
+          /Install-Package Sentry\.Google\.Cloud\.Functions -Version 1\.99\.9/
         )
       )
     ).toBeInTheDocument();
