@@ -28,10 +28,10 @@ export const performance: OnboardingConfig = {
           type: 'code',
           language: 'python',
           code: `
-import sentry-sdk
+import sentry_sdk
 
 sentry_sdk.init(
-    dsn: "${params.dsn.public}",
+    dsn="${params.dsn.public}",
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for performance monitoring.
     traces_sample_rate=1.0,
