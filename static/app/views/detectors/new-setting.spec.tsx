@@ -586,7 +586,6 @@ describe('DetectorEdit', () => {
               },
               config: {
                 detectionType: 'dynamic',
-                sensitivity: 'high',
               },
               dataSources: [
                 {
