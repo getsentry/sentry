@@ -1,23 +1,15 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
-  type Docs,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
-import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
-import {logs, verify} from 'sentry/gettingStartedDocs/python/python/logs';
-import {
-  alternativeProfiling,
-  profiling,
-} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = (params: DocsParams) => `
 import sentry_sdk
 
 sentry_sdk.init(
@@ -59,7 +51,7 @@ sentry_sdk.init(
 )
 `;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct('The celery integration adds support for the [link:Celery Task Queue System].', {
       link: <ExternalLink href="https://docs.celeryq.dev/en/stable/" />,
@@ -78,7 +70,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -171,7 +163,7 @@ def init_sentry(**_kwargs):
       ],
     },
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -202,15 +194,3 @@ hello.delay()
     },
   ],
 };
-
-const docs: Docs = {
-  onboarding,
-  profilingOnboarding: profiling({basePackage: 'sentry-sdk[celery]'}),
-  crashReportOnboarding: crashReport,
-  agentMonitoringOnboarding: agentMonitoring,
-  logsOnboarding: logs({
-    packageName: 'sentry-sdk[celery]',
-  }),
-};
-
-export default docs;
