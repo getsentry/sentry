@@ -987,7 +987,7 @@ class SearchResolver:
 
             # If there are missing arguments, and the argument definition has a default arg, use the default arg
             # this assumes the missing args are at the beginning or end of the arguments list
-            if missing_args > 0 and argument_definition.default_arg:
+            if missing_args > 0 and argument_definition.default_arg is not None:
                 if isinstance(argument_definition, ValueArgumentDefinition):
                     parsed_args.append(argument_definition.default_arg)
                 else:

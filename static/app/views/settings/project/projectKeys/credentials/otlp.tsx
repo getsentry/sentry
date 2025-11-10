@@ -55,12 +55,12 @@ export function OtlpTab({
     <Fragment>
       <FieldGroup
         label={t('OTLP Endpoint')}
-        help={t('This is the base OTLP endpoint.')}
+        help={t('The base OTLP endpoint for your project.')}
         inline={false}
         flexibleControlStateSize
       >
         <TextCopyInput aria-label={t('OTLP Endpoint')}>
-          {`${integrationEndpoint}/otlp`}
+          {`${integrationEndpoint}otlp`}
         </TextCopyInput>
       </FieldGroup>
       {showOtlpLogs && (

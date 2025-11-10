@@ -32,6 +32,8 @@ import {
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
 import {isAValidSort} from 'sentry/views/insights/database/components/tables/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/insights/database/components/tables/queryTransactionsTable';
+import useHasDashboardsPlatformizedQueries from 'sentry/views/insights/database/utils/useHasDashboardsPlatformaizedQueries';
+import {PlatformizedQuerySummaryPage} from 'sentry/views/insights/database/views/platformizedSummaryPage';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import type {SpanQueryFilters} from 'sentry/views/insights/types';
 import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
@@ -266,6 +268,11 @@ const DescriptionContainer = styled(ModuleLayout.Full)`
 `;
 
 function PageWithProviders() {
+  const hasDashboardsPlatformizedQueries = useHasDashboardsPlatformizedQueries();
+  if (hasDashboardsPlatformizedQueries) {
+    return <PlatformizedQuerySummaryPage />;
+  }
+
   return (
     <ModulePageProviders moduleName="db" pageTitle={t('Query Summary')}>
       <DatabaseSpanSummaryPage />
