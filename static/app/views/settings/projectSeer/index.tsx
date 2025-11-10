@@ -92,6 +92,8 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
 
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
 
+  const hasFixabilityBasedStoppingPoint = project.features.includes('triage-signals-v0');
+
   const cursorIntegration = codingAgentIntegrations?.integrations.find(
     integration => integration.provider === 'cursor'
   );
@@ -190,6 +192,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     saveMessage: t('Stopping point updated'),
     onChange: handleStoppingPointChange,
     visible: ({model}) =>
+      !hasFixabilityBasedStoppingPoint &&
       model?.getValue('seerScannerAutomation') === true &&
       model?.getValue('autofixAutomationTuning') !== 'off',
   } satisfies FieldObject;
@@ -225,6 +228,19 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     },
   ];
 
+  const initialData = hasFixabilityBasedStoppingPoint
+    ? {
+        seerScannerAutomation: project.seerScannerAutomation ?? false,
+        autofixAutomationTuning: project.autofixAutomationTuning ?? 'off',
+      }
+    : {
+        seerScannerAutomation: project.seerScannerAutomation ?? false,
+        autofixAutomationTuning: project.autofixAutomationTuning ?? 'off',
+        automated_run_stopping_point: preference?.automation_handoff
+          ? 'cursor_handoff'
+          : (preference?.automated_run_stopping_point ?? 'root_cause'),
+      };
+
   return (
     <Fragment>
       <Form
@@ -237,13 +253,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
         allowUndo
-        initialData={{
-          seerScannerAutomation: project.seerScannerAutomation ?? false,
-          autofixAutomationTuning: project.autofixAutomationTuning ?? 'off',
-          automated_run_stopping_point: preference?.automation_handoff
-            ? 'cursor_handoff'
-            : (preference?.automated_run_stopping_point ?? 'root_cause'),
-        }}
+        initialData={initialData}
         onSubmitSuccess={handleSubmitSuccess}
         additionalFieldProps={{organization}}
       >

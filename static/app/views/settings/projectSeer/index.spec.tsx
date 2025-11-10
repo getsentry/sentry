@@ -432,6 +432,104 @@ describe('ProjectSeer', () => {
     });
   });
 
+  it('hides stopping point dropdown when triage-signals-v0 feature flag is enabled', async () => {
+    const projectWithFeatureFlag: Project = {
+      ...project,
+      features: ['triage-signals-v0'],
+      autofixAutomationTuning: 'medium',
+      seerScannerAutomation: true,
+    };
+
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project: projectWithFeatureFlag},
+    });
+
+    // Wait for the page to load
+    await screen.findByText(/Automation/i);
+
+    // The stopping point dropdown should NOT be visible
+    expect(
+      screen.queryByRole('textbox', {
+        name: /Where should Seer stop/i,
+      })
+    ).not.toBeInTheDocument();
+
+    // Other fields should still be visible
+    expect(
+      await screen.findByRole('checkbox', {
+        name: /Scan Issues/i,
+      })
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('textbox', {
+        name: /Auto-Trigger Fixes/i,
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('shows stopping point dropdown when triage-signals-v0 feature flag is disabled', async () => {
+    const projectWithoutFeatureFlag: Project = {
+      ...project,
+      features: [],
+      autofixAutomationTuning: 'medium',
+      seerScannerAutomation: true,
+    };
+
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project: projectWithoutFeatureFlag},
+    });
+
+    // Wait for the page to load and find the stopping point dropdown
+    const select = await screen.findByRole('textbox', {
+      name: /Where should Seer stop/i,
+    });
+    expect(select).toBeInTheDocument();
+  });
+
+  it('does not send automated_run_stopping_point to backend when feature flag is enabled', async () => {
+    const projectWithFeatureFlag: Project = {
+      ...project,
+      features: ['triage-signals-v0'],
+      seerScannerAutomation: false,
+    };
+
+    const projectPutRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {},
+    });
+
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project: projectWithFeatureFlag},
+    });
+
+    // Find and toggle the Scan Issues checkbox
+    const toggle = await screen.findByRole('checkbox', {
+      name: /Scan Issues/i,
+    });
+    await userEvent.click(toggle);
+
+    // Wait for the PUT request
+    await waitFor(() => {
+      expect(projectPutRequest).toHaveBeenCalledTimes(1);
+    });
+
+    // Verify that automated_run_stopping_point is NOT in the request data
+    await waitFor(() => {
+      expect(projectPutRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          data: expect.not.objectContaining({
+            automated_run_stopping_point: expect.anything(),
+          }),
+        })
+      );
+    });
+  });
+
   it('can enable automation handoff to Cursor when Cursor integration is available', async () => {
     const orgWithCursorFeature = OrganizationFixture({
       features: ['autofix-seer-preferences', 'integrations-cursor'],
