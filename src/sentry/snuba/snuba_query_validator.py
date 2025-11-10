@@ -406,7 +406,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     @override
     def create_source(self, validated_data) -> QuerySubscription:
         extrapolation_mode = validated_data.get("extrapolation_mode")
-        if extrapolation_mode:
+        if extrapolation_mode is not None:
             extrapolation_mode = ExtrapolationMode(extrapolation_mode)
         snuba_query = create_snuba_query(
             query_type=validated_data["query_type"],
