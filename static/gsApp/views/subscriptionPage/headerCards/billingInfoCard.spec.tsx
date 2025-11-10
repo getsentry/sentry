@@ -39,7 +39,7 @@ describe('BillingInfoCard', () => {
       method: 'GET',
       body: BillingDetailsFixture({billingEmail: null, companyName: null}),
     });
-    const subscription = SubscriptionFixture({organization});
+    const subscription = SubscriptionFixture({organization, accountBalance: -10_00});
     render(<BillingInfoCard organization={organization} subscription={subscription} />);
 
     expect(screen.getByText('Billing information')).toBeInTheDocument();
@@ -50,6 +50,7 @@ describe('BillingInfoCard', () => {
       screen.getByText('No billing email or tax number on file')
     ).toBeInTheDocument();
     expect(screen.getByText('Visa ending in 4242')).toBeInTheDocument();
+    expect(screen.getByText('Account balance: $10 credit')).toBeInTheDocument();
   });
 
   it('renders without pre-existing info', async () => {
