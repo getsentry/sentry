@@ -224,11 +224,11 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             if dataset not in RPC_DATASETS:
                 raise NotImplementedError
 
-            extrapolation_mode = request.GET.get("extrapolationMode", "sampleWeighted")
-            if extrapolation_mode in EXTRAPOLATION_MODE_MAP:
-                extrapolation_mode = EXTRAPOLATION_MODE_MAP[extrapolation_mode]
-            else:
+            extrapolation_mode = request.GET.get("extrapolationMode", None)
+            if extrapolation_mode and extrapolation_mode not in EXTRAPOLATION_MODE_MAP:
                 raise InvalidSearchQuery(f"Unknown extrapolation mode: {extrapolation_mode}")
+            elif extrapolation_mode:
+                extrapolation_mode = EXTRAPOLATION_MODE_MAP[extrapolation_mode]
 
             if dataset == TraceMetrics:
                 # tracemetrics uses aggregate conditions

@@ -341,7 +341,7 @@ class AggregateDefinition(FunctionDefinition):
             internal_type=self.internal_type,
             processor=self.processor,
             extrapolation_mode=(
-                self.search_config.extrapolation_mode
+                self.extrapolation_mode
                 if not search_config.disable_aggregate_extrapolation
                 else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
             ),

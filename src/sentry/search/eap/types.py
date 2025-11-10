@@ -32,9 +32,7 @@ class SearchResolverConfig:
     # If set to True, do not extrapolate any values regardless of individual aggregate settings
     disable_aggregate_extrapolation: bool = False
     # If set to True, do not extrapolate any values regardless of individual aggregate settings
-    extrapolation_mode: ExtrapolationMode.ValueType = (
-        ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-    )
+    extrapolation_mode: ExtrapolationMode.ValueType | None = None
     # Whether to set the timestamp granularities to stable buckets
     stable_timestamp_quantization: bool = True
 
