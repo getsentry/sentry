@@ -2661,7 +2661,7 @@ function buildRoutes(): RouteObject[] {
   const adminManageChildren: SentryRouteObject[] = [
     {
       index: true,
-      component: make(() => import('sentry/views/admin/adminOverview')),
+      component: make(() => import('sentry/views/admin/adminEnvironment')),
     },
     {
       path: 'relays/',
