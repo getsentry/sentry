@@ -202,9 +202,7 @@ class ResolvedAggregate(ResolvedFunction):
     # The internal rpc alias for this column
     internal_name: Function.ValueType
     # Whether to enable extrapolation
-    extrapolation_mode: ExtrapolationMode.ValueType = (
-        ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-    )
+    extrapolation_mode_override: ExtrapolationMode.ValueType | None = None
     is_aggregate: bool = field(default=True, init=False)
     # Only for aggregates, we only support functions with 1 argument right now
     argument: AttributeKey | None = None
@@ -225,9 +223,7 @@ class ResolvedConditionalAggregate(ResolvedFunction):
     # The internal rpc alias for this column
     internal_name: Function.ValueType
     # Whether to enable extrapolation
-    extrapolation_mode: ExtrapolationMode.ValueType = (
-        ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-    )
+    extrapolation_mode_override: ExtrapolationMode.ValueType | None = None
     # The condition to filter on
     filter: TraceItemFilter
     # The attribute to conditionally aggregate on
@@ -277,9 +273,7 @@ class FunctionDefinition:
     # The internal rpc type for this function, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
     # Whether to request extrapolation or not, should be true for all functions except for _sample functions for debugging
-    extrapolation_mode: ExtrapolationMode.ValueType = (
-        ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-    )
+    extrapolation_mode_override: ExtrapolationMode.ValueType | None = None
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
     # if a function is private, assume it can't be used unless it's provided in `SearchResolverConfig.functions_acl`
@@ -341,7 +335,9 @@ class AggregateDefinition(FunctionDefinition):
             search_type=search_type,
             internal_type=self.internal_type,
             processor=self.processor,
-            extrapolation_mode=resolve_extrapolation_mode(search_config, self.extrapolation_mode),
+            extrapolation_mode=resolve_extrapolation_mode(
+                search_config, self.extrapolation_mode_override
+            ),
             argument=resolved_attribute,
         )
 
@@ -404,7 +400,9 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
             search_type=search_type,
             internal_type=self.internal_type,
             processor=self.processor,
-            extrapolation_mode=resolve_extrapolation_mode(search_config, self.extrapolation_mode),
+            extrapolation_mode=resolve_extrapolation_mode(
+                search_config, self.extrapolation_mode_override
+            ),
             argument=resolved_attribute,
         )
 
@@ -441,7 +439,9 @@ class ConditionalAggregateDefinition(FunctionDefinition):
             filter=aggregate_filter,
             key=key,
             processor=self.processor,
-            extrapolation_mode=resolve_extrapolation_mode(search_config, self.extrapolation_mode),
+            extrapolation_mode=resolve_extrapolation_mode(
+                search_config, self.extrapolation_mode_override
+            ),
         )
 
 
@@ -467,7 +467,9 @@ class FormulaDefinition(FunctionDefinition):
         search_config: SearchResolverConfig,
     ) -> ResolvedFormula:
         resolver_settings = ResolverSettings(
-            extrapolation_mode=resolve_extrapolation_mode(search_config, self.extrapolation_mode),
+            extrapolation_mode=resolve_extrapolation_mode(
+                search_config, self.extrapolation_mode_override
+            ),
             snuba_params=snuba_params,
             query_result_cache=query_result_cache,
             search_config=search_config,
