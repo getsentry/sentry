@@ -415,15 +415,15 @@ class SemverBuildFilterConverterTest(BaseSemverConverterTest):
         key = SEMVER_BUILD_ALIAS
         filter = SearchFilter(SearchKey(key), "=", SearchValue("sentry"))
         with pytest.raises(ValueError, match="organization_id is a required param"):
-            _semver_filter_converter(filter, key, None)
+            self.converter(filter, key, None)
         with pytest.raises(ValueError, match="organization_id is a required param"):
-            _semver_filter_converter(filter, key, {"something": 1})  # type: ignore[arg-type]  # intentionally bad data
+            self.converter(filter, key, {"something": 1})  # type: ignore[arg-type]  # intentionally bad data
 
         filter = SearchFilter(SearchKey(key), "IN", SearchValue("sentry"))
         with pytest.raises(
             InvalidSearchQuery, match="Invalid operation 'IN' for semantic version filter."
         ):
-            _semver_filter_converter(filter, key, {"organization_id": 1})
+            self.converter(filter, key, {"organization_id": 1})
 
     def test_empty(self) -> None:
         self.run_test("=", "test", "IN", [SEMVER_EMPTY_RELEASE])
