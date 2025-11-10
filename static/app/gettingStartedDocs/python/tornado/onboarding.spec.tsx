@@ -4,7 +4,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs from './tornado';
+import docs from '.';
 
 describe('tornado onboarding docs', () => {
   it('renders doc correctly', () => {
