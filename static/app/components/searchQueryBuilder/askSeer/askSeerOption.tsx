@@ -2,9 +2,9 @@ import {useRef, useState} from 'react';
 import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 
-import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {AiPrivacyNotice} from 'sentry/components/aiPrivacyNotice';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {
@@ -13,7 +13,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeer/components';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {IconSeer} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -57,18 +57,14 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <IconSeer />
       <Tooltip
-        title={tct(
-          'Powered by generative AI. Learn more about our [dataProcessingPolicy:AI privacy principles].',
-          {
-            dataProcessingPolicy: (
-              <ExternalLink
-                onMouseOver={() => setOptionDisableOverride(true)}
-                onMouseOut={() => setOptionDisableOverride(false)}
-                href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/"
-              />
-            ),
-          }
-        )}
+        title={
+          <AiPrivacyNotice
+            linkProps={{
+              onMouseOver: () => setOptionDisableOverride(true),
+              onMouseOut: () => setOptionDisableOverride(false),
+            }}
+          />
+        }
         isHoverable
         showUnderline={hasAskSeerConsentFlowChanges}
         disabled={!hasAskSeerConsentFlowChanges}
