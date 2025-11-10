@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {AsyncQueuer} from '@tanstack/pacer';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -18,7 +17,7 @@ import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
-import type {QueueItem} from 'sentry/views/dashboards/widgetQueryQueue';
+import type {WidgetQueryQueue} from 'sentry/views/dashboards/widgetQueryQueue';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 export function getReferrer(displayType: DisplayType) {
@@ -92,7 +91,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   onDemandControlContext?: OnDemandControlContext;
-  queue?: AsyncQueuer<QueueItem<any, any>>;
+  queue?: WidgetQueryQueue;
   samplingMode?: SamplingMode;
   // Skips adding parens before applying dashboard filters
   // Used for datasets that do not support parens/boolean logic
