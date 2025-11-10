@@ -128,10 +128,12 @@ def create_issue_occurrence_from_detection(
         "platform": "other",
         "received": detection_time.isoformat(),
         "timestamp": detection_time.isoformat(),
-        "tags": {
-            "trace_id": trace.trace_id,
-            "transaction": transaction_name,
-            "llm_detected": "true",
+        "transaction": transaction_name,
+        "contexts": {
+            "trace": {
+                "trace_id": trace.trace_id,
+                "type": "trace",
+            }
         },
     }
 
