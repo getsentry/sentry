@@ -139,6 +139,23 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     return detector
 
 
+def get_detector_by_group(group: Group) -> Detector:
+    try:
+        return DetectorGroup.objects.get(group=group).detector
+    except DetectorGroup.DoesNotExist:
+        logger.exception(
+            "DetectorGroup not found for group",
+            extra={"group_id": group.id},
+        )
+        pass
+
+    try:
+        return Detector.objects.get(project_id=group.project_id, type=group.issue_type.slug)
+    except Detector.DoesNotExist:
+        # return issue stream detector
+        return Detector.objects.get(project_id=group.project_id, type=IssueStreamGroupType.slug)
+
+
 class _SplitEvents(NamedTuple):
     events_with_occurrences: list[tuple[GroupEvent, int]]
     error_events: list[GroupEvent]
