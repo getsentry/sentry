@@ -81,6 +81,7 @@ def create_issue_occurrence_from_detection(
     event_id = uuid4().hex
     occurrence_id = uuid4().hex
     detection_time = datetime.now(UTC)
+    project = Project.objects.get_from_cache(id=project_id)
 
     fingerprint = [f"llm-detected-{detected_issue.title}-{transaction_name}"]
 
@@ -125,13 +126,12 @@ def create_issue_occurrence_from_detection(
     event_data = {
         "event_id": event_id,
         "project_id": project_id,
-        "platform": "other",
+        "platform": project.platform or "other",
         "received": detection_time.isoformat(),
         "timestamp": detection_time.isoformat(),
         "tags": {
             "trace_id": trace.trace_id,
             "transaction": transaction_name,
-            "llm_detected": "true",
         },
     }
 
