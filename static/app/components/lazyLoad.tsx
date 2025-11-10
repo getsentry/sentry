@@ -54,13 +54,13 @@ function LazyLoad<C extends React.LazyExoticComponent<any>>({
     <ErrorBoundary>
       <Suspense
         fallback={
-          <DeferredLoader>
-            {loadingFallback ?? (
+          loadingFallback ?? (
+            <DeferredLoader>
               <Flex flex="1" align="center" column="1 / -1">
                 <LoadingIndicator />
               </Flex>
-            )}
-          </DeferredLoader>
+            </DeferredLoader>
+          )
         }
       >
         {/* Props are strongly typed when passed in, but seem to conflict with LazyExoticComponent */}
