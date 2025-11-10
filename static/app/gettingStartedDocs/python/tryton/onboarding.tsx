@@ -1,21 +1,14 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
-import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
-import {logs} from 'sentry/gettingStartedDocs/python/python/logs';
-import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
 import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = (params: DocsParams) => `
 import sentry_sdk
 from sentry_sdk.integrations.trytond import TrytondWSGIIntegration
 
@@ -77,7 +70,7 @@ def _(app, request, e):
         data = UserError('Custom message', f'{event_id}{e}')
         return app.make_response(request, data)`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct('The Tryton integration adds support for the [link:Tryton Framework Server].', {
       link: <ExternalLink href="https://www.tryton.org/" />,
@@ -96,7 +89,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -141,32 +134,3 @@ const onboarding: OnboardingConfig = {
   ],
   verify: () => [],
 };
-
-const profilingOnboarding: OnboardingConfig = {
-  install: onboarding.install,
-  configure: onboarding.configure,
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'Verify that profiling is working correctly by simply using your application.'
-          ),
-        },
-      ],
-    },
-  ],
-};
-
-const docs: Docs = {
-  onboarding,
-  profilingOnboarding,
-  crashReportOnboarding: crashReport,
-  agentMonitoringOnboarding: agentMonitoring,
-  mcpOnboarding: mcp,
-  logsOnboarding: logs(),
-};
-
-export default docs;
