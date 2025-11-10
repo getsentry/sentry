@@ -148,7 +148,7 @@ export function useSortedFilterKeyItems({
     'search-query-builder-wildcard-operators'
   );
   const hasAskSeerConsentFlowChanges = organization.features.includes(
-    'ask-seer-consent-flow-update'
+    'gen-ai-consent-flow-removal'
   );
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);

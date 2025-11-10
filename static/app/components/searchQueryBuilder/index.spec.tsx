@@ -4861,7 +4861,7 @@ describe('SearchQueryBuilder', () => {
                 'gen-ai-features',
                 'gen-ai-explore-traces',
                 'gen-ai-explore-traces-consent-ui',
-                'ask-seer-consent-flow-update',
+                'gen-ai-consent-flow-removal',
               ],
             },
           }
