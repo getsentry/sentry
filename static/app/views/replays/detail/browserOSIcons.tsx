@@ -4,7 +4,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

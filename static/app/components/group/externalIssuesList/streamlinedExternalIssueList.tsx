@@ -11,7 +11,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ExternalIssueAction} from 'sentry/components/group/externalIssuesList/hooks/types';
 import useGroupExternalIssues from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -75,7 +75,7 @@ export function StreamlinedExternalIssueList({
   });
 
   if (isLoading) {
-    return <Placeholder height="25px" testId="issue-tracking-loading" />;
+    return <Placeholder height="25px" data-test-id="issue-tracking-loading" />;
   }
 
   const hasLinkedIssuesOrIntegrations = integrations.length || linkedIssues.length;

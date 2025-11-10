@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Badge} from 'sentry/components/core/badge';
 import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import LoadingError from 'sentry/components/loadingError';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReleaseMeta} from 'sentry/types/release';

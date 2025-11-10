@@ -1,5 +1,5 @@
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconRuler} from 'sentry/icons/iconRuler';

@@ -6,7 +6,7 @@ import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';

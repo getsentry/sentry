@@ -7,7 +7,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import Version from 'sentry/components/version';
 import {URL_PARAM} from 'sentry/constants/pageFilters';

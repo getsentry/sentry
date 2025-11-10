@@ -16,8 +16,7 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {PlaceholderProps} from 'sentry/components/placeholder';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -183,7 +182,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
           <TableComponent tableResults={tableResults} {...props} />
         </TransitionChart>
       ),
-      fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+      fixed: <Placeholder height="200px" data-test-id="skeleton-ui" />,
     });
   }
 
@@ -460,7 +459,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                           },
                           widget
                         ),
-                        fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                        fixed: <Placeholder height="200px" data-test-id="skeleton-ui" />,
                       })}
                     </RenderedChartContainer>
 
@@ -501,7 +500,7 @@ function TableComponent({
 
   if (loading || !tableResults?.[0]) {
     // Align height to other charts.
-    return <LoadingPlaceholder />;
+    return <Placeholder height="200px" />;
   }
 
   const datasetConfig = getDatasetConfig(widget.widgetType);
@@ -736,12 +735,6 @@ function LoadingScreen({
     </StyledTransparentLoadingMask>
   );
 }
-
-const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
-  <Placeholder height="200px" className={className} />
-))`
-  background-color: ${p => p.theme.surface300};
-`;
 
 const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`
   flex-grow: 1;

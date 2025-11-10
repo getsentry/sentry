@@ -5,7 +5,7 @@ import {Button} from 'sentry/components/core/button';
 import {Flex, Grid} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconClose, IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';

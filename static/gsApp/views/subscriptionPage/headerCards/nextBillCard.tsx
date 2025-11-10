@@ -4,7 +4,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -98,7 +98,7 @@ function NextBillCard({
           )}
         </Flex>,
         isLoading ? (
-          <Placeholder style={{flexGrow: 1}} />
+          <Placeholder flexGrow={1} />
         ) : isError ? (
           <Alert type="error">
             {t('Could not compute next bill. Please try again later.')}

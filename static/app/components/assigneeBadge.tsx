@@ -7,7 +7,7 @@ import {Tag} from 'sentry/components/core/badge';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -80,7 +80,7 @@ export function AssigneeBadge({
     <Fragment>
       <Placeholder
         shape="circle"
-        testId="unassigned-avatar"
+        data-test-id="unassigned-avatar"
         width={`${AVATAR_SIZE}px`}
         height={`${AVATAR_SIZE}px`}
       />

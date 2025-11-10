@@ -1,50 +1,28 @@
-import styled from '@emotion/styled';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {type ContainerElement} from '@sentry/scraps/layout/container';
 
-import type {ValidSize} from 'sentry/styles/space';
-import {space} from 'sentry/styles/space';
-
-export interface PlaceholderProps {
-  bottomGutter?: ValidSize;
+type PlaceholderProps<T extends ContainerElement = 'div'> = FlexProps<T> & {
+  /**
+   * @deprecated Do not use this component as a replacement for empty state.
+   */
   children?: React.ReactNode;
-  className?: string;
-  error?: React.ReactNode;
-  height?: string;
-  shape?: 'rect' | 'circle';
-  style?: React.CSSProperties;
-  testId?: string;
-  width?: string;
+  shape?: 'circle';
+};
+
+export function Placeholder(props: PlaceholderProps<'div'>) {
+  const {radius, shape, ['data-test-id']: dataTestId, ...rest} = props;
+  return (
+    <Flex
+      direction="column"
+      flexShrink={0}
+      justify="center"
+      align="center"
+      background="tertiary"
+      width={props.width ?? '100%'}
+      height={props.height ?? '60px'}
+      radius={shape === 'circle' ? 'full' : (radius ?? 'md')}
+      data-test-id={dataTestId ?? 'loading-placeholder'}
+      {...rest}
+    />
+  );
 }
-
-const Placeholder = styled(
-  ({
-    className,
-    children,
-    error,
-    testId = 'loading-placeholder',
-    style,
-  }: PlaceholderProps) => {
-    return (
-      <div data-test-id={testId} className={className} style={style}>
-        {error || children}
-      </div>
-    );
-  }
-)<PlaceholderProps>`
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  justify-content: center;
-  align-items: center;
-  border-radius: ${p => p.theme.borderRadius};
-  background-color: ${p => (p.error ? p.theme.red100 : p.theme.backgroundTertiary)};
-  ${p => !!p.error && `color: ${p.theme.red200};`}
-  width: ${p => p.width ?? '100%'};
-  height: ${p => p.height ?? '60px'};
-  ${({shape = 'rect'}) => (shape === 'circle' ? 'border-radius: 100%;' : '')}
-  ${({bottomGutter = 0}) =>
-    typeof bottomGutter === 'number' && bottomGutter > 0
-      ? `margin-bottom: ${space(bottomGutter as Parameters<typeof space>[0])};`
-      : ''}
-`;
-
-export default Placeholder;

@@ -16,7 +16,7 @@ import {
 } from 'sentry/components/group/assigneeSelector';
 import {GroupStatusTag} from 'sentry/components/group/inboxBadges/groupStatusTag';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import Section from 'sentry/components/workflowEngine/ui/section';

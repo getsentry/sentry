@@ -14,7 +14,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import HighlightModalContainer from 'sentry/components/highlightModalContainer';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import OnboardingDrawerStore, {
   OnboardingDrawerKey,

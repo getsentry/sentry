@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Stacked from 'sentry/components/container/stacked';
 import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {
   MajorGridlines,
   MinorGridlines,

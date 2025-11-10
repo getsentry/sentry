@@ -12,7 +12,7 @@ import {Link, type LinkProps} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconClock, IconStats, IconTimer, IconUser} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t, tn} from 'sentry/locale';

@@ -6,7 +6,7 @@ import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose, IconGrid, IconRefresh, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import {t} from 'sentry/locale';
@@ -110,7 +110,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
       <Stack gap="lg" width="100%">
         <Flex width="100%" justify="between" align="center" gap="md">
           <Placeholder width="92px" height="40px" />
-          <Placeholder style={{flex: 1}} height="40px" />
+          <Placeholder flex={1} height="40px" />
         </Flex>
         <Placeholder width="100%" height="540px" />
         <Placeholder height="140px" />

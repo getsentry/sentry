@@ -13,7 +13,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import StreamGroup, {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
 } from 'sentry/components/stream/group';

@@ -107,6 +107,10 @@ function resolveRadius(sizeComponent: RadiusSize | undefined, theme: Theme) {
     return undefined;
   }
 
+  if (sizeComponent === 'full') {
+    return '100%';
+  }
+
   return isChonkTheme(theme) ? theme.radius[sizeComponent] : theme.borderRadius;
 }
 

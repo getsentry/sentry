@@ -5,7 +5,7 @@ import type {Location} from 'history';
 
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {
   SelectedReplayIndexProvider,
   useSelectedReplayIndex,

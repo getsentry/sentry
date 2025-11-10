@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ClippedBox from 'sentry/components/clippedBox';
 import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import LoadingError from 'sentry/components/loadingError';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import type {Event, ExceptionType} from 'sentry/types/event';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';

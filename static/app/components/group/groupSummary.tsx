@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {
   IconChevron,
   IconDocs,

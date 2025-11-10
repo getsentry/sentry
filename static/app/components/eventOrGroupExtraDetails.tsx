@@ -14,7 +14,7 @@ import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import IssueSeerBadge from 'sentry/components/group/issueSeerBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

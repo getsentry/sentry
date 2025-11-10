@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Link} from 'sentry/components/core/link';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -65,7 +65,6 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
             />
           ) : (
             <Placeholder
-              shape="rect"
               width={`${projectBadgeSize}px`}
               height={`${projectBadgeSize}px`}
             />

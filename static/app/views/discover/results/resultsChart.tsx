@@ -10,7 +10,7 @@ import EventsChart from 'sentry/components/charts/eventsChart';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -149,7 +149,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               disableableSeries={disableableSeries}
             />
           ),
-          fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+          fixed: <Placeholder height="200px" data-test-id="skeleton-ui" />,
         })}
       </Fragment>
     );

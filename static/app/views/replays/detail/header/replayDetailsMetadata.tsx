@@ -1,4 +1,4 @@
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import ReplayMetaData from 'sentry/components/replays/header/replayMetaData';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';

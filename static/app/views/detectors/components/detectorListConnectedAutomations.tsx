@@ -5,7 +5,7 @@ import InteractionStateLayer from 'sentry/components/core/interactionStateLayer'
 import {Link} from 'sentry/components/core/link';
 import {Hovercard} from 'sentry/components/hovercard';
 import LoadingError from 'sentry/components/loadingError';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

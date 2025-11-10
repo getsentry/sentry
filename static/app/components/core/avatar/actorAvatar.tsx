@@ -2,7 +2,7 @@ import type React from 'react';
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import type {Actor} from 'sentry/types/core';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -85,8 +85,7 @@ function AsyncMemberAvatar({ref, userActor, ...props}: AsyncMemberAvatarProps) {
   const member = members.find(u => u.id === userActor.id);
 
   if (fetching) {
-    const size = `${props.size}px`;
-    return <Placeholder shape="circle" width={size} height={size} />;
+    return <Placeholder width={`${props.size}px`} height={`${props.size}px`} />;
   }
 
   if (!member) {

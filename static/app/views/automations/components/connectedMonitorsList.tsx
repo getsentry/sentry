@@ -1,11 +1,13 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Container as ScrapsContainer} from '@sentry/scraps/layout';
+
 import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {t, tct} from 'sentry/locale';
@@ -41,7 +43,9 @@ function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: num
         <SimpleTable.Row key={index}>
           <SimpleTable.RowCell>
             <div style={{width: '100%'}}>
-              <Placeholder height="20px" width="50%" style={{marginBottom: '4px'}} />
+              <ScrapsContainer marginBottom="xs">
+                <Placeholder height="20px" width="50%" />
+              </ScrapsContainer>
               <Placeholder height="16px" width="20%" />
             </div>
           </SimpleTable.RowCell>

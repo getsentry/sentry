@@ -1,7 +1,8 @@
+import styled from '@emotion/styled';
 import {captureException} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
@@ -228,8 +229,13 @@ export function ChartWidgetLoader(props: Props) {
     // eslint-disable-next-line no-console
     console.error(error);
     captureException(error);
-    return <Placeholder height="100%" error={t('Error loading widget')} />;
+    return <ErrorPlaceholder height="100%">{t('Error loading widget')}</ErrorPlaceholder>;
   }
 
   return <Component {...props} chartRef={props.ref} />;
 }
+
+const ErrorPlaceholder = styled(Placeholder)`
+  color: ${p => p.theme.red200};
+  background-color: ${p => p.theme.red100};
+`;

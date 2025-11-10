@@ -65,7 +65,6 @@ export function TraceLoadingRow(props: {
             ) : null}
           </div>
           <Placeholder
-            className="Placeholder"
             height="12px"
             width={randomBetween(20, 80) + '%'}
             style={{
@@ -85,7 +84,6 @@ export function TraceLoadingRow(props: {
         }}
       >
         <Placeholder
-          className="Placeholder"
           height="12px"
           width={randomBetween(20, 80) + '%'}
           style={{
