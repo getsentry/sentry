@@ -109,12 +109,8 @@ class OverwatchGithubWebhookForwarder:
         region_name = None
         try:
             enabled_regions = options.get("overwatch.enabled-regions")
-            logger.info(
-                "overwatch.debug.enabled_regions", extra={"enabled_regions": enabled_regions}
-            )
             if not enabled_regions:
                 # feature isn't enabled, no work to do
-                logger.info("overwatch.debug.excluded.feature_not_enabled", extra={})
                 return
 
             orgs_by_region = self._get_org_summaries_by_region_for_integration(
@@ -178,10 +174,6 @@ class OverwatchGithubWebhookForwarder:
                     region=region_name,
                     app_id=app_id,
                 )
-                logger.info(
-                    "overwatch.debug.webhook_detail.created",
-                    extra={"region_name": region_name, "app_id": app_id},
-                )
 
                 publisher = OverwatchWebhookPublisher(
                     integration_provider=self.integration.provider,
@@ -193,9 +185,6 @@ class OverwatchGithubWebhookForwarder:
                     "overwatch.forward-webhooks.success",
                     sample_rate=1.0,
                     tags={"forward_region": region_name},
-                )
-                logger.info(
-                    "overwatch.debug.metrics_incr.success", extra={"region_name": region_name}
                 )
         except Exception:
             metrics.incr(
