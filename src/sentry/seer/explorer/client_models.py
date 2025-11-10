@@ -58,6 +58,16 @@ class SeerRunState(BaseModel):
         extra = "allow"
 
 
+class CustomToolDefinition(BaseModel):
+    """Definition of a custom tool to be sent to Seer."""
+
+    name: str
+    module_path: str
+    description: str
+    parameters: list[dict[str, Any]]
+    required: list[str]
+
+
 class ExplorerRun(BaseModel):
     """A single Explorer run record with metadata."""
 

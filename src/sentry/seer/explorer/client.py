@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import Any
 
 import orjson
@@ -17,6 +18,7 @@ from sentry.seer.explorer.client_utils import (
     has_seer_explorer_access_with_detail,
     poll_until_done,
 )
+from sentry.seer.explorer.custom_tool_utils import extract_tool_schema
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.users.models.user import User
@@ -32,15 +34,16 @@ class SeerExplorerClient:
     with full Sentry context.
 
     Example usage:
+    ```python
         from sentry.seer.explorer.client import SeerExplorerClient
         from pydantic import BaseModel
 
-        # Simple usage
+        # SIMPLE USAGE
         client = SeerExplorerClient(organization, user)
         run_id = client.start_run("Analyze trace XYZ and find performance issues")
         state = client.get_run(run_id)
 
-        # With artifacts
+        # WITH ARTIFACTS
         class BugAnalysis(BaseModel):
             issue_count: int
             severity: str
@@ -55,10 +58,29 @@ class SeerExplorerClient:
             artifact = cast(BugAnalysis, state.artifact)
             print(f"Found {artifact.issue_count} issues")
 
+        # WITH CUSTOM TOOLS
+        def get_deployment_status(environment: str, service: str) -> str:
+            '''Check if a service is deployed in an environment.
+
+            Args:
+                environment: The environment name (e.g., 'production', 'staging')
+                service: The service name to check
+            '''
+            return "deployed" if check_deployment(environment, service) else "not deployed"
+
+        client = SeerExplorerClient(
+            organization,
+            user,
+            custom_tools=[get_deployment_status]
+        )
+        run_id = client.start_run("Check if payment-service is deployed in production")
+    ```
+
         Args:
             organization: Sentry organization
             user: User for permission checks and user-specific context (can be User, AnonymousUser, or None)
             artifact_schema: Optional Pydantic model to generate a structured artifact at the end of the run
+            custom_tools: Optional list of functions to make available as tools to the agent. Must be module-level functions (not lambdas, class methods, or nested functions). Must have type annotations for all parameters. Must return str or None. Should have a descriptive docstring (used as tool description for the agent)
     """
 
     def __init__(
@@ -66,10 +88,12 @@ class SeerExplorerClient:
         organization: Organization,
         user: User | AnonymousUser | None = None,
         artifact_schema: type[BaseModel] | None = None,
+        custom_tools: list[Callable] | None = None,
     ):
         self.organization = organization
         self.user = user
         self.artifact_schema = artifact_schema
+        self.custom_tools = custom_tools or []
 
         # Validate access on init
         has_access, error = has_seer_explorer_access_with_detail(organization, user)
@@ -116,6 +140,15 @@ class SeerExplorerClient:
         # Add artifact schema if provided
         if self.artifact_schema:
             payload["artifact_schema"] = self.artifact_schema.schema()
+
+        # Extract and add custom tool definitions
+        if self.custom_tools:
+            custom_tool_defs = []
+            for tool_fn in self.custom_tools:
+                tool_def = extract_tool_schema(tool_fn)
+                custom_tool_defs.append(tool_def.dict())
+            if custom_tool_defs:
+                payload["custom_tools"] = custom_tool_defs
 
         if category_key or category_value:
             if not category_key or not category_value:
