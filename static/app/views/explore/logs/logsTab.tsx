@@ -12,6 +12,7 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
@@ -64,10 +65,7 @@ import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregate
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {type OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
-import {
-  getMaxIngestDelayTimestamp,
-  useLogsRawCounts,
-} from 'sentry/views/explore/logs/useLogsQuery';
+import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
 import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
@@ -86,6 +84,7 @@ import {
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
+import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import type {PickableDays} from 'sentry/views/explore/utils';
 
 // eslint-disable-next-line no-restricted-imports,boundaries/element-types
@@ -132,7 +131,7 @@ export function LogsTabContent({
     }
   }, [autorefreshEnabled]);
 
-  const rawLogCounts = useLogsRawCounts();
+  const rawLogCounts = useRawCounts({dataset: DiscoverDatasets.OURLOGS});
 
   const yAxes = useMemo(() => {
     const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));
