@@ -23,22 +23,24 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
 
     def test_get_transactions_for_project(self) -> None:
         """Test the full end-to-end happy path for get_transactions_for_project."""
-        # Create spans for different transactions with varying volumes
+        # Create spans for different transactions with varying total time spent
+        # Format: (transaction_name, count, avg_duration_ms)
         transactions_data = [
-            ("api/users/profile", 5),  # High volume
-            ("api/posts/create", 3),  # Medium volume
-            ("api/health", 1),  # Low volume
+            ("api/users/profile", 5, 100.0),  # 5 * 100 = 500ms total (highest)
+            ("api/posts/create", 3, 150.0),  # 3 * 150 = 450ms total (middle)
+            ("api/health", 10, 10.0),  # 10 * 10 = 100ms total (lowest, despite high count)
         ]
 
-        # Store transaction spans with different volumes
+        # Store transaction spans with different volumes and durations
         spans = []
-        for transaction_name, count in transactions_data:
+        for transaction_name, count, duration_ms in transactions_data:
             for i in range(count):
                 span = self.create_span(
                     {
                         "description": f"transaction-span-{i}",
                         "sentry_tags": {"transaction": transaction_name},
                         "is_segment": True,  # This marks it as a transaction span
+                        "duration_ms": duration_ms,
                     },
                     start_ts=self.ten_mins_ago + timedelta(minutes=i),
                 )
@@ -51,6 +53,7 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
                             "description": f"regular-span-{i}",
                             "sentry_tags": {"transaction": transaction_name},
                             "is_segment": False,  # This marks it as a regular span
+                            "duration_ms": 50.0,
                         },
                         start_ts=self.ten_mins_ago + timedelta(minutes=i, seconds=30),
                     )
@@ -64,11 +67,11 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
         # Verify basic structure and data
         assert len(result) == 3
 
-        # Should be sorted by volume (count) descending - only transaction spans count
+        # Should be sorted by total time spent (sum of duration) descending
         transaction_names = [t.name for t in result]
-        assert transaction_names[0] == "api/users/profile"  # Highest count (5 transaction spans)
-        assert transaction_names[1] == "api/posts/create"  # Medium count (3 transaction spans)
-        assert transaction_names[2] == "api/health"  # Lowest count (1 transaction span)
+        assert transaction_names[0] == "api/users/profile"  # 500ms total (highest)
+        assert transaction_names[1] == "api/posts/create"  # 450ms total (middle)
+        assert transaction_names[2] == "api/health"  # 100ms total (lowest despite high count)
 
         # Verify all transactions have correct project_id and structure
         for transaction in result:
@@ -82,18 +85,21 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
 
         # Create multiple traces with different span counts
         traces_data = [
-            (2, "trace-small"),  # 2 spans - smallest
-            (5, "trace-medium"),  # 5 spans - median
-            (8, "trace-large"),  # 8 spans - largest
+            (5, "trace-medium", 0),  # 5 spans - starts at offset 0 (earliest)
+            (2, "trace-small", 10),  # 2 spans - starts at offset 10 minutes
+            (8, "trace-large", 20),  # 8 spans - starts at offset 20 minutes
         ]
 
         spans = []
         trace_ids = []
+        expected_trace_id = None
 
-        for span_count, trace_suffix in traces_data:
+        for span_count, trace_suffix, start_offset_minutes in traces_data:
             # Generate a unique trace ID
             trace_id = uuid.uuid4().hex
             trace_ids.append(trace_id)
+            if trace_suffix == "trace-medium":
+                expected_trace_id = trace_id
 
             for i in range(span_count):
                 # Create spans for this trace
@@ -105,7 +111,7 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
                         "parent_span_id": None if i == 0 else f"parent-{i-1}",
                         "is_segment": i == 0,  # First span is the transaction span
                     },
-                    start_ts=self.ten_mins_ago + timedelta(minutes=i),
+                    start_ts=self.ten_mins_ago + timedelta(minutes=start_offset_minutes + i),
                 )
                 spans.append(span)
 
@@ -120,7 +126,8 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
         assert result.project_id == self.project.id
         assert result.trace_id in trace_ids
 
-        # Should choose the median trace (5 spans) - middle of [2, 5, 8]
+        # Should choose the first trace by start_ts (trace-medium with 5 spans)
+        assert result.trace_id == expected_trace_id
         assert result.total_spans == 5
         assert len(result.spans) == 5
 
@@ -132,7 +139,7 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
             assert hasattr(result_span, "span_op")
             assert result_span.span_description is not None
             assert result_span.span_description.startswith("span-")
-            assert "trace-medium" in result_span.span_description  # Should be from the median trace
+            assert "trace-medium" in result_span.span_description  # Should be from the first trace
 
         # Verify parent-child relationships are preserved
         root_spans = [s for s in result.spans if s.parent_span_id is None]

@@ -291,6 +291,85 @@ describe('TagDetailsDrawerContent', () => {
     expect(screen.getByText('997')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
   });
+
+  it('renders empty tag value label and hides copy action', async () => {
+    const makeTopValue = (value: string, count: number) => ({
+      count,
+      name: value,
+      value,
+      key: 'device',
+      lastSeen: '2024-01-01T00:00:00Z',
+      firstSeen: '2024-01-01T00:00:00Z',
+    });
+    const makeTagValue = (value: string, count: number, id: string): TagValue => ({
+      count,
+      firstSeen: '2024-01-01T00:00:00Z',
+      lastSeen: '2024-01-01T00:00:00Z',
+      name: value,
+      value,
+      key: 'device',
+      id,
+      email: '',
+      username: '',
+      ip_address: '',
+    });
+
+    const deviceTag: TagWithTopValues = {
+      key: 'device',
+      name: 'Device',
+      totalValues: 8,
+      uniqueValues: 2,
+      topValues: [makeTopValue('', 5), makeTopValue('iPhone10', 3)],
+    };
+    const deviceValues: TagValue[] = [
+      makeTagValue('', 5, '1'),
+      makeTagValue('iPhone10', 3, '2'),
+    ];
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/',
+      body: [deviceTag],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/device/',
+      body: deviceTag,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/device/values/',
+      body: deviceValues,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/`,
+      body: group,
+    });
+
+    render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('device'),
+    });
+
+    expect(await screen.findByText('(empty)')).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('(empty)'));
+    const actionButtons = await screen.findAllByRole('button', {
+      name: 'Tag Value Actions Menu',
+    });
+    await userEvent.click(actionButtons[0]!);
+
+    const viewEventsMenuItem = screen.getByRole('menuitemradio', {
+      name: 'View other events with this tag value',
+    });
+    const viewEventsUrl = new URL(
+      viewEventsMenuItem.getAttribute('href') ?? '',
+      'http://localhost'
+    );
+    expect(viewEventsUrl.pathname).toBe('/organizations/org-slug/issues/1/events/');
+    expect(viewEventsUrl.searchParams.get('query')).toBe('!has:device');
+    expect(viewEventsUrl.searchParams.get('referrer')).toBe('tag-details-drawer');
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Copy tag value to clipboard'})
+    ).not.toBeInTheDocument();
+  });
 });
 
 function VariableTagFixture(topValues: number[], totalValues: number): TagWithTopValues {

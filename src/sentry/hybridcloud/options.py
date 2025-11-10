@@ -161,10 +161,3 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Controls whether or not the pathway to target regions via integration request contents is enabled for the system.
-register(
-    "hybrid_cloud.integration_region_targeting_rate",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)

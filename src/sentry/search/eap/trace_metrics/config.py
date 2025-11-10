@@ -17,8 +17,9 @@ MetricType = Literal["counter", "gauge", "distribution"]
 
 @dataclass(frozen=True, kw_only=True)
 class TraceMetricsSearchResolverConfig(SearchResolverConfig):
-    metric_name: str
-    metric_type: MetricType
+    metric_name: str | None
+    metric_type: MetricType | None
+    metric_unit: str | None
 
     def extra_conditions(self, search_resolver: SearchResolver) -> TraceItemFilter | None:
         if not self.metric_name or not self.metric_type:
@@ -32,56 +33,55 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         if not isinstance(metric_type.proto_definition, AttributeKey):
             raise ValueError("Unable to resolve metric.type")
 
-        metric_name_filter = TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=metric_name.proto_definition,
-                op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_str=self.metric_name),
-            )
-        )
-        metric_type_filter = TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=metric_type.proto_definition,
-                op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_str=self.metric_type),
-            )
-        )
+        filters = [
+            TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=metric_name.proto_definition,
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str=self.metric_name),
+                )
+            ),
+            TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=metric_type.proto_definition,
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str=self.metric_type),
+                )
+            ),
+        ]
 
-        return TraceItemFilter(
-            and_filter=AndFilter(filters=[metric_name_filter, metric_type_filter])
-        )
+        if self.metric_unit:
+            metric_unit, _ = search_resolver.resolve_column("metric.unit")
+            if not isinstance(metric_unit.proto_definition, AttributeKey):
+                raise ValueError("Unable to resolve metric.unit")
+            filters.append(
+                TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=metric_unit.proto_definition,
+                        op=ComparisonFilter.OP_EQUALS,
+                        value=AttributeValue(val_str=self.metric_unit),
+                    )
+                )
+            )
+
+        return TraceItemFilter(and_filter=AndFilter(filters=filters))
 
 
 ALLOWED_METRIC_TYPES: list[MetricType] = ["counter", "gauge", "distribution"]
 
 
-def get_trace_metric_info(
+def get_trace_metric_from_request(
     request: Request,
-) -> tuple[str, MetricType]:
+) -> tuple[str | None, MetricType | None, str | None]:
     metric_name = request.GET.get("metricName")
     metric_type = request.GET.get("metricType")
+    metric_unit = request.GET.get("metricUnit")
 
-    # TODO: remove this when these args are not optional anymore
     if not metric_name:
-        metric_name = ""
+        metric_name = None
     if not metric_type:
-        metric_type = ""
+        metric_type = None
+    if not metric_unit:
+        metric_unit = None
 
-    # errors = {}
-
-    # if not metric_name:
-    #     errors["metricName"] = ErrorDetail("This field is required.", code="required")
-
-    # if not metric_type:
-    #     errors["metricType"] = ErrorDetail("This field is required.", code="required")
-    # elif metric_type not in ALLOWED_METRIC_TYPES:
-    #     errors["metricType"] = ErrorDetail(
-    #         string=f'"{metric_type}" is not a valid choice.', code="invalid_choice"
-    #     )
-
-    # if errors:
-    #     raise ValidationError(errors)
-
-    # assert metric_name
-
-    return metric_name, cast(MetricType, metric_type)
+    return metric_name, cast(MetricType | None, metric_type), metric_unit

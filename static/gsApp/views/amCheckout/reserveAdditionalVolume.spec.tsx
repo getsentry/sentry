@@ -73,6 +73,7 @@ describe('ReserveAdditionalVolume', () => {
     });
 
     const billingConfig = BillingConfigFixture(PlanTier.AM2);
+    billingConfig.planList = billingConfig.planList.filter(plan => plan.userSelectable);
     const am2BizPlanMonthly = PlanDetailsLookupFixture('am2_business')!;
     const am2TeamPlanAnnual = PlanDetailsLookupFixture('am2_team_auf')!;
 
@@ -114,7 +115,7 @@ describe('ReserveAdditionalVolume', () => {
       });
     });
 
-    it('renders with event volumes', async () => {
+    it('renders with event volumes and pricing warning', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/promotions/trigger-check/`,
         method: 'POST',
@@ -249,7 +250,7 @@ describe('ReserveAdditionalVolume', () => {
       });
     });
 
-    it('renders with event volumes', async () => {
+    it('renders with event volumes and pricing warning', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/promotions/trigger-check/`,
         method: 'POST',
