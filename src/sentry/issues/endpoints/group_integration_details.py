@@ -133,7 +133,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
     def post(self, request: Request, group, integration_id) -> Response:
         """
-        Creates a new external issue and link it to a group.
+        Creates a new external issue and links it to a group.
         """
         if not request.user.is_authenticated:
             return Response(status=400)
