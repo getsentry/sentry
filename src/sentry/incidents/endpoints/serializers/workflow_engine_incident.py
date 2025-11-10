@@ -1,33 +1,21 @@
-from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any, DefaultDict
+from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Subquery
 
-from sentry.api.serializers import Serializer, serialize
+from sentry.api.serializers import Serializer
 from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializerResponse,
-    IncidentSerializer,
     IncidentSerializerResponse,
 )
-from sentry.incidents.models.incident import Incident
+from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
+from sentry.incidents.models.incident import IncidentStatusMethod, IncidentType
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.workflow_engine.models import (
-    Action,
-    DataCondition,
-    DataConditionGroupAction,
-    DataSourceDetector,
-    Detector,
-    DetectorWorkflow,
-    IncidentGroupOpenPeriod,
-    WorkflowDataConditionGroup,
-)
-from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
+from sentry.workflow_engine.models import DataSourceDetector, Detector, IncidentGroupOpenPeriod
 
 
 class WorkflowEngineIncidentSerializer(Serializer):
@@ -37,59 +25,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
     def get_open_periods_to_detectors(
         self, open_periods: Sequence[GroupOpenPeriod]
     ) -> dict[GroupOpenPeriod, Detector]:
-        wf_action_group_statuses = WorkflowActionGroupStatus.objects.filter(
-            group__in=[open_period.group for open_period in open_periods]
-        )
-        open_periods_to_actions: DefaultDict[GroupOpenPeriod, Action] = defaultdict()
-        for open_period in open_periods:
-            for wf_action_group_status in wf_action_group_statuses:
-                if wf_action_group_status.group == open_period.group:
-                    open_periods_to_actions[open_period] = wf_action_group_status.action
-                    break
-
-        dcgas = DataConditionGroupAction.objects.filter(
-            action__in=list(open_periods_to_actions.values())
-        )
-        open_periods_to_condition_group: DefaultDict[GroupOpenPeriod, DataConditionGroupAction] = (
-            defaultdict()
-        )
-        for open_period, action in open_periods_to_actions.items():
-            for dcga in dcgas:
-                if dcga.action == action:
-                    open_periods_to_condition_group[open_period] = dcga
-                    break
-
-        action_filters = DataCondition.objects.filter(
-            condition_group__in=[dcga.condition_group for dcga in dcgas]
-        )
-        open_period_to_action_filters: DefaultDict[GroupOpenPeriod, DataCondition] = defaultdict()
-        for open_period, dcga in open_periods_to_condition_group.items():
-            for action_filter in action_filters:
-                if action_filter.condition_group == dcga.condition_group:
-                    open_period_to_action_filters[open_period] = action_filter
-                    break
-
-        workflow_dcgs = WorkflowDataConditionGroup.objects.filter(
-            condition_group__in=Subquery(action_filters.values("condition_group"))
-        )
-
-        open_periods_to_workflow_dcgs: DefaultDict[GroupOpenPeriod, WorkflowDataConditionGroup] = (
-            defaultdict()
-        )
-        for open_period, action_filter in open_period_to_action_filters.items():
-            for workflow_dcg in workflow_dcgs:
-                if workflow_dcg.condition_group == action_filter.condition_group:
-                    open_periods_to_workflow_dcgs[open_period] = workflow_dcg
-
-        detector_workflows = DetectorWorkflow.objects.filter(
-            workflow__in=Subquery(workflow_dcgs.values("workflow"))
-        )
-        open_periods_to_detectors: DefaultDict[GroupOpenPeriod, Detector] = defaultdict()
-        for open_period, workflow_dcg in open_periods_to_workflow_dcgs.items():
-            for detector_workflow in detector_workflows:
-                if detector_workflow.workflow == workflow_dcg.workflow:
-                    open_periods_to_detectors[open_period] = detector_workflow.detector
-                    break
+        open_periods_to_detectors = {}
 
         return open_periods_to_detectors
 
@@ -103,10 +39,36 @@ class WorkflowEngineIncidentSerializer(Serializer):
         """
         Temporary serializer to take a GroupOpenPeriod and serialize it for the old incident endpoint
         """
-        incident = Incident.objects.get(
-            id=IncidentGroupOpenPeriod.objects.get(group_open_period=obj).incident_id
-        )
-        return serialize(incident, user=user, serializer=IncidentSerializer(expand=self.expand))
+        try:
+            igop = IncidentGroupOpenPeriod.objects.get(group_open_period=obj)
+            incident_id = igop.incident_id
+            incident_identifier = igop.incident_identifier
+        except IncidentGroupOpenPeriod.DoesNotExist:
+            incident_id = get_object_id_from_fake_id(obj.id)
+            incident_identifier = incident_id
+
+        # TODO: get event time using offset
+        date_closed = obj.date_ended.replace(second=0, microsecond=0) if obj.date_ended else None
+        return {
+            "id": str(incident_id),
+            "identifier": str(incident_identifier),
+            "organizationId": str(obj.project.organization.id),
+            "projects": attrs["projects"],
+            "alertRule": attrs["alert_rule"],
+            "activities": attrs["activities"] if "activities" in self.expand else None,
+            "status": self.get_incident_status(obj.group.priority, obj.date_ended),
+            "statusMethod": (
+                IncidentStatusMethod.RULE_TRIGGERED.value
+                if not date_closed
+                else IncidentStatusMethod.RULE_UPDATED.value
+            ),
+            "type": IncidentType.ALERT_TRIGGERED.value,
+            "title": obj.group.title,
+            "dateStarted": obj.date_started,
+            "dateDetected": obj.date_started,
+            "dateCreated": obj.date_added,
+            "dateClosed": date_closed,
+        }
 
 
 class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer):
