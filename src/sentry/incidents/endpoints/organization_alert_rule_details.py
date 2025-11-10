@@ -110,16 +110,6 @@ def _is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mod
         and old_extrapolation_mode != ExtrapolationMode.SERVER_WEIGHTED.name.lower()
     ):
         return True
-    if (
-        new_extrapolation_mode == ExtrapolationMode.NONE.name.lower()
-        and old_extrapolation_mode != ExtrapolationMode.NONE.name.lower()
-    ):
-        return True
-    if (
-        new_extrapolation_mode == ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED.name.lower()
-        or new_extrapolation_mode == ExtrapolationMode.UNKNOWN.name.lower()
-    ):
-        return False
     return False
 
 

@@ -225,16 +225,6 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 and old_extrapolation_mode != ExtrapolationMode.SERVER_WEIGHTED.value
             ):
                 return True
-            if (
-                new_extrapolation_mode == ExtrapolationMode.NONE.value
-                and old_extrapolation_mode != ExtrapolationMode.NONE.value
-            ):
-                return True
-            if (
-                new_extrapolation_mode == ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED.value
-                or new_extrapolation_mode == ExtrapolationMode.UNKNOWN.value
-            ):
-                return False
         return False
 
     def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
