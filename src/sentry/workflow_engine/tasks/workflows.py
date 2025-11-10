@@ -100,7 +100,7 @@ def process_workflows_event(
     has_reappeared: bool,
     has_escalated: bool,
     start_timestamp_seconds: float | None = None,
-    project_id: int | None = None,
+    project_id: int | None = None,  # TODO: remove
     **kwargs: dict[str, Any],
 ) -> None:
     from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
