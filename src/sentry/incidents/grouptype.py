@@ -16,7 +16,6 @@ from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
-from sentry.seer.anomaly_detection.delete_rule import delete_data_in_seer_for_detector
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import format_mri_field, is_mri_field
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -28,12 +27,7 @@ from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
-from sentry.workflow_engine.types import (
-    DetectorException,
-    DetectorLifeCycleHooks,
-    DetectorPriorityLevel,
-    DetectorSettings,
-)
+from sentry.workflow_engine.types import DetectorException, DetectorPriorityLevel, DetectorSettings
 
 logger = logging.getLogger(__name__)
 
@@ -359,5 +353,4 @@ class MetricIssue(GroupType):
                 },
             },
         },
-        hooks=DetectorLifeCycleHooks(pending_delete=delete_data_in_seer_for_detector),
     )

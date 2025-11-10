@@ -8,6 +8,7 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.logic import enable_disable_subscriptions
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
+from sentry.seer.anomaly_detection.delete_rule import delete_data_in_seer_for_detector
 from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
@@ -294,3 +295,10 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         schedule_update_project_config(detector)
         return detector
+
+    def delete(self):
+        # Let Seer know we're deleting a dynamic detector so the data can be deleted there too
+        if self.instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
+            delete_data_in_seer_for_detector(self.instance)
+
+        super().delete()

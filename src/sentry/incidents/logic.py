@@ -1098,6 +1098,28 @@ def delete_alert_rule(
 
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
+            if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+                # if this was a dynamic rule, delete the data in Seer
+                try:
+                    source_id = QuerySubscription.objects.get(
+                        snuba_query_id=alert_rule.snuba_query.id
+                    ).id
+                    success = delete_rule_in_seer(
+                        organization=alert_rule.organization,
+                        source_id=source_id,
+                    )
+                    if not success:
+                        logger.error(
+                            "Call to delete rule data in Seer failed",
+                            extra={
+                                "rule_id": alert_rule.id,
+                            },
+                        )
+                except QuerySubscription.DoesNotExist:
+                    logger.exception(
+                        "Snuba query missing query subscription",
+                        extra={"snuba_query_id": alert_rule.snuba_query.id},
+                    )
             AlertRuleActivity.objects.create(
                 alert_rule=alert_rule,
                 user_id=user.id if user else None,
