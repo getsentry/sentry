@@ -28,15 +28,15 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AlterUniqueTogether(
-            name="detectorgroup",
-            unique_together=set(),
-        ),
         migrations.AlterField(
             model_name="detectorgroup",
             name="group",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                 on_delete=django.db.models.deletion.CASCADE, to="sentry.group", unique=True
             ),
+        ),
+        migrations.AlterUniqueTogether(
+            name="detectorgroup",
+            unique_together=set(),
         ),
     ]
