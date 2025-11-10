@@ -100,7 +100,6 @@ interface MetricDetectorConfigPercent {
  */
 interface MetricDetectorConfigDynamic {
   detectionType: 'dynamic';
-  seasonality?: 'auto' | 'daily' | 'weekly' | 'monthly';
   sensitivity?: 'low' | 'medium' | 'high';
   thresholdType?: AlertRuleThresholdType;
 }
