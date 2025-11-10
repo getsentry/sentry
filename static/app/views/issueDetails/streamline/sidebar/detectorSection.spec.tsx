@@ -40,10 +40,11 @@ describe('DetectorSection', () => {
 
   it('displays the detector details for a metric issue', () => {
     const event = EventFixture({
-      contexts: {
-        metric_alert: {
-          alert_rule_id: '123',
+      occurrence: {
+        evidenceData: {
+          detectorId,
         },
+        type: 8001,
       },
     });
     const group = GroupFixture({
@@ -62,7 +63,7 @@ describe('DetectorSection', () => {
     const link = screen.getByRole('button', {name: 'View monitor details'});
     expect(link).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/issues/alerts/rules/details/${detectorId}/`
+      `/organizations/${organization.slug}/monitors/${detectorId}/`
     );
     expect(
       screen.getByText(

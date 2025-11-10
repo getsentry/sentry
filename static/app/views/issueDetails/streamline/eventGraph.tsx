@@ -1,4 +1,3 @@
-import type React from 'react';
 import {
   useCallback,
   useEffect,
@@ -6,6 +5,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type RefObject,
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -107,6 +107,20 @@ function createSeriesAndCount(stats: EventsStats) {
       };
     },
     {series: [], count: 0}
+  );
+}
+
+function GraphPlaceholder({
+  ref,
+  height = 96,
+}: {
+  height?: number;
+  ref?: RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <LoadingChartContainer ref={ref}>
+      <Placeholder height={`${height}px`} testId="event-graph-loading" />
+    </LoadingChartContainer>
   );
 }
 
@@ -495,9 +509,7 @@ export function EventGraph({
         ) : (
           <div />
         )}
-        <LoadingChartContainer ref={chartContainerRef}>
-          <Placeholder height="96px" testId="event-graph-loading" />
-        </LoadingChartContainer>
+        <GraphPlaceholder ref={chartContainerRef} />
       </Grid>
     );
   }
@@ -674,7 +686,7 @@ const LoadingChartContainer = styled('div')`
   margin: 0 ${p => p.theme.space.md};
 `;
 
-const GraphAlert = styled(Alert)`
+export const GraphAlert = styled(Alert)`
   padding-left: ${p => p.theme.space['2xl']};
   margin: 0 0 0 -${p => p.theme.space['2xl']};
   border: 0;
