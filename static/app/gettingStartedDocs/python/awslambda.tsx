@@ -6,10 +6,8 @@ import {
   type OnboardingConfig,
   type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-} from 'sentry/gettingStartedDocs/python/python';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
+import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
 import {t, tct} from 'sentry/locale';
 import {
   alternativeProfilingConfiguration,
@@ -223,9 +221,9 @@ const logsOnboarding = getPythonLogsOnboarding();
 
 const docs: Docs = {
   onboarding,
-  crashReportOnboarding: crashReportOnboardingPython,
+  crashReportOnboarding: crashReport,
   profilingOnboarding,
-  agentMonitoringOnboarding,
+  agentMonitoringOnboarding: agentMonitoring,
   logsOnboarding,
 };
 

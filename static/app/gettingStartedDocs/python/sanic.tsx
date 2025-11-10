@@ -9,12 +9,10 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-  featureFlagOnboarding,
-  mcpOnboarding,
-} from 'sentry/gettingStartedDocs/python/python';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
+import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
+import {featureFlag} from 'sentry/gettingStartedDocs/python/python/featureFlag';
+import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
 import {t, tct} from 'sentry/locale';
 import {
   getPythonAiocontextvarsCodeBlocks,
@@ -143,12 +141,12 @@ const logsOnboarding = getPythonLogsOnboarding({
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  crashReportOnboarding: crashReportOnboardingPython,
-  featureFlagOnboarding,
+  crashReportOnboarding: crashReport,
+  featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
   profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[sanic]'}),
-  agentMonitoringOnboarding,
-  mcpOnboarding,
+  agentMonitoringOnboarding: agentMonitoring,
+  mcpOnboarding: mcp,
   logsOnboarding,
 };
 

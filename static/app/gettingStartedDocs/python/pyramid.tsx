@@ -9,11 +9,9 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-  featureFlagOnboarding,
-} from 'sentry/gettingStartedDocs/python/python';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
+import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
+import {featureFlag} from 'sentry/gettingStartedDocs/python/python/featureFlag';
 import {t, tct} from 'sentry/locale';
 import {
   getPythonInstallCodeBlock,
@@ -149,11 +147,11 @@ const logsOnboarding = getPythonLogsOnboarding();
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  crashReportOnboarding: crashReportOnboardingPython,
-  featureFlagOnboarding,
+  crashReportOnboarding: crashReport,
+  featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
   profilingOnboarding: getPythonProfilingOnboarding(),
-  agentMonitoringOnboarding,
+  agentMonitoringOnboarding: agentMonitoring,
   logsOnboarding,
 };
 

@@ -9,12 +9,10 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-  featureFlagOnboarding,
-  mcpOnboarding,
-} from 'sentry/gettingStartedDocs/python/python';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
+import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
+import {featureFlag} from 'sentry/gettingStartedDocs/python/python/featureFlag';
+import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
 import {t, tct} from 'sentry/locale';
 import {
   alternativeProfilingConfiguration,
@@ -181,11 +179,11 @@ const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[falcon]'}),
-  crashReportOnboarding: crashReportOnboardingPython,
-  featureFlagOnboarding,
+  crashReportOnboarding: crashReport,
+  featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
-  agentMonitoringOnboarding,
-  mcpOnboarding,
+  agentMonitoringOnboarding: agentMonitoring,
+  mcpOnboarding: mcp,
   logsOnboarding,
 };
 
