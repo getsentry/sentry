@@ -1227,7 +1227,7 @@ class GetSemverReleasesTest(TestCase):
         assert greatest.id == release_2.id
         assert greatest.version == "test@2.0"
 
-    def test_greatest_semver_release_with_build_codes(self) -> None:
+    def test_greatest_semver_release_with_build_code(self) -> None:
         """Test that greatest_semver_release returns the highest version release with the highest build code."""
         release_with_highest_build = self.create_release(
             version="test@1.0+100", project=self.project
