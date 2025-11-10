@@ -4,21 +4,16 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs from './rq';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-describe('rq onboarding docs', () => {
+import docs from '.';
+
+describe('tryton onboarding docs', () => {
   it('renders doc correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
-    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Job definition'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {name: 'Settings for worker'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Main Python Script'})).toBeInTheDocument();
   });
 
   it('renders without tracing', () => {
@@ -49,11 +44,9 @@ describe('rq onboarding docs', () => {
     ).not.toBeInTheDocument();
 
     // Does render transaction profiling config
-    const matches = screen.getAllByText(
-      textWithMarkupMatcher(/profiles_sample_rate=1\.0,/)
-    );
-    expect(matches.length).toBeGreaterThan(0);
-    matches.forEach(match => expect(match).toBeInTheDocument());
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
+    ).toBeInTheDocument();
   });
 
   it('renders continuous profiling', () => {
@@ -75,15 +68,31 @@ describe('rq onboarding docs', () => {
     ).not.toBeInTheDocument();
 
     // Does render continuous profiling config
-    const sampleRateMatches = screen.getAllByText(
-      textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/)
-    );
-    expect(sampleRateMatches.length).toBeGreaterThan(0);
-    sampleRateMatches.forEach(match => expect(match).toBeInTheDocument());
-    const lifecycleMatches = screen.getAllByText(
-      textWithMarkupMatcher(/profile_lifecycle="trace",/)
-    );
-    expect(lifecycleMatches.length).toBeGreaterThan(0);
-    lifecycleMatches.forEach(match => expect(match).toBeInTheDocument());
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders with logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/enable_logs=True,/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders without logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/enable_logs=True,/))
+    ).not.toBeInTheDocument();
   });
 });

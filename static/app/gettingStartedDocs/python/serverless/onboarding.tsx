@@ -3,23 +3,15 @@ import {Fragment} from 'react';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
-  type Docs,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
-import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
 import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
-import {
-  alternativeProfiling,
-  profiling,
-} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = (params: DocsParams) => `
 import sentry_sdk
 from sentry_sdk.integrations.serverless import serverless_function
 
@@ -72,7 +64,7 @@ sentry_sdk.init(...) # same as above
 def my_function(...):
     1/0  # raises an error`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () => (
     <Fragment>
       <p>
@@ -106,7 +98,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -126,7 +118,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -154,7 +146,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [] as any[];
     if (params.isLogsSelected) {
       steps.push({
@@ -169,12 +161,3 @@ const onboarding: OnboardingConfig = {
     return steps;
   },
 };
-
-const docs: Docs = {
-  onboarding,
-  profilingOnboarding: profiling(),
-  crashReportOnboarding: crashReport,
-  agentMonitoringOnboarding: agentMonitoring,
-};
-
-export default docs;
