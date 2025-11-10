@@ -27,4 +27,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
