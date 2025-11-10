@@ -24,7 +24,11 @@ from sentry.seer.autofix.constants import (
     FixabilityScoreThresholds,
     SeerAutomationSource,
 )
-from sentry.seer.autofix.utils import get_autofix_state, is_seer_autotriggered_autofix_rate_limited
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_autofix_state,
+    is_seer_autotriggered_autofix_rate_limited,
+)
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
@@ -48,13 +52,31 @@ auto_run_source_map = {
 }
 
 
+def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStoppingPoint | None:
+    """
+    Determine the autofix stopping point based on fixability score.
+    """
+    if fixability_score < FixabilityScoreThresholds.MEDIUM.value:
+        return None
+    elif fixability_score < FixabilityScoreThresholds.HIGH.value:
+        return AutofixStoppingPoint.SOLUTION
+    else:
+        return AutofixStoppingPoint.CODE_CHANGES
+
+
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_autofix_from_issue_summary",
     namespace=seer_tasks,
     processing_deadline_duration=65,
     retry=Retry(times=1),
 )
-def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, auto_run_source: str):
+def _trigger_autofix_task(
+    group_id: int,
+    event_id: str,
+    user_id: int | None,
+    auto_run_source: str,
+    stopping_point: AutofixStoppingPoint | None = None,
+):
     """
     Asynchronous task to trigger Autofix.
     """
@@ -82,6 +104,7 @@ def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, aut
             event_id=event_id,
             user=user,
             auto_run_source=auto_run_source,
+            stopping_point=stopping_point,
         )
 
 
@@ -252,11 +275,16 @@ def _run_automation(
     if is_rate_limited:
         return
 
+    stopping_point = None
+    if features.has("projects:triage-signals-v0", group.project):
+        stopping_point = _get_stopping_point_from_fixability(issue_summary.scores.fixability_score)
+
     _trigger_autofix_task.delay(
         group_id=group.id,
         event_id=event.event_id,
         user_id=user_id,
         auto_run_source=auto_run_source,
+        stopping_point=stopping_point,
     )
 
 
