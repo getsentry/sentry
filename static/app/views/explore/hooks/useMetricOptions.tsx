@@ -37,7 +37,6 @@ function metricOptionsQueryKey({
     field: [
       TraceMetricKnownFieldKey.METRIC_NAME,
       TraceMetricKnownFieldKey.METRIC_TYPE,
-      TraceMetricKnownFieldKey.METRIC_UNIT,
       `count(${TraceMetricKnownFieldKey.METRIC_NAME})`,
     ],
     query: searchValue.formatString(),
