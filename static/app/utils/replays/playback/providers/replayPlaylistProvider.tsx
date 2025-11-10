@@ -1,14 +1,14 @@
 import type {ReactNode} from 'react';
 import {createContext, useContext} from 'react';
 
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
   children: ReactNode;
-  replays: ReplayRecord[] | null;
+  replays: ReplayListRecord[] | undefined;
 }
 
-const Context = createContext<ReplayRecord[] | null>(null);
+const Context = createContext<ReplayListRecord[] | undefined>(undefined);
 
 export function ReplayPlaylistProvider({children, replays}: Props) {
   return <Context value={replays}>{children}</Context>;
