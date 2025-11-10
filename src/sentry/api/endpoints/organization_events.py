@@ -518,11 +518,13 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     request.GET.get("disableAggregateExtrapolation", "0") == "1"
                 )
 
-                extrapolation_mode = request.GET.get("extrapolationMode", None)
-                if extrapolation_mode and extrapolation_mode not in EXTRAPOLATION_MODE_MAP:
-                    raise InvalidSearchQuery(f"Unknown extrapolation mode: {extrapolation_mode}")
-                elif extrapolation_mode:
-                    extrapolation_mode = EXTRAPOLATION_MODE_MAP[extrapolation_mode]
+                requested_mode = request.GET.get("extrapolationMode", None)
+                if requested_mode is not None and requested_mode not in EXTRAPOLATION_MODE_MAP:
+                    raise InvalidSearchQuery(f"Unknown extrapolation mode: {requested_mode}")
+
+                extrapolation_mode = (
+                    EXTRAPOLATION_MODE_MAP[requested_mode] if requested_mode else None
+                )
 
                 if scoped_dataset == Spans:
                     return SearchResolverConfig(

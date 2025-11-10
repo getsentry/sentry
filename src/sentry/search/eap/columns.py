@@ -202,7 +202,7 @@ class ResolvedAggregate(ResolvedFunction):
     # The internal rpc alias for this column
     internal_name: Function.ValueType
     # Whether to enable extrapolation
-    extrapolation_mode_override: ExtrapolationMode.ValueType | None = None
+    extrapolation_mode: ExtrapolationMode.ValueType
     is_aggregate: bool = field(default=True, init=False)
     # Only for aggregates, we only support functions with 1 argument right now
     argument: AttributeKey | None = None
@@ -223,7 +223,7 @@ class ResolvedConditionalAggregate(ResolvedFunction):
     # The internal rpc alias for this column
     internal_name: Function.ValueType
     # Whether to enable extrapolation
-    extrapolation_mode_override: ExtrapolationMode.ValueType | None = None
+    extrapolation_mode: ExtrapolationMode.ValueType
     # The condition to filter on
     filter: TraceItemFilter
     # The attribute to conditionally aggregate on

@@ -245,12 +245,13 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 if scoped_dataset not in RPC_DATASETS:
                     raise NotImplementedError
 
-                extrapolation_mode = request.GET.get("extrapolationMode", None)
+                requested_mode = request.GET.get("extrapolationMode", None)
+                if requested_mode is not None and requested_mode not in EXTRAPOLATION_MODE_MAP:
+                    raise InvalidSearchQuery(f"Unknown extrapolation mode: {requested_mode}")
 
-                if extrapolation_mode and extrapolation_mode not in EXTRAPOLATION_MODE_MAP:
-                    raise InvalidSearchQuery(f"Unknown extrapolation mode: {extrapolation_mode}")
-                elif extrapolation_mode:
-                    extrapolation_mode = EXTRAPOLATION_MODE_MAP[extrapolation_mode]
+                extrapolation_mode = (
+                    EXTRAPOLATION_MODE_MAP[requested_mode] if requested_mode else None
+                )
 
                 if scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
