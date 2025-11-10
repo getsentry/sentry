@@ -14,7 +14,7 @@ import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParams
 
 describe('LogsAutoRefresh Integration Tests', () => {
   const {organization, project, routerConfig, setupPageFilters, setupEventsMock} =
-    initializeLogsTest();
+    initializeLogsTest({orgFeatures: ['ourlogs-high-fidelity']});
 
   const testDate = new Date('2024-01-15T10:00:00.000Z');
   const {baseFixtures} = createLogFixtures(organization, project, testDate);
@@ -48,7 +48,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         source="location"
       >
-        <LogsPageDataProvider>{children}</LogsPageDataProvider>
+        <LogsPageDataProvider allowHighFidelity>{children}</LogsPageDataProvider>
       </LogsQueryParamsProvider>,
       options
     ) as ReturnType<typeof render> & {router: any}; // Can't select the router type without exporting it.
