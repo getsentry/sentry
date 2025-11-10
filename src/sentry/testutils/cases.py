@@ -3492,6 +3492,7 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
         metric_name: str,
         metric_value: float,
         metric_type: Literal["counter", "distribution", "gauge"],
+        metric_unit: str | None = None,
         organization: Organization | None = None,
         project: Project | None = None,
         timestamp: datetime | None = None,
@@ -3522,6 +3523,12 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
             f"sentry._internal.cooccuring.name.{metric_name}": AnyValue(bool_value=True),
             f"sentry._internal.cooccuring.type.{metric_type}": AnyValue(bool_value=True),
         }
+
+        if metric_unit is not None:
+            attributes_proto["sentry.metric_unit"] = AnyValue(string_value=metric_unit)
+            attributes_proto[f"sentry._internal.cooccuring.unit.{metric_unit}"] = AnyValue(
+                bool_value=True
+            )
 
         if attributes:
             for k, v in attributes.items():

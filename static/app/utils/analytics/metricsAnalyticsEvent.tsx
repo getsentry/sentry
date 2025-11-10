@@ -2,6 +2,33 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 
 export type MetricsAnalyticsEventParameters = {
+  'metrics.explorer.metadata': {
+    datetime_selection: string;
+    environment_count: number;
+    has_exceeded_performance_usage_limit: boolean | null;
+    interval: string;
+    metric_panels_with_filters_count: number;
+    metric_panels_with_group_bys_count: number;
+    metric_queries_count: number;
+    project_count: number;
+  };
+  'metrics.explorer.panel.metadata': {
+    columns: readonly string[];
+    columns_count: number;
+    confidences: string[];
+    dataScanned: string;
+    dataset: string;
+    empty_buckets_percentage: number[];
+    interval: string;
+    query_status: 'success' | 'error' | 'pending';
+    sample_counts: number[];
+    table_result_length: number;
+    table_result_missing_root: number;
+    table_result_mode: 'metric samples' | 'aggregates';
+    table_result_sort: string[];
+    user_queries: string;
+    user_queries_count: number;
+  };
   'metrics.explorer.setup_button_clicked': {
     organization: Organization;
     platform: PlatformKey | 'unknown';
@@ -37,6 +64,8 @@ export type MetricsAnalyticsEventParameters = {
 type MetricsAnalyticsEventKey = keyof MetricsAnalyticsEventParameters;
 
 export const metricsAnalyticsEventMap: Record<MetricsAnalyticsEventKey, string | null> = {
+  'metrics.explorer.metadata': 'Metric Explorer Pageload Metadata',
+  'metrics.explorer.panel.metadata': 'Metric Explorer Panel Metadata',
   'metrics.explorer.setup_button_clicked': 'Metrics Setup Button Clicked',
   'metrics.nav.rendered': 'Metrics Nav Rendered',
   'metrics.onboarding': 'Metrics Explore Empty State (Onboarding)',

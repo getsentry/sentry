@@ -18,7 +18,6 @@ import type {
   PreventAIFeatureConfigsByName,
   Sensitivity,
 } from 'sentry/types/prevent';
-import useOrganization from 'sentry/utils/useOrganization';
 import {usePreventAIGitHubConfig} from 'sentry/views/prevent/preventAI/hooks/usePreventAIConfig';
 import {useUpdatePreventAIFeature} from 'sentry/views/prevent/preventAI/hooks/useUpdatePreventAIFeature';
 import {getRepoNameWithoutOrg} from 'sentry/views/prevent/preventAI/utils';
@@ -70,12 +69,7 @@ function ManageReposPanel({
   allRepos = [],
   isEditingOrgDefaults,
 }: ManageReposPanelProps) {
-  const organization = useOrganization();
   const {enableFeature, isLoading, error: updateError} = useUpdatePreventAIFeature();
-
-  const canEditSettings =
-    organization.access.includes('org:write') ||
-    organization.access.includes('org:admin');
 
   const {
     data: githubConfigData,
@@ -201,7 +195,7 @@ function ManageReposPanel({
                 <Switch
                   size="lg"
                   checked={!doesUseOrgDefaults}
-                  disabled={isLoading || !canEditSettings}
+                  disabled={isLoading}
                   onChange={async () => {
                     await enableFeature({
                       feature: 'use_org_defaults',
@@ -237,11 +231,7 @@ function ManageReposPanel({
                   <Switch
                     size="lg"
                     checked={repoConfig.vanilla.enabled}
-                    disabled={
-                      isLoading ||
-                      !canEditSettings ||
-                      (!isEditingOrgDefaults && doesUseOrgDefaults)
-                    }
+                    disabled={isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)}
                     onChange={async () => {
                       const newValue = !repoConfig.vanilla.enabled;
                       await enableFeature({
@@ -272,9 +262,7 @@ function ManageReposPanel({
                           value={repoConfig.vanilla.sensitivity ?? 'medium'}
                           options={sensitivityOptions}
                           disabled={
-                            isLoading ||
-                            !canEditSettings ||
-                            (!isEditingOrgDefaults && doesUseOrgDefaults)
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
                           }
                           onChange={async option =>
                             await enableFeature({
@@ -316,11 +304,7 @@ function ManageReposPanel({
                   <Switch
                     size="lg"
                     checked={repoConfig.bug_prediction.enabled}
-                    disabled={
-                      isLoading ||
-                      !canEditSettings ||
-                      (!isEditingOrgDefaults && doesUseOrgDefaults)
-                    }
+                    disabled={isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)}
                     onChange={async () => {
                       const newValue = !repoConfig.bug_prediction.enabled;
                       await enableFeature({
@@ -351,9 +335,7 @@ function ManageReposPanel({
                           value={repoConfig.bug_prediction.sensitivity ?? 'medium'}
                           options={sensitivityOptions}
                           disabled={
-                            isLoading ||
-                            !canEditSettings ||
-                            (!isEditingOrgDefaults && doesUseOrgDefaults)
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
                           }
                           onChange={async option =>
                             await enableFeature({
@@ -387,9 +369,7 @@ function ManageReposPanel({
                           size="lg"
                           checked={repoConfig.bug_prediction.triggers.on_ready_for_review}
                           disabled={
-                            isLoading ||
-                            !canEditSettings ||
-                            (!isEditingOrgDefaults && doesUseOrgDefaults)
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
                           }
                           onChange={async () => {
                             const newValue =
@@ -422,9 +402,7 @@ function ManageReposPanel({
                             repoConfig.bug_prediction.triggers.on_new_commit ?? false
                           }
                           disabled={
-                            isLoading ||
-                            !canEditSettings ||
-                            (!isEditingOrgDefaults && doesUseOrgDefaults)
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
                           }
                           onChange={async () => {
                             const newValue =
@@ -455,9 +433,7 @@ function ManageReposPanel({
                           size="lg"
                           checked={repoConfig.bug_prediction.triggers.on_command_phrase}
                           disabled={
-                            isLoading ||
-                            !canEditSettings ||
-                            (!isEditingOrgDefaults && doesUseOrgDefaults)
+                            isLoading || (!isEditingOrgDefaults && doesUseOrgDefaults)
                           }
                           onChange={async () => {
                             const newValue =
