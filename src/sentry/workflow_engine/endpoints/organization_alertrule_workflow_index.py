@@ -15,7 +15,9 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
-from sentry.workflow_engine.endpoints.serializers import AlertRuleWorkflowSerializer
+from sentry.workflow_engine.endpoints.serializers.alertrule_workflow_serializer import (
+    AlertRuleWorkflowSerializer,
+)
 from sentry.workflow_engine.endpoints.validators.alertrule_workflow import (
     AlertRuleWorkflowValidator,
 )
