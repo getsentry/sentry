@@ -351,7 +351,10 @@ class GithubRequestParserOverwatchForwarderTest(TestCase):
                 self.path,
                 data={"installation": {"id": "1"}, "action": "created"},
                 content_type="application/json",
-                headers={"x-github-event": GithubWebhookType.PULL_REQUEST.value},
+                headers={
+                    "x-github-event": GithubWebhookType.PULL_REQUEST.value,
+                    "x-github-hook-installation-target-id": "123",
+                },
             )
             parser = GithubRequestParser(
                 request=request,
@@ -379,7 +382,7 @@ class GithubRequestParserOverwatchForwarderTest(TestCase):
                 }
             ]
             assert json_body["webhook_body"] == {"installation": {"id": "1"}, "action": "created"}
-
+            assert json_body["app_id"] == 123
             assert json_body["webhook_headers"]["X-Github-Event"] == "pull_request"
             assert json_body["integration_provider"] == "github"
             assert json_body["region"] == "us"
@@ -398,7 +401,10 @@ class GithubRequestParserOverwatchForwarderTest(TestCase):
                 self.path,
                 data={"installation": {"id": "1"}, "action": "created"},
                 content_type="application/json",
-                headers={"x-github-event": GithubWebhookType.PULL_REQUEST.value},
+                headers={
+                    "x-github-event": GithubWebhookType.PULL_REQUEST.value,
+                    "x-github-hook-installation-target-id": "1",
+                },
             )
             parser = GithubRequestParser(
                 request=request,

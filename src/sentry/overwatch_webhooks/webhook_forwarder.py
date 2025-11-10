@@ -7,6 +7,7 @@ from typing import Any
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook_types import (
+    GITHUB_INSTALLATION_TARGET_ID_HEADER,
     GITHUB_WEBHOOK_TYPE_HEADER_KEY,
     GithubWebhookType,
 )
@@ -27,10 +28,6 @@ GITHUB_EVENTS_TO_FORWARD_OVERWATCH = {
     GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT,
     GithubWebhookType.PULL_REQUEST_REVIEW,
 }
-
-
-GITHUB_INSTALLATION_TARGET_ID_HEADER = "X-GitHub-Hook-Installation-Target-ID"
-DJANGO_HTTP_GITHUB_INSTALLATION_TARGET_ID_HEADER = "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID"
 
 
 @dataclass(frozen=True)
@@ -166,7 +163,7 @@ class OverwatchGithubWebhookForwarder:
 
                 raw_app_id = headers.get(
                     GITHUB_INSTALLATION_TARGET_ID_HEADER,
-                ) or headers.get(DJANGO_HTTP_GITHUB_INSTALLATION_TARGET_ID_HEADER)
+                )
                 verbose_log(
                     "overwatch.debug.raw_app_id",
                     extra={"region_name": region_name, "raw_app_id": raw_app_id},
