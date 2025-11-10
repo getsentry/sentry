@@ -155,7 +155,7 @@ export function SpanNodeDetails(
 
   const project = projects.find(proj => proj.slug === node.projectSlug);
 
-  const spanId = isEAPSpanNode(node) ? node.value.event_id : node.value.span_id;
+  const spanId = node.id;
 
   const content = isEAPSpanNode(node) ? (
     <EAPSpanNodeDetails

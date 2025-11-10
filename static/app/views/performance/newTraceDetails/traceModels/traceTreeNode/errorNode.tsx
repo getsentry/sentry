@@ -3,10 +3,7 @@ import type {Theme} from '@emotion/react';
 import {t} from 'sentry/locale';
 import {ErrorNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/error';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  isEAPError,
-  isTraceError,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isTraceError} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceErrorRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceErrorRow';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
@@ -27,7 +24,8 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
 
     this.id = value.event_id;
     this.type = 'error';
-    this.isEAPEvent = isEAPError(value);
+    // Part of the eap trace endpoint but still fetched from nodestore
+    this.isEAPEvent = false;
 
     if (value) {
       if (isTraceError(value) && value.timestamp) {

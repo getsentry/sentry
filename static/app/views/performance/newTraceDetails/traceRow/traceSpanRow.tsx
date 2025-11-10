@@ -4,7 +4,6 @@ import {PlatformIcon} from 'platformicons';
 import {IconSentry, IconTimer} from 'sentry/icons';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {
-  isEAPSpanNode,
   isEAPTransactionNode,
   isSpanNode,
   isUptimeCheckNode,
@@ -23,7 +22,6 @@ import {
   TraceRowConnectors,
   type TraceRowProps,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 
 const NO_PROFILES: any = [];
 
@@ -32,7 +30,6 @@ export function TraceSpanRow(
 ) {
   const spanId = props.node.id;
 
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
   const childrenCount = getChildrenCount(props.node);
 
   const icon = isUptimeCheckNode(props.node) ? (
@@ -98,23 +95,12 @@ export function TraceSpanRow(
                 <strong className="TraceEmDash"> — </strong>
               </React.Fragment>
             )}
-            {shouldUseOTelFriendlyUI &&
-            isEAPSpanNode(props.node) &&
-            props.node.value.name &&
-            props.node.value.name !== props.node.value.op ? (
-              <React.Fragment>
-                <span className="TraceName" title={props.node.value.name}>
-                  {ellipsize(props.node.value.name, 100)}
-                </span>
-              </React.Fragment>
-            ) : (
-              <span className="TraceDescription" title={props.node.value.description}>
-                {isPrefetch ? '(prefetch) ' : ''}
-                {props.node.value.description
-                  ? ellipsize(props.node.value.description, 100)
-                  : (spanId ?? 'unknown')}
-              </span>
-            )}
+            <span className="TraceDescription" title={props.node.description}>
+              {isPrefetch ? '(prefetch) ' : ''}
+              {props.node.description
+                ? ellipsize(props.node.description, 100)
+                : (spanId ?? 'unknown')}
+            </span>
           </React.Fragment>
         </div>
       </div>
