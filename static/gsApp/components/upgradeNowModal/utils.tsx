@@ -4,7 +4,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 export function redirectToManage() {
   browserHistory.replace(
     normalizeUrl({
-      pathname: `/checkout/`,
+      pathname: '/checkout/',
       query: {
         referrer: 'replay_onboard-error-redirect',
       },

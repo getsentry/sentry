@@ -5,6 +5,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
@@ -29,7 +30,7 @@ function DateRangeQueryLimitFooter({
   subscription,
   upsellDefaultSelection,
 }: Props) {
-  const checkoutUrl = `/checkout/?referrer=checkout-${source}`;
+  const checkoutUrl = normalizeUrl(`/checkout/?referrer=checkout-${source}`);
 
   const canTrial = subscription.canTrial;
 
