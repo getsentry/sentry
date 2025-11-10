@@ -66,6 +66,8 @@ class GroupCategory(IntEnum):
     FRONTEND = 14
     MOBILE = 15
 
+    LLM_DETECTED = 16
+
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
     GroupCategory.ERROR,
@@ -623,7 +625,7 @@ class LLMDetectedExperimentalGroupType(GroupType):
     slug = "llm_detected_experimental"
     description = "LLM Detected Issue"
     category = GroupCategory.PERFORMANCE.value
-    category_v2 = GroupCategory.METRIC.value
+    category_v2 = GroupCategory.LLM_DETECTED.value
     default_priority = PriorityLevel.MEDIUM
     released = False
     enable_auto_resolve = False
