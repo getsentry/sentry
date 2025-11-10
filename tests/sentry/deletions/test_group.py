@@ -23,6 +23,7 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.referrer import Referrer
@@ -494,7 +495,14 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         # The Issue Platform group and occurrence have been deleted
         assert not Group.objects.filter(id=issue_platform_group.id).exists()
         # assert not nodestore.backend.get(occurrence_node_id)
-        assert self.select_issue_platform_events(self.project.id) is None
+        conditions = eventstore.Filter(
+            project_ids=[self.project.id], group_ids=[issue_platform_group.id]
+        )
+        tenant_ids = {"organization_id": self.organization.id, "referrer": "test_deletions"}
+        events = eventstore.backend.get_events(
+            conditions, dataset=Dataset.IssuePlatform, tenant_ids=tenant_ids
+        )
+        assert len(events) == 0
 
     @mock.patch("sentry.deletions.tasks.nodestore.bulk_snuba_queries")
     def test_issue_platform_batching(self, mock_bulk_snuba_queries: mock.Mock) -> None:
