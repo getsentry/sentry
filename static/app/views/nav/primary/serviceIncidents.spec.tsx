@@ -1,6 +1,7 @@
-import fetchMock from 'jest-fetch-mock';
+import {http, HttpResponse} from 'msw';
 import {ServiceIncidentFixture} from 'sentry-fixture/serviceIncident';
 
+import {server} from 'sentry-test/msw';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -14,21 +15,14 @@ describe('PrimaryNavigationServiceIncidents', () => {
     });
   });
 
-  afterEach(() => {
-    fetchMock.resetMocks();
-  });
-
   it('should not show anything if there are no incidents', async () => {
-    const mockFetchIncidents = fetchMock.mockResponse(req =>
-      req.url.endsWith('incidents/unresolved.json')
-        ? Promise.resolve(JSON.stringify({incidents: []}))
-        : Promise.reject()
-    );
+    const resolver = jest.fn(() => HttpResponse.json({incidents: []}));
+    server.use(http.get('*incidents/unresolved.json', resolver));
 
     render(<PrimaryNavigationServiceIncidents />);
 
     await waitFor(() => {
-      expect(mockFetchIncidents).toHaveBeenCalled();
+      expect(resolver).toHaveBeenCalled();
     });
 
     expect(
@@ -39,10 +33,10 @@ describe('PrimaryNavigationServiceIncidents', () => {
   it('displays button and list of incidents when clicked', async () => {
     const incident = ServiceIncidentFixture();
 
-    fetchMock.mockResponse(req =>
-      req.url.endsWith('incidents/unresolved.json')
-        ? Promise.resolve(JSON.stringify({incidents: [incident]}))
-        : Promise.reject()
+    server.use(
+      http.get('*incidents/unresolved.json', () =>
+        HttpResponse.json({incidents: [incident]})
+      )
     );
 
     render(<PrimaryNavigationServiceIncidents />);

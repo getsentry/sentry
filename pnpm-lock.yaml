@@ -378,9 +378,6 @@ importers:
       jed:
         specifier: ^1.1.0
         version: 1.1.1
-      jest-fetch-mock:
-        specifier: ^3.0.3
-        version: 3.0.3(encoding@0.1.13)
       js-beautify:
         specifier: ^1.15.1
         version: 1.15.1
@@ -4625,9 +4622,6 @@ packages:
     resolution: {integrity: sha512-ULYhWIonJzlScCCQrPUG5uMXzXxSixty4djud9SS37DoNxDdkeRocxzHuAo4ImRBUK+mAuU5X9TSwEDccnnuPg==}
     hasBin: true
 
-  cross-fetch@3.1.8:
-    resolution: {integrity: sha512-cvA+JwZoU0Xq+h6WkMvAUqPEYy92Obet6UdKLfW60qn99ftItKjB5T+BkyWOFWe2pUyfQ+IJHmpOTznqk1M6Kg==}
-
   cross-fetch@4.1.0:
     resolution: {integrity: sha512-uKm5PU+MHTootlWEY+mZ4vvXoCn4fLQxT9dSc1sXVMSFkINTJVN8cAQROpwcKm8bJ/c7rgZVIBWzH5T78sNZZw==}
 
@@ -6277,9 +6271,6 @@ packages:
   jest-fail-on-console@3.3.1:
     resolution: {integrity: sha512-dmq/dmh5OBgJlD1MJdpznzwFQP8S7msf3ghTGWQLGhagWwHKzGtqXza76nuJUKOK7BdwqcTK6CCE49Xxv4ckUQ==}
 
-  jest-fetch-mock@3.0.3:
-    resolution: {integrity: sha512-Ux1nWprtLrdrH4XwE7O7InRY6psIi3GOsqNESJgMJ+M5cv4A8Lh7SN9d2V2kKRZ8ebAfcd1LNyZguAOb6JiDqw==}
-
   jest-haste-map@30.0.2:
     resolution: {integrity: sha512-telJBKpNLeCb4MaX+I5k496556Y2FiKR/QLZc0+MGBYl4k3OO0472drlV2LUe7c1Glng5HuAu+5GLYp//GpdOQ==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
@@ -7460,9 +7451,6 @@ packages:
     peerDependenciesMeta:
       bluebird:
         optional: true
-
-  promise-polyfill@8.3.0:
-    resolution: {integrity: sha512-H5oELycFml5yto/atYqmjyigJoAo3+OXwolYiH7OfQuYlAqhxNvTfiNMbV9hsC6Yp83yE5r2KTVmtrG6R9i6Pg==}
 
   promise-retry@2.0.1:
     resolution: {integrity: sha512-y+WKFlBR8BGXnsNlIHFGPZmyDf3DFMoLhaflAnyZgV6rG6xu+JwesTo2Q9R6XwYmtmwAFCkAk3e35jEdoeh/3g==}
@@ -13885,12 +13873,6 @@ snapshots:
 
   cronstrue@2.50.0: {}
 
-  cross-fetch@3.1.8(encoding@0.1.13):
-    dependencies:
-      node-fetch: 2.7.0(encoding@0.1.13)
-    transitivePeerDependencies:
-      - encoding
-
   cross-fetch@4.1.0(encoding@0.1.13):
     dependencies:
       node-fetch: 2.7.0(encoding@0.1.13)
@@ -15962,13 +15944,6 @@ snapshots:
 
   jest-fail-on-console@3.3.1: {}
 
-  jest-fetch-mock@3.0.3(encoding@0.1.13):
-    dependencies:
-      cross-fetch: 3.1.8(encoding@0.1.13)
-      promise-polyfill: 8.3.0
-    transitivePeerDependencies:
-      - encoding
-
   jest-haste-map@30.0.2:
     dependencies:
       '@jest/types': 30.0.1
@@ -17542,8 +17517,6 @@ snapshots:
   progress@2.0.3: {}
 
   promise-inflight@1.0.1: {}
-
-  promise-polyfill@8.3.0: {}
 
   promise-retry@2.0.1:
     dependencies:
