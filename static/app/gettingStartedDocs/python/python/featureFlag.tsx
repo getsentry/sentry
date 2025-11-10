@@ -2,7 +2,8 @@ import {SdkProviderEnum as FeatureFlagProviderEnum} from 'sentry/components/even
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
-import {getPythonInstallCodeBlock} from 'sentry/utils/gettingStartedDocs/python';
+
+import {getPythonInstallCodeBlock} from './utils';
 
 type FeatureFlagConfiguration = {
   integrationName: string;

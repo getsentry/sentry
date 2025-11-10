@@ -4,7 +4,8 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t} from 'sentry/locale';
-import {getPythonInstallCodeBlock} from 'sentry/utils/gettingStartedDocs/python';
+
+import {getPythonInstallCodeBlock} from './utils';
 
 export const mcp: OnboardingConfig = {
   install: () => {

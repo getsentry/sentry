@@ -4,11 +4,10 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
-import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
+
+import {verify} from './logs';
+import {alternativeProfiling} from './profiling';
+import {getPythonInstallCodeBlock} from './utils';
 
 const getSdkSetupSnippet = (params: DocsParams) => `
 import sentry_sdk
@@ -105,7 +104,7 @@ export const onboarding: OnboardingConfig = {
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
       ],
     },
   ],
@@ -124,7 +123,7 @@ export const onboarding: OnboardingConfig = {
           language: 'python',
           code: 'division_by_zero = 1 / 0',
         },
-        getVerifyLogsContent(params),
+        verify(params),
       ],
     },
   ],
