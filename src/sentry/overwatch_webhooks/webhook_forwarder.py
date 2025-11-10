@@ -6,6 +6,7 @@ from typing import Any
 
 from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.integrations.github.webhook_types import GITHUB_WEBHOOK_TYPE_HEADER, GithubWebhookType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organizationmapping import OrganizationMapping
@@ -16,12 +17,12 @@ from sentry.utils import metrics
 
 # TODO: Double check that this includes all of the events you care about.
 GITHUB_EVENTS_TO_FORWARD_OVERWATCH = {
-    "installation",
-    "installation_repositories",
-    "issue_comment",
-    "pull_request",
-    "pull_request_review_comment",
-    "pull_request_review",
+    GithubWebhookType.INSTALLATION,
+    GithubWebhookType.INSTALLATION_REPOSITORIES,
+    GithubWebhookType.ISSUE_COMMENT,
+    GithubWebhookType.PULL_REQUEST,
+    GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT,
+    GithubWebhookType.PULL_REQUEST_REVIEW,
 }
 
 
@@ -45,7 +46,7 @@ class OverwatchGithubWebhookForwarder:
         self.integration = integration
 
     def should_forward_to_overwatch(self, headers: Mapping[str, str]) -> bool:
-        return headers.get("HTTP_X_GITHUB_EVENT") in GITHUB_EVENTS_TO_FORWARD_OVERWATCH
+        return headers.get(GITHUB_WEBHOOK_TYPE_HEADER) in GITHUB_EVENTS_TO_FORWARD_OVERWATCH
 
     def _get_org_summaries_by_region_for_integration(
         self, integration: Integration
@@ -108,12 +109,8 @@ class OverwatchGithubWebhookForwarder:
         region_name = None
         try:
             enabled_regions = options.get("overwatch.enabled-regions")
-            logger.info(
-                "overwatch.debug.enabled_regions", extra={"enabled_regions": enabled_regions}
-            )
             if not enabled_regions:
                 # feature isn't enabled, no work to do
-                logger.info("overwatch.debug.excluded.feature_not_enabled", extra={})
                 return
 
             orgs_by_region = self._get_org_summaries_by_region_for_integration(
@@ -177,10 +174,6 @@ class OverwatchGithubWebhookForwarder:
                     region=region_name,
                     app_id=app_id,
                 )
-                logger.info(
-                    "overwatch.debug.webhook_detail.created",
-                    extra={"region_name": region_name, "app_id": app_id},
-                )
 
                 publisher = OverwatchWebhookPublisher(
                     integration_provider=self.integration.provider,
@@ -192,9 +185,6 @@ class OverwatchGithubWebhookForwarder:
                     "overwatch.forward-webhooks.success",
                     sample_rate=1.0,
                     tags={"forward_region": region_name},
-                )
-                logger.info(
-                    "overwatch.debug.metrics_incr.success", extra={"region_name": region_name}
                 )
         except Exception:
             metrics.incr(
