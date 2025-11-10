@@ -2,9 +2,7 @@ import {useRef, useState} from 'react';
 import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 
-import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {AiPrivacyNotice} from 'sentry/components/aiPrivacyNotice';
+import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {
@@ -56,23 +54,18 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
     <AskSeerListItem ref={ref} onClick={handleClick} {...optionProps}>
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <IconSeer />
-      <Tooltip
-        title={
-          <AiPrivacyNotice
-            linkProps={{
-              onMouseOver: () => setOptionDisableOverride(true),
-              onMouseOut: () => setOptionDisableOverride(false),
-            }}
-          />
-        }
-        isHoverable
+      <AiPrivacyTooltip
+        linkProps={{
+          onMouseOver: () => setOptionDisableOverride(true),
+          onMouseOut: () => setOptionDisableOverride(false),
+        }}
         showUnderline={hasAskSeerConsentFlowChanges}
         disabled={!hasAskSeerConsentFlowChanges}
       >
         <AskSeerLabel {...labelProps}>
           {t('Ask Seer to build your query')} <FeatureBadge type="beta" />
         </AskSeerLabel>
-      </Tooltip>
+      </AiPrivacyTooltip>
     </AskSeerListItem>
   );
 }

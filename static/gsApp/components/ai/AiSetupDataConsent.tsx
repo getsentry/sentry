@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {AiPrivacyNotice} from 'sentry/components/aiPrivacyNotice';
+import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';

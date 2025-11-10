@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {AiPrivacyNotice} from 'sentry/components/aiPrivacyNotice';
+import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 

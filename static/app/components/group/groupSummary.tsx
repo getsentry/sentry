@@ -2,9 +2,7 @@ import {isValidElement, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {AiPrivacyNotice} from 'sentry/components/aiPrivacyNotice';
+import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
@@ -217,9 +215,9 @@ function GroupSummaryPreview({
               <InsightCard key={card.id}>
                 <CardTitle>
                   <CardTitleIcon>{card.icon}</CardTitleIcon>
-                  <Tooltip title={<AiPrivacyNotice />} showUnderline isHoverable>
+                  <AiPrivacyTooltip showUnderline isHoverable>
                     <CardTitleText>{card.title}</CardTitleText>
-                  </Tooltip>
+                  </AiPrivacyTooltip>
                 </CardTitle>
                 <CardContentContainer>
                   <CardLineDecorationWrapper>
