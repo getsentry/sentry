@@ -38,7 +38,7 @@ export const replay: OnboardingConfig = {
           tabs: [
             {
               label: 'JavaScript',
-              filename: 'sentry.client.config.js',
+              filename: 'instrumentation-client.js',
               language: 'javascript',
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/nextjs";`,
