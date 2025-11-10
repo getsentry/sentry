@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from django.utils.html import escape
-
 from sentry.notifications.platform.provider import NotificationProvider, NotificationProviderError
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -103,15 +101,14 @@ class MSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
     @classmethod
     def render_text_blocks(cls, blocks: list[NotificationBodyTextBlock]) -> str:
-        texts: list[str] = []
+        texts = []
         for block in blocks:
-            escaped_text = escape(block.text)
             if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
-                texts.append(escaped_text)
+                texts.append(block.text)
             elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
-                texts.append(f"**{escaped_text}**")
+                texts.append(f"**{block.text}**")
             elif block.type == NotificationBodyTextBlockType.CODE:
-                texts.append(f"`{escaped_text}`")
+                texts.append(f"`{block.text}`")
         return " ".join(texts)
 
 
