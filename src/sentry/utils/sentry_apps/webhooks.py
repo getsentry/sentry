@@ -80,6 +80,12 @@ def send_and_save_webhook_request(
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=event
     ).capture() as lifecycle:
+        if sentry_app.slug in options.get("sentry-apps.webhook.restricted-webhook-sending"):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                body=f"Webhook sending restricted for app: {sentry_app.slug}",
+            )
+
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
         org_id = app_platform_event.install.organization_id
         slug = sentry_app.slug_for_metrics
