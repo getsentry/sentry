@@ -218,10 +218,7 @@ function getPageParam(
         }
       : undefined;
 
-    if (
-      (highFidelity && !autoRefresh) ||
-      (isFlexTimePageParam(pageParam) && !autoRefresh)
-    ) {
+    if (highFidelity || isFlexTimePageParam(pageParam)) {
       const pageLinkHeader = response?.getResponseHeader('Link') ?? null;
       const links = parseLinkHeader(pageLinkHeader);
       const link = isGetPreviousPage ? links.previous : links.next;
@@ -269,8 +266,8 @@ function getPageParam(
     const timestampPrecise = isGetPreviousPage ? firstTimestamp : lastTimestamp;
 
     const indexFromInitialPage = isGetPreviousPage
-      ? ((pageParam as InfiniteScrollPageParam)?.indexFromInitialPage ?? 0) - 1
-      : ((pageParam as InfiniteScrollPageParam)?.indexFromInitialPage ?? 0) + 1;
+      ? (pageParam?.indexFromInitialPage ?? 0) - 1
+      : (pageParam?.indexFromInitialPage ?? 0) + 1;
 
     const pageParamResult: InfiniteScrollPageParam = {
       logId,

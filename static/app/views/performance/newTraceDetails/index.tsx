@@ -13,7 +13,7 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import TraceAiSpans from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
-  TraceViewMetricsDataProvider,
+  TraceViewMetricsProviderWrapper,
   TraceViewMetricsSection,
 } from 'sentry/views/performance/newTraceDetails/traceMetrics';
 import {
@@ -74,14 +74,14 @@ export default function TraceView() {
 
   return (
     <TraceViewLogsDataProvider traceSlug={traceSlug}>
-      <TraceViewMetricsDataProvider traceSlug={traceSlug}>
+      <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
         <TraceStateProvider
           initialPreferences={preferences}
           preferencesStorageKey={TRACE_VIEW_PREFERENCES_KEY}
         >
           <TraceViewImpl traceSlug={traceSlug} />
         </TraceStateProvider>
-      </TraceViewMetricsDataProvider>
+      </TraceViewMetricsProviderWrapper>
     </TraceViewLogsDataProvider>
   );
 }

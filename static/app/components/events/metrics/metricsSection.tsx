@@ -4,6 +4,7 @@ import {Flex} from '@sentry/scraps/layout/flex';
 
 import {Button} from 'sentry/components/core/button';
 import {MetricsDrawer} from 'sentry/components/events/metrics/metricsDrawer';
+import {useMetricsIssueSection} from 'sentry/components/events/metrics/useMetricsIssueSection';
 import useDrawer from 'sentry/components/globalDrawer';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -13,13 +14,12 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {TraceViewMetricsDataProvider} from 'sentry/views/performance/newTraceDetails/traceMetrics';
+import {TraceViewMetricsProviderWrapper} from 'sentry/views/performance/newTraceDetails/traceMetrics';
 
 export function MetricsSection({
   event,
@@ -37,9 +37,14 @@ export function MetricsSection({
   }
 
   return (
-    <TraceViewMetricsDataProvider traceSlug={traceId}>
-      <MetricsSectionContent event={event} group={group} project={project} />
-    </TraceViewMetricsDataProvider>
+    <TraceViewMetricsProviderWrapper traceSlug={traceId}>
+      <MetricsSectionContent
+        event={event}
+        group={group}
+        project={project}
+        traceId={traceId}
+      />
+    </TraceViewMetricsProviderWrapper>
   );
 }
 
@@ -47,26 +52,19 @@ function MetricsSectionContent({
   event,
   project,
   group,
+  traceId,
 }: {
   event: Event;
   group: Group;
   project: Project;
+  traceId: string;
 }) {
   const organization = useOrganization();
   const feature = canUseMetricsUI(organization);
   const {openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
-  const traceId = event.contexts?.trace?.trace_id;
-
-  const {
-    result: {data: tableData},
-  } = useMetricSamplesTable({
-    disabled: !traceId,
-    limit: 5,
-    traceMetric: undefined,
-    fields: [],
-    ingestionDelaySeconds: 120,
-  });
+  const {result} = useMetricsIssueSection({traceId});
+  const abbreviatedTableData = result.data ? result.data.slice(0, 5) : undefined;
 
   const onOpenMetricsDrawer = useCallback(
     (e: React.MouseEvent) => {
@@ -76,14 +74,14 @@ function MetricsSectionContent({
       });
       openDrawer(
         () => (
-          <TraceViewMetricsDataProvider traceSlug={traceId!}>
+          <TraceViewMetricsProviderWrapper traceSlug={traceId}>
             <TraceItemAttributeProvider
               traceItemType={TraceItemDataset.TRACEMETRICS}
               enabled
             >
               <MetricsDrawer group={group} event={event} project={project} />
             </TraceItemAttributeProvider>
-          </TraceViewMetricsDataProvider>
+          </TraceViewMetricsProviderWrapper>
         ),
         {
           ariaLabel: 'metrics drawer',
@@ -107,7 +105,7 @@ function MetricsSectionContent({
     return null;
   }
 
-  if (!tableData || tableData.length === 0) {
+  if (!result.data || result.data.length === 0) {
     // Don't show the metrics section if there are no metrics
     return null;
   }
@@ -120,8 +118,8 @@ function MetricsSectionContent({
       data-test-id="metrics-data-section"
     >
       <Flex direction="column" gap="xl">
-        <MetricsSamplesTable embedded />
-        {tableData && tableData.length > 5 ? (
+        <MetricsSamplesTable embedded overrideTableData={abbreviatedTableData} />
+        {result.data && result.data.length > 5 ? (
           <div>
             <Button
               icon={<IconChevron direction="right" />}
