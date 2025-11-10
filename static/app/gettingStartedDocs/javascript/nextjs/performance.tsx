@@ -93,7 +93,7 @@ Sentry.init({
           type: 'code',
           language: 'javascript',
           code: `
-// sentry.client.config.js
+// instrumentation-client.js
 Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [Sentry.browserTracingIntegration()],
