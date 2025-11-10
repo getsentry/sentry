@@ -18,7 +18,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -28,14 +27,12 @@ interface CursorIntegrationCtaProps {
   dismissKey?: string;
   dismissible?: boolean;
   organization?: Organization;
-  variant?: 'drawer' | 'settings';
 }
 
 export function CursorIntegrationCta({
   project,
   dismissible = false,
   dismissKey,
-  variant = 'drawer',
 }: CursorIntegrationCtaProps) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -137,21 +134,19 @@ export function CursorIntegrationCta({
     return null;
   }
 
-  const CardWrapper = variant === 'drawer' ? DrawerCard : SettingsCard;
-
   // Show loading state while fetching data
   if (isLoadingPreferences || isLoadingIntegrations || isUpdatingPreferences) {
     return (
-      <CardWrapper>
+      <Card>
         <Placeholder height="120px" />
-      </CardWrapper>
+      </Card>
     );
   }
 
   // Stage 1: Integration not installed
   if (!hasCursorIntegration) {
     return (
-      <CardWrapper>
+      <Card>
         {dismissible && (
           <DismissButton
             size="xs"
@@ -184,14 +179,14 @@ export function CursorIntegrationCta({
             </LinkButton>
           </div>
         </Flex>
-      </CardWrapper>
+      </Card>
     );
   }
 
   // Stage 2: Integration installed but handoff not configured
   if (!isConfigured) {
     return (
-      <CardWrapper>
+      <Card>
         {dismissible && (
           <DismissButton
             size="xs"
@@ -227,13 +222,13 @@ export function CursorIntegrationCta({
             </Button>
           </div>
         </Flex>
-      </CardWrapper>
+      </Card>
     );
   }
 
   // Stage 3: Configured or just configured
   return (
-    <CardWrapper>
+    <Card>
       {dismissible && (
         <DismissButton
           size="xs"
@@ -251,58 +246,33 @@ export function CursorIntegrationCta({
           </Flex>
         </Heading>
         <Text>
-          {variant === 'settings'
-            ? tct(
-                'Cursor handoff is active. During automation runs, Seer will automatically trigger Cursor Background Agents. [docsLink:Read the docs] to learn more.',
-                {
-                  docsLink: (
-                    <ExternalLink href="https://docs.sentry.io/integrations/cursor/" />
-                  ),
-                }
-              )
-            : tct(
-                'Cursor handoff is active. During automation runs, Seer will automatically trigger Cursor Background Agents. [seerProjectSettings:Configure in Seer project settings] or [docsLink:read the docs] to learn more.',
-                {
-                  seerProjectSettings: (
-                    <Link to={`/settings/projects/${project.slug}/seer/`} />
-                  ),
-                  docsLink: (
-                    <ExternalLink href="https://docs.sentry.io/integrations/cursor/" />
-                  ),
-                }
-              )}
+          {tct(
+            'Cursor handoff is active. During automation runs, Seer will automatically trigger Cursor Background Agents. [docsLink:Read the docs] to learn more.',
+            {
+              docsLink: (
+                <ExternalLink href="https://docs.sentry.io/integrations/cursor/" />
+              ),
+            }
+          )}
         </Text>
       </Flex>
-    </CardWrapper>
+    </Card>
   );
 }
 
-const DrawerCard = styled('div')`
+const Card = styled('div')`
   position: relative;
-  background: ${p => p.theme.backgroundElevated};
-  overflow: visible;
+  padding: ${p => p.theme.space.xl};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)} ${space(2)};
-  box-shadow: ${p => p.theme.dropShadowMedium};
-  transition: all 0.3s ease-in-out;
-  margin-top: ${space(2)};
-  margin-bottom: ${space(2)};
-`;
-
-const SettingsCard = styled('div')`
-  position: relative;
-  padding: ${space(2)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  margin-top: ${space(3)};
-  margin-bottom: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const DismissButton = styled(Button)`
   position: absolute;
-  top: ${space(1)};
-  right: ${space(1)};
+  top: ${p => p.theme.space.md};
+  right: ${p => p.theme.space.md};
   color: ${p => p.theme.subText};
 
   &:hover {

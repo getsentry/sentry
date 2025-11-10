@@ -325,11 +325,7 @@ function ProjectSeer({
         })}
       />
       <ProjectSeerGeneralForm project={project} />
-      <CursorIntegrationCta
-        project={project}
-        organization={organization}
-        variant="settings"
-      />
+      <CursorIntegrationCta project={project} organization={organization} />
       <AutofixRepositories project={project} />
       <Center>
         <LinkButton
