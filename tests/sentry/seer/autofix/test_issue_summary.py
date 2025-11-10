@@ -722,27 +722,50 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
     @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    @pytest.mark.parametrize(
-        "score,expected",
-        [(0.80, AutofixStoppingPoint.OPEN_PR), (0.50, AutofixStoppingPoint.SOLUTION)],
-    )
-    def test_with_feature_flag(
-        self, score, expected, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
+    def test_high_fixability_open_pr(
+        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
     ):
         from sentry.seer.autofix.issue_summary import _run_automation
 
+        self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
             headline="h",
             whats_wrong="w",
             trace="t",
             possible_cause="c",
-            scores=SummarizeIssueScores(fixability_score=score),
+            scores=SummarizeIssueScores(fixability_score=0.80),
         )
         _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
-        assert mock_trigger.call_args[1]["stopping_point"] == expected
+        mock_trigger.assert_called_once()
+        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.OPEN_PR
 
-    @with_feature("organizations:gen-ai-features")
+    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
+    @patch(
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
+        return_value=False,
+    )
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
+    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_medium_fixability_solution(
+        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
+    ):
+        from sentry.seer.autofix.issue_summary import _run_automation
+
+        self.project.update_option("sentry:autofix_automation_tuning", "always")
+        mock_gen.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
+            scores=SummarizeIssueScores(fixability_score=0.50),
+        )
+        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        mock_trigger.assert_called_once()
+        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.SOLUTION
+
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch(
         "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
@@ -754,6 +777,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     def test_without_feature_flag(self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger):
         from sentry.seer.autofix.issue_summary import _run_automation
 
+        self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
             headline="h",
@@ -762,6 +786,11 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             possible_cause="c",
             scores=SummarizeIssueScores(fixability_score=0.80),
         )
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+
+        with self.feature(
+            {"organizations:gen-ai-features": True, "organizations:triage-signals-v0": False}
+        ):
+            _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] is None
