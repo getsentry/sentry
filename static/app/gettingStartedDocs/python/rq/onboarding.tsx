@@ -1,23 +1,14 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
-import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
-import {logs} from 'sentry/gettingStartedDocs/python/python/logs';
-import {
-  alternativeProfiling,
-  profiling,
-} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getInitCallSnippet = (params: Params) => `
+const getInitCallSnippet = (params: DocsParams) => `
 sentry_sdk.init(
   dsn="${params.dsn.public}",
   # Add data like request headers and IP for users,
@@ -57,7 +48,7 @@ sentry_sdk.init(
 )
 `;
 
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = (params: DocsParams) => `
 import sentry_sdk
 
 ${getInitCallSnippet(params)}`;
@@ -72,13 +63,13 @@ def hello(name):
     1/0  # raises an error
     return "Hello %s!" % name`;
 
-const getWorkerSetupSnippet = (params: Params) => `
+const getWorkerSetupSnippet = (params: DocsParams) => `
 import sentry_sdk
 
 # Sentry configuration for RQ worker processes
 ${getInitCallSnippet(params)}`;
 
-const getMainPythonScriptSetupSnippet = (params: Params) => `
+const getMainPythonScriptSetupSnippet = (params: DocsParams) => `
 from redis import Redis
 from rq import Queue
 
@@ -94,7 +85,7 @@ q = Queue(connection=Redis())
 with sentry_sdk.start_transaction(name="testing_sentry"):
     result = q.enqueue(hello, "World")`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct('The RQ integration adds support for the [link:RQ Job Queue System].', {
       link: <ExternalLink href="https://python-rq.org/" />,
@@ -113,7 +104,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -242,15 +233,3 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-const docs: Docs = {
-  onboarding,
-  profilingOnboarding: profiling({basePackage: 'sentry-sdk[rq]'}),
-  crashReportOnboarding: crashReport,
-  agentMonitoringOnboarding: agentMonitoring,
-  logsOnboarding: logs({
-    packageName: 'sentry-sdk[rq]',
-  }),
-};
-
-export default docs;
