@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Any
 
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -10,7 +11,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.auth.superuser import superuser_has_permission
-from sentry.issue_detection.performance_detection import get_merged_settings
+from sentry.issue_detection.performance_detection import (
+    DETECTOR_TYPE_TO_SETTINGS_KEYS,
+    get_merged_settings,
+)
 from sentry.issues.grouptype import (
     GroupType,
     PerformanceConsecutiveDBQueriesGroupType,
@@ -124,6 +128,77 @@ thresholds_to_manage_map: dict[str, str] = {
 A mapping of threshold setting to the parent setting that manages it's detection.
 Used to determine if a threshold setting can be modified.
 """
+
+
+def _get_settings_key_to_detector_config() -> dict[str, tuple[str, str]]:
+    """
+    Dynamically generate reverse mapping from settings keys to (detector_type_slug, config_field).
+    Derived from DETECTOR_TYPE_TO_SETTINGS_KEYS in performance_detection.py.
+    """
+    reverse_mapping = {}
+    for detector_type_slug, field_mapping in DETECTOR_TYPE_TO_SETTINGS_KEYS.items():
+        for config_field, settings_key in field_mapping.items():
+            reverse_mapping[settings_key] = (detector_type_slug, config_field)
+    return reverse_mapping
+
+
+def _update_detector_settings(project_id: int, data: dict) -> None:
+    """
+    Update Detector model settings for performance detectors that have been migrated
+    to the Detector framework. Uses dynamically generated mapping to update any
+    migrated detector type.
+    """
+    try:
+        from sentry.workflow_engine.models import Detector
+
+        settings_key_to_detector_config = _get_settings_key_to_detector_config()
+
+        # Group settings by detector type
+        detector_updates: dict[str, dict[str, Any]] = {}
+
+        for setting_key, value in data.items():
+            if setting_key not in settings_key_to_detector_config:
+                continue
+
+            detector_type_slug, config_field = settings_key_to_detector_config[setting_key]
+
+            if detector_type_slug not in detector_updates:
+                detector_updates[detector_type_slug] = {}
+
+            detector_updates[detector_type_slug][config_field] = value
+
+        # Apply updates to each affected detector
+        for detector_type_slug, updates in detector_updates.items():
+            detector = Detector.objects.filter(
+                project_id=project_id,
+                type=detector_type_slug,
+            ).first()
+
+            if not detector:
+                continue
+
+            update_fields = []
+
+            # Update enabled status if provided
+            if "detection_enabled" in updates:
+                detector.enabled = updates["detection_enabled"]
+                update_fields.append("enabled")
+
+            # Update config fields
+            config_updates = {k: v for k, v in updates.items() if k != "detection_enabled"}
+            if config_updates:
+                config = detector.config or {}
+                config.update(config_updates)
+                detector.config = config
+                update_fields.append("config")
+
+            if update_fields:
+                detector.save(update_fields=update_fields)
+
+    except Exception:
+        # If Detector model doesn't exist yet, settings will only be in project options
+        # This ensures backward compatibility during migration
+        pass
 
 
 class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
@@ -313,6 +388,9 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
             SETTINGS_PROJECT_OPTION_KEY,
             {**performance_issue_settings_default, **performance_issue_settings, **data},
         )
+
+        # Also update Detector model settings for migrated detector types
+        _update_detector_settings(project.id, data)
 
         if body_has_admin_options or body_has_management_options:
             self.create_audit_entry(
