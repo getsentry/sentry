@@ -12,6 +12,7 @@ import type {
 } from 'sentry/views/replays/types';
 
 type Options = {
+  enabled: boolean;
   eventView: EventView;
   location: Location<ReplayListLocationQuery>;
   organization: Organization;
@@ -24,6 +25,7 @@ type State = Awaited<ReturnType<typeof fetchReplayList>> & {isFetching: boolean}
 type Result = State;
 
 function useReplayList({
+  enabled,
   eventView,
   location,
   organization,
@@ -44,8 +46,11 @@ function useReplayList({
     api.clear();
     setData(prev => ({
       ...prev,
-      isFetching: true,
+      isFetching: enabled ? true : false,
     }));
+    if (!enabled) {
+      return;
+    }
     const response = await fetchReplayList({
       api,
       organization,
@@ -57,7 +62,16 @@ function useReplayList({
     });
 
     setData({...response, isFetching: false});
-  }, [api, organization, location, eventView, queryReferrer, perPage, selection]);
+  }, [
+    api,
+    organization,
+    location,
+    eventView,
+    queryReferrer,
+    perPage,
+    selection,
+    enabled,
+  ]);
 
   useEffect(() => {
     loadReplays();

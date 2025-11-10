@@ -89,14 +89,12 @@ function useReplaysFromTransaction({
       version: 2,
       fields: REPLAY_LIST_FIELDS,
       projects: [],
+      query: response.replayIds.length ? `id:[${String(response.replayIds)}]` : undefined,
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     };
 
-    if (response.replayIds.length) {
-      savedQuery.query = `id:[${String(response.replayIds)}]`;
-    }
     return EventView.fromSavedQuery(savedQuery);
-  }, [location.query.sort, response.replayIds]);
+  }, [location.query.sort, response]);
 
   useEffect(() => {
     fetchReplayIds();
