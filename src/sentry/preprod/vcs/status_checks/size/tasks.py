@@ -24,6 +24,7 @@ from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.size.templates import format_status_check_messages
+from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
     name="sentry.preprod.tasks.create_preprod_status_check",
     namespace=integrations_tasks,
     processing_deadline_duration=30,
-    retry=Retry(times=3),
+    retry=Retry(times=3, ignore=(IntegrationConfigurationError,)),
     silo_mode=SiloMode.REGION,
 )
 def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
@@ -351,9 +352,47 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 response = self.client.create_check_run(repo=repo, data=check_data)
                 check_id = response.get("id")
                 return str(check_id) if check_id else None
-            except Exception as e:
+            except ApiError as e:
                 lifecycle.record_failure(e)
-                return None
+                # Only convert specific permission 403s as IntegrationConfigurationError
+                # GitHub can return 403 for various reasons (rate limits, temporary issues, permissions)
+                if e.code == 403:
+                    error_message = str(e).lower()
+                    if (
+                        "resource not accessible" in error_message
+                        or "insufficient" in error_message
+                        or "permission" in error_message
+                    ):
+                        logger.exception(
+                            "preprod.status_checks.create.insufficient_permissions",
+                            extra={
+                                "organization_id": self.organization_id,
+                                "integration_id": self.integration_id,
+                                "repo": repo,
+                                "error_message": str(e),
+                            },
+                        )
+                        raise IntegrationConfigurationError(
+                            "GitHub App lacks permissions to create check runs. "
+                            "Please ensure the app has the required permissions and that "
+                            "the organization has accepted any updated permissions."
+                        ) from e
+                elif e.code and 400 <= e.code < 500 and e.code != 429:
+                    logger.exception(
+                        "preprod.status_checks.create.client_error",
+                        extra={
+                            "organization_id": self.organization_id,
+                            "integration_id": self.integration_id,
+                            "repo": repo,
+                            "status_code": e.code,
+                        },
+                    )
+                    raise IntegrationConfigurationError(
+                        f"GitHub API returned {e.code} client error when creating check run"
+                    ) from e
+
+                # For non-permission 403s, 429s, 5xx, and other error
+                raise
 
 
 GITHUB_STATUS_CHECK_STATUS_MAPPING: dict[StatusCheckStatus, GitHubCheckStatus] = {
