@@ -65,7 +65,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
     def annotate_build_code_column(self) -> Self:
         """
         Adds a `build_code_case` column to the queryset which is used to properly sort
-        by build number to match compare_version behavior:
+        by build code to match compare_version behavior:
         - Alphanumeric builds (NULL build_number, non-NULL build_code): case=2 (highest)
         - Numeric builds (non-NULL build_number): case=1 (middle)
         - No build metadata (NULL build_number, NULL build_code): case=0 (lowest)
@@ -137,7 +137,6 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         Typically we build a `SemverFilter` via `sentry.search.events.filter.parse_semver`
         """
         qs = self.filter(organization_id=organization_id).annotate_prerelease_column()
-
         query_func = "exclude" if semver_filter.negated else "filter"
 
         if semver_filter.package:

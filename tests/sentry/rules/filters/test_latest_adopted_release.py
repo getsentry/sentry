@@ -1,7 +1,11 @@
 from datetime import UTC, datetime, timedelta
 
-from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
-from sentry.testutils.cases import RuleTestCase
+from sentry.rules.filters.latest_adopted_release_filter import (
+    LatestAdoptedReleaseFilter,
+    LatestReleaseOrders,
+    is_newer_release,
+)
+from sentry.testutils.cases import RuleTestCase, TestCase
 
 
 class LatestAdoptedReleaseFilterTest(RuleTestCase):
@@ -196,3 +200,64 @@ class LatestAdoptedReleaseFilterTest(RuleTestCase):
 
         self.create_group_release(group=group_3, release=middle_release)
         self.assertDoesNotPass(rule, event_3)
+
+
+class IsNewerReleaseTest(TestCase):
+    def _test_is_newer_release_semver_helper(self, with_build_code: bool) -> None:
+        """Test that is_newer_release correctly compares releases with semver and build code."""
+        older_release = self.create_release(version="test@1.0", project=self.project)
+        newer_release = self.create_release(version="test@2.0", project=self.project)
+        newer_release_older_numeric = self.create_release(
+            version="test@2.0+100", project=self.project
+        )
+        newer_release_newer_numeric = self.create_release(
+            version="test@2.0+200", project=self.project
+        )
+        newer_release_alpha = self.create_release(version="test@2.0+zzz", project=self.project)
+
+        if with_build_code:
+            assert is_newer_release(newer_release, older_release, LatestReleaseOrders.SEMVER)
+
+            # numeric build codes are compared numerically
+            assert is_newer_release(
+                newer_release_newer_numeric, newer_release_older_numeric, LatestReleaseOrders.SEMVER
+            )
+
+            # alphanumeric builds are always newer than numeric builds
+            assert is_newer_release(
+                newer_release_alpha, newer_release_older_numeric, LatestReleaseOrders.SEMVER
+            )
+            assert is_newer_release(
+                newer_release_alpha, newer_release_newer_numeric, LatestReleaseOrders.SEMVER
+            )
+
+            # releases without build are always older than releases with build
+            assert is_newer_release(
+                newer_release_older_numeric, newer_release, LatestReleaseOrders.SEMVER
+            )
+            assert is_newer_release(newer_release_alpha, newer_release, LatestReleaseOrders.SEMVER)
+        else:
+            assert is_newer_release(newer_release, older_release, LatestReleaseOrders.SEMVER)
+
+            # all releases with version 1.0 are considered equal
+            assert not is_newer_release(
+                newer_release_newer_numeric, newer_release_older_numeric, LatestReleaseOrders.SEMVER
+            )
+            assert not is_newer_release(
+                newer_release_older_numeric, newer_release_newer_numeric, LatestReleaseOrders.SEMVER
+            )
+            assert not is_newer_release(
+                newer_release_alpha, newer_release_older_numeric, LatestReleaseOrders.SEMVER
+            )
+            assert not is_newer_release(
+                newer_release, newer_release_older_numeric, LatestReleaseOrders.SEMVER
+            )
+
+    def test_is_newer_release_semver(self) -> None:
+        """Test is_newer_release without build code ordering."""
+        self._test_is_newer_release_semver_helper(with_build_code=False)
+
+    def test_is_newer_release_semver_with_build_code(self) -> None:
+        """Test is_newer_release with build code ordering feature flag."""
+        with self.feature("organizations:semver-ordering-with-build-code"):
+            self._test_is_newer_release_semver_helper(with_build_code=True)
