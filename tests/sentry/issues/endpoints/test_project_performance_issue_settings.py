@@ -36,7 +36,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert response.data["file_io_on_main_thread_detection_enabled"]
         assert response.data["consecutive_db_queries_detection_enabled"]
         assert response.data["large_render_blocking_asset_detection_enabled"]
-        assert not response.data["web_vitals_detection_enabled"]  # Disabled by default
+        assert response.data["web_vitals_detection_enabled"]
 
         get_value.return_value = {
             "slow_db_queries_detection_enabled": False,
