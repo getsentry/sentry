@@ -4,6 +4,7 @@ import {logs} from 'sentry/gettingStartedDocs/javascript/react/logs';
 
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
+import {metrics} from './metrics';
 import {onboarding} from './onboarding';
 import {performance} from './performance';
 import {profiling} from './profiling';
@@ -18,6 +19,7 @@ const docs: Docs = {
   profilingOnboarding: profiling,
   logsOnboarding: logs,
   featureFlagOnboarding: featureFlag,
+  metricsOnboarding: metrics,
 };
 
 export default docs;
