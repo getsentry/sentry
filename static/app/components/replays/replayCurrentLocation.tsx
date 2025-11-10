@@ -2,7 +2,7 @@ import {Flex} from '@sentry/scraps/layout/flex';
 import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ReplayCurrentLocationPicker from 'sentry/components/replays/replayCurrentLocationPicker';
+import ReplayCurrentLocationInput from 'sentry/components/replays/replayCurrentLocationInput';
 import {IconFatal} from 'sentry/icons/iconFatal';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
@@ -18,7 +18,7 @@ export default function ReplayCurrentLocation({isLoading}: Props) {
 
   return (
     <Flex align="center" flex="1" gap="sm" justify="between" radius="md">
-      <ReplayCurrentLocationPicker />
+      <ReplayCurrentLocationInput />
       <ErrorBoundary customComponent={FatalIconTooltip}>
         <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
       </ErrorBoundary>

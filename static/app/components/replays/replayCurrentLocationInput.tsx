@@ -18,7 +18,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 
-export default function ReplayCurrentLocationPicker() {
+export default function ReplayCurrentLocationInput() {
   const organization = useOrganization();
   const replay = useReplayReader();
   const {currentTime} = useReplayContext();
