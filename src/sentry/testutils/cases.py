@@ -3794,6 +3794,8 @@ class ReplayEAPTestCase(BaseTestCase):
         assert response.status_code == 200
 
         for replay in replays:
+            # Reverse the ids here since these are stored in little endian in Clickhouse
+            # and end up reversed.
             replay.item_id = replay.item_id[::-1]
 
 
