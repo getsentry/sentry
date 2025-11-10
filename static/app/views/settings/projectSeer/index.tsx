@@ -241,14 +241,16 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           : (preference?.automated_run_stopping_point ?? 'root_cause'),
       };
 
+  const formKey = hasFixabilityBasedStoppingPoint
+    ? 'fixability-based'
+    : preference?.automation_handoff
+      ? 'cursor_handoff'
+      : (preference?.automated_run_stopping_point ?? 'root_cause');
+
   return (
     <Fragment>
       <Form
-        key={
-          preference?.automation_handoff
-            ? 'cursor_handoff'
-            : (preference?.automated_run_stopping_point ?? 'root_cause')
-        }
+        key={formKey}
         saveOnBlur
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
