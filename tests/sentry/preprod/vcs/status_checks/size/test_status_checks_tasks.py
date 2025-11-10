@@ -13,6 +13,7 @@ from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_ch
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.utils import json
 
 
 @region_silo_test
@@ -663,3 +664,66 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 assert "rate limit" in str(e).lower()
 
         assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_create_preprod_status_check_task_truncates_long_summary(self):
+        """Test task truncates summary when it exceeds GitHub's byte limit."""
+        commit_comparison = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+        )
+
+        artifacts = []
+        for i in range(150):
+            long_app_id = f"com.example.very.long.app.identifier.number.{i}" + "x" * 200
+            artifact = PreprodArtifact.objects.create(
+                project=self.project,
+                state=PreprodArtifact.ArtifactState.FAILED,
+                app_id=long_app_id,
+                error_message=f"This is a very long error message that will contribute to the summary size. Error #{i}: "
+                + "y" * 500,
+                commit_comparison=commit_comparison,
+            )
+            artifacts.append(artifact)
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="test-truncation",
+            provider="github",
+            metadata={"access_token": "test_token", "expires_at": "2099-01-01T00:00:00Z"},
+        )
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/owner/repo/check-runs",
+            status=201,
+            json={"id": 12345, "status": "completed"},
+        )
+
+        with self.tasks():
+            create_preprod_status_check_task(artifacts[0].id)
+
+        assert len(responses.calls) == 1
+        request_body = responses.calls[0].request.body
+
+        payload = json.loads(request_body)
+        summary = payload["output"]["summary"]
+
+        assert summary is not None
+        summary_bytes = len(summary.encode("utf-8"))
+
+        assert summary_bytes <= 65535, f"Summary has {summary_bytes} bytes, exceeds GitHub limit"
+        assert summary.endswith("..."), "Truncated summary should end with '...'"
