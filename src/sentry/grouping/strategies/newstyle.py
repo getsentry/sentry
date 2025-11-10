@@ -8,7 +8,6 @@ from collections.abc import Generator
 from typing import TYPE_CHECKING, Any
 
 from sentry.grouping.component import (
-    BaseGroupingComponent,
     ChainedExceptionGroupingComponent,
     ContextLineGroupingComponent,
     ErrorTypeGroupingComponent,
@@ -23,7 +22,6 @@ from sentry.grouping.component import (
     NSErrorDomainGroupingComponent,
     NSErrorGroupingComponent,
     StacktraceGroupingComponent,
-    ThreadNameGroupingComponent,
     ThreadsGroupingComponent,
 )
 from sentry.grouping.strategies.base import (
@@ -885,29 +883,10 @@ def threads(
 def _get_thread_components(
     threads: list[dict[str, Any]], event: Event, context: GroupingContext, **kwargs: dict[str, Any]
 ) -> ComponentsByVariant | None:
-    # Only process single-thread scenarios (existing behavior)
-    # Multiple threads are ambiguous for grouping
     if len(threads) != 1:
         return None
 
-    thread = threads[0]
-    stacktrace = thread.get("stacktrace")
-
-    # Check if config enables thread name in grouping via initial_context
-    include_thread_name = context.get("include_thread_name_in_grouping", False)
-
-    # Collect thread metadata components (only thread name, as IDs are random)
-    thread_metadata: list[BaseGroupingComponent[str]] = []
-    if include_thread_name and thread.get("name"):
-        thread_metadata.append(
-            ThreadNameGroupingComponent(
-                values=[thread["name"]],
-                contributes=True,
-                hint="thread name included in grouping",
-            )
-        )
-
-    # If no stacktrace, return early (thread metadata can't group without frames)
+    stacktrace = threads[0].get("stacktrace")
     if not stacktrace:
         return {
             "app": ThreadsGroupingComponent(
@@ -915,16 +894,13 @@ def _get_thread_components(
             )
         }
 
-    # Build stacktrace components for each variant with thread metadata
     thread_components_by_variant = {}
 
     for variant_name, stacktrace_component in context.get_grouping_components_by_variant(
         stacktrace, event=event, **kwargs
     ).items():
         thread_components_by_variant[variant_name] = ThreadsGroupingComponent(
-            values=[stacktrace_component],
-            frame_counts=stacktrace_component.frame_counts,
-            metadata=thread_metadata,
+            values=[stacktrace_component], frame_counts=stacktrace_component.frame_counts
         )
 
     return thread_components_by_variant
