@@ -173,7 +173,7 @@ class SnubaTagStorage(TagStorage):
         **kwargs,
     ):
         tag = self.format_string.format(key)
-        filters = {"project_id": get_project_list(project_id)}
+        filters = {"project_id": get_project_list(project_id), self.key_column: [key]}
         if environment_id:
             filters["environment"] = [environment_id]
         conditions = kwargs.get("conditions", [])
