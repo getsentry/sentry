@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './maui';
+import docs from './index';
 
 describe('maui onboarding docs', () => {
   it('renders errors onboarding docs correctly', async () => {
