@@ -1,26 +1,16 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
-  type Docs,
   type DocsParams,
   type OnboardingConfig,
   type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-} from 'sentry/gettingStartedDocs/python/python';
+import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
-import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
 
-type Params = DocsParams;
-
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = (params: DocsParams) => `
 import sentry_sdk
 from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
 
@@ -66,7 +56,7 @@ sentry_sdk.init(
 def my_function(event, context):
     ....`;
 
-const getTimeoutWarningSnippet = (params: Params) => `
+const getTimeoutWarningSnippet = (params: DocsParams) => `
 sentry_sdk.init(
   dsn="${params.dsn.public}",
   integrations=[
@@ -87,7 +77,7 @@ const installStep = (): OnboardingStep => ({
   ],
 });
 
-const configureStep = (params: Params): OnboardingStep => ({
+const configureStep = (params: DocsParams): OnboardingStep => ({
   type: StepType.CONFIGURE,
   content: [
     {
@@ -99,7 +89,7 @@ const configureStep = (params: Params): OnboardingStep => ({
       language: 'python',
       code: getSdkSetupSnippet(params),
     },
-    alternativeProfilingConfiguration(params),
+    alternativeProfiling(params),
     {
       type: 'text',
       text: tct("Check out Sentry's [link:AWS sample apps] for detailed examples.", {
@@ -111,7 +101,7 @@ const configureStep = (params: Params): OnboardingStep => ({
   ],
 });
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
       'Create a deployment package on your local machine and install the required dependencies in the deployment package. For more information, see [link:AWS Lambda deployment package in Python].',
@@ -122,7 +112,7 @@ const onboarding: OnboardingConfig = {
       }
     ),
   install: () => [installStep()],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     configureStep(params),
     {
       title: t('Timeout Warning'),
@@ -171,7 +161,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -181,11 +171,11 @@ const onboarding: OnboardingConfig = {
             'Deploy your function and invoke it to generate an error, then check Sentry for the captured event.'
           ),
         },
-        getVerifyLogsContent(params),
+        verify(params),
       ],
     },
   ],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [];
     if (params.isLogsSelected) {
       steps.push({
@@ -201,9 +191,9 @@ const onboarding: OnboardingConfig = {
   },
 };
 
-const profilingOnboarding: OnboardingConfig = {
+export const profilingOnboarding: OnboardingConfig = {
   install: () => [installStep()],
-  configure: (params: Params) => [configureStep(params)],
+  configure: (params: DocsParams) => [configureStep(params)],
   verify: () => [
     {
       type: StepType.VERIFY,
@@ -218,15 +208,3 @@ const profilingOnboarding: OnboardingConfig = {
     },
   ],
 };
-
-const logsOnboarding = getPythonLogsOnboarding();
-
-const docs: Docs = {
-  onboarding,
-  crashReportOnboarding: crashReportOnboardingPython,
-  profilingOnboarding,
-  agentMonitoringOnboarding,
-  logsOnboarding,
-};
-
-export default docs;
