@@ -1,5 +1,6 @@
 from typing import TypedDict
 
+from django.utils.html import escape
 from slack_sdk.models.blocks import (
     ActionsBlock,
     Block,
@@ -71,7 +72,7 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
     def _render_body(cls, body: list[NotificationBodyFormattingBlock]) -> list[Block]:
         blocks: list[Block] = []
         for block in body:
-            if block.type == NotificationBodyFormattingBlockType.SECTION:
+            if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
                 text = cls._render_text_blocks(block.blocks)
                 blocks.append(SectionBlock(text=MarkdownTextObject(text=text)))
             elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
@@ -81,14 +82,15 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
 
     @classmethod
     def _render_text_blocks(cls, blocks: list[NotificationBodyTextBlock]) -> str:
-        texts = []
+        texts: list[str] = []
         for block in blocks:
+            escaped_text = escape(block.text)
             if block.type == NotificationBodyTextBlockType.PLAIN_TEXT:
-                texts.append(block.text)
+                texts.append(escaped_text)
             elif block.type == NotificationBodyTextBlockType.BOLD_TEXT:
-                texts.append(f"*{block.text}*")
+                texts.append(f"*{escaped_text}*")
             elif block.type == NotificationBodyTextBlockType.CODE:
-                texts.append(f"`{block.text}`")
+                texts.append(f"`{escaped_text}`")
         return " ".join(texts)
 
 

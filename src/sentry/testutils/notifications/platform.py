@@ -12,8 +12,8 @@ from sentry.notifications.platform.types import (
     NotificationStrategy,
     NotificationTarget,
     NotificationTemplate,
+    ParagraphBlock,
     PlainTextBlock,
-    SectionBlock,
 )
 
 
@@ -32,8 +32,8 @@ class MockNotificationTemplate(NotificationTemplate[MockNotification]):
         return NotificationRenderedTemplate(
             subject="Mock Notification",
             body=[
-                SectionBlock(
-                    type=NotificationBodyFormattingBlockType.SECTION,
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
                     blocks=[
                         PlainTextBlock(
                             type=NotificationBodyTextBlockType.PLAIN_TEXT, text=data.message
