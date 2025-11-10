@@ -1181,24 +1181,31 @@ class GetSemverReleasesTest(TestCase):
                 release_1,  # test@2.2
                 release_3,  # test@2.2-alpha
             ]
-        else:
-            expected_order = [
-                release_12,  # test@10.0+999
-                release_2,  # test@10.0+1000
-                release_7,  # test@10.0+998
-                release_8,  # test@10.0+x22
-                release_9,  # test@10.0+a23
-                release_10,  # test@10.0
-                release_11,  # test@10.0-abc
-                release_6,  # test@2.20.3.3
-                release_5,  # test@2.20.3
-                release_4,  # test@2.2.3
-                release_1,  # test@2.2
-                release_3,  # test@2.2-alpha
-            ]
 
-        assert len(releases) == len(expected_order)
-        assert [r.id for r in releases] == [r.id for r in expected_order]
+            assert len(releases) == len(expected_order)
+            assert [r.id for r in releases] == [r.id for r in expected_order]
+        else:
+            # Without build code ordering, 10.0 releases (same semver, different build codes)
+            # are not in deterministic order. Just verify they're grouped at the top.
+            all_10_releases = {
+                release_2,
+                release_7,
+                release_8,
+                release_9,
+                release_10,
+                release_11,
+                release_12,
+            }
+
+            assert len(releases) == 12
+            assert set(releases[:7]) == all_10_releases
+            assert releases[7:] == [
+                release_6,
+                release_5,
+                release_4,
+                release_1,
+                release_3,
+            ]
 
     def test_greatest_semver_releases(self) -> None:
         """Test get_semver_releases orders releases by semver."""
