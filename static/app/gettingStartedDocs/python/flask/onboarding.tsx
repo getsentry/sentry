@@ -1,31 +1,16 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
-  type Docs,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
-import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
-import {featureFlag} from 'sentry/gettingStartedDocs/python/python/featureFlag';
-import {logs} from 'sentry/gettingStartedDocs/python/python/logs';
-import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
-import {
-  alternativeProfiling,
-  profiling,
-} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getSdkSetupSnippet = (params: Params) => `
-from starlette.applications import Starlette
-import sentry_sdk
+const getSdkSetupSnippet = (params: DocsParams) => `import sentry_sdk
+from flask import Flask
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
@@ -66,10 +51,10 @@ sentry_sdk.init(
 )
 `;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
-    tct('The Starlette integration adds support for the Starlette Framework.', {
-      link: <ExternalLink href="https://www.starlette.io/" />,
+    tct('The Flask integration adds support for the [link:Flask Framework].', {
+      link: <ExternalLink href="https://flask.palletsprojects.com" />,
     }),
   install: () => [
     {
@@ -77,43 +62,46 @@ const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct(
-            'Install [code:sentry-sdk] from PyPI with the [code:starlette] extra:',
-            {
-              code: <code />,
-            }
-          ),
+          text: tct('Install [code:sentry-sdk] from PyPI with the [code:flask] extra:', {
+            code: <code />,
+          }),
         },
-        getPythonInstallCodeBlock({packageName: 'sentry-sdk[starlette]'}),
+        getPythonInstallCodeBlock({packageName: 'sentry-sdk[flask]'}),
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
         {
           type: 'text',
           text: tct(
-            'If you have the [codeStarlette:starlette] package in your dependencies, the Starlette integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+            'If you have the [codeFlask:flask] package in your dependencies, the Flask integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
             {
-              codeStarlette: <code />,
+              codeFlask: <code />,
             }
           ),
         },
         {
           type: 'code',
           language: 'python',
-          code: `
-${getSdkSetupSnippet(params)}
-app = Starlette(routes=[...])
+          code: `${getSdkSetupSnippet(params)}
+app = Flask(__name__)
 `,
         },
         alternativeProfiling(params),
+        {
+          type: 'text',
+          text: tct(
+            'The above configuration captures both error and performance data. To reduce the volume of performance data captured, change [code:traces_sample_rate] to a value between 0 and 1.',
+            {code: <code />}
+          ),
+        },
       ],
     },
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -126,24 +114,23 @@ app = Starlette(routes=[...])
         {
           type: 'code',
           language: 'python',
-          code: `
-from starlette.routing import Route
-${getSdkSetupSnippet(params)}
-async def trigger_error(request):
-    division_by_zero = 1 / 0
+          code: `${getSdkSetupSnippet(params)}
+app = Flask(__name__)
 
-app = Starlette(routes=[
-    Route("/sentry-debug", trigger_error),
-])
+@app.route("/")
+def hello_world():
+    1/0  # raises an error
+    return "<p>Hello, World!</p>"
 `,
         },
+        verify(params),
         {
           type: 'text',
           text: [
             tct(
-              'When you point your browser to [link:http://localhost:8000/sentry-debug/] a transaction in the Performance section of Sentry will be created.',
+              'When you point your browser to [link:http://localhost:5000/] a transaction in the Performance section of Sentry will be created.',
               {
-                link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
+                link: <ExternalLink href="http://localhost:5000/" />,
               }
             ),
             t(
@@ -155,7 +142,7 @@ app = Starlette(routes=[
       ],
     },
   ],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [] as any[];
     if (params.isLogsSelected) {
       steps.push({
@@ -170,21 +157,3 @@ app = Starlette(routes=[
     return steps;
   },
 };
-
-const docs: Docs = {
-  onboarding,
-  replayOnboardingJsLoader,
-  profilingOnboarding: profiling({
-    basePackage: 'sentry-sdk[starlette]',
-  }),
-  crashReportOnboarding: crashReport,
-  featureFlagOnboarding: featureFlag,
-  feedbackOnboardingJsLoader,
-  agentMonitoringOnboarding: agentMonitoring,
-  mcpOnboarding: mcp,
-  logsOnboarding: logs({
-    packageName: 'sentry-sdk[starlette]',
-  }),
-};
-
-export default docs;
