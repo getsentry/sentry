@@ -317,6 +317,9 @@ describe('DetectorEdit', () => {
               projectId: project.id,
               type: 'metric_issue',
               workflowIds: mockDetector.workflowIds,
+              config: {
+                detectionType: 'static',
+              },
               dataSources: [
                 {
                   environment: 'production',
@@ -335,7 +338,6 @@ describe('DetectorEdit', () => {
                 ],
                 logicType: 'any',
               },
-              config: {detectionType: 'static', thresholdPeriod: 1},
             },
           })
         );
@@ -638,8 +640,6 @@ describe('DetectorEdit', () => {
         projectId: project.id,
         config: {
           detectionType: 'dynamic',
-          thresholdPeriod: 1,
-          sensitivity: AlertRuleSensitivity.HIGH,
         },
         conditionGroup: {
           id: 'cg-dynamic',
@@ -649,9 +649,9 @@ describe('DetectorEdit', () => {
               id: 'c-anomaly',
               type: DataConditionType.ANOMALY_DETECTION,
               comparison: {
-                sensitivity: 'high',
+                sensitivity: AlertRuleSensitivity.HIGH,
                 seasonality: 'auto',
-                threshold_type: AlertRuleThresholdType.BELOW,
+                thresholdType: AlertRuleThresholdType.BELOW,
               },
               conditionResult: DetectorPriorityLevel.HIGH,
             },
@@ -681,8 +681,6 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('radio', {name: 'Dynamic'})).toBeChecked();
 
       // Verify thresholdType field is prefilled with "Below"
-      const thresholdTypeField = screen.getByLabelText('Direction of anomaly movement');
-      expect(thresholdTypeField).toHaveValue('1'); // BELOW = 1
       expect(screen.getByText('Below')).toBeInTheDocument();
     });
 

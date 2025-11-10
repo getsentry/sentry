@@ -197,7 +197,6 @@ describe('DetectorEdit', () => {
               },
               config: {
                 detectionType: 'static',
-                thresholdPeriod: 1,
               },
               dataSources: [
                 {
@@ -282,7 +281,7 @@ describe('DetectorEdit', () => {
                 ],
                 logicType: 'any',
               },
-              config: {detectionType: 'static', thresholdPeriod: 1},
+              config: {detectionType: 'static'},
               dataSources: [
                 {
                   aggregate: 'count_unique(tags[sentry:user])',
@@ -352,7 +351,7 @@ describe('DetectorEdit', () => {
                 ],
                 logicType: 'any',
               },
-              config: {detectionType: 'static', thresholdPeriod: 1},
+              config: {detectionType: 'static'},
               dataSources: [
                 {
                   aggregate: 'count()',
@@ -578,7 +577,7 @@ describe('DetectorEdit', () => {
                     comparison: {
                       sensitivity: 'high',
                       seasonality: 'auto',
-                      threshold_type: 0,
+                      thresholdType: 0,
                     },
                     conditionResult: 75,
                   },
@@ -588,7 +587,6 @@ describe('DetectorEdit', () => {
               config: {
                 detectionType: 'dynamic',
                 sensitivity: 'high',
-                thresholdPeriod: 1,
               },
               dataSources: [
                 {

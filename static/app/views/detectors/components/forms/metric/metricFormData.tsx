@@ -5,6 +5,7 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
+  AnomalyDetectionComparison,
   Detector,
   MetricCondition,
   MetricConditionGroup,
@@ -192,7 +193,7 @@ function createAnomalyDetectionCondition(
       comparison: {
         sensitivity: data.sensitivity,
         seasonality: 'auto' as const,
-        threshold_type: data.thresholdType,
+        thresholdType: data.thresholdType,
       },
       conditionResult: DetectorPriorityLevel.HIGH,
     },
@@ -331,14 +332,12 @@ export function metricDetectorFormDataToEndpointPayload(
   switch (data.detectionType) {
     case 'percent':
       config = {
-        thresholdPeriod: 1,
         detectionType: 'percent',
         comparisonDelta: data.conditionComparisonAgo || 3600,
       };
       break;
     case 'dynamic':
       config = {
-        thresholdPeriod: 1,
         detectionType: 'dynamic',
         sensitivity: data.sensitivity,
       };
@@ -346,7 +345,6 @@ export function metricDetectorFormDataToEndpointPayload(
     case 'static':
     default:
       config = {
-        thresholdPeriod: 1,
         detectionType: 'static',
       };
       break;
@@ -443,28 +441,22 @@ function processDetectorConditions(
   };
 }
 
-/**
- * Extracts thresholdType from anomaly detection condition
- * Backend serializes threshold_type as thresholdType (camelCase)
- */
-function extractThresholdTypeFromAnomalyCondition(
-  detector: MetricDetector
-): AlertRuleThresholdType | undefined {
+function getAnomalyCondition(detector: MetricDetector): AnomalyDetectionComparison {
   const anomalyCondition = detector.conditionGroup?.conditions?.find(
     condition => condition.type === DataConditionType.ANOMALY_DETECTION
   );
 
   const comparison = anomalyCondition?.comparison;
-  if (
-    comparison &&
-    typeof comparison === 'object' &&
-    'thresholdType' in comparison &&
-    typeof comparison.thresholdType === 'number'
-  ) {
-    return comparison.thresholdType as AlertRuleThresholdType;
+  if (typeof comparison === 'object') {
+    return comparison;
   }
 
-  return undefined;
+  // Fallback to default values
+  return {
+    sensitivity: AlertRuleSensitivity.MEDIUM,
+    seasonality: 'auto',
+    thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
+  };
 }
 
 /**
@@ -482,13 +474,13 @@ export function metricSavedDetectorToFormData(
   const snubaQuery = dataSource.queryObj?.snubaQuery;
 
   const conditionData = processDetectorConditions(detector);
-  const isDynamic = detector.config.detectionType === 'dynamic';
 
   const dataset = snubaQuery?.dataset
     ? getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes)
     : DetectorDataset.SPANS;
 
   const datasetConfig = getDatasetConfig(dataset);
+  const anomalyCondition = getAnomalyCondition(detector);
 
   return {
     // Core detector fields
@@ -517,13 +509,7 @@ export function metricSavedDetectorToFormData(
         : DEFAULT_THRESHOLD_METRIC_FORM_DATA.conditionComparisonAgo,
 
     // Dynamic fields - extract from anomaly detection condition for dynamic detectors
-    sensitivity:
-      isDynamic && defined(detector.config.sensitivity)
-        ? detector.config.sensitivity
-        : DEFAULT_THRESHOLD_METRIC_FORM_DATA.sensitivity,
-    thresholdType: isDynamic
-      ? (extractThresholdTypeFromAnomalyCondition(detector) ??
-        DEFAULT_THRESHOLD_METRIC_FORM_DATA.thresholdType)
-      : DEFAULT_THRESHOLD_METRIC_FORM_DATA.thresholdType,
+    sensitivity: anomalyCondition.sensitivity,
+    thresholdType: anomalyCondition.thresholdType,
   };
 }
