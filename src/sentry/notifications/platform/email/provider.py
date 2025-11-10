@@ -117,7 +117,7 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
                 body_blocks.append(f"\n{cls.render_text_blocks_to_txt_string(block.blocks)}")
             elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
                 body_blocks.append(f"\n```{cls.render_text_blocks_to_txt_string(block.blocks)}```")
-        return mark_safe(" ".join(body_blocks))
+        return " ".join(body_blocks)
 
     @classmethod
     def render_text_blocks_to_txt_string(cls, blocks: list[NotificationBodyTextBlock]) -> str:
@@ -129,7 +129,7 @@ class EmailRenderer(NotificationRenderer[EmailRenderable]):
                 texts.append(f"**{block.text}**")
             elif block.type == NotificationBodyTextBlockType.CODE:
                 texts.append(f"`{block.text}`")
-        return mark_safe(" ".join(texts))
+        return " ".join(texts)
 
 
 @provider_registry.register(NotificationProviderKey.EMAIL)
