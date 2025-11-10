@@ -298,7 +298,5 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
     def delete(self):
         # Let Seer know we're deleting a dynamic detector so the data can be deleted there too
-        if self.instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
-            delete_data_in_seer_for_detector(self.instance)
-
+        delete_data_in_seer_for_detector(self.instance)
         super().delete()
