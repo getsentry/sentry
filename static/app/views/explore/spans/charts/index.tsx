@@ -27,6 +27,7 @@ import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
   prettifyAggregation,
@@ -41,6 +42,7 @@ interface ExploreChartsProps {
   confidences: Confidence[];
   extrapolate: boolean;
   query: string;
+  rawSpanCounts: RawCounts;
   setTab: (tab: Mode | Tab) => void;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
@@ -68,6 +70,7 @@ const EXPLORE_CHART_GROUP = 'explore-charts_group';
 export function ExploreCharts({
   query,
   extrapolate,
+  rawSpanCounts,
   timeseriesResult,
   visualizes,
   setVisualizes,
@@ -121,6 +124,7 @@ export function ExploreCharts({
               visualize={visualize}
               samplingMode={samplingMode}
               topEvents={topEvents}
+              rawSpanCounts={rawSpanCounts}
             />
           );
         })}
@@ -135,6 +139,7 @@ interface ChartProps {
   onChartTypeChange: (chartType: ChartType) => void;
   onChartVisibilityChange: (visible: boolean) => void;
   query: string;
+  rawSpanCounts: RawCounts;
   setTab: (tab: Mode | Tab) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualize: Visualize;
@@ -148,6 +153,7 @@ function Chart({
   onChartTypeChange,
   onChartVisibilityChange,
   query,
+  rawSpanCounts,
   visualize,
   timeseriesResult,
   samplingMode,
@@ -286,6 +292,8 @@ function Chart({
                 topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
               }
               dataScanned={chartInfo.dataScanned}
+              rawSpanCounts={rawSpanCounts}
+              userQuery={query.trim()}
             />
           )
         }
