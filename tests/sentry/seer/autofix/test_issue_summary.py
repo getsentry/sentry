@@ -699,15 +699,15 @@ class TestGetStoppingPointFromFixability:
             (0.39, None),
             (0.40, AutofixStoppingPoint.SOLUTION),
             (0.65, AutofixStoppingPoint.SOLUTION),
-            (0.66, AutofixStoppingPoint.OPEN_PR),
-            (1.0, AutofixStoppingPoint.OPEN_PR),
+            (0.66, AutofixStoppingPoint.CODE_CHANGES),
+            (1.0, AutofixStoppingPoint.CODE_CHANGES),
         ],
     )
     def test_stopping_point_mapping(self, score, expected):
         assert _get_stopping_point_from_fixability(score) == expected
 
 
-@with_feature({"organizations:gen-ai-features": True, "organizations:triage-signals-v0": True})
+@with_feature({"organizations:gen-ai-features": True, "projects:triage-signals-v0": True})
 class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -723,7 +723,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
     @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    def test_high_fixability_open_pr(
+    def test_high_fixability_code_changes(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
     ):
         self.project.update_option("sentry:autofix_automation_tuning", "always")
@@ -737,7 +737,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         )
         _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
         mock_trigger.assert_called_once()
-        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.OPEN_PR
+        assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch(
@@ -783,7 +783,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         )
 
         with self.feature(
-            {"organizations:gen-ai-features": True, "organizations:triage-signals-v0": False}
+            {"organizations:gen-ai-features": True, "projects:triage-signals-v0": False}
         ):
             _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
 
