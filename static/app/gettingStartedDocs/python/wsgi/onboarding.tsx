@@ -175,4 +175,3 @@ export const onboarding: OnboardingConfig = {
     return steps;
   },
 };
-
