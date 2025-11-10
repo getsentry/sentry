@@ -1,33 +1,18 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
-  type Docs,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-  featureFlagOnboarding,
-  mcpOnboarding,
-} from 'sentry/gettingStartedDocs/python/python';
-import {t, tct} from 'sentry/locale';
-import {
-  alternativeProfilingConfiguration,
   getPythonAiocontextvarsCodeBlocks,
   getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
+} from 'sentry/gettingStartedDocs/python/python/utils';
+import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = (params: DocsParams) => `
 from aiohttp import web
 
 import sentry_sdk
@@ -71,7 +56,7 @@ sentry_sdk.init(
 )
 `;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
       'The AIOHTTP integration adds support for the [link:AIOHTTP-Server Web Framework].',
@@ -94,7 +79,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -112,11 +97,11 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
       ],
     },
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -140,7 +125,7 @@ app.add_routes([web.get('/', hello)])
 web.run_app(app)
 `,
         },
-        getVerifyLogsContent(params),
+        verify(params),
         {
           type: 'text',
           text: [
@@ -159,7 +144,7 @@ web.run_app(app)
       ],
     },
   ],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [] as any[];
     if (params.isLogsSelected) {
       steps.push({
@@ -175,18 +160,3 @@ web.run_app(app)
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
-
-const docs: Docs = {
-  onboarding,
-  replayOnboardingJsLoader,
-  profilingOnboarding: getPythonProfilingOnboarding(),
-  crashReportOnboarding: crashReportOnboardingPython,
-  featureFlagOnboarding,
-  feedbackOnboardingJsLoader,
-  agentMonitoringOnboarding,
-  mcpOnboarding,
-  logsOnboarding,
-};
-
-export default docs;
