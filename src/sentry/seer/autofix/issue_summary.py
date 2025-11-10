@@ -276,7 +276,7 @@ def _run_automation(
         return
 
     stopping_point = None
-    if features.has("organizations:triage-signals-v0", group.organization):
+    if features.has("projects:triage-signals-v0", group.project):
         stopping_point = _get_stopping_point_from_fixability(issue_summary.scores.fixability_score)
 
     _trigger_autofix_task.delay(
