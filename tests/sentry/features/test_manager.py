@@ -12,7 +12,6 @@ from sentry.features.base import (
     OrganizationFeature,
     ProjectFeature,
     SystemFeature,
-    UserFeature,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -421,19 +420,6 @@ class FeatureManagerTest(TestCase):
         assert manager.has("organizations:feature", actor=self.user, organization=self.organization)
         assert manager.has("projects:feature", actor=self.user, project=self.project)
         assert manager.has("auth:register", actor=self.user)
-
-    def test_user_flag(self) -> None:
-        manager = features.FeatureManager()
-        manager.add("users:feature", UserFeature)
-        manager.add_handler(MockUserBatchHandler())
-        steve = self.create_user(name="steve")
-        other_user = self.create_user(name="neo")
-        assert manager.has("users:feature", steve, actor=steve)
-        assert not manager.has("users:feature", other_user, actor=steve)
-        with self.assertRaisesMessage(
-            NotImplementedError, "User flags not allowed with entity_feature=True"
-        ):
-            manager.add("users:feature-2", UserFeature, True)
 
     def test_entity_feature_shim(self) -> None:
         manager = features.FeatureManager()
