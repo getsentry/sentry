@@ -1063,7 +1063,10 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
 
     logger.info(
         "seer_rpc.check_repository_integrations_status.called",
-        extra={"repository_integrations": repository_integrations},
+        extra={
+            "repository_integrations_count": len(repository_integrations),
+            "repository_integrations_sample": repository_integrations[:10],
+        },
     )
 
     q_objects = Q()
