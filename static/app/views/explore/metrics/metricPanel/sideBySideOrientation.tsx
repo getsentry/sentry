@@ -8,7 +8,7 @@ import type {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMe
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
 import MetricInfoTabs from 'sentry/views/explore/metrics/metricInfoTabs';
-import {SAMPLES_PANEL_MIN_WIDTH} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab';
+import {SAMPLES_PANEL_MIN_WIDTH} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {HideContentButton} from 'sentry/views/explore/metrics/metricPanel/hideContentButton';
 import {PanelPositionSelector} from 'sentry/views/explore/metrics/metricPanel/panelPositionSelector';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -27,8 +27,10 @@ export function SideBySideOrientation({
   setOrientation,
   infoContentHidden,
   setInfoContentHidden,
+  isMetricOptionsEmpty,
 }: {
   infoContentHidden: boolean;
+  isMetricOptionsEmpty: boolean;
   orientation: TableOrientation;
   queryIndex: number;
   setInfoContentHidden: (hidden: boolean) => void;
@@ -71,6 +73,7 @@ export function SideBySideOrientation({
           orientation={orientation}
           additionalActions={additionalActions}
           infoContentHidden={infoContentHidden}
+          isMetricOptionsEmpty={isMetricOptionsEmpty}
         />
       </div>
     );
@@ -87,6 +90,7 @@ export function SideBySideOrientation({
                 timeseriesResult={timeseriesResult}
                 queryIndex={queryIndex}
                 orientation={orientation}
+                isMetricOptionsEmpty={isMetricOptionsEmpty}
               />
             ),
             default: defaultSplit,
@@ -98,6 +102,7 @@ export function SideBySideOrientation({
               traceMetric={traceMetric}
               additionalActions={additionalActions}
               orientation={orientation}
+              isMetricOptionsEmpty={isMetricOptionsEmpty}
             />
           }
         />

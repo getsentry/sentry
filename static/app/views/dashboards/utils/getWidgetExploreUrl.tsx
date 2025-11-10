@@ -455,17 +455,18 @@ export function getWidgetTableRowExploreUrlFunction(
   selection: PageFilters,
   widget: Widget,
   organization: Organization,
-  dashboardFilters?: DashboardFilters
+  dashboardFilters?: DashboardFilters,
+  selectedQueryIndex = 0
 ) {
   return (dataRow: TabularRow) => {
     let fields: string[] = [];
-    if (widget.queries[0]?.fields) {
-      fields = widget.queries[0].fields.filter(
+    if (widget.queries[selectedQueryIndex]?.fields) {
+      fields = widget.queries[selectedQueryIndex].fields.filter(
         (field: string) => !isAggregateFieldOrEquation(field)
       );
     }
 
-    const query = new MutableSearch(widget.queries[0]?.conditions ?? '');
+    const query = new MutableSearch(widget.queries[selectedQueryIndex]?.conditions ?? '');
     fields.map(field => {
       const value = dataRow[field];
       if (!defined(value)) {

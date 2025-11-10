@@ -3,10 +3,11 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tn} from 'sentry/locale';

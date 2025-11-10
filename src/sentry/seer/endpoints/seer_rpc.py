@@ -71,6 +71,7 @@ from sentry.seer.assisted_query.issues_tools import (
     execute_issues_query,
     get_filter_key_values,
     get_issue_filter_keys,
+    get_issues_stats,
 )
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
@@ -86,6 +87,7 @@ from sentry.seer.explorer.tools import (
     execute_trace_query_chart,
     execute_trace_query_table,
     get_issue_details,
+    get_replay_metadata,
     get_repository_definition,
     rpc_get_trace_waterfall,
 )
@@ -1059,6 +1061,14 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
     if not repository_integrations:
         return {"statuses": []}
 
+    logger.info(
+        "seer_rpc.check_repository_integrations_status.called",
+        extra={
+            "repository_integrations_count": len(repository_integrations),
+            "repository_integrations_sample": repository_integrations[:10],
+        },
+    )
+
     q_objects = Q()
 
     for item in repository_integrations:
@@ -1100,6 +1110,11 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
             repo_tuple_with_prefix in existing_set or repo_tuple_without_prefix in existing_set
         )
 
+    logger.info(
+        "seer_rpc.check_repository_integrations_status.completed",
+        extra={"statuses": statuses},
+    )
+
     return {"statuses": statuses}
 
 
@@ -1134,6 +1149,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_issue_filter_keys": get_issue_filter_keys,
     "get_filter_key_values": get_filter_key_values,
     "execute_issues_query": execute_issues_query,
+    "get_issues_stats": get_issues_stats,
     #
     # Explorer
     "get_transactions_for_project": rpc_get_transactions_for_project,
@@ -1148,6 +1164,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,
+    "get_replay_metadata": get_replay_metadata,
 }
 
 

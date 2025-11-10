@@ -37,6 +37,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
@@ -196,6 +197,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         spans_metrics,
                         Spans,
                         OurLogs,
+                        ProfileFunctions,
                         TraceMetrics,
                         errors,
                         transactions,
@@ -243,11 +245,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
                 if scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
-                    metric_name, metric_type = get_trace_metric_from_request(request, organization)
+                    metric_name, metric_type, metric_unit = get_trace_metric_from_request(request)
 
                     return TraceMetricsSearchResolverConfig(
                         metric_name=metric_name,
                         metric_type=metric_type,
+                        metric_unit=metric_unit,
                         auto_fields=False,
                         use_aggregate_conditions=True,
                         disable_aggregate_extrapolation=request.GET.get(
