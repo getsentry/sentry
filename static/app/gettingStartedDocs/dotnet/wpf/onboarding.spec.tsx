@@ -4,13 +4,13 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './aspnetcore';
+import docs from './index';
 
-describe('aspnetcore onboarding docs', () => {
+describe('wpf onboarding docs', () => {
   it('renders errors onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
-        'sentry.dotnet.aspnetcore': {
+        'sentry.dotnet': {
           version: '1.99.9',
         },
       },
@@ -21,12 +21,13 @@ describe('aspnetcore onboarding docs', () => {
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Tracing'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Documentation'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Samples'})).toBeInTheDocument();
 
     // Renders SDK version from registry
     expect(
       await screen.findByText(
-        textWithMarkupMatcher(/Install-Package Sentry.AspNetCore -Version 1\.99\.9/)
+        textWithMarkupMatcher(/Install-Package Sentry -Version 1\.99\.9/)
       )
     ).toBeInTheDocument();
   });
