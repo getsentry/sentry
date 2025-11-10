@@ -1,4 +1,4 @@
-// import {http, passthrough} from 'msw';
+import {http, passthrough} from 'msw';
 
 import {server} from 'sentry-test/msw';
 
@@ -11,14 +11,14 @@ beforeAll(() =>
   })
 );
 
-// beforeEach(() => {
-//   server.use(
-//     // jest project under Sentry organization (dev productivity team)
-//     http.all('https://o1.ingest.us.sentry.io/*', () => {
-//       passthrough();
-//     })
-//   );
-// });
+beforeEach(() => {
+  server.use(
+    // jest project under Sentry organization (dev productivity team)
+    http.all('https://o1.ingest.us.sentry.io/*', () => {
+      passthrough();
+    })
+  );
+});
 
 afterEach(() => {
   server.resetHandlers();
