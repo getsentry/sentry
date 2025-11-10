@@ -37,10 +37,6 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
             detector=self.detector,
             group=self.group,
         )
-        self.create_detector_workflow(
-            detector=self.detector,
-            workflow=self.workflow,
-        )
         for i in range(3):
             self.history.append(
                 WorkflowFireHistory(
@@ -57,10 +53,6 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
         DetectorGroup.objects.create(
             detector=self.detector_2,
             group=self.group_2,
-        )
-        self.create_detector_workflow(
-            detector=self.detector_2,
-            workflow=self.workflow,
         )
         self.history.append(
             WorkflowFireHistory(

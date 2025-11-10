@@ -10,13 +10,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.models.group import Group
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.workflow_engine.models import (
-    Detector,
-    DetectorGroup,
-    DetectorWorkflow,
-    Workflow,
-    WorkflowFireHistory,
-)
+from sentry.workflow_engine.models import Detector, DetectorGroup, Workflow, WorkflowFireHistory
 
 
 @dataclass(frozen=True)
@@ -125,11 +119,13 @@ def fetch_workflow_groups_paginated(
     # subquery that retrieves row with the largest date in a group
     group_max_dates = filtered_history.filter(group=OuterRef("group")).order_by("-date_added")[:1]
 
-    # Subquery to get the detector_id from DetectorGroup, ensuring the detector is connected to the workflow
+    # Subquery to get the detector_id from DetectorGroup.
+    # The detector does not currently need to be connected to the workflow.
     detector_subquery = DetectorGroup.objects.filter(
         group=OuterRef("group"),
-        detector_id__in=DetectorWorkflow.objects.filter(workflow=workflow).values("detector_id"),
-    ).values("detector_id")[:1]
+    ).values(
+        "detector_id"
+    )[:1]
 
     qs = (
         filtered_history.select_related("group")
