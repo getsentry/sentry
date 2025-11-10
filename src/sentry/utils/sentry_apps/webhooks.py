@@ -83,7 +83,7 @@ def send_and_save_webhook_request(
         if sentry_app.slug in options.get("sentry-apps.webhook.restricted-webhook-sending"):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
-                body=f"Webhook sending restricted for app: {sentry_app.slug}",
+                data={"error": f"Webhook sending restricted for app: {sentry_app.slug}"},
             )
 
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
