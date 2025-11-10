@@ -1,7 +1,7 @@
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-import docs from './pyramid';
+import docs from '.';
 
 describe('aiohttp onboarding docs', () => {
   it('renders doc correctly', () => {

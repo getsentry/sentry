@@ -1,25 +1,14 @@
 import {ExternalLink} from 'sentry/components/core/link';
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
-import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
-import {featureFlag} from 'sentry/gettingStartedDocs/python/python/featureFlag';
-import {logs, verify} from 'sentry/gettingStartedDocs/python/python/logs';
-import {profiling} from 'sentry/gettingStartedDocs/python/python/profiling';
+  StepType,
+  type DocsParams,
+  type OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
-
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = (params: DocsParams) => `
 from pyramid.config import Configurator
 import sentry_sdk
 
@@ -37,7 +26,7 @@ sentry_sdk.init(
 )
 `;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct('The Pyramid integration adds support for the [link:Pyramid Web Framework].', {
       link: <ExternalLink href="https://trypyramid.com/" />,
@@ -56,7 +45,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -81,7 +70,7 @@ with Configurator() as config:
       ],
     },
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -123,7 +112,7 @@ if __name__ == '__main__':
       ],
     },
   ],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [];
     if (params.isLogsSelected) {
       steps.push({
@@ -138,16 +127,3 @@ if __name__ == '__main__':
     return steps;
   },
 };
-
-const docs: Docs = {
-  onboarding,
-  replayOnboardingJsLoader,
-  crashReportOnboarding: crashReport,
-  featureFlagOnboarding: featureFlag,
-  feedbackOnboardingJsLoader,
-  profilingOnboarding: profiling(),
-  agentMonitoringOnboarding: agentMonitoring,
-  logsOnboarding: logs(),
-};
-
-export default docs;
