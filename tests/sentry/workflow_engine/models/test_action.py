@@ -70,7 +70,7 @@ class TestAction(TestCase):
             # Verify the registry was queried with the correct action type
             mock_get.assert_called_once_with(Action.Type.SLACK)
 
-    @patch("sentry.workflow_engine.processors.detector.get_detector_by_event")
+    @patch("sentry.workflow_engine.processors.detector.get_detector_by_group")
     def test_trigger_calls_handler_execute(self, mock_get_detector: MagicMock) -> None:
         mock_handler = Mock(spec=ActionHandler)
         mock_get_detector.return_value = Mock(spec=Detector, type="error")
@@ -82,7 +82,7 @@ class TestAction(TestCase):
                 self.mock_event, self.action, mock_get_detector.return_value
             )
 
-    @patch("sentry.workflow_engine.processors.detector.get_detector_by_event")
+    @patch("sentry.workflow_engine.processors.detector.get_detector_by_group")
     def test_trigger_with_failing_handler(self, mock_get_detector: MagicMock) -> None:
         mock_handler = Mock(spec=ActionHandler)
         mock_handler.execute.side_effect = Exception("Handler failed")
@@ -93,7 +93,7 @@ class TestAction(TestCase):
                 self.action.trigger(self.mock_event)
 
     @patch("sentry.utils.metrics.incr")
-    @patch("sentry.workflow_engine.processors.detector.get_detector_by_event")
+    @patch("sentry.workflow_engine.processors.detector.get_detector_by_group")
     def test_trigger_metrics(self, mock_get_detector: MagicMock, mock_incr: MagicMock) -> None:
         mock_handler = Mock(spec=ActionHandler)
         mock_get_detector.return_value = Mock(spec=Detector, type="error")
