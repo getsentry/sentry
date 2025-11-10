@@ -1,4 +1,4 @@
-// import {http, passthrough} from 'msw';
+import {http, passthrough} from 'msw';
 
 import {server} from 'sentry-test/msw';
 
@@ -7,26 +7,18 @@ beforeAll(() =>
     // This tells MSW to throw an error whenever it
     // encounters a request that doesn't have a
     // matching request handler.
-    onUnhandledRequest: (request, print) => {
-      if (request.url.startsWith('https://o1.ingest.us.sentry.io/')) {
-        print.warning();
-        // Allow Sentry ingestion requests to pass through
-        return;
-      }
-
-      print.error();
-    },
+    onUnhandledRequest: 'error',
   })
 );
 
-// beforeEach(() => {
-//   server.use(
-//     // jest project under Sentry organization (dev productivity team)
-//     http.all('https://o1.ingest.us.sentry.io/*', () => {
-//       passthrough();
-//     })
-//   );
-// });
+beforeEach(() => {
+  server.use(
+    // jest project under Sentry organization (dev productivity team)
+    http.all('https://o1.ingest.us.sentry.io/*', () => {
+      passthrough();
+    })
+  );
+});
 
 afterEach(() => {
   server.resetHandlers();
