@@ -671,9 +671,7 @@ from .endpoints.internal import (
     InternalFeatureFlagsEndpoint,
     InternalMailEndpoint,
     InternalPackagesEndpoint,
-    InternalQueueTasksEndpoint,
     InternalRpcServiceEndpoint,
-    InternalStatsEndpoint,
     InternalWarningsEndpoint,
 )
 from .endpoints.internal_ea_features import InternalEAFeaturesEndpoint
@@ -3436,16 +3434,6 @@ INTERNAL_URLS = [
         r"^frontend-version/$",
         FrontendVersionEndpoint.as_view(),
         name="sentry-api-0-internal-frontend-version",
-    ),
-    re_path(
-        r"^queue/tasks/$",
-        InternalQueueTasksEndpoint.as_view(),
-        name="sentry-api-0-internal-queue-tasks",
-    ),
-    re_path(
-        r"^stats/$",
-        InternalStatsEndpoint.as_view(),
-        name="sentry-api-0-internal-stats",
     ),
     re_path(
         r"^warnings/$",

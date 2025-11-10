@@ -1709,7 +1709,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':release/',
       component: make(() => import('sentry/views/releases/detail')),
-      deprecatedRouteProps: true,
       children: [
         {
           index: true,
@@ -1743,7 +1742,6 @@ function buildRoutes(): RouteObject[] {
         component: make(() => import('sentry/views/releases/index')),
         withOrgPath: true,
         children: releaseChildren,
-        deprecatedRouteProps: true,
       },
       {
         path: '/releases/new-events/',
@@ -2221,6 +2219,7 @@ function buildRoutes(): RouteObject[] {
       index: true,
       component: make(() => import('sentry/views/explore/metrics/content')),
     },
+    traceView,
   ];
 
   const profilingChildren: SentryRouteObject[] = [
@@ -2662,11 +2661,7 @@ function buildRoutes(): RouteObject[] {
   const adminManageChildren: SentryRouteObject[] = [
     {
       index: true,
-      component: make(() => import('sentry/views/admin/adminOverview')),
-    },
-    {
-      path: 'buffer/',
-      component: make(() => import('sentry/views/admin/adminBuffer')),
+      component: make(() => import('sentry/views/admin/adminEnvironment')),
     },
     {
       path: 'relays/',
@@ -2682,10 +2677,6 @@ function buildRoutes(): RouteObject[] {
       path: 'projects/',
       component: make(() => import('sentry/views/admin/adminProjects')),
       deprecatedRouteProps: true,
-    },
-    {
-      path: 'queue/',
-      component: make(() => import('sentry/views/admin/adminQueue')),
     },
     {
       path: 'settings/',
