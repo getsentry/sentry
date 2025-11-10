@@ -155,7 +155,7 @@ describe('SeerNotices', () => {
     });
   });
 
-  it('does not show cursor integration step if localStorage skip key is set', async () => {
+  it('does not show cursor integration step if localStorage skip key is set', () => {
     // Set localStorage skip key
     localStorage.setItem(`seer-onboarding-cursor-skipped:${ProjectFixture().id}`, 'true');
 
@@ -201,7 +201,7 @@ describe('SeerNotices', () => {
     localStorage.removeItem(`seer-onboarding-cursor-skipped:${ProjectFixture().id}`);
   });
 
-  it('does not show cursor integration step if handoff is already configured', async () => {
+  it('does not show cursor integration step if handoff is already configured', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       body: {
