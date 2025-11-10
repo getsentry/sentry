@@ -2,15 +2,13 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import docs from './index';
 
-import docs from './awslambda';
-
-describe('awslambda onboarding docs', () => {
+describe('xamarin onboarding docs', () => {
   it('renders errors onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
-        'sentry.dotnet.aspnetcore': {
+        'sentry.dotnet.xamarin-forms': {
           version: '1.99.9',
         },
       },
@@ -20,22 +18,16 @@ describe('awslambda onboarding docs', () => {
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Tracing'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Documentation'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Limitations'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Samples'})).toBeInTheDocument();
 
     // Renders SDK version from registry
     expect(
       await screen.findByText(
-        textWithMarkupMatcher(/Install-Package Sentry.AspNetCore -Version 1\.99\.9/)
+        textWithMarkupMatcher(/Install-Package Sentry\.Xamarin\.Forms -Version 1\.99\.9/)
       )
-    ).toBeInTheDocument();
-  });
-
-  it('renders performance onboarding docs correctly', async () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
-    });
-
-    expect(
-      await screen.findByText(textWithMarkupMatcher(/o.TracesSampleRate/))
     ).toBeInTheDocument();
   });
 });

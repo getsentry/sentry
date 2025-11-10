@@ -1,39 +1,29 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportGenericInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {feedback} from 'sentry/gettingStartedDocs/dotnet/dotnet/feedback';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-type Params = DocsParams;
-
-const getInstallSnippetPackageManager = (params: Params) => `
+const getInstallSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry -Version ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
 
-const getInstallSnippetCoreCli = (params: Params) => `
+const getInstallSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
 
-const getConfigureSnippet = (params: Params) => `
-using System;
-using System.Windows.Forms;
+const getConfigureSnippet = (params: DocsParams) => `
+using System.Windows.Threading;
+using System.Windows;
 using Sentry;
 
-static class Program
+public partial class App : Application
 {
-    [STAThread]
-    static void Main()
+    public App()
     {
-        // Init the Sentry SDK
+        DispatcherUnhandledException += App_DispatcherUnhandledException;
         SentrySdk.Init(o =>
         {
             // Tells which project in Sentry to send events to:
@@ -48,14 +38,15 @@ static class Program
                 : ''
             }
         });
-        // Configure WinForms to throw exceptions so Sentry can capture them.
-        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
-
-        // Any other configuration you might have goes here...
-
-        Application.Run(new Form1());
     }
-}`;
+
+    void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        SentrySdk.CaptureException(e.Exception);
+
+        // If you want to avoid the application from crashing:
+        e.Handled = true;
+    }`;
 
 const getPerformanceInstrumentationSnippet = () => `
 // Transaction can be started by providing, at minimum, the name and the operation
@@ -74,7 +65,7 @@ var span = transaction.StartChild("test-child-operation");
 span.Finish(); // Mark the span as finished
 transaction.Finish(); // Mark the transaction as finished and send it to Sentry`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -174,10 +165,10 @@ const onboarding: OnboardingConfig = {
               {
                 type: 'text',
                 text: tct(
-                  "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete WinForms docs].",
+                  "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete WPF docs].",
                   {
                     link: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/winforms/" />
+                      <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/wpf/" />
                     ),
                   }
                 ),
@@ -218,31 +209,3 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportGenericInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/dotnet/guides/winforms/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  feedbackOnboardingCrashApi: feedback,
-  crashReportOnboarding,
-};
-
-export default docs;

@@ -1,40 +1,28 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-  getCrashReportSDKInstallFirstBlocks,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-type Params = DocsParams;
-
-const getInstallSnippetPackageManager = (params: Params) => `
+const getInstallSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.AspNetCore -Version ${getPackageVersion(
   params,
   'sentry.dotnet.aspnetcore',
   '4.3.0'
 )}`;
 
-const getInstallSnippetCoreCli = (params: Params) => `
+const getInstallSnippetCoreCli = (params: DocsParams) => `
 dotnet add package Sentry.AspNetCore -v ${getPackageVersion(
   params,
   'sentry.dotnet.aspnetcore',
   '4.3.0'
 )}`;
 
-const getConfigureSnippet = (params: Params) => `
+const getConfigureSnippet = (params: DocsParams) => `
 public static IHostBuilder CreateHostBuilder(string[] args) =>
   Host.CreateDefaultBuilder(args)
       .ConfigureWebHostDefaults(webBuilder =>
@@ -85,7 +73,7 @@ public class HomeController : Controller
     }
 }`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -225,66 +213,3 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => [
-    {
-      type: StepType.INSTALL,
-      content: [
-        ...getCrashReportSDKInstallFirstBlocks(params),
-        {
-          type: 'text',
-          text: tct(
-            'If you are rendering the page from the server, for example on ASP.NET MVC, the [code:Error.cshtml] razor page can be:',
-            {code: <code />}
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'cshtml',
-              value: 'html',
-              language: 'html',
-              code: `@using Sentry
-@using Sentry.AspNetCore
-@inject Microsoft.Extensions.Options.IOptions<SentryAspNetCoreOptions> SentryOptions
-
-@if (SentrySdk.LastEventId != SentryId.Empty) {
-  <script>
-    Sentry.init({ dsn: "@(SentryOptions.Value.Dsn)" });
-    Sentry.showReportDialog({ eventId: "@SentrySdk.LastEventId" });
-  </script>
-}`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  replayOnboardingJsLoader,
-  crashReportOnboarding,
-  feedbackOnboardingJsLoader,
-};
-
-export default docs;
