@@ -2,7 +2,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs from './xamarin';
+import docs from './index';
 
 describe('xamarin onboarding docs', () => {
   it('renders errors onboarding docs correctly', async () => {

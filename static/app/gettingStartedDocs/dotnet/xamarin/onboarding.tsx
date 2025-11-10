@@ -1,36 +1,27 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
-  Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  getCrashReportGenericInstallSteps,
-  getCrashReportModalConfigDescription,
-  getCrashReportModalIntroduction,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {feedback} from 'sentry/gettingStartedDocs/dotnet/dotnet/feedback';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-type Params = DocsParams;
-
-const getInstallSnippetXamarin = (params: Params) => `
+const getInstallSnippetXamarin = (params: DocsParams) => `
 Install-Package Sentry.Xamarin -Version ${getPackageVersion(
   params,
   'sentry.dotnet.xamarin',
   '1.5.2'
 )}`;
 
-const getInstallSnippetXamarinForms = (params: Params) => `
+const getInstallSnippetXamarinForms = (params: DocsParams) => `
 Install-Package Sentry.Xamarin.Forms -Version ${getPackageVersion(
   params,
   'sentry.dotnet.xamarin-forms',
   '1.5.2'
 )}`;
 
-const getConfigureSnippetAndroid = (params: Params) => `
+const getConfigureSnippetAndroid = (params: DocsParams) => `
 public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompatActivity
 {
     protected override void OnCreate(Bundle savedInstanceState)
@@ -48,7 +39,7 @@ public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompa
             options.AddXamarinFormsIntegration();
         });`;
 
-const getConfigureSnippetIOS = (params: Params) => `
+const getConfigureSnippetIOS = (params: DocsParams) => `
 public partial class AppDelegate : global::Xamarin.Forms.Platform.iOS.FormsApplicationDelegate
 {
     public override bool FinishedLaunching(UIApplication app, NSDictionary options)
@@ -64,7 +55,7 @@ public partial class AppDelegate : global::Xamarin.Forms.Platform.iOS.FormsAppli
             options.AddXamarinFormsIntegration();
         });`;
 
-const getConfigureSnippetUWP = (params: Params) => `
+const getConfigureSnippetUWP = (params: DocsParams) => `
 sealed partial class App : Application
 {
     protected override void OnLaunched(LaunchActivatedEventArgs e)
@@ -97,7 +88,7 @@ var span = transaction.StartChild("test-child-operation");
 span.Finish(); // Mark the span as finished
 transaction.Finish(); // Mark the transaction as finished and send it to Sentry`;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
@@ -283,31 +274,3 @@ const onboarding: OnboardingConfig = {
     },
   ],
 };
-
-const crashReportOnboarding: OnboardingConfig = {
-  introduction: () => getCrashReportModalIntroduction(),
-  install: (params: Params) => getCrashReportGenericInstallSteps(params),
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      content: [
-        {
-          type: 'text',
-          text: getCrashReportModalConfigDescription({
-            link: 'https://docs.sentry.io/platforms/dotnet/guides/xamarin/user-feedback/configuration/#crash-report-modal',
-          }),
-        },
-      ],
-    },
-  ],
-  verify: () => [],
-  nextSteps: () => [],
-};
-
-const docs: Docs = {
-  onboarding,
-  feedbackOnboardingCrashApi: feedback,
-  crashReportOnboarding,
-};
-
-export default docs;
