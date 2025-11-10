@@ -12,6 +12,7 @@ import type {
 } from 'sentry/types/echarts';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
+import {QueryQueueProvider} from 'sentry/views/dashboards/queryQueue';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -109,81 +110,86 @@ export function WidgetCardChartContainer({
   }
 
   return (
-    <WidgetCardDataLoader
-      widget={widget}
-      dashboardFilters={dashboardFilters}
-      selection={selection}
-      onDataFetched={onDataFetched}
-      onWidgetSplitDecision={onWidgetSplitDecision}
-      onDataFetchStart={onDataFetchStart}
-      tableItemLimit={tableItemLimit}
-    >
-      {({
-        tableResults,
-        timeseriesResults,
-        errorMessage,
-        loading,
-        timeseriesResultsTypes,
-        confidence,
-        sampleCount,
-        isSampled,
-      }) => {
-        // Bind timeseries to widget for ability to control each widget's legend individually
-        const modifiedTimeseriesResults =
-          WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
-
-        const errorOrEmptyMessage = loading
-          ? errorMessage
-          : getErrorOrEmptyMessage(
-              errorMessage,
-              modifiedTimeseriesResults,
-              tableResults,
-              widget.displayType
+    <QueryQueueProvider>
+      <WidgetCardDataLoader
+        widget={widget}
+        dashboardFilters={dashboardFilters}
+        selection={selection}
+        onDataFetched={onDataFetched}
+        onWidgetSplitDecision={onWidgetSplitDecision}
+        onDataFetchStart={onDataFetchStart}
+        tableItemLimit={tableItemLimit}
+      >
+        {({
+          tableResults,
+          timeseriesResults,
+          errorMessage,
+          loading,
+          timeseriesResultsTypes,
+          confidence,
+          sampleCount,
+          isSampled,
+        }) => {
+          // Bind timeseries to widget for ability to control each widget's legend individually
+          const modifiedTimeseriesResults =
+            WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(
+              widget,
+              timeseriesResults
             );
 
-        return (
-          <Fragment>
-            {typeof renderErrorMessage === 'function'
-              ? renderErrorMessage(errorOrEmptyMessage)
-              : null}
-            <WidgetCardChart
-              disableZoom={disableZoom}
-              timeseriesResults={modifiedTimeseriesResults}
-              tableResults={tableResults}
-              errorMessage={errorOrEmptyMessage}
-              loading={loading}
-              widget={widget}
-              selection={selection}
-              isMobile={isMobile}
-              windowWidth={windowWidth}
-              onZoom={onZoom}
-              timeseriesResultsTypes={timeseriesResultsTypes}
-              noPadding={noPadding}
-              chartGroup={chartGroup}
-              shouldResize={shouldResize}
-              onLegendSelectChanged={
-                onLegendSelectChanged ? onLegendSelectChanged : keepLegendState
-              }
-              legendOptions={
-                legendOptions
-                  ? legendOptions
-                  : {selected: widgetLegendState.getWidgetSelectionState(widget)}
-              }
-              widgetLegendState={widgetLegendState}
-              showConfidenceWarning={showConfidenceWarning}
-              confidence={confidence}
-              sampleCount={sampleCount}
-              minTableColumnWidth={minTableColumnWidth}
-              isSampled={isSampled}
-              showLoadingText={showLoadingText}
-              onWidgetTableSort={onWidgetTableSort}
-              onWidgetTableResizeColumn={onWidgetTableResizeColumn}
-              disableTableActions={disableTableActions}
-              dashboardFilters={dashboardFilters}
-            />
-          </Fragment>
-        );
-      }}
-    </WidgetCardDataLoader>
+          const errorOrEmptyMessage = loading
+            ? errorMessage
+            : getErrorOrEmptyMessage(
+                errorMessage,
+                modifiedTimeseriesResults,
+                tableResults,
+                widget.displayType
+              );
+
+          return (
+            <Fragment>
+              {typeof renderErrorMessage === 'function'
+                ? renderErrorMessage(errorOrEmptyMessage)
+                : null}
+              <WidgetCardChart
+                disableZoom={disableZoom}
+                timeseriesResults={modifiedTimeseriesResults}
+                tableResults={tableResults}
+                errorMessage={errorOrEmptyMessage}
+                loading={loading}
+                widget={widget}
+                selection={selection}
+                isMobile={isMobile}
+                windowWidth={windowWidth}
+                onZoom={onZoom}
+                timeseriesResultsTypes={timeseriesResultsTypes}
+                noPadding={noPadding}
+                chartGroup={chartGroup}
+                shouldResize={shouldResize}
+                onLegendSelectChanged={
+                  onLegendSelectChanged ? onLegendSelectChanged : keepLegendState
+                }
+                legendOptions={
+                  legendOptions
+                    ? legendOptions
+                    : {selected: widgetLegendState.getWidgetSelectionState(widget)}
+                }
+                widgetLegendState={widgetLegendState}
+                showConfidenceWarning={showConfidenceWarning}
+                confidence={confidence}
+                sampleCount={sampleCount}
+                minTableColumnWidth={minTableColumnWidth}
+                isSampled={isSampled}
+                showLoadingText={showLoadingText}
+                onWidgetTableSort={onWidgetTableSort}
+                onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+                disableTableActions={disableTableActions}
+                dashboardFilters={dashboardFilters}
+              />
+            </Fragment>
+          );
+        }}
+      </WidgetCardDataLoader>
+    </QueryQueueProvider>
   );
 }
