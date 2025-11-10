@@ -399,12 +399,20 @@ def get_seer_similar_issues(
         "grouping.similarity.seer_results_returned",
         len(seer_results),
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={**metrics_tags, "is_hybrid": is_hybrid_fingerprint_case},
+        tags={
+            **metrics_tags,
+            "is_hybrid": is_hybrid_fingerprint_case,
+            "training_mode": training_mode,
+        },
     )
     metrics.incr(
         "grouping.similarity.get_seer_similar_issues",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={**metrics_tags, "is_hybrid": is_hybrid_fingerprint_case},
+        tags={
+            **metrics_tags,
+            "is_hybrid": is_hybrid_fingerprint_case,
+            "training_mode": training_mode,
+        },
     )
 
     logger.info(
@@ -581,31 +589,24 @@ def maybe_send_seer_for_new_model_training(
     gh_metadata = existing_grouphash.metadata
     grouphash_seer_model = gh_metadata.seer_model if gh_metadata else None
 
-    if should_send_new_model_embeddings(event.project, grouphash_seer_model):
-        had_metadata = gh_metadata is not None
-        # Send training mode request (honor all checks like rate limits, circuit breaker, etc.)
-        if should_call_seer_for_grouping(event, variants, existing_grouphash):
-            record_did_call_seer_metric(event, call_made=True, blocker="none")
+    if not should_send_new_model_embeddings(event.project, grouphash_seer_model):
+        return
 
-            try:
-                # Call Seer with training_mode=True (results won't be used for grouping)
-                get_seer_similar_issues(event, existing_grouphash, variants, training_mode=True)
+    # Send training mode request (honor all checks like rate limits, circuit breaker, etc.)
+    if not should_call_seer_for_grouping(event, variants, existing_grouphash):
+        return
 
-                # Record metrics for new model embedding requests
-                metrics.incr(
-                    "seer.new_model_embedding_request",
-                    sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                    tags={
-                        "platform": event.platform or "unknown",
-                        "had_metadata": had_metadata,
-                    },
-                )
-            except Exception as e:
-                sentry_sdk.capture_exception(
-                    e,
-                    tags={
-                        "event": event.event_id,
-                        "project": event.project.id,
-                        "grouphash": existing_grouphash.hash,
-                    },
-                )
+    record_did_call_seer_metric(event, call_made=True, blocker="none", training_mode=True)
+
+    try:
+        # Call Seer with training_mode=True (results won't be used for grouping)
+        get_seer_similar_issues(event, existing_grouphash, variants, training_mode=True)
+    except Exception as e:
+        sentry_sdk.capture_exception(
+            e,
+            tags={
+                "event": event.event_id,
+                "project": event.project.id,
+                "grouphash": existing_grouphash.hash,
+            },
+        )
