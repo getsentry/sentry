@@ -5,17 +5,13 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-  mcpOnboarding,
-} from 'sentry/gettingStartedDocs/python/python';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
+import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
+import {logs} from 'sentry/gettingStartedDocs/python/python/logs';
+import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
+import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
-import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -139,14 +135,12 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
       ],
     },
   ],
   verify: () => [],
 };
-
-const logsOnboarding = getPythonLogsOnboarding();
 
 const profilingOnboarding: OnboardingConfig = {
   install: onboarding.install,
@@ -169,10 +163,10 @@ const profilingOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   profilingOnboarding,
-  crashReportOnboarding: crashReportOnboardingPython,
-  agentMonitoringOnboarding,
-  mcpOnboarding,
-  logsOnboarding,
+  crashReportOnboarding: crashReport,
+  agentMonitoringOnboarding: agentMonitoring,
+  mcpOnboarding: mcp,
+  logsOnboarding: logs(),
 };
 
 export default docs;

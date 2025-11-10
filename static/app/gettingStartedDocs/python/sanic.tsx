@@ -9,19 +9,17 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-  featureFlagOnboarding,
-  mcpOnboarding,
-} from 'sentry/gettingStartedDocs/python/python';
-import {t, tct} from 'sentry/locale';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
+import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
+import {featureFlag} from 'sentry/gettingStartedDocs/python/python/featureFlag';
+import {logs} from 'sentry/gettingStartedDocs/python/python/logs';
+import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
+import {profiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 import {
   getPythonAiocontextvarsCodeBlocks,
   getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-} from 'sentry/utils/gettingStartedDocs/python';
+} from 'sentry/gettingStartedDocs/python/python/utils';
+import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
@@ -136,20 +134,18 @@ async def hello_world(request):
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding({
-  packageName: 'sentry-sdk[sanic]',
-});
-
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  crashReportOnboarding: crashReportOnboardingPython,
-  featureFlagOnboarding,
+  crashReportOnboarding: crashReport,
+  featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
-  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[sanic]'}),
-  agentMonitoringOnboarding,
-  mcpOnboarding,
-  logsOnboarding,
+  profilingOnboarding: profiling({basePackage: 'sentry-sdk[sanic]'}),
+  agentMonitoringOnboarding: agentMonitoring,
+  mcpOnboarding: mcp,
+  logsOnboarding: logs({
+    packageName: 'sentry-sdk[sanic]',
+  }),
 };
 
 export default docs;
