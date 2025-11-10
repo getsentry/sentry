@@ -831,6 +831,23 @@ class GetLatestReleaseTest(TestCase):
             release_1.version,
         ]
 
+    def test_semver_with_build_code(self) -> None:
+        """Test that get_latest_release handles build code ordering."""
+        self.create_release(version="test@1.0.0+1000")
+        self.create_release(version="test@1.0.0+999")
+        release_highest_build = self.create_release(version="test@1.0.0+zzz")
+        self.create_release(version="test@1.0.0")
+        release_latest_created = self.create_release(version="test@1.0.0+aaa")
+
+        # no build code ordering -> tiebreaker is sr.id
+        result = get_latest_release([self.project], None)
+        assert result == [release_latest_created.version]
+
+        # with build code ordering -> alphanumeric builds are highest
+        with self.feature("organizations:semver-ordering-with-build-code"):
+            result = get_latest_release([self.project], None)
+            assert result == [release_highest_build.version]
+
 
 class GetFirstLastReleaseForGroupTest(TestCase):
     def test_date(self) -> None:
@@ -893,6 +910,31 @@ class GetFirstLastReleaseForGroupTest(TestCase):
         assert middle == get_first_last_release_for_group(
             group_2, LatestReleaseOrders.SEMVER, False
         )
+
+    def test_semver_with_build_code(self) -> None:
+        """Test that get_first_last_release_for_group handles build code ordering."""
+        release_numeric_low = self.create_release(version="test@1.0.0+999")
+        release_numeric_high = self.create_release(version="test@1.0.0+1000")
+        release_alpha = self.create_release(version="test@1.0.0+zzz")
+        release_no_build = self.create_release(version="test@1.0.0")
+
+        self.create_group_release(group=self.group, release=release_numeric_low)
+        self.create_group_release(group=self.group, release=release_numeric_high)
+        self.create_group_release(group=self.group, release=release_alpha)
+        self.create_group_release(group=self.group, release=release_no_build)
+
+        # no build code ordering -> tiebreaker is sr.id
+        result = get_first_last_release_for_group(self.group, LatestReleaseOrders.SEMVER, True)
+        assert result.version == release_no_build.version  # latest created
+        result = get_first_last_release_for_group(self.group, LatestReleaseOrders.SEMVER, False)
+        assert result.version == release_numeric_low.version  # oldest created
+
+        # with build code ordering -> alphanumeric builds are highest, no build is lowest
+        with self.feature("organizations:semver-ordering-with-build-code"):
+            result = get_first_last_release_for_group(self.group, LatestReleaseOrders.SEMVER, True)
+            assert result.version == release_alpha.version
+            result = get_first_last_release_for_group(self.group, LatestReleaseOrders.SEMVER, False)
+            assert result.version == release_no_build.version
 
 
 @control_silo_test

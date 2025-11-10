@@ -10,8 +10,10 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import DataError, connections, router
 from django.utils import timezone as django_timezone
 
+from sentry import features
 from sentry.models.environment import Environment
 from sentry.models.group import STATUS_QUERY_CHOICES, Group
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -413,11 +415,21 @@ def get_latest_release(
     return sorted(versions)
 
 
-def _get_release_query_type_sql(query_type: LatestReleaseOrders, last: bool) -> tuple[str, str]:
+def _get_release_query_type_sql(
+    query_type: LatestReleaseOrders, last: bool, organization_id: int
+) -> tuple[str, str]:
     direction = "DESC" if last else "ASC"
     extra_conditions = ""
     if query_type == LatestReleaseOrders.SEMVER:
-        rank_order_by = f"major {direction}, minor {direction}, patch {direction}, revision {direction}, CASE WHEN (prerelease = '') THEN 1 ELSE 0 END {direction}, prerelease {direction}, sr.id {direction}"
+        organization = Organization.objects.get_from_cache(id=organization_id)
+        order_by_build_code = features.has(
+            "organizations:semver-ordering-with-build-code", organization
+        )
+
+        if order_by_build_code:
+            rank_order_by = f"major {direction}, minor {direction}, patch {direction}, revision {direction}, CASE WHEN (prerelease = '') THEN 1 ELSE 0 END {direction}, prerelease {direction}, CASE WHEN (build_number IS NULL AND build_code IS NOT NULL) THEN 2 WHEN (build_number IS NOT NULL) THEN 1 ELSE 0 END {direction}, build_number {direction}, build_code {direction}, sr.id {direction}"
+        else:
+            rank_order_by = f"major {direction}, minor {direction}, patch {direction}, revision {direction}, CASE WHEN (prerelease = '') THEN 1 ELSE 0 END {direction}, prerelease {direction}, sr.id {direction}"
         extra_conditions += " AND sr.major IS NOT NULL"
     else:
         rank_order_by = f"COALESCE(date_released, date_added) {direction}"
@@ -446,7 +458,9 @@ def _run_latest_release_query(
     if adopted:
         extra_conditions += " AND jt.adopted IS NOT NULL AND jt.unadopted IS NULL "
 
-    rank_order_by, query_type_conditions = _get_release_query_type_sql(query_type, True)
+    rank_order_by, query_type_conditions = _get_release_query_type_sql(
+        query_type, True, organization_id
+    )
     extra_conditions += query_type_conditions
 
     # XXX: This query can be very inefficient for projects with a large (100k+)
@@ -500,7 +514,9 @@ def get_first_last_release_for_group(
     ordering to order the releases.
     """
     direction = "DESC" if last else "ASC"
-    rank_order_by, extra_conditions = _get_release_query_type_sql(query_type, last)
+    rank_order_by, extra_conditions = _get_release_query_type_sql(
+        query_type, last, group.project.organization_id
+    )
 
     query = f"""
         SELECT sr.*
