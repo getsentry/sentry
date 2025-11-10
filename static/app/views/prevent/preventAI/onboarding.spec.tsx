@@ -148,10 +148,6 @@ describe('PreventAIOnboarding', () => {
         'It reviews your pull requests, predicting errors and suggesting code fixes.'
       )
     ).toBeInTheDocument();
-
-    expect(
-      screen.getByText('It generates unit tests for untested code in your PR.')
-    ).toBeInTheDocument();
   });
 
   it('renders how to use feature descriptions', () => {
