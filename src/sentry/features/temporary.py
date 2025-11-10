@@ -132,6 +132,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:discover-saved-queries-deprecation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable migration of transaction widgets and queries to spans
     manager.add("organizations:migrate-transaction-queries-to-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable migration of transaction alerts and queries to spans
+    manager.add("organizations:migrate-transaction-alerts-to-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable new cell actions styling and features for tables that use the component
     manager.add("organizations:discover-cell-actions-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace-based health checks rule in dynamic sampling
