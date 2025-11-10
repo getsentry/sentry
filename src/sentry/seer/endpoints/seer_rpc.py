@@ -1061,6 +1061,11 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
     if not repository_integrations:
         return {"statuses": []}
 
+    logger.info(
+        "seer_rpc.check_repository_integrations_status.called",
+        extra={"repository_integrations": repository_integrations},
+    )
+
     q_objects = Q()
 
     for item in repository_integrations:
@@ -1101,6 +1106,11 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
         statuses.append(
             repo_tuple_with_prefix in existing_set or repo_tuple_without_prefix in existing_set
         )
+
+    logger.info(
+        "seer_rpc.check_repository_integrations_status.completed",
+        extra={"statuses": statuses},
+    )
 
     return {"statuses": statuses}
 
