@@ -1,6 +1,7 @@
 from enum import StrEnum
 
 GITHUB_WEBHOOK_TYPE_HEADER = "HTTP_X_GITHUB_EVENT"
+GITHUB_WEBHOOK_TYPE_HEADER_KEY = "X-GITHUB-EVENT"
 
 
 class GithubWebhookType(StrEnum):

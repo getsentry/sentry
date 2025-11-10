@@ -6,7 +6,10 @@ from typing import Any
 
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.webhook_types import GITHUB_WEBHOOK_TYPE_HEADER, GithubWebhookType
+from sentry.integrations.github.webhook_types import (
+    GITHUB_WEBHOOK_TYPE_HEADER_KEY,
+    GithubWebhookType,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organizationmapping import OrganizationMapping
@@ -51,7 +54,7 @@ class OverwatchGithubWebhookForwarder:
         self.integration = integration
 
     def should_forward_to_overwatch(self, headers: Mapping[str, str]) -> bool:
-        event_type = headers.get(GITHUB_WEBHOOK_TYPE_HEADER)
+        event_type = headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY)
         verbose_log(
             "overwatch.debug.should_forward_to_overwatch.checked",
             extra={
@@ -179,10 +182,12 @@ class OverwatchGithubWebhookForwarder:
                         )
                         app_id = None
 
+                formatted_headers = {k: v for k, v in headers.items()}
+
                 webhook_detail = WebhookDetails(
                     organizations=org_summaries,
                     webhook_body=dict(event),
-                    webhook_headers=headers,
+                    webhook_headers=formatted_headers,
                     integration_provider=self.integration.provider,
                     region=region_name,
                     app_id=app_id,
