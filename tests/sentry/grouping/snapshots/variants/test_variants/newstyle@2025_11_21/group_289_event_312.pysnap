@@ -1,5 +1,5 @@
 ---
-created: '2025-11-03T21:48:47.862685+00:00'
+created: '2025-11-05T19:32:39.171127+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -86,18 +86,18 @@ app:
           frame (non app frame)
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "__abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "__pthread_kill"
 --------------------------------------------------------------------------
 system:
-  hash: "9c336f632f6764c0f082a6a66edbf22d"
+  hash: "d90cd4f110751aff5a0a7df3c546a339"
   contributing component: exception
   hint: None
   root_component:
@@ -179,12 +179,12 @@ system:
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame*
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "__abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "__pthread_kill"

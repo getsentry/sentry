@@ -2,12 +2,13 @@ import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Switch} from 'sentry/components/core/switch';
-import {Heading, Text} from 'sentry/components/core/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PercentChange} from 'sentry/components/percentChange';
 import {
@@ -31,14 +32,24 @@ import {SizeCompareSelectedBuilds} from 'sentry/views/preprod/buildComparison/ma
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
+  isSizeAnalysisComparisonInProgress,
   MetricsArtifactType,
   SizeAnalysisComparisonState,
 } from 'sentry/views/preprod/types/appSizeTypes';
 import type {
+  SizeAnalysisComparison,
   SizeAnalysisComparisonResults,
   SizeComparisonApiResponse,
 } from 'sentry/views/preprod/types/appSizeTypes';
 import {getLabels} from 'sentry/views/preprod/utils/labelUtils';
+
+function getMainComparison(
+  response: SizeComparisonApiResponse | undefined
+): SizeAnalysisComparison | undefined {
+  return response?.comparisons.find(
+    c => c.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
+  );
+}
 
 export function SizeCompareMainContent() {
   const organization = useOrganization();
@@ -61,12 +72,14 @@ export function SizeCompareMainContent() {
       {
         staleTime: 0,
         enabled: !!projectId && !!headArtifactId && !!baseArtifactId,
+        refetchInterval: query => {
+          const mainComparison = getMainComparison(query.state.data?.[0]);
+          return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
+        },
       }
     );
 
-  const mainArtifactComparison = sizeComparisonQuery.data?.comparisons.find(
-    comp => comp.metrics_artifact_type === MetricsArtifactType.MAIN_ARTIFACT
-  );
+  const mainArtifactComparison = getMainComparison(sizeComparisonQuery.data);
 
   // Query the comparison download endpoint to get detailed data
   const comparisonDataQuery = useApiQuery<SizeAnalysisComparisonResults>(

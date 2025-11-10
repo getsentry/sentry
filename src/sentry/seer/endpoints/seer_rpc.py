@@ -87,6 +87,7 @@ from sentry.seer.explorer.tools import (
     execute_trace_query_chart,
     execute_trace_query_table,
     get_issue_details,
+    get_replay_metadata,
     get_repository_definition,
     rpc_get_trace_waterfall,
 )
@@ -1150,6 +1151,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,
+    "get_replay_metadata": get_replay_metadata,
 }
 
 
