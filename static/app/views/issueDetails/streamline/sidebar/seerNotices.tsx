@@ -116,10 +116,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const cursorIntegration = codingAgentIntegrations?.integrations.find(
     integration => integration.provider === 'cursor'
   );
-  // const hasCursorFeatureFlagEnabled = Boolean(
-  //   organization.features.includes('integrations-cursor')
-  // );
-  const hasCursorFeatureFlagEnabled = true;
+  const hasCursorFeatureFlagEnabled = Boolean(
+    organization.features.includes('integrations-cursor')
+  );
   const isCursorHandoffConfigured = Boolean(preference?.automation_handoff);
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
@@ -436,8 +435,10 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   key="cursor-integration"
                   stepKey="cursor-integration"
                   title={
-                    <Flex align="center" gap="sm">
-                      <PluginIcon pluginId="cursor" />
+                    <Flex align="baseline" gap="sm" display="inline-flex">
+                      <CursorPluginIcon>
+                        <PluginIcon pluginId="cursor" />
+                      </CursorPluginIcon>
                       {t('Hand Off to Cursor Background Agents')}
                     </Flex>
                   }
@@ -613,6 +614,10 @@ const CardIllustration = styled('img')`
 
 const CursorCardIllustration = styled(CardIllustration)`
   max-width: 160px;
+`;
+
+const CursorPluginIcon = styled('div')`
+  transform: translateY(3px);
 `;
 
 const StepContentRow = styled('div')`
