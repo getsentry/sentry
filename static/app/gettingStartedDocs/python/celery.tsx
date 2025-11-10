@@ -5,18 +5,15 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
+import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
+import {logs, verify} from 'sentry/gettingStartedDocs/python/python/logs';
 import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-} from 'sentry/gettingStartedDocs/python/python';
+  alternativeProfiling,
+  profiling,
+} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
-import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -107,7 +104,7 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
         {
           type: 'subheader',
           text: t('Standalone Setup'),
@@ -200,22 +197,20 @@ def hello():
 hello.delay()
 `,
         },
-        getVerifyLogsContent(params),
+        verify(params),
       ],
     },
   ],
 };
 
-const logsOnboarding = getPythonLogsOnboarding({
-  packageName: 'sentry-sdk[celery]',
-});
-
 const docs: Docs = {
   onboarding,
-  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[celery]'}),
-  crashReportOnboarding: crashReportOnboardingPython,
-  agentMonitoringOnboarding,
-  logsOnboarding,
+  profilingOnboarding: profiling({basePackage: 'sentry-sdk[celery]'}),
+  crashReportOnboarding: crashReport,
+  agentMonitoringOnboarding: agentMonitoring,
+  logsOnboarding: logs({
+    packageName: 'sentry-sdk[celery]',
+  }),
 };
 
 export default docs;

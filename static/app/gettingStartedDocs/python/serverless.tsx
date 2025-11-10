@@ -7,17 +7,15 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
+import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
+import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
 import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-} from 'sentry/gettingStartedDocs/python/python';
+  alternativeProfiling,
+  profiling,
+} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
-import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -124,7 +122,7 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: getSdkSetupSnippet(params),
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
       ],
     },
   ],
@@ -146,7 +144,7 @@ const onboarding: OnboardingConfig = {
           language: 'python',
           code: getVerifySnippet(),
         },
-        getVerifyLogsContent(params),
+        verify(params),
         {
           type: 'text',
           text: t(
@@ -174,9 +172,9 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  profilingOnboarding: getPythonProfilingOnboarding(),
-  crashReportOnboarding: crashReportOnboardingPython,
-  agentMonitoringOnboarding,
+  profilingOnboarding: profiling(),
+  crashReportOnboarding: crashReport,
+  agentMonitoringOnboarding: agentMonitoring,
 };
 
 export default docs;

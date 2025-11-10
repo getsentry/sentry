@@ -9,20 +9,17 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMonitoring';
+import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
+import {featureFlag} from 'sentry/gettingStartedDocs/python/python/featureFlag';
+import {logs, verify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {mcp} from 'sentry/gettingStartedDocs/python/python/mcp';
 import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-  featureFlagOnboarding,
-  mcpOnboarding,
-} from 'sentry/gettingStartedDocs/python/python';
+  alternativeProfiling,
+  profiling,
+} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
-import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -103,7 +100,7 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
       ],
     },
   ],
@@ -137,7 +134,7 @@ urlpatterns = [
             },
           ],
         },
-        getVerifyLogsContent(params),
+        verify(params),
         {
           type: 'text',
           text: [
@@ -243,22 +240,19 @@ sentry_sdk.init(
   nextSteps: () => [],
 };
 
-const logsOnboarding = getPythonLogsOnboarding({
-  packageName: 'sentry-sdk[django]',
-});
-
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[django]'}),
+  profilingOnboarding: profiling({basePackage: 'sentry-sdk[django]'}),
   performanceOnboarding,
-  crashReportOnboarding: crashReportOnboardingPython,
-  featureFlagOnboarding,
+  crashReportOnboarding: crashReport,
+  featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
-  agentMonitoringOnboarding,
-  mcpOnboarding,
-
-  logsOnboarding,
+  agentMonitoringOnboarding: agentMonitoring,
+  mcpOnboarding: mcp,
+  logsOnboarding: logs({
+    packageName: 'sentry-sdk[django]',
+  }),
 };
 
 export default docs;
