@@ -417,7 +417,7 @@ class SemverBuildFilterConverterTest(BaseSemverConverterTest):
         with pytest.raises(ValueError, match="organization_id is a required param"):
             self.converter(filter, key, None)
         with pytest.raises(ValueError, match="organization_id is a required param"):
-            self.converter(filter, key, {"something": 1})  # type: ignore[arg-type]  # intentionally bad data
+            self.converter(filter, key, {"something": 1})  # intentionally bad data
 
         filter = SearchFilter(SearchKey(key), "IN", SearchValue("sentry"))
         with pytest.raises(
