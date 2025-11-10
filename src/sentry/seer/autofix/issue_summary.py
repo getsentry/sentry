@@ -61,7 +61,7 @@ def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStopp
     elif fixability_score < FixabilityScoreThresholds.HIGH.value:
         return AutofixStoppingPoint.SOLUTION
     else:
-        return AutofixStoppingPoint.OPEN_PR
+        return AutofixStoppingPoint.CODE_CHANGES
 
 
 @instrumented_task(
