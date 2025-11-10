@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsString, useQueryState} from 'nuqs';
@@ -6,6 +6,7 @@ import {parseAsString, useQueryState} from 'nuqs';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {
@@ -13,7 +14,7 @@ import {
   useEAPSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
@@ -21,9 +22,11 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
@@ -31,11 +34,13 @@ import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {GenerationsChart} from 'sentry/views/insights/aiGenerations/views/components/generationsChart';
 import {GenerationsTable} from 'sentry/views/insights/aiGenerations/views/components/generationsTable';
 import {GenerationsToolbar} from 'sentry/views/insights/aiGenerations/views/components/generationsToolbar';
+import {INPUT_OUTPUT_FIELD} from 'sentry/views/insights/aiGenerations/views/utils/constants';
+import {useFieldsQueryParam} from 'sentry/views/insights/aiGenerations/views/utils/useFieldsQueryParam';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
-import {ModuleName} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 function useShowOnboarding() {
   const {projects} = useProjects();
@@ -53,11 +58,14 @@ function AIGenerationsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const showOnboarding = useShowOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
+
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
     parseAsString.withOptions({history: 'replace'})
   );
   const {unsetCursor} = useTableCursor();
+
+  const [fields, setFields] = useFieldsQueryParam();
 
   const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
     useTraceItemTags('number');
@@ -101,6 +109,24 @@ function AIGenerationsPage() {
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
     eapSpanSearchQueryBuilderProps
   );
+
+  const openColumnEditor = useCallback(() => {
+    openModal(
+      modalProps => (
+        <ColumnEditorModal
+          {...modalProps}
+          columns={fields.slice()}
+          requiredTags={[SpanFields.ID, INPUT_OUTPUT_FIELD]}
+          onColumnsChange={setFields as any}
+          stringTags={stringTags}
+          numberTags={numberTags}
+          handleReset={() => setFields(null)}
+          isDocsButtonHidden
+        />
+      ),
+      {closeEvents: 'escape-key'}
+    );
+  }, [fields, setFields, stringTags, numberTags]);
 
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
@@ -151,26 +177,48 @@ function AIGenerationsPage() {
               borderTop="muted"
               background="secondary"
             >
-              <Stack direction="column" gap="md" align="start">
-                <SidebarCollapseButton
-                  sidebarOpen={sidebarOpen}
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
-                  size="xs"
-                  icon={
-                    <IconChevron
-                      isDouble
-                      direction={sidebarOpen ? 'left' : 'right'}
-                      size="xs"
-                    />
-                  }
-                >
-                  {sidebarOpen ? null : t('Advanced')}
-                </SidebarCollapseButton>
-                <Stack direction="column" gap="xl" align="start">
-                  <GenerationsChart />
-                  <GenerationsTable />
-                </Stack>
+              <Stack direction="column" gap="md">
+                <Container alignSelf="start">
+                  <SidebarCollapseButton
+                    sidebarOpen={sidebarOpen}
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
+                    size="xs"
+                    icon={
+                      <IconChevron
+                        isDouble
+                        direction={sidebarOpen ? 'left' : 'right'}
+                        size="xs"
+                      />
+                    }
+                  >
+                    {sidebarOpen ? null : t('Advanced')}
+                  </SidebarCollapseButton>
+                </Container>
+                <GenerationsChart />
+                <Container alignSelf="end">
+                  <TableActionButton
+                    mobile={
+                      <Button
+                        onClick={openColumnEditor}
+                        icon={<IconEdit />}
+                        size="sm"
+                        aria-label={t('Edit Table')}
+                      />
+                    }
+                    desktop={
+                      <Button
+                        onClick={openColumnEditor}
+                        icon={<IconEdit />}
+                        size="sm"
+                        aria-label={t('Edit Table')}
+                      >
+                        {t('Edit Table')}
+                      </Button>
+                    }
+                  />
+                </Container>
+                <GenerationsTable />
               </Stack>
             </Container>
           </Flex>
