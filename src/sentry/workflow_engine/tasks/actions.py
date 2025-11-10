@@ -90,7 +90,7 @@ def trigger_action(
 
     action = Action.objects.annotate(workflow_id=Value(workflow_id)).get(id=action_id)
 
-    # TODO: remove detector usage from this task after we start passing in project_id
+    # TODO: remove detector usage from this task
     detector: Detector | None = None
     if detector_id is not None:
         detector = Detector.objects.get(id=detector_id)
