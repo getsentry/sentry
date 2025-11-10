@@ -10,7 +10,7 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
-from sentry.shared_integrations.exceptions import ApiForbiddenError, IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -506,7 +506,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
     @responses.activate
     def test_create_preprod_status_check_task_github_non_permission_403(self):
-        """Test task re-raises non-permission 403 errors (for potential retry)."""
+        """Test task re-raises non-permission 403 errors (allows retry for transient issues)."""
         preprod_artifact = self._create_preprod_artifact(
             state=PreprodArtifact.ArtifactState.PROCESSED
         )
@@ -535,7 +535,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             integration_id=integration.id,
         )
 
-        # 403 error that's NOT permission-related (should be re-raised, not converted)
+        # 403 error that's NOT permission-related (should re-raise to allow retry)
         responses.add(
             responses.POST,
             "https://api.github.com/repos/owner/repo/check-runs",
@@ -546,13 +546,120 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         )
 
         with self.tasks():
+            # Should re-raise ApiForbiddenError (not convert to IntegrationConfigurationError)
+            # This allows the task system to retry in case it's a transient issue
             try:
                 create_preprod_status_check_task(preprod_artifact.id)
                 assert False, "Expected ApiForbiddenError to be raised"
-            except ApiForbiddenError as e:
+            except Exception as e:
+                assert e.__class__.__name__ == "ApiForbiddenError"
                 assert "temporarily unavailable" in str(e)
 
         assert len(responses.calls) == 1
         assert (
             responses.calls[0].request.url == "https://api.github.com/repos/owner/repo/check-runs"
         )
+
+    @responses.activate
+    def test_create_preprod_status_check_task_github_400_error(self):
+        """Test task converts 400 errors to IntegrationConfigurationError (no retry)."""
+        preprod_artifact = self._create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="789",
+            provider="github",
+            metadata={"access_token": "test_token", "expires_at": "2099-01-01T00:00:00Z"},
+        )
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/owner/repo/check-runs",
+            status=400,
+            json={
+                "message": "Invalid request",
+                "errors": [{"field": "head_sha", "code": "invalid"}],
+            },
+        )
+
+        with self.tasks():
+            try:
+                create_preprod_status_check_task(preprod_artifact.id)
+                assert False, "Expected IntegrationConfigurationError to be raised"
+            except IntegrationConfigurationError as e:
+                assert "400 client error" in str(e)
+
+        # Verify no retries
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_create_preprod_status_check_task_github_429_error(self):
+        """Test task allows 429 rate limit errors to retry"""
+        preprod_artifact = self._create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+        )
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="999",
+            provider="github",
+            metadata={"access_token": "test_token", "expires_at": "2099-01-01T00:00:00Z"},
+        )
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+
+        responses.add(
+            responses.POST,
+            "https://api.github.com/repos/owner/repo/check-runs",
+            status=429,
+            json={
+                "message": "API rate limit exceeded",
+                "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting",
+            },
+        )
+
+        with self.tasks():
+            # 429 should be re-raised as ApiRateLimitedError (not converted to IntegrationConfigurationError)
+            # This allows the task system to retry with backoff
+            try:
+                create_preprod_status_check_task(preprod_artifact.id)
+                assert False, "Expected ApiRateLimitedError to be raised"
+            except Exception as e:
+                assert e.__class__.__name__ == "ApiRateLimitedError"
+                assert "rate limit" in str(e).lower()
+
+        assert len(responses.calls) == 1
