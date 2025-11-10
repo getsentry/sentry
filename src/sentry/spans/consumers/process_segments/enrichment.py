@@ -146,9 +146,19 @@ class TreeEnricher:
         """
         Iterates over the ancestors of a span in order towards the root using the "parent_span_id" attribute.
         """
-        current = span
-        while current := self._span_hierarchy.get(current.get("parent_span_id")):
-            yield current
+        current: SpanEvent | None = span
+        parent_span_id: str | None = None
+
+        while current is not None:
+            parent_span_id = current.get("parent_span_id")
+            if parent_span_id is not None:
+                current = self._span_hierarchy.get(parent_span_id)
+            else:
+                current = None
+            if current is not None:
+                yield current
+            else:
+                break
 
     def _exclusive_time(self, span: SpanEvent) -> float:
         """
