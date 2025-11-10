@@ -5,7 +5,7 @@ import logging
 import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Literal, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from cryptography.fernet import Fernet
@@ -279,9 +279,14 @@ def _can_use_prevent_ai_features(org: Organization) -> bool:
     return not hide_ai_features and pr_review_test_generation_enabled
 
 
+class SentryOrganizaionIdsAndSlugs(TypedDict):
+    org_ids: list[int]
+    org_slugs: list[str]
+
+
 def get_sentry_organization_ids(
     *, external_id: str, provider: str = "integrations:github", **kwargs
-) -> dict[Literal["org_ids"], list[int]]:
+) -> SentryOrganizaionIdsAndSlugs:
     """
     Get the Sentry organization ID for a given Repository.
 
