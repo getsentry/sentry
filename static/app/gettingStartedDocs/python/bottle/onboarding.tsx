@@ -1,32 +1,15 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   StepType,
-  type Docs,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {
-  agentMonitoringOnboarding,
-  crashReportOnboardingPython,
-  featureFlagOnboarding,
-  mcpOnboarding,
-} from 'sentry/gettingStartedDocs/python/python';
+import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
+import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
-import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
 
-type Params = DocsParams;
-
-const getSdkSetupSnippet = (params: Params) => `
+const getSdkSetupSnippet = (params: DocsParams) => `
 import sentry_sdk
 
 sentry_sdk.init(
@@ -68,7 +51,7 @@ sentry_sdk.init(
 )
 `;
 
-const onboarding: OnboardingConfig = {
+export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct('The Bottle integration adds support for the [link:Bottle Web Framework].', {
       link: <ExternalLink href="https://bottlepy.org/docs/dev/" />,
@@ -87,7 +70,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
       content: [
@@ -108,11 +91,11 @@ ${getSdkSetupSnippet(params)}
 app = Bottle()
 `,
         },
-        alternativeProfilingConfiguration(params),
+        alternativeProfiling(params),
       ],
     },
   ],
-  verify: (params: Params) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -135,7 +118,7 @@ def hello():
 run(app, host='localhost', port=8000)
 `,
         },
-        getVerifyLogsContent(params),
+        verify(params),
         {
           type: 'text',
           text: [
@@ -154,7 +137,7 @@ run(app, host='localhost', port=8000)
       ],
     },
   ],
-  nextSteps: (params: Params) => {
+  nextSteps: (params: DocsParams) => {
     const steps = [];
     if (params.isLogsSelected) {
       steps.push({
@@ -169,21 +152,3 @@ run(app, host='localhost', port=8000)
     return steps;
   },
 };
-
-const logsOnboarding = getPythonLogsOnboarding({
-  packageName: 'sentry-sdk[bottle]',
-});
-
-const docs: Docs = {
-  onboarding,
-  replayOnboardingJsLoader,
-  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[bottle]'}),
-  crashReportOnboarding: crashReportOnboardingPython,
-  featureFlagOnboarding,
-  feedbackOnboardingJsLoader,
-  agentMonitoringOnboarding,
-  mcpOnboarding,
-  logsOnboarding,
-};
-
-export default docs;
