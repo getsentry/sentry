@@ -3,15 +3,13 @@ import logging
 import sentry_sdk
 
 from sentry.shared_integrations.exceptions import IntegrationFormError
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
 
 
-def test_fire_action(
-    action: Action, event_data: WorkflowEventData, detector: Detector
-) -> list[str]:
+def test_fire_action(action: Action, event_data: WorkflowEventData) -> list[str]:
     """
     This function will fire an action and return a list of exceptions that occurred.
     """
@@ -19,7 +17,6 @@ def test_fire_action(
     try:
         action.trigger(
             event_data=event_data,
-            detector=detector,
         )
     except Exception as exc:
         if isinstance(exc, IntegrationFormError):
