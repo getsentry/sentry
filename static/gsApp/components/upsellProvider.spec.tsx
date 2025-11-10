@@ -120,7 +120,7 @@ describe('UpsellProvider', () => {
 
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: `/settings/${org.slug}/billing/checkout/`,
+        pathname: '/checkout/',
         query: {
           referrer: 'upsell-test-abc',
         },
