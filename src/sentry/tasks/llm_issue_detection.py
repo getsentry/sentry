@@ -126,7 +126,7 @@ def create_issue_occurrence_from_detection(
     event_data = {
         "event_id": event_id,
         "project_id": project_id,
-        "platform": project.platform,
+        "platform": project.platform or "other",
         "received": detection_time.isoformat(),
         "timestamp": detection_time.isoformat(),
         "tags": {
