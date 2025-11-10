@@ -67,7 +67,7 @@ export default function ReplayCurrentLocationInput() {
   return (
     <Flex gap="sm" flex="1" align="center">
       <Tooltip title={scrubbingTooltip} disabled={!scrubbingTooltip} skipWrapper>
-        <FlexTextCopyInput aria-label={t('Copy to clipboard')} size="sm">
+        <FlexTextCopyInput aria-label={t('Current Location')} size="sm">
           {currentLocation}
         </FlexTextCopyInput>
       </Tooltip>
