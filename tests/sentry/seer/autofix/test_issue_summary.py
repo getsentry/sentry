@@ -714,10 +714,6 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         event_data = load_data("python")
         self.event = self.store_event(data=event_data, project_id=self.project.id)
 
-    @pytest.mark.parametrize(
-        "score,expected",
-        [(0.80, AutofixStoppingPoint.OPEN_PR), (0.50, AutofixStoppingPoint.SOLUTION)],
-    )
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch(
         "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
@@ -726,8 +722,12 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
     @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    @pytest.mark.parametrize(
+        "score,expected",
+        [(0.80, AutofixStoppingPoint.OPEN_PR), (0.50, AutofixStoppingPoint.SOLUTION)],
+    )
     def test_with_feature_flag(
-        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger, score, expected
+        self, score, expected, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
     ):
         from sentry.seer.autofix.issue_summary import _run_automation
 
@@ -763,4 +763,5 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             scores=SummarizeIssueScores(fixability_score=0.80),
         )
         _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] is None
