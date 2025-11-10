@@ -27,18 +27,20 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
     def __init__(
         self,
-        host: str,
-        port: int | str,
-        user: str,
+        host: str | None = None,
+        port: int | str | None = None,
+        user: str | None = None,
         password: str | None = None,
         client: str | None = None,
+        ticket: str | None = None,
     ):
-        self.host = host
-        self.port = str(port)
-        self.user = user
+        self.ticket = ticket
+        self.host = host or "localhost"
+        self.port = str(port) if port else "1666"
+        self.user = user or ""
         self.password = password
         self.client_name = client
-        self.base_url = f"p4://{host}:{port}"
+        self.base_url = f"p4://{self.host}:{self.port}"
 
         # Import P4 only when needed to avoid import errors if not installed
         try:
@@ -52,12 +54,21 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
     def _connect(self):
         """Create and connect a P4 instance."""
-        p4 = self.P4()
-        p4.port = f"{self.host}:{self.port}"
-        p4.user = self.user
+        is_ticket_auth = bool(self.ticket)
 
-        if self.password:
-            p4.password = self.password
+        p4 = self.P4()
+
+        if is_ticket_auth:
+            # Ticket authentication: P4Python auto-extracts host/port/user from ticket
+            # Just set the ticket as password and P4 will handle the rest
+            p4.password = self.ticket
+        else:
+            # Password authentication: set host/port/user explicitly
+            p4.port = f"{self.host}:{self.port}"
+            p4.user = self.user
+
+            if self.password:
+                p4.password = self.password
 
         if self.client_name:
             p4.client = self.client_name
@@ -66,16 +77,17 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         try:
             p4.connect()
-            logger.info(
-                "perforce.client.connected",
-                extra={"host": self.host, "port": self.port, "user": self.user},
-            )
+
+            # Authenticate with the server if password is provided (not ticket)
+            if self.password and not is_ticket_auth:
+                try:
+                    p4.run_login()
+                except self.P4Exception as login_error:
+                    p4.disconnect()
+                    raise ApiError(f"Failed to authenticate with Perforce: {login_error}")
+
             return p4
         except self.P4Exception as e:
-            logger.exception(
-                "perforce.client.connection_failed",
-                extra={"error": str(e), "host": self.host, "port": self.port},
-            )
             raise ApiError(f"Failed to connect to Perforce: {e}")
 
     def _disconnect(self, p4):
@@ -83,17 +95,17 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         try:
             if p4.connected():
                 p4.disconnect()
-        except Exception as e:
-            logger.warning("perforce.client.disconnect_error", extra={"error": str(e)})
+        except Exception:
+            pass
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         """
         Check if a file exists in the depot.
 
         Args:
-            repo: Repository object containing depot path
+            repo: Repository object containing depot path (includes stream if specified)
             path: File path relative to depot
-            version: Changelist number (optional)
+            version: Not used (streams are part of depot_path)
 
         Returns:
             File info dict if exists, None otherwise
@@ -101,26 +113,13 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         p4 = self._connect()
         try:
             depot_path = self._build_depot_path(repo, path)
-
-            if version:
-                depot_path = f"{depot_path}@{version}"
-
-            logger.info(
-                "perforce.client.check_file",
-                extra={"depot_path": depot_path},
-            )
-
             result = p4.run("files", depot_path)
 
             if result and len(result) > 0:
                 return result[0]
             return None
 
-        except self.P4Exception as e:
-            logger.info(
-                "perforce.client.check_file.not_found",
-                extra={"depot_path": depot_path, "error": str(e)},
-            )
+        except self.P4Exception:
             return None
         finally:
             self._disconnect(p4)
@@ -132,9 +131,9 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Get file contents from depot.
 
         Args:
-            repo: Repository object
+            repo: Repository object (depot_path includes stream if specified)
             path: File path
-            ref: Changelist number
+            ref: Not used (streams are part of depot_path)
             codeowners: Whether this is a CODEOWNERS file
 
         Returns:
@@ -143,12 +142,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         p4 = self._connect()
         try:
             depot_path = self._build_depot_path(repo, path)
-
-            if ref:
-                depot_path = f"{depot_path}@{ref}"
-
-            logger.info("perforce.client.get_file", extra={"depot_path": depot_path})
-
             result = p4.run("print", "-q", depot_path)
 
             if result and len(result) > 1:
@@ -158,9 +151,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             raise ApiError(f"File not found: {depot_path}")
 
         except self.P4Exception as e:
-            logger.exception(
-                "perforce.client.get_file.error", extra={"depot_path": depot_path, "error": str(e)}
-            )
+            logger.exception("perforce.get_file_failed", extra={"path": path})
             raise ApiError(f"Failed to get file: {e}")
         finally:
             self._disconnect(p4)
@@ -178,82 +169,63 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         """
         Get blame/annotate information for a file (like git blame).
 
-        Uses 'p4 annotate' to find who last modified each line.
+        Uses 'p4 filelog' + 'p4 describe' which is much faster than 'p4 annotate'.
+        Returns the most recent changelist that modified the file and its author.
         This is used for CODEOWNERS-style ownership detection.
 
         Args:
-            repo: Repository object
+            repo: Repository object (depot_path includes stream if specified)
             path: File path relative to depot
-            ref: Changelist number (optional)
-            lineno: Specific line number to blame (optional)
+            ref: Not used (streams are part of depot_path)
+            lineno: Specific line number to blame (optional, currently ignored)
 
         Returns:
-            List of blame information per line with:
-            - line: line number
+            List with a single entry containing:
             - changelist: changelist number
             - user: username who made the change
             - date: date of change
+            - description: changelist description
         """
         p4 = self._connect()
         try:
             depot_path = self._build_depot_path(repo, path)
 
-            if ref:
-                depot_path = f"{depot_path}@{ref}"
+            # Use 'p4 filelog' to get the most recent changelist for this file
+            # This is much faster than 'p4 annotate'
+            filelog = p4.run("filelog", "-m1", depot_path)
 
-            logger.info(
-                "perforce.client.get_blame",
-                extra={"depot_path": depot_path, "line_number": lineno},
-            )
+            if not filelog or len(filelog) == 0:
+                return []
 
-            # Use 'p4 annotate' to get line-by-line authorship
-            # Format: changelist: line_content
-            result = p4.run("annotate", "-q", "-c", depot_path)
+            # Get the most recent changelist number
+            # filelog returns a list of revisions, we want the first one
+            revisions = filelog[0].get("rev", [])
+            if not revisions or len(revisions) == 0:
+                return []
 
-            blame_info = []
-            for i, line in enumerate(result, start=1):
-                # Skip if we only want a specific line
-                if lineno is not None and i != lineno:
-                    continue
+            # Get the changelist number from the first revision
+            changelist = revisions[0].get("change")
+            if not changelist:
+                return []
 
-                # Parse annotate output: "changelist: content"
-                if isinstance(line, str) and ":" in line:
-                    parts = line.split(":", 1)
-                    changelist = parts[0].strip()
+            # Get detailed changelist information using 'p4 describe'
+            # -s flag means "short" - don't include diffs, just metadata
+            change_info = p4.run("describe", "-s", changelist)
 
-                    # Get changelist details to find the user
-                    try:
-                        change_info = p4.run("describe", "-s", changelist)
-                        if change_info:
-                            blame_info.append(
-                                {
-                                    "line": i,
-                                    "changelist": changelist,
-                                    "user": change_info[0].get("user", "unknown"),
-                                    "date": change_info[0].get("time", ""),
-                                }
-                            )
-                    except self.P4Exception:
-                        # If we can't get changelist details, add minimal info
-                        blame_info.append(
-                            {
-                                "line": i,
-                                "changelist": changelist,
-                                "user": "unknown",
-                                "date": "",
-                            }
-                        )
+            if not change_info:
+                return []
 
-                # If we only wanted one line, we're done
-                if lineno is not None and len(blame_info) > 0:
-                    break
+            change_data = change_info[0]
+            return [
+                {
+                    "changelist": str(changelist),
+                    "user": change_data.get("user", "unknown"),
+                    "date": change_data.get("time", ""),
+                    "description": change_data.get("desc", ""),
+                }
+            ]
 
-            return blame_info
-
-        except self.P4Exception as e:
-            logger.warning(
-                "perforce.client.get_blame.error", extra={"depot_path": depot_path, "error": str(e)}
-            )
+        except self.P4Exception:
             return []
         finally:
             self._disconnect(p4)
@@ -357,10 +329,8 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         try:
             for file in files:
                 try:
-                    # Build depot path for the file
+                    # Build depot path for the file (includes stream if specified)
                     depot_path = self._build_depot_path(file.repo, file.path)
-                    if file.ref:
-                        depot_path = f"{depot_path}@{file.ref}"
 
                     # Run p4 annotate to get line-by-line blame info
                     result = p4.run("annotate", "-q", "-c", depot_path)

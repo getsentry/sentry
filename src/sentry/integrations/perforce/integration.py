@@ -100,17 +100,28 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             raise IntegrationError("Integration model not found")
 
         metadata = self.model.metadata
-        self._client = PerforceClient(
-            host=metadata.get("host", "localhost"),
-            port=metadata.get("port", 1666),
-            user=metadata.get("user", ""),
-            password=metadata.get("password"),
-            client=metadata.get("client"),
-        )
+        auth_mode = metadata.get("auth_mode", "password")
+
+        if auth_mode == "ticket":
+            # Ticket authentication mode
+            self._client = PerforceClient(
+                ticket=metadata.get("ticket"),
+                client=metadata.get("client"),
+            )
+        else:
+            # Password authentication mode
+            self._client = PerforceClient(
+                host=metadata.get("host", "localhost"),
+                port=metadata.get("port", 1666),
+                user=metadata.get("user", ""),
+                password=metadata.get("password"),
+                client=metadata.get("client"),
+            )
         return self._client
 
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
         """
+        TODO: How to integrate this with Swarm?
         Handle errors from PR comment operations.
         Perforce doesn't have native pull requests, so this always returns False.
         """
@@ -129,12 +140,13 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         """
+        TODO: How to integrate streams/revisions?
         Format source URL for stacktrace linking.
 
         Args:
             repo: Repository object
             filepath: File path relative to depot root
-            branch: Changelist number (version)
+            branch: Not used for Perforce (streams are part of depot_path)
 
         Returns:
             Formatted URL (p4:// or web viewer URL)
@@ -143,52 +155,37 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         filepath = filepath.lstrip("/")
         full_path = f"{depot_path}/{filepath}"
 
-        if branch:
-            full_path = f"{full_path}@{branch}"
-
         # If web viewer is configured, use it
         web_url = self.model.metadata.get("web_url")
         if web_url:
             # Common formats: P4Web, Swarm, etc.
-            # P4Web: http://server:8080/depot/path?ac=64&rev=123
-            # Swarm: http://server/files/depot/path?v=123
             viewer_type = self.model.metadata.get("web_viewer_type", "p4web")
 
             if viewer_type == "swarm":
                 return f"{web_url}/files{full_path}"
             elif viewer_type == "p4web":
-                if branch:
-                    return f"{web_url}{full_path.replace('@', '?ac=64&rev=')}"
                 return f"{web_url}{full_path}?ac=64"
 
         # Default: p4:// protocol URL
         return f"p4://{full_path}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        """Extract changelist number from URL."""
-        # From p4://depot/path@123 -> 123
-        if "@" in url:
-            return url.split("@")[-1]
-
-        # From web URL query params
-        if "rev=" in url:
-            return url.split("rev=")[-1].split("&")[0]
-        if "v=" in url:
-            return url.split("v=")[-1].split("&")[0]
-
+        """
+        TODO: How to do that?
+        Extract branch/stream from URL.
+        For Perforce, streams are part of the depot path, not separate refs.
+        Returns empty string as we don't use branch refs.
+        """
         return ""
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        """Extract file path from URL."""
+        """Extract file path from URL.
+        TODO: How to extract revision properly?"""
         depot_path = repo.config.get("depot_path", repo.name)
 
         # Remove p4:// prefix
         if url.startswith("p4://"):
             url = url[5:]
-
-        # Remove @ version suffix
-        if "@" in url:
-            url = url.split("@")[0]
 
         # Remove depot prefix to get relative path
         if url.startswith(depot_path):
@@ -206,10 +203,8 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             List of repository dictionaries
         """
         try:
-            logger.info("perforce.get_repositories", extra={"query": query})
             client = self.get_client()
             depots = client.get_depots()
-            logger.info("perforce.get_repositories.fetched", extra={"depot_count": len(depots)})
 
             repositories = []
             for depot in depots:
@@ -224,18 +219,18 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                     {
                         "name": depot_name,
                         "identifier": depot_path,
-                        "default_branch": "head",  # P4 uses @head for latest
+                        "default_branch": None,  # Perforce uses depot paths, not branch refs
                     }
                 )
 
-            logger.info(
-                "perforce.get_repositories.success", extra={"repo_count": len(repositories)}
-            )
             return repositories
 
+        except ApiError:
+            # Re-raise authentication/connection errors so user sees them
+            raise
         except Exception as e:
-            logger.exception("perforce.get_repositories.error", extra={"error": str(e)})
-            return []
+            logger.exception("perforce.get_repositories_failed")
+            raise IntegrationError(f"Failed to fetch repositories from Perforce: {str(e)}")
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         """Check if integration can access the depot."""
@@ -252,10 +247,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
             return result is not None
 
-        except Exception as e:
-            logger.warning(
-                "perforce.has_repo_access.failed", extra={"repo": repo.name, "error": str(e)}
-            )
+        except Exception:
             return False
 
     def get_unmigratable_repositories(self) -> list[RpcRepository]:
@@ -293,12 +285,34 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         """
         return [
             {
+                "name": "auth_mode",
+                "type": "choice",
+                "label": "Authentication Mode",
+                "choices": [
+                    ["password", "Username & Password"],
+                    ["ticket", "P4 Ticket"],
+                ],
+                "help": "Choose how to authenticate with Perforce. P4 tickets are more secure and don't require storing passwords.",
+                "required": True,
+                "default": "password",
+            },
+            {
+                "name": "ticket",
+                "type": "secret",
+                "label": "P4 Ticket",
+                "placeholder": "••••••••••••••••••••••••••••••••",
+                "help": "P4 authentication ticket (obtained via 'p4 login -p'). Tickets contain server/user info and are more secure than passwords.",
+                "required": False,
+                "depends_on": {"auth_mode": "ticket"},
+            },
+            {
                 "name": "host",
                 "type": "string",
                 "label": "Perforce Server Host",
                 "placeholder": "perforce.company.com",
                 "help": "The hostname or IP address of your Perforce server",
-                "required": True,
+                "required": False,
+                "depends_on": {"auth_mode": "password"},
             },
             {
                 "name": "port",
@@ -306,8 +320,9 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 "label": "Perforce Server Port",
                 "placeholder": "1666",
                 "help": "The port number for your Perforce server (default: 1666)",
-                "required": True,
+                "required": False,
                 "default": "1666",
+                "depends_on": {"auth_mode": "password"},
             },
             {
                 "name": "user",
@@ -315,15 +330,17 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 "label": "Perforce Username",
                 "placeholder": "sentry-bot",
                 "help": "Username for authenticating with Perforce",
-                "required": True,
+                "required": False,
+                "depends_on": {"auth_mode": "password"},
             },
             {
                 "name": "password",
                 "type": "secret",
-                "label": "Perforce Password or Ticket",
+                "label": "Perforce Password",
                 "placeholder": "••••••••",
-                "help": "Password or authentication ticket for the Perforce user. For security, consider using a P4 ticket instead of a password.",
+                "help": "Password for the Perforce user",
                 "required": False,
+                "depends_on": {"auth_mode": "password"},
             },
             {
                 "name": "client",
@@ -331,14 +348,6 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 "label": "Perforce Client/Workspace (Optional)",
                 "placeholder": "sentry-workspace",
                 "help": "Optional: Specify a client workspace name",
-                "required": False,
-            },
-            {
-                "name": "web_url",
-                "type": "string",
-                "label": "Web Viewer URL (Optional)",
-                "placeholder": "https://p4web.company.com",
-                "help": "Optional: URL to P4Web, Swarm, or other web-based Perforce viewer",
                 "required": False,
             },
             {
@@ -354,7 +363,68 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 "required": False,
                 "default": "p4web",
             },
+            {
+                "name": "web_url",
+                "type": "string",
+                "label": "Web Viewer URL (Optional)",
+                "placeholder": "https://p4web.company.com",
+                "help": "Optional: URL to P4Web, Swarm, or other web-based Perforce viewer",
+                "required": False,
+            },
         ]
+
+    def update_organization_config(self, data: Mapping[str, Any]) -> None:
+        """
+        Update organization config and optionally validate credentials.
+        Only tests connection when password or ticket is changed to avoid annoying
+        validations on every field blur.
+        """
+        from sentry.integrations.services.integration import integration_service
+
+        # Check if credentials are being updated
+        password_changed = "password" in data
+        ticket_changed = "ticket" in data
+        credentials_changed = password_changed or ticket_changed
+
+        # First update the integration metadata with new credentials
+        if self.model:
+            metadata = dict(self.model.metadata or {})
+
+            # Update metadata with any provided fields
+            for key in [
+                "auth_mode",
+                "host",
+                "port",
+                "user",
+                "password",
+                "ticket",
+                "client",
+                "web_url",
+                "web_viewer_type",
+            ]:
+                if key in data:
+                    metadata[key] = data[key]
+
+            integration_service.update_integration(integration_id=self.model.id, metadata=metadata)
+
+            # Clear cached client when credentials change
+            if credentials_changed:
+                self._client = None
+
+        # Only test connection if password or ticket was changed
+        if credentials_changed:
+            try:
+                result = self.test_connection()
+                if result["status"] != "success":
+                    raise IntegrationError(f"Connection test failed: {result['message']}")
+            except Exception as e:
+                logger.exception("perforce.credentials_validation_failed")
+                raise IntegrationError(
+                    f"Failed to connect to Perforce server with provided credentials: {str(e)}"
+                )
+
+        # Call parent to update org integration config
+        super().update_organization_config(data)
 
 
 class PerforceIntegrationProvider(IntegrationProvider):
@@ -408,14 +478,7 @@ class PerforceIntegrationProvider(IntegrationProvider):
         extra: dict[str, Any],
     ) -> None:
         """Actions after installation."""
-        logger.info(
-            "perforce.post_install",
-            extra={
-                "integration_id": integration.id,
-                "organization_id": organization.id,
-                "host": integration.metadata.get("host"),
-            },
-        )
+        pass
 
     def setup(self) -> None:
         """Setup integration provider."""
@@ -423,13 +486,11 @@ class PerforceIntegrationProvider(IntegrationProvider):
 
         from .repository import PerforceRepositoryProvider
 
-        logger.info("perforce.setup: Registering Perforce repository provider")
         bindings.add(
             "integration-repository.provider",
             PerforceRepositoryProvider,
             id="integrations:perforce",
         )
-        logger.info("perforce.setup.complete: Perforce repository provider registered")
 
 
 class PerforceInstallationView:

@@ -40,11 +40,6 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
 
         depot_path = config["identifier"]  # e.g., //depot or //depot/project
 
-        logger.info(
-            "perforce.get_repository_data",
-            extra={"depot_path": depot_path, "organization_id": organization.id},
-        )
-
         # Validate depot exists and is accessible
         try:
             # Create a minimal repo-like object for client
@@ -67,12 +62,9 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
                         f"Depot not found or no access: {depot_path}. Available depots: {[d['name'] for d in depots]}"
                     )
 
-        except Exception as e:
-            logger.warning(
-                "perforce.get_repository_data.validation_warning",
-                extra={"error": str(e), "depot_path": depot_path},
-            )
+        except Exception:
             # Don't fail - depot might be valid but empty
+            pass
 
         config["external_id"] = depot_path
         config["integration_id"] = installation.model.id
