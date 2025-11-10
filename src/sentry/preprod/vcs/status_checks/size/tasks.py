@@ -429,6 +429,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 raise
 
 
+# See: https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#create-a-check-run
 GITHUB_MAX_SUMMARY_FIELD_LENGTH = 65535
 GITHUB_MAX_TEXT_FIELD_LENGTH = 65535
 
