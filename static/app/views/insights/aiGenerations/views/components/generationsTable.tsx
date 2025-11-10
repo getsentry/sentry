@@ -39,7 +39,7 @@ import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared
 import {SpanFields} from 'sentry/views/insights/types';
 
 const columnWidths: Partial<Record<GenerationFields, number>> = {
-  [SpanFields.SPAN_ID]: 100,
+  [SpanFields.ID]: 100,
   [INPUT_OUTPUT_FIELD]: COL_WIDTH_UNDEFINED,
   [SpanFields.GEN_AI_REQUEST_MODEL]: 200,
 };
@@ -72,7 +72,7 @@ const REQUIRED_FIELDS = [
   SpanFields.PROJECT,
   SpanFields.TIMESTAMP,
   SpanFields.TRACE,
-  SpanFields.SPAN_ID,
+  SpanFields.ID,
   SpanFields.GEN_AI_REQUEST_MESSAGES,
   SpanFields.GEN_AI_RESPONSE_TEXT,
   SpanFields.GEN_AI_RESPONSE_OBJECT,
@@ -121,12 +121,12 @@ export function GenerationsTable() {
               onClick={() => {
                 openTraceViewDrawer(
                   dataRow.trace!,
-                  dataRow.span_id,
+                  dataRow.id,
                   getTimeStampFromTableDateField(dataRow.timestamp)
                 );
               }}
             >
-              {getShortEventId(dataRow.span_id!)}
+              {getShortEventId(dataRow.id!)}
             </Button>
           </div>
         );
@@ -218,7 +218,7 @@ export function GenerationsTable() {
           align={column.key === SpanFields.TIMESTAMP ? 'right' : 'left'}
           currentSort={tableSort}
           sortKey={column.key}
-          forceCellGrow={column.key === SpanFields.GEN_AI_REQUEST_MESSAGES}
+          forceCellGrow={column.key === INPUT_OUTPUT_FIELD}
         >
           {column.name}
         </HeadSortCell>
