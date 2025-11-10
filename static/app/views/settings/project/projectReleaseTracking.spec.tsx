@@ -44,7 +44,9 @@ describe('ProjectReleaseTracking', () => {
   });
 
   it('renders with token', async () => {
-    render(<ProjectReleaseTracking organization={org} project={project} />, {
+    render(<ProjectReleaseTracking />, {
+      organization: org,
+      outletContext: {project},
       initialRouterConfig,
     });
 
@@ -54,7 +56,9 @@ describe('ProjectReleaseTracking', () => {
   });
 
   it('can regenerate token', async () => {
-    render(<ProjectReleaseTracking organization={org} project={project} />, {
+    render(<ProjectReleaseTracking />, {
+      organization: org,
+      outletContext: {project},
       initialRouterConfig,
     });
     renderGlobalModal();
@@ -99,7 +103,9 @@ describe('ProjectReleaseTracking', () => {
       body: undefined,
     });
 
-    render(<ProjectReleaseTracking organization={org} project={project} />, {
+    render(<ProjectReleaseTracking />, {
+      organization: org,
+      outletContext: {project},
       initialRouterConfig,
     });
 
