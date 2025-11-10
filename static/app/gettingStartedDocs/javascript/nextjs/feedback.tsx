@@ -56,7 +56,7 @@ export const feedback: OnboardingConfig = {
           tabs: [
             {
               label: 'JavaScript',
-              filename: 'sentry.client.config.js',
+              filename: 'instrumentation-client.js',
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/nextjs";`,
