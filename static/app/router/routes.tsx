@@ -2219,6 +2219,7 @@ function buildRoutes(): RouteObject[] {
       index: true,
       component: make(() => import('sentry/views/explore/metrics/content')),
     },
+    traceView,
   ];
 
   const profilingChildren: SentryRouteObject[] = [
@@ -2660,7 +2661,7 @@ function buildRoutes(): RouteObject[] {
   const adminManageChildren: SentryRouteObject[] = [
     {
       index: true,
-      component: make(() => import('sentry/views/admin/adminOverview')),
+      component: make(() => import('sentry/views/admin/adminEnvironment')),
     },
     {
       path: 'relays/',

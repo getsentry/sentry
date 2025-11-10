@@ -181,7 +181,7 @@ function getSuggestionDescription(group: SearchGroup | SearchItem) {
   return undefined;
 }
 
-function getPredefinedValues({
+export function getPredefinedValues({
   fieldDefinition,
   key,
   filterValue,
