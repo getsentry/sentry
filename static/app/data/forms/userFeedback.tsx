@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
+import {AiPrivacyNotice} from 'sentry/components/aiPrivacyNotice';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
-import {AI_PRIVACY_NOTICE} from 'sentry/utils/aiPrivacyNotice';
 
 export const route = '/settings/:orgId/projects/:projectId/user-feedback/';
 
@@ -50,7 +50,7 @@ const formGroups: JsonFormObject[] = [
           <Fragment>
             {t('Toggles whether or not to enable auto spam detection in User Feedback.')}
             <br />
-            {AI_PRIVACY_NOTICE}
+            <AiPrivacyNotice />
           </Fragment>
         ),
         getData: data => ({options: data}),

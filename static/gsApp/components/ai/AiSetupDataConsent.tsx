@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {AiPrivacyNotice} from 'sentry/components/aiPrivacyNotice';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
@@ -17,7 +18,6 @@ import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
-import {AI_PRIVACY_NOTICE} from 'sentry/utils/aiPrivacyNotice';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -283,7 +283,9 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
             </ButtonWrapper>
           </Fragment>
         )}
-        <LegalText>{AI_PRIVACY_NOTICE}</LegalText>
+        <LegalText>
+          <AiPrivacyNotice />
+        </LegalText>
       </SingleCard>
       {warnAboutGithubIntegration && (
         <Alert type="warning" showIcon={false}>

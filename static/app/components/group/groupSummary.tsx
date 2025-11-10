@@ -4,6 +4,7 @@ import {motion} from 'framer-motion';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {AiPrivacyNotice} from 'sentry/components/aiPrivacyNotice';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
@@ -22,7 +23,6 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {AI_PRIVACY_NOTICE} from 'sentry/utils/aiPrivacyNotice';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
@@ -217,7 +217,7 @@ function GroupSummaryPreview({
               <InsightCard key={card.id}>
                 <CardTitle>
                   <CardTitleIcon>{card.icon}</CardTitleIcon>
-                  <Tooltip title={AI_PRIVACY_NOTICE} showUnderline isHoverable>
+                  <Tooltip title={<AiPrivacyNotice />} showUnderline isHoverable>
                     <CardTitleText>{card.title}</CardTitleText>
                   </Tooltip>
                 </CardTitle>
