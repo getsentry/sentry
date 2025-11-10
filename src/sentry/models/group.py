@@ -692,7 +692,6 @@ class Group(Model):
             models.Index(fields=("status", "substatus", "first_seen")),
             models.Index(fields=("project", "status", "priority", "last_seen", "id")),
         ]
-        unique_together = (("project", "short_id"),)
 
     __repr__ = sane_repr("project_id")
 
