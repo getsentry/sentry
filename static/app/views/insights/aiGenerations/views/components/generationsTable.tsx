@@ -1,4 +1,5 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
@@ -12,8 +13,11 @@ import {
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
 import {
   HeadSortCell,
@@ -22,27 +26,27 @@ import {
 import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
-import {AI_GENERATIONS_PAGE_FILTER} from 'sentry/views/insights/aiGenerations/views/utils/constants';
+import {
+  AI_GENERATIONS_PAGE_FILTER,
+  INPUT_OUTPUT_FIELD,
+  type GenerationFields,
+} from 'sentry/views/insights/aiGenerations/views/utils/constants';
 import {Referrer} from 'sentry/views/insights/aiGenerations/views/utils/referrer';
+import {useFieldsQueryParam} from 'sentry/views/insights/aiGenerations/views/utils/useFieldsQueryParam';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const INITIAL_COLUMN_ORDER = [
-  {key: SpanFields.SPAN_ID, name: t('Span ID'), width: 100},
-  {
-    key: SpanFields.GEN_AI_REQUEST_MESSAGES,
-    name: t('Input / Output'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: SpanFields.GEN_AI_REQUEST_MODEL,
-    name: t('Model'),
-    width: 200,
-  },
-  {key: SpanFields.TIMESTAMP, name: t('Timestamp')},
-] as const;
+const columnWidths: Partial<Record<GenerationFields, number>> = {
+  [SpanFields.ID]: 100,
+  [INPUT_OUTPUT_FIELD]: COL_WIDTH_UNDEFINED,
+  [SpanFields.GEN_AI_REQUEST_MODEL]: 200,
+};
+
+const prettyFieldNames: Partial<Record<GenerationFields, string>> = {
+  [SpanFields.GEN_AI_REQUEST_MODEL]: t('Model'),
+};
 
 const DEFAULT_SORT: Sort = {field: SpanFields.TIMESTAMP, kind: 'desc'};
 
@@ -63,26 +67,40 @@ function getLastInputMessage(messages?: string) {
   }
 }
 
+const REQUIRED_FIELDS = [
+  SpanFields.SPAN_STATUS,
+  SpanFields.PROJECT,
+  SpanFields.TIMESTAMP,
+  SpanFields.TRACE,
+  SpanFields.ID,
+  SpanFields.GEN_AI_REQUEST_MESSAGES,
+  SpanFields.GEN_AI_RESPONSE_TEXT,
+  SpanFields.GEN_AI_RESPONSE_OBJECT,
+];
+
 export function GenerationsTable() {
   const {openTraceViewDrawer} = useTraceViewDrawer({});
   const query = useCombinedQuery(AI_GENERATIONS_PAGE_FILTER);
   const {cursor} = useTableCursor();
   const {tableSort} = useTableSort(DEFAULT_SORT);
+  const [fields] = useFieldsQueryParam();
+  const location = useLocation();
+  const organization = useOrganization();
+  const theme = useTheme();
 
-  const {data, isLoading, error, pageLinks, isPlaceholderData} = useSpans(
+  const fieldsToQuery = useMemo(() => {
+    return [
+      ...fields.filter(
+        (field): field is SpanFields =>
+          field !== INPUT_OUTPUT_FIELD && !REQUIRED_FIELDS.includes(field)
+      ),
+    ];
+  }, [fields]);
+
+  const {data, meta, isLoading, error, pageLinks, isPlaceholderData} = useSpans(
     {
       search: query,
-      fields: [
-        SpanFields.TRACE,
-        SpanFields.SPAN_ID,
-        SpanFields.SPAN_STATUS,
-        SpanFields.SPAN_DESCRIPTION,
-        SpanFields.GEN_AI_REQUEST_MESSAGES,
-        SpanFields.GEN_AI_RESPONSE_TEXT,
-        SpanFields.GEN_AI_RESPONSE_OBJECT,
-        SpanFields.GEN_AI_REQUEST_MODEL,
-        SpanFields.TIMESTAMP,
-      ],
+      fields: [...REQUIRED_FIELDS, ...fieldsToQuery] as any,
       cursor,
       sorts: [tableSort],
       keepPreviousData: true,
@@ -94,27 +112,27 @@ export function GenerationsTable() {
   type TableData = (typeof data)[number];
 
   const renderBodyCell = useCallback(
-    (column: GridColumnOrder<keyof TableData>, dataRow: TableData) => {
-      if (column.key === SpanFields.SPAN_ID) {
+    (column: GridColumnOrder<GenerationFields>, dataRow: TableData) => {
+      if (column.key === SpanFields.ID) {
         return (
           <div>
             <Button
               priority="link"
               onClick={() => {
                 openTraceViewDrawer(
-                  dataRow.trace,
-                  dataRow.span_id,
+                  dataRow.trace!,
+                  dataRow.id,
                   getTimeStampFromTableDateField(dataRow.timestamp)
                 );
               }}
             >
-              {getShortEventId(dataRow.span_id)}
+              {getShortEventId(dataRow.id!)}
             </Button>
           </div>
         );
       }
 
-      if (column.key === SpanFields.GEN_AI_REQUEST_MESSAGES) {
+      if (column.key === INPUT_OUTPUT_FIELD) {
         const noValueFallback = <Text variant="muted">–</Text>;
         const statusValue = dataRow[SpanFields.SPAN_STATUS];
         const isError = statusValue && statusValue !== 'ok' && statusValue !== 'unknown';
@@ -178,13 +196,19 @@ export function GenerationsTable() {
       if (column.key === SpanFields.TIMESTAMP) {
         return (
           <TextAlignRight>
-            <TimeSince unitStyle="extraShort" date={new Date(dataRow.timestamp)} />
+            <TimeSince unitStyle="short" date={new Date(dataRow.timestamp!)} />
           </TextAlignRight>
         );
       }
-      return <div>{dataRow[column.key]}</div>;
+      const fieldRenderer = getFieldRenderer(column.key, meta!);
+      return fieldRenderer(dataRow, {
+        location,
+        organization,
+        theme,
+        projectSlug: dataRow.project,
+      });
     },
-    [openTraceViewDrawer]
+    [openTraceViewDrawer, meta, location, organization, theme]
   );
 
   const renderHeadCell = useCallback(
@@ -194,7 +218,7 @@ export function GenerationsTable() {
           align={column.key === SpanFields.TIMESTAMP ? 'right' : 'left'}
           currentSort={tableSort}
           sortKey={column.key}
-          forceCellGrow={column.key === SpanFields.GEN_AI_REQUEST_MESSAGES}
+          forceCellGrow={column.key === INPUT_OUTPUT_FIELD}
         >
           {column.name}
         </HeadSortCell>
@@ -204,13 +228,20 @@ export function GenerationsTable() {
   );
 
   return (
-    <div>
+    <Container>
       <PlatformInsightsTable
+        key={fields.join(',')}
         data={data}
         stickyHeader
         isLoading={isLoading}
         error={error}
-        initialColumnOrder={INITIAL_COLUMN_ORDER as any}
+        initialColumnOrder={fields.map(
+          (field): GridColumnOrder<GenerationFields> => ({
+            key: field,
+            name: prettyFieldNames[field] ?? field,
+            width: columnWidths[field] ?? COL_WIDTH_UNDEFINED,
+          })
+        )}
         pageLinks={pageLinks}
         grid={{
           renderBodyCell,
@@ -218,6 +249,6 @@ export function GenerationsTable() {
         }}
         isPlaceholderData={isPlaceholderData}
       />
-    </div>
+    </Container>
   );
 }
