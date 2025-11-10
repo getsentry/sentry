@@ -11,7 +11,7 @@ from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from sentry import deletions, nodestore
 from sentry.deletions.defaults.group import update_group_hash_metadata_in_batches
 from sentry.deletions.tasks.groups import delete_groups_for_project
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
@@ -441,6 +441,61 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     def tenant_ids(self) -> dict[str, str]:
         return {"referrer": self.referrer, "organization_id": self.organization.id}
 
+    def test_simple_issue_platform(self) -> None:
+        # Adding this query here to make sure that the cache is not being used
+        assert self.select_error_events(self.project.id) is None
+        assert self.select_issue_platform_events(self.project.id) is None
+
+        # Create initial error event and occurrence related to it; two different groups will exist
+        event = self.store_event(data={}, project_id=self.project.id)
+        # XXX: We need a different way of creating occurrences which will insert into the nodestore
+        occurrence_event, issue_platform_group = self.create_occurrence(
+            event, type_id=FeedbackGroup.type_id
+        )
+
+        # Assertions after creation
+        assert occurrence_event.id != event.event_id
+        assert event.group_id != issue_platform_group.id
+        assert event.group.issue_category == GroupCategory.ERROR
+        assert issue_platform_group.issue_category == GroupCategory.FEEDBACK
+        assert issue_platform_group.type == FeedbackGroup.type_id
+
+        # Assert that the error event has been inserted in the nodestore & Snuba
+        event_node_id = Event.generate_node_id(event.project_id, event.event_id)
+        assert nodestore.backend.get(event_node_id)
+        expected_error = {"event_id": event.event_id, "group_id": event.group_id}
+        assert self.select_error_events(self.project.id) == expected_error
+
+        # Assert that the occurrence event has been inserted in the nodestore & Snuba
+        # occurrence_node_id = Event.generate_node_id(
+        #     occurrence_event.project_id, occurrence_event.id
+        # )
+        # assert nodestore.backend.get(occurrence_node_id)
+        expected_occurrence_event = {
+            "event_id": occurrence_event.event_id,
+            "group_id": issue_platform_group.id,
+            "occurrence_id": occurrence_event.id,
+        }
+        assert self.select_issue_platform_events(self.project.id) == expected_occurrence_event
+
+        # This will delete the group and the events from the node store and Snuba
+        with self.tasks():
+            delete_groups_for_project(
+                object_ids=[issue_platform_group.id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
+
+        # The original error event and group still exist
+        assert Group.objects.filter(id=event.group_id).exists()
+        assert nodestore.backend.get(event_node_id)
+        assert self.select_error_events(self.project.id) == expected_error
+
+        # The Issue Platform group and occurrence have been deleted
+        assert not Group.objects.filter(id=issue_platform_group.id).exists()
+        # assert not nodestore.backend.get(occurrence_node_id)
+        assert self.select_issue_platform_events(self.project.id) is None
+
     @mock.patch("sentry.deletions.tasks.nodestore.bulk_snuba_queries")
     def test_issue_platform_batching(self, mock_bulk_snuba_queries: mock.Mock) -> None:
         # Patch max_rows_to_delete to a small value for testing
@@ -455,10 +510,10 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             group4 = self.create_group(project=self.project)
 
             # Set times_seen for each group
-            Group.objects.filter(id=group1.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
-            Group.objects.filter(id=group2.id).update(times_seen=1, type=GroupCategory.FEEDBACK)
-            Group.objects.filter(id=group3.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
-            Group.objects.filter(id=group4.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
+            Group.objects.filter(id=group1.id).update(times_seen=3, type=FeedbackGroup.type_id)
+            Group.objects.filter(id=group2.id).update(times_seen=1, type=FeedbackGroup.type_id)
+            Group.objects.filter(id=group3.id).update(times_seen=3, type=FeedbackGroup.type_id)
+            Group.objects.filter(id=group4.id).update(times_seen=3, type=FeedbackGroup.type_id)
 
             # This will delete the group and the events from the node store and Snuba
             with self.tasks():
