@@ -486,10 +486,12 @@ function AutofixSolutionDisplay({
     });
   };
 
-  // Check if instructions were provided (either typed in input or already added to solution)
+  // Check if instructions were provided (either typed in input or already added to solution and active)
   const hasInstructions =
     instructions.trim().length > 0 ||
-    solutionItems.some(item => item.timeline_item_type === 'human_instruction');
+    solutionItems.some(
+      item => item.timeline_item_type === 'human_instruction' && item.is_active !== false
+    );
 
   useEffect(() => {
     setSolutionItems(
