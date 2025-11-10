@@ -58,7 +58,6 @@ class ExecutionTreeNode(BaseModel):
 
 class ProfileData(BaseModel):
     profile_id: str
-    span_id: str
     transaction_name: str | None
     execution_tree: list[ExecutionTreeNode]
     project_id: int
