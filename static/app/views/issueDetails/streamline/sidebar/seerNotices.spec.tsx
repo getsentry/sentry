@@ -146,7 +146,10 @@ describe('SeerNotices', () => {
     });
     const project = getProjectWithAutomation('medium');
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
-      organization,
+      organization: {
+        ...organization,
+        features: ['integrations-cursor'],
+      },
     });
     await waitFor(() => {
       expect(
@@ -189,7 +192,10 @@ describe('SeerNotices', () => {
     });
     const project = getProjectWithAutomation('medium');
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
-      organization,
+      organization: {
+        ...organization,
+        features: ['integrations-cursor'],
+      },
     });
 
     // Should not show the cursor step since it was skipped
@@ -247,7 +253,10 @@ describe('SeerNotices', () => {
     });
     const project = getProjectWithAutomation('medium');
     render(<SeerNotices groupId="123" hasGithubIntegration project={project} />, {
-      organization,
+      organization: {
+        ...organization,
+        features: ['integrations-cursor'],
+      },
     });
 
     // Should not show the cursor step since handoff is already configured
