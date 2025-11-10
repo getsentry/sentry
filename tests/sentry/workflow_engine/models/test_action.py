@@ -78,7 +78,9 @@ class TestAction(TestCase):
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             self.action.trigger(self.mock_event)
 
-            mock_handler.execute.assert_called_once_with(self.mock_event, self.action)
+            mock_handler.execute.assert_called_once_with(
+                self.mock_event, self.action, mock_get_detector.return_value
+            )
 
     @patch("sentry.workflow_engine.processors.detector.get_detector_by_event")
     def test_trigger_with_failing_handler(self, mock_get_detector: MagicMock) -> None:

@@ -79,6 +79,10 @@ def trigger_action(
     project_id: int | None = None,
 ) -> None:
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+    from sentry.workflow_engine.processors.detector import get_detector_by_event
+
+    if project_id is None and detector_id is None:
+        raise ValueError("Either project_id or detector_id must be provided")
 
     # XOR check to ensure exactly one of event_id or activity_id is provided
     if (event_id is not None) == (activity_id is not None):
@@ -89,18 +93,15 @@ def trigger_action(
         raise ValueError("Exactly one of event_id or activity_id must be provided")
 
     action = Action.objects.annotate(workflow_id=Value(workflow_id)).get(id=action_id)
-    detector = Detector.objects.get(id=detector_id)
 
-    metrics.incr(
-        "workflow_engine.tasks.trigger_action_task_started",
-        tags={"action_type": action.type, "detector_type": detector.type},
-        sample_rate=1.0,
-    )
-
-    if project_id is None:
+    # TODO: remove detector usage from this task after we start passing in project_id
+    detector: Detector | None = None
+    if detector_id is not None:
+        detector = Detector.objects.get(id=detector_id)
         project_id = detector.project_id
 
     if event_id is not None:
+        assert project_id is not None
         event_data = build_workflow_event_data_from_event(
             project_id=project_id,
             event_id=event_id,
@@ -123,6 +124,15 @@ def trigger_action(
             extra={"event_id": event_id, "activity_id": activity_id},
         )
         raise ValueError("Exactly one of event_id or activity_id must be provided")
+
+    if detector is None:
+        detector = get_detector_by_event(event_data)
+
+    metrics.incr(
+        "workflow_engine.tasks.trigger_action_task_started",
+        tags={"action_type": action.type, "detector_type": detector.type},
+        sample_rate=1.0,
+    )
 
     should_trigger_actions = should_fire_workflow_actions(
         detector.project.organization, event_data.group.type
