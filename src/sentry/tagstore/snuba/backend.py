@@ -1095,16 +1095,13 @@ class SnubaTagStorage(TagStorage):
                 ).values_list("release_id", flat=True)
             )
 
-        versions = versions.filter_to_semver().annotate_prerelease_column()
-
-        order_by = Release.SEMVER_COLS
-        organization = Organization.objects.get_from_cache(id=organization_id)
-        if features.has("organizations:semver-ordering-with-build-code", organization):
-            versions = versions.annotate_build_code_column()
-            order_by = Release.SEMVER_COLS_WITH_BUILD_CODE
-
-        order_by = map(_flip_field_sort, order_by + ["package"])
-        versions = versions.order_by(*order_by).values_list("version", flat=True)[:1000]
+        order_by = map(_flip_field_sort, Release.SEMVER_COLS + ["package"])
+        versions = (
+            versions.filter_to_semver()
+            .annotate_prerelease_column()
+            .order_by(*order_by)
+            .values_list("version", flat=True)[:1000]
+        )
 
         seen = set()
         formatted_versions = []
