@@ -540,7 +540,6 @@ def process_workflows(
 
     should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
     create_workflow_fire_histories(
-        detector,
         actions,
         event_data,
         should_trigger_actions,
@@ -548,6 +547,6 @@ def process_workflows(
         start_timestamp=event_start_time,
     )
 
-    fire_actions(actions, detector, event_data)
+    fire_actions(actions, event_data)
 
     return triggered_workflows
