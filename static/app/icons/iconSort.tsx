@@ -8,7 +8,7 @@ interface Props extends SVGIconProps {
   rotated?: boolean;
 }
 
-export function IconSort({rotated, ...props}: Props) {
+export function IconSort({rotated = false, ...props}: Props) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind="path">

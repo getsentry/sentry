@@ -1053,7 +1053,18 @@ const SECTIONS: TSection[] = [
         groups: ['action'],
         keywords: ['order', 'arrange', 'organize', 'rank'],
         name: 'Sort',
-        defaultProps: {},
+        defaultProps: {
+          rotated: false,
+        },
+      },
+      {
+        id: 'sort',
+        groups: ['action'],
+        keywords: ['order', 'arrange', 'organize', 'rank'],
+        name: 'Sort',
+        defaultProps: {
+          rotated: true,
+        },
       },
       {
         id: 'case',
