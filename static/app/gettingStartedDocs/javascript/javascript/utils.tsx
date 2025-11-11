@@ -148,10 +148,17 @@ export const installSnippetBlock: ContentBlock = {
   ],
 };
 
-const getVerifyJSSnippet = () => `
-myUndefinedFunction();`;
+const getVerifyJSSnippet = (params: Params) => {
+  const metricsCode = params.isMetricsSelected
+    ? `  // Send a test metric before calling undefined function
+  Sentry.metrics.count('test_counter', 1);
+`
+    : '';
 
-export const verifySnippetBlock: ContentBlock[] = [
+  return `${metricsCode}myUndefinedFunction();`;
+};
+
+const getVerifySnippetBlock = (params: Params): ContentBlock[] => [
   {
     type: 'text',
     text: t(
@@ -164,7 +171,7 @@ export const verifySnippetBlock: ContentBlock[] = [
       {
         label: 'Javascript',
         language: 'javascript',
-        code: getVerifyJSSnippet(),
+        code: getVerifyJSSnippet(params),
       },
     ],
   },
@@ -305,10 +312,10 @@ logger.fatal("Database connection pool exhausted", {
 `,
   });
 
-const getVerifyConfig = () => [
+const getVerifyConfig = (params: Params) => [
   {
     type: StepType.VERIFY,
-    content: verifySnippetBlock,
+    content: getVerifySnippetBlock(params),
   },
 ];
 
@@ -440,15 +447,32 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
     },
     getAiRulesConfig(params),
   ],
-  verify: getVerifyConfig,
-  nextSteps: () => [
-    {
-      id: 'source-maps',
-      name: t('Source Maps'),
-      description: t('Learn how to enable readable stack traces in your Sentry errors.'),
-      link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
-    },
-  ],
+  verify: (params: Params) => getVerifyConfig(params),
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'source-maps',
+        name: t('Source Maps'),
+        description: t(
+          'Learn how to enable readable stack traces in your Sentry errors.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/',
+      },
+    ];
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/metrics/',
+      });
+    }
+
+    return steps;
+  },
   onPageLoad: params => {
     return () => {
       trackAnalytics('onboarding.setup_loader_docs_rendered', {
@@ -542,8 +566,23 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
     }),
     getAiRulesConfig(params),
   ],
-  verify: getVerifyConfig,
-  nextSteps: () => [],
+  verify: (params: Params) => getVerifyConfig(params),
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/metrics/',
+      });
+    }
+
+    return steps;
+  },
   onPageLoad: params => {
     return () => {
       trackAnalytics('onboarding.js_loader_npm_docs_shown', {

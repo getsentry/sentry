@@ -389,7 +389,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
     method = "DELETE"
 
-    def tasks(self) -> AbstractContextManager:
+    def tasks(self) -> AbstractContextManager[None]:
         return TaskRunner()
 
     def setUp(self) -> None:
