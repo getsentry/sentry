@@ -49,6 +49,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
   }, [location]);
 
   const {replays} = useReplayList({
+    enabled: true,
     eventView,
     location,
     organization,
