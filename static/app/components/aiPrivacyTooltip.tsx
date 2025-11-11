@@ -16,7 +16,7 @@ export function AiPrivacyTooltip({children, ...tooltipProps}: AiPrivacyTooltipPr
   return (
     <Tooltip
       isHoverable
-      title={tct(`[link:Learn more]`, {
+      title={tct(`Powered by genAI. [link:Learn more.]`, {
         link: (
           <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/" />
         ),
