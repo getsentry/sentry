@@ -12,7 +12,7 @@ from sentry.workflow_engine.models import (
 )
 
 
-@pytest.skip(reason="Already run, fails when defaulting dual write in workflow engine")
+@pytest.mark.skip(reason="Already run, fails when defaulting dual write in workflow engine")
 class DedupeCronWorkflowsTest(TestMigrations):
     migrate_from = "0083_add_status_to_action"
     migrate_to = "0084_crons_dedupe_workflows"

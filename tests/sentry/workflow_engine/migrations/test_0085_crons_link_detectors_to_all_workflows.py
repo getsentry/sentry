@@ -5,7 +5,7 @@ from sentry.workflow_engine.migration_helpers.issue_alert_migration import Issue
 from sentry.workflow_engine.models import DetectorWorkflow
 
 
-@pytest.skip(reason="Already run, fails when defaulting dual write in workflow engine")
+@pytest.mark.skip(reason="Already run, fails when defaulting dual write in workflow engine")
 class LinkCronDetectorsToAllWorkflowsTest(TestMigrations):
     migrate_from = "0084_crons_dedupe_workflows"
     migrate_to = "0085_crons_link_detectors_to_all_workflows"
