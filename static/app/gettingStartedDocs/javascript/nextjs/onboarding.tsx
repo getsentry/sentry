@@ -138,7 +138,7 @@ Sentry offers a consoleLoggingIntegration that can be used to log specific conso
 
 ## Configuration
 
-In NextJS the client side Sentry initialization is in \`instrumentation-client.ts\`, the server initialization is in \`sentry.server.config.ts\` and the edge initialization is in \`sentry.edge.config.ts\`
+In NextJS the client side Sentry initialization is in \`instrumentation-client.(js|ts)\`, the server initialization is in \`sentry.server.config.ts\` and the edge initialization is in \`sentry.edge.config.ts\`
 Initialization does not need to be repeated in other files, it only needs to happen the files mentioned above. You should use \`import * as Sentry from "@sentry/nextjs"\` to reference Sentry functionality
 
 ### Baseline
