@@ -6,7 +6,25 @@ import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 
-import {useExplorerPanelContext} from './explorerPanelContext';
+export type MenuMode =
+  | 'slash-commands-keyboard'
+  | 'slash-commands-manual'
+  | 'session-history'
+  | 'hidden';
+
+export interface ExplorerMenuProps {
+  clearInput: () => void;
+  focusInput: () => void;
+  inputValue: string;
+  onChangeSession: (runId: number) => void;
+  panelSize: 'max' | 'med';
+  slashCommandHandlers: {
+    onMaxSize: () => void;
+    onMedSize: () => void;
+    onNew: () => void;
+  };
+  textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
+}
 
 export interface MenuItemProps {
   description: string;
@@ -15,18 +33,18 @@ export interface MenuItemProps {
   title: string;
 }
 
-export function ExplorerMenu() {
-  const {
-    menuMode,
-    setMenuMode,
-    inputValue,
-    clearInput,
-    onInputClick,
-    textAreaRef,
-    panelSize,
-  } = useExplorerPanelContext();
+export function useExplorerMenu({
+  clearInput,
+  inputValue,
+  focusInput,
+  textAreaRef,
+  panelSize,
+  slashCommandHandlers,
+  onChangeSession,
+}: ExplorerMenuProps) {
+  const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
 
-  const allSlashCommands = useSlashCommands();
+  const allSlashCommands = useSlashCommands(slashCommandHandlers);
 
   const filteredSlashCommands = useMemo(() => {
     // Filter commands based on current input
@@ -37,8 +55,9 @@ export function ExplorerMenu() {
     return allSlashCommands.filter(cmd => cmd.title.toLowerCase().startsWith(query));
   }, [allSlashCommands, inputValue]);
 
-  const {sessionItems, refetchSessions, isSessionsPending, isSessionsError} =
-    useSessions();
+  const {sessionItems, refetchSessions, isSessionsPending, isSessionsError} = useSessions(
+    {onChangeSession}
+  );
 
   // Menu items and select handlers change based on the mode.
   const menuItems = useMemo(() => {
@@ -54,10 +73,21 @@ export function ExplorerMenu() {
     }
   }, [menuMode, allSlashCommands, filteredSlashCommands, sessionItems]);
 
-  const closeMenu = useCallback(() => {
+  const close = useCallback(() => {
     setMenuMode('hidden');
-    onInputClick();
-  }, [setMenuMode, onInputClick]);
+    if (menuMode === 'slash-commands-keyboard') {
+      // Clear input and reset textarea height.
+      clearInput();
+      if (textAreaRef.current) {
+        textAreaRef.current.style.height = 'auto';
+      }
+    }
+  }, [menuMode, setMenuMode, clearInput, textAreaRef]);
+
+  const closeAndFocusInput = useCallback(() => {
+    close();
+    focusInput();
+  }, [close, focusInput]);
 
   const onSelect = useCallback(
     (item: MenuItemProps) => {
@@ -65,7 +95,7 @@ export function ExplorerMenu() {
       item.handler();
 
       if (menuMode === 'slash-commands-keyboard') {
-        // Clear input and reset textarea height.  // TODO: is this needed for all selects?
+        // Clear input and reset textarea height.
         clearInput();
         if (textAreaRef.current) {
           textAreaRef.current.style.height = 'auto';
@@ -73,26 +103,26 @@ export function ExplorerMenu() {
       }
 
       if (item.key === '/resume') {
-        // Handle /resume command here - avoid changing menu and query states from item handlers.
+        // Handle /resume command here - avoid changing menu state from item handlers.
         setMenuMode('session-history');
         refetchSessions();
       } else {
-        // Close the menu.
-        closeMenu();
+        // Default to closing the menu after an item is selected and handled.
+        closeAndFocusInput();
       }
     },
     // clearInput and textAreaRef are both expected to be stable.
-    [menuMode, clearInput, textAreaRef, setMenuMode, refetchSessions, closeMenu]
+    [menuMode, clearInput, textAreaRef, setMenuMode, refetchSessions, closeAndFocusInput]
   );
 
   // Toggle between slash-commands-keyboard and hidden modes based on filteredSlashCommands.
   useEffect(() => {
     if (menuMode === 'slash-commands-keyboard' && filteredSlashCommands.length === 0) {
-      closeMenu();
+      setMenuMode('hidden');
     } else if (menuMode === 'hidden' && filteredSlashCommands.length > 0) {
       setMenuMode('slash-commands-keyboard');
     }
-  }, [menuMode, setMenuMode, closeMenu, filteredSlashCommands]);
+  }, [menuMode, setMenuMode, filteredSlashCommands]);
 
   const isVisible = menuMode !== 'hidden';
 
@@ -127,15 +157,23 @@ export function ExplorerMenu() {
       } else if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
-        closeMenu();
+        closeAndFocusInput();
         if (menuMode === 'slash-commands-keyboard') {
           clearInput();
         }
       } else if (isPrintableChar && menuMode !== 'slash-commands-keyboard') {
-        closeMenu();
+        closeAndFocusInput();
       }
     },
-    [isVisible, selectedIndex, menuItems, onSelect, clearInput, menuMode, closeMenu]
+    [
+      isVisible,
+      selectedIndex,
+      menuItems,
+      onSelect,
+      clearInput,
+      menuMode,
+      closeAndFocusInput,
+    ]
   );
 
   useEffect(() => {
@@ -147,7 +185,7 @@ export function ExplorerMenu() {
     return undefined;
   }, [handleKeyDown, isVisible]);
 
-  return (
+  const menu = (
     <Activity mode={isVisible ? 'visible' : 'hidden'}>
       <MenuPanel panelSize={panelSize}>
         {menuItems.map((item, index) => (
@@ -174,11 +212,34 @@ export function ExplorerMenu() {
       </MenuPanel>
     </Activity>
   );
+
+  // Handler for the button entrypoint.
+  const onMenuButtonClick = useCallback(() => {
+    if (menuMode === 'hidden') {
+      setMenuMode('slash-commands-manual');
+    } else {
+      close();
+    }
+  }, [menuMode, setMenuMode, close]);
+
+  return {
+    menu,
+    menuMode,
+    isMenuOpen: menuMode !== 'hidden',
+    closeMenu: close,
+    onMenuButtonClick,
+  };
 }
 
-function useSlashCommands(): MenuItemProps[] {
-  const {onMaxSize, onMedSize, onNew} = useExplorerPanelContext();
-
+function useSlashCommands({
+  onMaxSize,
+  onMedSize,
+  onNew,
+}: {
+  onMaxSize: () => void;
+  onMedSize: () => void;
+  onNew: () => void;
+}): MenuItemProps[] {
   const openFeedbackForm = useFeedbackForm();
 
   return useMemo(
@@ -229,9 +290,8 @@ function useSlashCommands(): MenuItemProps[] {
   );
 }
 
-function useSessions() {
+function useSessions({onChangeSession}: {onChangeSession: (runId: number) => void}) {
   const {data, isPending, isError, refetch} = useExplorerSessions({limit: 20});
-  const {switchSession} = useExplorerPanelContext();
 
   const formatDate = (date: string) => {
     return moment(date).format('MM/DD/YYYY HH:mm');
@@ -247,10 +307,10 @@ function useSessions() {
       key: session.run_id.toString(),
       description: `Last updated at ${formatDate(session.last_triggered_at)}`,
       handler: () => {
-        switchSession(session.run_id);
+        onChangeSession(session.run_id);
       },
     }));
-  }, [data, isPending, isError, switchSession]);
+  }, [data, isPending, isError, onChangeSession]);
 
   return {
     sessionItems,

@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -6,27 +5,32 @@ import {Button} from '@sentry/scraps/button';
 import {IconMenu} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-import {ExplorerMenu} from './explorerMenu';
-import {useExplorerPanelContext} from './explorerPanelContext';
+interface InputSectionProps {
+  focusedBlockIndex: number;
+  inputValue: string;
+  interruptRequested: boolean;
+  isPolling: boolean;
+  menu: React.ReactElement;
+  onClear: () => void;
+  onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  onInputClick: () => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onMenuButtonClick: () => void;
+  textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
+}
 
 function InputSection({
+  menu,
+  onMenuButtonClick,
+  inputValue,
+  focusedBlockIndex,
+  isPolling,
+  interruptRequested,
+  onInputChange,
+  onInputClick,
   onKeyDown,
-}: {
-  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-}) {
-  const {
-    inputValue,
-    clearInput,
-    focusedBlockIndex,
-    isPolling,
-    interruptRequested,
-    onInputChange,
-    onInputClick,
-    textAreaRef,
-    menuMode,
-    setMenuMode,
-  } = useExplorerPanelContext();
-
+  textAreaRef,
+}: InputSectionProps) {
   const getPlaceholder = () => {
     if (focusedBlockIndex !== -1) {
       return 'Press Tab ⇥ to return here';
@@ -40,22 +44,9 @@ function InputSection({
     return 'Type your message or / command and press Enter ↵';
   };
 
-  const onMenuButtonClick = useCallback(() => {
-    if (menuMode === 'hidden') {
-      setMenuMode('slash-commands-manual');
-      textAreaRef.current?.blur();
-      return;
-    }
-    setMenuMode('hidden');
-    onInputClick();
-    if (menuMode === 'slash-commands-keyboard') {
-      clearInput();
-    }
-  }, [menuMode, setMenuMode, clearInput, textAreaRef, onInputClick]);
-
   return (
     <InputBlock>
-      <ExplorerMenu />
+      {menu}
       <InputRow>
         <ButtonContainer>
           <Button

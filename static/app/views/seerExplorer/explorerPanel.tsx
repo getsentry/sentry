@@ -8,19 +8,16 @@ import {usePanelSizing} from './hooks/usePanelSizing';
 import {useSeerExplorer} from './hooks/useSeerExplorer';
 import BlockComponent from './blockComponents';
 import EmptyState from './emptyState';
-import ExplorerPanelContext, {
-  type ExplorerPanelContextType,
-} from './explorerPanelContext';
+import {useExplorerMenu} from './explorerMenu';
 import InputSection from './inputSection';
 import PanelContainers, {BlocksContainer} from './panelContainers';
-import type {Block, ExplorerPanelProps, MenuMode} from './types';
+import type {Block, ExplorerPanelProps} from './types';
 
 function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const organization = useOrganization({allowNull: true});
 
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
-  const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
   const [isMinimized, setIsMinimized] = useState(false); // state for slide-down
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -169,47 +166,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     }
   }, [focusedBlockIndex]);
 
-  useEffect(() => {
-    if (!isVisible || isMinimized || menuMode !== 'hidden') {
-      return undefined;
-    }
-
-    // Global keyboard event listeners for when the panel is open and menu is closed.
-    // Menu keyboard listeners are in the menu component.
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
-
-      if (e.key === 'Escape' && isPolling && !interruptRequested) {
-        e.preventDefault();
-        interruptRun();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        setIsMinimized(true);
-      } else if (isPrintableChar) {
-        if (focusedBlockIndex !== -1) {
-          // If a block is focused, auto-focus input when user starts typing.
-          e.preventDefault();
-          setFocusedBlockIndex(-1);
-          textareaRef.current?.focus();
-          setInputValue(prev => prev + e.key);
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [
-    isVisible,
-    isPolling,
-    focusedBlockIndex,
-    interruptRun,
-    interruptRequested,
-    isMinimized,
-    menuMode,
-  ]);
-
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -247,43 +203,78 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setIsMinimized(false);
   };
 
-  const handleInputClick = useCallback(() => {
+  const focusInput = useCallback(() => {
     hoveredBlockIndex.current = -1;
     setFocusedBlockIndex(-1);
     textareaRef.current?.focus();
     setIsMinimized(false);
+  }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
-    if (menuMode !== 'slash-commands-keyboard') {
-      setMenuMode('hidden');
-    }
-  }, [menuMode, setMenuMode, setFocusedBlockIndex, textareaRef, setIsMinimized]);
+  const {menu, isMenuOpen, closeMenu, onMenuButtonClick} = useExplorerMenu({
+    clearInput: () => setInputValue(''),
+    inputValue,
+    focusInput,
+    textAreaRef: textareaRef,
+    panelSize,
+    slashCommandHandlers: {
+      onMaxSize: handleMaxSize,
+      onMedSize: handleMedSize,
+      onNew: startNewSession,
+    },
+    onChangeSession: setRunId,
+  });
 
   const handlePanelBackgroundClick = useCallback(() => {
     setIsMinimized(false);
-    if (menuMode === 'slash-commands-keyboard') {
-      setInputValue('');
-    }
-    setMenuMode('hidden');
-  }, [menuMode]);
+    closeMenu();
+  }, [closeMenu]);
 
-  // Useful callbacks and state for the input section.
-  const contextValue: ExplorerPanelContextType = {
-    inputValue,
-    clearInput: () => setInputValue(''),
-    focusedBlockIndex,
+  const handleInputClick = useCallback(() => {
+    // Click handler for the input textarea.
+    focusInput();
+    closeMenu();
+  }, [closeMenu, focusInput]);
+
+  useEffect(() => {
+    if (!isVisible || isMinimized || isMenuOpen) {
+      return undefined;
+    }
+
+    // Global keyboard event listeners for when the panel is open and menu is closed.
+    // Menu keyboard listeners are in the menu component.
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+
+      if (e.key === 'Escape' && isPolling && !interruptRequested) {
+        e.preventDefault();
+        interruptRun();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsMinimized(true);
+      } else if (isPrintableChar) {
+        if (focusedBlockIndex !== -1) {
+          // If a block is focused, auto-focus input when user starts typing.
+          e.preventDefault();
+          setFocusedBlockIndex(-1);
+          textareaRef.current?.focus();
+          setInputValue(prev => prev + e.key);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [
+    isVisible,
+    isMenuOpen,
     isPolling,
+    focusedBlockIndex,
+    interruptRun,
     interruptRequested,
-    menuMode,
-    setMenuMode,
-    onInputChange: handleInputChange,
-    onInputClick: handleInputClick,
-    onMaxSize: handleMaxSize,
-    onMedSize: handleMedSize,
-    onNew: startNewSession,
-    switchSession: setRunId,
-    textAreaRef: textareaRef,
-    panelSize,
-  };
+    isMinimized,
+  ]);
 
   const panelContent = (
     <PanelContainers
@@ -310,8 +301,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
               isPolling={isPolling}
               onClick={() => handleBlockClick(index)}
               onMouseEnter={() => {
-                // Don't change focus while slash commands menu is open or if already on this block
-                if (menuMode !== 'hidden' || hoveredBlockIndex.current === index) {
+                // Don't change focus while menu is open or if already on this block
+                if (isMenuOpen || hoveredBlockIndex.current === index) {
                   return;
                 }
 
@@ -335,9 +326,19 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
           ))
         )}
       </BlocksContainer>
-      <ExplorerPanelContext.Provider value={contextValue}>
-        <InputSection onKeyDown={handleInputKeyDown} />
-      </ExplorerPanelContext.Provider>
+      <InputSection
+        menu={menu}
+        onMenuButtonClick={onMenuButtonClick}
+        focusedBlockIndex={focusedBlockIndex}
+        inputValue={inputValue}
+        interruptRequested={interruptRequested}
+        isPolling={isPolling}
+        onClear={() => setInputValue('')}
+        onInputChange={handleInputChange}
+        onInputClick={handleInputClick}
+        textAreaRef={textareaRef}
+        onKeyDown={handleInputKeyDown}
+      />
     </PanelContainers>
   );
 

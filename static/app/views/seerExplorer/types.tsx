@@ -35,9 +35,3 @@ export interface ExplorerSession {
   run_id: number;
   title: string; // ISO date string
 }
-
-export type MenuMode =
-  | 'slash-commands-keyboard'
-  | 'slash-commands-manual'
-  | 'session-history'
-  | 'hidden';
