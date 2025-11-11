@@ -223,6 +223,61 @@ describe('DetectorEdit', () => {
       });
     });
 
+    it('prefills form when selecting a template', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: metricRouterConfig,
+      });
+
+      await screen.findByText('New Monitor');
+
+      await userEvent.click(screen.getByLabelText('Throughput'));
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'Number of Errors'})
+      );
+
+      // Verify form fields are pre-filled with template values
+      await waitFor(() => {
+        expect(screen.getByText('Errors')).toBeInTheDocument();
+      });
+
+      // Set threshold and submit
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '50'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              type: 'metric_issue',
+              dataSources: [
+                expect.objectContaining({
+                  aggregate: 'count()',
+                  dataset: 'events',
+                  environment: null,
+                  eventTypes: expect.arrayContaining(['error', 'default']),
+                  query: 'is:unresolved',
+                  queryType: 0,
+                  timeWindow: 3600,
+                }),
+              ],
+            }),
+          })
+        );
+      });
+    });
+
     it('prefills from URL query params and submits', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/`,

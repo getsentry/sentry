@@ -438,7 +438,7 @@ describe('DetectorEdit', () => {
       );
 
       // Switching to Custom should reveal prefilled resolution input with the current OK value
-      await userEvent.click(screen.getByText('Custom').closest('label')!);
+      await userEvent.click(screen.getByRole('radio', {name: 'Custom'}));
       const resolutionInput = await screen.findByLabelText('Resolution threshold');
       expect(resolutionInput).toHaveValue(10);
     });
