@@ -138,6 +138,12 @@ def to_size_info(size_metrics: list[PreprodArtifactSizeMetrics]) -> None | SizeI
                 raise ValueError(
                     "COMPLETED state requires both max_install_size and max_download_size"
                 )
+
+            if main_metric.max_install_size is None or main_metric.max_download_size is None:
+                raise ValueError(
+                    "COMPLETED state requires a main_artifact metric with both max_install_size and max_download_size"
+                )
+
             return SizeInfoCompleted(
                 install_size_bytes=max_install_size,
                 download_size_bytes=max_download_size,
