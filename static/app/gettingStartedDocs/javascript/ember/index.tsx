@@ -1,21 +1,30 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
+import {logs} from 'sentry/gettingStartedDocs/javascript/javascript/logs';
+import {profiling} from 'sentry/gettingStartedDocs/javascript/javascript/profiling';
 
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
-import {logs} from './logs';
 import {onboarding} from './onboarding';
-import {profiling} from './profiling';
 import {replay} from './replay';
+import {installSnippetBlock} from './utils';
 
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedback,
   replayOnboarding: replay,
   crashReportOnboarding: crashReport,
-  profilingOnboarding: profiling,
+  profilingOnboarding: profiling({
+    installSnippetBlock,
+    docsLink:
+      'https://docs.sentry.io/platforms/javascript/guides/ember/profiling/browser-profiling/',
+  }),
   featureFlagOnboarding: featureFlag,
-  logsOnboarding: logs,
+  logsOnboarding: logs({
+    installSnippetBlock,
+    docsPlatform: 'ember',
+    packageName: '@sentry/ember',
+  }),
 };
 
 export default docs;

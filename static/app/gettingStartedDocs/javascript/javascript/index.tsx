@@ -12,7 +12,7 @@ import {onboarding} from './onboarding';
 import {performance} from './performance';
 import {profiling} from './profiling';
 import {replay} from './replay';
-import {platformOptions, type PlatformOptions} from './utils';
+import {installSnippetBlock, platformOptions, type PlatformOptions} from './utils';
 
 const docs: Docs<PlatformOptions> = {
   onboarding,
@@ -23,9 +23,16 @@ const docs: Docs<PlatformOptions> = {
   performanceOnboarding: performance,
   crashReportOnboarding: crashReport,
   platformOptions,
-  profilingOnboarding: profiling,
+  profilingOnboarding: profiling({
+    installSnippetBlock,
+    docsLink: 'https://docs.sentry.io/platforms/javascript/profiling/browser-profiling/',
+  }),
   featureFlagOnboarding: featureFlag,
-  logsOnboarding: logs,
+  logsOnboarding: logs({
+    installSnippetBlock,
+    docsPlatform: 'javascript',
+    packageName: '@sentry/browser',
+  }),
 };
 
 export default docs;

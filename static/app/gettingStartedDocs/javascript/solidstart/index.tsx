@@ -1,13 +1,14 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
+import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/logs';
+import {profiling} from 'sentry/gettingStartedDocs/javascript/javascript/profiling';
 
 import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
-import {logs} from './logs';
 import {onboarding} from './onboarding';
-import {profiling} from './profiling';
 import {replay} from './replay';
+import {installSnippetBlock} from './utils';
 
 const docs: Docs = {
   onboarding,
@@ -15,9 +16,16 @@ const docs: Docs = {
   replayOnboarding: replay,
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
-  profilingOnboarding: profiling,
+  profilingOnboarding: profiling({
+    installSnippetBlock,
+    docsLink:
+      'https://docs.sentry.io/platforms/javascript/guides/solidstart/profiling/browser-profiling/',
+  }),
   agentMonitoringOnboarding: agentMonitoring,
-  logsOnboarding: logs,
+  logsOnboarding: logsFullStack({
+    docsPlatform: 'solidstart',
+    packageName: '@sentry/solidstart',
+  }),
 };
 
 export default docs;

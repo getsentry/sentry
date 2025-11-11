@@ -1,13 +1,13 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
+import {logs} from 'sentry/gettingStartedDocs/javascript/javascript/logs';
+import {profiling} from 'sentry/gettingStartedDocs/javascript/javascript/profiling';
 
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
-import {logs} from './logs';
 import {onboarding} from './onboarding';
-import {profiling} from './profiling';
 import {replay} from './replay';
-import {platformOptions, type PlatformOptions} from './utils';
+import {installSnippetBlock, platformOptions, type PlatformOptions} from './utils';
 
 const docs: Docs<PlatformOptions> = {
   onboarding,
@@ -15,9 +15,17 @@ const docs: Docs<PlatformOptions> = {
   replayOnboarding: replay,
   crashReportOnboarding: crashReport,
   platformOptions,
-  profilingOnboarding: profiling,
+  profilingOnboarding: profiling({
+    installSnippetBlock,
+    docsLink:
+      'https://docs.sentry.io/platforms/javascript/guides/angular/profiling/browser-profiling/',
+  }),
   featureFlagOnboarding: featureFlag,
-  logsOnboarding: logs,
+  logsOnboarding: logs({
+    installSnippetBlock,
+    docsPlatform: 'angular',
+    packageName: '@sentry/angular',
+  }),
 };
 
 export default docs;
