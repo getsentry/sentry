@@ -44,14 +44,4 @@ describe('logs', () => {
     const installSteps = result.install();
     expect(installSteps[0].content).toHaveLength(2);
   });
-
-  it('generates metrics onboarding config with custom parameters', () => {
-    const result = logs({
-      packageName: 'custom-sentry-sdk',
-      minimumVersion: '3.0.0',
-    });
-
-    const installSteps = result.install();
-    expect(installSteps[0].content).toHaveLength(2);
-  });
 });
