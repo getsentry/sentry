@@ -766,7 +766,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         "sentry.workflow_engine.endpoints.organization_detector_details.schedule_update_project_config"
     )
     def test_anomaly_detection(
-        self, mock_schedule_update_project_config, mock_seer_request
+        self, mock_schedule_update_project_config: mock.MagicMock, mock_seer_request: mock.MagicMock
     ) -> None:
         self.detector.config = {"detection_type": AlertRuleDetectionType.DYNAMIC}
         self.detector.save()
