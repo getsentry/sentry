@@ -23,6 +23,8 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -42,6 +44,8 @@ import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeatu
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+const DISABLE_AGGREGATES: never[] = [];
 
 function useShowOnboarding() {
   const {projects} = useProjects();
@@ -69,10 +73,16 @@ function AIGenerationsPage() {
 
   const [fields, setFields] = useFieldsQueryParam();
 
-  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemTags('number');
-  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemTags('string');
+  const {
+    tags: numberTags,
+    secondaryAliases: numberSecondaryAliases,
+    isLoading: numberTagsLoading,
+  } = useTraceItemTags('number');
+  const {
+    tags: stringTags,
+    secondaryAliases: stringSecondaryAliases,
+    isLoading: stringTagsLoading,
+  } = useTraceItemTags('string');
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
@@ -137,26 +147,36 @@ function AIGenerationsPage() {
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <ModuleFeature moduleName={ModuleName.AI_GENERATIONS}>
-        <Flex
+        <Stack
+          direction="column"
           gap="md"
-          wrap="wrap"
+          borderBottom="muted"
           padding={{
             xs: 'xl xl xl xl',
             md: 'xl 2xl xl 2xl',
           }}
-          borderBottom="muted"
         >
-          <PageFilterBar condensed>
-            <InsightsProjectSelector />
-            <InsightsEnvironmentSelector />
-            <DatePageFilter {...datePageFilterProps} />
-          </PageFilterBar>
-          {!showOnboarding && (
-            <Flex flex={2} minWidth="50%">
-              <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
-            </Flex>
-          )}
-        </Flex>
+          <Flex gap="md" wrap="wrap">
+            <PageFilterBar condensed>
+              <InsightsProjectSelector />
+              <InsightsEnvironmentSelector />
+              <DatePageFilter {...datePageFilterProps} />
+            </PageFilterBar>
+            {!showOnboarding && (
+              <Flex flex={2} minWidth="50%">
+                <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
+              </Flex>
+            )}
+          </Flex>
+          <SchemaHintsList
+            supportedAggregates={DISABLE_AGGREGATES}
+            numberTags={numberTags}
+            stringTags={stringTags}
+            isLoading={numberTagsLoading || stringTagsLoading}
+            exploreQuery={searchQuery ?? ''}
+            source={SchemaHintsSources.AI_GENERATIONS}
+          />
+        </Stack>
 
         {showOnboarding ? (
           <Onboarding />
