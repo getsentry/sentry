@@ -24,7 +24,6 @@ class DataSourceTest(BaseWorkflowTest):
         assert data_source.type == "test"
 
     def test_normalize_before_relocation_import(self) -> None:
-        """Test that normalize_before_relocation_import correctly maps source_id"""
         monitor = self.create_monitor(project=self.project)
         data_source = self.create_data_source(
             type=DATA_SOURCE_CRON_MONITOR,
@@ -63,7 +62,6 @@ class DataSourceTest(BaseWorkflowTest):
         assert data_source.pk is None
 
     def test_normalize_before_relocation_import_missing_source(self) -> None:
-        """Test that normalize_before_relocation_import succeeds but doesn't update source_id if mapping not found"""
         monitor = self.create_monitor(project=self.project)
         data_source = self.create_data_source(
             type=DATA_SOURCE_CRON_MONITOR,
@@ -71,8 +69,6 @@ class DataSourceTest(BaseWorkflowTest):
             organization_id=self.organization.id,
         )
 
-        old_source_id = data_source.source_id
-        old_data_source_id = data_source.id
         old_org_id = data_source.organization_id
 
         # Create a PrimaryKeyMap without the monitor mapping
@@ -88,7 +84,5 @@ class DataSourceTest(BaseWorkflowTest):
             pk_map, ImportScope.Organization, ImportFlags()
         )
 
-        # Should succeed but leave source_id unchanged
-        assert result == old_data_source_id
-        assert data_source.source_id == old_source_id
-        assert data_source.pk is None
+        # Should return None when the referenced source is not in pk_map
+        assert result is None

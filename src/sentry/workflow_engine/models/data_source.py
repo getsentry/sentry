@@ -75,20 +75,11 @@ class DataSource(DefaultFieldsModel):
             old_source_id = int(self.source_id)
             new_source_id = pk_map.get_pk(model_name, old_source_id)
 
-            if new_source_id is not None:
-                self.source_id = str(new_source_id)
-            else:
-                # Referenced model not in pk_map. This may be correct (reset_pks=False) or broken
-                # (reset_pks=True but referenced model was filtered out or failed to import).
-                logger.warning(
-                    "DataSource source_id not remapped - referenced model not in pk_map",
-                    extra={
-                        "data_source_id": old_pk,
-                        "type": self.type,
-                        "source_id": old_source_id,
-                        "model": str(model_name),
-                    },
-                )
+            if new_source_id is None:
+                # Referenced model not in pk_map - the source was filtered out or failed to import.
+                return None
+
+            self.source_id = str(new_source_id)
         except Exception:
             logger.exception(
                 "DataSource.normalize_before_relocation_import failed",
