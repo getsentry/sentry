@@ -12,16 +12,14 @@ import {
   makeProjectSeerPreferencesQueryKey,
   useProjectSeerPreferences,
 } from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {useUpdateProjectAutomation} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectAutomation';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
 import Placeholder from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import {makeDetailedProjectQueryKey} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface CursorIntegrationCtaProps {
@@ -44,33 +42,7 @@ export function CursorIntegrationCta({
     useUpdateProjectSeerPreferences(project);
   const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} =
     useCodingAgentIntegrations();
-
-  const {mutateAsync: updateProjectAutomation} = useMutation<
-    Project,
-    Error,
-    {autofixAutomationTuning: string; seerScannerAutomation: boolean}
-  >({
-    mutationFn: (data: {
-      autofixAutomationTuning: string;
-      seerScannerAutomation: boolean;
-    }) => {
-      return fetchMutation<Project>({
-        method: 'PUT',
-        url: `/projects/${organization.slug}/${project.slug}/`,
-        data,
-      });
-    },
-    onSuccess: (updatedProject: Project) => {
-      ProjectsStore.onUpdateSuccess(updatedProject);
-
-      queryClient.invalidateQueries({
-        queryKey: makeDetailedProjectQueryKey({
-          orgSlug: organization.slug,
-          projectSlug: project.slug,
-        }),
-      });
-    },
-  });
+  const {mutateAsync: updateProjectAutomation} = useUpdateProjectAutomation(project);
 
   const cursorIntegration = codingAgentIntegrations?.integrations.find(
     integration => integration.provider === 'cursor'
