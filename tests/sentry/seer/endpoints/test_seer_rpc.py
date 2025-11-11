@@ -924,7 +924,7 @@ class TestSeerRpcMethods(APITestCase):
     def test_check_repository_integrations_status_empty_list(self) -> None:
         """Test with empty input list"""
         result = check_repository_integrations_status(repository_integrations=[])
-        assert result == {"statuses": [], "integration_ids": []}
+        assert result == {"integration_ids": []}
 
     def test_check_repository_integrations_status_single_existing_repo(self) -> None:
         """Test when a single repository exists and is active"""
@@ -952,7 +952,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [True], "integration_ids": [integration.id]}
+        assert result == {"integration_ids": [integration.id]}
 
     def test_check_repository_integrations_status_single_non_existing_repo(self) -> None:
         """Test when repository does not exist"""
@@ -967,7 +967,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [False], "integration_ids": [None]}
+        assert result == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_mixed_existing_and_non_existing(self) -> None:
         """Test with a mix of existing and non-existing repositories (integration_id ignored)"""
@@ -1018,7 +1018,6 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {
-            "statuses": [True, False, True],
             "integration_ids": [integration.id, None, integration.id],
         }
 
@@ -1049,7 +1048,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [False], "integration_ids": [None]}
+        assert result == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_wrong_organization_id(self) -> None:
         """Test that repositories from different organizations are not matched"""
@@ -1080,7 +1079,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [False], "integration_ids": [None]}
+        assert result == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_wrong_integration_id(self) -> None:
         """Test that integration_id in request is ignored - only (org, provider, external_id) matter"""
@@ -1114,7 +1113,7 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         # Should find the repo and return the ACTUAL integration_id from the database
-        assert result == {"statuses": [True], "integration_ids": [integration1.id]}
+        assert result == {"integration_ids": [integration1.id]}
 
     def test_check_repository_integrations_status_wrong_external_id(self) -> None:
         """Test that repositories with different external_id are not matched"""
@@ -1144,7 +1143,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [False], "integration_ids": [None]}
+        assert result == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_multiple_all_exist(self) -> None:
         """Test when all queried repositories exist"""
@@ -1202,7 +1201,6 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {
-            "statuses": [True, True, True],
             "integration_ids": [integration.id, integration.id, integration.id],
         }
 
@@ -1255,7 +1253,6 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {
-            "statuses": [True, True],
             "integration_ids": [integration1.id, integration2.id],
         }
 
@@ -1287,7 +1284,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [False], "integration_ids": [None]}
+        assert result == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_mixed_supported_and_unsupported_providers(
         self,
@@ -1339,7 +1336,6 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {
-            "statuses": [True, False],
             "integration_ids": [github_integration.id, None],
         }
 
@@ -1371,7 +1367,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [True], "integration_ids": [integration.id]}
+        assert result == {"integration_ids": [integration.id]}
 
     def test_check_repository_integrations_status_integration_id_none(self) -> None:
         """Test that integration_id=None is ignored in matching"""
@@ -1402,7 +1398,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [True], "integration_ids": [integration.id]}
+        assert result == {"integration_ids": [integration.id]}
 
     def test_check_repository_integrations_status_no_integration_id_in_request(self) -> None:
         """Test that integration_id is completely optional - Seer doesn't need to send it"""
@@ -1432,4 +1428,4 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [True], "integration_ids": [integration.id]}
+        assert result == {"integration_ids": [integration.id]}

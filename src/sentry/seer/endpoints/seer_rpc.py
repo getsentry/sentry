@@ -1075,12 +1075,11 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
 
     Returns:
         dict: {
-            "statuses": list of booleans indicating if each repository exists and is active,
             "integration_ids": list of integration IDs (as integers) from the database,
-                              or None if repository doesn't exist / doesn't have an integration id
+                              or None if repository doesn't exist/isn't active/doesn't have an integration id
         }
-        e.g., {"statuses": [True, False, True], "integration_ids": [123, None, 456]}
-        Only repositories with supported SCM providers will return True.
+        e.g., {"integration_ids": [123, None, 456]}
+        None indicates repository not found, inactive, or has unsupported SCM provider.
         The integration_ids are returned so Seer can store them for future reference.
 
     Note:
@@ -1090,7 +1089,7 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
     """
 
     if not repository_integrations:
-        return {"statuses": [], "integration_ids": []}
+        return {"integration_ids": []}
 
     logger.info(
         "seer_rpc.check_repository_integrations_status.called",
@@ -1126,7 +1125,6 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
         if key not in existing_map:
             existing_map[key] = integration_id
 
-    statuses = []
     integration_ids = []
 
     for item in repository_integrations:
@@ -1145,15 +1143,14 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
             repo_tuple_without_prefix
         )
 
-        statuses.append(found_integration_id is not None)
         integration_ids.append(found_integration_id)
 
     logger.info(
         "seer_rpc.check_repository_integrations_status.completed",
-        extra={"statuses": statuses, "integration_ids": integration_ids},
+        extra={"integration_ids": integration_ids},
     )
 
-    return {"statuses": statuses, "integration_ids": integration_ids}
+    return {"integration_ids": integration_ids}
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
