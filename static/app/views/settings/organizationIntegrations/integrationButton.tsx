@@ -17,7 +17,9 @@ type Props = {
 };
 
 type ButtonProps = {
+  buttonText?: string;
   disabled?: any;
+  icon?: React.ReactNode;
   priority?: any;
   size?: any;
   style?: any;

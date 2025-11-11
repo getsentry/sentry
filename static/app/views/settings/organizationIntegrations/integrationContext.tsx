@@ -12,7 +12,8 @@ type IntegrationContextProps = {
       | 'integrations_directory'
       | 'onboarding'
       | 'project_creation'
-      | 'test_analytics_onboarding';
+      | 'test_analytics_onboarding'
+      | 'test_analytics_org_selector';
     referrer?: string;
   };
   installStatus: string;

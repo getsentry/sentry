@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -15,20 +14,20 @@ import {usePreventContext} from 'sentry/components/prevent/context/preventContex
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
 import {IconAdd, IconBuilding, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import type {Integration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
-import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
+import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
+import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 import type {IntegrationInformation} from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
-import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
 const DEFAULT_ORG_LABEL = 'Select GitHub Org';
 
 function OrgFooterMessage() {
   const organization = useOrganization();
 
-  const handleAddIntegration = useCallback((_integration: IntegrationWithConfig) => {
+  const handleAddIntegration = useCallback((_integration: Integration) => {
     window.location.reload();
   }, []);
 
@@ -72,34 +71,33 @@ function OrgFooterMessage() {
       {isIntegrationInfoPending ? (
         <LoadingIndicator />
       ) : provider ? (
-        <Access access={['org:integrations']} organization={organization}>
-          {({hasAccess}) =>
-            hasAccess ? (
-              <AddIntegration
-                provider={provider}
-                onInstall={handleAddIntegration}
-                organization={organization}
-              >
-                {openDialog => (
-                  <Button
-                    size="xs"
-                    icon={<IconAdd />}
-                    priority="default"
-                    onClick={() => openDialog()}
-                  >
-                    {t('GitHub Organization')}
-                  </Button>
-                )}
-              </AddIntegration>
-            ) : (
-              <RequestIntegrationButton
-                name={provider.name}
-                slug={provider.slug}
-                type="first_party"
+        <IntegrationContext
+          value={{
+            provider,
+            type: 'first_party',
+            installStatus: 'Installed',
+            analyticsParams: {
+              view: 'test_analytics_org_selector',
+              already_installed: true,
+            },
+          }}
+        >
+          <Access access={['org:integrations']} organization={organization}>
+            {({hasAccess}) => (
+              <IntegrationButton
+                userHasAccess={hasAccess}
+                onAddIntegration={handleAddIntegration}
+                onExternalClick={() => {}}
+                buttonProps={{
+                  size: 'sm',
+                  priority: 'primary',
+                  buttonText: t('GitHub Organization'),
+                  icon: <IconAdd />,
+                }}
               />
-            )
-          }
-        </Access>
+            )}
+          </Access>
+        </IntegrationContext>
       ) : (
         <LinkButton
           href="https://github.com/apps/sentry/installations/select_target"
