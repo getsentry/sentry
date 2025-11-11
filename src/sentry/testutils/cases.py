@@ -9,6 +9,7 @@ import uuid
 from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from enum import Enum
 from io import BytesIO
 from typing import Any, TypedDict, Union
 from unittest import mock
@@ -3719,22 +3720,33 @@ class TraceTestCase(SpanTestCase):
         )
 
 
+class ReplayBreadcrumbType(Enum):
+    CLICK = "click"
+    DEAD_CLICK = "dead_click"
+    RAGE_CLICK = "rage_click"
+    ERROR = "error"
+    WARNING = "warning"
+    INFO = "info"
+
+
 @pytest.mark.snuba
 @requires_snuba
 @pytest.mark.usefixtures("reset_snuba")
 class ReplayEAPTestCase(BaseTestCase):
-    def create_eap_replay(
+    def create_eap_replay_breadcrumb(
         self,
         *,
-        organization=None,
-        project=None,
+        project,
+        replay_id,
+        segment_id,
+        breadcrumb_type,
         timestamp=None,
-        replay_id=None,
-        segment_id=0,
+        organization=None,
         trace_id=None,
         retention_days=30,
         **attributes,
     ):
+        """Create single EAP replay breadcrumb TraceItem."""
         from datetime import datetime, timezone
         from uuid import uuid4
 
@@ -3744,26 +3756,54 @@ class ReplayEAPTestCase(BaseTestCase):
 
         if organization is None:
             organization = self.organization
-        if project is None:
-            project = self.project
         if timestamp is None:
             timestamp = datetime.now(timezone.utc)
-        if replay_id is None:
-            replay_id = uuid4().hex
         if trace_id is None:
             trace_id = replay_id
 
-        attributes_data = {
+        if breadcrumb_type == ReplayBreadcrumbType.CLICK:
+            category = "ui.click"
+            click_is_dead = 0
+            click_is_rage = 0
+        elif breadcrumb_type == ReplayBreadcrumbType.DEAD_CLICK:
+            category = "ui.click"
+            click_is_dead = 1
+            click_is_rage = 0
+        elif breadcrumb_type == ReplayBreadcrumbType.RAGE_CLICK:
+            category = "ui.click"
+            click_is_dead = 1
+            click_is_rage = 1
+        elif breadcrumb_type == ReplayBreadcrumbType.ERROR:
+            category = "error"
+            click_is_dead = None
+            click_is_rage = None
+        elif breadcrumb_type == ReplayBreadcrumbType.WARNING:
+            category = "warning"
+            click_is_dead = None
+            click_is_rage = None
+        elif breadcrumb_type == ReplayBreadcrumbType.INFO:
+            category = "info"
+            click_is_dead = None
+            click_is_rage = None
+        else:
+            raise ValueError(f"Unknown breadcrumb type: {breadcrumb_type}")
+
+        breadcrumb_data = {
             "replay_id": replay_id,
             "segment_id": segment_id,
             "project_id": project.id,
-            "is_archived": attributes.pop("is_archived", 0),
+            "timestamp": int(timestamp.timestamp()),
+            "category": category,
         }
 
-        attributes_data.update(attributes)
+        if category == "ui.click":
+            breadcrumb_data["click_is_dead"] = click_is_dead
+            breadcrumb_data["click_is_rage"] = click_is_rage
+
+        breadcrumb_data.update(attributes)
 
         attributes_proto = {}
-        for k, v in attributes_data.items():
+        for k, v in breadcrumb_data.items():
             if v is not None:
                 attributes_proto[k] = scalar_to_any_value(v)
 
@@ -3780,6 +3820,8 @@ class ReplayEAPTestCase(BaseTestCase):
             received=timestamp_proto,
             retention_days=retention_days,
             attributes=attributes_proto,
+            client_sample_rate=1.0,
+            server_sample_rate=1.0,
         )
 
     def store_replays_eap(self, replays):

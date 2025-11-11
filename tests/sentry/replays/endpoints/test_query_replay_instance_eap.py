@@ -2,7 +2,7 @@ import datetime
 from uuid import uuid4
 
 from sentry.replays.endpoints.organization_replay_details import query_replay_instance_eap
-from sentry.testutils.cases import ReplayEAPTestCase, TestCase
+from sentry.testutils.cases import ReplayBreadcrumbType, ReplayEAPTestCase, TestCase
 
 
 class TestQueryReplayInstanceEAP(TestCase, ReplayEAPTestCase):
@@ -11,32 +11,67 @@ class TestQueryReplayInstanceEAP(TestCase, ReplayEAPTestCase):
         replay_id2 = uuid4().hex
         now = datetime.datetime.now(datetime.UTC)
 
-        replay1 = self.create_eap_replay(
-            replay_id=replay_id1,
-            timestamp=now,
-            segment_id=0,
-            replay_start_timestamp=int(now.timestamp()),
-            count_error_events=5,
-            count_warning_events=2,
-            count_info_events=1,
-            click_is_dead=0,
-            click_is_rage=0,
-            is_archived=0,
-        )
-        replay2 = self.create_eap_replay(
-            replay_id=replay_id2,
-            timestamp=now,
-            segment_id=0,
-            replay_start_timestamp=int(now.timestamp()),
-            count_error_events=3,
-            count_warning_events=1,
-            count_info_events=0,
-            click_is_dead=0,
-            click_is_rage=0,
-            is_archived=0,
-        )
+        replay1_breadcrumbs = [
+            # Dead clicks
+            self.create_eap_replay_breadcrumb(
+                project=self.project,
+                replay_id=replay_id1,
+                segment_id=0,
+                breadcrumb_type=ReplayBreadcrumbType.DEAD_CLICK,
+                timestamp=now,
+            ),
+            self.create_eap_replay_breadcrumb(
+                project=self.project,
+                replay_id=replay_id1,
+                segment_id=0,
+                breadcrumb_type=ReplayBreadcrumbType.DEAD_CLICK,
+                timestamp=now,
+            ),
+            # Rage clicks
+            self.create_eap_replay_breadcrumb(
+                project=self.project,
+                replay_id=replay_id1,
+                segment_id=0,
+                breadcrumb_type=ReplayBreadcrumbType.RAGE_CLICK,
+                timestamp=now,
+            ),
+            # Regular click
+            self.create_eap_replay_breadcrumb(
+                project=self.project,
+                replay_id=replay_id1,
+                segment_id=0,
+                breadcrumb_type=ReplayBreadcrumbType.CLICK,
+                timestamp=now,
+            ),
+        ]
 
-        self.store_replays_eap([replay1, replay2])
+        replay2_breadcrumbs = [
+            # Dead clicks
+            self.create_eap_replay_breadcrumb(
+                project=self.project,
+                replay_id=replay_id2,
+                segment_id=0,
+                breadcrumb_type=ReplayBreadcrumbType.DEAD_CLICK,
+                timestamp=now,
+            ),
+            # Rage clicks
+            self.create_eap_replay_breadcrumb(
+                project=self.project,
+                replay_id=replay_id2,
+                segment_id=0,
+                breadcrumb_type=ReplayBreadcrumbType.RAGE_CLICK,
+                timestamp=now,
+            ),
+            self.create_eap_replay_breadcrumb(
+                project=self.project,
+                replay_id=replay_id2,
+                segment_id=0,
+                breadcrumb_type=ReplayBreadcrumbType.RAGE_CLICK,
+                timestamp=now,
+            ),
+        ]
+
+        self.store_replays_eap(replay1_breadcrumbs + replay2_breadcrumbs)
 
         start = now - datetime.timedelta(minutes=5)
         end = now + datetime.timedelta(minutes=5)
@@ -73,14 +108,16 @@ class TestQueryReplayInstanceEAP(TestCase, ReplayEAPTestCase):
         replay1_data = res1["data"][0]
         assert "count_segments" in replay1_data
         assert "count_errors" in replay1_data
+        assert "count_warnings" in replay1_data
+        assert "count_dead_clicks" in replay1_data
+        assert "count_rage_clicks" in replay1_data
         assert "is_archived" in replay1_data
         assert "started_at" in replay1_data
         assert "finished_at" in replay1_data
 
-        assert replay1_data["count_errors"] == 5
-        assert replay1_data["count_warnings"] == 2
-        assert replay1_data["count_segments"] == 1
+        assert replay1_data["count_dead_clicks"] == 3, "2 DEAD_CLICK + 1 RAGE_CLICK = 3 dead"
+        assert replay1_data["count_rage_clicks"] == 1, "1 RAGE_CLICK = 1 rage"
 
         replay2_data = res2["data"][0]
-        assert replay2_data["count_errors"] == 3
-        assert replay2_data["count_warnings"] == 1
+        assert replay2_data["count_dead_clicks"] == 3, "1 DEAD_CLICK + 2 RAGE_CLICK = 3 dead"
+        assert replay2_data["count_rage_clicks"] == 2, "2 RAGE_CLICK = 2 rage"
