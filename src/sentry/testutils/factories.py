@@ -581,6 +581,7 @@ class Factories:
                     create_project_detectors,
                     sender=Project,
                     dispatch_uid="create_project_detectors",
+                    weak=False,
                 )
 
         return project
