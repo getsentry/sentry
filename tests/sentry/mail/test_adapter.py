@@ -69,6 +69,12 @@ pytestmark = requires_snuba
 
 class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
     @cached_property
+    def project(self) -> Project:
+        return self.create_project(
+            name="Bar", slug="bar", teams=[self.team], fire_project_created=True
+        )
+
+    @cached_property
     def adapter(self):
         return mail_adapter
 

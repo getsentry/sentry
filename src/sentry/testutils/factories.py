@@ -547,7 +547,7 @@ class Factories:
         create_default_detectors=False,
         **kwargs,
     ) -> Project:
-        # disconnect signal
+        # imports to disconnect signal
         from django.db.models.signals import post_save
 
         from sentry.receivers.project_detectors import create_project_detectors
