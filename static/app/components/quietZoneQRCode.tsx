@@ -1,11 +1,14 @@
+import type React from 'react';
 import styled from '@emotion/styled';
-import type {QRCodeCanvasProps} from 'qrcode.react';
 import {QRCodeCanvas} from 'qrcode.react';
 
 import {space} from 'sentry/styles/space';
 
 interface QuietZoneQRCodeProps
-  extends Omit<QRCodeCanvasProps, 'bgColor' | 'fgColor' | 'marginSize'> {
+  extends Omit<
+    React.ComponentProps<typeof QRCodeCanvas>,
+    'bgColor' | 'fgColor' | 'includeMargin'
+  > {
   /**
    * The size of the QR code in pixels
    */
@@ -35,7 +38,7 @@ export function QuietZoneQRCode({size, value, ...props}: QuietZoneQRCodeProps) {
         value={value}
         bgColor="#FFFFFF"
         fgColor="#000000"
-        marginSize={4}
+        includeMargin
         {...props}
       />
     </Wrapper>
