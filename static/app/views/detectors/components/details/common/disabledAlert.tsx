@@ -4,6 +4,7 @@ import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useUpdateDetector} from 'sentry/views/detectors/hooks';
+import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 type DisabledAlertProps = {
   detector: Detector;
@@ -17,6 +18,10 @@ type DisabledAlertProps = {
  */
 export function DisabledAlert({detector, message}: DisabledAlertProps) {
   const {mutate: updateDetector, isPending: isEnabling} = useUpdateDetector();
+  const canEdit = useCanEditDetector({
+    detectorType: detector.type,
+    projectId: detector.projectId,
+  });
 
   if (detector.enabled) {
     return null;
@@ -35,8 +40,11 @@ export function DisabledAlert({detector, message}: DisabledAlertProps) {
             size="xs"
             icon={<IconPlay />}
             onClick={handleEnable}
-            disabled={isEnabling}
+            disabled={isEnabling || !canEdit}
             aria-label={t('Enable')}
+            title={
+              canEdit ? undefined : t('You do not have permission to enable this monitor')
+            }
           >
             {t('Enable')}
           </Button>
