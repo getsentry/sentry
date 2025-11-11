@@ -24,19 +24,23 @@ export function SideBySideOrientation({
   queryIndex,
   traceMetric,
   orientation,
-  setOrientation,
-  infoContentHidden,
-  setInfoContentHidden,
   isMetricOptionsEmpty,
+  updateTableConfig,
+  infoContentVisible,
 }: {
-  infoContentHidden: boolean;
+  infoContentVisible: boolean;
   isMetricOptionsEmpty: boolean;
   orientation: TableOrientation;
   queryIndex: number;
-  setInfoContentHidden: (hidden: boolean) => void;
-  setOrientation: (orientation: TableOrientation) => void;
   timeseriesResult: ReturnType<typeof useMetricTimeseries>['result'];
   traceMetric: TraceMetric;
+  updateTableConfig: ({
+    visible,
+    newOrientation,
+  }: {
+    newOrientation?: TableOrientation;
+    visible?: boolean;
+  }) => void;
 }) {
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
@@ -50,21 +54,21 @@ export function SideBySideOrientation({
   );
 
   const additionalActions = (
-    <Flex direction="row" marginTop={infoContentHidden ? undefined : 'md'}>
+    <Flex direction="row" marginTop={infoContentVisible ? 'md' : undefined}>
       <PanelPositionSelector
         orientation={orientation}
-        setOrientation={setOrientation}
-        disabled={infoContentHidden}
+        disabled={!infoContentVisible}
+        updateTableConfig={updateTableConfig}
       />
       <HideContentButton
         orientation={orientation}
-        infoContentHidden={infoContentHidden}
-        onToggle={() => setInfoContentHidden(!infoContentHidden)}
+        infoContentHidden={!infoContentVisible}
+        onToggle={() => updateTableConfig({visible: !infoContentVisible})}
       />
     </Flex>
   );
 
-  if (infoContentHidden) {
+  if (!infoContentVisible) {
     return (
       <div ref={measureRef}>
         <MetricsGraph
@@ -72,8 +76,8 @@ export function SideBySideOrientation({
           queryIndex={queryIndex}
           orientation={orientation}
           additionalActions={additionalActions}
-          infoContentHidden={infoContentHidden}
           isMetricOptionsEmpty={isMetricOptionsEmpty}
+          infoContentHidden={!infoContentVisible}
         />
       </div>
     );

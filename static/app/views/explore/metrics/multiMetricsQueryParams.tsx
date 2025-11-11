@@ -16,6 +16,7 @@ import {
   encodeMetricQueryParams,
   type BaseMetricQuery,
   type MetricQuery,
+  type TableConfig,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
@@ -143,12 +144,34 @@ export function MultiMetricsQueryParamsProvider({
       };
     }
 
+    function setTableConfigForIndex(i: number) {
+      return function (newTableConfig: TableConfig) {
+        const target = {...location, query: {...location.query}};
+        const newMetricQueries: string[] = metricQueries
+          .map((metricQuery: BaseMetricQuery, j: number) => {
+            if (i !== j) {
+              return metricQuery;
+            }
+            return {
+              ...metricQuery,
+              tableConfig: newTableConfig,
+            };
+          })
+          .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
+          .filter(defined)
+          .filter(Boolean);
+        target.query.metric = newMetricQueries;
+        navigate(target);
+      };
+    }
+
     return {
       metricQueries: metricQueries.map((metric: BaseMetricQuery, index: number) => {
         return {
           ...metric,
           setQueryParams: setQueryParamsForIndex(index),
           setTraceMetric: setTraceMetricForIndex(index),
+          setTableConfig: setTableConfigForIndex(index),
           removeMetric: removeMetricQueryForIndex(index),
         };
       }),

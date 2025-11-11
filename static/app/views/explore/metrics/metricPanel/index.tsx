@@ -1,5 +1,3 @@
-import {useState} from 'react';
-
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -10,10 +8,17 @@ import {TraceSamplesTableColumns} from 'sentry/views/explore/metrics/constants';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
-import {useTableOrientationControl} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
+import {
+  useTableOrientationControl,
+  type TableOrientation,
+} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {SideBySideOrientation} from 'sentry/views/explore/metrics/metricPanel/sideBySideOrientation';
 import {StackedOrientation} from 'sentry/views/explore/metrics/metricPanel/stackedOrientation';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  useSetTableConfig,
+  useTableConfig,
+} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -31,16 +36,31 @@ interface MetricPanelProps {
 
 export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
   const {
-    orientation,
-    setOrientation: setUserPreferenceOrientation,
     canChangeOrientation,
+    orientation,
+    visible: infoContentVisible,
   } = useTableOrientationControl();
-  const [infoContentHidden, setInfoContentHidden] = useState(false);
   const {isMetricOptionsEmpty} = useMetricOptions({enabled: Boolean(traceMetric.name)});
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
     enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
   });
+
+  const tableConfig = useTableConfig();
+  const setTableConfig = useSetTableConfig();
+
+  const updateTableConfig = ({
+    visible,
+    newOrientation,
+  }: {
+    newOrientation?: TableOrientation;
+    visible?: boolean;
+  }) => {
+    setTableConfig?.({
+      visible: visible ?? tableConfig?.visible,
+      orientation: newOrientation ?? tableConfig?.orientation,
+    });
+  };
 
   const columns = TraceSamplesTableColumns;
   const fields = columns.filter(c => getMetricTableColumnType(c) !== 'stat');
@@ -85,23 +105,21 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
             timeseriesResult={timeseriesResult}
             queryIndex={queryIndex}
             traceMetric={traceMetric}
-            setOrientation={setUserPreferenceOrientation}
             orientation={orientation}
-            infoContentHidden={infoContentHidden}
-            setInfoContentHidden={setInfoContentHidden}
             isMetricOptionsEmpty={isMetricOptionsEmpty}
+            infoContentVisible={infoContentVisible}
+            updateTableConfig={updateTableConfig}
           />
         ) : (
           <StackedOrientation
             timeseriesResult={timeseriesResult}
             queryIndex={queryIndex}
             traceMetric={traceMetric}
-            setOrientation={setUserPreferenceOrientation}
             orientation={orientation}
             canChangeOrientation={canChangeOrientation}
-            infoContentHidden={infoContentHidden}
-            setInfoContentHidden={setInfoContentHidden}
             isMetricOptionsEmpty={isMetricOptionsEmpty}
+            infoContentVisible={infoContentVisible}
+            updateTableConfig={updateTableConfig}
           />
         )}
       </PanelBody>

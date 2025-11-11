@@ -8,11 +8,11 @@ import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrien
 
 export function PanelPositionSelector({
   orientation,
-  setOrientation,
   disabled,
+  updateTableConfig,
 }: {
   orientation: TableOrientation;
-  setOrientation: (orientation: TableOrientation) => void;
+  updateTableConfig: ({newOrientation}: {newOrientation?: TableOrientation}) => void;
   disabled?: boolean;
 }) {
   return (
@@ -22,7 +22,7 @@ export function PanelPositionSelector({
         aria-label={t('Table bottom')}
         icon={<IconPanel direction="down" />}
         borderless
-        onClick={() => setOrientation('bottom')}
+        onClick={() => updateTableConfig({newOrientation: 'bottom'})}
         disabled={disabled || orientation === 'bottom'}
         title={t('Table bottom')}
       />
@@ -31,7 +31,7 @@ export function PanelPositionSelector({
         aria-label={t('Table right')}
         icon={<IconPanel direction="right" />}
         borderless
-        onClick={() => setOrientation('right')}
+        onClick={() => updateTableConfig({newOrientation: 'right'})}
         disabled={disabled || orientation === 'right'}
         title={t('Table right')}
       />

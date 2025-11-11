@@ -3,7 +3,11 @@ import {useCallback, useMemo} from 'react';
 
 import {defined} from 'sentry/utils';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
-import {defaultQuery, type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  defaultQuery,
+  type TableConfig,
+  type TraceMetric,
+} from 'sentry/views/explore/metrics/metricQuery';
 import {
   MetricsFrozenContextProvider,
   type MetricsFrozenForTracesProviderProps,
@@ -34,6 +38,21 @@ const [_MetricMetadataContextProvider, useTraceMetricContext, TraceMetricContext
     name: 'TraceMetricContext',
   });
 
+interface TableConfigContextValue {
+  setTableConfig?: (tableConfig: TableConfig) => void;
+  tableConfig?: TableConfig;
+}
+
+const [_TableConfigContextProvider, useTableConfigContext, TableConfigContext] =
+  createDefinedContext<TableConfigContextValue>({
+    name: 'TableConfigContext',
+  });
+
+const DEFAULT_TABLE_CONFIG: TableConfig = {
+  orientation: 'right',
+  visible: true,
+};
+
 interface MetricsQueryParamsProviderProps {
   children: ReactNode;
   queryParams: ReadableQueryParams;
@@ -42,6 +61,8 @@ interface MetricsQueryParamsProviderProps {
   setTraceMetric: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
   freeze?: MetricsFrozenForTracesProviderProps;
+  setTableConfig?: (tableConfig: TableConfig) => void;
+  tableConfig?: TableConfig;
 }
 
 export function MetricsQueryParamsProvider({
@@ -52,6 +73,8 @@ export function MetricsQueryParamsProvider({
   removeMetric,
   traceMetric,
   freeze,
+  tableConfig,
+  setTableConfig,
 }: MetricsQueryParamsProviderProps) {
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams) => {
@@ -76,20 +99,30 @@ export function MetricsQueryParamsProvider({
     [setTraceMetric, removeMetric, traceMetric]
   );
 
+  const tableConfigContextValue = useMemo(
+    () => ({
+      tableConfig: tableConfig ?? DEFAULT_TABLE_CONFIG,
+      setTableConfig,
+    }),
+    [tableConfig, setTableConfig]
+  );
+
   return (
     <TraceMetricContext value={traceMetricContextValue}>
       <MetricsFrozenContextProvider
         traceIds={freeze?.traceIds ?? []}
         tracePeriod={freeze?.tracePeriod}
       >
-        <QueryParamsContextProvider
-          queryParams={queryParams}
-          setQueryParams={setWritableQueryParams}
-          isUsingDefaultFields
-          shouldManageFields={false}
-        >
-          {children}
-        </QueryParamsContextProvider>
+        <TableConfigContext value={tableConfigContextValue}>
+          <QueryParamsContextProvider
+            queryParams={queryParams}
+            setQueryParams={setWritableQueryParams}
+            isUsingDefaultFields
+            shouldManageFields={false}
+          >
+            {children}
+          </QueryParamsContextProvider>
+        </TableConfigContext>
       </MetricsFrozenContextProvider>
     </TraceMetricContext>
   );
@@ -148,6 +181,16 @@ export function useSetMetricVisualize() {
     [setVisualizes]
   );
   return setVisualize;
+}
+
+export function useTableConfig() {
+  const {tableConfig} = useTableConfigContext();
+  return tableConfig;
+}
+
+export function useSetTableConfig() {
+  const {setTableConfig} = useTableConfigContext();
+  return setTableConfig;
 }
 
 function updateQueryParams(

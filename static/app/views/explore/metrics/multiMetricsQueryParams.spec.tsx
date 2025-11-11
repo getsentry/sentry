@@ -39,6 +39,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
         removeMetric: expect.any(Function),
         setQueryParams: expect.any(Function),
         setTraceMetric: expect.any(Function),
+        setTableConfig: expect.any(Function),
       },
     ]);
   });

@@ -93,6 +93,8 @@ function MetricsQueryBuilderSection() {
               traceMetric={metricQuery.metric}
               setTraceMetric={metricQuery.setTraceMetric}
               removeMetric={metricQuery.removeMetric}
+              tableConfig={metricQuery.tableConfig}
+              setTableConfig={metricQuery.setTableConfig}
             >
               <MetricToolbar traceMetric={metricQuery.metric} queryIndex={index} />
             </MetricsQueryParamsProvider>
@@ -127,6 +129,8 @@ function MetricsTabBodySection() {
                 traceMetric={metricQuery.metric}
                 setTraceMetric={metricQuery.setTraceMetric}
                 removeMetric={metricQuery.removeMetric}
+                tableConfig={metricQuery.tableConfig}
+                setTableConfig={metricQuery.setTableConfig}
               >
                 <MetricPanel traceMetric={metricQuery.metric} queryIndex={index} />
               </MetricsQueryParamsProvider>
