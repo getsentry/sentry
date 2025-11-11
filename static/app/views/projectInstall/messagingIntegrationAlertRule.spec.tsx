@@ -149,12 +149,12 @@ describe('MessagingIntegrationAlertRule', () => {
       />
     );
     await selectEvent.openMenu(screen.getByLabelText('channel'));
-    expect(await screen.findByText('#alerts')).toBeInTheDocument();
-    expect(screen.getByText('#general')).toBeInTheDocument();
-    await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
+    expect(await screen.findByText('#general (1)')).toBeInTheDocument();
+    expect(screen.getByText('#alerts (2)')).toBeInTheDocument();
+    await selectEvent.select(screen.getByLabelText('channel'), /#alerts/);
     expect(mockSetChannel).toHaveBeenCalledWith({
-      label: '#alerts',
-      value: '#alerts',
+      label: '#alerts (2)',
+      value: '2',
       new: false,
     });
   });
