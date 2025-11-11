@@ -1,3 +1,4 @@
+from sentry.conf.server import FALL_2025_GROUPING_CONFIG
 from sentry.grouping.strategies.base import (
     StrategyConfiguration,
     create_strategy_configuration_class,
@@ -63,7 +64,6 @@ register_grouping_config(
     fingerprinting_bases=["javascript@2024-02-02"],
 )
 
-FALL_2025_GROUPING_CONFIG = "newstyle:2025-11-21"
 register_grouping_config(
     id=FALL_2025_GROUPING_CONFIG,
     base="newstyle:2023-01-11",
