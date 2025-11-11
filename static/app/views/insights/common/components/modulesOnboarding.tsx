@@ -280,11 +280,17 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: appStartPreviewImg,
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
-
-  agents: {
+  'agent-models': {
     heading: t('TODO'),
     description: t('TODO'),
-    valuePropDescription: t('Mobile UI load insights include:'),
+    valuePropDescription: t('TODO'),
+    valuePropPoints: [],
+    imageSrc: screenLoadsPreviewImg,
+  },
+  'agent-tools': {
+    heading: t('TODO'),
+    description: t('TODO'),
+    valuePropDescription: t('TODO'),
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
   },

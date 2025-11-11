@@ -2069,6 +2069,11 @@ function buildRoutes(): RouteObject[] {
         ...moduleRoutes,
       ],
     },
+    // Redirect old links to the new agents landing page
+    {
+      path: `ai/*`,
+      redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`,
+    },
     {
       path: `${AGENTS_LANDING_SUB_PATH}/`,
       component: make(() => import('sentry/views/insights/pages/agents/layout')),
