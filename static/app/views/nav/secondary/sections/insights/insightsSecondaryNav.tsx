@@ -82,7 +82,6 @@ export function InsightsSecondaryNav() {
           <SecondaryNav.Item
             to={`${baseUrl}/${MCP_LANDING_SUB_PATH}/`}
             analyticsItemName="insights_mcp"
-            trailingItems={<FeatureBadge type="new" />}
           >
             {MCP_SIDEBAR_LABEL}
           </SecondaryNav.Item>
