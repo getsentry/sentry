@@ -24,7 +24,7 @@ def compare_size_analysis(
     base_size_analysis: PreprodArtifactSizeMetrics,
     base_size_analysis_results: SizeAnalysisResults,
 ) -> ComparisonResults:
-    skip_diff_item_comparison = _should_skip_diff_comparison(
+    skip_diff_item_comparison = _should_skip_diff_item_comparison(
         head_size_analysis_results, base_size_analysis_results
     )
 
@@ -126,20 +126,10 @@ def compare_size_analysis(
     )
 
 
-def _should_skip_diff_comparison(
+def _should_skip_diff_item_comparison(
     head_size_analysis_results: SizeAnalysisResults,
     base_size_analysis_results: SizeAnalysisResults,
 ) -> bool:
-    """
-    Determine if diff item comparison should be skipped based on analysis version compatibility.
-
-    Skips comparison when:
-    - Major versions differ (incompatible analysis formats)
-    - Minor versions differ (potentially incompatible tree structures)
-
-    Returns:
-        True if diff comparison should be skipped, False otherwise
-    """
     head_version = None
     base_version = None
 
