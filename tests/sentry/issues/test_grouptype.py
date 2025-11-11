@@ -28,15 +28,15 @@ class BaseGroupTypeTest(TestCase):
             type_id = -1
             slug = "error"
             description = "Error"
-            category = GroupCategory.ERROR.value
-            category_v2 = GroupCategory.ERROR.value
+            category = GroupCategory.TEST_NOTIFICATION.value
+            category_v2 = GroupCategory.TEST_NOTIFICATION.value
 
         class IssueStreamGroupType(GroupType):
             type_id = 0
             slug = "issue_stream"
             description = "Issue Stream"
-            category = GroupCategory.ERROR.value
-            category_v2 = GroupCategory.ERROR.value
+            category = GroupCategory.TEST_NOTIFICATION.value
+            category_v2 = GroupCategory.TEST_NOTIFICATION.value
 
     def tearDown(self) -> None:
         super().tearDown()
