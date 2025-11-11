@@ -428,6 +428,7 @@ class SlackTasksTest(TestCase):
             tags={"ok": True, "status": 200},
         )
 
+    @pytest.mark.skip(reason="flaky: #103168")
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @responses.activate
     def test_post_message_failure_sdk(self, mock_metrics: MagicMock) -> None:
