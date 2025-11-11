@@ -2,8 +2,6 @@ import type React from 'react';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
-import {space} from 'sentry/styles/space';
-
 interface QuietZoneQRCodeProps
   extends Omit<
     React.ComponentProps<typeof QRCodeCanvas>,
@@ -46,11 +44,10 @@ export function QuietZoneQRCode({size, value, ...props}: QuietZoneQRCodeProps) {
 }
 
 const Wrapper = styled('div')`
-  background: #ffffff;
-  padding: ${space(2)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   display: inline-block;
+  overflow: hidden;
 `;
 
 const StyledQRCodeCanvas = styled(QRCodeCanvas)`
