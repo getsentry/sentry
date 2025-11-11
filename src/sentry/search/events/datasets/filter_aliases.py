@@ -227,6 +227,11 @@ def semver_filter_converter(
     versions = list(qs)
     final_operator = Op.IN
     if len(versions) == constants.MAX_SEARCH_RELEASES:
+        # We want to limit how many versions we pass through to Snuba. If we've hit
+        # the limit, make an extra query and see whether the inverse has fewer ids.
+        # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
+        # do our best.
+        operator = constants.OPERATOR_NEGATION_MAP[operator]
         # Note that the `order_by` here is important for index usage. Postgres seems
         # to seq scan with this query if the `order_by` isn't included, so we
         # include it even though we don't really care about order for this query
