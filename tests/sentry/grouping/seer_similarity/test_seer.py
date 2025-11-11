@@ -123,20 +123,90 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
 
         sample_rate = options.get("seer.similarity.metrics_sample_rate")
         mock_metrics.incr.assert_any_call(
-            "grouping.similarity.frame_count_filter",
+            "grouping.similarity.stacktrace_length_filter",
             sample_rate=sample_rate,
             tags={
                 "platform": "java",
                 "referrer": "ingest",
                 "stacktrace_type": "system",
-                "outcome": "block",
+                "outcome": "block_frames",
             },
         )
         mock_record_did_call_seer.assert_any_call(
-            new_event, call_made=False, blocker="excess-frames"
+            new_event, call_made=False, blocker="stacktrace-too-long"
         )
 
         mock_get_similar_issues.assert_not_called()
+
+    @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
+    @patch("sentry.grouping.ingest.seer.get_seer_similar_issues")
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_too_many_tokens(
+        self,
+        mock_metrics: MagicMock,
+        mock_get_similar_issues: MagicMock,
+        mock_record_did_call_seer: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        # Set a low token limit to make the test reliable
+        with self.options({"seer.similarity.max_token_count": 100}):
+            error_type = "FailedToFetchError"
+            error_value = "Charlie didn't bring the ball back"
+            # Create very long context lines to exceed token count
+            # Each line will have many tokens when combined
+            long_context = "a " * 50  # 50 tokens per line, should easily exceed 100 tokens total
+            new_event = Event(
+                project_id=self.project.id,
+                event_id="33312012112120120908201304152013",
+                data={
+                    "title": f"{error_type}('{error_value}')",
+                    "exception": {
+                        "values": [
+                            {
+                                "type": error_type,
+                                "value": error_value,
+                                "stacktrace": {
+                                    "frames": [
+                                        {
+                                            "function": f"play_fetch_{i}",
+                                            "filename": f"dogpark{i}.py",
+                                            "context_line": long_context,
+                                        }
+                                        for i in range(5)  # Well under MAX_FRAME_COUNT
+                                    ]
+                                },
+                            }
+                        ]
+                    },
+                    "platform": "java",
+                },
+            )
+
+            new_grouphash = GroupHash.objects.create(
+                project=self.project, group=new_event.group, hash=new_event.get_primary_hash()
+            )
+            group_hashes = list(GroupHash.objects.filter(project_id=self.project.id))
+            maybe_check_seer_for_matching_grouphash(
+                new_event, new_grouphash, new_event.get_grouping_variants(), group_hashes
+            )
+
+            sample_rate = options.get("seer.similarity.metrics_sample_rate")
+            mock_metrics.incr.assert_any_call(
+                "grouping.similarity.stacktrace_length_filter",
+                sample_rate=sample_rate,
+                tags={
+                    "platform": "java",
+                    "referrer": "ingest",
+                    "stacktrace_type": "system",
+                    "outcome": "block_tokens",
+                },
+            )
+            mock_record_did_call_seer.assert_any_call(
+                new_event, call_made=False, blocker="stacktrace-too-long"
+            )
+
+            mock_get_similar_issues.assert_not_called()
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
     def test_too_many_frames_bypassed_platform(self, mock_get_similarity_data: MagicMock) -> None:

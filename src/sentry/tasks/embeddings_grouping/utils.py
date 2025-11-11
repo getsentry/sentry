@@ -403,7 +403,7 @@ def get_events_from_nodestore(
 
             if stacktrace_exceeds_limits(event, variants, ReferrerOptions.BACKFILL):
                 invalid_event_group_ids.append(group_id)
-                invalid_event_reasons["excess_frames"] += 1
+                invalid_event_reasons["stacktrace_too_long"] += 1
                 continue
 
             grouping_info = get_grouping_info_from_variants_legacy(variants)
