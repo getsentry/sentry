@@ -607,6 +607,10 @@ def basic_consumer(
     add_global_tags(
         kafka_topic=topic, consumer_group=options["group_id"], kafka_slice_id=kafka_slice_id
     )
+
+    options["shutdown_strategy_before_consumer"] = True
+    options["enable_autocommit"] = True
+
     processor = get_stream_processor(
         consumer_name,
         consumer_args,
