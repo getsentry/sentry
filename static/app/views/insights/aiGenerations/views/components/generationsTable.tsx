@@ -23,14 +23,6 @@ import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useTraceViewDrawer} from 'sentry/views/insights/agents/components/drawer';
-import {
-  HeadSortCell,
-  useTableSort,
-} from 'sentry/views/insights/agents/components/headSortCell';
-import {ModelName} from 'sentry/views/insights/agents/components/modelName';
-import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
-import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {
   AI_GENERATIONS_PAGE_FILTER,
   INPUT_OUTPUT_FIELD,
@@ -40,6 +32,14 @@ import {Referrer} from 'sentry/views/insights/aiGenerations/views/utils/referrer
 import {useFieldsQueryParam} from 'sentry/views/insights/aiGenerations/views/utils/useFieldsQueryParam';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
+import {
+  HeadSortCell,
+  useTableSort,
+} from 'sentry/views/insights/pages/agents/components/headSortCell';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
+import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {SpanFields} from 'sentry/views/insights/types';
 

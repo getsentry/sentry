@@ -32,8 +32,6 @@ import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryPar
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
-import {Onboarding} from 'sentry/views/insights/agents/views/onboarding';
 import {GenerationsChart} from 'sentry/views/insights/aiGenerations/views/components/generationsChart';
 import {GenerationsTable} from 'sentry/views/insights/aiGenerations/views/components/generationsTable';
 import {GenerationsToolbar} from 'sentry/views/insights/aiGenerations/views/components/generationsToolbar';
@@ -43,6 +41,8 @@ import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/componen
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
+import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const DISABLE_AGGREGATES: never[] = [];
