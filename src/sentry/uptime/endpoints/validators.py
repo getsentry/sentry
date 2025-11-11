@@ -466,6 +466,30 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
 class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
     data_sources = serializers.ListField(child=UptimeMonitorDataSourceValidator(), required=False)
 
+    def validate_config(self, config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Validate that only superusers can change mode to non-MANUAL values.
+        """
+        if "mode" not in config:
+            return config
+
+        mode = config["mode"]
+
+        # For updates, only validate if mode is being changed
+        if self.instance:
+            current_mode = self.instance.config.get("mode")
+            # If mode hasn't changed, no validation needed
+            if current_mode == mode:
+                return config
+
+        # Only superusers can set/change mode to anything other than MANUAL
+        if mode != UptimeMonitorMode.MANUAL:
+            request = self.context["request"]
+            if not is_active_superuser(request):
+                raise serializers.ValidationError("Only superusers can modify `mode`")
+
+        return config
+
     def validate_enabled(self, value: bool) -> bool:
         """
         Validate that enabling a detector is allowed based on seat availability.
