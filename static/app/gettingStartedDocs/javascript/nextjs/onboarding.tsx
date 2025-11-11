@@ -10,6 +10,16 @@ import {t, tct} from 'sentry/locale';
 
 import {getInstallSnippet} from './utils';
 
+const getVerifySnippet = (params: DocsParams) => {
+  const metricsCode = params.isMetricsSelected
+    ? `  // Send a test metric before calling undefined function
+  Sentry.metrics.count('test_counter', 1);
+`
+    : '';
+
+  return `${metricsCode}myUndefinedFunction();`;
+};
+
 export const onboarding: OnboardingConfig = {
   install: (params: DocsParams) => [
     {
@@ -189,7 +199,7 @@ logger.fatal("Database connection pool exhausted", {
 `,
     }),
   ],
-  verify: () => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -214,7 +224,7 @@ logger.fatal("Database connection pool exhausted", {
             {
               label: 'JavaScript',
               language: 'javascript',
-              code: `myUndefinedFunction();`,
+              code: getVerifySnippet(params),
             },
           ],
         },

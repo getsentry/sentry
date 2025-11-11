@@ -9,9 +9,20 @@ import {t, tct, tctCode} from 'sentry/locale';
 
 import {getInstallContent} from './utils';
 
-const getVerifyNuxtSnippet = () => `
-<script setup>
-  const triggerError = () => {
+const getVerifyNuxtSnippet = (params: DocsParams) => {
+  const metricsCode = params.isMetricsSelected
+    ? `
+    // Send a test metric before throwing the error
+    Sentry.metrics.count('test_counter', 1);`
+    : '';
+
+  const importSentry = params.isMetricsSelected
+    ? `\nimport * as Sentry from "@sentry/nuxt";\n`
+    : '';
+
+  return `
+<script setup>${importSentry}
+  const triggerError = () => {${metricsCode}
     throw new Error("Nuxt Button Error");
   };
 </script>
@@ -19,6 +30,7 @@ const getVerifyNuxtSnippet = () => `
 <template>
   <button id="errorBtn" @click="triggerError">Trigger Error</button>
 </template>`;
+};
 
 export const onboarding: OnboardingConfig = {
   install: (params: DocsParams) => [
@@ -50,7 +62,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -70,7 +82,7 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'Vue',
               language: 'html',
-              code: getVerifyNuxtSnippet(),
+              code: getVerifyNuxtSnippet(params),
             },
           ],
         },
@@ -83,12 +95,29 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: () => [
-    {
-      id: 'nuxt-features',
-      name: t('Nuxt Features'),
-      description: t('Learn about our first class integration with the Nuxt framework.'),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/features/',
-    },
-  ],
+  nextSteps: (params: DocsParams) => {
+    const steps = [
+      {
+        id: 'nuxt-features',
+        name: t('Nuxt Features'),
+        description: t(
+          'Learn about our first class integration with the Nuxt framework.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/features/',
+      },
+    ];
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/metrics/',
+      });
+    }
+
+    return steps;
+  },
 };
