@@ -375,7 +375,7 @@ export const useSeerExplorer = () => {
     sendMessage,
     runId,
     setRunId,
-    /** Resets the run id, display, and hook state. The session isn't actually created until the user sends a message. */
+    /** Resets the run id, blocks, and other state. The new session isn't actually created until the user sends a message. */
     startNewSession,
     deleteFromIndex,
     deletedFromIndex,
