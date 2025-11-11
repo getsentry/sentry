@@ -86,7 +86,13 @@ export default function ConnectedMonitorsList({
     isSuccess,
     getResponseHeader,
   } = useDetectorsQuery(
-    {ids: detectorIds ?? undefined, limit: limit ?? undefined, cursor, query},
+    {
+      ids: detectorIds ?? undefined,
+      limit: limit ?? undefined,
+      cursor,
+      query,
+      includeIssueStreamDetectors: true,
+    },
     {enabled: detectorIds === null || detectorIds.length > 0}
   );
 
