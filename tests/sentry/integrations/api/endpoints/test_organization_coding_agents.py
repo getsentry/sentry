@@ -1096,6 +1096,55 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
     @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_root_cause_with_no_repos_fails_with_clear_error(
+        self,
+        mock_get_integration,
+        mock_get_org_integration,
+        mock_get_prompt,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """If root cause has no relevant_repos and no request repos, fail with clear error."""
+        mock_get_providers.return_value = ["github"]
+        mock_get_prompt.return_value = "Root cause prompt"
+
+        mock_rpc_integration = self._create_mock_rpc_integration()
+        mock_get_org_integration.return_value = self.rpc_org_integration
+        mock_get_integration.return_value = mock_rpc_integration
+
+        # Create autofix state with NO repos at all
+        mock_autofix_state = self._create_mock_autofix_state(repos=[])
+        mock_autofix_state.steps = [
+            {
+                "key": "root_cause_analysis",
+                "causes": [
+                    {
+                        "description": "Something happened",
+                        # intentionally no 'relevant_repos'
+                    }
+                ],
+            }
+        ]
+        mock_get_autofix_state.return_value = mock_autofix_state
+
+        data = {
+            "integration_id": str(self.integration.id),
+            "run_id": 123,
+            "trigger_source": "root_cause",
+        }
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_response(self.organization.slug, method="post", **data)
+            # Should fail gracefully with success=False
+            assert response.data["success"] is False
+
+    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
+    @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
+    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
     def test_solution_trigger_source(
         self,
         mock_get_integration,
