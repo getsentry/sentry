@@ -377,9 +377,9 @@ def stacktrace_exceeds_limits(
         metrics.incr(
             "grouping.similarity.stacktrace_length_filter",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={**shared_tags, "outcome": "block"},
+            tags={**shared_tags, "outcome": "block_frames"},
         )
-        report_token_count_metric(event, variants, "block")
+        report_token_count_metric(event, variants, "block_frames")
         return True
 
     # For platforms that filter by frame count, also check token count
@@ -390,9 +390,9 @@ def stacktrace_exceeds_limits(
         metrics.incr(
             "grouping.similarity.stacktrace_length_filter",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={**shared_tags, "outcome": "block_by_token_count"},
+            tags={**shared_tags, "outcome": "block_tokens"},
         )
-        report_token_count_metric(event, variants, "block_by_token_count")
+        report_token_count_metric(event, variants, "block_tokens")
         return True
 
     metrics.incr(
