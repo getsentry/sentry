@@ -178,4 +178,44 @@ describe('koa onboarding docs', () => {
       screen.queryByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).not.toBeInTheDocument();
   });
+
+  it('displays metrics code in verify section when metrics are selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.METRICS],
+    });
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/Sentry\.metrics\.count\('test_counter', 1\)/)
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not display metrics code in verify section when metrics are not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(
+      screen.queryByText(
+        textWithMarkupMatcher(/Sentry\.metrics\.count\('test_counter', 1\)/)
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  it('displays Metrics in next steps when metrics are selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.METRICS],
+    });
+
+    expect(screen.getByText('Metrics')).toBeInTheDocument();
+  });
+
+  it('does not display Metrics in next steps when metrics are not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+  });
 });
