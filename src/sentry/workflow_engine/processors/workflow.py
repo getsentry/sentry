@@ -9,6 +9,7 @@ from django.db import router, transaction
 from django.db.models import Q
 
 from sentry import features
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
@@ -464,7 +465,7 @@ def process_workflows(
     event_data: WorkflowEventData,
     event_start_time: datetime,
     detector: Detector | None = None,
-) -> tuple[set[Workflow], set[Action]] | WorkflowNotProcessable:
+) -> tuple[set[Workflow], BaseQuerySet[Action]] | WorkflowNotProcessable:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
@@ -508,7 +509,7 @@ def process_workflows(
             **extra_data,
         )
 
-    extra_data["associated_detector"] = [detector]
+    extra_data["associated_detectors"] = [detector]
 
     try:
         environment = get_environment_by_event(event_data)
@@ -570,7 +571,7 @@ def process_workflows(
 
     if not actions:
         return WorkflowNotProcessable(
-            message="Actions have either triggered within the bound, or are filtered out",
+            message="No actions to evaluate; filtered or not triggered",
             **extra_data,
         )
 
