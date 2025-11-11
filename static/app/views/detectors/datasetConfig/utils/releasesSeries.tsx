@@ -56,12 +56,12 @@ interface ReleaseSeriesQueryOptions {
    * The filter query. eg: `span.op:http`
    */
   query: string;
-  end?: string;
-  start?: string;
+  end?: string | null;
+  start?: string | null;
   /**
    * Relative time period for the query. Example: '7d'.
    */
-  statsPeriod?: string;
+  statsPeriod?: string | null;
 }
 
 export function getReleasesSeriesQueryOptions({
