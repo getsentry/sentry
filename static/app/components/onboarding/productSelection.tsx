@@ -33,6 +33,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   const hasPerformance = organization.features.includes('performance-view');
   const hasProfiling = organization.features.includes('profiling-view');
   const hasLogs = organization.features.includes('ourlogs-enabled');
+  const hasMetrics = organization.features.includes('tracemetrics-enabled');
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   let reason = t('This feature is not enabled on your Sentry installation.');
@@ -74,6 +75,12 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
     disabledProducts[ProductSolution.LOGS] = {
       reason,
       onClick: createClickHandler('organizations:ourlogs-enabled', 'Logs'),
+    };
+  }
+  if (!hasMetrics) {
+    disabledProducts[ProductSolution.METRICS] = {
+      reason,
+      onClick: createClickHandler('organizations:tracemetrics-enabled', 'Metrics'),
     };
   }
   return disabledProducts;
@@ -236,91 +243,109 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-aiohttp': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-asgi': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-awslambda': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-bottle': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-celery': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-chalice': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-django': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-falcon': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-fastapi': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-flask': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-quart': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-rq': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-serverless': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-tornado': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-starlette': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   'python-wsgi': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
+    ProductSolution.METRICS,
   ],
   ruby: [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -529,6 +554,18 @@ export function ProductSelection({
           onClick={() => handleClickProduct(ProductSolution.LOGS)}
           disabled={disabledProducts[ProductSolution.LOGS]}
           checked={urlProducts.includes(ProductSolution.LOGS)}
+        />
+      )}
+      {products.includes(ProductSolution.METRICS) && (
+        <Product
+          label={t('Metrics')}
+          description={t(
+            'Custom metrics for tracking application performance and usage, automatically trace-connected.'
+          )}
+          docLink="https://docs.sentry.io/product/explore/metrics/"
+          onClick={() => handleClickProduct(ProductSolution.METRICS)}
+          disabled={disabledProducts[ProductSolution.METRICS]}
+          checked={urlProducts.includes(ProductSolution.METRICS)}
         />
       )}
       {products.includes(ProductSolution.SESSION_REPLAY) && (

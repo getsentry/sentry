@@ -103,4 +103,30 @@ describe('django onboarding docs', () => {
       screen.queryByText('You can send logs to Sentry using the Sentry logging APIs:')
     ).not.toBeInTheDocument();
   });
+
+  it('renders metrics configuration when metrics are selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.METRICS],
+    });
+
+    // Renders metrics verification steps
+    expect(
+      screen.getByText(
+        'Send test metrics from your app to verify metrics are arriving in Sentry.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders without metrics configuration when metrics are not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    // Does not render metrics verification steps
+    expect(
+      screen.queryByText(
+        'Send test metrics from your app to verify metrics are arriving in Sentry.'
+      )
+    ).not.toBeInTheDocument();
+  });
 });

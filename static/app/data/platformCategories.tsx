@@ -391,7 +391,29 @@ export const withoutLoggingSupport: Set<PlatformKey> = new Set([
 ]);
 
 // List of platforms that have metrics onboarding checklist content
-export const withMetricsOnboarding: Set<PlatformKey> = new Set([]);
+export const withMetricsOnboarding: Set<PlatformKey> = new Set([
+  'python',
+  'python-aiohttp',
+  'python-asgi',
+  'python-awslambda',
+  'python-bottle',
+  'python-celery',
+  'python-chalice',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
+  'python-gcpfunctions',
+  'python-pyramid',
+  'python-quart',
+  'python-rq',
+  'python-sanic',
+  'python-serverless',
+  'python-starlette',
+  'python-tornado',
+  'python-tryton',
+  'python-wsgi',
+]);
 
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
 export const withoutMetricsSupport: Set<PlatformKey> = new Set([]);

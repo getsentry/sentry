@@ -5,6 +5,7 @@ import {crashReport} from './crashReport';
 import {featureFlag} from './featureFlag';
 import {logs} from './logs';
 import {mcp} from './mcp';
+import {metrics} from './metrics';
 import {onboarding} from './onboarding';
 import {performance} from './performance';
 import {profiling} from './profiling';
@@ -18,6 +19,7 @@ const docs: Docs = {
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
   logsOnboarding: logs(),
+  metricsOnboarding: metrics(),
 };
 
 export default docs;

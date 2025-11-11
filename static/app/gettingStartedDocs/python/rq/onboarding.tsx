@@ -4,6 +4,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {metricsVerify} from 'sentry/gettingStartedDocs/python/python/metrics';
 import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
@@ -211,6 +212,7 @@ export const onboarding: OnboardingConfig = {
             },
           ],
         },
+        metricsVerify(params),
         {
           type: 'text',
           text: [
