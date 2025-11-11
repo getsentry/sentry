@@ -280,7 +280,7 @@ describe('UpdateRetentionSettingsModal', () => {
           method: 'POST',
           data: {
             orgRetention: {
-              standard: 0,
+              standard: null,
               downsampled: null,
             },
             retentions: {
@@ -436,7 +436,7 @@ describe('UpdateRetentionSettingsModal', () => {
           method: 'POST',
           data: {
             orgRetention: {
-              standard: 0,
+              standard: null,
               downsampled: null,
             },
             retentions: {
@@ -509,7 +509,7 @@ describe('UpdateRetentionSettingsModal', () => {
           method: 'POST',
           data: {
             orgRetention: {
-              standard: 0,
+              standard: null,
               downsampled: null,
             },
             retentions: {
@@ -580,7 +580,7 @@ describe('UpdateRetentionSettingsModal', () => {
           method: 'POST',
           data: {
             orgRetention: {
-              standard: 0,
+              standard: null,
               downsampled: null,
             },
             retentions: {

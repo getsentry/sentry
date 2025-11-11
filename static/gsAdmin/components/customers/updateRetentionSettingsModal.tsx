@@ -83,7 +83,7 @@ function UpdateRetentionSettingsModal({
     }
 
     const orgRetention = {
-      standard: orgStandard === '' ? null : Number(orgStandard),
+      standard: orgStandard === null || orgStandard === '' ? null : Number(orgStandard),
       downsampled: null,
     };
 
