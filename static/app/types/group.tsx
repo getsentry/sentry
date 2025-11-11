@@ -231,6 +231,8 @@ export enum IssueTitle {
 
   // Insights Web Vitals
   WEB_VITALS = 'Web Vitals',
+
+  LLM_DETECTED_EXPERIMENTAL = 'LLM Detected Issue',
 }
 
 export const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -268,6 +270,8 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   uptime_domain_failure: IssueTitle.UPTIME_DOMAIN_FAILURE,
 
   web_vitals: IssueTitle.WEB_VITALS,
+
+  llm_detected_experimental: IssueTitle.LLM_DETECTED_EXPERIMENTAL,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
