@@ -80,7 +80,7 @@ class SeerExplorerClient:
             organization: Sentry organization
             user: User for permission checks and user-specific context (can be User, AnonymousUser, or None)
             artifact_schema: Optional Pydantic model to generate a structured artifact at the end of the run
-            custom_tools: Optional list of functions to make available as tools to the agent. Must be module-level functions (not lambdas, class methods, or nested functions). Must have type annotations for all parameters. Must return str or None. Should have a descriptive docstring (used as tool description for the agent)
+            custom_tools: Optional list of functions to make available as tools to the agent. Must be module-level functions (not lambdas, class methods, or nested functions). Must have type annotations for all parameters, and they must be built-in types (e.g. str, int, bool, list, etc.) and not classes/objects. Must return str or None. Should have a descriptive docstring (used as tool description for the agent).
     """
 
     def __init__(

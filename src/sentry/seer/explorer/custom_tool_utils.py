@@ -107,12 +107,29 @@ def extract_tool_schema(func: Callable) -> CustomToolDefinition:
     # Convert Pydantic schema to Seer's tool parameter format
     parameters = []
     for param_name, param_schema in pydantic_schema.get("properties", {}).items():
+        # Reject objects and dataclasses
+        if "allOf" in param_schema or "$ref" in param_schema:
+            raise ValueError(
+                f"Parameter '{param_name}' uses JSON schema references (allOf/$ref). Dataclasses and custom objects are not supported. Use primitive types (str, int, bool, float) or collections (list, dict)."
+            )
+        if (
+            "properties" in param_schema
+            and "type" in param_schema
+            and param_schema["type"] == "object"
+        ):
+            raise ValueError(
+                f"Parameter '{param_name}' has type 'object' with properties. Dataclasses and nested objects are not supported. Use primitive types (str, int, bool, float) or collections (list, dict)."
+            )
+
         param_dict = {"name": param_name, "description": f"Parameter {param_name}"}
+
+        # Copy only supported fields
         if "type" in param_schema:
             param_dict["type"] = param_schema["type"]
         if "items" in param_schema:
             param_dict["items"] = param_schema["items"]
-
+        if "enum" in param_schema:
+            param_dict["enum"] = param_schema["enum"]
         parameters.append(param_dict)
 
     # Extract description from docstring
@@ -129,12 +146,14 @@ def extract_tool_schema(func: Callable) -> CustomToolDefinition:
     )
 
 
-def call_custom_tool(module_path: str, **kwargs: Any) -> str:
+def call_custom_tool(
+    module_path: str, *, allowed_prefixes: tuple[str, ...] = ("sentry.",), **kwargs: Any
+) -> str:
     """Dynamically import and call a custom tool function."""
-    # Only allow imports from sentry package (and test modules for testing)
-    if not module_path.startswith("sentry.") and not module_path.startswith("tests.sentry."):
+    # Only allow imports from approved package prefixes
+    if not any(module_path.startswith(prefix) for prefix in allowed_prefixes):
         raise ValueError(
-            f"Module path must start with 'sentry.' or 'tests.sentry.', got: {module_path}"
+            f"Module path must start with one of {allowed_prefixes}, got: {module_path}"
         )
 
     # Split module path and function name

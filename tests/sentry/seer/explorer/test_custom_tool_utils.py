@@ -2,6 +2,8 @@
 Tests for custom tool utilities.
 """
 
+from dataclasses import dataclass
+
 import pytest
 
 from sentry.seer.explorer.custom_tool_utils import (
@@ -73,6 +75,41 @@ def _wrong_return_type_tool(text: str) -> int:
 def _no_return_annotation_tool(text: str):
     """Tool missing return annotation."""
     return text
+
+
+@dataclass
+class SampleData:
+    name: str
+    count: int
+
+
+def _tool_with_dataclass(data: SampleData) -> str:
+    """Tool that accepts a dataclass."""
+    return f"{data.name}: {data.count}"
+
+
+# Test nested primitive structures
+def _tool_with_nested_list(items: list[dict[str, str]]) -> str:
+    """Tool that accepts nested list of dicts."""
+    return str(len(items))
+
+
+def _tool_with_list_of_lists(matrix: list[list[int]]) -> str:
+    """Tool that accepts list of lists."""
+    return str(len(matrix))
+
+
+def _tool_with_nested_dict(groups: dict[str, list[str]]) -> str:
+    """Tool that accepts dict with list values."""
+    return str(len(groups))
+
+
+from typing import Literal
+
+
+def _tool_with_enum(unit: Literal["celsius", "fahrenheit"]) -> str:
+    """Tool with enum parameter."""
+    return unit
 
 
 class CustomToolUtilsTest(TestCase):
@@ -210,20 +247,25 @@ class CustomToolUtilsTest(TestCase):
         module_path = "tests.sentry.seer.explorer.test_custom_tool_utils._test_custom_tool"
 
         # Call via the utility function
-        result = call_custom_tool(module_path, message="Hi", count=3)
+        result = call_custom_tool(
+            module_path, allowed_prefixes=("sentry.", "tests.sentry."), message="Hi", count=3
+        )
         assert result == "HiHiHi"
 
     def test_call_custom_tool_with_optional_param(self):
         """Test calling a custom tool with default parameter."""
         module_path = "tests.sentry.seer.explorer.test_custom_tool_utils._test_tool_with_default"
-        result = call_custom_tool(module_path, value="Hello")
+        result = call_custom_tool(
+            module_path, allowed_prefixes=("sentry.", "tests.sentry."), value="Hello"
+        )
         assert result == "Hello!"
 
     def test_call_custom_tool_security_restriction(self):
-        """Test that only sentry.* and tests.sentry.* module paths are allowed."""
+        """Test that only allowed prefixes module paths are allowed."""
         with pytest.raises(ValueError) as cm:
             call_custom_tool("os.system", command="ls")
-        assert "must start with 'sentry.' or 'tests.sentry.'" in str(cm.value)
+        assert "must start with one of" in str(cm.value)
+        assert "('sentry.',)" in str(cm.value)
 
     def test_call_custom_tool_invalid_path(self):
         """Test calling with invalid module path."""
@@ -234,12 +276,68 @@ class CustomToolUtilsTest(TestCase):
     def test_call_custom_tool_returns_none(self):
         """Test that None return values are converted to empty string."""
         module_path = "tests.sentry.seer.explorer.test_custom_tool_utils._tool_returns_none"
-        result = call_custom_tool(module_path, flag=True)
+        result = call_custom_tool(
+            module_path, allowed_prefixes=("sentry.", "tests.sentry."), flag=True
+        )
         assert result == ""
 
     def test_call_custom_tool_wrong_return_type(self):
         """Test error when tool returns non-string."""
         module_path = "tests.sentry.seer.explorer.test_custom_tool_utils._bad_tool"
         with pytest.raises(RuntimeError) as cm:
-            call_custom_tool(module_path)
+            call_custom_tool(module_path, allowed_prefixes=("sentry.", "tests.sentry."))
         assert "must return str" in str(cm.value)
+
+    def test_tool_with_dataclass_parameter(self):
+        """Test that dataclasses are rejected because they're not supported by Seer."""
+        # Dataclasses use JSON schema references ($ref or allOf) which Seer doesn't support
+        with pytest.raises(ValueError) as cm:
+            extract_tool_schema(_tool_with_dataclass)
+        assert "Dataclasses and custom objects are not supported" in str(cm.value)
+
+    def test_tool_with_nested_list_of_dicts(self):
+        """Test that list[dict[str, str]] is supported via 'items' field."""
+        schema = extract_tool_schema(_tool_with_nested_list)
+
+        assert len(schema.parameters) == 1
+        items_param = schema.parameters[0]
+        assert items_param["name"] == "items"
+        assert items_param["type"] == "array"
+        assert "items" in items_param
+        # The nested structure should be preserved in the items field
+        assert items_param["items"]["type"] == "object"
+
+    def test_tool_with_list_of_lists(self):
+        """Test that list[list[int]] is supported via nested 'items'."""
+        schema = extract_tool_schema(_tool_with_list_of_lists)
+
+        assert len(schema.parameters) == 1
+        matrix_param = schema.parameters[0]
+        assert matrix_param["name"] == "matrix"
+        assert matrix_param["type"] == "array"
+        assert "items" in matrix_param
+        # Nested list should have items too
+        assert matrix_param["items"]["type"] == "array"
+        assert matrix_param["items"]["items"]["type"] == "integer"
+
+    def test_call_tool_with_nested_structures(self):
+        """Test that nested structures work end-to-end."""
+        module_path = "tests.sentry.seer.explorer.test_custom_tool_utils._tool_with_nested_list"
+
+        # Call with nested data
+        result = call_custom_tool(
+            module_path,
+            allowed_prefixes=("sentry.", "tests.sentry."),
+            items=[{"name": "Alice", "age": "30"}, {"name": "Bob", "age": "25"}],
+        )
+        assert result == "2"
+
+    def test_tool_with_enum(self):
+        """Test that Literal types are converted to enum."""
+        schema = extract_tool_schema(_tool_with_enum)
+
+        assert len(schema.parameters) == 1
+        unit_param = schema.parameters[0]
+        assert unit_param["name"] == "unit"
+        assert unit_param["type"] == "string"
+        assert unit_param["enum"] == ["celsius", "fahrenheit"]
