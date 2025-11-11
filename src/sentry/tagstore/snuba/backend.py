@@ -673,13 +673,11 @@ class SnubaTagStorage(TagStorage):
         filters = {"project_id": get_project_list(group.project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
-        conditions = []
         aggregations = [["count()", "", "count"]]
         dataset, filters = self.apply_group_filters(group, filters)
 
         return snuba.query(
             dataset=dataset,
-            conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
             referrer="tagstore.get_group_tag_value_count",
