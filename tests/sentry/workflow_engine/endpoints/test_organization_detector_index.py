@@ -32,13 +32,7 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
-from sentry.workflow_engine.models import (
-    DataCondition,
-    DataConditionGroup,
-    DataSource,
-    Detector,
-    Workflow,
-)
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
@@ -59,11 +53,6 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
         )
-        self.project = self.create_project()
-
-        # remove default detectors and workflows
-        Detector.objects.all().delete()
-        Workflow.objects.all().delete()
 
 
 @region_silo_test
@@ -124,13 +113,11 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         assert len(response.data) == 0
 
     def test_project_unspecified(self) -> None:
-        project2 = self.create_project(organization=self.organization)
-        Detector.objects.all().delete()
         d1 = self.create_detector(
             project=self.project, name="A Test Detector", type=MetricIssue.slug
         )
         d2 = self.create_detector(
-            project=project2,
+            project=self.create_project(),
             name="B Test Detector 2",
             type=MetricIssue.slug,
         )
@@ -154,9 +141,11 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             project=self.project, name="Test Detector", type=MetricIssue.slug
         )
         detector_2 = self.create_detector(
-            project=self.project, name="Test Detector 2", type=MetricIssue.slug
+            project_id=self.project.id, name="Test Detector 2", type=MetricIssue.slug
         )
-        self.create_detector(project=self.project, name="Test Detector 3", type=MetricIssue.slug)
+        self.create_detector(
+            project_id=self.project.id, name="Test Detector 3", type=MetricIssue.slug
+        )
 
         response = self.get_success_response(
             self.organization.slug,

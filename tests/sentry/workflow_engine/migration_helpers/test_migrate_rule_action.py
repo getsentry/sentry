@@ -1119,12 +1119,12 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         actions = build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
         assert len(actions) == 1
-        assert Action.objects.filter(type=Action.Type.SLACK).count() == 0
+        assert Action.objects.count() == 0
 
         # With dry_run=False (default)
         actions = build_notification_actions_from_rule_data_actions(action_data)
         assert len(actions) == 1
-        assert Action.objects.filter(type=Action.Type.SLACK).count() == 1
+        assert Action.objects.count() == 1
 
         # Verify the actions passed to bulk_create
         action = Action.objects.get(id=actions[0].id)
@@ -1134,8 +1134,6 @@ class TestNotificationActionMigrationUtils(TestCase):
 
     def test_skip_failures_flag(self) -> None:
         """Test that the skip_failures flag skips invalid actions."""
-        assert Action.objects.count() == 1  # includes default workflow action
-
         action_data: list[dict[str, str | Any]] = [
             # Invalid action type, should skip
             {
@@ -1163,8 +1161,7 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         actions = build_notification_actions_from_rule_data_actions(action_data, is_dry_run=False)
         assert len(actions) == 1
-        assert Action.objects.count() == 2
-        assert Action.objects.filter(type=Action.Type.SLACK).count() == 1
+        assert Action.objects.count() == 1
 
         # Verify the actions passed to bulk_create
         action = Action.objects.get(id=actions[0].id)

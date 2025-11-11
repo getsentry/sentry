@@ -32,8 +32,6 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             self.workflow_triggers,
         ) = self.create_detector_and_workflow()
 
-        Action.objects.all().delete()  # remove default actions
-
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
 
         self.group, self.event, self.group_event = self.create_group_event(

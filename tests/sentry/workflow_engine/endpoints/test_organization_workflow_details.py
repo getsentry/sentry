@@ -119,7 +119,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert workflow.when_condition_group.conditions.count() == 0
 
     def test_update_detectors_add_detector(self) -> None:
-        detector1 = self.create_detector(project=self.project, type=MetricIssue.slug)
+        detector1 = self.create_detector(project=self.project)
         detector2 = self.create_detector(project=self.project, type=MetricIssue.slug)
 
         assert DetectorWorkflow.objects.filter(workflow=self.workflow).count() == 0

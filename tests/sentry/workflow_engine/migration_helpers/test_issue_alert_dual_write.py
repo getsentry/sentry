@@ -111,11 +111,6 @@ class RuleMigrationHelpersTestBase(TestCase):
             },
         ]
 
-        # Remove default rows
-        Action.objects.all().delete()
-        Workflow.objects.all().delete()
-        DataConditionGroup.objects.all().delete()
-
 
 class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
     def test_rule_snooze_updates_workflow(self) -> None:

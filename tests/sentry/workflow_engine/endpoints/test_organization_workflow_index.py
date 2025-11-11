@@ -36,8 +36,6 @@ class OrganizationWorkflowAPITestCase(APITestCase):
 class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.project = self.create_project(organization=self.organization)
-        Workflow.objects.all().delete()  # remove default workflows
         self.workflow = self.create_workflow(
             organization_id=self.organization.id, name="Apple Workflow"
         )
@@ -281,8 +279,6 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
 
         other_project = self.create_project(organization=self.organization, name="Other Project")
-        # delete other_project's default workflow
-        Workflow.objects.filter(detectorworkflow__detector__project=other_project).delete()
         self.create_detector_workflow(
             workflow=self.workflow_three, detector=self.create_detector(project=other_project)
         )

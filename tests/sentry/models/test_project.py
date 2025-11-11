@@ -478,7 +478,7 @@ class ProjectTest(APITestCase, TestCase):
         assert alert_rule.user_id is None
 
     def test_project_detectors(self) -> None:
-        project = self.create_project()
+        project = self.create_project(create_default_detectors=True)
         assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).count() == 1
         assert Detector.objects.filter(project=project, type=IssueStreamGroupType.slug).count() == 1
 

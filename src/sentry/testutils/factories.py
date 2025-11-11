@@ -541,14 +541,28 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_project(
-        organization=None, teams=None, fire_project_created=False, **kwargs
+        organization=None,
+        teams=None,
+        fire_project_created=False,
+        create_default_detectors=False,
+        **kwargs,
     ) -> Project:
+        # disconnect signal
+        from django.db.models.signals import post_save
+
+        from sentry.receivers.project_detectors import create_project_detectors
+
         if not kwargs.get("name"):
             kwargs["name"] = petname.generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
             kwargs["slug"] = slugify(str(kwargs["name"]))
         if not organization and teams:
             organization = teams[0].organization
+
+        if not create_default_detectors:
+            post_save.disconnect(
+                create_project_detectors, sender=Project, dispatch_uid="create_project_detectors"
+            )
 
         with transaction.atomic(router.db_for_write(Project)):
             project = Project.objects.create(organization=organization, **kwargs)
@@ -559,6 +573,13 @@ class Factories:
                 project_created.send(
                     project=project, user=AnonymousUser(), default_rules=True, sender=Factories
                 )
+
+        if not create_default_detectors:
+            # reconnect signal
+            post_save.connect(
+                create_project_detectors, sender=Project, dispatch_uid="create_project_detectors"
+            )
+
         return project
 
     @staticmethod
@@ -2273,15 +2294,14 @@ class Factories:
             name = petname.generate(2, " ", letters=10).title()
         if config is None:
             config = default_detector_config_data.get(kwargs["type"], {})
-        if "type" in kwargs:
-            if kwargs["type"] in (ErrorGroupType.slug, IssueStreamGroupType.slug):
-                detector, _ = Detector.objects.get_or_create(
-                    type=kwargs["type"],
-                    project=kwargs["project"],
-                    defaults={"config": {}, "name": name},
-                )
-                detector.update(config=config, name=name, **kwargs)
-                return detector
+        if kwargs.get("type") in (ErrorGroupType.slug, IssueStreamGroupType.slug):
+            detector, _ = Detector.objects.get_or_create(
+                type=kwargs["type"],
+                project=kwargs["project"],
+                defaults={"config": {}, "name": name},
+            )
+            detector.update(config=config, name=name, **kwargs)
+            return detector
 
         return Detector.objects.create(
             name=name,

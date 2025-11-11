@@ -100,7 +100,6 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data == serialize(self.detector)
 
     def test_does_not_exist(self) -> None:
-        Detector.objects.all().delete()
         self.get_error_response(self.organization.slug, 3, status_code=404)
 
     def test_malformed_id(self) -> None:

@@ -165,8 +165,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
     def test_project_created__default_workflow(self) -> None:
-        project = self.create_project()
-        project_created.send(project=project, user=self.user, sender=None)
+        project = self.create_project(fire_project_created=True)
 
         assert Rule.objects.filter(project=project).exists()
         workflow = Workflow.objects.get(organization=project.organization, name=DEFAULT_RULE_LABEL)

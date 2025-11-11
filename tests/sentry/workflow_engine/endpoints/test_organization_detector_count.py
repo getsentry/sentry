@@ -5,7 +5,6 @@ from sentry.models.environment import Environment
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.workflow_engine.models import Detector
 
 
 @region_silo_test
@@ -18,8 +17,6 @@ class OrganizationDetectorCountTest(APITestCase):
         self.environment = Environment.objects.create(
             organization_id=self.organization.id, name="production"
         )
-        self.project = self.create_project(organization=self.organization)
-        Detector.objects.all().delete()  # remove default detectors
 
     def test_simple(self) -> None:
         # Create active detectors
@@ -128,7 +125,14 @@ class OrganizationDetectorCountTest(APITestCase):
     def test_no_projects_access(self) -> None:
         # Create another organization with detectors
         other_org = self.create_organization()
-        self.create_project(organization=other_org)
+        other_project = self.create_project(organization=other_org)
+        self.create_detector(
+            project_id=other_project.id,
+            name="Other Org Detector",
+            type=MetricIssue.slug,
+            enabled=True,
+            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+        )
 
         # Test with no project access
         response = self.get_success_response(self.organization.slug, qs_params={"project": []})

@@ -46,9 +46,6 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 class IssueAlertMigratorTest(TestCase):
     def setUp(self) -> None:
-        self.project = self.create_project()
-        self.clear_workflow_engine_tables()
-
         conditions = [
             {"id": ReappearedEventCondition.id},
             {"id": RegressionEventCondition.id},
@@ -121,18 +118,6 @@ class IssueAlertMigratorTest(TestCase):
                 "value": self.filters[2]["value"],
             },
         ]
-
-    def clear_workflow_engine_tables(self) -> None:
-        AlertRuleWorkflow.objects.all().delete()
-        AlertRuleDetector.objects.all().delete()
-        Workflow.objects.all().delete()
-        Detector.objects.all().delete()
-        DetectorWorkflow.objects.all().delete()
-        WorkflowDataConditionGroup.objects.all().delete()
-        DataConditionGroup.objects.all().delete()
-        DataCondition.objects.all().delete()
-        DataConditionGroupAction.objects.all().delete()
-        Action.objects.all().delete()
 
     def assert_nothing_migrated(self, issue_alert):
         assert not AlertRuleWorkflow.objects.filter(rule_id=issue_alert.id).exists()
@@ -542,7 +527,6 @@ class TestEnsureDefaultDetectors(TestCase):
 
     def test_ensure_default_detector__lock_fails(self) -> None:
         project = self.create_project()
-        Detector.objects.all().delete()
         with patch("sentry.workflow_engine.processors.detector.locks.get") as mock_lock:
             mock_lock.return_value.blocking_acquire.side_effect = UnableToAcquireLock
             with pytest.raises(UnableToAcquireLockApiError):

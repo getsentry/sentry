@@ -16,8 +16,6 @@ class BaseDetectorTestCase(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.project = self.create_project(organization=self.organization)
-        Detector.objects.all().delete()
         self.monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,

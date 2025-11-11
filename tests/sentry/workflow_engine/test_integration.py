@@ -181,7 +181,6 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
 @mock.patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
     def setUp(self) -> None:
-        self.project = self.create_project()
         (
             self.workflow,
             self.detector,
