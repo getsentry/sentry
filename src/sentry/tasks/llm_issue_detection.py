@@ -90,6 +90,8 @@ def create_issue_occurrence_from_detection(
         "transaction": transaction_name,
         "explanation": detected_issue.explanation,
         "impact": detected_issue.impact,
+        "evidence": detected_issue.evidence,
+        "missing_telemetry": detected_issue.missing_telemetry,
     }
 
     evidence_display = [
@@ -97,15 +99,6 @@ def create_issue_occurrence_from_detection(
         IssueEvidence(name="Impact", value=detected_issue.impact, important=False),
         IssueEvidence(name="Evidence", value=detected_issue.evidence, important=False),
     ]
-
-    if detected_issue.missing_telemetry:
-        evidence_display.append(
-            IssueEvidence(
-                name="Missing Telemetry",
-                value=detected_issue.missing_telemetry,
-                important=False,
-            )
-        )
 
     occurrence = IssueOccurrence(
         id=occurrence_id,
