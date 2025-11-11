@@ -31,6 +31,7 @@ import {
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
+import {DisabledAlert} from 'sentry/views/detectors/components/details/common/disabledAlert';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
@@ -156,6 +157,10 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 onTimezoneSelected={setTimezoneOverride}
               />
             </Flex>
+            <DisabledAlert
+              detector={detector}
+              message={t('This monitor is disabled and not accepting check-ins.')}
+            />
             {!!checkinErrors?.length && (
               <MonitorProcessingErrors
                 checkinErrors={checkinErrors}

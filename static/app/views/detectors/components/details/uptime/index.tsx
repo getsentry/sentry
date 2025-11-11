@@ -22,6 +22,7 @@ import {UptimeChecksTable} from 'sentry/views/alerts/rules/uptime/uptimeChecksTa
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
+import {DisabledAlert} from 'sentry/views/detectors/components/details/common/disabledAlert';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
@@ -59,6 +60,10 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
       <DetailLayout.Body>
         <DetailLayout.Main>
           <DatePageFilter />
+          <DisabledAlert
+            detector={detector}
+            message={t('This monitor is disabled and not recording uptime checks.')}
+          />
           <DetailsTimeline uptimeDetector={detector} onStatsLoaded={checkHasUnknown} />
           <Section title={t('Recent Check-Ins')}>
             <div>
