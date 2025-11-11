@@ -57,7 +57,7 @@ export function DocumentTitleManager({children}: React.PropsWithChildren) {
       // effects run bottom-up so registration order needs to be reversed
       .reverse();
 
-    if (parts.length === 0 || !entries.some(entry => !entry.noSuffix)) {
+    if (parts.length === 0 || entries.every(entry => !entry.noSuffix)) {
       parts.push(DEFAULT_PAGE_TITLE);
     }
     return [...new Set([...parts])].join(SEPARATOR);
