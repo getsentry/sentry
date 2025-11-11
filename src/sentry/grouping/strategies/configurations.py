@@ -1,4 +1,4 @@
-from sentry.conf.server import FALL_2025_GROUPING_CONFIG
+from sentry.conf.server import FALL_2025_GROUPING_CONFIG, WINTER_2023_GROUPING_CONFIG
 from sentry.grouping.strategies.base import (
     StrategyConfiguration,
     create_strategy_configuration_class,
@@ -53,7 +53,7 @@ def register_grouping_config(id: str, **kwargs) -> type[StrategyConfiguration]:
 
 # This is the current default config
 register_grouping_config(
-    id="newstyle:2023-01-11",
+    id=WINTER_2023_GROUPING_CONFIG,
     # There's no `base` argument here because this config is based on `BASE_STRATEGY`. To base a
     # config on a previous config, include its `id` value as the value for `base` here.
     initial_context={
@@ -66,7 +66,7 @@ register_grouping_config(
 
 register_grouping_config(
     id=FALL_2025_GROUPING_CONFIG,
-    base="newstyle:2023-01-11",
+    base=WINTER_2023_GROUPING_CONFIG,
     initial_context={
         "use_legacy_exception_subcomponent_order": False,
     },
