@@ -18,6 +18,7 @@ from sentry import options
 from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -73,6 +74,7 @@ from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
 from sentry.utils.snuba import SnubaQueryParams
+from sentry.workflow_engine.models import Detector
 from tests.sentry.feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -2446,6 +2448,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert event2.group.id != group.id
 
+        # remove existing error detector
+        Detector.objects.filter(project_id=self.project.id, type=ErrorGroupType.slug).delete()
         detector_id = 12345  # intentionally multi-digit
         detector = self.create_detector(
             id=detector_id,

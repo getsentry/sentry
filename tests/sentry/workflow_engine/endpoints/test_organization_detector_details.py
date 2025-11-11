@@ -82,7 +82,7 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
             condition_result=DetectorPriorityLevel.OK,
         )
         self.detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Test Detector",
             type=MetricIssue.slug,
             workflow_condition_group=self.data_condition_group,
@@ -100,6 +100,7 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data == serialize(self.detector)
 
     def test_does_not_exist(self) -> None:
+        Detector.objects.all().delete()
         self.get_error_response(self.organization.slug, 3, status_code=404)
 
     def test_malformed_id(self) -> None:
@@ -740,7 +741,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         """
         data_condition_group = self.create_data_condition_group()
         error_detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Error Monitor",
             type=ErrorGroupType.slug,
             workflow_condition_group=data_condition_group,

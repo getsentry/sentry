@@ -88,24 +88,25 @@ class DetectorTest(BaseWorkflowTest):
             assert conditions
 
     def test_get_error_detector_for_project__success(self) -> None:
-        """Test successful retrieval of error detector for project"""
-        error_detector = self.create_detector(
-            project_id=self.project.id, type=ErrorGroupType.slug, name="Error Detector"
-        )
-
+        """Test successful retrieval of error detector for project, created by default on project creation"""
         result = Detector.get_error_detector_for_project(self.project.id)
 
-        assert result == error_detector
         assert result.type == ErrorGroupType.slug
         assert result.project_id == self.project.id
 
     def test_get_error_detector_for_project__not_found(self) -> None:
+        # delete default error detector
+        Detector.objects.filter(project_id=self.project.id, type=ErrorGroupType.slug).delete()
+
         with pytest.raises(Detector.DoesNotExist):
             Detector.get_error_detector_for_project(self.project.id)
 
     def test_get_error_detector_for_project__wrong_type(self) -> None:
+        # delete default error detector
+        Detector.objects.filter(project_id=self.project.id, type=ErrorGroupType.slug).delete()
+
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             type=MetricIssue.slug,  # Use a different registered type
             name="Other Detector",
         )
@@ -115,7 +116,7 @@ class DetectorTest(BaseWorkflowTest):
 
     def test_get_error_detector_for_project__caching(self) -> None:
         error_detector = self.create_detector(
-            project_id=self.project.id, type=ErrorGroupType.slug, name="Error Detector"
+            project=self.project, type=ErrorGroupType.slug, name="Error Detector"
         )
 
         # First call - cache miss
@@ -140,7 +141,7 @@ class DetectorTest(BaseWorkflowTest):
 
     def test_get_error_detector_for_project__cache_hit(self) -> None:
         error_detector = self.create_detector(
-            project_id=self.project.id, type=ErrorGroupType.slug, name="Error Detector"
+            project=self.project, type=ErrorGroupType.slug, name="Error Detector"
         )
 
         # Mock cache hit

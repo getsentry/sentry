@@ -26,7 +26,7 @@ class TestUpdater(TestCase):
         self.project = self.create_project(
             teams=[self.create_team()], name="foo", fire_project_created=True
         )
-        self.rule = self.project.rule_set.all()[0]
+        self.rule = self.create_project_rule(project=self.project)
         self.updater = ProjectRuleUpdater(rule=self.rule, project=self.project)
 
     def test_update_name(self) -> None:
@@ -119,7 +119,7 @@ class TestUpdater(TestCase):
         self.updater.run()
         assert self.rule.data["frequency"] == 5
 
-    def test_dual_create_workflow_engine(self) -> None:
+    def test_dual_update_workflow_engine(self) -> None:
         IssueAlertMigrator(self.rule, user_id=self.user.id).run()
 
         conditions = [
