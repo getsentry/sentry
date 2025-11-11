@@ -19,6 +19,7 @@ import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
 import * as mdx from 'eslint-plugin-mdx';
 import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
+import oxlint from 'eslint-plugin-oxlint';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
@@ -1187,4 +1188,5 @@ export default typescript.config([
       'boundaries/element-types': 'off',
     },
   },
+  ...oxlint.buildFromOxlintConfigFile('./.oxlintrc.json'),
 ]);
