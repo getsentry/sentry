@@ -174,31 +174,42 @@ describe('BalanceChangeAction', () => {
     triggerChangeBalanceModal({subscription, ...modalProps});
     renderGlobalModal();
 
-    // Pre-grab stable references to fields using findBy to wait for modal content
-    const creditInput = await screen.findByRole('spinbutton', {name: 'Credit Amount'});
-    const urlField = await screen.findByTestId('url-field');
-    const notesField = await screen.findByTestId('notes-field');
-    const submitButton = screen.getByRole('button', {name: /submit/i});
+    // Wait for modal content
+    expect(await screen.findByTestId('url-field')).toBeInTheDocument();
+    expect(await screen.findByTestId('notes-field')).toBeInTheDocument();
 
-    await userEvent.type(creditInput, '10');
-    await waitFor(() => expect(creditInput).toHaveValue(10));
+    await userEvent.type(
+      await screen.findByRole('spinbutton', {name: 'Credit Amount'}),
+      '10'
+    );
+    await waitFor(
+      () =>
+        expect(screen.getByRole('spinbutton', {name: 'Credit Amount'})).toHaveValue(10),
+      {timeout: 5_000}
+    );
 
     // Wait for button to be enabled before clicking
-    await waitFor(() => expect(submitButton).toBeEnabled());
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled()
+    );
 
     // Disable pointer-events check to avoid false positive in CI
     // where modal overlay may still be settling during initialization
-    await userEvent.click(submitButton, {pointerEventsCheck: 0});
+    await userEvent.click(screen.getByRole('button', {name: /submit/i}), {
+      pointerEventsCheck: 0,
+    });
 
     // Wait for form to be re-enabled after error
     // Don't rely on error message text as the Form component shows different messages
     // depending on error response structure. All fields are controlled by isSubmitting
     // state, so if one is enabled, all should be enabled.
-    await waitFor(() => expect(creditInput).toBeEnabled());
+    await waitFor(() =>
+      expect(screen.getByRole('spinbutton', {name: 'Credit Amount'})).toBeEnabled()
+    );
 
     // Verify all fields and submit button are re-enabled
-    expect(urlField).toBeEnabled();
-    expect(notesField).toBeEnabled();
-    expect(submitButton).toBeEnabled();
+    expect(await screen.findByTestId('url-field')).toBeEnabled();
+    expect(await screen.findByTestId('notes-field')).toBeEnabled();
+    expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled();
   });
 });
