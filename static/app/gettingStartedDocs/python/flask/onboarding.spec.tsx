@@ -4,13 +4,9 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-<<<<<<< HEAD:static/app/gettingStartedDocs/python/flask.spec.tsx
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './flask';
-=======
 import docs from '.';
->>>>>>> master:static/app/gettingStartedDocs/python/flask/onboarding.spec.tsx
 
 describe('flask onboarding docs', () => {
   it('renders doc correctly', () => {

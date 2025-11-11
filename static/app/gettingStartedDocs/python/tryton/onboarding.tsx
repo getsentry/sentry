@@ -4,19 +4,10 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {metricsVerify} from 'sentry/gettingStartedDocs/python/python/metrics';
 import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
-<<<<<<< HEAD:static/app/gettingStartedDocs/python/tryton.tsx
-import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonMetricsOnboarding,
-  getVerifyMetricsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
-=======
->>>>>>> master:static/app/gettingStartedDocs/python/tryton/onboarding.tsx
 
 const getSdkSetupSnippet = (params: DocsParams) => `
 import sentry_sdk
@@ -142,46 +133,10 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: (params: Params) => [
+  verify: params => [
     {
       type: StepType.VERIFY,
-      content: [getVerifyMetricsContent(params)],
+      content: [metricsVerify(params)],
     },
   ],
 };
-<<<<<<< HEAD:static/app/gettingStartedDocs/python/tryton.tsx
-
-const logsOnboarding = getPythonLogsOnboarding();
-const metricsOnboarding = getPythonMetricsOnboarding();
-
-const profilingOnboarding: OnboardingConfig = {
-  install: onboarding.install,
-  configure: onboarding.configure,
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'Verify that profiling is working correctly by simply using your application.'
-          ),
-        },
-      ],
-    },
-  ],
-};
-
-const docs: Docs = {
-  onboarding,
-  profilingOnboarding,
-  crashReportOnboarding: crashReportOnboardingPython,
-  agentMonitoringOnboarding,
-  mcpOnboarding,
-  logsOnboarding,
-  metricsOnboarding,
-};
-
-export default docs;
-=======
->>>>>>> master:static/app/gettingStartedDocs/python/tryton/onboarding.tsx

@@ -1,13 +1,9 @@
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-<<<<<<< HEAD:static/app/gettingStartedDocs/python/pyramid.spec.tsx
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './pyramid';
-=======
 import docs from '.';
->>>>>>> master:static/app/gettingStartedDocs/python/pyramid/onboarding.spec.tsx
 
 describe('aiohttp onboarding docs', () => {
   it('renders doc correctly', () => {

@@ -1,15 +1,15 @@
 // Only import and test functions that don't have circular dependencies
-const {logs} = jest.requireActual('sentry/gettingStartedDocs/python/python/logs');
+const {metrics} = jest.requireActual('sentry/gettingStartedDocs/python/python/metrics');
 
-describe('logs', () => {
+describe('metrics', () => {
   const mockParams = {
     dsn: {
       public: 'https://test@example.com/123',
     },
   };
 
-  it('generates logs onboarding config with default parameters', () => {
-    const result = logs();
+  it('generates metrics onboarding config with default parameters', () => {
+    const result = metrics();
 
     // Test install step
     const installSteps = result.install();
@@ -21,7 +21,7 @@ describe('logs', () => {
     const configureSteps = result.configure(mockParams);
     expect(configureSteps).toHaveLength(1);
     expect(configureSteps[0].type).toBe('configure');
-    expect(configureSteps[0].content[1].code).toContain('enable_logs=True');
+    expect(configureSteps[0].content[1].code).toContain('sentry_sdk.init');
     expect(configureSteps[0].content[1].code).toContain(mockParams.dsn.public);
 
     // Test verify step
@@ -31,27 +31,6 @@ describe('logs', () => {
     expect(verifySteps[0].content).toHaveLength(1);
     expect(verifySteps[0].content[0].type).toBe('conditional');
     const conditionalContent = verifySteps[0].content[0].content;
-    expect(conditionalContent[1].code).toContain('sentry_sdk.logger.info');
-    expect(conditionalContent[3].code).toContain('import logging');
-  });
-
-  it('generates logs onboarding config with custom parameters', () => {
-    const result = logs({
-      packageName: 'custom-sentry-sdk',
-      minimumVersion: '3.0.0',
-    });
-
-    const installSteps = result.install();
-    expect(installSteps[0].content).toHaveLength(2);
-  });
-
-  it('generates metrics onboarding config with custom parameters', () => {
-    const result = logs({
-      packageName: 'custom-sentry-sdk',
-      minimumVersion: '3.0.0',
-    });
-
-    const installSteps = result.install();
-    expect(installSteps[0].content).toHaveLength(2);
+    expect(conditionalContent[1].code).toContain('metrics.count');
   });
 });

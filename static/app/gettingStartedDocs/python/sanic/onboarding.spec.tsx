@@ -1,13 +1,9 @@
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-<<<<<<< HEAD:static/app/gettingStartedDocs/python/sanic.spec.tsx
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './sanic';
-=======
 import docs from '.';
->>>>>>> master:static/app/gettingStartedDocs/python/sanic/onboarding.spec.tsx
 
 describe('sanic onboarding docs', () => {
   it('renders doc correctly', () => {

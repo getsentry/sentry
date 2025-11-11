@@ -4,22 +4,11 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {logsVerify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {metricsVerify} from 'sentry/gettingStartedDocs/python/python/metrics';
 import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
-<<<<<<< HEAD:static/app/gettingStartedDocs/python/gcpfunctions.tsx
-import {
-  alternativeProfilingConfiguration,
-  getPythonInstallCodeBlock,
-  getPythonLogsOnboarding,
-  getPythonMetricsOnboarding,
-  getPythonProfilingOnboarding,
-  getVerifyLogsContent,
-  getVerifyMetricsContent,
-} from 'sentry/utils/gettingStartedDocs/python';
-=======
->>>>>>> master:static/app/gettingStartedDocs/python/gcpfunctions/onboarding.tsx
 
 const getSdkSetupSnippet = (params: DocsParams) => `
 import sentry_sdk
@@ -173,12 +162,8 @@ export const onboarding: OnboardingConfig = {
             'Deploy your function and invoke it to generate an error, then check Sentry for the captured event.'
           ),
         },
-<<<<<<< HEAD:static/app/gettingStartedDocs/python/gcpfunctions.tsx
-        getVerifyLogsContent(params),
-        getVerifyMetricsContent(params),
-=======
-        verify(params),
->>>>>>> master:static/app/gettingStartedDocs/python/gcpfunctions/onboarding.tsx
+        logsVerify(params),
+        metricsVerify(params),
       ],
     },
   ],
@@ -197,21 +182,3 @@ export const onboarding: OnboardingConfig = {
     return steps;
   },
 };
-<<<<<<< HEAD:static/app/gettingStartedDocs/python/gcpfunctions.tsx
-
-const logsOnboarding = getPythonLogsOnboarding();
-const metricsOnboarding = getPythonMetricsOnboarding();
-
-const docs: Docs = {
-  onboarding,
-  crashReportOnboarding: crashReportOnboardingPython,
-  profilingOnboarding: getPythonProfilingOnboarding(),
-  agentMonitoringOnboarding,
-  mcpOnboarding,
-  logsOnboarding,
-  metricsOnboarding,
-};
-
-export default docs;
-=======
->>>>>>> master:static/app/gettingStartedDocs/python/gcpfunctions/onboarding.tsx
