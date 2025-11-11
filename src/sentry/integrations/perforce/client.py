@@ -173,7 +173,8 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         full_path = f"{depot_root}/{path}"
 
         # If ref is provided and path doesn't already have @revision, append it
-        if ref and "@" not in path:
+        # Skip "master" as it's a Git concept and not valid in Perforce
+        if ref and "@" not in path and ref != "master":
             full_path = f"{full_path}@{ref}"
 
         return full_path
@@ -357,9 +358,11 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
                     changelist = None
                     if filelog and len(filelog) > 0:
-                        revisions = filelog[0].get("rev", [])
-                        if revisions and len(revisions) > 0:
-                            changelist = revisions[0].get("change")
+                        # The 'change' field contains the changelist numbers (as a list of strings)
+                        changelists = filelog[0].get("change", [])
+                        if changelists and len(changelists) > 0:
+                            # Get the first (most recent) changelist number
+                            changelist = changelists[0]
 
                     # If we found a changelist, get detailed commit info
                     if changelist:
@@ -367,14 +370,17 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                             change_info = p4.run("describe", "-s", changelist)
                             if change_info and len(change_info) > 0:
                                 change = change_info[0]
+                                username = change.get("user", "unknown")
+                                # Perforce doesn't provide email by default, so we generate a fallback
+                                email = change.get("email") or f"{username}@perforce.local"
                                 commit = CommitInfo(
                                     commitId=changelist,
                                     committedDate=datetime.fromtimestamp(
                                         int(change.get("time", 0)), tz=timezone.utc
                                     ),
                                     commitMessage=change.get("desc", "").strip(),
-                                    commitAuthorName=change.get("user", "unknown"),
-                                    commitAuthorEmail=change.get("email"),
+                                    commitAuthorName=username,
+                                    commitAuthorEmail=email,
                                 )
 
                                 blame_info = FileBlameInfo(

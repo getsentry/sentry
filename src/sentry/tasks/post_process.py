@@ -1176,6 +1176,7 @@ def process_commits(job: PostProcessJob) -> None:
                             IntegrationProviderSlug.GITHUB.value,
                             IntegrationProviderSlug.GITLAB.value,
                             IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+                            IntegrationProviderSlug.PERFORCE.value,
                         ],
                     )
                     has_integrations = len(org_integrations) > 0
