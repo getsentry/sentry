@@ -575,7 +575,6 @@ def basic_consumer(
     topic: str | None,
     kafka_slice_id: int | None,
     quantized_rebalance_delay_secs: int | None,
-    enable_autocommit: bool,
     **options: Any,
 ) -> None:
     """
@@ -607,13 +606,16 @@ def basic_consumer(
     add_global_tags(
         kafka_topic=topic, consumer_group=options["group_id"], kafka_slice_id=kafka_slice_id
     )
+
+    options["shutdown_strategy_before_consumer"] = True
+    options["enable_autocommit"] = True
+
     processor = get_stream_processor(
         consumer_name,
         consumer_args,
         topic=topic,
         kafka_slice_id=kafka_slice_id,
         add_global_tags=True,
-        enable_autocommit=enable_autocommit,
         **options,
     )
 
