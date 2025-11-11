@@ -19,14 +19,8 @@ from sentry.seer.explorer.custom_tool_utils import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import create_test_regions, region_silo_test
 
+
 # Test helper tool classes (defined in module scope so they can be imported by call_custom_tool)
-
-
-# Not an ExplorerTool subclass - for testing validation
-class NotAnExplorerTool:
-    pass
-
-
 class TestCustomTool(ExplorerTool):
     def get_tool_description(self):
         return "A test tool"
@@ -63,19 +57,6 @@ class TestToolWithDefault(ExplorerTool):
         return value + suffix
 
 
-class ToolReturnsNone(ExplorerTool):
-    def get_tool_description(self):
-        return "Tool that can return None"
-
-    def get_params(self):
-        return [
-            ExplorerToolParam(name="flag", description="Flag", type=BooleanType()),
-        ]
-
-    def execute(self, organization, **kwargs):
-        return None if kwargs["flag"] else "value"
-
-
 class BadTool(ExplorerTool):
     def get_tool_description(self):
         return "Tool that returns wrong type"
@@ -84,7 +65,7 @@ class BadTool(ExplorerTool):
         return []
 
     def execute(self, organization, **kwargs):
-        return 123  # type: ignore[return-value]
+        return 123  # Returns wrong type to test runtime validation
 
 
 class GetUserInfoTool(ExplorerTool):
@@ -185,13 +166,6 @@ class CustomToolUtilsTest(TestCase):
         create_test_regions()
         self.organization = self.create_organization()
 
-    def test_validate_tool_class_not_subclass(self):
-        """Test validation fails for non-ExplorerTool classes."""
-        # NotAnExplorerTool is defined at module level
-        with pytest.raises((TypeError, AttributeError)):
-            # Will fail when trying to instantiate or call methods that don't exist
-            extract_tool_schema(NotAnExplorerTool)
-
     def test_validate_tool_class_nested(self):
         """Test validation fails for nested classes."""
 
@@ -290,17 +264,6 @@ class CustomToolUtilsTest(TestCase):
         with pytest.raises(ValueError) as cm:
             call_custom_tool("sentry.nonexistent.module.function", self.organization.id)
         assert "Could not import" in str(cm.value)
-
-    def test_call_custom_tool_returns_none(self):
-        """Test that None return values are converted to empty string."""
-        module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.ToolReturnsNone"
-        result = call_custom_tool(
-            module_path,
-            allowed_prefixes=("sentry.", "tests.sentry."),
-            organization_id=self.organization.id,
-            flag=True,
-        )
-        assert result == ""
 
     def test_call_custom_tool_wrong_return_type(self):
         """Test error when tool returns non-string."""

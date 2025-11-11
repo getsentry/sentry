@@ -175,10 +175,10 @@ def extract_tool_schema(tool_class: type[ExplorerTool]) -> CustomToolDefinition:
     params = tool_instance.get_params()
 
     # Convert ExplorerToolParam list to parameter dicts
-    parameters = []
-    required = []
+    parameters: list[dict[str, Any]] = []
+    required: list[str] = []
     for param in params:
-        param_dict = {
+        param_dict: dict[str, Any] = {
             "name": param.name,
             "description": param.description,
         }
@@ -268,7 +268,7 @@ def call_custom_tool(
         raise RuntimeError(f"Error executing custom tool {module_path}: {e}")
 
     # Validate return type
-    if not isinstance(result, str) and result is not None:
-        raise RuntimeError(f"Custom tool {module_path} must return str or None, got {type(result)}")
+    if not isinstance(result, str):
+        raise RuntimeError(f"Custom tool {module_path} must return str, got {type(result)}")
 
-    return result or ""
+    return result
