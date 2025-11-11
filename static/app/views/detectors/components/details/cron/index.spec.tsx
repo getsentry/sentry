@@ -324,4 +324,22 @@ describe('CronDetectorDetails - check-ins', () => {
       expect(screen.queryByText(expectedText)).not.toBeInTheDocument();
     });
   });
+
+  describe('disabled alert', () => {
+    it('displays disabled alert with enable button when detector is disabled', async () => {
+      const disabledDetector = CronDetectorFixture({
+        id: '1',
+        projectId: project.id,
+        enabled: false,
+        dataSources: [cronDataSource],
+      });
+
+      render(<CronDetectorDetails detector={disabledDetector} project={project} />);
+
+      expect(
+        await screen.findByText('This monitor is disabled and not accepting check-ins.')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Enable'})).toBeInTheDocument();
+    });
+  });
 });
