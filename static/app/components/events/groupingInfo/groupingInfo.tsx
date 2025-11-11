@@ -40,20 +40,22 @@ export default function GroupingInfo({
     });
 
   const variants = groupInfo?.variants
-    ? Object.values(groupInfo.variants).sort((a, b) => {
-        // Sort contributing variants before non-contributing ones
-        if (a.contributes && !b.contributes) {
-          return -1;
-        }
-        if (b.contributes && !a.contributes) {
-          return 1;
-        }
+    ? Object.values(groupInfo.variants)
+        .filter((variant): variant is NonNullable<typeof variant> => variant !== null)
+        .sort((a, b) => {
+          // Sort contributing variants before non-contributing ones
+          if (a.contributes && !b.contributes) {
+            return -1;
+          }
+          if (b.contributes && !a.contributes) {
+            return 1;
+          }
 
-        // Sort by description alphabetically
-        const descA = a.description?.toLowerCase() ?? '';
-        const descB = b.description?.toLowerCase() ?? '';
-        return descA.localeCompare(descB);
-      })
+          // Sort by description alphabetically
+          const descA = a.description?.toLowerCase() ?? '';
+          const descB = b.description?.toLowerCase() ?? '';
+          return descA.localeCompare(descB);
+        })
     : [];
 
   const feedbackComponent = (
