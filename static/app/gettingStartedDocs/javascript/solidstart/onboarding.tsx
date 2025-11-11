@@ -88,15 +88,31 @@ const getSdkRun = () => `
 }
 `;
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: DocsParams) => {
+  const logsCode = params.isLogsSelected
+    ? `
+    // Send a log before throwing the error
+    Sentry.logger.info('User triggered test error', {
+      action: 'test_error_button_click',
+    });`
+    : '';
+
+  const metricsCode = params.isMetricsSelected
+    ? `
+    // Send a test metric before throwing the error
+    Sentry.metrics.count('test_counter', 1);`
+    : '';
+
+  return `
 <button
   type="button"
-  onClick={() => {
+  onClick={() => {${logsCode}${metricsCode}
     throw new Error("Sentry Frontend Error");
   }}
 >
   Throw error
 </button>`;
+};
 
 export const onboarding: OnboardingConfig = {
   introduction: () =>
@@ -274,7 +290,7 @@ export const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -290,19 +306,36 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'JavaScript',
               language: 'javascript',
-              code: getVerifySnippet(),
+              code: getVerifySnippet(params),
             },
           ],
         },
       ],
     },
   ],
-  nextSteps: () => [
-    {
-      id: 'solid-features',
-      name: t('Solid Features'),
-      description: t('Learn about our first class integration with the Solid framework.'),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/solid/features/',
-    },
-  ],
+  nextSteps: (params: DocsParams) => {
+    const steps = [
+      {
+        id: 'solid-features',
+        name: t('Solid Features'),
+        description: t(
+          'Learn about our first class integration with the Solid framework.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/solid/features/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/solidstart/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };

@@ -33,6 +33,20 @@ export function AiPrivacyNotice({linkProps = {}}: AiPrivacyNoticeProps) {
 }
 
 /**
+ * A shortened version of the privacy noice, useful for tooltips or places where space is limited.
+ */
+function AiPrivacyNoticeShort({linkProps = {}}: AiPrivacyNoticeProps) {
+  return tct(`Powered by genAI. [link:Learn more.]`, {
+    link: (
+      <ExternalLink
+        href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/"
+        {...linkProps}
+      />
+    ),
+  });
+}
+
+/**
  * A tooltip wrapper for the privacy notice.
  */
 export function AiPrivacyTooltip({
@@ -43,7 +57,7 @@ export function AiPrivacyTooltip({
   return (
     <Tooltip
       isHoverable
-      title={<AiPrivacyNotice linkProps={linkProps} />}
+      title={<AiPrivacyNoticeShort linkProps={linkProps} />}
       {...tooltipProps}
     >
       {children}
