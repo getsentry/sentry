@@ -6,6 +6,7 @@ import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {
   AGENTS_LANDING_SUB_PATH,
   AI_SIDEBAR_LABEL,
@@ -43,6 +44,8 @@ export function InsightsSecondaryNav() {
     ? starredProjects.slice(0, 8)
     : nonStarredProjects.filter(project => project.isMember).slice(0, 8);
 
+  const hasWorkflowEngineUi = organization.features.includes('workflow-engine-ui');
+
   return (
     <Fragment>
       <SecondaryNav.Header>
@@ -78,12 +81,23 @@ export function InsightsSecondaryNav() {
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         <SecondaryNav.Section id="insights-monitors">
-          <SecondaryNav.Item to={`${baseUrl}/crons/`} analyticsItemName="insights_crons">
+          <SecondaryNav.Item
+            to={
+              hasWorkflowEngineUi
+                ? `${makeMonitorBasePathname(organization.slug)}crons/?insightsRedirect=true`
+                : `${baseUrl}/crons/`
+            }
+            analyticsItemName="insights_crons"
+          >
             {t('Crons')}
           </SecondaryNav.Item>
           <Feature features={['uptime']}>
             <SecondaryNav.Item
-              to={`${baseUrl}/uptime/`}
+              to={
+                hasWorkflowEngineUi
+                  ? `${makeMonitorBasePathname(organization.slug)}uptime/?insightsRedirect=true`
+                  : `${baseUrl}/uptime/`
+              }
               analyticsItemName="insights_uptime"
             >
               {t('Uptime')}
