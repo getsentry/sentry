@@ -4,6 +4,8 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs from '.';
 
 describe('rq onboarding docs', () => {
@@ -85,5 +87,31 @@ describe('rq onboarding docs', () => {
     );
     expect(lifecycleMatches.length).toBeGreaterThan(0);
     lifecycleMatches.forEach(match => expect(match).toBeInTheDocument());
+  });
+
+  it('renders metrics configuration when metrics are selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.METRICS],
+    });
+
+    // Renders metrics verification steps
+    expect(
+      screen.getByText(
+        'Send test metrics from your app to verify metrics are arriving in Sentry.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders without metrics configuration when metrics are not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    // Does not render metrics verification steps
+    expect(
+      screen.queryByText(
+        'Send test metrics from your app to verify metrics are arriving in Sentry.'
+      )
+    ).not.toBeInTheDocument();
   });
 });
