@@ -85,7 +85,10 @@ function McpToolsLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName={ModuleName.MCP_TOOLS}>
+    <ModulePageProviders
+      moduleName={ModuleName.MCP_TOOLS}
+      analyticEventName="insight.page_loads.mcp_tools"
+    >
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <McpToolsLandingPage />
       </TraceItemAttributeProvider>

@@ -85,7 +85,10 @@ function McpResourcesLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName={ModuleName.MCP_RESOURCES}>
+    <ModulePageProviders
+      moduleName={ModuleName.MCP_RESOURCES}
+      analyticEventName="insight.page_loads.mcp_resources"
+    >
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <McpResourcesLandingPage />
       </TraceItemAttributeProvider>

@@ -6,10 +6,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
@@ -26,24 +23,14 @@ import {WidgetGrid} from 'sentry/views/insights/pages/agents/components/styles';
 import TokenTypesWidget from 'sentry/views/insights/pages/agents/components/tokenTypesWidget';
 import TokenUsageWidget from 'sentry/views/insights/pages/agents/components/tokenUsageWidget';
 import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/useAgentSpanSearchProps';
+import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {ModuleName} from 'sentry/views/insights/types';
 
-function useShowOnboarding() {
-  const {projects} = useProjects();
-  const pageFilters = usePageFilters();
-  const selectedProjects = getSelectedProjectList(
-    pageFilters.selection.projects,
-    projects
-  );
-
-  return !selectedProjects.some(p => p.hasInsightsAgentMonitoring);
-}
-
-function AgentsOverviewPage() {
+function AgentModelsLandingPage() {
   const organization = useOrganization();
-  const showOnboarding = useShowOnboarding();
+  const showOnboarding = useShowAgentOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
   useDefaultToAllProjects();
 
@@ -112,7 +99,7 @@ function PageWithProviders() {
       analyticEventName="insight.page_loads.agent_models"
     >
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <AgentsOverviewPage />
+        <AgentModelsLandingPage />
       </TraceItemAttributeProvider>
     </ModulePageProviders>
   );

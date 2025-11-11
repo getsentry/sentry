@@ -85,7 +85,10 @@ function McpPromptsLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName={ModuleName.MCP_PROMPTS}>
+    <ModulePageProviders
+      moduleName={ModuleName.MCP_PROMPTS}
+      analyticEventName="insight.page_loads.mcp_prompts"
+    >
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
         <McpPromptsLandingPage />
       </TraceItemAttributeProvider>
