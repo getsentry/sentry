@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from sentry.conf.server import DEFAULT_GROUPING_CONFIG, FALL_2025_GROUPING_CONFIG
+from sentry.conf.server import FALL_2025_GROUPING_CONFIG, WINTER_2023_GROUPING_CONFIG
 from sentry.grouping.component import (
     BaseGroupingComponent,
     ChainedExceptionGroupingComponent,
@@ -386,7 +386,7 @@ class ComponentTest(TestCase):
     def test_configs_put_exception_subcomponents_in_expected_order(self) -> None:
         self.event.data["exception"]["values"][0]["stacktrace"] = {"frames": []}
 
-        self.project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
+        self.project.update_option("sentry:grouping_config", WINTER_2023_GROUPING_CONFIG)
         variants = self.event.get_grouping_variants()
         exception_component = variants["app"].root_component.values[0]
         assert isinstance(exception_component, ExceptionGroupingComponent)
