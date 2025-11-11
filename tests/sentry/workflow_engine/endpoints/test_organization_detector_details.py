@@ -195,22 +195,22 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         }
         assert SnubaQuery.objects.get(id=self.snuba_query.id)
 
-    def assert_detector_updated(self, detector):
+    def assert_detector_updated(self, detector: Detector) -> None:
         assert detector.name == "Updated Detector"
         assert detector.type == MetricIssue.slug
         assert detector.project_id == self.project.id
 
-    def assert_condition_group_updated(self, condition_group):
+    def assert_condition_group_updated(self, condition_group: DataConditionGroup | None) -> None:
         assert condition_group
         assert condition_group.logic_type == DataConditionGroup.Type.ANY
         assert condition_group.organization_id == self.organization.id
 
-    def assert_data_condition_updated(self, condition):
+    def assert_data_condition_updated(self, condition: DataCondition) -> None:
         assert condition.type == Condition.GREATER.value
         assert condition.comparison == 100
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
-    def assert_snuba_query_updated(self, snuba_query):
+    def assert_snuba_query_updated(self, snuba_query: SnubaQuery) -> None:
         assert snuba_query.query == "updated query"
         assert snuba_query.time_window == 300
 
@@ -717,7 +717,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
     @mock.patch(
         "sentry.workflow_engine.endpoints.organization_detector_details.schedule_update_project_config"
     )
-    def test_simple(self, mock_schedule_update_project_config) -> None:
+    def test_simple(self, mock_schedule_update_project_config: mock.MagicMock) -> None:
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.detector.id)
 

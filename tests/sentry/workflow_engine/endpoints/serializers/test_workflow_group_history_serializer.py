@@ -1,15 +1,17 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from sentry.incidents.grouptype import MetricIssue
+from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.cursors import Cursor, CursorResult
 from sentry.workflow_engine.endpoints.serializers.workflow_group_history_serializer import (
     WorkflowGroupHistory,
     fetch_workflow_groups_paginated,
 )
-from sentry.workflow_engine.models import WorkflowFireHistory
+from sentry.workflow_engine.models import Workflow, WorkflowFireHistory
 
 pytestmark = [requires_snuba]
 
@@ -108,8 +110,14 @@ class WorkflowGroupsPaginatedTest(TestCase):
         self.login_as(self.user)
 
     def assert_expected_results(
-        self, workflow, start, end, expected_results, cursor=None, per_page=25
-    ):
+        self,
+        workflow: Workflow,
+        start: datetime,
+        end: datetime,
+        expected_results: list[WorkflowGroupHistory],
+        cursor: Cursor | None = None,
+        per_page: int = 25,
+    ) -> CursorResult[Group]:
         result = fetch_workflow_groups_paginated(workflow, start, end, cursor, per_page)
         assert result.results == expected_results, (result.results, expected_results)
         return result
