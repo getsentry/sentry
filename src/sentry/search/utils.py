@@ -103,49 +103,51 @@ def parse_size(value: str, size: str) -> float:
     # size units are case insensitive
     size = size.lower()
 
-    if size == "bit":
-        byte = size_value / 8
-    elif size == "nb":
-        byte = size_value / 2
-    elif size == "bytes":
-        byte = size_value
-    elif size == "kb":
-        byte = size_value * 1000
-    elif size == "mb":
-        byte = size_value * 1000**2
-    elif size == "gb":
-        byte = size_value * 1000**3
-    elif size == "tb":
-        byte = size_value * 1000**4
-    elif size == "pb":
-        byte = size_value * 1000**5
-    elif size == "eb":
-        byte = size_value * 1000**6
-    elif size == "zb":
-        byte = size_value * 1000**7
-    elif size == "yb":
-        byte = size_value * 1000**8
-    elif size == "kib":
-        byte = size_value * 1024
-    elif size == "mib":
-        byte = size_value * 1024**2
-    elif size == "gib":
-        byte = size_value * 1024**3
-    elif size == "tib":
-        byte = size_value * 1024**4
-    elif size == "pib":
-        byte = size_value * 1024**5
-    elif size == "eib":
-        byte = size_value * 1024**6
-    elif size == "zib":
-        byte = size_value * 1024**7
-    elif size == "yib":
-        byte = size_value * 1024**8
-    else:
-        raise InvalidQuery(
-            f"{size} is not a valid size type, must be bit, bytes, kb, mb, gb, tb, pb, eb, zb, yb, kib, mib, gib, tib, pib, eib, zib, yib"
-        )
-
+    match size:
+        case "bit":
+            byte = size_value / 8
+        case "nb":
+            byte = size_value / 2
+        case "bytes":
+            byte = size_value
+        case "kb":
+            byte = size_value * 1000
+        case "mb":
+            byte = size_value * 1000**2
+        case "gb":
+            byte = size_value * 1000**3
+        case "tb":
+            byte = size_value * 1000**4
+        case "pb":
+            byte = size_value * 1000**5
+        case "eb":
+            byte = size_value * 1000**6
+        case "zb":
+            byte = size_value * 1000**7
+        case "yb":
+            byte = size_value * 1000**8
+        case "kib":
+            byte = size_value * 1024
+        case "mib":
+            byte = size_value * 1024**2
+        case "gib":
+            byte = size_value * 1024**3
+        case "tib":
+            byte = size_value * 1024**4
+        case "pib":
+            byte = size_value * 1024**5
+        case "eib":
+            byte = size_value * 1024**6
+        case "zib":
+            byte = size_value * 1024**7
+        case "yib":
+            byte = size_value * 1024**8
+        case _:
+            raise InvalidQuery(
+                f"{size} is not a valid size type, must be "
+                "bit, bytes, kb, mb, gb, tb, pb, eb, zb, yb, "
+                "kib, mib, gib, tib, pib, eib, zib, yib"
+            )
     return byte
 
 
