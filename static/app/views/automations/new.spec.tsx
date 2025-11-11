@@ -103,7 +103,7 @@ describe('AutomationNewSettings', () => {
     await userEvent.type(screen.getByRole('textbox', {name: 'Tag'}), 'env');
     await userEvent.type(screen.getByRole('textbox', {name: 'Value'}), 'prod');
 
-    // Add an action to the block (Slack)
+    // Add an action to the block (Slack), also updates the automatic naming
     await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
     await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
 
@@ -115,7 +115,7 @@ describe('AutomationNewSettings', () => {
         expect.anything(),
         expect.objectContaining({
           data: {
-            name: 'New Alert',
+            name: 'Notify #alerts via Slack',
             triggers: {
               logicType: 'any-short',
               conditions: [

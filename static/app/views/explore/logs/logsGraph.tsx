@@ -34,7 +34,6 @@ import {
 } from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
-import type {RawLogCounts} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
@@ -49,6 +48,7 @@ import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {isVisualize, type Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
+import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
   prettifyAggregation,
@@ -58,7 +58,7 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 interface LogsGraphProps {
-  rawLogCounts: RawLogCounts;
+  rawLogCounts: RawCounts;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 
