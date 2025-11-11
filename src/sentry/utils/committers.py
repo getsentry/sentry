@@ -103,9 +103,9 @@ def _get_commit_file_changes(
     # combined with complex LIKE conditions
     all_file_changes: list[CommitFileChange] = []
     commit_ids = [c.id for c in commits]
-    
+
     for i in range(0, len(commit_ids), COMMIT_BATCH_SIZE):
-        batch_commit_ids = commit_ids[i:i + COMMIT_BATCH_SIZE]
+        batch_commit_ids = commit_ids[i : i + COMMIT_BATCH_SIZE]
         commit_file_change_matches = CommitFileChange.objects.filter(
             path_query, commit_id__in=batch_commit_ids
         )
