@@ -32,7 +32,6 @@ from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
 from sentry.utils import metrics
-from sentry.utils.query import RangeQuerySetWrapper
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 from ..manager import DeletionTaskManager
@@ -247,18 +246,22 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 
 
 def delete_project_group_hashes(project_id: int) -> None:
-    groups = []
-    for group in RangeQuerySetWrapper(
-        Group.objects.filter(project_id=project_id), step=GROUP_CHUNK_SIZE
-    ):
-        groups.append(group)
+    """
+    Delete all GroupHash records for a project, including orphaned records.
 
-    error_groups, issue_platform_groups = separate_by_group_category(groups)
-    error_group_ids = [group.id for group in error_groups]
-    delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
+    This is called during project deletion to clean up GroupHash records that may not have been
+    deleted during Group deletion. This includes:
+    - Orphaned GroupHash records with group_id=None
+    - GroupHash records that were created but never assigned to a Group
+    - Secondary grouping hashes that are not associated with Groups
 
-    issue_platform_group_ids = [group.id for group in issue_platform_groups]
-    delete_group_hashes(project_id, issue_platform_group_ids)
+    Note: This function is called from Project.delete() after Groups have already been deleted
+    by the deletion task system, so we cannot rely on querying Groups. Instead, we directly
+    query GroupHash records by project_id.
+    """
+    # Delete all GroupHash records for the project by calling delete_group_hashes with group_ids=None
+    # This will efficiently handle all records in batches, including orphans
+    delete_group_hashes(project_id, group_ids=None, seer_deletion=False)
 
 
 def update_group_hash_metadata_in_batches(hash_ids: Sequence[int]) -> None:
@@ -312,9 +315,18 @@ def update_group_hash_metadata_in_batches(hash_ids: Sequence[int]) -> None:
 
 def delete_group_hashes(
     project_id: int,
-    group_ids: Sequence[int],
+    group_ids: Sequence[int] | None = None,
     seer_deletion: bool = False,
 ) -> None:
+    """
+    Delete GroupHash records for a project.
+
+    Args:
+        project_id: The project to delete hashes for
+        group_ids: Specific group IDs to delete hashes for. If None or empty, deletes ALL
+                   GroupHash records for the project (including orphans with group_id=None)
+        seer_deletion: Whether to notify Seer about the deletion
+    """
     # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
     hashes_batch_size = max(1, options.get("deletions.group-hashes-batch-size"))
 
@@ -322,9 +334,18 @@ def delete_group_hashes(
     # The loop will naturally terminate when no more hashes are found.
     iterations = 0
     while iterations < GROUP_HASH_ITERATIONS:
-        qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
-            "id", "hash"
-        )[:hashes_batch_size]
+        # Build query based on whether we're deleting specific groups or all hashes
+        if group_ids:
+            # Delete only hashes for specific groups
+            qs = GroupHash.objects.filter(
+                project_id=project_id, group_id__in=group_ids
+            ).values_list("id", "hash")[:hashes_batch_size]
+        else:
+            # Delete ALL hashes for project (including orphans with group_id=None)
+            qs = GroupHash.objects.filter(project_id=project_id).values_list("id", "hash")[
+                :hashes_batch_size
+            ]
+
         hashes_chunk = list(qs)
         if not hashes_chunk:
             break
@@ -354,8 +375,8 @@ def delete_group_hashes(
     if iterations == GROUP_HASH_ITERATIONS:
         metrics.incr("deletions.group_hashes.max_iterations_reached", sample_rate=1.0)
         logger.warning(
-            "Group hashes batch deletion reached the maximum number of iterations. "
-            "Investigate if we need to change the GROUP_HASH_ITERATIONS value."
+            "delete_group_hashes.max_iterations_reached",
+            extra={"project_id": project_id, "has_group_ids": bool(group_ids)},
         )
 
 
