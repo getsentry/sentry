@@ -151,7 +151,7 @@ def _should_skip_diff_item_comparison(
             logger.warning(
                 "preprod.size_analysis.compare.invalid_version_format",
                 extra={
-                    "analysis_version": head_size_analysis_results.analysis_version,
+                    "analysis_version": base_size_analysis_results.analysis_version,
                 },
             )
 
