@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 from unittest.mock import patch
 
+=======
+>>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.perforce.integration import (
     PerforceIntegration,
@@ -33,9 +36,12 @@ class PerforceCodeMappingTest(IntegrationTestCase):
         self.org_integration = self.integration.organizationintegration_set.first()
         assert self.org_integration is not None
 
+<<<<<<< HEAD
     def tearDown(self):
         super().tearDown()
 
+=======
+>>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
     def test_code_mapping_depot_root_to_slash(self):
         """
         Test code mapping: depot/ -> /
@@ -342,6 +348,7 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             default_branch=None,
         )
 
+<<<<<<< HEAD
         # Mock the Perforce client's check_file to avoid actual P4 connection
         self.check_file_patcher = patch(
             "sentry.integrations.perforce.client.PerforceClient.check_file",
@@ -353,6 +360,8 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         self.check_file_patcher.stop()
         super().tearDown()
 
+=======
+>>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
     def test_python_sdk_path_full_flow(self):
         """Test full flow: Python SDK -> code mapping -> format_source_url"""
         # 1. Python SDK sends this path
@@ -399,11 +408,16 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             name="Perforce",
             external_id="perforce-test-web-flow",
             metadata={
+<<<<<<< HEAD
                 "p4port": "ssl:perforce.example.com:1666",
                 "user": "testuser",
                 "password": "testpass",
                 "auth_type": "password",
                 "web_url": "https://p4web.example.com",
+=======
+                "web_url": "https://p4web.example.com",
+                "web_viewer_type": "p4web",
+>>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
             },
         )
         installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
@@ -433,10 +447,17 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             default_branch=None,
         )
 
+<<<<<<< HEAD
         # Python SDK path with #revision from Symbolic
         frame = EventFrame(
             filename="depot/app/services/processor.py#42",
             abs_path="depot/app/services/processor.py#42",
+=======
+        # Python SDK path with @revision from Symbolic
+        frame = EventFrame(
+            filename="depot/app/services/processor.py@42",
+            abs_path="depot/app/services/processor.py@42",
+>>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
         )
 
         # Code mapping
@@ -451,5 +472,9 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         assert mapped_path is not None
         url = installation.format_source_url(repo=repo_swarm, filepath=mapped_path, branch=None)
 
+<<<<<<< HEAD
         # Swarm format: /files/<depot_path>?v=<revision>
         assert url == "https://p4web.example.com/files//depot/app/services/processor.py?v=42"
+=======
+        assert url == "https://p4web.example.com//depot/app/services/processor.py?ac=64&rev1=42"
+>>>>>>> 6541b7c05ef (feat(perforce): Add backend support for Perforce integration)
