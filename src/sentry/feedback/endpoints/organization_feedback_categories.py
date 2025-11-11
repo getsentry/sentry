@@ -219,7 +219,6 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
                     timeout=SEER_TIMEOUT_S,
                     retries=SEER_RETRIES,
                 )
-                response_data = response.json()
             except Exception:
                 logger.exception("Seer failed to generate user feedback label groups")
                 return Response(
@@ -233,7 +232,7 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
                 return Response(
                     {"detail": "Failed to generate user feedback label groups"}, status=500
                 )
-            label_groups = response_data["data"]
+            label_groups = response.json()["data"]
         else:
             # If there are less than THRESHOLD_TO_GET_ASSOCIATED_LABELS feedbacks, we don't ask for associated labels
             # The more feedbacks there are, the LLM does a better job of generating associated labels since it has more context
