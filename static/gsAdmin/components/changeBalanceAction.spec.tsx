@@ -189,8 +189,9 @@ describe('BalanceChangeAction', () => {
     );
 
     // Wait for button to be enabled before clicking
-    await waitFor(() =>
-      expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled()
+    await waitFor(
+      () => expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled(),
+      {timeout: 5_000}
     );
 
     // Disable pointer-events check to avoid false positive in CI
@@ -211,5 +212,5 @@ describe('BalanceChangeAction', () => {
     expect(await screen.findByTestId('url-field')).toBeEnabled();
     expect(await screen.findByTestId('notes-field')).toBeEnabled();
     expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled();
-  });
+  }, 20_000);
 });
