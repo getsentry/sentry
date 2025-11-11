@@ -229,11 +229,11 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   return (
     <Fragment>
       <Form
-        key={
+        key={`${project.seerScannerAutomation}-${project.autofixAutomationTuning}-${
           preference?.automation_handoff
             ? 'cursor_handoff'
             : (preference?.automated_run_stopping_point ?? 'root_cause')
-        }
+        }`}
         saveOnBlur
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}

@@ -18,8 +18,11 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {makeDetailedProjectQueryKey} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface CursorIntegrationCtaProps {
@@ -44,6 +47,33 @@ export function CursorIntegrationCta({
   const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} =
     useCodingAgentIntegrations();
 
+  const {mutateAsync: updateProjectAutomation} = useMutation<
+    Project,
+    Error,
+    {autofixAutomationTuning: string; seerScannerAutomation: boolean}
+  >({
+    mutationFn: (data: {
+      autofixAutomationTuning: string;
+      seerScannerAutomation: boolean;
+    }) => {
+      return fetchMutation<Project>({
+        method: 'PUT',
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        data,
+      });
+    },
+    onSuccess: (updatedProject: Project) => {
+      ProjectsStore.onUpdateSuccess(updatedProject);
+
+      queryClient.invalidateQueries({
+        queryKey: makeDetailedProjectQueryKey({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+        }),
+      });
+    },
+  });
+
   const cursorIntegration = codingAgentIntegrations?.integrations.find(
     integration => integration.provider === 'cursor'
   );
@@ -58,9 +88,10 @@ export function CursorIntegrationCta({
   const hasCursorIntegrationFeatureFlag =
     organization?.features.includes('integrations-cursor');
   const hasCursorIntegration = Boolean(cursorIntegration);
-  const isConfigured = Boolean(preference?.automation_handoff);
+  const isAutomationEnabled =
+    project.seerScannerAutomation !== false && project.autofixAutomationTuning !== 'off';
+  const isConfigured = Boolean(preference?.automation_handoff) && isAutomationEnabled;
 
-  // Determine the current stage
   const stage = hasCursorIntegration
     ? isConfigured
       ? 'configured'
@@ -88,10 +119,22 @@ export function CursorIntegrationCta({
     setIsDismissed(true);
   }, [dismissKey, stage]);
 
-  const handleSetupClick = useCallback(() => {
+  const handleSetupClick = useCallback(async () => {
     if (!cursorIntegration) {
       throw new Error('Cursor integration not found');
     }
+
+    const isAutomationDisabled =
+      project.seerScannerAutomation === false ||
+      project.autofixAutomationTuning === 'off';
+
+    if (isAutomationDisabled) {
+      await updateProjectAutomation({
+        autofixAutomationTuning: 'low',
+        seerScannerAutomation: true,
+      });
+    }
+
     updateProjectSeerPreferences(
       {
         repositories: preference?.repositories || [],
@@ -115,8 +158,11 @@ export function CursorIntegrationCta({
     );
   }, [
     project.slug,
+    project.seerScannerAutomation,
+    project.autofixAutomationTuning,
     organization.slug,
     updateProjectSeerPreferences,
+    updateProjectAutomation,
     preference?.repositories,
     cursorIntegration,
     queryClient,
@@ -134,7 +180,6 @@ export function CursorIntegrationCta({
     return null;
   }
 
-  // Show loading state while fetching data
   if (isLoadingPreferences || isLoadingIntegrations || isUpdatingPreferences) {
     return (
       <Card>
@@ -205,7 +250,7 @@ export function CursorIntegrationCta({
           </Heading>
           <Text>
             {tct(
-              'You have the Cursor integration installed. Set up Seer to hand off and trigger Cursor Background Agents during automation. [seerProjectSettings:Configure in Seer project settings] or [docsLink:read the docs] to learn more.',
+              'You have the Cursor integration installed. Turn on Seer automation and set up hand off to trigger Cursor Background Agents during automation. [seerProjectSettings:Configure in Seer project settings] or [docsLink:read the docs] to learn more.',
               {
                 seerProjectSettings: (
                   <Link to={`/settings/projects/${project.slug}/seer/`} />
