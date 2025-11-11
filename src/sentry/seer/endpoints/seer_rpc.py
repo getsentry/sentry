@@ -1076,8 +1076,8 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
     Returns:
         dict: {
             "statuses": list of booleans indicating if each repository exists and is active,
-            "integration_ids": list of integration IDs (as strings) from the database,
-                              or None if repository doesn't exist
+            "integration_ids": list of integration IDs from the database,
+                              or None if repository doesn't exist / doesn't have an integration id
         }
         e.g., {"statuses": [True, False, True], "integration_ids": ["123", None, "456"]}
         Only repositories with supported SCM providers will return True.
@@ -1118,14 +1118,13 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
         q_objects, status=ObjectStatus.ACTIVE, provider__in=SEER_SUPPORTED_SCM_PROVIDERS
     ).values_list("organization_id", "provider", "integration_id", "external_id")
 
-    existing_map: dict[tuple, str] = {}
+    existing_map: dict[tuple, int | None] = {}
 
     for org_id, provider, integration_id, external_id in existing_repos:
-        integration_id_str = str(integration_id) if integration_id is not None else None
         key = (org_id, provider, external_id)
         # If multiple repos match (shouldn't happen), keep the first one
         if key not in existing_map:
-            existing_map[key] = integration_id_str
+            existing_map[key] = integration_id
 
     statuses = []
     integration_ids = []
