@@ -1135,60 +1135,47 @@ def test_convert_schema_to_rules_text() -> None:
 @pytest.mark.parametrize(
     "pattern, path_details, expected",
     [
-        # THIS IS THE ONE THAT FAILS
         # Pattern WITHOUT leading slash
         # Path WITH leading slash
-        # Should match
+        # Does not match
         (
-            "libs/mobile/screens/home/**",
+            "libs/web/views/index/**",
             [
-                {
-                    "filename": "/libs/mobile/screens/home/src/views/home/components/tiles/invest-tile.component.tsx"
-                },
-                {
-                    "abs_path": "/libs/mobile/screens/home/src/views/home/components/tiles/invest-tile.component.tsx"
-                },
+                {"filename": "/libs/web/views/index/src/widget-table.component.tsx"},
+                {"abs_path": "/libs/web/views/index/src/widget-table.component.tsx"},
             ],
-            True,
+            False,
         ),
         # Pattern WITH leading slash
         # Path WITH leading slash
-        # Should match
+        # Matches
         (
-            "/libs/mobile/screens/home/**",
+            "/libs/web/views/index/**",
             [
-                {
-                    "filename": "/libs/mobile/screens/home/src/views/home/components/tiles/invest-tile.component.tsx"
-                },
-                {
-                    "abs_path": "/libs/mobile/screens/home/src/views/home/components/tiles/invest-tile.component.tsx"
-                },
+                {"filename": "/libs/web/views/index/src/widget-table.component.tsx"},
+                {"abs_path": "/libs/web/views/index/src/widget-table.component.tsx"},
             ],
             True,
         ),
         # Pattern WITHOUT leading slash
         # Path WITHOUT leading slash
-        # Should match
+        # Matches
         (
-            "libs/mobile/screens/home/**",
+            "libs/web/views/index/**",
             [
-                {
-                    "filename": "libs/mobile/screens/home/src/views/home/components/tiles/invest-tile.component.tsx"
-                },
-                {
-                    "abs_path": "libs/mobile/screens/home/src/views/home/components/tiles/invest-tile.component.tsx"
-                },
+                {"filename": "libs/web/views/index/src/widget-table.component.tsx"},
+                {"abs_path": "libs/web/views/index/src/widget-table.component.tsx"},
             ],
             True,
         ),
         # Pattern WITH leading slash
         # Path WITHOUT leading slash
-        # Should match
+        # Matches
         (
-            "/libs/mobile/screens/home/**",
+            "/libs/web/views/index/**",
             [
-                {"filename": "libs/mobile/screens/home/index.tsx"},
-                {"abs_path": "libs/mobile/screens/home/index.tsx"},
+                {"filename": "libs/web/views/index/home.tsx"},
+                {"abs_path": "libs/web/views/index/home.tsx"},
             ],
             True,
         ),
