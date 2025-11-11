@@ -562,6 +562,12 @@ def taskbroker_send_tasks(
     default=False,
     help="Enable retrying on `KafkaError._DESTROY` during commit.",
 )
+@click.option(
+    "--handle-poll-while-paused",
+    is_flag=True,
+    default=False,
+    help="Enable polling while the consumer is paused to detect rebalancing. Useful for detecting consumer state changes during backpressure.",
+)
 @configuration
 def basic_consumer(
     consumer_name: str,
