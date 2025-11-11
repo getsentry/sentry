@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Feature from 'sentry/components/acl/feature';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconFile, IconJson, IconLink, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
@@ -129,19 +130,15 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
               <IconLink />
             </InfoIcon>
             <Text>
-              {props.projectId && props.appInfo.is_installable ? (
+              {props.projectId ? (
                 <InstallableLink
                   onClick={() => {
                     openInstallModal(props.projectId!, props.artifactId);
                   }}
                 >
-                  Installable
+                  Install
                 </InstallableLink>
-              ) : (
-                <Tooltip title={labels.installUnavailableTooltip}>
-                  Not Installable
-                </Tooltip>
-              )}
+              ) : null}
             </Text>
           </Flex>
         </Feature>

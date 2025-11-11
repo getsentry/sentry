@@ -727,7 +727,13 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
                         "comparison": 100,
                         "conditionResult": DetectorPriorityLevel.HIGH,
                         "conditionGroupId": self.data_condition_group.id,
-                    }
+                    },
+                    {
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
                 ],
             },
             "config": {
@@ -827,7 +833,9 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_valid_creation(
-        self, mock_audit: mock.MagicMock, mock_schedule_update_project_config
+        self,
+        mock_audit: mock.MagicMock,
+        mock_schedule_update_project_config: mock.MagicMock,
     ) -> None:
         with self.tasks():
             response = self.get_success_response(
@@ -868,7 +876,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert condition_group.organization_id == self.organization.id
 
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 1
+        assert len(conditions) == 2
         condition = conditions[0]
         assert condition.type == Condition.GREATER
         assert condition.comparison == 100

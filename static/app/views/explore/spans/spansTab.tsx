@@ -28,6 +28,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
@@ -80,6 +81,7 @@ import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerCombo
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
+import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
   findSuggestedColumns,
@@ -109,6 +111,7 @@ export function SpansTabOnboarding({
         <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <OnboardingContentSection>
+        <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
         <Onboarding project={project} organization={organization} />
       </OnboardingContentSection>
     </Layout.Body>
@@ -389,6 +392,8 @@ function SpanTabContentSection({
     [selection, maxPickableDays]
   );
 
+  const rawSpanCounts = useRawCounts({dataset: DiscoverDatasets.SPANS});
+
   const aggregatesTableResult = useExploreAggregatesTable({
     query,
     limit,
@@ -438,22 +443,6 @@ function SpanTabContentSection({
     interval,
   });
 
-  const resultsLength =
-    {
-      aggregate: aggregatesTableResult.result.data?.length,
-      samples: spansTableResult.result.data?.length,
-      traces: tracesTableResult.result.data?.data?.length,
-    }[queryType] ?? 0;
-
-  const hasResults = !!resultsLength;
-
-  const resultsLoading =
-    queryType === 'aggregate'
-      ? aggregatesTableResult.result.isPending
-      : queryType === 'samples'
-        ? spansTableResult.result.isPending
-        : tracesTableResult.result.isPending;
-
   const error = defined(timeseriesResult.error)
     ? null // if the timeseries errors, we prefer to show that error in the chart
     : queryType === 'samples'
@@ -495,9 +484,7 @@ function SpanTabContentSection({
         </ActionButtonsGroup>
       </OverChartButtonGroup>
       {defined(id) && <DroppedFieldsAlert />}
-      {!resultsLoading && !hasResults && (
-        <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
-      )}
+      <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       <ExtrapolationEnabledAlert />
       {defined(error) && (
         <Alert.Container>
@@ -524,6 +511,7 @@ function SpanTabContentSection({
             setVisualizes={setVisualizes}
             samplingMode={timeseriesSamplingMode}
             setTab={setTab}
+            rawSpanCounts={rawSpanCounts}
           />
           <ExploreTables
             aggregatesTableResult={aggregatesTableResult}

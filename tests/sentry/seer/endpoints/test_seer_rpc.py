@@ -13,6 +13,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDeta
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
@@ -505,8 +506,20 @@ class TestSeerRpcMethods(APITestCase):
     def test_get_sentry_organization_ids_repository_found(self) -> None:
         """Test when repository exists and is active"""
 
+        # Create a project
+        project = self.create_project(organization=self.organization)
+
+        # Create an integration
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github:1",
+        )
+        org_integration = integration.organizationintegration_set.first()
+        assert org_integration is not None
+
         # Create a repository
-        Repository.objects.create(
+        repo = Repository.objects.create(
             name="getsentry/sentry",
             organization_id=self.organization.id,
             provider="integrations:github",
@@ -514,28 +527,36 @@ class TestSeerRpcMethods(APITestCase):
             status=ObjectStatus.ACTIVE,
         )
 
-        # By default the organization has pr_review turned off
-        result = get_sentry_organization_ids(
-            full_repo_name="getsentry/sentry", external_id="1234567890"
+        # Create a RepositoryProjectPathConfig
+        RepositoryProjectPathConfig.objects.create(
+            repository=repo,
+            project=project,
+            organization_integration_id=org_integration.id,
+            integration_id=org_integration.integration_id,
+            organization_id=self.organization.id,
+            stack_root="/",
+            source_root="/",
         )
-        assert result == {"org_ids": []}
+
+        # By default the organization has pr_review turned off
+        result = get_sentry_organization_ids(external_id="1234567890")
+        assert result == {"org_ids": [], "org_slugs": []}
 
         # Turn on pr_review
         OrganizationOption.objects.set_value(
             self.organization, "sentry:enable_pr_review_test_generation", True
         )
-        result = get_sentry_organization_ids(
-            full_repo_name="getsentry/sentry", external_id="1234567890"
-        )
-        assert result == {"org_ids": [self.organization.id]}
+        result = get_sentry_organization_ids(external_id="1234567890")
+        assert result == {
+            "org_ids": [self.organization.id],
+            "org_slugs": [self.organization.slug],
+        }
 
     def test_get_sentry_organization_ids_repository_not_found(self) -> None:
         """Test when repository does not exist"""
-        result = get_sentry_organization_ids(
-            full_repo_name="nonexistent/repo", external_id="1234567890"
-        )
+        result = get_sentry_organization_ids(external_id="1234567890")
 
-        assert result == {"org_ids": []}
+        assert result == {"org_ids": [], "org_slugs": []}
 
     def test_get_sentry_organization_ids_repository_inactive(self) -> None:
         """Test when repository exists but is not active"""
@@ -549,12 +570,10 @@ class TestSeerRpcMethods(APITestCase):
             status=ObjectStatus.DISABLED,
         )
 
-        result = get_sentry_organization_ids(
-            full_repo_name="getsentry/sentry", external_id="1234567890"
-        )
+        result = get_sentry_organization_ids(external_id="1234567890")
 
         # Should not find the repository because it's not active
-        assert result == {"org_ids": []}
+        assert result == {"org_ids": [], "org_slugs": []}
 
     def test_get_sentry_organization_ids_different_provider(self) -> None:
         """Test when repository exists but with different provider"""
@@ -569,52 +588,92 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         # Search with default provider (integrations:github)
-        result = get_sentry_organization_ids(
-            full_repo_name="getsentry/sentry", external_id="1234567890"
-        )
+        result = get_sentry_organization_ids(external_id="1234567890")
 
         # Should not find the repository because provider doesn't match
-        assert result == {"org_ids": []}
+        assert result == {"org_ids": [], "org_slugs": []}
 
     def test_get_sentry_organization_ids_multiple_repos_same_name_different_providers(self) -> None:
         """Test when multiple repositories exist with same name but different providers"""
         org2 = self.create_organization(owner=self.user)
 
+        # Create projects
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=org2)
+
+        # Create integrations
+        integration1 = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github:1",
+        )
+        org_integration1 = integration1.organizationintegration_set.first()
+        assert org_integration1 is not None
+
+        integration2 = self.create_integration(
+            organization=org2,
+            provider="gitlab",
+            external_id="gitlab:1",
+        )
+        org_integration2 = integration2.organizationintegration_set.first()
+        assert org_integration2 is not None
+
         # Create repositories with same name but different providers
-        Repository.objects.create(
+        repo1 = Repository.objects.create(
             name="getsentry/sentry",
             organization_id=self.organization.id,
             provider="integrations:github",
             external_id="1234567890",
             status=ObjectStatus.ACTIVE,
         )
-        Repository.objects.create(
+        repo2 = Repository.objects.create(
             name="getsentry/sentry",
             organization_id=org2.id,
             provider="integrations:gitlab",
             external_id="1234567890",
             status=ObjectStatus.ACTIVE,
         )
+
+        # Create RepositoryProjectPathConfigs
+        RepositoryProjectPathConfig.objects.create(
+            repository=repo1,
+            project=project1,
+            organization_integration_id=org_integration1.id,
+            integration_id=org_integration1.integration_id,
+            organization_id=self.organization.id,
+            stack_root="/",
+            source_root="/",
+        )
+        RepositoryProjectPathConfig.objects.create(
+            repository=repo2,
+            project=project2,
+            organization_integration_id=org_integration2.id,
+            integration_id=org_integration2.integration_id,
+            organization_id=org2.id,
+            stack_root="/",
+            source_root="/",
+        )
+
         OrganizationOption.objects.set_value(
             self.organization, "sentry:enable_pr_review_test_generation", True
         )
         OrganizationOption.objects.set_value(org2, "sentry:enable_pr_review_test_generation", True)
 
         # Search for GitHub provider
-        result = get_sentry_organization_ids(
-            full_repo_name="getsentry/sentry", external_id="1234567890"
-        )
+        result = get_sentry_organization_ids(external_id="1234567890")
 
-        assert result == {"org_ids": [self.organization.id]}
+        assert result == {
+            "org_ids": [self.organization.id],
+            "org_slugs": [self.organization.slug],
+        }
 
         # Search for GitLab provider
         result = get_sentry_organization_ids(
-            full_repo_name="getsentry/sentry",
             provider="integrations:gitlab",
             external_id="1234567890",
         )
 
-        assert result == {"org_ids": [org2.id]}
+        assert result == {"org_ids": [org2.id], "org_slugs": [org2.slug]}
 
     def test_get_sentry_organization_ids_multiple_orgs_same_repo(self) -> None:
         """Test when multiple repositories exist with same name but different providers and provider is provided"""
@@ -629,8 +688,38 @@ class TestSeerRpcMethods(APITestCase):
         OrganizationOption.objects.set_value(org2, "sentry:enable_pr_review_test_generation", True)
         OrganizationOption.objects.set_value(org3, "sentry:enable_pr_review_test_generation", True)
 
+        # Create projects
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=org2)
+        project3 = self.create_project(organization=org3)
+
+        # Create integrations
+        integration1 = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github:1",
+        )
+        org_integration1 = integration1.organizationintegration_set.first()
+        assert org_integration1 is not None
+
+        integration2 = self.create_integration(
+            organization=org2,
+            provider="github",
+            external_id="github:2",
+        )
+        org_integration2 = integration2.organizationintegration_set.first()
+        assert org_integration2 is not None
+
+        integration3 = self.create_integration(
+            organization=org3,
+            provider="github",
+            external_id="github:3",
+        )
+        org_integration3 = integration3.organizationintegration_set.first()
+        assert org_integration3 is not None
+
         # repo in org 1
-        Repository.objects.create(
+        repo1 = Repository.objects.create(
             name="getsentry/sentry",
             organization_id=self.organization.id,
             provider="integrations:github",
@@ -639,7 +728,7 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         # repo in org 2
-        Repository.objects.create(
+        repo2 = Repository.objects.create(
             name="getsentry/sentry",
             organization_id=org2.id,
             provider="integrations:github",
@@ -648,7 +737,7 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         # repo in org 3
-        Repository.objects.create(
+        repo3 = Repository.objects.create(
             name="getsentry/sentry",
             organization_id=org3.id,
             provider="integrations:github",
@@ -656,12 +745,61 @@ class TestSeerRpcMethods(APITestCase):
             status=ObjectStatus.ACTIVE,
         )
 
-        # Search for GitHub provider
-        result = get_sentry_organization_ids(
-            full_repo_name="getsentry/sentry", external_id="1234567890"
+        # Create RepositoryProjectPathConfigs
+        RepositoryProjectPathConfig.objects.create(
+            repository=repo1,
+            project=project1,
+            organization_integration_id=org_integration1.id,
+            integration_id=org_integration1.integration_id,
+            organization_id=self.organization.id,
+            stack_root="/",
+            source_root="/",
+        )
+        RepositoryProjectPathConfig.objects.create(
+            repository=repo2,
+            project=project2,
+            organization_integration_id=org_integration2.id,
+            integration_id=org_integration2.integration_id,
+            organization_id=org2.id,
+            stack_root="/",
+            source_root="/",
+        )
+        RepositoryProjectPathConfig.objects.create(
+            repository=repo3,
+            project=project3,
+            organization_integration_id=org_integration3.id,
+            integration_id=org_integration3.integration_id,
+            organization_id=org3.id,
+            stack_root="/",
+            source_root="/",
         )
 
-        assert result == {"org_ids": [self.organization.id, org2.id]}
+        # Search for GitHub provider
+        result = get_sentry_organization_ids(external_id="1234567890")
+
+        assert set(result["org_ids"]) == {self.organization.id, org2.id}
+        assert set(result["org_slugs"]) == {self.organization.slug, org2.slug}
+
+    def test_get_sentry_organization_ids_no_repo_project_path_config(self) -> None:
+        """Test when repository exists but has no RepositoryProjectPathConfig"""
+        # Create a repository without any RepositoryProjectPathConfig
+        Repository.objects.create(
+            name="getsentry/sentry",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="1234567890",
+            status=ObjectStatus.ACTIVE,
+        )
+
+        # Turn on pr_review
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:enable_pr_review_test_generation", True
+        )
+
+        # Should not find the organization because there's no RepositoryProjectPathConfig
+        result = get_sentry_organization_ids(external_id="1234567890")
+
+        assert result == {"org_ids": [], "org_slugs": []}
 
     def test_send_seer_webhook_invalid_event_name(self) -> None:
         """Test that send_seer_webhook returns error for invalid event names"""

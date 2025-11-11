@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -5,6 +6,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ValidationError
 
 from sentry import audit_log
+from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import (
     MetricIssueComparisonConditionValidator,
@@ -65,7 +68,7 @@ class MockDataSourceValidator(BaseDataSourceValidator[MockModel]):
             "field2",
         ]
 
-    def create_source(self, validated_data) -> MockModel:
+    def create_source(self, validated_data: Any) -> MockModel:
         return MockModel.objects.create()
 
 
@@ -93,7 +96,7 @@ class MockDataConditionValidator(MetricIssueComparisonConditionValidator):
 class MockConditionGroupValidator(BaseDataConditionGroupValidator):
     conditions = serializers.ListField(required=True)
 
-    def validate_conditions(self, value) -> list:
+    def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         for condition in value:
             MockDataConditionValidator(data=condition).is_valid(raise_exception=True)
 
@@ -247,3 +250,19 @@ class DetectorValidatorTest(BaseValidatorTest):
             assert validator.errors.get("type") == [
                 ErrorDetail(string="Detector type not compatible with detectors", code="invalid")
             ]
+
+    def test_delete(self) -> None:
+        """Test that delete() schedules the detector for deletion"""
+        validator = MockDetectorValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+        detector = validator.save()
+
+        delete_validator = MockDetectorValidator(instance=detector, data={}, context=self.context)
+        delete_validator.delete()
+
+        assert RegionScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=detector.id
+        ).exists()
+
+        detector.refresh_from_db()
+        assert detector.status == ObjectStatus.PENDING_DELETION
