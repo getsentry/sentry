@@ -1,16 +1,20 @@
-import {useEffect, type ReactNode} from 'react';
+import {useEffect, useMemo, type ReactNode} from 'react';
 
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import EventView from 'sentry/utils/discover/eventView';
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
+import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerSizeContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
+import {ReplayPlaylistProvider} from 'sentry/utils/replays/playback/providers/replayPlaylistProvider';
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReplaySummaryContextProvider} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 
@@ -38,6 +42,19 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
     }
   }, [markAsViewed, organization, projectSlug, replayRecord]);
 
+  const location = useLocation();
+
+  const eventView = useMemo(() => {
+    return EventView.fromLocation(location);
+  }, [location]);
+
+  const {replays} = useReplayList({
+    eventView,
+    location,
+    organization,
+    queryReferrer: 'playlist',
+  });
+
   useLogReplayDataLoaded({projectId: replayRecord.project_id, replay});
 
   return (
@@ -53,7 +70,9 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
                 replay={replay}
               >
                 <ReplaySummaryContextProvider replay={replay} projectSlug={projectSlug}>
-                  {children}
+                  <ReplayPlaylistProvider replays={replays}>
+                    {children}
+                  </ReplayPlaylistProvider>
                 </ReplaySummaryContextProvider>
               </ReplayContextProvider>
             </ReplayPlayerSizeContextProvider>

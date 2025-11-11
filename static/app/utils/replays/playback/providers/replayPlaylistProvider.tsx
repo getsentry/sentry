@@ -5,18 +5,15 @@ import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
   children: ReactNode;
-  playlist: {
-    currentIndex: number;
-    replays: ReplayListRecord[];
-  };
+  replays: ReplayListRecord[] | undefined;
 }
 
-const Context = createContext<ReplayListRecord[] | null>([]);
+const Context = createContext<ReplayListRecord[] | undefined>(undefined);
 
-export function ReplayReaderProvider({children, replays}: Props) {
+export function ReplayPlaylistProvider({children, replays}: Props) {
   return <Context value={replays}>{children}</Context>;
 }
 
-export function useReplayReader() {
+export function useReplayPlaylist() {
   return useContext(Context);
 }

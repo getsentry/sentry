@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -15,24 +15,18 @@ import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useReplayPlaylist} from 'sentry/utils/replays/playback/providers/replayPlaylistProvider';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
-  nextReplay: ReplayListRecord | undefined;
-  previousReplay: ReplayListRecord | undefined;
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
-export default function ReplayDetailsPageBreadcrumbs({
-  readerResult,
-  nextReplay,
-  previousReplay,
-}: Props) {
+export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const replayRecord = readerResult.replayRecord;
   const organization = useOrganization();
   const location = useLocation();
@@ -40,6 +34,25 @@ export default function ReplayDetailsPageBreadcrumbs({
   const project = useProjectFromId({project_id: replayRecord?.project_id ?? undefined});
   const [isHovered, setIsHovered] = useState(false);
   const {currentTime} = useReplayContext();
+
+  const replays = useReplayPlaylist();
+
+  const currentReplayIndex = useMemo(
+    () => replays?.findIndex(r => r.id === replayRecord?.id) ?? -1,
+    [replays, replayRecord]
+  );
+
+  const nextReplay = useMemo(
+    () =>
+      currentReplayIndex >= 0 && currentReplayIndex < (replays?.length ?? 0) - 1
+        ? replays?.[currentReplayIndex + 1]
+        : undefined,
+    [replays, currentReplayIndex]
+  );
+  const previousReplay = useMemo(
+    () => (currentReplayIndex > 0 ? replays?.[currentReplayIndex - 1] : undefined),
+    [replays, currentReplayIndex]
+  );
   // Create URL with current timestamp for copying
   const replayUrlWithTimestamp = replayRecord
     ? (() => {
@@ -88,6 +101,37 @@ export default function ReplayDetailsPageBreadcrumbs({
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
+          {organization.features.includes('replay-playlist-view') && (
+            <StyledFlex>
+              <ButtonBar merged gap="0">
+                <LinkButton
+                  size="xs"
+                  icon={<IconPrevious />}
+                  disabled={!previousReplay}
+                  to={{
+                    pathname: previousReplay
+                      ? makeReplaysPathname({
+                          path: `/${previousReplay.id}/`,
+                          organization,
+                        })
+                      : undefined,
+                    query: location.query,
+                  }}
+                />
+                <LinkButton
+                  size="xs"
+                  icon={<IconNext />}
+                  disabled={!nextReplay}
+                  to={{
+                    pathname: nextReplay
+                      ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
+                      : undefined,
+                    query: location.query,
+                  }}
+                />
+              </ButtonBar>
+            </StyledFlex>
+          )}
           <div
             onClick={() =>
               copy(replayUrlWithTimestamp, {
@@ -112,34 +156,6 @@ export default function ReplayDetailsPageBreadcrumbs({
             />
           </Tooltip>
         </Flex>
-        {organization.features.includes('replay-playlist-view') && (
-          <Flex>
-            <ButtonBar merged gap="0">
-              <LinkButton
-                size="xs"
-                icon={<IconPrevious />}
-                disabled={!previousReplay}
-                to={{
-                  pathname: previousReplay
-                    ? makeReplaysPathname({path: `/${previousReplay.id}/`, organization})
-                    : undefined,
-                  query: location.query,
-                }}
-              />
-              <LinkButton
-                size="xs"
-                icon={<IconNext />}
-                disabled={!nextReplay}
-                to={{
-                  pathname: nextReplay
-                    ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
-                    : undefined,
-                  query: location.query,
-                }}
-              />
-            </ButtonBar>
-          </Flex>
-        )}
       </Flex>
     ) : (
       <Placeholder width="100%" height="16px" />
@@ -154,6 +170,10 @@ export default function ReplayDetailsPageBreadcrumbs({
 
   return <StyledBreadcrumbs crumbs={crumbs} />;
 }
+
+const StyledFlex = styled(Flex)`
+  margin-right: ${p => p.theme.space.md};
+`;
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
