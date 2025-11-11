@@ -78,9 +78,9 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any
             # Optional metadata
             "build_configuration": {"type": "string"},
             "release_notes": {"type": "string"},
-            # VCS parameters
-            "head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-            "base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            # VCS parameters - allow empty strings to support clearing auto-filled values
+            "head_sha": {"type": "string", "pattern": "^(|[0-9a-f]{40})$"},
+            "base_sha": {"type": "string", "pattern": "^(|[0-9a-f]{40})$"},
             "provider": {"type": "string", "maxLength": 255},
             "head_repo_name": {"type": "string", "maxLength": 255},
             "base_repo_name": {"type": "string", "maxLength": 255},
@@ -110,7 +110,9 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any
     try:
         data = orjson.loads(request_body)
         jsonschema.validate(data, schema)
-        return data, None
+        # Filter out empty strings to treat them as "not provided"
+        filtered_data = {k: v for k, v in data.items() if v != ""}
+        return filtered_data, None
     except jsonschema.ValidationError as e:
         error_message = e.message
         # Get the field from the path if available
