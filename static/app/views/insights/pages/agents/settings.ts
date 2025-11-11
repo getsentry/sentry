@@ -8,6 +8,5 @@ export const AI_SIDEBAR_LABEL = t('AI Agents');
 export const MODULES = [
   ModuleName.AGENT_MODELS,
   ModuleName.AGENT_TOOLS,
-  ModuleName.MCP,
   ModuleName.AI_GENERATIONS,
 ];

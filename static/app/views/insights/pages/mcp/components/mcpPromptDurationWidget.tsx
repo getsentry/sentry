@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
-import GroupedDurationWidget from 'sentry/views/insights/mcp/components/groupedDurationWidget';
-import {MCPReferrer} from 'sentry/views/insights/mcp/utils/referrer';
+import GroupedDurationWidget from 'sentry/views/insights/pages/mcp/components/groupedDurationWidget';
+import {MCPReferrer} from 'sentry/views/insights/pages/mcp/utils/referrer';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export default function McpPromptDurationWidget() {

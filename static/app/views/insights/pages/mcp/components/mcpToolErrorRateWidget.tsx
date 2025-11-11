@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
-import GroupedErrorRateWidget from 'sentry/views/insights/mcp/components/groupedErrorRateWidget';
-import {MCPReferrer} from 'sentry/views/insights/mcp/utils/referrer';
+import GroupedErrorRateWidget from 'sentry/views/insights/pages/mcp/components/groupedErrorRateWidget';
+import {MCPReferrer} from 'sentry/views/insights/pages/mcp/utils/referrer';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export default function McpToolErrorRateWidget() {
