@@ -380,6 +380,29 @@ function LaunchpadAdminPage() {
         {fetchedArtifactInfo && (
           <Container background="secondary" border="primary" radius="md" padding="lg">
             <Flex direction="column" gap="md">
+              {fetchedArtifactInfo.artifact_info?.project?.organization_slug &&
+                fetchedArtifactInfo.artifact_info?.project?.slug &&
+                fetchedArtifactInfo.artifact_info?.id && (
+                  <Container
+                    background="tertiary"
+                    border="primary"
+                    radius="sm"
+                    padding="md"
+                  >
+                    <Flex direction="column" gap="xs">
+                      <Text bold size="sm">
+                        Artifact URL:
+                      </Text>
+                      <StyledLink
+                        href={`https://${fetchedArtifactInfo.artifact_info.project.organization_slug}.sentry.io/preprod/${fetchedArtifactInfo.artifact_info.project.slug}/${fetchedArtifactInfo.artifact_info.id}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {`https://${fetchedArtifactInfo.artifact_info.project.organization_slug}.sentry.io/preprod/${fetchedArtifactInfo.artifact_info.project.slug}/${fetchedArtifactInfo.artifact_info.id}/`}
+                      </StyledLink>
+                    </Flex>
+                  </Container>
+                )}
               <Heading as="h3">Fetched Artifact Information</Heading>
               <InfoDisplay>
                 <pre>{JSON.stringify(fetchedArtifactInfo, null, 2)}</pre>
@@ -398,6 +421,14 @@ function LaunchpadAdminPage() {
 const StyledInput = styled(Input)`
   width: 100%;
   max-width: 300px;
+`;
+
+const StyledLink = styled('a')`
+  color: ${p => p.theme.blue300};
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const InfoDisplay = styled('div')`
