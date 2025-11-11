@@ -23,13 +23,17 @@ export type InsightEventParameters = {
   'insight.general.select_region_value': {regions: string[]};
   'insight.general.table_paginate': {direction: string; source: string};
   'insight.general.table_sort': {direction: string; field: string; source: string};
-  'insight.page_loads.agents': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.agent_models': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.agent_tools': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.ai': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.app_start': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.assets': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.cache': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.db': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.http': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.mcp_prompts': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.mcp_resources': {has_ever_sent_data: boolean; view: DomainView};
+  'insight.page_loads.mcp_tools': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.queue': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.screen_load': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.screen_rendering': {has_ever_sent_data: boolean; view: DomainView};
@@ -58,7 +62,11 @@ export type InsightEventKey = keyof InsightEventParameters;
 export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insights.page_loads.overview': 'Insights: Overview Page Load',
   'insight.page_loads.ai': 'Insights: AI Page Load',
-  'insight.page_loads.agents': 'Insights: Agents Page Load',
+  'insight.page_loads.agent_models': 'Insights: Agent Models Page Load',
+  'insight.page_loads.agent_tools': 'Insights: Agent Tools Page Load',
+  'insight.page_loads.mcp_prompts': 'Insights: MCP Prompts Page Load',
+  'insight.page_loads.mcp_resources': 'Insights: MCP Resources Page Load',
+  'insight.page_loads.mcp_tools': 'Insights: MCP Tools Page Load',
   'insight.page_loads.app_start': 'Insights: App Start Page Load',
   'insight.page_loads.assets': 'Insights: Assets Page Load',
   'insight.page_loads.cache': 'Insights: Cache Page Load',
