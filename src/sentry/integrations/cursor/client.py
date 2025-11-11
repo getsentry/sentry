@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 
+from requests.adapters import Retry
+
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.cursor.models import (
@@ -12,6 +14,7 @@ from sentry.integrations.cursor.models import (
     CursorAgentLaunchResponse,
     CursorAgentSource,
 )
+from sentry.net.http import SafeSession
 from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState, CodingAgentStatus
 
 logger = logging.getLogger(__name__)
@@ -29,6 +32,32 @@ class CursorAgentClient(CodingAgentClient):
 
     def _get_auth_headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.api_key}"}
+
+    def build_session(self) -> SafeSession:
+        """Build session with retry configuration for transient failures.
+
+        Retries on:
+        - Server errors (5xx status codes)
+        - Connection errors (network issues)
+        - Connection timeouts
+
+        Does NOT retry on:
+        - Client errors (4xx status codes)
+        - Read timeouts (server taking too long to respond)
+        """
+        return SafeSession(
+            max_retries=Retry(
+                total=3,
+                backoff_factor=0.5,
+                status_forcelist=[500, 502, 503, 504],
+                allowed_methods=["POST"],
+                # Retry on connection errors but not read timeouts
+                # connect=3 allows retrying connection failures
+                # read=0 prevents retrying read timeouts to avoid overloading the server
+                connect=3,
+                read=0,
+            )
+        )
 
     def launch(self, webhook_url: str, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Launch coding agent with webhook callback."""
