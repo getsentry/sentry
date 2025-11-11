@@ -1,5 +1,8 @@
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.perforce.integration import PerforceIntegrationProvider
+from sentry.integrations.perforce.integration import (
+    PerforceIntegration,
+    PerforceIntegrationProvider,
+)
 from sentry.issues.auto_source_code_config.code_mapping import (
     convert_stacktrace_frame_path_to_source_path,
 )
@@ -12,6 +15,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
     """Tests for code mapping integration with Perforce"""
 
     provider = PerforceIntegrationProvider
+    installation: PerforceIntegration
 
     def setUp(self):
         super().setUp()
@@ -24,6 +28,8 @@ class PerforceCodeMappingTest(IntegrationTestCase):
         )
         self.installation = self.integration.get_installation(self.organization.id)
         self.project = self.create_project(organization=self.organization)
+        self.org_integration = self.integration.organizationintegration_set.first()
+        assert self.org_integration is not None
 
     def test_code_mapping_depot_root_to_slash(self):
         """
@@ -41,7 +47,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             project=self.project,
             organization_id=self.organization.id,
             repository=repo,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/",
             source_root="/",
@@ -77,7 +83,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             project=self.project,
             organization_id=self.organization.id,
             repository=repo,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/",
             source_root="/",
@@ -116,7 +122,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             project=self.project,
             organization_id=self.organization.id,
             repository=depot_repo,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/",
             source_root="/",
@@ -127,7 +133,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             project=self.project,
             organization_id=self.organization.id,
             repository=myproject_repo,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="myproject/",
             source_root="/",
@@ -172,7 +178,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             project=self.project,
             organization_id=self.organization.id,
             repository=repo,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/",
             source_root="/",
@@ -205,7 +211,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             project=self.project,
             organization_id=self.organization.id,
             repository=repo,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/",
             source_root="/",
@@ -235,7 +241,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             project=self.project,
             organization_id=self.organization.id,
             repository=repo,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/game/project/",
             source_root="/",
@@ -272,7 +278,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
             project=self.project,
             organization_id=self.organization.id,
             repository=repo,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/",
             source_root="/",
@@ -310,6 +316,8 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         )
         self.installation = self.integration.get_installation(self.organization.id)
         self.project = self.create_project(organization=self.organization)
+        self.org_integration = self.integration.organizationintegration_set.first()
+        assert self.org_integration is not None
 
         self.repo = Repository.objects.create(
             name="//depot",
@@ -322,7 +330,7 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             project=self.project,
             organization_id=self.organization.id,
             repository=self.repo,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=self.org_integration.id,
             integration_id=self.integration.id,
             stack_root="depot/",
             source_root="/",
@@ -379,7 +387,7 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
                 "web_viewer_type": "p4web",
             },
         )
-        installation = integration_with_web.get_installation(self.organization.id)
+        installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
 
         # Create repo with web viewer integration
         repo_web = Repository.objects.create(
@@ -392,11 +400,14 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         # Use a new project to avoid unique constraint on (project_id, stack_root)
         project_web = self.create_project(organization=self.organization)
 
+        org_integration_web = integration_with_web.organizationintegration_set.first()
+        assert org_integration_web is not None
+
         code_mapping_web = RepositoryProjectPathConfig.objects.create(
             project=project_web,
             organization_id=self.organization.id,
             repository=repo_web,
-            organization_integration_id=integration_with_web.organizationintegration_set.first().id,
+            organization_integration_id=org_integration_web.id,
             integration_id=integration_with_web.id,
             stack_root="depot/",
             source_root="/",
@@ -418,6 +429,7 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         )
 
         # format_source_url with web viewer (revision extracted from filename)
+        assert mapped_path is not None
         url = installation.format_source_url(repo=repo_web, filepath=mapped_path, branch=None)
 
         assert url == "https://p4web.example.com//depot/app/services/processor.py?ac=64&rev1=42"

@@ -1,10 +1,14 @@
-from sentry.integrations.perforce.integration import PerforceIntegrationProvider
+from sentry.integrations.perforce.integration import (
+    PerforceIntegration,
+    PerforceIntegrationProvider,
+)
 from sentry.models.repository import Repository
 from sentry.testutils.cases import IntegrationTestCase
 
 
 class PerforceIntegrationTest(IntegrationTestCase):
     provider = PerforceIntegrationProvider
+    installation: PerforceIntegration
 
     def setUp(self):
         super().setUp()
@@ -59,7 +63,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
                 "web_viewer_type": "p4web",
             },
         )
-        installation = integration_with_web.get_installation(self.organization.id)
+        installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
 
         url = installation.format_source_url(
             repo=self.repo, filepath="app/services/processor.cpp@42", branch=None
@@ -78,7 +82,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
                 "web_viewer_type": "p4web",
             },
         )
-        installation = integration_with_web.get_installation(self.organization.id)
+        installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
 
         url = installation.format_source_url(
             repo=self.repo, filepath="app/services/processor.cpp", branch=None
@@ -97,7 +101,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
                 "web_viewer_type": "swarm",
             },
         )
-        installation = integration_with_swarm.get_installation(self.organization.id)
+        installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
 
         url = installation.format_source_url(
             repo=self.repo, filepath="app/services/processor.cpp@42", branch=None
@@ -116,7 +120,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
                 "web_viewer_type": "swarm",
             },
         )
-        installation = integration_with_swarm.get_installation(self.organization.id)
+        installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
 
         url = installation.format_source_url(
             repo=self.repo, filepath="app/services/processor.cpp", branch=None
@@ -159,7 +163,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
     def test_get_stacktrace_link(self):
         """Test get_stacktrace_link returns format_source_url result"""
         filepath = "app/services/processor.cpp@42"
-        default_branch = None  # Perforce doesn't require default_branch (used for streams)
+        default_branch = ""  # Perforce doesn't require default_branch (used for streams)
         version = None
 
         url = self.installation.get_stacktrace_link(self.repo, filepath, default_branch, version)
@@ -344,7 +348,7 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
                 "web_viewer_type": "p4web",
             },
         )
-        installation = integration_with_web.get_installation(self.organization.id)
+        installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
 
         # Filename with revision
         url = installation.format_source_url(
@@ -366,7 +370,7 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
                 "web_viewer_type": "swarm",
             },
         )
-        installation = integration_with_swarm.get_installation(self.organization.id)
+        installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
 
         # Filename with revision
         url = installation.format_source_url(
@@ -388,7 +392,7 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
                 "web_viewer_type": "p4web",
             },
         )
-        installation = integration_with_web.get_installation(self.organization.id)
+        installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
 
         # Python path without revision
         url = installation.format_source_url(

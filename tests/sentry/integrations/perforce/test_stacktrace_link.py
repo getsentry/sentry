@@ -44,16 +44,22 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
     def test_get_stacktrace_config_python_path(self):
         """Test stacktrace link generation for Python SDK path"""
         ctx: StacktraceLinkContext = {
+            "file": "depot/app/services/processor.py",
             "filename": "depot/app/services/processor.py",
             "abs_path": "depot/app/services/processor.py",
             "platform": "python",
             "sdk_name": "sentry.python",
             "commit_id": None,
+            "group_id": None,
+            "line_no": None,
+            "module": None,
+            "package": None,
         }
 
         result = get_stacktrace_config([self.code_mapping], ctx)
 
         assert result["source_url"] is not None
+        assert isinstance(result["source_url"], str)
         assert "//depot/app/services/processor.py" in result["source_url"]
         assert result["error"] is None
         assert result["src_path"] == "app/services/processor.py"
@@ -61,16 +67,22 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
     def test_get_stacktrace_config_cpp_path_with_revision(self):
         """Test stacktrace link generation for C++ path with @revision"""
         ctx: StacktraceLinkContext = {
+            "file": "depot/game/src/main.cpp@42",
             "filename": "depot/game/src/main.cpp@42",
             "abs_path": "depot/game/src/main.cpp@42",
             "platform": "native",
             "sdk_name": "sentry.native",
             "commit_id": None,
+            "group_id": None,
+            "line_no": None,
+            "module": None,
+            "package": None,
         }
 
         result = get_stacktrace_config([self.code_mapping], ctx)
 
         assert result["source_url"] is not None
+        assert isinstance(result["source_url"], str)
         # URL will be encoded: p4://depot/game/src/main.cpp%4042
         assert "depot/game/src/main.cpp" in result["source_url"]
         assert result["error"] is None
@@ -79,11 +91,16 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
     def test_get_stacktrace_config_no_matching_code_mapping(self):
         """Test stacktrace link when no code mapping matches"""
         ctx: StacktraceLinkContext = {
+            "file": "other/app/services/processor.py",
             "filename": "other/app/services/processor.py",
             "abs_path": "other/app/services/processor.py",
             "platform": "python",
             "sdk_name": "sentry.python",
             "commit_id": None,
+            "group_id": None,
+            "line_no": None,
+            "module": None,
+            "package": None,
         }
 
         result = get_stacktrace_config([self.code_mapping], ctx)
@@ -115,16 +132,22 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
 
         # Test with myproject path
         ctx: StacktraceLinkContext = {
+            "file": "myproject/app/services/handler.py",
             "filename": "myproject/app/services/handler.py",
             "abs_path": "myproject/app/services/handler.py",
             "platform": "python",
             "sdk_name": "sentry.python",
             "commit_id": None,
+            "group_id": None,
+            "line_no": None,
+            "module": None,
+            "package": None,
         }
 
         result = get_stacktrace_config([self.code_mapping, myproject_mapping], ctx)
 
         assert result["source_url"] is not None
+        assert isinstance(result["source_url"], str)
         assert "//myproject/app/services/handler.py" in result["source_url"]
         assert result["src_path"] == "app/services/handler.py"
 
@@ -152,11 +175,13 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             config={"depot_path": "//depot"},
         )
 
+        org_integration = integration_with_web.organizationintegration_set.first()
+        assert org_integration is not None
         code_mapping_web = RepositoryProjectPathConfig.objects.create(
             project=project_web,
             organization_id=self.organization.id,
             repository=repo_web,
-            organization_integration_id=integration_with_web.organizationintegration_set.first().id,
+            organization_integration_id=org_integration.id,
             integration_id=integration_with_web.id,
             stack_root="depot/",
             source_root="/",
@@ -164,31 +189,43 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         )
 
         ctx: StacktraceLinkContext = {
+            "file": "depot/app/services/processor.py",
             "filename": "depot/app/services/processor.py",
             "abs_path": "depot/app/services/processor.py",
             "platform": "python",
             "sdk_name": "sentry.python",
             "commit_id": None,
+            "group_id": None,
+            "line_no": None,
+            "module": None,
+            "package": None,
         }
 
         result = get_stacktrace_config([code_mapping_web], ctx)
 
         assert result["source_url"] is not None
+        assert isinstance(result["source_url"], str)
         assert "https://p4web.example.com//depot/app/services/processor.py" in result["source_url"]
 
     def test_get_stacktrace_config_abs_path_fallback(self):
         """Test stacktrace link uses abs_path when filename is just basename"""
         ctx: StacktraceLinkContext = {
+            "file": "processor.py",
             "filename": "processor.py",
             "abs_path": "depot/app/services/processor.py",
             "platform": "python",
             "sdk_name": "sentry.python",
             "commit_id": None,
+            "group_id": None,
+            "line_no": None,
+            "module": None,
+            "package": None,
         }
 
         result = get_stacktrace_config([self.code_mapping], ctx)
 
         assert result["source_url"] is not None
+        assert isinstance(result["source_url"], str)
         assert "//depot/app/services/processor.py" in result["source_url"]
         assert result["src_path"] == "app/services/processor.py"
 
@@ -214,11 +251,16 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         )
 
         ctx: StacktraceLinkContext = {
+            "file": "depot/app/services/processor.py",
             "filename": "depot/app/services/processor.py",
             "abs_path": "depot/app/services/processor.py",
             "platform": "python",
             "sdk_name": "sentry.python",
             "commit_id": None,
+            "group_id": None,
+            "line_no": None,
+            "module": None,
+            "package": None,
         }
 
         result = get_stacktrace_config([other_mapping, self.code_mapping], ctx)
@@ -252,17 +294,24 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         )
 
         ctx: StacktraceLinkContext = {
+            "file": "depot/app/services/processor.py",
             "filename": "depot/app/services/processor.py",
             "abs_path": "depot/app/services/processor.py",
             "platform": "python",
             "sdk_name": "sentry.python",
             "commit_id": None,
+            "group_id": None,
+            "line_no": None,
+            "module": None,
+            "package": None,
         }
 
         result = get_stacktrace_config([self.code_mapping, myproject_mapping], ctx)
 
         # Should stop after first match (depot mapping)
         assert result["iteration_count"] == 1
+        assert result["source_url"] is not None
+        assert isinstance(result["source_url"], str)
         assert "//depot/app/services/processor.py" in result["source_url"]
 
 
@@ -303,11 +352,16 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
         )
 
         ctx: StacktraceLinkContext = {
+            "file": "depot/app/services/processor.py",
             "filename": "depot/app/services/processor.py",
             "abs_path": "depot/app/services/processor.py",
             "platform": "python",
             "sdk_name": "sentry.python",
             "commit_id": None,
+            "group_id": None,
+            "line_no": None,
+            "module": None,
+            "package": None,
         }
 
         result = get_stacktrace_config([code_mapping], ctx)
@@ -337,11 +391,16 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
 
         # Path with spaces and special chars
         ctx: StacktraceLinkContext = {
+            "file": "depot/app/my services/processor-v2.py",
             "filename": "depot/app/my services/processor-v2.py",
             "abs_path": "depot/app/my services/processor-v2.py",
             "platform": "python",
             "sdk_name": "sentry.python",
             "commit_id": None,
+            "group_id": None,
+            "line_no": None,
+            "module": None,
+            "package": None,
         }
 
         result = get_stacktrace_config([code_mapping], ctx)
@@ -372,14 +431,20 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
         deep_path = "depot/" + "/".join([f"level{i}" for i in range(20)]) + "/file.py"
 
         ctx: StacktraceLinkContext = {
+            "file": deep_path,
             "filename": deep_path,
             "abs_path": deep_path,
             "platform": "python",
             "sdk_name": "sentry.python",
             "commit_id": None,
+            "group_id": None,
+            "line_no": None,
+            "module": None,
+            "package": None,
         }
 
         result = get_stacktrace_config([code_mapping], ctx)
 
         assert result["source_url"] is not None
+        assert isinstance(result["source_url"], str)
         assert "//depot/" in result["source_url"]
