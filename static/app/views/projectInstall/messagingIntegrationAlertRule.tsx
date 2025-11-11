@@ -115,10 +115,17 @@ export default function MessagingIntegrationAlertRule({
                   providerDetails[provider as keyof typeof providerDetails]?.placeholder
                 }
                 isSearchable
-                options={channels?.results.map(ch => ({
-                  label: ch.display,
-                  value: ch.display,
-                }))}
+                options={channels?.results.map(ch =>
+                  provider === 'slack'
+                    ? {
+                        label: ch.display,
+                        value: ch.display,
+                      }
+                    : {
+                        label: `${ch.display} (${ch.id})`,
+                        value: ch.id,
+                      }
+                )}
                 isLoading={isPending || validateChannel.isFetching}
                 disabled={!integration}
                 value={channel ? {label: channel.label, value: channel.value} : undefined}
