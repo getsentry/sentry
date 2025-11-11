@@ -7,13 +7,13 @@ import {getUserTimezone} from 'sentry/utils/dates';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 
-export type MenuMode =
+type MenuMode =
   | 'slash-commands-keyboard'
   | 'slash-commands-manual'
   | 'session-history'
   | 'hidden';
 
-export interface ExplorerMenuProps {
+interface ExplorerMenuProps {
   clearInput: () => void;
   focusInput: () => void;
   inputValue: string;
@@ -27,7 +27,7 @@ export interface ExplorerMenuProps {
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
-export interface MenuItemProps {
+interface MenuItemProps {
   description: string;
   handler: () => void;
   key: string;
