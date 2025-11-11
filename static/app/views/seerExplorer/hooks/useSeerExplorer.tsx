@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {
   setApiQueryData,
@@ -250,7 +250,7 @@ export const useSeerExplorer = () => {
   // Always filter messages based on optimistic state and deletedFromIndex before any other processing
   const sessionData = apiData?.session ?? null;
 
-  const filteredSessionData = (() => {
+  const filteredSessionData = useMemo(() => {
     const realBlocks = sessionData?.blocks || [];
 
     // Respect rewound/deleted index first for the real blocks view
@@ -302,7 +302,7 @@ export const useSeerExplorer = () => {
     }
 
     return sessionData;
-  })();
+  }, [sessionData, deletedFromIndex, optimistic, runId]);
 
   // Clear optimistic blocks once the real blocks change in poll results
   useEffect(() => {

@@ -302,17 +302,17 @@ function useSessions({
 }) {
   const {data, isPending, isError, refetch} = useExplorerSessions({limit: 20, enabled});
 
-  const formatDate = (date: string) => {
-    const userTimezone = getUserTimezone();
-    return moment.tz(date, userTimezone || 'UTC').format('MM/DD/YYYY HH:mm z');
-  };
-
   const sessionItems = useMemo(() => {
     if (isPending || isError) {
       return [];
     }
 
-    return data?.data.map(session => ({
+    const formatDate = (date: string) => {
+      const userTimezone = getUserTimezone();
+      return moment.tz(date, userTimezone || 'UTC').format('MM/DD/YYYY HH:mm z');
+    };
+
+    return data.data.map(session => ({
       title: session.title,
       key: session.run_id.toString(),
       description: `Last updated at ${formatDate(session.last_triggered_at)}`,
