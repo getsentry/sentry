@@ -1098,6 +1098,12 @@ def delete_alert_rule(
 
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
+            AlertRuleActivity.objects.create(
+                alert_rule=alert_rule,
+                user_id=user.id if user else None,
+                type=AlertRuleActivityType.DELETED.value,
+            )
+        else:
             if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
                 # if this was a dynamic rule, delete the data in Seer
                 try:
@@ -1112,7 +1118,7 @@ def delete_alert_rule(
                         logger.error(
                             "Call to delete rule data in Seer failed",
                             extra={
-                                "rule_id": alert_rule.id,
+                                "source_id": source_id,
                             },
                         )
                 except QuerySubscription.DoesNotExist:
@@ -1120,12 +1126,6 @@ def delete_alert_rule(
                         "Snuba query missing query subscription",
                         extra={"snuba_query_id": alert_rule.snuba_query.id},
                     )
-            AlertRuleActivity.objects.create(
-                alert_rule=alert_rule,
-                user_id=user.id if user else None,
-                type=AlertRuleActivityType.DELETED.value,
-            )
-        else:
             RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
 
         bulk_delete_snuba_subscriptions(subscriptions)

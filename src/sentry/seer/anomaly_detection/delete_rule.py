@@ -7,14 +7,12 @@ from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ALERT_DELETION_URL
-from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.models.organization import Organization
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import AlertInSeer, DataSourceType, DeleteAlertDataRequest
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
-from sentry.workflow_engine.models import DataSourceDetector
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +25,9 @@ if TYPE_CHECKING:
 
 
 def delete_data_in_seer_for_detector(detector: Detector):
+    from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+    from sentry.workflow_engine.models import DataSourceDetector
+
     data_source_detector = DataSourceDetector.objects.filter(detector_id=detector.id).first()
     if not data_source_detector:
         logger.error(
