@@ -16,7 +16,7 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
-from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
@@ -787,6 +787,29 @@ class Project(Model):
             self.pk = old_pk
 
         return old_pk
+
+    def write_relocation_import(
+        self, scope: ImportScope, flags: ImportFlags
+    ) -> tuple[int, ImportKind] | None:
+        from django.db.models.signals import post_save
+
+        from sentry.receivers.project_detectors import create_project_detectors
+
+        # Temporarily disconnect the signal that auto-creates default detectors
+        # They'll be imported separately from the backup data
+        post_save.disconnect(
+            create_project_detectors, sender=Project, dispatch_uid="create_project_detectors"
+        )
+        try:
+            return super().write_relocation_import(scope, flags)
+        finally:
+            # Reconnect the signal
+            post_save.connect(
+                create_project_detectors,
+                sender=Project,
+                dispatch_uid="create_project_detectors",
+                weak=False,
+            )
 
     # pending deletion implementation
     _pending_fields = ("slug",)

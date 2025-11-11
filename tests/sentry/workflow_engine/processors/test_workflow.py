@@ -286,10 +286,8 @@ class TestProcessWorkflows(BaseWorkflowTest):
         process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
         mock_incr.assert_any_call(
-            "workflow_engine.process_workflows",
-            1,
-            tags={"detector_type": self.error_detector.type},
-        )
+            "workflow_engine.process_workflows", 2, tags={"detector_type": self.error_detector.type}
+        )  # default workflow from project creation + workflow in setUp
 
     @patch("sentry.utils.metrics.incr")
     def test_metrics_triggered_workflows(self, mock_incr: MagicMock) -> None:

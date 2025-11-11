@@ -32,6 +32,7 @@ from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.event_manager import EventManager
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -188,6 +189,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from social_auth.models import UserSocialAuth
 
 
@@ -2271,6 +2273,15 @@ class Factories:
             name = petname.generate(2, " ", letters=10).title()
         if config is None:
             config = default_detector_config_data.get(kwargs["type"], {})
+        if "type" in kwargs:
+            if kwargs["type"] in (ErrorGroupType.slug, IssueStreamGroupType.slug):
+                detector, _ = Detector.objects.get_or_create(
+                    type=kwargs["type"],
+                    project=kwargs["project"],
+                    defaults={"config": {}, "name": name},
+                )
+                detector.update(config=config, name=name, **kwargs)
+                return detector
 
         return Detector.objects.create(
             name=name,

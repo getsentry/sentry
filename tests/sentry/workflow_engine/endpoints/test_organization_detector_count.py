@@ -5,6 +5,7 @@ from sentry.models.environment import Environment
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.workflow_engine.models import Detector
 
 
 @region_silo_test
@@ -17,18 +18,20 @@ class OrganizationDetectorCountTest(APITestCase):
         self.environment = Environment.objects.create(
             organization_id=self.organization.id, name="production"
         )
+        self.project = self.create_project(organization=self.organization)
+        Detector.objects.all().delete()  # remove default detectors
 
     def test_simple(self) -> None:
         # Create active detectors
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Active Detector 1",
             type=MetricIssue.slug,
             enabled=True,
             config={"detection_type": AlertRuleDetectionType.STATIC.value},
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Active Detector 2",
             type=ErrorGroupType.slug,
             enabled=True,
@@ -37,7 +40,7 @@ class OrganizationDetectorCountTest(APITestCase):
 
         # Create inactive detector
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Inactive Detector",
             type=UptimeDomainCheckFailure.slug,
             enabled=False,
@@ -60,28 +63,28 @@ class OrganizationDetectorCountTest(APITestCase):
     def test_filtered_by_type(self) -> None:
         # Create detectors of different types
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Metric Detector 1",
             type=MetricIssue.slug,
             enabled=True,
             config={"detection_type": AlertRuleDetectionType.STATIC.value},
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Metric Detector 2",
             type=MetricIssue.slug,
             enabled=False,
             config={"detection_type": AlertRuleDetectionType.STATIC.value},
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Error Detector",
             type=ErrorGroupType.slug,
             enabled=True,
             config={},
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Uptime Detector",
             type=UptimeDomainCheckFailure.slug,
             enabled=True,
@@ -125,14 +128,7 @@ class OrganizationDetectorCountTest(APITestCase):
     def test_no_projects_access(self) -> None:
         # Create another organization with detectors
         other_org = self.create_organization()
-        other_project = self.create_project(organization=other_org)
-        self.create_detector(
-            project_id=other_project.id,
-            name="Other Org Detector",
-            type=MetricIssue.slug,
-            enabled=True,
-            config={"detection_type": AlertRuleDetectionType.STATIC.value},
-        )
+        self.create_project(organization=other_org)
 
         # Test with no project access
         response = self.get_success_response(self.organization.slug, qs_params={"project": []})

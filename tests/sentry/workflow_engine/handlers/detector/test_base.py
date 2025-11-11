@@ -89,10 +89,24 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         self.uuid_patcher = mock.patch("sentry.workflow_engine.handlers.detector.stateful.uuid4")
         self.mock_uuid4 = self.uuid_patcher.start()
         self.mock_uuid4.return_value = self.get_mock_uuid()
-        project_id = self.project.id
+
+        class ErrorGroupType(GroupType):
+            type_id = 1
+            slug = "error"
+            description = "Error"
+            category = GroupCategory.ERROR.value
+            category_v2 = GroupCategory.ERROR.value
+            ignore_limit = 0
+
+        class IssueStreamGroupType(GroupType):
+            type_id = 2
+            slug = "issue_stream"
+            description = "Issue Stream"
+            category = GroupCategory.ERROR.value
+            category_v2 = GroupCategory.ERROR.value
 
         class NoHandlerGroupType(GroupType):
-            type_id = 1
+            type_id = 3
             slug = "no_handler"
             description = "no handler"
             category = GroupCategory.METRIC_ALERT.value
@@ -152,7 +166,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 return data_packet.packet.get("dedupe", 0)
 
         class HandlerGroupType(GroupType):
-            type_id = 2
+            type_id = 4
             slug = "handler"
             description = "handler"
             category = GroupCategory.METRIC_ALERT.value
@@ -160,7 +174,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             detector_settings = DetectorSettings(handler=MockDetectorHandler)
 
         class HandlerStateGroupType(GroupType):
-            type_id = 3
+            type_id = 5
             slug = "handler_with_state"
             description = "handler with state"
             category = GroupCategory.METRIC_ALERT.value
@@ -168,12 +182,14 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             detector_settings = DetectorSettings(handler=MockDetectorStateHandler)
 
         class HandlerUpdateGroupType(GroupType):
-            type_id = 4
+            type_id = 6
             slug = "handler_update"
             description = "handler update"
             category = GroupCategory.METRIC_ALERT.value
             category_v2 = GroupCategory.METRIC.value
             detector_settings = DetectorSettings(handler=MockDetectorWithUpdateHandler)
+
+        project_id = self.project.id
 
         self.no_handler_type = NoHandlerGroupType
         self.handler_type = HandlerGroupType

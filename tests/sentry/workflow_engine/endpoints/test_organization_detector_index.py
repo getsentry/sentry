@@ -32,7 +32,13 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
+from sentry.workflow_engine.models import (
+    DataCondition,
+    DataConditionGroup,
+    DataSource,
+    Detector,
+    Workflow,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
@@ -53,16 +59,21 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
         )
+        self.project = self.create_project()
+
+        # remove default detectors and workflows
+        Detector.objects.all().delete()
+        Workflow.objects.all().delete()
 
 
 @region_silo_test
 class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
     def test_simple(self) -> None:
         detector = self.create_detector(
-            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
+            project=self.project, name="Test Detector", type=MetricIssue.slug
         )
         detector_2 = self.create_detector(
-            project_id=self.project.id, name="Test Detector 2", type=MetricIssue.slug
+            project=self.project, name="Test Detector 2", type=MetricIssue.slug
         )
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id}
@@ -87,7 +98,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
         )
         detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Test Detector",
             type=UptimeDomainCheckFailure.slug,
             config={
@@ -113,11 +124,13 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         assert len(response.data) == 0
 
     def test_project_unspecified(self) -> None:
+        project2 = self.create_project(organization=self.organization)
+        Detector.objects.all().delete()
         d1 = self.create_detector(
             project=self.project, name="A Test Detector", type=MetricIssue.slug
         )
         d2 = self.create_detector(
-            project=self.create_project(organization=self.organization),
+            project=project2,
             name="B Test Detector 2",
             type=MetricIssue.slug,
         )
@@ -138,14 +151,12 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
     def test_filter_by_ids(self) -> None:
         detector = self.create_detector(
-            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
+            project=self.project, name="Test Detector", type=MetricIssue.slug
         )
         detector_2 = self.create_detector(
-            project_id=self.project.id, name="Test Detector 2", type=MetricIssue.slug
+            project=self.project, name="Test Detector 2", type=MetricIssue.slug
         )
-        self.create_detector(
-            project_id=self.project.id, name="Test Detector 3", type=MetricIssue.slug
-        )
+        self.create_detector(project=self.project, name="Test Detector 3", type=MetricIssue.slug)
 
         response = self.get_success_response(
             self.organization.slug,
@@ -178,10 +189,10 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
     def test_sort_by_name(self) -> None:
         detector = self.create_detector(
-            project_id=self.project.id, name="A Test Detector", type=MetricIssue.slug
+            project=self.project, name="A Test Detector", type=MetricIssue.slug
         )
         detector_2 = self.create_detector(
-            project_id=self.project.id, name="B Test Detector 2", type=MetricIssue.slug
+            project=self.project, name="B Test Detector 2", type=MetricIssue.slug
         )
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id, "sortBy": "-name"}
@@ -199,10 +210,10 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             organization_id=self.organization.id,
         )
         detector = self.create_detector(
-            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
+            project=self.project, name="Test Detector", type=MetricIssue.slug
         )
         detector_2 = self.create_detector(
-            project_id=self.project.id, name="Test Detector 2", type=MetricIssue.slug
+            project=self.project, name="Test Detector 2", type=MetricIssue.slug
         )
         self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_detector_workflow(detector=detector, workflow=workflow_2)
@@ -225,16 +236,16 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
     def test_sort_by_latest_group(self) -> None:
         detector_1 = self.create_detector(
-            project_id=self.project.id, name="Detector 1", type=MetricIssue.slug
+            project=self.project, name="Detector 1", type=MetricIssue.slug
         )
         detector_2 = self.create_detector(
-            project_id=self.project.id, name="Detector 2", type=MetricIssue.slug
+            project=self.project, name="Detector 2", type=MetricIssue.slug
         )
         detector_3 = self.create_detector(
-            project_id=self.project.id, name="Detector 3", type=MetricIssue.slug
+            project=self.project, name="Detector 3", type=MetricIssue.slug
         )
         detector_4 = self.create_detector(
-            project_id=self.project.id, name="Detector 4 No Groups", type=MetricIssue.slug
+            project=self.project, name="Detector 4 No Groups", type=MetricIssue.slug
         )
 
         group_1 = self.create_group(project=self.project)
@@ -280,16 +291,16 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
     def test_sort_by_open_issues(self) -> None:
         detector_1 = self.create_detector(
-            project_id=self.project.id, name="Detector 1", type=MetricIssue.slug
+            project=self.project, name="Detector 1", type=MetricIssue.slug
         )
         detector_2 = self.create_detector(
-            project_id=self.project.id, name="Detector 2", type=MetricIssue.slug
+            project=self.project, name="Detector 2", type=MetricIssue.slug
         )
         detector_3 = self.create_detector(
-            project_id=self.project.id, name="Detector 3", type=MetricIssue.slug
+            project=self.project, name="Detector 3", type=MetricIssue.slug
         )
         detector_4 = self.create_detector(
-            project_id=self.project.id, name="Detector 4 No Groups", type=MetricIssue.slug
+            project=self.project, name="Detector 4 No Groups", type=MetricIssue.slug
         )
 
         # Create groups with different statuses
@@ -342,14 +353,12 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
     def test_query_by_name(self) -> None:
         detector = self.create_detector(
-            project_id=self.project.id, name="Apple Detector", type=MetricIssue.slug
+            project=self.project, name="Apple Detector", type=MetricIssue.slug
         )
         detector2 = self.create_detector(
-            project_id=self.project.id, name="Green Apple Detector", type=MetricIssue.slug
+            project=self.project, name="Green Apple Detector", type=MetricIssue.slug
         )
-        self.create_detector(
-            project_id=self.project.id, name="Banana Detector", type=MetricIssue.slug
-        )
+        self.create_detector(project=self.project, name="Banana Detector", type=MetricIssue.slug)
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id, "query": "apple"}
         )
@@ -364,10 +373,10 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
     def test_query_by_type(self) -> None:
         detector = self.create_detector(
-            project_id=self.project.id, name="Detector 1", type=MetricIssue.slug
+            project=self.project, name="Detector 1", type=MetricIssue.slug
         )
         detector2 = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Detector 2",
             type=ErrorGroupType.slug,
         )
@@ -394,10 +403,10 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         Users can query by simplfied aliases like "metric", "uptime" instead of the full type names.
         """
         metric_detector = self.create_detector(
-            project_id=self.project.id, name="Metric Detector", type=MetricIssue.slug
+            project=self.project, name="Metric Detector", type=MetricIssue.slug
         )
         uptime_detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Uptime Detector",
             type=UptimeDomainCheckFailure.slug,
             config={
@@ -408,7 +417,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             },
         )
         cron_detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Cron Detector",
             type=MonitorIncidentType.slug,
         )
@@ -430,13 +439,13 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
     def test_general_query(self) -> None:
         detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Lookfor 1",
             type=MetricIssue.slug,
             description="Delicious",
         )
         detector2 = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Lookfor 2",
             type=ErrorGroupType.slug,
             description="Exciting",
@@ -461,13 +470,13 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         self.create_member(organization=self.organization, user=user)
 
         assigned_detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Assigned Detector",
             type=MetricIssue.slug,
             owner_user_id=user.id,
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Unassigned Detector",
             type=MetricIssue.slug,
         )
@@ -483,13 +492,13 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         self.create_member(organization=self.organization, user=user)
 
         assigned_detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Assigned Detector",
             type=MetricIssue.slug,
             owner_user_id=user.id,
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Unassigned Detector",
             type=MetricIssue.slug,
         )
@@ -505,13 +514,13 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         self.project.add_team(team)
 
         assigned_detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Team Detector",
             type=MetricIssue.slug,
             owner_team_id=team.id,
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Unassigned Detector",
             type=MetricIssue.slug,
         )
@@ -526,13 +535,13 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         self.login_as(user=self.user)
 
         assigned_detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="My Detector",
             type=MetricIssue.slug,
             owner_user_id=self.user.id,
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Other Detector",
             type=MetricIssue.slug,
         )
@@ -549,19 +558,19 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         team = self.create_team(organization=self.organization)
 
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="User Assigned",
             type=MetricIssue.slug,
             owner_user_id=user.id,
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Team Assigned",
             type=MetricIssue.slug,
             owner_team_id=team.id,
         )
         unassigned_detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Unassigned Detector",
             type=MetricIssue.slug,
         )
@@ -579,19 +588,19 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         self.project.add_team(team)
 
         detector1 = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Detector 1",
             type=MetricIssue.slug,
             owner_user_id=user.id,
         )
         detector2 = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Detector 2",
             type=MetricIssue.slug,
             owner_team_id=team.id,
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Other Detector",
             type=MetricIssue.slug,
         )
@@ -610,13 +619,13 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         self.create_member(organization=self.organization, user=user)
 
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Excluded Detector",
             type=MetricIssue.slug,
             owner_user_id=user.id,
         )
         included_detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Included Detector",
             type=MetricIssue.slug,
         )
@@ -629,7 +638,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
     def test_query_by_assignee_invalid_user(self) -> None:
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Valid Detector",
             type=MetricIssue.slug,
         )
@@ -643,6 +652,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
     def test_query_by_project_owner_user(self) -> None:
         new_project = self.create_project(organization=self.organization)
+        Detector.objects.all().delete()
         detector = self.create_detector(
             project_id=new_project.id, name="Test Detector", type=MetricIssue.slug
         )
@@ -665,12 +675,12 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
     def test_query_by_id_owner_user(self) -> None:
         self.detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Detector 1",
             type=MetricIssue.slug,
         )
         self.detector_2 = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Detector 2",
             type=MetricIssue.slug,
         )
@@ -1085,13 +1095,13 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 
         # Create 2 metric detectors (1 active, 1 to be deleted)
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Existing Detector 1",
             type=MetricIssue.slug,
             status=ObjectStatus.ACTIVE,
         )
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Existing Detector 2",
             type=MetricIssue.slug,
             status=ObjectStatus.PENDING_DELETION,
@@ -1124,7 +1134,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         # Create many metric detectors
         for i in range(5):
             self.create_detector(
-                project_id=self.project.id,
+                project=self.project,
                 name=f"Existing Detector {i+1}",
                 type=MetricIssue.slug,
                 status=ObjectStatus.ACTIVE,
@@ -1151,7 +1161,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 
         # Create a not-metric detector
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Error Detector",
             type=ErrorGroupType.slug,
             status=ObjectStatus.ACTIVE,
@@ -1195,17 +1205,17 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
     def setUp(self) -> None:
         super().setUp()
         self.detector = self.create_detector(
-            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug, enabled=True
+            project=self.project, name="Test Detector", type=MetricIssue.slug, enabled=True
         )
         self.detector_two = self.create_detector(
-            project_id=self.project.id, name="Another Detector", type=MetricIssue.slug, enabled=True
+            project=self.project, name="Another Detector", type=MetricIssue.slug, enabled=True
         )
         self.detector_three = self.create_detector(
-            project_id=self.project.id, name="Third Detector", type=MetricIssue.slug, enabled=True
+            project=self.project, name="Third Detector", type=MetricIssue.slug, enabled=True
         )
 
         self.error_detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Error Detector",
             type=ErrorGroupType.slug,
             enabled=True,
@@ -1437,7 +1447,7 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
     def test_update_owner_query_by_project(self) -> None:
         new_project = self.create_project(organization=self.organization)
         detector = self.create_detector(
-            project_id=new_project.id, name="Test Detector", type=MetricIssue.slug, enabled=True
+            project=new_project, name="Test Detector", type=MetricIssue.slug, enabled=True
         )
 
         owner = self.create_user()
@@ -1554,13 +1564,13 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
     def setUp(self) -> None:
         super().setUp()
         self.detector = self.create_detector(
-            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
+            project=self.project, name="Test Detector", type=MetricIssue.slug
         )
         self.detector_two = self.create_detector(
-            project_id=self.project.id, name="Another Detector", type=MetricIssue.slug
+            project=self.project, name="Another Detector", type=MetricIssue.slug
         )
         self.detector_three = self.create_detector(
-            project_id=self.project.id, name="Third Detector", type=MetricIssue.slug
+            project=self.project, name="Third Detector", type=MetricIssue.slug
         )
 
     def test_delete_detectors_by_ids_success(self) -> None:

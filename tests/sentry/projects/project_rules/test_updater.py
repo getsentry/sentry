@@ -5,7 +5,6 @@ from sentry.models.rule import Rule
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.conditions.event_frequency import EventFrequencyCondition
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
@@ -120,7 +119,6 @@ class TestUpdater(TestCase):
         self.updater.run()
         assert self.rule.data["frequency"] == 5
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_dual_create_workflow_engine(self) -> None:
         IssueAlertMigrator(self.rule, user_id=self.user.id).run()
 
@@ -189,7 +187,6 @@ class TestUpdater(TestCase):
         action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
         assert action.type == Action.Type.PLUGIN
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_dual_create_workflow_engine__errors_on_invalid_conditions(self) -> None:
         IssueAlertMigrator(self.rule, user_id=self.user.id).run()
 

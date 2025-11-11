@@ -830,8 +830,8 @@ class TestGetDetectorByEvent(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
-        self.detector = self.create_detector(project=self.project, type="metric_issue")
-        self.error_detector = self.create_detector(project=self.project, type="error")
+        self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
         self.event = self.store_event(project_id=self.project.id, data={})
         self.occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,

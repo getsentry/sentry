@@ -181,6 +181,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
 @mock.patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
     def setUp(self) -> None:
+        self.project = self.create_project()
         (
             self.workflow,
             self.detector,
@@ -256,7 +257,6 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             **kwargs,
         )
 
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_default_workflow(self, mock_trigger: MagicMock) -> None:
         from sentry.models.group import GroupStatus
         from sentry.types.group import GroupSubStatus

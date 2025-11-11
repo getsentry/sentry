@@ -8,6 +8,7 @@ from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricIssue
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
@@ -35,6 +36,8 @@ class OrganizationWorkflowAPITestCase(APITestCase):
 class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.project = self.create_project(organization=self.organization)
+        Workflow.objects.all().delete()  # remove default workflows
         self.workflow = self.create_workflow(
             organization_id=self.organization.id, name="Apple Workflow"
         )
@@ -125,7 +128,9 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
     def test_sort_by_connected_detectors(self) -> None:
         detector = self.create_detector(project=self.project, name="A Test Detector")
-        detector_two = self.create_detector(project=self.project, name="B Test Detector 2")
+        detector_two = self.create_detector(
+            project=self.project, name="B Test Detector 2", type=MetricIssue.slug
+        )
 
         self.create_detector_workflow(
             workflow=self.workflow,
@@ -276,6 +281,8 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
 
         other_project = self.create_project(organization=self.organization, name="Other Project")
+        # delete other_project's default workflow
+        Workflow.objects.filter(detectorworkflow__detector__project=other_project).delete()
         self.create_detector_workflow(
             workflow=self.workflow_three, detector=self.create_detector(project=other_project)
         )
