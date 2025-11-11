@@ -1,3 +1,4 @@
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
@@ -61,6 +62,12 @@ export function EditExistingDetectorForm({detector}: {detector: Detector}) {
       return <EditExistingErrorDetectorForm detector={detector} />;
     case 'monitor_check_in_failure':
       return <EditExistingCronDetectorForm detector={detector} />;
+    case 'issue_stream':
+      return (
+        <Alert.Container>
+          <Alert type="error">{t('Issue stream monitors can not be edited.')}</Alert>
+        </Alert.Container>
+      );
     default:
       unreachable(detectorType);
       return <PlaceholderForm />;
