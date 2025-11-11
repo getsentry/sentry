@@ -1,10 +1,10 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.paginator import OffsetPaginator
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -40,15 +40,12 @@ class OrganizationDetectorTypeIndexEndpoint(OrganizationEndpoint):
         """
         Returns a list of detector types for a given org
         """
-        type_slugs = [
-            gt.slug
+        detector_types = {
+            gt.slug: gt.detector_settings.config_schema
             for gt in grouptype.registry.get_visible(organization)
-            if gt.detector_settings is not None and gt.detector_settings.handler is not None
-        ]
-        type_slugs.sort()
+            if gt.detector_settings is not None and gt.detector_settings is not None
+        }
 
-        return self.paginate(
-            request=request,
-            queryset=type_slugs,
-            paginator_cls=OffsetPaginator,
+        return Response(
+            detector_types,
         )

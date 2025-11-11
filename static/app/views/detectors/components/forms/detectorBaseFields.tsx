@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -8,12 +9,49 @@ import FormField from 'sentry/components/forms/formField';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
+interface JsonSchema {
+  properties?: Record<string, any>;
+  required?: string[];
+}
+
+function useDetectorSchemaFields() {
+  const {detectorType} = useDetectorFormContext();
+  const organization = useOrganization();
+  const queryKey: ApiQueryKey = [`/organizations/${organization.slug}/detector-types/`];
+
+  const {data: detectorTypes} = useApiQuery<Record<string, JsonSchema>>(queryKey, {
+    staleTime: 60000,
+  });
+
+  return useMemo(() => {
+    if (!detectorTypes) {
+      return {supportsEnvironment: true, supportsName: true};
+    }
+    const schema = detectorTypes[detectorType];
+    if (!schema) {
+      return {supportsEnvironment: true, supportsName: true};
+    }
+    const properties = schema.properties || {};
+    const requiredFields = new Set(schema.required || []);
+
+    return {
+      supportsEnvironment:
+        requiredFields.has('environment') || 'environment' in properties,
+      supportsName: requiredFields.has('name') || 'name' in properties,
+    };
+  }, [detectorTypes, detectorType]);
+}
+
 export function DetectorBaseFields() {
   const {setHasSetDetectorName} = useDetectorFormContext();
+  const {supportsEnvironment, supportsName} = useDetectorSchemaFields();
 
   return (
     <Flex gap="md" direction="column">
@@ -21,7 +59,7 @@ export function DetectorBaseFields() {
         <FormField name="name" inline={false} flexibleControlStateSize stacked>
           {({onChange, value}) => (
             <EditableText
-              isDisabled={false}
+              isDisabled={!supportsName}
               value={value || ''}
               onChange={newValue => {
                 onChange(newValue, {
@@ -40,7 +78,7 @@ export function DetectorBaseFields() {
       </Layout.Title>
       <Flex gap="md">
         <ProjectField />
-        <EnvironmentField />
+        {supportsEnvironment && <EnvironmentField />}
       </Flex>
     </Flex>
   );

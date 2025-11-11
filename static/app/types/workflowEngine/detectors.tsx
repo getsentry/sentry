@@ -78,7 +78,8 @@ export type DetectorType =
   | 'metric_issue'
   | 'monitor_check_in_failure'
   | 'uptime_domain_failure'
-  | 'issue_stream';
+  | 'issue_stream'
+  | 'performance_slow_db_query';
 
 interface BaseMetricDetectorConfig {
   thresholdPeriod: number;
@@ -161,7 +162,24 @@ export interface ErrorDetector extends BaseDetector {
   readonly type: 'error';
 }
 
-export type Detector = MetricDetector | UptimeDetector | CronDetector | ErrorDetector;
+export interface PerformanceSlowDBQueryConfig {
+  allowedSpanOps: string[];
+  durationThreshold: number;
+}
+
+export interface PerformanceSlowDBQueryDetector extends BaseDetector {
+  readonly alertRuleId: number | null;
+  readonly config: PerformanceSlowDBQueryConfig;
+  readonly dataSources: never[];
+  readonly type: 'performance_slow_db_query';
+}
+
+export type Detector =
+  | MetricDetector
+  | UptimeDetector
+  | CronDetector
+  | ErrorDetector
+  | PerformanceSlowDBQueryDetector;
 
 interface UpdateConditionGroupPayload {
   conditions: Array<Omit<MetricCondition, 'id'>>;

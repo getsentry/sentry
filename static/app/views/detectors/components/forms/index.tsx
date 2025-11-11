@@ -12,6 +12,10 @@ import {
   NewErrorDetectorForm,
 } from 'sentry/views/detectors/components/forms/error';
 import {
+  EditExistingJsonSchemaDetectorForm,
+  NewJsonSchemaDetectorForm,
+} from 'sentry/views/detectors/components/forms/jsonSchema/jsonSchemaDetectorForm';
+import {
   EditExistingMetricDetectorForm,
   NewMetricDetectorForm,
 } from 'sentry/views/detectors/components/forms/metric/metric';
@@ -42,6 +46,8 @@ export function NewDetectorForm({detectorType}: {detectorType: DetectorType}) {
       return <NewErrorDetectorForm />;
     case 'monitor_check_in_failure':
       return <NewCronDetectorForm />;
+    case 'performance_slow_db_query':
+      return <NewJsonSchemaDetectorForm detectorType={detectorType} />;
     case 'issue_stream':
       return <PlaceholderForm />;
     default:
@@ -61,6 +67,8 @@ export function EditExistingDetectorForm({detector}: {detector: Detector}) {
       return <EditExistingErrorDetectorForm detector={detector} />;
     case 'monitor_check_in_failure':
       return <EditExistingCronDetectorForm detector={detector} />;
+    case 'performance_slow_db_query':
+      return <EditExistingJsonSchemaDetectorForm detector={detector} />;
     default:
       unreachable(detectorType);
       return <PlaceholderForm />;

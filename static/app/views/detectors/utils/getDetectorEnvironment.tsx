@@ -16,6 +16,8 @@ export function getDetectorEnvironment(detector: Detector): string | null {
       return null;
     case 'error':
       return null;
+    case 'performance_slow_db_query': // TODO: just make this the default?
+      return null;
     default:
       unreachable(detectorType);
       return null;

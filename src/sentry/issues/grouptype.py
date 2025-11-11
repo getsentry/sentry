@@ -27,6 +27,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _get_performance_detector_validator():
+    """Lazy import to avoid circular dependency"""
+    from sentry.workflow_engine.endpoints.validators.performance_detector import (
+        PerformanceDetectorValidator,
+    )
+
+    return PerformanceDetectorValidator
+
+
 class GroupCategory(IntEnum):
     ERROR = 1
     """
@@ -317,6 +326,7 @@ class PerformanceSlowDBQueryGroupType(GroupType):
     default_priority = PriorityLevel.LOW
     released = True
     detector_settings = DetectorSettings(
+        validator=_get_performance_detector_validator,
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "description": "Configuration for detecting slow database queries",

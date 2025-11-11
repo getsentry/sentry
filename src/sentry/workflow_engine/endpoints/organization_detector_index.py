@@ -123,7 +123,12 @@ def get_detector_validator(
     if type.detector_settings is None or type.detector_settings.validator is None:
         raise ValidationError({"type": ["Detector type not compatible with detectors"]})
 
-    return type.detector_settings.validator(
+    # Resolve validator if it's a callable factory function
+    validator = type.detector_settings.validator
+    if callable(validator) and not isinstance(validator, type):
+        validator = validator()
+
+    return validator(
         instance=instance,
         context={
             "project": project,
