@@ -223,8 +223,10 @@ class SeerExplorerClient:
         if state.raw_artifact and self.artifact_schema:
             try:
                 state.artifact = self.artifact_schema.parse_obj(state.raw_artifact)
+                state.raw_artifact = None  # clear now that it's not needed
             except ValidationError as e:
                 # Log but don't fail - keep artifact as None
+                state.artifact = None
                 logger.warning(
                     "Failed to parse artifact",
                     extra={
