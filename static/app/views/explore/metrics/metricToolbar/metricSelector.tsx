@@ -62,7 +62,6 @@ export function MetricSelector({traceMetric}: {traceMetric: TraceMetric}) {
           type: option[TraceMetricKnownFieldKey.METRIC_TYPE] as TraceMetricTypeValue,
         }),
         metricType: option[TraceMetricKnownFieldKey.METRIC_TYPE],
-        metricUnit: option[TraceMetricKnownFieldKey.METRIC_UNIT],
         metricName: option[TraceMetricKnownFieldKey.METRIC_NAME],
         trailingItems: (
           <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />

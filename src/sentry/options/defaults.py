@@ -348,12 +348,6 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "deletions.group-hash-metadata.use-old-update-method",
-    default=False,  # Default using new update method
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 
 register(
@@ -677,6 +671,8 @@ register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_M
 register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 # if a region is in this list, it's safe to forward to overwatch
 register("overwatch.enabled-regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# enable verbose debug logging for overwatch webhook forwarding
+register("overwatch.forward-webhooks.verbose", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -3642,6 +3638,14 @@ register(
         7,  # UPTIME
         10,  # OUTAGE
     ],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Manual option for disabling misbehaving sentry apps from sending webhooks.
+register(
+    "sentry-apps.webhook.restricted-webhook-sending",
+    type=Sequence,
+    default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
