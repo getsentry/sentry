@@ -866,7 +866,7 @@ module = [
     "tests.sentry.workflow_engine.endpoints.*",
     "tests.sentry.workflow_engine.handlers.action.*",
     "tests.sentry.workflow_engine.models.*",
-    "tests.sentry.workflow_engine.processors.contexts.*",
+    "tests.sentry.workflow_engine.processors.*",
     "tests.sentry.workflow_engine.service.*",
     "tests.sentry.workflow_engine.utils.*",
     "tests.sentry_plugins.*",
