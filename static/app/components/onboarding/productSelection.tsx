@@ -111,7 +111,11 @@ export const platformProductAvailability = {
   'java-logback': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'java-spring': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
-  javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
+  javascript: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+    ProductSolution.METRICS,
+  ],
   'javascript-react': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
