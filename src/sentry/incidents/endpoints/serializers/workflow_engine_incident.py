@@ -85,7 +85,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
                 alert_rule_id = get_fake_id_from_object_id(detector_id)
 
             results[open_period] = {"projects": [open_period.project.slug]}
-            results[open_period]["alert_rule"] = alert_rules.get(alert_rule_id)
+            results[open_period]["alert_rule"] = alert_rules.get(str(alert_rule_id))
 
         if "activities" in self.expand:
             gopas = list(
