@@ -123,17 +123,18 @@ class TreeEnricher:
                     attributes[key] = value
 
             if get_span_op(span).startswith("gen_ai.") and "gen_ai.agent.name" not in attributes:
-                for ancestor in self._iter_ancestors(span):
+                if (parent_span_id := span.get("parent_span_id")) is not None:
+                    parent_span = self._spans_by_id.get(parent_span_id)
                     if (
-                        get_span_op(ancestor) == "gen_ai.invoke_agent"
-                        and (agent_name := attribute_value(ancestor, "gen_ai.agent.name"))
+                        parent_span is not None
+                        and get_span_op(parent_span) == "gen_ai.invoke_agent"
+                        and (agent_name := attribute_value(parent_span, "gen_ai.agent.name"))
                         is not None
                     ):
                         attributes["gen_ai.agent.name"] = {
                             "type": "string",
                             "value": agent_name,
                         }
-                        break
 
         attributes["sentry.exclusive_time_ms"] = {
             "type": "double",
