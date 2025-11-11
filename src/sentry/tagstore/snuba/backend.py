@@ -211,23 +211,23 @@ class SnubaTagStorage(TagStorage):
             has_non_empty_value = any(value != "" for value in result.keys())
             if not has_non_empty_value:
                 raise TagKeyNotFound if group is None else GroupTagKeyNotFound
+
+        if group is None:
+            return _make_result(
+                key=key,
+                totals=totals,
+                result=result,
+                key_ctor=TagKey,
+                value_ctor=TagValue,
+            )
         else:
-            if group is None:
-                return _make_result(
-                    key=key,
-                    totals=totals,
-                    result=result,
-                    key_ctor=TagKey,
-                    value_ctor=TagValue,
-                )
-            else:
-                return _make_result(
-                    key=key,
-                    totals=totals,
-                    result=result,
-                    key_ctor=functools.partial(GroupTagKey, group_id=group.id),
-                    value_ctor=functools.partial(GroupTagValue, group_id=group.id),
-                )
+            return _make_result(
+                key=key,
+                totals=totals,
+                result=result,
+                key_ctor=functools.partial(GroupTagKey, group_id=group.id),
+                value_ctor=functools.partial(GroupTagValue, group_id=group.id),
+            )
 
     def __get_tag_keys(
         self,
