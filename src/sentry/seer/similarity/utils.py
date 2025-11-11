@@ -314,11 +314,18 @@ def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
     return exception_stacktrace or threads_stacktrace or only_stacktrace
 
 
-def record_did_call_seer_metric(event: Event, *, call_made: bool, blocker: str) -> None:
+def record_did_call_seer_metric(
+    event: Event, *, call_made: bool, blocker: str, training_mode: bool = False
+) -> None:
     metrics.incr(
         "grouping.similarity.did_call_seer",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"call_made": call_made, "blocker": blocker, "platform": event.platform},
+        tags={
+            "call_made": call_made,
+            "blocker": blocker,
+            "platform": event.platform,
+            "training_mode": training_mode,
+        },
     )
 
 
