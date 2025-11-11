@@ -29,6 +29,10 @@ describe('ExploreCharts', () => {
             visualizes={defaultVisualizes()}
             setVisualizes={() => {}}
             samplingMode={SAMPLING_MODE.HIGH_ACCURACY}
+            rawSpanCounts={{
+              highAccuracy: {count: 0, isLoading: true},
+              normal: {count: 0, isLoading: true},
+            }}
           />
         </ChartSelectionProvider>
       </SpansQueryParamsProvider>,

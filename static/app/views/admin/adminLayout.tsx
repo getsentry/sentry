@@ -18,7 +18,6 @@ export function AdminNavigation() {
           id: 'admin-system-status',
           name: 'System Status',
           items: [
-            {path: '/manage/', index: true, title: 'Overview'},
             {path: '/manage/status/environment/', title: 'Environment'},
             {path: '/manage/status/packages/', title: 'Packages'},
             {path: '/manage/status/mail/', title: 'Mail'},

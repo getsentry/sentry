@@ -35,31 +35,9 @@ export function getDetectorDetails({
    * for Alert Rule IDs. Hopefully we can consolidate this when we move to the detector system.
    * Ideally, this function wouldn't even check the event, but rather the group/issue.
    */
-  const isMetricAlert =
-    !!event?.occurrence?.evidenceData?.alertId ||
-    !!event?.contexts?.metric_alert?.alert_rule_id ||
-    event?.occurrence?.type === 8001; // the issue type for metric issues is 8001
+  const isMetricAlert = event?.occurrence?.type === 8001; // the issue type for metric issues is 8001
 
   if (isMetricAlert) {
-    const metricAlertRuleId =
-      event?.occurrence?.evidenceData?.alertId ||
-      event?.contexts?.metric_alert?.alert_rule_id;
-
-    if (metricAlertRuleId) {
-      return {
-        detectorType: 'metric_alert',
-        detectorId: metricAlertRuleId,
-        detectorPath: makeAlertsPathname({
-          path: `/rules/details/${metricAlertRuleId}/`,
-          organization,
-        }),
-        // TODO(issues): We can probably enrich this description with details from the alert itself.
-        description: t(
-          'This issue was created by a metric monitor. View the monitor details to learn more.'
-        ),
-      };
-    }
-
     const detectorId = event.occurrence?.evidenceData.detectorId;
     return {
       detectorType: 'metric_alert',

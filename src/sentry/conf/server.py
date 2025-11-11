@@ -1789,6 +1789,15 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "email": {"email"},
 }
 
+# Specialized scopes that can be granted to integration tokens even if the
+# user doesn't have them in their role. These are token-only scopes not intended
+# for user roles.
+SENTRY_TOKEN_ONLY_SCOPES = frozenset(
+    [
+        "project:distribution",  # App distribution/preprod artifacts
+    ]
+)
+
 SENTRY_SCOPE_SETS = (
     (
         ("org:admin", "Read, write, and admin access to organization details."),
@@ -1818,6 +1827,7 @@ SENTRY_SCOPE_SETS = (
         ("project:read", "Read access to projects."),
     ),
     (("project:releases", "Read, write, and admin access to project releases."),),
+    (("project:distribution", "Access to app distribution and preprod artifacts."),),
     (
         ("event:admin", "Read, write, and admin access to events."),
         ("event:write", "Read and write access to events."),

@@ -9,6 +9,7 @@ import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {SENTRY_RELEASE_VERSION, USE_REACT_QUERY_DEVTOOL} from 'sentry/constants';
+import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
 import {routes} from 'sentry/router/routes';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 
@@ -29,7 +30,9 @@ function Main() {
         <ThemeAndStyleProvider>
           <NuqsAdapter defaultOptions={{shallow: false}}>
             <CommandPaletteProvider>
-              <RouterProvider router={router} />
+              <RouteConfigProvider value={router.routes}>
+                <RouterProvider router={router} />
+              </RouteConfigProvider>
             </CommandPaletteProvider>
           </NuqsAdapter>
           {USE_REACT_QUERY_DEVTOOL && (

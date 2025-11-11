@@ -2,6 +2,9 @@ import {isValidElement, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
@@ -15,7 +18,7 @@ import {
   IconRefresh,
   IconSpan,
 } from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -214,7 +217,20 @@ function GroupSummaryPreview({
               <InsightCard key={card.id}>
                 <CardTitle>
                   <CardTitleIcon>{card.icon}</CardTitleIcon>
-                  <CardTitleText>{card.title}</CardTitleText>
+                  <Tooltip
+                    title={tct(
+                      'Powered by generative AI. Learn more about our [link:AI privacy principles].',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/" />
+                        ),
+                      }
+                    )}
+                    showUnderline
+                    isHoverable
+                  >
+                    <CardTitleText>{card.title}</CardTitleText>
+                  </Tooltip>
                 </CardTitle>
                 <CardContentContainer>
                   <CardLineDecorationWrapper>

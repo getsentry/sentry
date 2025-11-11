@@ -10,6 +10,7 @@ import ProductTrialAlert from 'getsentry/components/productTrial/productTrialAle
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {ProductTrial} from 'getsentry/types';
+import {PlanName} from 'getsentry/types';
 
 describe('ProductTrialAlert', () => {
   const api = new MockApiClient();
@@ -133,7 +134,7 @@ describe('ProductTrialAlert', () => {
     ).toBeInTheDocument();
   });
 
-  it('loads trial ended', () => {
+  it('loads trial ended for free plan users', () => {
     const trial: ProductTrial = {
       category: DataCategory.PROFILES,
       isStarted: true,
@@ -156,6 +157,82 @@ describe('ProductTrialAlert', () => {
     expect(
       screen.getByText(
         'Your unlimited Continuous Profiling trial ended. Keep using more by upgrading your plan.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('loads trial ended for Business plan users without upgrade prompt', () => {
+    const businessSubscription = SubscriptionFixture({
+      organization,
+      planDetails: {
+        ...SubscriptionFixture({organization}).planDetails,
+        price: 99,
+        name: PlanName.BUSINESS,
+      },
+    });
+
+    const trial: ProductTrial = {
+      category: DataCategory.TRANSACTIONS,
+      isStarted: true,
+      reasonCode: 2001,
+      startDate: moment().utc().subtract(16, 'days').format(),
+      endDate: moment().utc().subtract(2, 'days').format(),
+      lengthDays: 14,
+    };
+
+    render(
+      <ProductTrialAlert
+        api={api}
+        organization={organization}
+        subscription={businessSubscription}
+        trial={trial}
+        product={DataCategory.TRANSACTIONS}
+      />
+    );
+    expect(screen.getByText('Performance Monitoring Trial')).toBeInTheDocument();
+    // For Business plan users, should NOT include "Keep using more by upgrading your plan."
+    expect(
+      screen.getByText('Your unlimited Performance Monitoring trial ended.')
+    ).toBeInTheDocument();
+    // Should NOT show the upgrade prompt text
+    expect(
+      screen.queryByText(/Keep using more by upgrading your plan/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('loads trial ended for Team plan users with upgrade prompt', () => {
+    const teamSubscription = SubscriptionFixture({
+      organization,
+      planDetails: {
+        ...SubscriptionFixture({organization}).planDetails,
+        price: 29,
+        name: PlanName.TEAM,
+      },
+    });
+
+    const trial: ProductTrial = {
+      category: DataCategory.REPLAYS,
+      isStarted: true,
+      reasonCode: 2001,
+      startDate: moment().utc().subtract(16, 'days').format(),
+      endDate: moment().utc().subtract(2, 'days').format(),
+      lengthDays: 14,
+    };
+
+    render(
+      <ProductTrialAlert
+        api={api}
+        organization={organization}
+        subscription={teamSubscription}
+        trial={trial}
+        product={DataCategory.REPLAYS}
+      />
+    );
+    expect(screen.getByText('Session Replay Trial')).toBeInTheDocument();
+    // For Team plan users, SHOULD show the upgrade prompt
+    expect(
+      screen.getByText(
+        'Your unlimited Session Replay trial ended. Keep using more by upgrading your plan.'
       )
     ).toBeInTheDocument();
   });

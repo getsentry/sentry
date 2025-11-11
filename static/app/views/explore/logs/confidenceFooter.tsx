@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {IconWarning} from 'sentry/icons';
@@ -10,14 +8,15 @@ import {
   Container,
   usePreviouslyLoaded,
 } from 'sentry/views/explore/components/chart/chartFooter';
+import {Placeholder} from 'sentry/views/explore/components/chart/placeholder';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import type {RawLogCounts} from 'sentry/views/explore/logs/useLogsQuery';
+import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 
 interface ConfidenceFooterProps {
   chartInfo: ChartInfo;
   hasUserQuery: boolean;
   isLoading: boolean;
-  rawLogCounts: RawLogCounts;
+  rawLogCounts: RawCounts;
 }
 
 export function ConfidenceFooter({
@@ -46,7 +45,7 @@ export function ConfidenceFooter({
 interface ConfidenceMessageProps {
   hasUserQuery: boolean;
   isLoading: boolean;
-  rawLogCounts: RawLogCounts;
+  rawLogCounts: RawCounts;
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   isSampled?: boolean | null;
@@ -67,11 +66,7 @@ function ConfidenceMessage({
   const isTopN = defined(topEvents) && topEvents > 1;
 
   if (!defined(sampleCount) || isLoading) {
-    return (
-      <OffsetContainer>
-        <Placeholder width={180} />
-      </OffsetContainer>
-    );
+    return <Placeholder width={180} />;
   }
 
   const noSampling = defined(isSampled) && !isSampled;
@@ -86,9 +81,7 @@ function ConfidenceMessage({
       t('%s sample', <Count value={rawLogCounts.normal.count} />)
     )
   ) : (
-    <OffsetContainer>
-      <Placeholder width={40} />
-    </OffsetContainer>
+    <Placeholder width={40} />
   );
   const allLogsCount = rawLogCounts.highAccuracy.count ? (
     rawLogCounts.highAccuracy.count > 1 ? (
@@ -97,9 +90,7 @@ function ConfidenceMessage({
       t('%s log', <Count value={rawLogCounts.highAccuracy.count} />)
     )
   ) : (
-    <OffsetContainer>
-      <Placeholder width={40} />
-    </OffsetContainer>
+    <Placeholder width={40} />
   );
 
   if (dataScanned === 'full') {
@@ -134,11 +125,7 @@ function ConfidenceMessage({
 
   const downsampledTooltip = <DownsampledTooltip noSampling={noSampling} />;
 
-  const warning = (
-    <OffsetContainer>
-      <IconWarning size="sm" />
-    </OffsetContainer>
-  );
+  const warning = <IconWarning size="sm" />;
 
   if (isTopN) {
     return tct(
@@ -194,16 +181,3 @@ function DownsampledTooltip({
     </Tooltip>
   );
 }
-
-const Placeholder = styled('div')<{width: number}>`
-  display: inline-block;
-  width: ${p => p.width}px;
-  height: ${p => p.theme.fontSize.md};
-  border-radius: ${p => p.theme.borderRadius};
-  background-color: ${p => p.theme.backgroundTertiary};
-`;
-
-const OffsetContainer = styled('span')`
-  position: relative;
-  top: 2px;
-`;

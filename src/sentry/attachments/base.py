@@ -1,6 +1,5 @@
 from collections.abc import Generator
 
-import sentry_sdk
 import zstandard
 
 from sentry.utils import metrics
@@ -185,9 +184,5 @@ class BaseAttachmentCache:
 
         return bytes(data)
 
-    @sentry_sdk.trace
     def delete(self, key: str):
-        for attachment in self.get(key):
-            attachment.delete()
-
         self.inner.delete(ATTACHMENT_META_KEY.format(key=key))

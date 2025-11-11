@@ -50,28 +50,24 @@ const StyledPlatformIcon = styled(PlatformIcon)`
 `;
 
 export const fields = {
-  name: {
-    name: 'name',
+  slug: {
+    name: 'slug',
     type: 'string',
     required: true,
     label: t('Slug'),
-    placeholder: t('my-awesome-project'),
     help: t('A unique ID used to identify this project'),
-    transformInput: slugify,
-    getData: (data: {name?: string}) => {
+    transformInput: slugify as (str: string) => string,
+    getData: (data: {slug?: string}) => {
       return {
-        name: data.name,
-        slug: data.name,
+        slug: data.slug,
       };
     },
-
     saveOnBlur: false,
     saveMessageAlertType: 'warning',
     saveMessage: t(
       "Changing a project's slug can break your build scripts! Please proceed carefully."
     ),
   },
-
   platform: {
     name: 'platform',
     type: 'select',

@@ -75,7 +75,7 @@ export function TeamsPreview({
               <TeamsBlackText size="xl" bold>
                 {subject}
               </TeamsBlackText>
-              <TeamsBlackText>{body}</TeamsBlackText>
+              <TeamsBlackText>{JSON.stringify(body)}</TeamsBlackText>
               <Flex gap="md">
                 {actions.map(action => (
                   <TeamsLinkButton key={action.label} href={action.link}>

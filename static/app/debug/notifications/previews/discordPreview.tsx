@@ -46,7 +46,7 @@ export function DiscordPreview({
             <DiscordWhiteText size="md" bold>
               {subject}
             </DiscordWhiteText>
-            <DiscordWhiteText size="sm">{body}</DiscordWhiteText>
+            <DiscordWhiteText size="sm">{JSON.stringify(body)}</DiscordWhiteText>
             {chart && (
               <DiscordChart
                 height="100px"

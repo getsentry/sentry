@@ -486,6 +486,13 @@ function AutofixSolutionDisplay({
     });
   };
 
+  // Check if instructions were provided (either typed in input or already added to solution and active)
+  const hasInstructions =
+    instructions.trim().length > 0 ||
+    solutionItems.some(
+      item => item.timeline_item_type === 'human_instruction' && item.is_active !== false
+    );
+
   useEffect(() => {
     setSolutionItems(
       solution.map(item => ({
@@ -650,6 +657,9 @@ function AutofixSolutionDisplay({
               onClick={handleCodeItUp}
               analyticsEventName="Autofix: Code It Up"
               analyticsEventKey="autofix.solution.code"
+              analyticsParams={{
+                instruction_provided: hasInstructions,
+              }}
               title={t('Implement this solution in code with Seer')}
             >
               {t('Code It Up')}

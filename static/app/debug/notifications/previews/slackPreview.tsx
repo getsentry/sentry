@@ -54,7 +54,7 @@ export function SlackPreview({
             <SlackBlackText size="xl" bold>
               {subject}
             </SlackBlackText>
-            <SlackBodyText>{body}</SlackBodyText>
+            <SlackBodyText>{JSON.stringify(body)}</SlackBodyText>
             <Flex gap="xs">
               {actions.map(action => (
                 <SlackLinkButton key={action.label} href={action.link}>
