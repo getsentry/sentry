@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
 GROUP_HASH_ITERATIONS = 10000
+GROUP_HASH_METADATA_ITERATIONS = 10000
 
 # Group models that relate only to groups and not to events. These models are
 # transferred during reprocessing operations because they represent group-level
@@ -267,83 +268,46 @@ def update_group_hash_metadata_in_batches(hash_ids: Sequence[int]) -> None:
 
     This function performs the update in smaller batches to reduce lock
     contention and prevent statement timeouts when many rows need updating.
-    Uses cursor-based pagination with the primary key to avoid loading all
-    IDs into memory and to avoid growing NOT IN clauses.
+    Includes a maximum iteration limit as a safeguard against potential
+    infinite loops.
     """
-    option_batch_size = options.get("deletions.group-hash-metadata.batch-size", 1000)
+    option_batch_size = options.get("deletions.group-hash-metadata.batch-size")
     batch_size = max(1, option_batch_size)
 
-    # Use cursor-based pagination with the primary key to efficiently
-    # process large datasets without loading all IDs into memory or
-    # creating large NOT IN clauses. We fetch IDs without ORDER BY to avoid
-    # database sorting overhead, then sort the small batch in Python.
-    last_max_id = 0
-    while True:
+    # Process rows in batches with a maximum iteration limit to prevent
+    # infinite loops while still allowing processing of large datasets.
+    updated_rows = 0
+    iteration_count = 0
+    while iteration_count < GROUP_HASH_METADATA_ITERATIONS:
+        iteration_count += 1
         # Note: hash_ids is bounded to ~100 items (deletions.group-hashes-batch-size)
         # from the caller, so this IN clause is intentionally not batched
         batch_metadata_ids = list(
-            GroupHashMetadata.objects.filter(
-                seer_matched_grouphash_id__in=hash_ids, id__gt=last_max_id
-            ).values_list("id", flat=True)[:batch_size]
+            GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids).values_list(
+                "id", flat=True
+            )[:batch_size]
         )
         if not batch_metadata_ids:
             break
 
-        # Sort in Python to ensure we process lowest IDs first and can safely
-        # advance the cursor. Sorting a small batch (e.g., 1000 items) in Python
-        # is trivial and avoids database ORDER BY overhead.
-        batch_metadata_ids.sort()
-
         updated = GroupHashMetadata.objects.filter(id__in=batch_metadata_ids).update(
             seer_matched_grouphash=None
         )
+        updated_rows += updated
         metrics.incr("deletions.group_hash_metadata.rows_updated", amount=updated, sample_rate=1.0)
+        # It could be possible we could be trying to update the same rows again and again,
+        # thus, let's break the loop.
+        if updated == 0:
+            break
 
-        last_max_id = batch_metadata_ids[-1]  # Last element after sorting
-
-
-def update_group_hash_metadata_in_batches_old(hash_ids: Sequence[int]) -> int:
-    """
-    Update seer_matched_grouphash to None for GroupHashMetadata rows
-    that reference the given hash_ids, in batches to avoid timeouts.
-
-    This function performs the update in smaller batches to reduce lock
-    contention and prevent statement timeouts when many rows need updating.
-
-    Returns the total number of rows updated.
-    """
-    # First, get all the IDs that need updating
-    metadata_ids = list(
-        GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids).values_list(
-            "id", flat=True
+    # We will try again these hash_ids on the next run of the cleanup script.
+    # This is a safeguard to prevent infinite loops.
+    if iteration_count >= GROUP_HASH_METADATA_ITERATIONS:
+        logger.warning(
+            "update_group_hash_metadata_in_batches.max_iterations_reached",
+            extra={"updated_rows": updated_rows},
         )
-    )
-
-    if not metadata_ids:
-        return 0
-
-    option_batch_size = options.get("deletions.group-hash-metadata.batch-size", 1000)
-    batch_size = max(1, option_batch_size)
-    total_updated = 0
-    for i in range(0, len(metadata_ids), batch_size):
-        batch = metadata_ids[i : i + batch_size]
-        updated = GroupHashMetadata.objects.filter(id__in=batch).update(seer_matched_grouphash=None)
-        total_updated += updated
-
-    metrics.incr(
-        "deletions.group_hash_metadata.rows_updated",
-        amount=total_updated,
-        sample_rate=1.0,
-    )
-    logger.info(
-        "update_group_hash_metadata_in_batches.complete",
-        extra={
-            "hash_ids_count": len(hash_ids),
-            "total_updated": total_updated,
-        },
-    )
-
-    return total_updated
+        metrics.incr("deletions.group_hash_metadata.max_iterations_reached", sample_rate=1.0)
 
 
 def delete_group_hashes(
@@ -381,10 +345,7 @@ def delete_group_hashes(
             # 2. Delete the GroupHashMetadata rows entirely (they'll be deleted anyway)
             # If we update the columns first, the deletion of the grouphash metadata rows will have less work to do,
             # thus, improving the performance of the deletion.
-            if options.get("deletions.group-hash-metadata.use-old-update-method"):
-                update_group_hash_metadata_in_batches_old(hash_ids)
-            else:
-                update_group_hash_metadata_in_batches(hash_ids)
+            update_group_hash_metadata_in_batches(hash_ids)
             GroupHashMetadata.objects.filter(grouphash_id__in=hash_ids).delete()
             GroupHash.objects.filter(id__in=hash_ids).delete()
 

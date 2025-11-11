@@ -18,10 +18,10 @@ interface UseMetricDetectorSeriesProps {
   projectId: string;
   query: string;
   comparisonDelta?: number;
-  end?: string;
+  end?: string | null;
   options?: Partial<UseApiQueryOptions<any>>;
-  start?: string;
-  statsPeriod?: string;
+  start?: string | null;
+  statsPeriod?: string | null;
 }
 
 interface UseMetricDetectorSeriesResult {
