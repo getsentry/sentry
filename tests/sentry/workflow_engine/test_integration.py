@@ -177,19 +177,6 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             # We currently don't have a detector for this issue type, so it should not call workflow_engine.
             mock_process_workflow.assert_not_called()
 
-    def test_workflow_engine__workflows__no_flag(self) -> None:
-        self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
-
-        assert self.group
-
-        with mock.patch(
-            "sentry.workflow_engine.tasks.workflows.process_workflows_event.apply_async"
-        ) as mock_process_workflow:
-            self.call_post_process_group(self.group.id)
-
-            # While this is the same test as the first one, it doesn't invoke the workflow engine because the feature flag is off.
-            mock_process_workflow.assert_not_called()
-
 
 @mock.patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):

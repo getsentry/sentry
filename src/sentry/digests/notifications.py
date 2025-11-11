@@ -89,7 +89,7 @@ def event_to_record(
     assert event.group is not None
     rule_ids = []
     identifier_key = IdentifierKey.RULE
-    if features.has("organizations:workflow-engine-ui-links", event.organization):
+    if features.has("organizations:workflow-engine-ui", event.organization):
         identifier_key = IdentifierKey.WORKFLOW
         for rule in rules:
             rule_ids.append(int(get_key_from_rule_data(rule, "workflow_id")))
@@ -194,7 +194,7 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
 
     # We are only processing the workflows in the digest if under the new flag
     # This should be ok since we should only add workflow_ids to redis when under this flag
-    if features.has("organizations:workflow-engine-ui-links", project.organization):
+    if features.has("organizations:workflow-engine-ui", project.organization):
         for workflow_id, workflow in workflows.items():
             assert (
                 workflow.organization_id == project.organization_id

@@ -354,3 +354,15 @@ class MetricIssue(GroupType):
             },
         },
     )
+
+    @classmethod
+    def allow_ingest(cls, organization: Organization) -> bool:
+        return True
+
+    @classmethod
+    def allow_post_process_group(cls, organization: Organization) -> bool:
+        return True
+
+    @classmethod
+    def build_visible_feature_name(cls) -> str:
+        return "organizations:workflow-engine-ui"
