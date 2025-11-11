@@ -23,12 +23,12 @@ import {
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
+import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/metrics';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/gettingStartedDocs/node/node/utils';
 import {t, tct} from 'sentry/locale';
 import {
   getJavascriptFullStackOnboarding,
   getJavascriptLogsFullStackOnboarding,
-  getJavascriptMetricsFullStackOnboarding,
 } from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
@@ -615,7 +615,7 @@ const docs: Docs = {
     docsPlatform: 'nextjs',
     packageName: '@sentry/nextjs',
   }),
-  metricsOnboarding: getJavascriptMetricsFullStackOnboarding({
+  metricsOnboarding: metricsFullStack({
     docsPlatform: 'nextjs',
     packageName: '@sentry/nextjs',
   }),
