@@ -12,6 +12,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextClient,
+    CommitInfo,
     FileBlameInfo,
     SourceLineInfo,
 )
@@ -445,16 +446,85 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         Returns a list of FileBlameInfo objects containing commit details for each file.
         """
-        return []
+        metrics.incr("integrations.perforce.get_blame_for_files")
+        blames = []
+        p4 = self._connect()
 
-    def get_file(
-        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
-    ) -> str:
-        """
-        Get file contents from Perforce depot.
-        Required by abstract base class but not used (CODEOWNERS feature removed).
-        """
-        raise NotImplementedError("get_file is not supported for Perforce")
+        try:
+            for file in files:
+                try:
+                    # Build depot path for the file (includes stream if specified)
+                    # file.ref contains the revision/changelist if available
+                    depot_path = self._build_depot_path(file.repo, file.path, file.ref)
+
+                    # Use faster p4 filelog approach to get most recent changelist
+                    # This is much faster than p4 annotate
+                    filelog = p4.run("filelog", "-m1", depot_path)
+
+                    changelist = None
+                    if filelog and len(filelog) > 0:
+                        # The 'change' field contains the changelist numbers (as a list of strings)
+                        changelists = filelog[0].get("change", [])
+                        if changelists and len(changelists) > 0:
+                            # Get the first (most recent) changelist number
+                            changelist = changelists[0]
+
+                    # If we found a changelist, get detailed commit info
+                    if changelist:
+                        try:
+                            change_info = p4.run("describe", "-s", changelist)
+                            if change_info and len(change_info) > 0:
+                                change = change_info[0]
+                                username = change.get("user", "unknown")
+                                # Perforce doesn't provide email by default, so we generate a fallback
+                                email = change.get("email") or f"{username}@perforce.local"
+                                commit = CommitInfo(
+                                    commitId=changelist,
+                                    committedDate=datetime.fromtimestamp(
+                                        int(change.get("time", 0)), tz=timezone.utc
+                                    ),
+                                    commitMessage=change.get("desc", "").strip(),
+                                    commitAuthorName=username,
+                                    commitAuthorEmail=email,
+                                )
+
+                                blame_info = FileBlameInfo(
+                                    lineno=file.lineno,
+                                    path=file.path,
+                                    ref=file.ref,
+                                    repo=file.repo,
+                                    code_mapping=file.code_mapping,
+                                    commit=commit,
+                                )
+                                blames.append(blame_info)
+                        except self.P4Exception as e:
+                            logger.warning(
+                                "perforce.client.get_blame_for_files.describe_error",
+                                extra={
+                                    **extra,
+                                    "changelist": changelist,
+                                    "error": str(e),
+                                    "repo_name": file.repo.name,
+                                    "file_path": file.path,
+                                },
+                            )
+                except self.P4Exception as e:
+                    # Log but don't fail for individual file errors
+                    logger.warning(
+                        "perforce.client.get_blame_for_files.annotate_error",
+                        extra={
+                            **extra,
+                            "error": str(e),
+                            "repo_name": file.repo.name,
+                            "file_path": file.path,
+                            "file_lineno": file.lineno,
+                        },
+                    )
+                    continue
+
+            return blames
+        finally:
+            self._disconnect(p4)
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
