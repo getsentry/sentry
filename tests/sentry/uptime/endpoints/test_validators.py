@@ -294,3 +294,83 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
 
         # Verify no seat operations were called
         mock_assign_seat.assert_not_called()
+
+    def test_non_superuser_cannot_create_with_auto_detected_mode(self) -> None:
+        """Test that non-superuser cannot create detector with AUTO_DETECTED mode."""
+        data = self.get_valid_data(
+            config={
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
+                "environment": None,
+                "recovery_threshold": DEFAULT_RECOVERY_THRESHOLD,
+                "downtime_threshold": DEFAULT_DOWNTIME_THRESHOLD,
+            }
+        )
+
+        validator = UptimeDomainCheckFailureValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors["config"] == ["Only superusers can modify `mode`"]
+
+    def test_non_superuser_cannot_change_mode(self) -> None:
+        """Test that non-superuser cannot change mode via update."""
+        # Create a detector with MANUAL mode
+        detector = self.create_uptime_detector(mode=UptimeMonitorMode.MANUAL)
+
+        data = {
+            "config": {
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
+                "environment": None,
+                "recovery_threshold": DEFAULT_RECOVERY_THRESHOLD,
+                "downtime_threshold": DEFAULT_DOWNTIME_THRESHOLD,
+            }
+        }
+
+        validator = UptimeDomainCheckFailureValidator(
+            instance=detector, data=data, context=self.context, partial=True
+        )
+        assert not validator.is_valid()
+        assert validator.errors["config"] == ["Only superusers can modify `mode`"]
+
+        # Verify mode was not changed
+        detector.refresh_from_db()
+        assert detector.config["mode"] == UptimeMonitorMode.MANUAL.value
+
+    def test_non_superuser_can_update_with_same_mode(self) -> None:
+        """Test that non-superuser can pass config if mode doesn't change."""
+        # Create a detector with AUTO_DETECTED_ACTIVE mode (e.g., from autodetection)
+        detector = self.create_uptime_detector(mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE)
+
+        data = {
+            "config": {
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,  # Same mode
+                "environment": None,
+                "recovery_threshold": DEFAULT_RECOVERY_THRESHOLD,
+                "downtime_threshold": DEFAULT_DOWNTIME_THRESHOLD,
+            }
+        }
+
+        validator = UptimeDomainCheckFailureValidator(
+            instance=detector, data=data, context=self.context, partial=True
+        )
+        # Should be valid since mode hasn't changed
+        assert validator.is_valid(), validator.errors
+
+    def test_superuser_can_create_with_auto_detected_mode(self) -> None:
+        """Test that superuser can create detector with AUTO_DETECTED mode."""
+        superuser = self.create_user(is_superuser=True)
+        self.context["request"] = self.make_request(user=superuser, is_superuser=True)
+
+        data = self.get_valid_data(
+            config={
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
+                "environment": None,
+                "recovery_threshold": DEFAULT_RECOVERY_THRESHOLD,
+                "downtime_threshold": DEFAULT_DOWNTIME_THRESHOLD,
+            }
+        )
+
+        validator = UptimeDomainCheckFailureValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        detector.refresh_from_db()
+        assert detector.config["mode"] == UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value
