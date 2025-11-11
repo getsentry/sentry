@@ -53,7 +53,6 @@ describe('DetectorsList', () => {
           config: {
             detectionType: 'percent',
             comparisonDelta: 10,
-            thresholdPeriod: 10,
           },
           conditionGroup: {
             id: '1',

@@ -80,21 +80,17 @@ export type DetectorType =
   | 'uptime_domain_failure'
   | 'issue_stream';
 
-interface BaseMetricDetectorConfig {
-  thresholdPeriod: number;
-}
-
 /**
  * Configuration for static/threshold-based detection
  */
-interface MetricDetectorConfigStatic extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigStatic {
   detectionType: 'static';
 }
 
 /**
  * Configuration for percentage-based change detection
  */
-interface MetricDetectorConfigPercent extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigPercent {
   comparisonDelta: number;
   detectionType: 'percent';
 }
@@ -102,11 +98,8 @@ interface MetricDetectorConfigPercent extends BaseMetricDetectorConfig {
 /**
  * Configuration for dynamic/anomaly detection
  */
-interface MetricDetectorConfigDynamic extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigDynamic {
   detectionType: 'dynamic';
-  seasonality?: 'auto' | 'daily' | 'weekly' | 'monthly';
-  sensitivity?: AlertRuleSensitivity;
-  thresholdType?: AlertRuleThresholdType;
 }
 
 export type MetricDetectorConfig =
@@ -233,7 +226,7 @@ export interface MetricCondition {
 /**
  * See AnomalyDetectionHandler
  */
-interface AnomalyDetectionComparison {
+export interface AnomalyDetectionComparison {
   seasonality:
     | 'auto'
     | 'hourly'
@@ -243,8 +236,8 @@ interface AnomalyDetectionComparison {
     | 'hourly_weekly'
     | 'hourly_daily_weekly'
     | 'daily_weekly';
-  sensitivity: 'low' | 'medium' | 'high';
-  threshold_type: 0 | 1 | 2;
+  sensitivity: AlertRuleSensitivity;
+  thresholdType: AlertRuleThresholdType;
 }
 
 type MetricDataCondition = AnomalyDetectionComparison | number;
