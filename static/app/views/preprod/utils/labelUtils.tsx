@@ -3,6 +3,7 @@ import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
   BuildDetailsArtifactType,
+  getPrimarySizeMetric,
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -116,14 +117,16 @@ export function getReadablePlatformLabel(platform: Platform): string {
 
 export function formattedInstallSize(build: BuildDetailsApiResponse): string {
   if (isSizeInfoCompleted(build?.size_info)) {
-    return formatBytesBase10(build.size_info.install_size_bytes);
+    const primarySizeMetric = getPrimarySizeMetric(build.size_info);
+    return formatBytesBase10(primarySizeMetric?.install_size_bytes ?? 0);
   }
   return '-';
 }
 
 export function formattedDownloadSize(build: BuildDetailsApiResponse): string {
   if (isSizeInfoCompleted(build?.size_info)) {
-    return formatBytesBase10(build.size_info.download_size_bytes);
+    const primarySizeMetric = getPrimarySizeMetric(build.size_info);
+    return formatBytesBase10(primarySizeMetric?.download_size_bytes ?? 0);
   }
   return '-';
 }
