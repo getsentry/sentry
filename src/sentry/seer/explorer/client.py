@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
 from typing import Any
 
 import orjson
@@ -18,7 +17,7 @@ from sentry.seer.explorer.client_utils import (
     has_seer_explorer_access_with_detail,
     poll_until_done,
 )
-from sentry.seer.explorer.custom_tool_utils import extract_tool_schema
+from sentry.seer.explorer.custom_tool_utils import ExplorerTool, extract_tool_schema
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.users.models.user import User
@@ -59,19 +58,33 @@ class SeerExplorerClient:
             print(f"Found {artifact.issue_count} issues")
 
         # WITH CUSTOM TOOLS
-        def get_deployment_status(environment: str, service: str) -> str:
-            '''Check if a service is deployed in an environment.
+        from sentry.seer.explorer.custom_tool_utils import ExplorerTool, ExplorerToolParam, StringType
 
-            Args:
-                environment: The environment name (e.g., 'production', 'staging')
-                service: The service name to check
-            '''
-            return "deployed" if check_deployment(environment, service) else "not deployed"
+        class DeploymentStatusTool(ExplorerTool):
+            def get_tool_description(self):
+                return "Check if a service is deployed in an environment"
+
+            def get_params(self):
+                return [
+                    ExplorerToolParam(
+                        name="environment",
+                        description="Environment name (e.g., 'production', 'staging')",
+                        type=StringType(),
+                    ),
+                    ExplorerToolParam(
+                        name="service",
+                        description="Service name",
+                        type=StringType(),
+                    ),
+                ]
+
+            def execute(self, organization, **kwargs):
+                return "deployed" if check_deployment(organization, kwargs["environment"], kwargs["service"]) else "not deployed"
 
         client = SeerExplorerClient(
             organization,
             user,
-            custom_tools=[get_deployment_status]
+            custom_tools=[DeploymentStatusTool]
         )
         run_id = client.start_run("Check if payment-service is deployed in production")
     ```
@@ -80,7 +93,7 @@ class SeerExplorerClient:
             organization: Sentry organization
             user: User for permission checks and user-specific context (can be User, AnonymousUser, or None)
             artifact_schema: Optional Pydantic model to generate a structured artifact at the end of the run
-            custom_tools: Optional list of functions to make available as tools to the agent. Must be module-level functions (not lambdas, class methods, or nested functions). Must have type annotations for all parameters, and they must be built-in types (e.g. str, int, bool, list, etc.) and not classes/objects. Must return str or None. Should have a descriptive docstring (used as tool description for the agent).
+            custom_tools: Optional list of `ExplorerTool` objects to make available as tools to the agent. Each tool must inherit from ExplorerTool and implement get_params() and execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
     """
 
     def __init__(
@@ -88,7 +101,7 @@ class SeerExplorerClient:
         organization: Organization,
         user: User | AnonymousUser | None = None,
         artifact_schema: type[BaseModel] | None = None,
-        custom_tools: list[Callable] | None = None,
+        custom_tools: list[type[ExplorerTool]] | None = None,
     ):
         self.organization = organization
         self.user = user
