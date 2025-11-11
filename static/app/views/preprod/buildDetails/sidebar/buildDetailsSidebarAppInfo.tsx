@@ -77,7 +77,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
               </Flex>
               <Flex gap="sm">
                 <Text size="md" bold>
-                  {t('Watch app')}:
+                  {t('Watch')}:
                 </Text>
                 <Text size="md">
                   {formatBytesBase10(watchAppMetrics.install_size_bytes)}
@@ -106,7 +106,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
               </Flex>
               <Flex gap="sm">
                 <Text size="md" bold>
-                  {t('Watch app')}:
+                  {t('Watch')}:
                 </Text>
                 <Text size="md">
                   {formatBytesBase10(watchAppMetrics.download_size_bytes)}
