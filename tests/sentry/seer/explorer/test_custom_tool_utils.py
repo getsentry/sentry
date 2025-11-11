@@ -277,7 +277,7 @@ class CustomToolUtilsTest(TestCase):
         module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.BadTool"
         with pytest.raises(RuntimeError) as cm:
             call_custom_tool(
-                module_path,
+                module_path=module_path,
                 allowed_prefixes=("sentry.", "tests.sentry."),
                 organization_id=self.organization.id,
             )
@@ -300,7 +300,7 @@ class CustomToolUtilsTest(TestCase):
 
         # Call with array of dicts
         result = call_custom_tool(
-            module_path,
+            module_path=module_path,
             allowed_prefixes=("sentry.", "tests.sentry."),
             organization_id=self.organization.id,
             items=[{"name": "Alice", "age": "30"}, {"name": "Bob", "age": "25"}],
