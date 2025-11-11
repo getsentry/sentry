@@ -355,7 +355,9 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
         assert response.status_code == 400, response.content
-        assert response.data["error"] == "Unsupported provider"
+        assert "Unsupported VCS provider 'invalid'" in response.data["error"]
+        assert "Supported providers are:" in response.data["error"]
+        assert "github" in response.data["error"]
 
     def test_assemble_json_schema_missing_checksum(self) -> None:
         """Test that missing checksum field is rejected."""

@@ -164,7 +164,13 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             # Support a limited subset of providers
             provider = data.get("provider")
             if provider is not None and provider not in SUPPORTED_VCS_PROVIDERS:
-                return Response({"error": "Unsupported provider"}, status=400)
+                supported_providers = ", ".join(SUPPORTED_VCS_PROVIDERS)
+                return Response(
+                    {
+                        "error": f"Unsupported VCS provider '{provider}'. Supported providers are: {supported_providers}"
+                    },
+                    status=400,
+                )
 
             checksum = str(data.get("checksum", ""))
             chunks = data.get("chunks", [])
