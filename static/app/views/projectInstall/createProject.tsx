@@ -291,6 +291,7 @@ export function CreateProject() {
           project_id: project.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
+          notification_rule_created: !!notificationRule,
         });
 
         addSuccessMessage(
