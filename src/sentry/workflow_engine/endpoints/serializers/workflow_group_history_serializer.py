@@ -120,12 +120,11 @@ def fetch_workflow_groups_paginated(
     # subquery that retrieves row with the largest date in a group
     group_max_dates = filtered_history.filter(group=OuterRef("group")).order_by("-date_added")[:1]
     qs = (
-        filtered_history.select_related("group", "detector")
-        .values("group")
+        filtered_history.values("group")
         .annotate(count=Count("group"))
         .annotate(event_id=Subquery(group_max_dates.values("event_id")))
         .annotate(last_triggered=Max("date_added"))
-        .annotate(detector_id=Subquery(group_max_dates.values("detector_id")))
+        .annotate(detector_id=Subquery(group_max_dates.values("detector_id")))  # type: ignore[no-redef]
     )
 
     return cast(
