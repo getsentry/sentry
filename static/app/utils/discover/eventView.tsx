@@ -69,6 +69,7 @@ export type MetaType = Record<string, any> & {
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   units: Record<string, string>;
 } & {
+  bytesScanned?: number | null;
   dataScanned?: 'full' | 'partial';
   discoverSplitDecision?: WidgetType;
   isMetricsData?: boolean;
@@ -222,7 +223,7 @@ const collectQueryStringByKey = (query: Query, key: string): string[] => {
   }, []);
 };
 
-export const decodeQuery = (location: Location): string => {
+const decodeQuery = (location: Location): string => {
   if (!location.query?.query) {
     return '';
   }

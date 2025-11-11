@@ -38,6 +38,7 @@ function ConnectedAutomations({
         cursor={cursor}
         onCursor={setCursor}
         limit={null}
+        openInNewTab
       />
     </Section>
   );
@@ -69,6 +70,7 @@ function AllAutomations({
         cursor={cursor}
         onCursor={setCursor}
         query={searchQuery}
+        openInNewTab
       />
     </Section>
   );
@@ -181,6 +183,7 @@ export function AutomateSection() {
             cursor={undefined}
             onCursor={() => {}}
             limit={null}
+            openInNewTab
           />
         </Section>
         <ButtonWrapper justify="between">
@@ -198,7 +201,10 @@ export function AutomateSection() {
 
   return (
     <Container>
-      <Section title={t('Automate')} description={t('Set up alerts or notifications.')}>
+      <Section
+        title={t('Alert')}
+        description={t('Set up alerts to get notified on issues.')}
+      >
         <Button
           ref={ref}
           size="sm"

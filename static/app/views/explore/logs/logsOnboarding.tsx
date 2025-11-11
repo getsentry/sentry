@@ -36,11 +36,14 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
-  FilterBarContainer,
-  StyledPageFilterBar,
-  TopSectionBody,
-} from 'sentry/views/explore/logs/styles';
+  ExploreBodySearch,
+  ExploreFilterSection,
+} from 'sentry/views/explore/components/styles';
+import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
 import type {PickableDays} from 'sentry/views/explore/utils';
+
+// eslint-disable-next-line no-restricted-imports,boundaries/element-types
+import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type OnboardingProps = {
   organization: Organization;
@@ -219,6 +222,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     platformKey: project.platform || 'other',
     project,
     isLogsSelected: true,
+    isMetricsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: false,
     isProfilingSelected: false,
@@ -369,6 +373,10 @@ const Arcade = styled('iframe')`
   border: 0;
 `;
 
+const OnboardingContainer = styled('div')`
+  margin-top: ${space(1)};
+`;
+
 type LogsTabOnboardingProps = {
   organization: Organization;
   project: Project;
@@ -382,9 +390,9 @@ export function LogsTabOnboarding({
   relativeOptions,
 }: LogsTabOnboardingProps) {
   return (
-    <TopSectionBody noRowGap>
+    <ExploreBodySearch>
       <Layout.Main width="full">
-        <FilterBarContainer>
+        <ExploreFilterSection>
           <StyledPageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
@@ -394,9 +402,12 @@ export function LogsTabOnboarding({
               relativeOptions={relativeOptions}
             />
           </StyledPageFilterBar>
-        </FilterBarContainer>
-        <Onboarding project={project} organization={organization} />
+        </ExploreFilterSection>
+        <OnboardingContainer>
+          <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+          <Onboarding project={project} organization={organization} />
+        </OnboardingContainer>
       </Layout.Main>
-    </TopSectionBody>
+    </ExploreBodySearch>
   );
 }

@@ -344,7 +344,7 @@ class Project(Model):
         # This Project has sent insight queues spans
         has_insights_queues: bool
 
-        # This Project has sent insight llm monitoring spans
+        # No longer used, use has_insights_agent_monitoring instead
         has_insights_llm_monitoring: bool
 
         # This Project has sent feature flags
@@ -358,6 +358,9 @@ class Project(Model):
 
         # This project has sent logs
         has_logs: bool
+
+        # This project has sent trace metrics
+        has_trace_metrics: bool
 
         bitfield_default = 10
 

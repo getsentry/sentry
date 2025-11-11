@@ -71,6 +71,12 @@ describe('LogsPage', () => {
       method: 'GET',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/stats_v2/`,
+      method: 'GET',
+      body: {},
+    });
   });
 
   it('should call APIs as expected', async () => {
@@ -334,7 +340,12 @@ describe('LogsPage', () => {
       expect(switchInput).not.toBeChecked();
       expect(switchInput).toBeEnabled();
 
-      expect(eventTableMock).toHaveBeenCalledTimes(1);
+      // 3 calls total
+      // - one for the table
+      // - one for the normal sample mode count
+      // - one for the high accuracy sample mode count
+      expect(eventTableMock).toHaveBeenCalledTimes(3);
+
       eventTableMock.mockClear();
       eventTableMock = setupEventsMock(autorefreshBaseFixtures.slice(0, 5));
 

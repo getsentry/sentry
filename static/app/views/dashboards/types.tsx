@@ -4,6 +4,7 @@ import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
+import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
@@ -169,11 +170,14 @@ export type DashboardListItem = {
 export enum DashboardFilterKeys {
   RELEASE = 'release',
   GLOBAL_FILTER = 'globalFilter',
+  // temporary filters are filters that are not saved to the dashboard, they occur when you link from one dashboard to another
+  TEMPORARY_FILTERS = 'temporaryFilters',
 }
 
 export type DashboardFilters = {
   [DashboardFilterKeys.RELEASE]?: string[];
   [DashboardFilterKeys.GLOBAL_FILTER]?: GlobalFilter[];
+  [DashboardFilterKeys.TEMPORARY_FILTERS]?: GlobalFilter[];
 };
 
 export type GlobalFilter = {
@@ -201,6 +205,7 @@ export type DashboardDetails = {
   isFavorited?: boolean;
   period?: string;
   permissions?: DashboardPermissions;
+  prebuiltId?: PrebuiltDashboardId;
   start?: string;
   utc?: boolean;
 };

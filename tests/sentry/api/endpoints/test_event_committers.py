@@ -291,3 +291,51 @@ class EventCommittersTest(APITestCase):
         )
         assert "group_owner_id" in response.data["committers"][0]
         assert response.data["committers"][0]["group_owner_id"] == group_owner.id
+
+    def test_release_based_suspect_commit_displayed(self) -> None:
+        """Test that RELEASE_BASED suspect commits are displayed via the endpoint."""
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        repo = self.create_repo(project=project, name="example/repo")
+        release = self.create_release(project=project, version="v1.0")
+        commit = self.create_commit(project=project, repo=repo)
+        release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        min_ago = before_now(minutes=1).isoformat()
+        event = self.store_event(
+            data={"fingerprint": ["group1"], "timestamp": min_ago},
+            project_id=project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        assert event.group is not None
+
+        GroupOwner.objects.create(
+            group_id=event.group.id,
+            project=project,
+            organization_id=project.organization_id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=self.user.id,
+            context={
+                "commitId": commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
+            },
+        )
+
+        url = reverse(
+            "sentry-api-0-event-file-committers",
+            kwargs={
+                "event_id": event.event_id,
+                "project_id_or_slug": event.project.slug,
+                "organization_id_or_slug": event.project.organization.slug,
+            },
+        )
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data["committers"]) == 1
+
+        commits = response.data["committers"][0]["commits"]
+        assert len(commits) == 1
+        assert commits[0]["id"] == commit.key
+        assert commits[0]["suspectCommitType"] == "via commit in release"

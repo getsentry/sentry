@@ -235,27 +235,16 @@ def process_profile_task(
         set_span_attribute("profile.stacks.processed", len(profile["profile"]["stacks"]))
         set_span_attribute("profile.frames.processed", len(profile["profile"]["frames"]))
 
-    if options.get("profiling.stack_trace_rules.enabled"):
-        try:
-            with metrics.timer("process_profile.apply_stack_trace_rules"):
-                rules_config = project.get_option("sentry:grouping_enhancements")
-                if rules_config is not None and rules_config != "":
-                    apply_stack_trace_rules_to_profile(profile, rules_config)
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
+    try:
+        with metrics.timer("process_profile.apply_stack_trace_rules"):
+            rules_config = project.get_option("sentry:grouping_enhancements")
+            if rules_config is not None and rules_config != "":
+                apply_stack_trace_rules_to_profile(profile, rules_config)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
-    if (
-        features.has("projects:continuous-profiling-vroomrs-processing", project)
-        and "profiler_id" in profile
-    ) or (
-        features.has("projects:transaction-profiling-vroomrs-processing", project)
-        and ("event_id" in profile or "profile_id" in profile)
-    ):
-        if not _process_vroomrs_profile(profile, project):
-            return
-    else:
-        if not _push_profile_to_vroom(profile, project):
-            return
+    if not _process_vroomrs_profile(profile, project):
+        return
 
     if sampled:
         with metrics.timer("process_profile.track_outcome.accepted"):

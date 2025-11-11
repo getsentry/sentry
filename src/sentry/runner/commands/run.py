@@ -544,6 +544,30 @@ def taskbroker_send_tasks(
     default=False,
     help="A potential workaround for Broker Handle Destroyed during shutdown (see arroyo option).",
 )
+@click.option(
+    "--profile-consumer-join",
+    is_flag=True,
+    default=False,
+    help="Adds a ProcessingStrategy to the start of a consumer that records a transaction of the consumer's join() method.",
+)
+@click.option(
+    "--enable-autocommit",
+    is_flag=True,
+    default=False,
+    help="Enable Kafka autocommit mode with 1s commit interval. Offsets are stored via store_offsets and rdkafka commits them automatically.",
+)
+@click.option(
+    "--retry-handle-destroyed",
+    is_flag=True,
+    default=False,
+    help="Enable retrying on `KafkaError._DESTROY` during commit.",
+)
+@click.option(
+    "--handle-poll-while-paused",
+    is_flag=True,
+    default=False,
+    help="Enable polling while the consumer is paused to detect rebalancing. Useful for detecting consumer state changes during backpressure.",
+)
 @configuration
 def basic_consumer(
     consumer_name: str,
@@ -582,6 +606,10 @@ def basic_consumer(
     add_global_tags(
         kafka_topic=topic, consumer_group=options["group_id"], kafka_slice_id=kafka_slice_id
     )
+
+    options["shutdown_strategy_before_consumer"] = True
+    options["enable_autocommit"] = True
+
     processor = get_stream_processor(
         consumer_name,
         consumer_args,
@@ -633,6 +661,7 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
             stale_threshold_sec=None,
             healthcheck_file_path=None,
             enforce_schema=True,
+            profile_consumer_join=False,
         )
         for consumer_name in consumer_names
     ]

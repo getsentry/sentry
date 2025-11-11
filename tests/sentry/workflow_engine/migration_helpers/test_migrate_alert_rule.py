@@ -745,6 +745,25 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
 
         assert self.detector.config == updated_fields
 
+    def test_data_source_updated_when_subscription_replaced(self) -> None:
+        original_subscription = QuerySubscription.objects.get(
+            snuba_query=self.metric_alert.snuba_query
+        )
+        assert self.data_source.source_id == str(original_subscription.id)
+
+        new_subscription = QuerySubscription.objects.create(
+            project=self.project,
+            snuba_query=self.metric_alert.snuba_query,
+            type="something",
+            status=QuerySubscription.Status.ACTIVE.value,
+        )
+        original_subscription.delete()
+
+        dual_update_migrated_alert_rule(self.metric_alert)
+
+        self.data_source.refresh_from_db()
+        assert self.data_source.source_id == str(new_subscription.id)
+
 
 class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
     def setUp(self) -> None:

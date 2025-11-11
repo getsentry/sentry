@@ -186,7 +186,7 @@ class OpsgenieClientTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @with_feature("organizations:workflow-engine-ui-links")
+    @with_feature("organizations:workflow-engine-ui")
     def test_send_notification_with_workflow_engine_ui_links(self, mock_record: MagicMock) -> None:
         resp_data = {
             "result": "Request will be processed",
@@ -236,7 +236,7 @@ class OpsgenieClientTest(APITestCase):
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Workflows": rule.label,
-                "Triggering Workflow URLs": f"http://example.com/organizations/{self.organization.id}/issues/automations/{123}/",
+                "Triggering Workflow URLs": f"http://example.com/organizations/{self.organization.id}/monitors/alerts/{123}/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",

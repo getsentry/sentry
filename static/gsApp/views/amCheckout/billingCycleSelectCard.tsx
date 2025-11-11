@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 
@@ -74,7 +74,7 @@ function BillingCycleSelectCard({
     ? tct('[budgetTerm] usage billed monthly, discount does not apply', {
         budgetTerm:
           plan.budgetTerm === 'pay-as-you-go'
-            ? 'PAYG'
+            ? displayBudgetName(plan, {abbreviated: true})
             : displayBudgetName(plan, {title: true}),
       })
     : t('Cancel anytime');
@@ -91,32 +91,35 @@ function BillingCycleSelectCard({
         <Container paddingTop="2xs">
           <RadioMarker isSelected={isSelected} />
         </Container>
-        <Flex direction="column" gap="sm" width="100%">
-          <Flex align="center" gap="sm">
-            <Heading as="h3" variant="primary">
-              {intervalName}
-            </Heading>
-            {isAnnual && <Tag type="promotion">{t('save 10%')}</Tag>}
-          </Flex>
-          <Flex align="center" gap="md">
-            {formattedPriceBeforeDiscount && (
+        <Stack flex="1">
+          <Flex justify="between" align="center">
+            <Flex align="center" gap="sm">
+              <Heading as="h3" variant="primary">
+                {intervalName}
+              </Heading>
+              {isAnnual && <Tag type="promotion">{t('save 10%')}</Tag>}
+            </Flex>
+            <Flex align="center" gap="xs">
+              {formattedPriceBeforeDiscount && (
+                <Text
+                  variant="muted"
+                  strikethrough
+                  size="lg"
+                >{`$${formattedPriceBeforeDiscount}`}</Text>
+              )}
               <Text
-                variant="muted"
-                strikethrough
-                size="2xl"
-              >{`$${formattedPriceBeforeDiscount}`}</Text>
-            )}
-            <Text
-              size="2xl"
-              bold
-              variant="primary"
-            >{`$${formattedPriceAfterDiscount}`}</Text>
+                size="lg"
+                bold
+                variant="primary"
+              >{`$${formattedPriceAfterDiscount}`}</Text>
+            </Flex>
           </Flex>
-          <Flex direction="column" gap="xs" paddingTop="xs">
-            <Text variant="muted">{cycleInfo}</Text>
-            <Text variant="muted">{additionalInfo}</Text>
+          <Flex paddingTop="md">
+            <Text variant="muted" size="md" textWrap="pretty">
+              {cycleInfo}. {additionalInfo}
+            </Text>
           </Flex>
-        </Flex>
+        </Stack>
       </Flex>
     </CheckoutOption>
   );

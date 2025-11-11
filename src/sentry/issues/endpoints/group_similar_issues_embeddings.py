@@ -16,6 +16,7 @@ from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.seer.similarity.config import get_grouping_model_version
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
@@ -100,6 +101,8 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         if not stacktrace_string or not latest_event:
             return Response([])  # No exception, stacktrace or in-app frames, or event
 
+        model_version = get_grouping_model_version(group.project)
+
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
             "event_id": latest_event.event_id,
             "hash": latest_event.get_primary_hash(),
@@ -109,6 +112,8 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "read_only": True,
             "referrer": "similar_issues",
             "use_reranking": options.get("seer.similarity.similar_issues.use_reranking"),
+            "model": model_version,
+            "training_mode": False,
         }
         # Add optional parameters
         if request.GET.get("k"):

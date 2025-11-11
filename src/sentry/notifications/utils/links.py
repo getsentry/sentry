@@ -24,7 +24,7 @@ def create_link_to_workflow(organization_id: int, workflow_id: str) -> str:
     """
     Create a link to a workflow
     """
-    return f"/organizations/{organization_id}/issues/automations/{workflow_id}/"
+    return f"/organizations/{organization_id}/monitors/alerts/{workflow_id}/"
 
 
 def get_email_link_extra_params(
@@ -108,7 +108,7 @@ def get_rules(
 ) -> Sequence[NotificationRuleDetails]:
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 
-    if features.has("organizations:workflow-engine-ui-links", organization):
+    if features.has("organizations:workflow-engine-ui", organization):
         return get_workflow_links(rules, organization, project)
     elif type_id is None or should_fire_workflow_actions(organization, type_id):
         return get_rules_with_legacy_ids(rules, organization, project)

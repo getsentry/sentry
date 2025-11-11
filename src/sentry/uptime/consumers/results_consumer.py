@@ -18,7 +18,6 @@ from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
 )
-from sentry.uptime.autodetect.ranking import _get_cluster
 from sentry.uptime.autodetect.result_handler import handle_onboarding_result
 from sentry.uptime.consumers.eap_producer import produce_eap_uptime_result
 from sentry.uptime.grouptype import UptimePacketValue
@@ -31,14 +30,15 @@ from sentry.uptime.models import (
 )
 from sentry.uptime.subscriptions.subscriptions import (
     check_and_update_regions,
+    delete_uptime_subscription,
     disable_uptime_detector,
-    remove_uptime_subscription_if_unused,
 )
 from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
 from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.utils import build_last_seen_interval_key, build_last_update_key, get_cluster
 from sentry.utils import metrics
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
@@ -58,13 +58,8 @@ ACTIVE_THRESHOLD_REDIS_TTL = timedelta(seconds=max(UptimeSubscription.IntervalSe
 # We want to limit cardinality for provider tags. This controls how many tags we should include
 TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
-
-def build_last_update_key(detector: Detector) -> str:
-    return f"project-sub-last-update:detector:{detector.id}"
-
-
-def build_last_seen_interval_key(detector: Detector) -> str:
-    return f"project-sub-last-seen-interval:detector:{detector.id}"
+# The maximum number of missed checks we backfill, upon noticing a gap in our expected check results
+MAX_SYNTHETIC_MISSED_CHECKS = 100
 
 
 def get_host_provider_if_valid(subscription: UptimeSubscription) -> str:
@@ -254,7 +249,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             detector = get_detector(subscription, prefetch_workflow_data=True)
         except Detector.DoesNotExist:
             # Nothing to do if there's an orphaned uptime subscription
-            remove_uptime_subscription_if_unused(subscription)
+            delete_uptime_subscription(subscription)
             return
 
         organization = detector.project.organization
@@ -280,7 +275,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             sample_rate=1.0,
         )
 
-        cluster = _get_cluster()
+        cluster = get_cluster()
         last_update_key = build_last_update_key(detector)
         last_update_raw: str | None = cluster.get(last_update_key)
         last_update_ms = 0 if last_update_raw is None else int(last_update_raw)
@@ -330,7 +325,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             last_interval_seen: str = cluster.get(last_interval_key) or "0"
 
             if int(last_interval_seen) == subscription_interval_ms:
-                num_missed_checks = int(num_intervals - 1)
+                # Bound the number of missed checks we generate--just in case.
+                num_missed_checks = min(MAX_SYNTHETIC_MISSED_CHECKS, int(num_intervals - 1))
+
                 metrics.distribution(
                     "uptime.result_processer.num_missing_check",
                     num_missed_checks,

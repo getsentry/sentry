@@ -8,8 +8,9 @@ import {
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
+import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {createMetricNameFilter} from 'sentry/views/explore/metrics/utils';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsQuery,
   useSetQueryParamsQuery,
@@ -27,34 +28,51 @@ export function Filter({traceMetric}: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
 
-  const metricNameFilter = createMetricNameFilter(traceMetric.name);
+  const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
   const {attributes: numberTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'number',
-    enabled: Boolean(metricNameFilter),
-    query: metricNameFilter,
+    enabled: Boolean(traceMetricFilter),
+    query: traceMetricFilter,
   });
   const {attributes: stringTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'string',
-    enabled: Boolean(metricNameFilter),
-    query: metricNameFilter,
+    enabled: Boolean(traceMetricFilter),
+    query: traceMetricFilter,
   });
+
+  const visibleNumberTags = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(numberTags ?? {}).filter(
+        ([key]) => !HiddenTraceMetricSearchFields.includes(key)
+      )
+    );
+  }, [numberTags]);
+
+  const visibleStringTags = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(stringTags ?? {}).filter(
+        ([key]) => !HiddenTraceMetricSearchFields.includes(key)
+      )
+    );
+  }, [stringTags]);
 
   const tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps =
     useMemo(() => {
       return {
         itemType: TraceItemDataset.TRACEMETRICS,
-        numberAttributes: numberTags ?? EMPTY_TAG_COLLECTION,
-        stringAttributes: stringTags ?? EMPTY_TAG_COLLECTION,
+        numberAttributes: visibleNumberTags ?? EMPTY_TAG_COLLECTION,
+        stringAttributes: visibleStringTags ?? EMPTY_TAG_COLLECTION,
         numberSecondaryAliases: EMPTY_ALIASES,
         stringSecondaryAliases: EMPTY_ALIASES,
         initialQuery: query,
         onSearch: setQuery,
         searchSource: 'tracemetrics',
+        namespace: traceMetric.name,
       };
-    }, [query, setQuery, numberTags, stringTags]);
+    }, [query, setQuery, visibleNumberTags, visibleStringTags, traceMetric.name]);
 
   const searchQueryBuilderProviderProps = useSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps

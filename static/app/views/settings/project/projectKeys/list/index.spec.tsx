@@ -44,7 +44,11 @@ describe('ProjectKeys', () => {
       method: 'GET',
       body: [],
     });
-    render(<ProjectKeys project={project} />, {initialRouterConfig});
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
 
     expect(
       await screen.findByText('There are no keys active for this project.')
@@ -52,7 +56,11 @@ describe('ProjectKeys', () => {
   });
 
   it('has clippable box', async () => {
-    render(<ProjectKeys project={ProjectFixture()} />, {initialRouterConfig});
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
+      initialRouterConfig,
+    });
 
     const expandButton = await screen.findByRole('button', {name: 'Expand'});
     await userEvent.click(expandButton);
@@ -61,7 +69,9 @@ describe('ProjectKeys', () => {
   });
 
   it('renders for default project', async () => {
-    render(<ProjectKeys project={ProjectFixture({platform: 'other'})} />, {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture({platform: 'other'})},
       initialRouterConfig,
     });
 
@@ -70,26 +80,41 @@ describe('ProjectKeys', () => {
 
     const expandButton = screen.getByRole('button', {name: 'Expand'});
     const dsn = screen.getByRole('textbox', {name: 'DSN URL'});
-    const minidumpEndpoint = screen.queryByRole('textbox', {
-      name: 'Minidump Endpoint URL',
-    });
-    const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine Endpoint URL',
-    });
-    const securityHeaderEndpoint = screen.queryByRole('textbox', {
-      name: 'Security Header Endpoint URL',
-    });
 
     expect(expandButton).toBeInTheDocument();
     expect(dsn).toHaveValue(projectKeys[0]!.dsn.public);
+
+    // Verify tabs are present
+    expect(screen.getByRole('tab', {name: 'Security Header'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Minidump'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Unreal Engine'})).toBeInTheDocument();
+
+    // Security Header should be visible by default (first tab)
+    const securityHeaderEndpoint = screen.getByRole('textbox', {
+      name: 'Security Header Endpoint URL',
+    });
+    expect(securityHeaderEndpoint).toHaveValue(projectKeys[0]!.dsn.security);
+
+    // Click on Minidump tab and verify endpoint
+    await userEvent.click(screen.getByRole('tab', {name: 'Minidump'}));
+    const minidumpEndpoint = await screen.findByRole('textbox', {
+      name: 'Minidump Endpoint URL',
+    });
     expect(minidumpEndpoint).toHaveValue(projectKeys[0]!.dsn.minidump);
+
+    // Click on Unreal Engine tab and verify endpoint
+    await userEvent.click(screen.getByRole('tab', {name: 'Unreal Engine'}));
+    const unrealEndpoint = await screen.findByRole('textbox', {
+      name: 'Unreal Engine Endpoint URL',
+    });
     // this is empty in the default ProjectKey
     expect(unrealEndpoint).toHaveValue('');
-    expect(securityHeaderEndpoint).toHaveValue(projectKeys[0]!.dsn.security);
   });
 
   it('renders for javascript project', async () => {
-    render(<ProjectKeys project={ProjectFixture({platform: 'javascript'})} />, {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture({platform: 'javascript'})},
       initialRouterConfig,
     });
 
@@ -122,7 +147,9 @@ describe('ProjectKeys', () => {
   });
 
   it('renders for javascript-react project', async () => {
-    render(<ProjectKeys project={ProjectFixture({platform: 'javascript-react'})} />, {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture({platform: 'javascript-react'})},
       initialRouterConfig,
     });
 
@@ -163,7 +190,8 @@ describe('ProjectKeys', () => {
           crons: '',
           playstation:
             'http://dev.getsentry.net:8000/api/1/playstation?sentry_key=188ee45a58094d939428d8585aa6f662',
-          otlp_traces: 'http://dev.getsentry.net:8000/api/1/otlp/v1/traces',
+          integration: 'http://dev.getsentry.net:8000/api/1/integration/',
+          otlp_traces: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/traces',
           otlp_logs: 'http://dev.getsentry.net:8000/api/1/integration/otlp/v1/logs',
         },
         dateCreated: '2018-02-28T07:13:51.087Z',
@@ -199,7 +227,9 @@ describe('ProjectKeys', () => {
       body: multipleProjectKeys,
     });
 
-    render(<ProjectKeys project={ProjectFixture({platform: 'other'})} />, {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture({platform: 'other'})},
       initialRouterConfig,
     });
 
@@ -208,7 +238,9 @@ describe('ProjectKeys', () => {
   });
 
   it('deletes key', async () => {
-    render(<ProjectKeys project={ProjectFixture()} />, {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
       initialRouterConfig,
     });
 
@@ -220,7 +252,9 @@ describe('ProjectKeys', () => {
   });
 
   it('disable and enables key', async () => {
-    render(<ProjectKeys project={ProjectFixture()} />, {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
       initialRouterConfig,
     });
 
@@ -278,7 +312,9 @@ describe('ProjectKeys', () => {
       match: [MockApiClient.matchQuery({cursor: '2:0:0'})],
     });
 
-    const {router} = render(<ProjectKeys project={ProjectFixture()} />, {
+    const {router} = render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
       initialRouterConfig,
     });
 
@@ -295,7 +331,9 @@ describe('ProjectKeys', () => {
   });
 
   it('hides pagination when there is none', async () => {
-    render(<ProjectKeys project={ProjectFixture()} />, {
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project: ProjectFixture()},
       initialRouterConfig,
     });
 

@@ -28,11 +28,11 @@ from sentry.conf.types.kafka_definition import get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.group import Group, GroupStatus
+from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
-from sentry.uptime.autodetect.ranking import _get_cluster
 from sentry.uptime.autodetect.result_handler import (
     AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
     ONBOARDING_MONITOR_PERIOD,
@@ -40,18 +40,21 @@ from sentry.uptime.autodetect.result_handler import (
 )
 from sentry.uptime.autodetect.tasks import is_failed_url
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
-from sentry.uptime.consumers.results_consumer import (
-    UptimeResultsStrategyFactory,
-    build_last_seen_interval_key,
-    build_last_update_key,
-)
+from sentry.uptime.consumers.results_consumer import UptimeResultsStrategyFactory
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.subscriptions import (
     UptimeMonitorNoSeatAvailable,
-    build_detector_fingerprint_component,
+    disable_uptime_detector,
+    enable_uptime_detector,
 )
 from sentry.uptime.types import IncidentStatus, UptimeMonitorMode
+from sentry.uptime.utils import (
+    build_detector_fingerprint_component,
+    build_last_seen_interval_key,
+    build_last_update_key,
+    get_cluster,
+)
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
@@ -213,13 +216,13 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             self.feature(features),
             mock.patch("sentry.remote_subscriptions.consumers.result_consumer.logger") as logger,
             mock.patch(
-                "sentry.uptime.consumers.results_consumer.remove_uptime_subscription_if_unused"
-            ) as mock_remove_uptime_subscription_if_unused,
+                "sentry.uptime.consumers.results_consumer.delete_uptime_subscription"
+            ) as mock_delete_uptime_subscription,
         ):
             # Does not produce an error
             self.send_result(result)
             assert not logger.exception.called
-            mock_remove_uptime_subscription_if_unused.assert_called_with(self.subscription)
+            mock_delete_uptime_subscription.assert_called_with(self.subscription)
 
     def test_no_create_issues_option(self) -> None:
         self.detector.config.update({"downtime_threshold": 1, "recovery_threshold": 1})
@@ -311,12 +314,12 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
         # has an interval of 300 seconds, which we're going to say was just recently
         # changed.  Verify we don't emit any metrics recording of a missed check
-        _get_cluster().set(
+        get_cluster().set(
             build_last_update_key(self.detector),
             int(result["scheduled_check_time_ms"]) - (3500 * 1000),
         )
 
-        _get_cluster().set(
+        get_cluster().set(
             build_last_seen_interval_key(self.detector),
             3600 * 1000,
         )
@@ -337,12 +340,12 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # Pretend we got a result 3500 seconds ago (nearly an hour); the subscription
         # has an interval of 300 seconds, which we're going to say was just recently
         # changed.  Verify we don't emit any metrics recording of a missed check
-        _get_cluster().set(
+        get_cluster().set(
             build_last_update_key(self.detector),
             int(result["scheduled_check_time_ms"]) - (3500 * 1000),
         )
 
-        _get_cluster().set(
+        get_cluster().set(
             build_last_seen_interval_key(self.detector),
             3600 * 1000,
         )
@@ -372,18 +375,49 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
 
     @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    def test_no_missed_check_for_disabled(self, mock_produce: MagicMock) -> None:
+        result = self.create_uptime_result(self.subscription.subscription_id)
+
+        # Pretend we got a result 900 seconds ago; the subscription
+        # has an interval of 300 seconds.  We've missed two checks.
+        last_update_time = int(result["scheduled_check_time_ms"]) - (900 * 1000)
+        get_cluster().set(
+            build_last_update_key(self.detector),
+            last_update_time,
+        )
+
+        get_cluster().set(
+            build_last_seen_interval_key(self.detector),
+            300 * 1000,
+        )
+
+        # Enabling and disabling should clear the last_update_time, and we
+        # will not produce any synthetic checks
+        disable_uptime_detector(self.detector)
+        enable_uptime_detector(self.detector)
+
+        with (self.feature("organizations:uptime"),):
+            self.send_result(result)
+
+            assert mock_produce.call_count == 1
+
+            check = self.decode_trace_item(mock_produce.call_args_list[0].args[1].value)
+
+            assert check.attributes["check_status"].string_value == "failure"
+
+    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
     def test_missed_check_true_positive(self, mock_produce: MagicMock) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
         # Pretend we got a result 900 seconds ago; the subscription
         # has an interval of 300 seconds.  We've missed two checks.
         last_update_time = int(result["scheduled_check_time_ms"]) - (900 * 1000)
-        _get_cluster().set(
+        get_cluster().set(
             build_last_update_key(self.detector),
             last_update_time,
         )
 
-        _get_cluster().set(
+        get_cluster().set(
             build_last_seen_interval_key(self.detector),
             300 * 1000,
         )
@@ -423,7 +457,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             "organizations:uptime",
         ]
         result = self.create_uptime_result(self.subscription.subscription_id)
-        _get_cluster().set(
+        get_cluster().set(
             build_last_update_key(self.detector),
             int(result["scheduled_check_time_ms"]),
         )
@@ -573,7 +607,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             status=CHECKSTATUS_FAILURE,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
-        redis = _get_cluster()
+        redis = get_cluster()
         key = build_onboarding_failure_key(self.detector)
         assert redis.get(key) is None
         with (
@@ -689,7 +723,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             status=CHECKSTATUS_SUCCESS,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
-        redis = _get_cluster()
+        redis = get_cluster()
         key = build_onboarding_failure_key(self.detector)
         assert redis.get(key) is None
         with (
@@ -737,7 +771,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             status=CHECKSTATUS_SUCCESS,
             scheduled_check_time=datetime.now() - timedelta(minutes=2),
         )
-        redis = _get_cluster()
+        redis = get_cluster()
         key = build_onboarding_failure_key(self.detector)
         assert redis.get(key) is None
         with (
@@ -816,7 +850,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             scheduled_check_time=datetime.now() - timedelta(minutes=2),
         )
 
-        redis = _get_cluster()
+        redis = get_cluster()
         key = build_onboarding_failure_key(self.detector)
         assert redis.get(key) is None
 
@@ -826,7 +860,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             mock.patch("sentry.uptime.autodetect.result_handler.logger") as onboarding_logger,
             mock.patch(
                 "sentry.uptime.autodetect.result_handler.update_uptime_detector",
-                side_effect=UptimeMonitorNoSeatAvailable(None),
+                side_effect=UptimeMonitorNoSeatAvailable(
+                    SeatAssignmentResult(assignable=False, reason="Testing")
+                ),
             ),
             self.tasks(),
             self.feature(features),

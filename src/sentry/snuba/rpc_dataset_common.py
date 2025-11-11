@@ -20,6 +20,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
 )
 from sentry_protos.snuba.v1.request_common_pb2 import (
     PageToken,
+    RequestMeta,
     ResponseMeta,
     TraceItemFilterWithType,
     TraceItemType,
@@ -47,7 +48,7 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.sampling import handle_downsample_meta
+from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
 from sentry.search.eap.types import (
     CONFIDENCES,
     AdditionalQueries,
@@ -86,6 +87,7 @@ class TableQuery:
     name: str | None = None
     page_token: PageToken | None = None
     additional_queries: AdditionalQueries | None = None
+    extra_conditions: TraceItemFilter | None = None
 
 
 @dataclass
@@ -214,11 +216,16 @@ class RPCBase:
         meta = resolver.resolve_meta(referrer=query.referrer, sampling_mode=query.sampling_mode)
         where, having, query_contexts = resolver.resolve_query(query.query_string)
 
+        # if there are additional conditions to be added, make sure to merge them with the
+        where = and_trace_item_filters(where, query.extra_conditions)
+
         cross_trace_queries = cls.get_cross_trace_queries(query)
 
         trace_column, _ = resolver.resolve_column("trace")
-        if isinstance(trace_column, ResolvedAttribute) and has_top_level_trace_condition(
-            where, trace_column
+        if (
+            isinstance(trace_column, ResolvedAttribute)
+            and can_force_highest_accuracy(meta)
+            and has_top_level_trace_condition(where, trace_column)
         ):
             # We noticed that the query has a top level condition for trace id, in this situation,
             # we want to force the query to to highest accuracy mode to ensure we get an accurate
@@ -364,10 +371,7 @@ class RPCBase:
         """Process the results"""
         final_data: SnubaData = []
         final_confidence: ConfidenceData = []
-        final_meta: EventsMeta = EventsMeta(
-            fields={},
-            full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
-        )
+        final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
         # Mapping from public alias to resolved column so we know type etc.
         columns_by_name = {col.public_alias: col for col in table_request.columns}
 
@@ -557,8 +561,10 @@ class RPCBase:
         query, _, query_contexts = search_resolver.resolve_query(query_string)
 
         trace_column, _ = search_resolver.resolve_column("trace")
-        if isinstance(trace_column, ResolvedAttribute) and has_top_level_trace_condition(
-            query, trace_column
+        if (
+            isinstance(trace_column, ResolvedAttribute)
+            and can_force_highest_accuracy(meta)
+            and has_top_level_trace_condition(query, trace_column)
         ):
             # We noticed that the query has a top level condition for trace id, in this situation,
             # we want to force the query to to highest accuracy mode to ensure we get an accurate
@@ -580,11 +586,7 @@ class RPCBase:
                 col = search_resolver.map_context_to_original_column(context)
                 groupbys[i] = col
 
-        if extra_conditions is not None:
-            if query is not None:
-                query = TraceItemFilter(and_filter=AndFilter(filters=[query, extra_conditions]))
-            else:
-                query = extra_conditions
+        query = and_trace_item_filters(query, extra_conditions)
 
         if timeseries_filter is not None:
             if query is not None:
@@ -704,6 +706,8 @@ class RPCBase:
         table_query_params.granularity_secs = None
         table_search_resolver = cls.get_resolver(table_query_params, config)
 
+        extra_conditions = config.extra_conditions(table_search_resolver)
+
         # Make a table query first to get what we need to filter by
         _, non_equation_axes = arithmetic.categorize_columns(y_axes)
         top_events = cls._run_table_query(
@@ -717,6 +721,7 @@ class RPCBase:
                 sampling_mode=sampling_mode,
                 resolver=table_search_resolver,
                 equations=equations,
+                extra_conditions=extra_conditions,
             )
         )
         # There aren't any top events, just return an empty dict and save a query
@@ -733,6 +738,8 @@ class RPCBase:
         top_conditions, other_conditions = cls.build_top_event_conditions(
             search_resolver, top_events, groupby_columns_without_project
         )
+        extra_conditions = config.extra_conditions(search_resolver)
+
         """Make the queries"""
         rpc_request, aggregates, groupbys = cls.get_timeseries_query(
             search_resolver=search_resolver,
@@ -742,7 +749,7 @@ class RPCBase:
             groupby=groupby_columns_without_project,
             referrer=f"{referrer}.topn",
             sampling_mode=sampling_mode,
-            extra_conditions=top_conditions,
+            extra_conditions=and_trace_item_filters(top_conditions, extra_conditions),
         )
         requests = [rpc_request]
         if include_other:
@@ -754,7 +761,7 @@ class RPCBase:
                 groupby=[],  # in the other series, we want eveything in a single group, so the group by is empty
                 referrer=f"{referrer}.query-other",
                 sampling_mode=sampling_mode,
-                extra_conditions=other_conditions,
+                extra_conditions=and_trace_item_filters(other_conditions, extra_conditions),
             )
             requests.append(other_request)
 
@@ -767,10 +774,7 @@ class RPCBase:
         """Process the results"""
         map_result_key_to_timeseries = defaultdict(list)
 
-        final_meta: EventsMeta = EventsMeta(
-            fields={},
-            full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
-        )
+        final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
 
         if params.debug:
             set_debug_meta(final_meta, rpc_response.meta, rpc_request)
@@ -859,6 +863,15 @@ class RPCBase:
         additional_attributes: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         raise NotImplementedError()
+
+
+def can_force_highest_accuracy(meta: RequestMeta) -> bool:
+    # when using MODE_HIGHEST_ACCURACY_FLEXTIME, we cannot force highest accuracy
+    # because it can affect how the page tokens are computed by snuba
+    return (
+        meta.downsampled_storage_config.mode
+        != DownsampledStorageConfig.MODE_HIGHEST_ACCURACY_FLEXTIME
+    )
 
 
 def has_top_level_trace_condition(
@@ -953,3 +966,19 @@ def transform_column_to_expression(column: Column) -> Expression:
         label=column.label,
         literal=column.literal,
     )
+
+
+def and_trace_item_filters(
+    *trace_item_filters: TraceItemFilter | None,
+) -> TraceItemFilter | None:
+    trace_item_filter: TraceItemFilter | None = None
+
+    for f in trace_item_filters:
+        if trace_item_filter is None:
+            trace_item_filter = f
+        elif f is not None:
+            trace_item_filter = TraceItemFilter(
+                and_filter=AndFilter(filters=[trace_item_filter, f])
+            )
+
+    return trace_item_filter

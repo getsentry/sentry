@@ -13,10 +13,10 @@ interface Props {
   coverage?: Coverage;
 }
 
-const coverageText: Record<Coverage, string | undefined> = {
-  [Coverage.NOT_COVERED]: t('Uncovered'),
-  [Coverage.COVERED]: t('Covered'),
-  [Coverage.PARTIAL]: t('Partially Covered'),
+export const coverageText: Record<Coverage, string | undefined> = {
+  [Coverage.NOT_COVERED]: t('Line uncovered by tests'),
+  [Coverage.COVERED]: t('Line covered by tests'),
+  [Coverage.PARTIAL]: t('Line partially covered by tests'),
   [Coverage.NOT_APPLICABLE]: undefined,
 };
 const coverageClass: Record<Coverage, string | undefined> = {
@@ -63,24 +63,23 @@ const Wrapper = styled('div')`
     margin-right: ${space(1.5)};
     background: transparent;
     min-width: 58px;
-    border-right-style: solid;
-    border-right-color: transparent;
+    border-right: 3px solid transparent;
     user-select: none;
   }
 
   &.covered .line-number {
     background: ${p => p.theme.green100};
+    border-right: 3px solid ${p => p.theme.tokens.border.success};
   }
 
   &.uncovered .line-number {
     background: ${p => p.theme.red100};
-    border-right-color: ${p => p.theme.red300};
+    border-right: 3px solid ${p => p.theme.tokens.border.danger};
   }
 
   &.partial .line-number {
     background: ${p => p.theme.yellow100};
-    border-right-style: dashed;
-    border-right-color: ${p => p.theme.yellow300};
+    border-right: 3px dashed ${p => p.theme.tokens.border.warning};
   }
 
   &.active {

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from enum import StrEnum
+from typing import Literal
 
 import orjson
 import requests
@@ -38,16 +40,45 @@ class RepositorySerializer(CamelSnakeSerializer):
     owner = serializers.CharField(required=True)
     name = serializers.CharField(required=True)
     external_id = serializers.CharField(required=True)
-    branch_name = serializers.CharField(required=False, allow_null=True)
-    branch_overrides = BranchOverrideSerializer(many=True, required=False)
-    instructions = serializers.CharField(required=False, allow_null=True)
+    branch_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    branch_overrides = BranchOverrideSerializer(
+        many=True,
+        required=False,
+        allow_null=True,
+    )
+    instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     base_commit_sha = serializers.CharField(required=False, allow_null=True)
     provider_raw = serializers.CharField(required=False, allow_null=True)
+
+
+class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
+    handoff_point = serializers.ChoiceField(
+        choices=["root_cause"],
+        required=True,
+    )
+    target = serializers.ChoiceField(
+        choices=["cursor_background_agent"],
+        required=True,
+    )
+    integration_id = serializers.IntegerField(required=True)
 
 
 class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
     repositories = RepositorySerializer(many=True, required=True)
     automated_run_stopping_point = serializers.CharField(required=False, allow_null=True)
+    automation_handoff = SeerAutomationHandoffConfigurationSerializer(
+        required=False, allow_null=True
+    )
+
+
+class AutofixHandoffPoint(StrEnum):
+    ROOT_CAUSE = "root_cause"
+
+
+class SeerAutomationHandoffConfiguration(BaseModel):
+    handoff_point: AutofixHandoffPoint
+    target: Literal["cursor_background_agent"]
+    integration_id: int
 
 
 class SeerProjectPreference(BaseModel):
@@ -55,6 +86,7 @@ class SeerProjectPreference(BaseModel):
     project_id: int
     repositories: list[SeerRepoDefinition]
     automated_run_stopping_point: str | None = None
+    automation_handoff: SeerAutomationHandoffConfiguration | None = None
 
 
 class PreferenceResponse(BaseModel):

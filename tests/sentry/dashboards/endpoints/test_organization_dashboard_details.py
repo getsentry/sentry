@@ -25,6 +25,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
+from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardWidgetDatasetSourcesTypes
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
@@ -1771,7 +1772,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             dashboard=new_dashboard,
             title="Spans widget",
             widget_type=DashboardWidgetTypes.SPANS,
-            dataset_source=DatasetSourcesTypes.UNKNOWN.value,
+            dataset_source=DashboardWidgetDatasetSourcesTypes.SPAN_MIGRATION_VERSION_1.value,
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             changed_reason=[
                 {
@@ -1793,6 +1794,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "widgetType": "spans",
                     "datasetSource": "user",
                     "displayType": "line",
+                    "changedReason": spans_widget.changed_reason,
                     "queries": [
                         {
                             "name": "Errors",
@@ -1811,6 +1813,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["widgets"][0]["changedReason"] is None
         spans_widget.refresh_from_db()
         assert spans_widget.changed_reason is None
+        assert spans_widget.dataset_source == DashboardWidgetDatasetSourcesTypes.USER.value
 
     def test_remove_widgets(self) -> None:
         data = {
@@ -2349,7 +2352,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "False"},
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2366,7 +2369,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "false"},
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2386,7 +2389,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
 
         assert permission.is_editable_by_everyone is True
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2566,7 +2569,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2602,7 +2605,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2633,7 +2636,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2660,7 +2663,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         self.create_environment(project=mock_project, name="mock_env")
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2706,7 +2709,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.dashboard.created_by_id)  # type: ignore[misc]
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3039,6 +3042,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         with self.feature("organizations:dashboards-drilldown-flow"):
             response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
+        assert response.data.get("widgets")[0].get("queries")[0].get("linkedDashboards") == [
+            {
+                "field": "project",
+                "dashboardId": linked_dashboard.id,
+            }
+        ]
 
         widgets = self.get_widgets(self.dashboard.id)
         assert len(widgets) == 1
@@ -3265,6 +3274,67 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("put", self.url(dashboard.id), data=data)
         assert response.status_code == 400, response.data
         assert b"Field links are only supported for table widgets" in response.content
+
+    def test_does_not_update_if_linked_dashboard_does_not_appear_in_fields(self) -> None:
+        dashboard = self.create_dashboard(
+            title="Dashboard with Links", organization=self.organization
+        )
+        linked_dashboard = Dashboard.objects.create(
+            title="Linked Dashboard",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        widget = DashboardWidget.objects.create(
+            dashboard=dashboard,
+            title="Widget with Links",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
+            dataset_source=DatasetSourcesTypes.USER.value,
+        )
+        widget_query = DashboardWidgetQuery.objects.create(
+            widget=widget,
+            name="",
+            fields=["count()"],
+            columns=[],
+            aggregates=["count()"],
+            conditions="",
+            orderby="-count()",
+            order=0,
+        )
+        DashboardFieldLink.objects.create(
+            dashboard_widget_query=widget_query,
+            field="project",
+            dashboard_id=linked_dashboard.id,
+        )
+        data: dict[str, Any] = {
+            "title": "Dashboard with Links",
+            "widgets": [
+                {
+                    "id": str(widget.id),
+                    "title": "Widget with Links",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "id": str(widget_query.id),
+                            "name": "Query with Links",
+                            "fields": ["count()", "user.email"],
+                            "columns": ["user.email"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                            "linkedDashboards": [
+                                {"field": "project", "dashboardId": linked_dashboard.id},
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+        with self.feature("organizations:dashboards-drilldown-flow"):
+            response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Linked dashboard does not appear in the fields of the query" in response.content
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):

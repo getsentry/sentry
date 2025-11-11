@@ -141,7 +141,7 @@ describe('DetectorDetails', () => {
 
       await waitFor(() => {
         expect(router.location.pathname).toBe(
-          `/organizations/${organization.slug}/issues/monitors/${snubaQueryDetector.id}/edit/`
+          `/organizations/${organization.slug}/monitors/${snubaQueryDetector.id}/edit/`
         );
       });
     });
@@ -240,6 +240,12 @@ describe('DetectorDetails', () => {
         body: [],
       });
 
+      // Mock uptime summary endpoint
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/uptime-summary/',
+        body: {},
+      });
+
       // Mock uptime checks endpoint
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeDetector.id}/checks/`,
@@ -288,7 +294,7 @@ describe('DetectorDetails', () => {
       // Edit button takes you to the edit page
       expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/issues/monitors/1/edit/'
+        '/organizations/org-slug/monitors/1/edit/'
       );
     });
 
@@ -301,7 +307,7 @@ describe('DetectorDetails', () => {
       expect(await screen.findByText('Recent Check-Ins')).toBeInTheDocument();
 
       // Verify check-in data is displayed
-      expect(screen.getAllByText('Uptime')).toHaveLength(2); // timeline legend + check-in row
+      expect(screen.getAllByText('Uptime')).toHaveLength(3); // section heading + timeline legend + check-in row
       expect(screen.getByText('200')).toBeInTheDocument();
       expect(screen.getByText('US East')).toBeInTheDocument();
       expect(screen.getAllByText('Failure')).toHaveLength(2); // timeline legend + check-in row

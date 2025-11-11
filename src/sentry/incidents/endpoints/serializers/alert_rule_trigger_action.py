@@ -2,6 +2,7 @@ import logging
 
 from sentry.api.serializers import Serializer, register
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +30,14 @@ def human_desc(
     if action_type == AlertRuleTriggerAction.Type.EMAIL.value:
         if action_target:
             if target_type == AlertRuleTriggerAction.TargetType.USER.value:
-                return "Send a notification to " + target.get_email()
+                email = target.get_email() if target else "[removed]"
+                return "Send a notification to " + email
             elif target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
-                return "Send an email to members of #" + target.slug
+                slug = "#" + target.slug if target else "[removed]"
+                return "Send an email to members of " + slug
+        else:
+            logger.info("email.action.description.no_action_target")
+            return "Send an email to [removed]"
     elif action_type == AlertRuleTriggerAction.Type.OPSGENIE.value:
         if priority:
             return f"Send a {priority} Opsgenie notification to {target_display}"
@@ -71,6 +77,9 @@ def get_input_channel_id(action_type, target_identifier=None):
 class AlertRuleTriggerActionSerializer(Serializer):
 
     def serialize(self, obj, attrs, user, **kwargs):
+        # Mark that we're using legacy AlertRuleTriggerAction models
+        report_used_legacy_models()
+
         from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 
         priority = (

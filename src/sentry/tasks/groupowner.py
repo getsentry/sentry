@@ -28,6 +28,7 @@ PREFERRED_GROUP_OWNERS = 2
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 MIN_COMMIT_SCORE = 2
 DEBOUNCE_CACHE_KEY = lambda group_id: f"process-suspect-commits-{group_id}"
+TASK_DURATION_S = 90
 
 logger = logging.getLogger(__name__)
 
@@ -77,13 +78,17 @@ def _process_suspect_commits(
                     project, group_id, event_frames, event_platform, sdk_name=sdk_name
                 )
             owner_scores: dict[str, int] = {}
+            owner_commits: dict[str, int] = {}
             for committer in committers:
                 author = cast(UserSerializerResponse, committer["author"])
                 if author and "id" in author:
                     author_id = author["id"]
-                    for _, score in committer["commits"]:
+                    for commit, score in committer["commits"]:
                         if score >= MIN_COMMIT_SCORE:
-                            owner_scores[author_id] = max(score, owner_scores.get(author_id, 0))
+                            current_score = owner_scores.get(author_id, 0)
+                            if score > current_score:
+                                owner_scores[author_id] = score
+                                owner_commits[author_id] = commit.id
 
             if owner_scores:
                 for owner_id, _ in sorted(
@@ -98,11 +103,13 @@ def _process_suspect_commits(
                                     "user_id": owner_id,
                                     "project_id": project.id,
                                     "organization_id": project.organization_id,
+                                    "context__asjsonb__commitId": owner_commits[owner_id],
                                 },
                                 defaults={
                                     "date_added": timezone.now(),
                                 },
                                 context_defaults={
+                                    "commitId": owner_commits[owner_id],
                                     "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
                                 },
                             )
@@ -179,7 +186,7 @@ def _process_suspect_commits(
 @instrumented_task(
     name="sentry.tasks.process_suspect_commits",
     namespace=issues_tasks,
-    processing_deadline_duration=90,
+    processing_deadline_duration=TASK_DURATION_S,
     retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.REGION,
 )
@@ -197,7 +204,9 @@ def process_suspect_commits(
     This is the task behind SuspectCommitStrategy.RELEASE_BASED
     """
     lock = locks.get(
-        f"process-suspect-commits:{group_id}", duration=10, name="process_suspect_commits"
+        f"process-suspect-commits:{group_id}",
+        duration=TASK_DURATION_S,
+        name="process_suspect_commits",
     )
     try:
         with lock.acquire():

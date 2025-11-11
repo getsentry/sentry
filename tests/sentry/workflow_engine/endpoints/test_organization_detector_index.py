@@ -727,7 +727,13 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
                         "comparison": 100,
                         "conditionResult": DetectorPriorityLevel.HIGH,
                         "conditionGroupId": self.data_condition_group.id,
-                    }
+                    },
+                    {
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
                 ],
             },
             "config": {
@@ -827,7 +833,9 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_valid_creation(
-        self, mock_audit: mock.MagicMock, mock_schedule_update_project_config
+        self,
+        mock_audit: mock.MagicMock,
+        mock_schedule_update_project_config: mock.MagicMock,
     ) -> None:
         with self.tasks():
             response = self.get_success_response(
@@ -841,6 +849,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert detector.name == "Test Detector"
         assert detector.type == MetricIssue.slug
         assert detector.project_id == self.project.id
+        assert detector.description is None
 
         # Verify data source
         data_source = DataSource.objects.get(detector=detector)
@@ -867,7 +876,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert condition_group.organization_id == self.organization.id
 
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 1
+        assert len(conditions) == 2
         condition = conditions[0]
         assert condition.type == Condition.GREATER
         assert condition.comparison == 100
@@ -889,6 +898,18 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             data=detector.get_audit_log_data(),
         )
         mock_schedule_update_project_config.assert_called_once_with(detector)
+
+    def test_creation_with_description(self) -> None:
+        data = {**self.valid_data, "description": "This is a test metric detector"}
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                **data,
+                status_code=201,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.description == "This is a test metric detector"
 
     def test_invalid_workflow_ids(self) -> None:
         # Workflow doesn't exist at all

@@ -19,13 +19,14 @@ import type {
   RPCQueryExtras,
   SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import {TrackResponse} from 'sentry/views/insights/common/utils/trackResponse';
 
-export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
+const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
@@ -112,9 +113,7 @@ function useSpansQueryBase<T>({
     caseInsensitive: queryExtras?.caseInsensitive,
     samplingMode: queryExtras?.samplingMode,
     disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation,
-    spanQueries: queryExtras?.spanQueries,
-    logQueries: queryExtras?.logQueries,
-    metricQueries: queryExtras?.metricQueries,
+    traceMetric: queryExtras?.traceMetric,
   });
 
   if (trackResponseAnalytics) {
@@ -242,13 +241,11 @@ type WrappedDiscoverQueryProps<T> = {
   initialData?: T;
   keepPreviousData?: boolean;
   limit?: number;
-  logQueries?: string[];
-  metricQueries?: string[];
   noPagination?: boolean;
   referrer?: string;
   refetchInterval?: number;
   samplingMode?: SamplingMode;
-  spanQueries?: string[];
+  traceMetric?: TraceMetric;
 };
 
 function useWrappedDiscoverQueryBase<T>({
@@ -262,22 +259,24 @@ function useWrappedDiscoverQueryBase<T>({
   noPagination,
   allowAggregateConditions,
   disableAggregateExtrapolation,
-  logQueries,
-  metricQueries,
-  spanQueries,
   samplingMode,
   pageFiltersReady,
   additionalQueryKey,
   refetchInterval,
   caseInsensitive,
+  traceMetric,
 }: WrappedDiscoverQueryProps<T> & {
   pageFiltersReady: boolean;
 }) {
   const location = useLocation();
   const organization = useOrganization();
 
-  const queryExtras: Record<string, string | string[]> = {};
-  if (eventView.dataset === DiscoverDatasets.SPANS) {
+  const queryExtras: Record<string, string> = {};
+  if (
+    [DiscoverDatasets.SPANS, DiscoverDatasets.TRACEMETRICS].includes(
+      eventView.dataset as DiscoverDatasets
+    )
+  ) {
     if (samplingMode) {
       queryExtras.sampling = samplingMode;
     }
@@ -291,20 +290,13 @@ function useWrappedDiscoverQueryBase<T>({
     }
   }
 
-  if (logQueries) {
-    queryExtras.logQueries = logQueries;
-  }
-
-  if (metricQueries) {
-    queryExtras.metricQueries = metricQueries;
-  }
-
-  if (spanQueries) {
-    queryExtras.spanQueries = spanQueries;
-  }
-
   if (allowAggregateConditions !== undefined) {
     queryExtras.allowAggregateConditions = allowAggregateConditions ? '1' : '0';
+  }
+
+  if (traceMetric?.name && traceMetric?.type) {
+    queryExtras.metricName = traceMetric.name;
+    queryExtras.metricType = traceMetric.type;
   }
 
   const result = useDiscoverQuery({

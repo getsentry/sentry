@@ -3,29 +3,38 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {IconChevron, IconRefresh, IconTable} from 'sentry/icons';
+import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
-import SchemaHintsList, {
-  SchemaHintsSection,
-} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
+import {
+  ExploreBodyContent,
+  ExploreBodySearch,
+  ExploreContentSection,
+  ExploreControlSection,
+  ExploreSchemaHintsSection,
+} from 'sentry/views/explore/components/styles';
+import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {
+  useLogsPageData,
+  useLogsPageDataQueryResult,
+} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -39,21 +48,18 @@ import {
   HiddenLogSearchFields,
 } from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
+import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsExportButton} from 'sentry/views/explore/logs/logsExport';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
-  BottomSectionBody,
-  FilterBarContainer,
+  LogsFilterSection,
   LogsGraphContainer,
   LogsItemContainer,
   LogsSidebarCollapseButton,
   LogsTableActionsContainer,
   StyledPageFilterBar,
   TableActionsContainer,
-  ToolbarAndBodyContainer,
-  ToolbarContainer,
-  TopSectionBody,
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
@@ -78,6 +84,7 @@ import {
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
+import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import type {PickableDays} from 'sentry/views/explore/utils';
 
 // eslint-disable-next-line no-restricted-imports,boundaries/element-types
@@ -123,6 +130,8 @@ export function LogsTabContent({
       setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
     }
   }, [autorefreshEnabled]);
+
+  const rawLogCounts = useRawCounts({dataset: DiscoverDatasets.OURLOGS});
 
   const yAxes = useMemo(() => {
     const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));
@@ -270,11 +279,13 @@ export function LogsTabContent({
     return false;
   }, [pageFilters.selection.datetime]);
 
+  const {infiniteLogsQueryResult} = useLogsPageData();
+
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
-      <TopSectionBody noRowGap>
+      <ExploreBodySearch>
         <Layout.Main width="full">
-          <FilterBarContainer>
+          <LogsFilterSection>
             <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
@@ -306,8 +317,8 @@ export function LogsTabContent({
                 )}
               />
             )}
-          </FilterBarContainer>
-          <SchemaHintsSection>
+          </LogsFilterSection>
+          <ExploreSchemaHintsSection>
             <SchemaHintsList
               supportedAggregates={supportedAggregates}
               numberTags={numberAttributes}
@@ -317,88 +328,99 @@ export function LogsTabContent({
               source={SchemaHintsSources.LOGS}
               searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
             />
-          </SchemaHintsSection>
+          </ExploreSchemaHintsSection>
         </Layout.Main>
-      </TopSectionBody>
+      </ExploreBodySearch>
 
-      <ToolbarAndBodyContainer sidebarOpen={sidebarOpen}>
-        {sidebarOpen && (
-          <ToolbarContainer sidebarOpen={sidebarOpen}>
+      <ExploreBodyContent>
+        <ExploreControlSection expanded={sidebarOpen}>
+          {sidebarOpen && (
             <LogsToolbar stringTags={stringAttributes} numberTags={numberAttributes} />
-          </ToolbarContainer>
-        )}
-        <BottomSectionBody sidebarOpen={sidebarOpen}>
-          <section>
-            <OverChartButtonGroup>
-              <LogsSidebarCollapseButton
-                sidebarOpen={sidebarOpen}
-                aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
-                size="xs"
-                icon={
-                  <IconChevron
-                    isDouble
-                    direction={sidebarOpen ? 'left' : 'right'}
-                    size="xs"
-                  />
-                }
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-              >
-                {sidebarOpen ? null : t('Advanced')}
-              </LogsSidebarCollapseButton>
-              <LogsExportButton
-                isLoading={tableData.isPending}
-                tableData={tableData.data}
-                error={tableData.error}
-              />
-            </OverChartButtonGroup>
-            {!tableData.isPending && tableData.isEmpty && (
-              <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
-            )}
-            <LogsGraphContainer>
-              <LogsGraph timeseriesResult={timeseriesResult} />
-            </LogsGraphContainer>
-            <LogsTableActionsContainer>
-              <Tabs value={tableTab} onChange={setTableTab} size="sm">
-                <TabList hideBorder variant="floating">
-                  <TabList.Item key="logs">{t('Logs')}</TabList.Item>
-                  <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
-                </TabList>
-              </Tabs>
+          )}
+        </ExploreControlSection>
+        <ExploreContentSection expanded={sidebarOpen}>
+          <OverChartButtonGroup>
+            <LogsSidebarCollapseButton
+              sidebarOpen={sidebarOpen}
+              aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
+              size="xs"
+              icon={
+                <IconChevron
+                  isDouble
+                  direction={sidebarOpen ? 'left' : 'right'}
+                  size="xs"
+                />
+              }
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              {sidebarOpen ? null : t('Advanced')}
+            </LogsSidebarCollapseButton>
+            <LogsExportButton
+              isLoading={tableData.isPending}
+              tableData={tableData.data}
+              error={tableData.error}
+            />
+          </OverChartButtonGroup>
+          <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+          <LogsDownSamplingAlert
+            timeseriesResult={timeseriesResult}
+            tableResult={infiniteLogsQueryResult}
+          />
+          <LogsGraphContainer>
+            <LogsGraph rawLogCounts={rawLogCounts} timeseriesResult={timeseriesResult} />
+          </LogsGraphContainer>
+          <LogsTableActionsContainer>
+            <Tabs value={tableTab} onChange={setTableTab} size="sm">
+              <TabList hideBorder variant="floating">
+                <TabList.Item key="logs">{t('Logs')}</TabList.Item>
+                <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
+              </TabList>
+            </Tabs>
+            {tableTab === 'logs' && (
               <TableActionsContainer>
                 <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
-                <Tooltip
-                  title={t(
-                    'Narrow your time range to 1hr or less for manually refreshing your logs.'
-                  )}
-                  disabled={canManuallyRefresh}
-                >
-                  <Button
-                    onClick={refreshTable}
-                    icon={<IconRefresh />}
-                    size="sm"
-                    aria-label={t('Refresh')}
-                    disabled={!canManuallyRefresh}
-                  />
-                </Tooltip>
-                <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
-                  {t('Edit Table')}
-                </Button>
-              </TableActionsContainer>
-            </LogsTableActionsContainer>
-
-            <LogsItemContainer>
-              {tableTab === 'logs' ? (
-                <LogsInfiniteTable
-                  stringAttributes={stringAttributes}
-                  numberAttributes={numberAttributes}
+                <Button
+                  size="sm"
+                  icon={<IconRefresh />}
+                  disabled={canManuallyRefresh ? false : true}
+                  onClick={refreshTable}
+                  aria-label={t('Refresh')}
                 />
-              ) : (
-                <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
-              )}
-            </LogsItemContainer>
-          </section>
-        </BottomSectionBody>
-      </ToolbarAndBodyContainer>
+                <TableActionButton
+                  mobile={
+                    <Button
+                      onClick={openColumnEditor}
+                      icon={<IconEdit />}
+                      size="sm"
+                      aria-label={t('Edit Table')}
+                    />
+                  }
+                  desktop={
+                    <Button
+                      onClick={openColumnEditor}
+                      icon={<IconEdit />}
+                      size="sm"
+                      aria-label={t('Edit Table')}
+                    >
+                      {t('Edit Table')}
+                    </Button>
+                  }
+                />
+              </TableActionsContainer>
+            )}
+          </LogsTableActionsContainer>
+          <LogsItemContainer>
+            {tableTab === 'logs' ? (
+              <LogsInfiniteTable
+                stringAttributes={stringAttributes}
+                numberAttributes={numberAttributes}
+              />
+            ) : (
+              <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
+            )}
+          </LogsItemContainer>
+        </ExploreContentSection>
+      </ExploreBodyContent>
     </SearchQueryBuilderProvider>
   );
 }

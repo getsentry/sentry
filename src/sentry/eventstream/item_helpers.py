@@ -3,7 +3,13 @@ from typing import Any
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import (
+    AnyValue,
+    ArrayValue,
+    KeyValue,
+    KeyValueList,
+    TraceItem,
+)
 
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -39,8 +45,22 @@ def _encode_value(value: Any) -> AnyValue:
         return AnyValue(int_value=value)
     elif isinstance(value, float):
         return AnyValue(double_value=value)
-    elif isinstance(value, list) or isinstance(value, dict):
-        return AnyValue(string_value="encode not supported for non-scalar values")
+    elif isinstance(value, list) or isinstance(value, tuple):
+        # Not yet processed on EAP side
+        return AnyValue(
+            array_value=ArrayValue(values=[_encode_value(v) for v in value if v is not None])
+        )
+    elif isinstance(value, dict):
+        # Not yet processed on EAP side
+        return AnyValue(
+            kvlist_value=KeyValueList(
+                values=[
+                    KeyValue(key=str(kv[0]), value=_encode_value(kv[1]))
+                    for kv in value.items()
+                    if kv[1] is not None
+                ]
+            )
+        )
     else:
         raise NotImplementedError(f"encode not supported for {type(value)}")
 
@@ -54,12 +74,16 @@ def encode_attributes(
     for key, value in event_data.items():
         if key in ignore_fields:
             continue
+        if value is None:
+            continue
         attributes[key] = _encode_value(value)
 
     if event.group_id:
         attributes["group_id"] = AnyValue(int_value=event.group_id)
 
     for key, value in event_data["tags"]:
+        if value is None:
+            continue
         attributes[f"tags[{key}]"] = _encode_value(value)
 
     return attributes
