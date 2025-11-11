@@ -157,7 +157,7 @@ type AddOns = Partial<Record<AddOnCategory, AddOn>>;
 // how addons are represented in the checkout form data
 export type CheckoutAddOns = Partial<Record<AddOnCategory, Pick<AddOn, 'enabled'>>>;
 
-export type RetentionSettings = {
+type RetentionSettings = {
   downsampled: number | null;
   standard: number | null;
 };
