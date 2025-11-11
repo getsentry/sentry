@@ -197,7 +197,6 @@ describe('DetectorEdit', () => {
               },
               config: {
                 detectionType: 'static',
-                thresholdPeriod: 1,
               },
               dataSources: [
                 {
@@ -337,7 +336,7 @@ describe('DetectorEdit', () => {
                 ],
                 logicType: 'any',
               },
-              config: {detectionType: 'static', thresholdPeriod: 1},
+              config: {detectionType: 'static'},
               dataSources: [
                 {
                   aggregate: 'count_unique(tags[sentry:user])',
@@ -407,7 +406,7 @@ describe('DetectorEdit', () => {
                 ],
                 logicType: 'any',
               },
-              config: {detectionType: 'static', thresholdPeriod: 1},
+              config: {detectionType: 'static'},
               dataSources: [
                 {
                   aggregate: 'count()',
@@ -625,15 +624,23 @@ describe('DetectorEdit', () => {
               projectId: project.id,
               owner: null,
               workflowIds: [],
-              // Dynamic detection should have empty conditions (no resolution thresholds)
+              // Dynamic detection should have anomaly detection condition
               conditionGroup: {
-                conditions: [],
+                conditions: [
+                  {
+                    type: 'anomaly_detection',
+                    comparison: {
+                      sensitivity: 'high',
+                      seasonality: 'auto',
+                      thresholdType: 0,
+                    },
+                    conditionResult: 75,
+                  },
+                ],
                 logicType: 'any',
               },
               config: {
                 detectionType: 'dynamic',
-                sensitivity: 'high',
-                thresholdPeriod: 1,
               },
               dataSources: [
                 {

@@ -540,10 +540,14 @@ function DetectSection() {
             )}
           </Flex>
         </div>
-        <DefineThresholdParagraph>
-          <Text bold>{t('Resolve')}</Text>
-        </DefineThresholdParagraph>
-        <ResolveSection />
+        {detectionType !== 'dynamic' && (
+          <Fragment>
+            <DefineThresholdParagraph>
+              <Text bold>{t('Resolve')}</Text>
+            </DefineThresholdParagraph>
+            <ResolveSection />
+          </Fragment>
+        )}
       </Flex>
     </Container>
   );
