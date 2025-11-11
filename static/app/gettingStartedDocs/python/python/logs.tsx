@@ -9,7 +9,7 @@ import {t, tct} from 'sentry/locale';
 
 import {getPythonInstallCodeBlock} from './utils';
 
-export const verify = (params: DocsParams): ContentBlock => ({
+export const logsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
   condition: params.isLogsSelected,
   content: [
@@ -114,7 +114,7 @@ sentry_sdk.init(
     {
       type: StepType.VERIFY,
       description: t('Test that logs are working by sending some test logs:'),
-      content: [verify(params)],
+      content: [logsVerify(params)],
     },
   ],
 });
