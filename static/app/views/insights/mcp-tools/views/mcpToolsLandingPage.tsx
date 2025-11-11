@@ -17,6 +17,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import McpToolDurationWidget from 'sentry/views/insights/pages/mcp/components/mcpToolDurationWidget';
 import McpToolErrorRateWidget from 'sentry/views/insights/pages/mcp/components/mcpToolErrorRateWidget';
 import {McpToolsTable} from 'sentry/views/insights/pages/mcp/components/mcpToolsTable';
@@ -43,8 +44,12 @@ function McpToolsLandingPage() {
               <ModuleLayout.Full>
                 <ToolRibbon>
                   <PageFilterBar condensed>
-                    <InsightsProjectSelector />
-                    <InsightsEnvironmentSelector />
+                    <InsightsProjectSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
+                    <InsightsEnvironmentSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (

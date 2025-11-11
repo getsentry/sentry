@@ -19,6 +19,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import McpTrafficWidget from 'sentry/views/insights/common/components/widgets/mcpTrafficWidget';
+import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {McpOverviewTable} from 'sentry/views/insights/pages/mcp/components/mcpOverviewTable';
 import McpPromptTrafficWidget from 'sentry/views/insights/pages/mcp/components/mcpPromptTrafficWidget';
@@ -61,8 +62,12 @@ function McpOverviewPage() {
               <ModuleLayout.Full>
                 <ToolRibbon>
                   <PageFilterBar condensed>
-                    <InsightsProjectSelector />
-                    <InsightsEnvironmentSelector />
+                    <InsightsProjectSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
+                    <InsightsEnvironmentSelector
+                      resetParamsOnChange={[TableUrlParams.CURSOR]}
+                    />
                     <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (
