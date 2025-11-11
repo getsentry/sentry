@@ -46,7 +46,7 @@ export function FeatureOverview() {
         {t('How to use AI Code Review')}
       </Text>
       <Text variant="muted" size="md">
-        {t('AI Code Review helps you ship better code with three features:')}
+        {t('AI Code Review helps you ship better code with new features:')}
       </Text>
       <Container as="ul" style={{margin: 0, fontSize: '12px'}}>
         <li>
@@ -75,17 +75,6 @@ export function FeatureOverview() {
                 ),
               }
             )}
-          </Text>
-        </li>
-        <li>
-          <Text variant="muted" size="sm">
-            {tct('It generates unit tests for your PR when you prompt [sentryCommand].', {
-              sentryCommand: (
-                <Text variant="accent" size="sm" bold>
-                  @sentry generate-test
-                </Text>
-              ),
-            })}
           </Text>
         </li>
       </Container>
@@ -143,7 +132,7 @@ export default function PreventAIOnboarding() {
         <StyledImg src={preventHero} alt="AI Code Review Hero" />
         <Flex direction="column" gap="md" maxWidth="500px" padding="2xl 0">
           <Heading as="h1" style={{maxWidth: '400px'}}>
-            {t('Ship Code That Breaks Less With Code Reviews And Tests')}
+            {t('Ship Code That Breaks Less With Code Reviews')}
           </Heading>
           <Text variant="primary" size="md">
             {t('AI Code Review is an AI agent that automates tasks in your PR:')}
@@ -153,9 +142,6 @@ export default function PreventAIOnboarding() {
               {t(
                 'It reviews your pull requests, predicting errors and suggesting code fixes.'
               )}
-            </Container>
-            <Container as="li">
-              {t('It generates unit tests for untested code in your PR.')}
             </Container>
           </Container>
         </Flex>
