@@ -98,6 +98,13 @@ function ReplaysContent({
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.sm})`);
 
   const {replays, isFetching, fetchError} = useReplayList({
+    enabled: eventView.query !== '',
+    // for the replay tab in transactions, if payload.query is undefined,
+    // this means the transaction has no related replays.
+    // but because we cannot query for an empty list of IDs (e.g. `id:[]` breaks our search endpoint),
+    // and leaving query empty results in ALL replays being returned for a specified project
+    // (which doesn't make sense as we want to show no replays),
+    // we essentially want to hardcode no replays being returned.
     eventView,
     location: newLocation,
     organization,
