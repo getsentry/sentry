@@ -467,7 +467,7 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
         description: t(
           'Learn how to track custom metrics to monitor your application performance and business KPIs.'
         ),
-        link: 'https://docs.sentry.io/platforms/javascript/guides/javascript/metrics/',
+        link: 'https://docs.sentry.io/platforms/javascript/metrics/',
       });
     }
 
@@ -577,7 +577,7 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
         description: t(
           'Learn how to track custom metrics to monitor your application performance and business KPIs.'
         ),
-        link: 'https://docs.sentry.io/platforms/javascript/guides/javascript/metrics/',
+        link: 'https://docs.sentry.io/platforms/javascript/metrics/',
       });
     }
 
