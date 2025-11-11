@@ -14,7 +14,6 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
         super().setUp()
         self.add_warning_trigger()
         self.add_incident_data()
-        self.create_detector_group(detector=self.detector, group=self.group_open_period.group)
         self.incident_identifier = str(self.incident_group_open_period.incident_identifier)
         self.incident_expected = {
             "id": str(self.incident_group_open_period.incident_id),
@@ -45,3 +44,8 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
         )
         self.incident_expected["discoverQuery"] = "(event.type:error) AND (level:error)"
         assert serialized_incident == self.incident_expected
+
+    def test_no_incident(self) -> None:
+        """
+        Assert that nothing breaks if the IGOP does not exist.
+        """
