@@ -99,7 +99,7 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
                 description.append(f"\n{cls.render_text_blocks(block.blocks)}")
             elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
                 description.append(f"\n```{cls.render_text_blocks(block.blocks)}```")
-        return " ".join(description)
+        return "".join(description)
 
     @classmethod
     def render_text_blocks(cls, blocks: list[NotificationBodyTextBlock]) -> str:
