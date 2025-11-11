@@ -14,9 +14,9 @@ export interface ExplorerPanelContextType {
   onMaxSize: () => void;
   onMedSize: () => void;
   onNew: () => void;
-  onResume: (runId: number) => void;
   panelSize: 'max' | 'med';
   setMenuMode: (mode: MenuMode) => void;
+  switchSession: (runId: number) => void;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 

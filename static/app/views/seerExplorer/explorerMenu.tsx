@@ -73,7 +73,7 @@ export function ExplorerMenu() {
       }
 
       if (item.key === '/resume') {
-        // Handle /resume command here since it changes the menu mode.
+        // Handle /resume command here - avoid changing menu and query states from item handlers.
         setMenuMode('session-history');
         refetchSessions();
       } else {
@@ -231,7 +231,7 @@ function useSlashCommands(): MenuItemProps[] {
 
 function useSessions() {
   const {data, isPending, isError, refetch} = useExplorerSessions({limit: 20});
-  const {onResume} = useExplorerPanelContext();
+  const {switchSession} = useExplorerPanelContext();
 
   const formatDate = (date: string) => {
     return moment(date).format('MM/DD/YYYY HH:mm');
@@ -247,10 +247,10 @@ function useSessions() {
       key: session.run_id.toString(),
       description: `Last updated at ${formatDate(session.last_triggered_at)}`,
       handler: () => {
-        onResume(session.run_id);
+        switchSession(session.run_id);
       },
     }));
-  }, [data, isPending, isError, onResume]);
+  }, [data, isPending, isError, switchSession]);
 
   return {
     sessionItems,

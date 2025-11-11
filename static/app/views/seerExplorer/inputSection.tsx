@@ -44,22 +44,14 @@ function InputSection({
     if (menuMode === 'hidden') {
       setMenuMode('slash-commands-manual');
       textAreaRef.current?.blur();
-    } else if (menuMode === 'slash-commands-keyboard') {
+      return;
+    }
+    setMenuMode('hidden');
+    onInputClick();
+    if (menuMode === 'slash-commands-keyboard') {
       clearInput();
-      setMenuMode('hidden');
-      onInputClick();
-    } else {
-      setMenuMode('hidden');
-      onInputClick();
     }
   }, [menuMode, setMenuMode, clearInput, textAreaRef, onInputClick]);
-
-  const onInputClickWithCloseMenu = useCallback(() => {
-    onInputClick();
-    if (menuMode !== 'slash-commands-keyboard') {
-      setMenuMode('hidden');
-    }
-  }, [onInputClick, setMenuMode, menuMode]);
 
   return (
     <InputBlock>
@@ -78,7 +70,7 @@ function InputSection({
           value={inputValue}
           onChange={onInputChange}
           onKeyDown={onKeyDown}
-          onClick={onInputClickWithCloseMenu}
+          onClick={onInputClick}
           placeholder={getPlaceholder()}
           rows={1}
           data-test-id="seer-explorer-input"

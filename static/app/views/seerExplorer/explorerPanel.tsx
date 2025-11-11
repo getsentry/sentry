@@ -42,7 +42,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     isPolling,
     interruptRun,
     interruptRequested,
-    resumeSession,
+    setRunId,
   } = useSeerExplorer();
 
   // Get blocks from session data or empty array
@@ -247,12 +247,16 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setIsMinimized(false);
   };
 
-  const handleInputClick = () => {
+  const handleInputClick = useCallback(() => {
     hoveredBlockIndex.current = -1;
     setFocusedBlockIndex(-1);
     textareaRef.current?.focus();
     setIsMinimized(false);
-  };
+
+    if (menuMode !== 'slash-commands-keyboard') {
+      setMenuMode('hidden');
+    }
+  }, [menuMode, setMenuMode, setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
   const handlePanelBackgroundClick = useCallback(() => {
     setIsMinimized(false);
@@ -262,7 +266,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setMenuMode('hidden');
   }, [menuMode]);
 
-  // Useful callbacks and state for the input controls.
+  // Useful callbacks and state for the input section.
   const contextValue: ExplorerPanelContextType = {
     inputValue,
     clearInput: () => setInputValue(''),
@@ -276,65 +280,65 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     onMaxSize: handleMaxSize,
     onMedSize: handleMedSize,
     onNew: startNewSession,
-    onResume: resumeSession,
+    switchSession: setRunId,
     textAreaRef: textareaRef,
     panelSize,
   };
 
   const panelContent = (
-    <ExplorerPanelContext.Provider value={contextValue}>
-      <PanelContainers
-        ref={panelRef}
-        isOpen={isVisible}
-        isMinimized={isMinimized}
-        panelSize={panelSize}
-        onUnminimize={() => setIsMinimized(false)}
-      >
-        <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
-          {blocks.length === 0 ? (
-            <EmptyState />
-          ) : (
-            blocks.map((block: Block, index: number) => (
-              <BlockComponent
-                key={block.id}
-                ref={el => {
-                  blockRefs.current[index] = el;
-                }}
-                block={block}
-                blockIndex={index}
-                isLast={index === blocks.length - 1}
-                isFocused={focusedBlockIndex === index}
-                isPolling={isPolling}
-                onClick={() => handleBlockClick(index)}
-                onMouseEnter={() => {
-                  // Don't change focus while slash commands menu is open or if already on this block
-                  if (menuMode !== 'hidden' || hoveredBlockIndex.current === index) {
-                    return;
-                  }
+    <PanelContainers
+      ref={panelRef}
+      isOpen={isVisible}
+      isMinimized={isMinimized}
+      panelSize={panelSize}
+      onUnminimize={() => setIsMinimized(false)}
+    >
+      <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
+        {blocks.length === 0 ? (
+          <EmptyState />
+        ) : (
+          blocks.map((block: Block, index: number) => (
+            <BlockComponent
+              key={block.id}
+              ref={el => {
+                blockRefs.current[index] = el;
+              }}
+              block={block}
+              blockIndex={index}
+              isLast={index === blocks.length - 1}
+              isFocused={focusedBlockIndex === index}
+              isPolling={isPolling}
+              onClick={() => handleBlockClick(index)}
+              onMouseEnter={() => {
+                // Don't change focus while slash commands menu is open or if already on this block
+                if (menuMode !== 'hidden' || hoveredBlockIndex.current === index) {
+                  return;
+                }
 
-                  hoveredBlockIndex.current = index;
-                  setFocusedBlockIndex(index);
-                  if (document.activeElement === textareaRef.current) {
-                    textareaRef.current?.blur();
-                  }
-                }}
-                onMouseLeave={() => {
-                  if (hoveredBlockIndex.current === index) {
-                    hoveredBlockIndex.current = -1;
-                  }
-                }}
-                onDelete={() => deleteFromIndex(index)}
-                onNavigate={() => setIsMinimized(true)}
-                onRegisterEnterHandler={handler => {
-                  blockEnterHandlers.current.set(index, handler);
-                }}
-              />
-            ))
-          )}
-        </BlocksContainer>
+                hoveredBlockIndex.current = index;
+                setFocusedBlockIndex(index);
+                if (document.activeElement === textareaRef.current) {
+                  textareaRef.current?.blur();
+                }
+              }}
+              onMouseLeave={() => {
+                if (hoveredBlockIndex.current === index) {
+                  hoveredBlockIndex.current = -1;
+                }
+              }}
+              onDelete={() => deleteFromIndex(index)}
+              onNavigate={() => setIsMinimized(true)}
+              onRegisterEnterHandler={handler => {
+                blockEnterHandlers.current.set(index, handler);
+              }}
+            />
+          ))
+        )}
+      </BlocksContainer>
+      <ExplorerPanelContext.Provider value={contextValue}>
         <InputSection onKeyDown={handleInputKeyDown} />
-      </PanelContainers>
-    </ExplorerPanelContext.Provider>
+      </ExplorerPanelContext.Provider>
+    </PanelContainers>
   );
 
   if (!organization?.features.includes('seer-explorer') || organization.hideAiFeatures) {

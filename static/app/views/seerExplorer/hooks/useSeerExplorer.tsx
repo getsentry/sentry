@@ -374,7 +374,7 @@ export const useSeerExplorer = () => {
     isPending,
     sendMessage,
     runId,
-    resumeSession: (newRunId: number) => setRunId(newRunId),
+    setRunId,
     /** Resets the run id, display, and hook state. The session isn't actually created until the user sends a message. */
     startNewSession,
     deleteFromIndex,
