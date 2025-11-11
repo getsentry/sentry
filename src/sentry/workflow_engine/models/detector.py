@@ -24,6 +24,7 @@ from sentry.models.owner_base import OwnerModel
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models import DataCondition
 from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 from .json_config import JSONConfigBase
 
@@ -97,16 +98,24 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return f"detector:by_proj_type:{project_id}:{detector_type}"
 
     @classmethod
-    def get_error_detector_for_project(cls, project_id: int) -> Detector:
-        from sentry.grouping.grouptype import ErrorGroupType
-
-        detector_type = ErrorGroupType.slug
+    def fetch_default_detector_for_project(cls, project_id: int, detector_type: str) -> Detector:
         cache_key = cls._get_detector_project_type_cache_key(project_id, detector_type)
         detector = cache.get(cache_key)
         if detector is None:
-            detector = cls.objects.get(project_id=project_id, type=ErrorGroupType.slug)
+            detector = cls.objects.get(project_id=project_id, type=detector_type)
             cache.set(cache_key, detector, cls.CACHE_TTL)
+
         return detector
+
+    @classmethod
+    def get_error_detector_for_project(cls, project_id: int) -> Detector:
+        from sentry.grouping.grouptype import ErrorGroupType
+
+        return cls.fetch_default_detector_for_project(project_id, ErrorGroupType.slug)
+
+    @classmethod
+    def get_issue_stream_detector_for_project(cls, project_id: int) -> Detector:
+        return cls.fetch_default_detector_for_project(project_id, IssueStreamGroupType.slug)
 
     @property
     def group_type(self) -> builtins.type[GroupType]:

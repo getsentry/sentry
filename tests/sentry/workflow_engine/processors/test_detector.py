@@ -1023,6 +1023,7 @@ class TestAssociateNewGroupWithDetector(TestCase):
         super().setUp()
         self.metric_detector = self.create_detector(project=self.project, type="metric_issue")
         self.error_detector = self.create_detector(project=self.project, type="error")
+        self.issue_stream_detector = self.create_detector(project=self.project, type="issue_stream")
 
     def test_metrics_group_with_known_detector(self) -> None:
         group = self.create_group(project=self.project, type=MetricIssue.type_id)
@@ -1049,7 +1050,9 @@ class TestAssociateNewGroupWithDetector(TestCase):
                 detector_id=self.error_detector.id, group_id=group.id
             ).exists()
 
-    def test_feedback_group_returns_false(self) -> None:
+    def test_feedback_group_uses_issue_stream_detector(self) -> None:
         group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
-        assert not associate_new_group_with_detector(group)
-        assert not DetectorGroup.objects.filter(group_id=group.id).exists()
+        assert associate_new_group_with_detector(group)
+        assert DetectorGroup.objects.filter(
+            detector_id=self.issue_stream_detector.id, group_id=group.id
+        ).exists()
