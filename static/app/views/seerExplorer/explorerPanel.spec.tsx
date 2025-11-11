@@ -11,11 +11,6 @@ jest.mock('react-dom', () => ({
   createPortal: (node: React.ReactNode) => node,
 }));
 
-// Mock SessionDropdown to avoid async Popper.js updates in tests
-jest.mock('./sessionDropdown', () => ({
-  SessionDropdown: () => <div data-testid="session-dropdown" />,
-}));
-
 describe('ExplorerPanel', () => {
   const organization = OrganizationFixture({
     features: ['seer-explorer'],

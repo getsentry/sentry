@@ -22,6 +22,7 @@ describe('useSeerExplorer', () => {
 
       expect(result.current.sessionData).toBeNull();
       expect(result.current.isPolling).toBe(false);
+      expect(result.current.runId).toBeNull();
       expect(result.current.deletedFromIndex).toBeNull();
     });
   });
@@ -136,6 +137,7 @@ describe('useSeerExplorer', () => {
         result.current.startNewSession();
       });
 
+      expect(result.current.runId).toBeNull();
       expect(result.current.deletedFromIndex).toBeNull();
     });
   });
