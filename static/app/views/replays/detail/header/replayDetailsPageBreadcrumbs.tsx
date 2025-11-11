@@ -101,6 +101,37 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
+          {organization.features.includes('replay-playlist-view') && (
+            <StyledFlex>
+              <ButtonBar merged gap="0">
+                <LinkButton
+                  size="xs"
+                  icon={<IconPrevious />}
+                  disabled={!previousReplay}
+                  to={{
+                    pathname: previousReplay
+                      ? makeReplaysPathname({
+                          path: `/${previousReplay.id}/`,
+                          organization,
+                        })
+                      : undefined,
+                    query: location.query,
+                  }}
+                />
+                <LinkButton
+                  size="xs"
+                  icon={<IconNext />}
+                  disabled={!nextReplay}
+                  to={{
+                    pathname: nextReplay
+                      ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
+                      : undefined,
+                    query: location.query,
+                  }}
+                />
+              </ButtonBar>
+            </StyledFlex>
+          )}
           <div
             onClick={() =>
               copy(replayUrlWithTimestamp, {
@@ -125,34 +156,6 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             />
           </Tooltip>
         </Flex>
-        {organization.features.includes('replay-playlist-view') && (
-          <Flex>
-            <ButtonBar merged gap="0">
-              <LinkButton
-                size="xs"
-                icon={<IconPrevious />}
-                disabled={!previousReplay}
-                to={{
-                  pathname: previousReplay
-                    ? makeReplaysPathname({path: `/${previousReplay.id}/`, organization})
-                    : undefined,
-                  query: location.query,
-                }}
-              />
-              <LinkButton
-                size="xs"
-                icon={<IconNext />}
-                disabled={!nextReplay}
-                to={{
-                  pathname: nextReplay
-                    ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
-                    : undefined,
-                  query: location.query,
-                }}
-              />
-            </ButtonBar>
-          </Flex>
-        )}
       </Flex>
     ) : (
       <Placeholder width="100%" height="16px" />
@@ -167,6 +170,10 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
 
   return <StyledBreadcrumbs crumbs={crumbs} />;
 }
+
+const StyledFlex = styled(Flex)`
+  margin-right: ${p => p.theme.space.md};
+`;
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
