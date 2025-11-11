@@ -175,7 +175,9 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
 
         return workflow, [workflow_action_slow_filter_group, workflow_action_filter_group]
 
-    def setup_event(self, project, environment, name) -> tuple[Event, Group]:
+    def setup_event(
+        self, project: Project, environment: Environment, name: str
+    ) -> tuple[Event, Group]:
         event = self.create_event(project.id, FROZEN_TIME, name, environment.name)
         assert event.group
         return event, event.group

@@ -439,7 +439,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         assert triggered_workflows == {self.workflow, workflow_two}
 
     @patch.object(get_data_conditions_for_group, "batch")
-    def test_batched_data_condition_lookup_is_used(self, mock_batch):
+    def test_batched_data_condition_lookup_is_used(self, mock_batch: MagicMock) -> None:
         """Test that batch lookup is used when evaluating multiple workflows."""
         workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
 
@@ -816,7 +816,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         assert not triggered_action_filters
 
     @patch.object(get_data_conditions_for_group, "batch")
-    def test_batched_data_condition_lookup_for_action_filters(self, mock_batch):
+    def test_batched_data_condition_lookup_for_action_filters(self, mock_batch: MagicMock) -> None:
         """Test that batch lookup is used when evaluating action filters."""
         # Create a second workflow with action filters
         workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
@@ -878,7 +878,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         # ensure we do not enqueue slow condition evaluation
         assert not queue_items
 
-    def test_enqueues_when_slow_conditions(self):
+    def test_enqueues_when_slow_conditions(self) -> None:
         assert isinstance(self.event_data.event, GroupEvent)
         queue_items_by_workflow_id = {
             self.workflow: DelayedWorkflowItem(
