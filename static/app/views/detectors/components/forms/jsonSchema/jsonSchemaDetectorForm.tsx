@@ -139,7 +139,7 @@ function JsonSchemaDetectorFormFields({detectorType}: {detectorType: DetectorTyp
     return <div>{t('Loading...')}</div>;
   }
 
-  if (!schema || !schema.properties) {
+  if (!schema?.properties) {
     return <div>{t('No configuration schema available')}</div>;
   }
 
