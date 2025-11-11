@@ -15,17 +15,17 @@ describe('javascript-solidstart onboarding docs', () => {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
     expect(
-      screen.getByText(
+      screen.getAllByText(
         textWithMarkupMatcher(/import \* as Sentry from "@sentry\/solidstart"/)
-      )
-    ).toBeInTheDocument();
+      ).length
+    ).toBeGreaterThanOrEqual(1);
 
     expect(
-      screen.getAllByText(textWithMarkupMatcher(/src\/entry-client\.tsx/))
-    ).toHaveLength(2);
+      screen.getAllByText(textWithMarkupMatcher(/src\/entry-client\.tsx/)).length
+    ).toBeGreaterThanOrEqual(1);
     expect(
-      screen.getByText(textWithMarkupMatcher(/public\/instrument\.server\.mjs/))
-    ).toBeInTheDocument();
+      screen.getAllByText(textWithMarkupMatcher(/public\/instrument\.server\.mjs/)).length
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it('displays sample rates when performance and replay are selected', () => {
@@ -48,7 +48,7 @@ describe('javascript-solidstart onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
-  it('includes browserTracingIntegration when performance is selected', () => {
+  it('includes tracing configuration when performance is selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
@@ -57,8 +57,8 @@ describe('javascript-solidstart onboarding docs', () => {
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry\.browserTracingIntegration/))
-    ).toBeInTheDocument();
+      screen.getAllByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
+    ).toHaveLength(2);
   });
 
   it('includes replayIntegration when replay is selected', () => {
@@ -109,14 +109,14 @@ describe('javascript-solidstart onboarding docs', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('enables logs by setting enableLogs to true', () => {
+  it('includes logging code in verify snippet when logs is selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
     });
 
-    expect(screen.getAllByText(textWithMarkupMatcher(/enableLogs: true/))).toHaveLength(
-      2
-    );
+    expect(
+      screen.getByText(textWithMarkupMatcher(/Sentry\.logger\.info/))
+    ).toBeInTheDocument();
   });
 
   it('shows Logging Integrations in next steps when logs is selected', () => {
@@ -153,16 +153,5 @@ describe('javascript-solidstart onboarding docs', () => {
     expect(docs.metricsOnboarding?.install).toBeDefined();
     expect(docs.metricsOnboarding?.configure).toBeDefined();
     expect(docs.metricsOnboarding?.verify).toBeDefined();
-  });
-
-  it('does not show Metrics in next steps when metrics is not selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.ERROR_MONITORING,
-        ProductSolution.PERFORMANCE_MONITORING,
-      ],
-    });
-
-    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
   });
 });

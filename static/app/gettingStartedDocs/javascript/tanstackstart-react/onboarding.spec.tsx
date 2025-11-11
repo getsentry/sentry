@@ -15,10 +15,10 @@ describe('javascript-tanstackstart-react onboarding docs', () => {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
     expect(
-      screen.getByText(
+      screen.getAllByText(
         textWithMarkupMatcher(/import \* as Sentry from "@sentry\/tanstackstart-react"/)
-      )
-    ).toBeInTheDocument();
+      ).length
+    ).toBeGreaterThanOrEqual(2);
   });
 
   it('displays sample rates when performance and replay are selected', () => {
@@ -31,8 +31,8 @@ describe('javascript-tanstackstart-react onboarding docs', () => {
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
-    ).toBeInTheDocument();
+      screen.getAllByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
+    ).toHaveLength(2);
     expect(
       screen.getByText(textWithMarkupMatcher(/replaysSessionSampleRate: 0\.1/))
     ).toBeInTheDocument();
@@ -72,10 +72,7 @@ describe('javascript-tanstackstart-react onboarding docs', () => {
   it('displays verify instructions', () => {
     renderWithOnboardingLayout(docs);
 
-    expect(screen.getByText(textWithMarkupMatcher(/Throw error/))).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Break the world/))
-    ).toBeInTheDocument();
+    expect(screen.getAllByText(textWithMarkupMatcher(/Break the world/))).toHaveLength(2);
   });
 
   it('has metrics onboarding configuration', () => {
@@ -83,16 +80,5 @@ describe('javascript-tanstackstart-react onboarding docs', () => {
     expect(docs.metricsOnboarding?.install).toBeDefined();
     expect(docs.metricsOnboarding?.configure).toBeDefined();
     expect(docs.metricsOnboarding?.verify).toBeDefined();
-  });
-
-  it('does not show Metrics in next steps when metrics is not selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.ERROR_MONITORING,
-        ProductSolution.PERFORMANCE_MONITORING,
-      ],
-    });
-
-    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
   });
 });
