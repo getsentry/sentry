@@ -26,7 +26,7 @@ export type OptionalPathParams<TApiPath extends string> =
 
 const paramRegex = /\$([a-zA-Z0-9_-]+)/g;
 
-type ApiUrl = string & {__apiUrl: true};
+export type ApiUrl = string & {__apiUrl: true};
 
 export default function getApiUrl<TApiPath extends KnownApiUrls = KnownApiUrls>(
   path: TApiPath,
