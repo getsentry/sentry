@@ -1,9 +1,17 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["unicorn", "typescript", "oxc", "import", "react", "jsx-a11y", "jest"],
+  "plugins": [
+    "unicorn",
+    "typescript",
+    "oxc",
+    "import",
+    "react",
+    "jest"
+  ],
   "categories": {},
   "rules": {
     "for-direction": "warn",
+    "consistent-return": "error",
     "no-async-promise-executor": "warn",
     "no-caller": "warn",
     "no-class-assign": "warn",
@@ -39,18 +47,35 @@
     "no-shadow-restricted-names": "warn",
     "no-sparse-arrays": "warn",
     "no-this-before-super": "warn",
-    "no-unassigned-vars": "warn",
+    "no-unassigned-vars": "off", // TODO: fix violations and enable rule
     "no-unsafe-finally": "warn",
     "no-unsafe-negation": "warn",
     "no-unsafe-optional-chaining": "warn",
-    "no-unused-expressions": "warn",
+    "no-unused-expressions": "off",
+    "typescript/no-unused-expressions": ["error", {"allowTernary": true}],
     "no-unused-labels": "warn",
+    "no-useless-rename": "off", // TODO: fix violations and enable rule
     "no-unused-private-class-members": "warn",
-    "no-unused-vars": "warn",
-    "no-useless-backreference": "warn",
-    "no-useless-catch": "warn",
-    "no-useless-escape": "warn",
-    "no-useless-rename": "warn",
+    "no-unused-vars": [
+      "error",
+      {
+        "vars": "all",
+        "args": "all",
+        "caughtErrors": "none",
+        "ignoreRestSiblings": true,
+        // Ignore vars that start with an underscore
+        // e.g. if you want to omit a property using object spread:
+        //
+        //   const {name: _name, ...props} = this.props;
+        //
+        "varsIgnorePattern": "^_",
+        "argsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_"
+      }
+    ],
+    "no-useless-backreference": "error",
+    "no-useless-catch": "error",
+    "no-useless-escape": "error",
     "no-with": "warn",
     "require-yield": "warn",
     "use-isnan": "warn",
@@ -64,7 +89,6 @@
     "no-else-return": "warn",
     "no-extend-native": "warn",
     "no-extra-bind": "warn",
-    "no-inner-declarations": "warn",
     "no-lone-blocks": "warn",
     "no-multi-str": "warn",
     "no-new": "warn",
@@ -74,20 +98,18 @@
     "no-return-assign": "warn",
     "no-script-url": "warn",
     "no-self-compare": "warn",
-    "radix": "warn",
-    "yoda": "warn",
     "oxc/bad-array-method-on-arguments": "warn",
     "oxc/bad-char-at-comparison": "warn",
     "oxc/bad-comparison-sequence": "warn",
     "oxc/bad-min-max-func": "warn",
     "oxc/bad-object-literal-comparison": "warn",
     "oxc/bad-replace-all-arg": "warn",
-    "oxc/const-comparisons": "warn",
+    "oxc/const-comparisons": "off", // TODO: fix violations and enable rule
     "oxc/double-comparisons": "warn",
     "oxc/erasing-op": "warn",
     "oxc/missing-throw": "warn",
     "oxc/number-arg-out-of-range": "warn",
-    "oxc/only-used-in-recursion": "warn",
+    "oxc/only-used-in-recursion": "off", // it's fine
     "oxc/uninvoked-array-callback": "warn",
     "typescript/await-thenable": "warn",
     "typescript/no-array-delete": "warn",
@@ -101,9 +123,7 @@
     "typescript/no-meaningless-void-operator": "warn",
     "typescript/no-misused-new": "warn",
     "typescript/no-misused-spread": "warn",
-    "typescript/no-non-null-asserted-optional-chain": "warn",
     "typescript/no-redundant-type-constituents": "warn",
-    "typescript/no-this-alias": "warn",
     "typescript/no-unnecessary-parameter-property-assignment": "warn",
     "typescript/no-unsafe-declaration-merging": "warn",
     "typescript/no-unsafe-unary-minus": "warn",
@@ -114,47 +134,105 @@
     "typescript/restrict-template-expressions": "warn",
     "typescript/triple-slash-reference": "warn",
     "typescript/unbound-method": "warn",
-    "typescript/no-empty-object-type": "warn",
     "typescript/no-unnecessary-type-assertion": "warn",
     "typescript/only-throw-error": "warn",
     "typescript/prefer-enum-initializers": "warn",
     "typescript/prefer-optional-chain": "warn",
-    "typescript/array-type": "warn",
-    "unicorn/no-await-in-promise-methods": "warn",
-    "unicorn/no-empty-file": "warn",
-    "unicorn/no-invalid-fetch-options": "warn",
-    "unicorn/no-invalid-remove-event-listener": "warn",
-    "unicorn/no-new-array": "warn",
-    "unicorn/no-single-promise-in-promise-methods": "warn",
-    "unicorn/no-thenable": "warn",
-    "unicorn/no-unnecessary-await": "warn",
-    "unicorn/no-useless-fallback-in-spread": "warn",
-    "unicorn/no-useless-length-check": "warn",
-    "unicorn/no-useless-spread": "warn",
-    "unicorn/prefer-set-size": "warn",
-    "unicorn/prefer-string-starts-ends-with": "warn",
-    "unicorn/error-message": "warn",
-    "unicorn/new-for-builtins": "warn",
-    "unicorn/no-instanceof-array": "warn",
-    "unicorn/no-negated-condition": "warn",
-    "unicorn/no-negation-in-equality-check": "warn",
-    "unicorn/prefer-array-find": "warn",
-    "unicorn/prefer-array-flat-map": "warn",
-    "unicorn/prefer-array-index-of": "warn",
-    "unicorn/prefer-array-some": "warn",
-    "unicorn/prefer-date-now": "warn",
-    "unicorn/prefer-includes": "warn",
-    "unicorn/prefer-negative-index": "warn",
-    "unicorn/prefer-node-protocol": "warn",
-    "import/default": "warn",
-    "import/namespace": "warn",
-    "import/no-absolute-path": "warn",
-    "import/no-cycle": "warn",
-    "import/no-duplicates": "warn",
-    "import/no-named-as-default": "warn",
-    "import/no-named-as-default-member": "warn",
-    "import/no-self-import": "warn",
-    "react/jsx-key": "warn",
+    // Recommended overrides
+    "typescript/no-empty-object-type": [
+      "error",
+      {
+        "allowInterfaces": "always"
+      }
+    ],
+    "typescript/no-explicit-any": "off",
+    "typescript/no-namespace": "off",
+    "typescript/no-non-null-asserted-optional-chain": "off", // TODO: fix violations and enable rule
+    "typescript/no-require-imports": "off", // TODO: fix violations and enable rule
+    "typescript/no-this-alias": "off", // TODO: fix violations and enable rule
+    // Strict overrides
+    "typescript/no-dynamic-delete": "off", // TODO: fix violations and enable rule
+    "typescript/no-invalid-void-type": "off", // TODO: fix violations and enable rule
+    "typescript/no-non-null-assertion": "off", // TODO: fix violations and enable rule
+    "typescript/unified-signatures": "off",
+    // Stylistic overrides
+    "typescript/array-type": [
+      "error",
+      {
+        "default": "array-simple"
+      }
+    ],
+    "typescript/class-literal-property-style": "off", // TODO: fix violations and enable rule
+    "typescript/consistent-generic-constructors": "off", // TODO: fix violations and enable rule
+    "typescript/consistent-type-definitions": "off", // TODO: fix violations and enable rule
+    "typescript/no-empty-function": "off", // TODO: fix violations and enable rule
+    "unicorn/custom-error-definition": "error",
+    "unicorn/error-message": "error",
+    "unicorn/filename-case": [
+      "off",
+      {
+        "case": "camelCase"
+      }
+    ], // TODO: fix violations and enable
+    "unicorn/new-for-builtins": "error",
+    "unicorn/no-thenable": "off", // Disabled due to `tct` violations
+    "unicorn/no-abusive-eslint-disable": "error",
+    "unicorn/no-array-push-push": "off", // TODO: fix violations and enable
+    "unicorn/no-await-in-promise-methods": "error",
+    "unicorn/no-instanceof-array": "error",
+    "unicorn/no-invalid-remove-event-listener": "error",
+    "unicorn/no-negated-condition": "error",
+    "unicorn/no-negation-in-equality-check": "error",
+    "unicorn/no-new-array": "off", // TODO: fix violations and enable
+    "unicorn/no-single-promise-in-promise-methods": "warn", // TODO: fix violations and enable
+    "unicorn/no-static-only-class": "off", // TODO: fix violations and enable
+    "unicorn/no-this-assignment": "off", // TODO: fix violations and enable
+    "unicorn/no-unnecessary-await": "error",
+    "unicorn/no-useless-fallback-in-spread": "error",
+    "unicorn/no-useless-length-check": "error",
+    "unicorn/no-useless-undefined": "off", // TODO: fix violations and enable
+    "unicorn/no-useless-spread": "off",
+    "unicorn/no-zero-fractions": "off", // TODO: fix violations and enable
+    "unicorn/prefer-array-find": "off", // TODO: fix violations and enable
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/prefer-array-flat": "off", // TODO: fix violations and enable
+    "unicorn/prefer-array-index-of": "off", // TODO: fix violations and enable
+    "unicorn/prefer-array-some": "error",
+    "unicorn/prefer-date-now": "error",
+    "unicorn/prefer-default-parameters": "warn", // TODO: fix violations and enable
+    "unicorn/prefer-export-from": "off", // TODO: fix violations and enable
+    "unicorn/prefer-includes": "error",
+    "unicorn/prefer-logical-operator-over-ternary": "off", // TODO: fix violations and enable
+    "unicorn/prefer-native-coercion-functions": "off", // TODO: fix violations and enable
+    "unicorn/prefer-negative-index": "error",
+    "unicorn/prefer-node-protocol": "error",
+    "unicorn/prefer-object-from-entries": "off", // TODO: fix violations and enable
+    "unicorn/prefer-prototype-methods": "warn",
+    "unicorn/prefer-regexp-test": "off", // TODO: fix violations and enable
+    "unicorn/throw-new-error": "off", // TODO: fix violations and enable
+    "import/no-absolute-path": "error",
+    "import/no-amd": "error",
+    "import/no-anonymous-default-export": "error",
+    "import/no-duplicates": "off", // ESLINT rule is correct, this does not support `type` imports
+    "import/no-extraneous-dependencies": [
+      "error",
+      {
+        "includeTypes": true,
+        "devDependencies": [
+          "!eslint.config.mjs"
+        ]
+      }
+    ],
+    "import/no-named-default": "error",
+    "import/no-nodejs-modules": "error",
+    "import/no-webpack-loader-syntax": "error",
+    "import/default": "off", // Disabled in favor of typescript-eslint
+    "import/named": "off", // Disabled in favor of typescript-eslint
+    "import/namespace": "off", // Disabled in favor of typescript-eslint
+    "import/no-named-as-default-member": "off", // Disabled in favor of typescript-eslint
+    "import/no-named-as-default": "off", // TODO: fix violations and enable
+    "import/no-unresolved": "off", // Disabled in favor of typescript-eslint
+    "react/jsx-key": "off", // TODO: fix violations
     "react/jsx-no-comment-textnodes": "warn",
     "react/jsx-no-duplicate-props": "warn",
     "react/jsx-no-target-blank": "warn",
@@ -167,32 +245,56 @@
     "react/no-is-mounted": "warn",
     "react/no-render-return-value": "warn",
     "react/no-string-refs": "warn",
-    "react/no-unescaped-entities": "warn",
-    "react/no-unknown-property": "warn",
     "react/require-render-return": "warn",
     "react/void-dom-elements-no-children": "warn",
     "react/jsx-boolean-value": "warn",
-    "react/jsx-curly-brace-presence": "warn",
-    "react/jsx-fragments": "warn",
+    "react/jsx-fragments": [
+      "error",
+      {
+        "mode": "element"
+      }
+    ],
     "react/self-closing-comp": "warn",
-    "react-hooks/exhaustive-deps": "warn",
-    "react-hooks/rules-of-hooks": "warn",
-    "jsx-a11y/alt-text": "warn",
-    "jsx-a11y/aria-props": "warn",
-    "jsx-a11y/aria-unsupported-elements": "warn",
-    "jsx-a11y/role-has-required-aria-props": "warn",
-    "jsx-a11y/role-supports-aria-props": "warn",
-    "jest/expect-expect": "warn",
-    "jest/no-disabled-tests": "warn",
-    "jest/no-focused-tests": "warn",
-    "jest/valid-expect": "warn"
+    "react/jsx-curly-brace-presence": [
+      "error",
+      {
+        "props": "never",
+        "children": "ignore",
+        "propElementValues": "always"
+      }
+    ],
+    "react/exhaustive-deps": "error",
+    "react/display-name": "off", // TODO: fix violations and enable rule
+    "react/no-unescaped-entities": "off",
+    "react/no-unknown-property": [
+      "error",
+      {
+        "ignore": [
+          "css"
+        ]
+      }
+    ],
+    "react/prop-types": "off", // TODO: fix violations and enable rule
+    "jest/max-nested-describe": [
+      "error",
+      {
+        "max": 20
+      }
+    ],
+    "jest/no-duplicate-hooks": "error",
+    "jest/no-large-snapshots": [
+      "error",
+      {
+        "maxSize": 2000
+      }
+    ], // We don"t recommend snapshots, but if there are any keep it small
+    "jest/expect-expect": "off", // Disabled as we have many tests which render as simple validations
+    "jest/no-standalone-expect": "off",
+    "jest/no-conditional-expect": "off", // TODO(ryan953): Fix violations then delete this line
+    "jest/no-disabled-tests": "error", // `recommended` set this to warn, we've upgraded to error
+    "jest/require-to-throw-message": "off"
   },
   "settings": {
-    "jsx-a11y": {
-      "polymorphicPropName": null,
-      "components": {},
-      "attributes": {}
-    },
     "next": {
       "rootDir": []
     },
@@ -215,8 +317,93 @@
     }
   },
   "env": {
-    "builtin": true
+    "builtin": true,
+    "browser": true,
+    "es2022": true
   },
   "globals": {},
-  "ignorePatterns": []
+  "ignorePatterns": [
+    ".devenv/**/*",
+    ".github/**/*",
+    ".mypy_cache/**/*",
+    ".pytest_cache/**/*",
+    ".venv/**/*",
+    "**/*.d.ts",
+    "**/dist/**/*",
+    "tests/**/fixtures/**/*",
+    "!tests/js/**/*",
+    "**/vendor/**/*",
+    "build-utils/**/*",
+    "config/chartcuterie/config.js",
+    "fixtures/artifact_bundle/**/*",
+    "fixtures/artifact_bundle_debug_ids/**/*",
+    "fixtures/artifact_bundle_duplicated_debug_ids/**/*",
+    "fixtures/profiles/embedded.js",
+    "jest.config.ts",
+    "api-docs/**/*",
+    "src/sentry/static/sentry/js/**/*",
+    "src/sentry/templates/sentry/**/*",
+    "stylelint.config.js",
+    ".artifacts/**/*"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "**/js-sdk-loader.ts",
+        "scripts/**/*.{js,ts}",
+        "build-utils/**/*.{js,ts}",
+        "tests/js/test-balancer/index.js"
+      ],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*.config.*"
+      ],
+      "env": {
+        "commonjs": true,
+        "node": true
+      },
+      "rules": {
+        "import/no-nodejs-modules": "off"
+      }
+    },
+    {
+      "files": [
+        "tests/js/jest-pegjs-transform.js",
+        "tests/js/sentry-test/mocks/*",
+        "tests/js/sentry-test/loadFixtures.ts",
+        "tests/js/setup.ts"
+      ],
+      "env": {
+        "commonjs": true
+      },
+      "rules": {
+        "import/no-nodejs-modules": "off"
+      }
+    },
+    {
+      "name": "files/sentry-test",
+      "files": [
+        "**/*.spec.{ts,js,tsx,jsx}",
+        "tests/js/**/*.{ts,js,tsx,jsx}"
+      ],
+      "rules": {
+        "no-loss-of-precision": "off", // Sometimes we have wild numbers hard-coded in tests
+        "no-extend-native": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*.stories.tsx",
+        "**/*.mdx"
+      ],
+      "rules": {
+        "import/no-webpack-loader-syntax": "off", // type loader requires webpack syntax
+        "no-loss-of-precision": "off" // Sometimes we have wild numbers hard-coded in stories
+      }
+    }
+  ]
 }
