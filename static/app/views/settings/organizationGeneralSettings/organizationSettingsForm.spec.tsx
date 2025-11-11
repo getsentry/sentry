@@ -264,7 +264,7 @@ describe('OrganizationSettingsForm', () => {
     expect(screen.getByText('beta')).toBeInTheDocument();
 
     expect(
-      screen.getByText('Use AI to review, find bugs, and generate tests in pull requests')
+      screen.getByText('Use AI to review and find bugs in pull requests')
     ).toBeInTheDocument();
 
     const learnMoreLink = screen.getByRole('link', {name: 'Learn more'});
@@ -304,7 +304,7 @@ describe('OrganizationSettingsForm', () => {
 
     expect(screen.getByText('Enable AI Code Review')).toBeInTheDocument();
     expect(
-      screen.getByText('Use AI to review, find bugs, and generate tests in pull requests')
+      screen.getByText('Use AI to review and find bugs in pull requests')
     ).toBeInTheDocument();
   });
 
