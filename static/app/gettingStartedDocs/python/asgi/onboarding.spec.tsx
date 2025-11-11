@@ -123,7 +123,9 @@ describe('asgi onboarding docs', () => {
 
     // Renders metrics verification steps
     expect(
-      screen.getByText('You can send metrics to Sentry using the Sentry metrics APIs:')
+      screen.getByText(
+        'Send test metrics from your app to verify metrics are arriving in Sentry.'
+      )
     ).toBeInTheDocument();
   });
 
@@ -134,7 +136,9 @@ describe('asgi onboarding docs', () => {
 
     // Does not render metrics verification steps
     expect(
-      screen.queryByText('You can send metrics to Sentry using the Sentry metrics APIs:')
+      screen.queryByText(
+        'Send test metrics from your app to verify metrics are arriving in Sentry.'
+      )
     ).not.toBeInTheDocument();
   });
 });
