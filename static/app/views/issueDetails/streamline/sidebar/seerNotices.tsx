@@ -158,7 +158,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   );
 
   const needsCursorIntegration =
-    (!isCursorHandoffConfigured || !cursorIntegration) && !cursorStepSkipped;
+    hasCursorFeatureFlagEnabled &&
+    (!isCursorHandoffConfigured || !cursorIntegration) &&
+    !cursorStepSkipped;
 
   // Calculate incomplete steps
   const stepConditions = [
