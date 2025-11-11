@@ -22,7 +22,13 @@ type Props<C extends React.LazyExoticComponent<C>> = React.ComponentProps<C> & {
   loadingFallback?: React.ReactNode | undefined;
 };
 
-function DeferredLoader({children}: {children: React.ReactNode}) {
+function DeferredLoader({
+  children,
+  fallback = null,
+}: {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -33,7 +39,7 @@ function DeferredLoader({children}: {children: React.ReactNode}) {
     return () => clearTimeout(timer);
   }, []);
 
-  return loaded ? children : null;
+  return loaded ? children : fallback;
 }
 
 /**
@@ -55,11 +61,11 @@ function LazyLoad<C extends React.LazyExoticComponent<any>>({
       <Suspense
         fallback={
           loadingFallback ?? (
-            <DeferredLoader>
-              <Flex flex="1" align="center" column="1 / -1">
+            <Flex flex="1" align="center" column="1 / -1">
+              <DeferredLoader fallback={<LoadingIndicator style={{display: 'none'}} />}>
                 <LoadingIndicator />
-              </Flex>
-            </DeferredLoader>
+              </DeferredLoader>
+            </Flex>
           )
         }
       >
