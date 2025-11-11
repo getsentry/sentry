@@ -1096,6 +1096,29 @@ def delete_alert_rule(
             )
         subscriptions = _unpack_snuba_query(alert_rule).subscriptions.all()
 
+        if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+            # if this was a dynamic rule, delete the data in Seer
+            try:
+                source_id = QuerySubscription.objects.get(
+                    snuba_query_id=alert_rule.snuba_query.id
+                ).id
+                success = delete_rule_in_seer(
+                    organization=alert_rule.organization,
+                    source_id=source_id,
+                )
+                if not success:
+                    logger.error(
+                        "Call to delete rule data in Seer failed",
+                        extra={
+                            "source_id": source_id,
+                        },
+                    )
+            except QuerySubscription.DoesNotExist:
+                logger.exception(
+                    "Snuba query missing query subscription",
+                    extra={"snuba_query_id": alert_rule.snuba_query.id},
+                )
+
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
             AlertRuleActivity.objects.create(
@@ -1104,28 +1127,6 @@ def delete_alert_rule(
                 type=AlertRuleActivityType.DELETED.value,
             )
         else:
-            if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                # if this was a dynamic rule, delete the data in Seer
-                try:
-                    source_id = QuerySubscription.objects.get(
-                        snuba_query_id=alert_rule.snuba_query.id
-                    ).id
-                    success = delete_rule_in_seer(
-                        organization=alert_rule.organization,
-                        source_id=source_id,
-                    )
-                    if not success:
-                        logger.error(
-                            "Call to delete rule data in Seer failed",
-                            extra={
-                                "source_id": source_id,
-                            },
-                        )
-                except QuerySubscription.DoesNotExist:
-                    logger.exception(
-                        "Snuba query missing query subscription",
-                        extra={"snuba_query_id": alert_rule.snuba_query.id},
-                    )
             RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
 
         bulk_delete_snuba_subscriptions(subscriptions)

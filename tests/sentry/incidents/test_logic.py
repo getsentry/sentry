@@ -2008,6 +2008,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         alert_rule_id = alert_rule.id
         incident = self.create_incident()
         incident.update(alert_rule=alert_rule)
+        query_sub = QuerySubscription.objects.get(snuba_query_id=alert_rule.snuba_query.id)
         mock_seer_request.return_value = HTTPResponse("Bad request", status=500)
 
         with self.tasks():
@@ -2020,11 +2021,11 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
         mock_seer_logger.error.assert_called_with(
             "Error when hitting Seer delete rule data endpoint",
-            extra={"response_data": "Bad request", "rule_id": alert_rule_id},
+            extra={"response_data": "Bad request", "source_id": query_sub.id},
         )
         mock_model_logger.error.assert_called_with(
             "Call to delete rule data in Seer failed",
-            extra={"rule_id": alert_rule_id},
+            extra={"source_id": query_sub.id},
         )
         assert mock_seer_request.call_count == 1
 
