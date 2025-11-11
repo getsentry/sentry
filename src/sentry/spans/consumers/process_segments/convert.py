@@ -1,6 +1,5 @@
-from typing import Any, cast
+from typing import cast
 
-import orjson
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SpanLink
@@ -8,8 +7,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
-
-I64_MAX = 2**63 - 1
+from sentry.utils.eap import encode_value
 
 FIELD_TO_ATTRIBUTE = {
     "end_timestamp": "sentry.end_timestamp_precise",
@@ -41,7 +39,7 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
             continue
         try:
             # NOTE: This ignores the `type` field of the attribute itself
-            attributes[k] = _anyvalue(value)
+            attributes[k] = encode_value(value, dump_arrays=True)
         except Exception:
             sentry_sdk.capture_exception()
         else:
@@ -58,12 +56,12 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
 
     # For `is_segment`, we trust the value written by `flush_segments` over a pre-existing attribute:
     if (is_segment := span.get("is_segment")) is not None:
-        attributes["sentry.is_segment"] = _anyvalue(is_segment)
+        attributes["sentry.is_segment"] = encode_value(is_segment, dump_arrays=True)
 
     for field_name, attribute_name in FIELD_TO_ATTRIBUTE.items():
         attribute = span.get(field_name)  # type:ignore[assignment]
         if attribute is not None:
-            attributes[attribute_name] = _anyvalue(attribute)
+            attributes[attribute_name] = encode_value(attribute, dump_arrays=True)
 
     # Rename some attributes from their sentry-conventions name to what the product currently expects.
     # Eventually this should all be handled by deprecation policies in sentry-conventions.
@@ -83,14 +81,16 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
             try:
                 if attr in RENAME_ATTRIBUTES:
                     attr = RENAME_ATTRIBUTES[attr]
-                attributes[f"sentry._meta.fields.attributes.{attr}"] = _anyvalue({"meta": meta})
+                attributes[f"sentry._meta.fields.attributes.{attr}"] = encode_value(
+                    {"meta": meta}, dump_arrays=True
+                )
             except Exception:
                 sentry_sdk.capture_exception()
 
     if links := span.get("links"):
         try:
             sanitized_links = [_sanitize_span_link(link) for link in links if link is not None]
-            attributes["sentry.links"] = _anyvalue(sanitized_links)
+            attributes["sentry.links"] = encode_value(sanitized_links, dump_arrays=True)
         except Exception:
             sentry_sdk.capture_exception()
             attributes["sentry.dropped_links_count"] = AnyValue(int_value=len(links))
@@ -109,23 +109,6 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         downsampled_retention_days=span.get("downsampled_retention_days", 0),
         received=_timestamp(span["received"]),
     )
-
-
-def _anyvalue(value: Any) -> AnyValue:
-    if isinstance(value, str):
-        return AnyValue(string_value=value)
-    elif isinstance(value, bool):
-        return AnyValue(bool_value=value)
-    elif isinstance(value, int):
-        if value > I64_MAX:
-            return AnyValue(double_value=float(value))
-        return AnyValue(int_value=value)
-    elif isinstance(value, float):
-        return AnyValue(double_value=value)
-    elif isinstance(value, (list, dict)):
-        return AnyValue(string_value=orjson.dumps(value).decode())
-
-    raise ValueError(f"Unknown value type: {type(value)}")
 
 
 def _timestamp(value: float) -> Timestamp:

@@ -10,20 +10,18 @@ from arroyo.backends.kafka import build_kafka_producer_configuration
 from confluent_kafka import KafkaError
 from confluent_kafka import Message as KafkaMessage
 from confluent_kafka import Producer
-from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry import options
-from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.conf.types.kafka_definition import Topic
 from sentry.eventstream.base import GroupStates
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.eventstream.types import EventStreamEventType
 from sentry.killswitches import killswitch_matches_context
 from sentry.utils import json
 from sentry.utils.confluent_producer import get_confluent_producer
+from sentry.utils.eap import EAP_ITEMS_CODEC
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
-
-EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 
 logger = logging.getLogger(__name__)
 

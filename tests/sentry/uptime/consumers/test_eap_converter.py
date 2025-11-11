@@ -6,34 +6,34 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.uptime.consumers.eap_converter import (
-    _anyvalue,
     convert_uptime_request_to_trace_item,
     convert_uptime_result_to_trace_items,
     ms_to_us,
 )
 from sentry.uptime.types import IncidentStatus
+from sentry.utils.eap import encode_value
 
 
 class TestHelperFunctions(TestCase):
     def test_anyvalue_string(self) -> None:
-        result = _anyvalue("test")
+        result = encode_value("test")
         assert result.string_value == "test"
 
     def test_anyvalue_int(self) -> None:
-        result = _anyvalue(123)
+        result = encode_value(123)
         assert result.int_value == 123
 
     def test_anyvalue_float(self) -> None:
-        result = _anyvalue(123.45)
+        result = encode_value(123.45)
         assert result.double_value == 123.45
 
     def test_anyvalue_bool(self) -> None:
-        result = _anyvalue(True)
+        result = encode_value(True)
         assert result.bool_value is True
 
     def test_anyvalue_fallback(self) -> None:
-        with pytest.raises(ValueError):
-            _anyvalue([1, 2, 3])  # type: ignore[arg-type] # Test with unsupported type
+        with pytest.raises(NotImplementedError):
+            encode_value({1, 2, 3})  # Test with unsupported type
 
     def test_microseconds_conversion(self) -> None:
         assert ms_to_us(1000) == 1000000

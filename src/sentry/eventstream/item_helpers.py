@@ -3,16 +3,11 @@ from typing import Any
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE
-from sentry_protos.snuba.v1.trace_item_pb2 import (
-    AnyValue,
-    ArrayValue,
-    KeyValue,
-    KeyValueList,
-    TraceItem,
-)
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
 
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.utils.eap import encode_value
 
 
 def serialize_event_data_as_item(
@@ -35,36 +30,6 @@ def serialize_event_data_as_item(
     )
 
 
-def _encode_value(value: Any) -> AnyValue:
-    if isinstance(value, str):
-        return AnyValue(string_value=value)
-    elif isinstance(value, bool):
-        # Note: bool check must come before int check since bool is a subclass of int
-        return AnyValue(bool_value=value)
-    elif isinstance(value, int):
-        return AnyValue(int_value=value)
-    elif isinstance(value, float):
-        return AnyValue(double_value=value)
-    elif isinstance(value, list) or isinstance(value, tuple):
-        # Not yet processed on EAP side
-        return AnyValue(
-            array_value=ArrayValue(values=[_encode_value(v) for v in value if v is not None])
-        )
-    elif isinstance(value, dict):
-        # Not yet processed on EAP side
-        return AnyValue(
-            kvlist_value=KeyValueList(
-                values=[
-                    KeyValue(key=str(kv[0]), value=_encode_value(kv[1]))
-                    for kv in value.items()
-                    if kv[1] is not None
-                ]
-            )
-        )
-    else:
-        raise NotImplementedError(f"encode not supported for {type(value)}")
-
-
 def encode_attributes(
     event: Event | GroupEvent, event_data: Mapping[str, Any], ignore_fields: set[str] | None = None
 ) -> Mapping[str, AnyValue]:
@@ -76,7 +41,7 @@ def encode_attributes(
             continue
         if value is None:
             continue
-        attributes[key] = _encode_value(value)
+        attributes[key] = encode_value(value)
 
     if event.group_id:
         attributes["group_id"] = AnyValue(int_value=event.group_id)
@@ -84,6 +49,6 @@ def encode_attributes(
     for key, value in event_data["tags"]:
         if value is None:
             continue
-        attributes[f"tags[{key}]"] = _encode_value(value)
+        attributes[f"tags[{key}]"] = encode_value(value)
 
     return attributes
