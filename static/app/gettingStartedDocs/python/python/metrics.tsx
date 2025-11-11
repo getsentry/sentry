@@ -15,14 +15,16 @@ export const metricsVerify = (params: DocsParams): ContentBlock => ({
   content: [
     {
       type: 'text',
-      text: t('You can send metrics to Sentry using the Sentry metrics APIs:'),
+      text: t(
+        'Send test metrics from your app to verify metrics are arriving in Sentry.'
+      ),
     },
     {
       type: 'code',
       language: 'python',
       code: `from sentry_sdk import metrics
 
-# Emit custom metrics
+# Emit metrics
 metrics.count("checkout.failed", 1)
 metrics.gauge("queue.depth", 42)
 metrics.distribution("cart.amount_usd", 187.5)`,
@@ -100,7 +102,6 @@ metrics.distribution("cart.amount_usd", 187.5)`,
   verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
-      description: t('Test that metrics are working by sending some test metrics:'),
       content: [metricsVerify(params)],
     },
   ],
