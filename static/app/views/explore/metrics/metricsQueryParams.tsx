@@ -33,8 +33,6 @@ interface TraceMetricContextValue {
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
 
-const EMPTY_TRACE_IDS: string[] = [];
-
 const [_MetricMetadataContextProvider, useTraceMetricContext, TraceMetricContext] =
   createDefinedContext<TraceMetricContextValue>({
     name: 'TraceMetricContext',
@@ -112,7 +110,7 @@ export function MetricsQueryParamsProvider({
   return (
     <TraceMetricContext value={traceMetricContextValue}>
       <MetricsFrozenContextProvider
-        traceIds={freeze?.traceIds ?? EMPTY_TRACE_IDS}
+        traceIds={freeze?.traceIds ?? []}
         tracePeriod={freeze?.tracePeriod}
       >
         <TableConfigContext value={tableConfigContextValue}>
