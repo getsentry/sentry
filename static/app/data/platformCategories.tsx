@@ -404,7 +404,6 @@ export const withMetricsOnboarding: Set<PlatformKey> = new Set([
   'python-fastapi',
   'python-flask',
   'python-gcpfunctions',
-  'python-pylons',
   'python-pyramid',
   'python-quart',
   'python-rq',
