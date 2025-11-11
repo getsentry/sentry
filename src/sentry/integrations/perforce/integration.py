@@ -201,6 +201,30 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
         return False
 
+    def matches_repository_depot_path(self, repo: Repository, filepath: str) -> bool:
+        """
+        Check if a file path matches this repository's depot path.
+
+        When SRCSRV transformers remap paths to absolute depot paths (e.g.,
+        //depot/project/src/file.cpp), this method verifies that the depot path
+        matches the repository's configured depot_path.
+
+        Args:
+            repo: Repository object
+            filepath: File path (may be absolute depot path or relative path)
+
+        Returns:
+            True if the filepath matches this repository's depot
+        """
+        depot_path = repo.config.get("depot_path", repo.name)
+
+        # If filepath is absolute depot path, check if it starts with depot_path
+        if filepath.startswith("//"):
+            return filepath.startswith(depot_path)
+
+        # Relative paths always match (will be prepended with depot_path)
+        return True
+
     def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
         """
         Check if a file exists in the Perforce depot and return the URL.
@@ -400,6 +424,30 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         """Get repositories that can't be migrated. Perforce doesn't need migration."""
         return []
 
+    def test_connection(self) -> dict[str, Any]:
+        """
+        Test the Perforce connection with current credentials.
+
+        Returns:
+            Dictionary with connection status and server info
+        """
+        try:
+            client = self.get_client()
+            info = client.get_depot_info()
+
+            return {
+                "status": "success",
+                "message": f"Connected to Perforce server at {info.get('server_address')}",
+                "server_info": info,
+            }
+        except Exception as e:
+            logger.exception("perforce.test_connection.failed")
+            return {
+                "status": "error",
+                "message": f"Failed to connect to Perforce server: {str(e)}",
+                "error": str(e),
+            }
+
     def get_organization_config(self) -> list[dict[str, Any]]:
         """
         Get configuration form fields for organization-level settings.
@@ -409,20 +457,53 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         """
         return [
             {
-                "name": "p4port",
-                "type": "string",
-                "label": "P4PORT (Server Address)",
-                "placeholder": "ssl:perforce.company.com:1666",
-                "help": "Perforce server address in P4PORT format. Examples: 'ssl:perforce.company.com:1666' (encrypted), 'perforce.company.com:1666' or 'tcp:perforce.company.com:1666' (plaintext). SSL is strongly recommended for production use.",
+                "name": "auth_mode",
+                "type": "choice",
+                "label": "Authentication Mode",
+                "choices": [
+                    ["password", "Username & Password"],
+                    ["ticket", "P4 Ticket"],
+                ],
+                "help": "Choose how to authenticate with Perforce. P4 tickets are more secure and don't require storing passwords.",
                 "required": True,
+                "default": "password",
+            },
+            {
+                "name": "ticket",
+                "type": "secret",
+                "label": "P4 Ticket",
+                "placeholder": "••••••••••••••••••••••••••••••••",
+                "help": "P4 authentication ticket (obtained via 'p4 login -p'). Tickets contain server/user info and are more secure than passwords.",
+                "required": False,
+                "depends_on": {"auth_mode": "ticket"},
+            },
+            {
+                "name": "host",
+                "type": "string",
+                "label": "Perforce Server Host",
+                "placeholder": "perforce.company.com",
+                "help": "The hostname or IP address of your Perforce server",
+                "required": False,
+                "depends_on": {"auth_mode": "password"},
+            },
+            {
+                "name": "port",
+                "type": "number",
+                "label": "Perforce Server Port",
+                "placeholder": "1666",
+                "help": "The port number for your Perforce server (default: 1666)",
+                "required": False,
+                "default": "1666",
+                "depends_on": {"auth_mode": "password"},
             },
             {
                 "name": "user",
                 "type": "string",
                 "label": "Perforce Username",
                 "placeholder": "sentry-bot",
-                "help": "Username for authenticating with Perforce. Required for both password and ticket authentication.",
-                "required": True,
+                "help": "Username for authenticating with Perforce",
+                "required": False,
+                "depends_on": {"auth_mode": "password"},
             },
             {
                 "name": "auth_type",
@@ -450,6 +531,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 "placeholder": "AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89:AB:CD:EF:01",
                 "help": "SSL fingerprint for secure connections. Required when using 'ssl:' protocol. Obtain with: p4 -p ssl:host:port trust -y",
                 "required": False,
+                "depends_on": {"auth_mode": "password"},
             },
             {
                 "name": "client",
@@ -460,11 +542,24 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 "required": False,
             },
             {
+                "name": "web_viewer_type",
+                "type": "choice",
+                "label": "Web Viewer Type",
+                "choices": [
+                    ["p4web", "P4Web"],
+                    ["swarm", "Helix Swarm"],
+                    ["other", "Other"],
+                ],
+                "help": "Type of web viewer (if web URL is provided)",
+                "required": False,
+                "default": "p4web",
+            },
+            {
                 "name": "web_url",
                 "type": "string",
-                "label": "Helix Swarm URL (Optional)",
-                "placeholder": "https://swarm.company.com",
-                "help": "Optional: URL to Helix Swarm web viewer for browsing files",
+                "label": "Web Viewer URL (Optional)",
+                "placeholder": "https://p4web.company.com",
+                "help": "Optional: URL to P4Web, Swarm, or other web-based Perforce viewer",
                 "required": False,
             },
         ]
