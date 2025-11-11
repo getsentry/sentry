@@ -37,6 +37,9 @@ export const getModuleView = (module: ModuleName): DomainView => {
   if (DOMAIN_VIEW_MODULES['ai-agents'].includes(module)) {
     return 'ai-agents';
   }
+  if (DOMAIN_VIEW_MODULES.mcp.includes(module)) {
+    return 'mcp';
+  }
   return 'backend';
 };
 

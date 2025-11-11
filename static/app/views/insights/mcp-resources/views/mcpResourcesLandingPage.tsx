@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -16,29 +17,27 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
-import TokenCostWidget from 'sentry/views/insights/pages/agents/components/modelCostWidget';
-import {ModelsTable} from 'sentry/views/insights/pages/agents/components/modelsTable';
-import {WidgetGrid} from 'sentry/views/insights/pages/agents/components/styles';
-import TokenTypesWidget from 'sentry/views/insights/pages/agents/components/tokenTypesWidget';
-import TokenUsageWidget from 'sentry/views/insights/pages/agents/components/tokenUsageWidget';
-import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/useAgentSpanSearchProps';
-import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
-import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import McpResourceDurationWidget from 'sentry/views/insights/pages/mcp/components/mcpResourceDurationWidget';
+import McpResourceErrorRateWidget from 'sentry/views/insights/pages/mcp/components/mcpResourceErrorRateWidget';
+import {McpResourcesTable} from 'sentry/views/insights/pages/mcp/components/mcpResourcesTable';
+import McpResourceTrafficWidget from 'sentry/views/insights/pages/mcp/components/mcpResourceTrafficWidget';
+import {WidgetGrid} from 'sentry/views/insights/pages/mcp/components/styles';
+import {useMcpSpanSearchProps} from 'sentry/views/insights/pages/mcp/hooks/useMcpSpanSearchProps';
+import {useShowMCPOnboarding} from 'sentry/views/insights/pages/mcp/hooks/useShowMCPOnboarding';
+import {Onboarding} from 'sentry/views/insights/pages/mcp/onboarding';
 import {ModuleName} from 'sentry/views/insights/types';
 
-function AgentModelsLandingPage() {
+function McpResourcesLandingPage() {
   const organization = useOrganization();
-  const showOnboarding = useShowAgentOnboarding();
+  const showOnboarding = useShowMCPOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
-  useDefaultToAllProjects();
 
-  const agentSpanSearchProps = useAgentSpanSearchProps();
+  const mcpSpanSearchProps = useMcpSpanSearchProps();
 
   return (
-    <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>
-      <ModuleFeature moduleName={ModuleName.AGENT_MODELS}>
+    <SearchQueryBuilderProvider {...mcpSpanSearchProps.provider}>
+      <ModuleFeature moduleName={ModuleName.MCP_RESOURCES}>
         <Layout.Body>
           <Layout.Main width="full">
             <ModuleLayout.Layout>
@@ -51,14 +50,11 @@ function AgentModelsLandingPage() {
                     <InsightsEnvironmentSelector
                       resetParamsOnChange={[TableUrlParams.CURSOR]}
                     />
-                    <DatePageFilter
-                      {...datePageFilterProps}
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
+                    <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (
                     <Flex flex={2}>
-                      <EAPSpanSearchQueryBuilder {...agentSpanSearchProps.queryBuilder} />
+                      <EAPSpanSearchQueryBuilder {...mcpSpanSearchProps.queryBuilder} />
                     </Flex>
                   )}
                 </ToolRibbon>
@@ -69,18 +65,18 @@ function AgentModelsLandingPage() {
                   <Onboarding />
                 ) : (
                   <Fragment>
-                    <WidgetGrid rowHeight={260}>
+                    <WidgetGrid>
                       <WidgetGrid.Position1>
-                        <TokenCostWidget />
+                        <McpResourceTrafficWidget />
                       </WidgetGrid.Position1>
                       <WidgetGrid.Position2>
-                        <TokenUsageWidget />
+                        <McpResourceDurationWidget />
                       </WidgetGrid.Position2>
                       <WidgetGrid.Position3>
-                        <TokenTypesWidget />
+                        <McpResourceErrorRateWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
-                    <ModelsTable />
+                    <McpResourcesTable />
                   </Fragment>
                 )}
               </ModuleLayout.Full>
@@ -95,11 +91,11 @@ function AgentModelsLandingPage() {
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      moduleName={ModuleName.AGENT_MODELS}
-      analyticEventName="insight.page_loads.agent_models"
+      moduleName={ModuleName.MCP_RESOURCES}
+      analyticEventName="insight.page_loads.mcp_resources"
     >
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <AgentModelsLandingPage />
+        <McpResourcesLandingPage />
       </TraceItemAttributeProvider>
     </ModulePageProviders>
   );

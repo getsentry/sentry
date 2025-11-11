@@ -14,6 +14,7 @@ export const DOMAIN_VIEW_MODULE_TITLES: Record<
   Partial<Record<ModuleName, string>>
 > = {
   'ai-agents': {},
+  mcp: {},
   backend: {},
   mobile: {
     [ModuleName.HTTP]: HTTP_MOBILE_MODULE_TITLE,

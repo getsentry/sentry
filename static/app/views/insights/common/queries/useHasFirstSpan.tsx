@@ -26,7 +26,9 @@ const modulePropertyMap: Record<
   [ModuleName.AGENT_TOOLS]: 'hasInsightsAgentMonitoring',
   [ModuleName.AI_GENERATIONS]: 'hasInsightsAgentMonitoring',
   [ModuleName.APP_START]: 'hasInsightsAppStart',
-  [ModuleName.MCP]: 'hasInsightsMCP',
+  [ModuleName.MCP_TOOLS]: 'hasInsightsMCP',
+  [ModuleName.MCP_RESOURCES]: 'hasInsightsMCP',
+  [ModuleName.MCP_PROMPTS]: 'hasInsightsMCP',
   // Renamed resource to assets
   [ModuleName.RESOURCE]: 'hasInsightsAssets',
   [ModuleName.SCREEN_RENDERING]: 'hasInsightsScreenLoad', // Screen rendering and screen loads share similar spans

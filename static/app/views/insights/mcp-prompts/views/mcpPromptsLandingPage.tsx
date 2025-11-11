@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -16,29 +17,27 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
-import TokenCostWidget from 'sentry/views/insights/pages/agents/components/modelCostWidget';
-import {ModelsTable} from 'sentry/views/insights/pages/agents/components/modelsTable';
-import {WidgetGrid} from 'sentry/views/insights/pages/agents/components/styles';
-import TokenTypesWidget from 'sentry/views/insights/pages/agents/components/tokenTypesWidget';
-import TokenUsageWidget from 'sentry/views/insights/pages/agents/components/tokenUsageWidget';
-import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/useAgentSpanSearchProps';
-import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
-import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import McpPromptDurationWidget from 'sentry/views/insights/pages/mcp/components/mcpPromptDurationWidget';
+import McpPromptErrorRateWidget from 'sentry/views/insights/pages/mcp/components/mcpPromptErrorRateWidget';
+import {McpPromptsTable} from 'sentry/views/insights/pages/mcp/components/mcpPromptsTable';
+import McpPromptTrafficWidget from 'sentry/views/insights/pages/mcp/components/mcpPromptTrafficWidget';
+import {WidgetGrid} from 'sentry/views/insights/pages/mcp/components/styles';
+import {useMcpSpanSearchProps} from 'sentry/views/insights/pages/mcp/hooks/useMcpSpanSearchProps';
+import {useShowMCPOnboarding} from 'sentry/views/insights/pages/mcp/hooks/useShowMCPOnboarding';
+import {Onboarding} from 'sentry/views/insights/pages/mcp/onboarding';
 import {ModuleName} from 'sentry/views/insights/types';
 
-function AgentModelsLandingPage() {
+function McpPromptsLandingPage() {
   const organization = useOrganization();
-  const showOnboarding = useShowAgentOnboarding();
+  const showOnboarding = useShowMCPOnboarding();
   const datePageFilterProps = limitMaxPickableDays(organization);
-  useDefaultToAllProjects();
 
-  const agentSpanSearchProps = useAgentSpanSearchProps();
+  const mcpSpanSearchProps = useMcpSpanSearchProps();
 
   return (
-    <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>
-      <ModuleFeature moduleName={ModuleName.AGENT_MODELS}>
+    <SearchQueryBuilderProvider {...mcpSpanSearchProps.provider}>
+      <ModuleFeature moduleName={ModuleName.MCP_PROMPTS}>
         <Layout.Body>
           <Layout.Main width="full">
             <ModuleLayout.Layout>
@@ -51,14 +50,11 @@ function AgentModelsLandingPage() {
                     <InsightsEnvironmentSelector
                       resetParamsOnChange={[TableUrlParams.CURSOR]}
                     />
-                    <DatePageFilter
-                      {...datePageFilterProps}
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
+                    <DatePageFilter {...datePageFilterProps} />
                   </PageFilterBar>
                   {!showOnboarding && (
                     <Flex flex={2}>
-                      <EAPSpanSearchQueryBuilder {...agentSpanSearchProps.queryBuilder} />
+                      <EAPSpanSearchQueryBuilder {...mcpSpanSearchProps.queryBuilder} />
                     </Flex>
                   )}
                 </ToolRibbon>
@@ -69,18 +65,18 @@ function AgentModelsLandingPage() {
                   <Onboarding />
                 ) : (
                   <Fragment>
-                    <WidgetGrid rowHeight={260}>
+                    <WidgetGrid>
                       <WidgetGrid.Position1>
-                        <TokenCostWidget />
+                        <McpPromptTrafficWidget />
                       </WidgetGrid.Position1>
                       <WidgetGrid.Position2>
-                        <TokenUsageWidget />
+                        <McpPromptDurationWidget />
                       </WidgetGrid.Position2>
                       <WidgetGrid.Position3>
-                        <TokenTypesWidget />
+                        <McpPromptErrorRateWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
-                    <ModelsTable />
+                    <McpPromptsTable />
                   </Fragment>
                 )}
               </ModuleLayout.Full>
@@ -95,11 +91,11 @@ function AgentModelsLandingPage() {
 function PageWithProviders() {
   return (
     <ModulePageProviders
-      moduleName={ModuleName.AGENT_MODELS}
-      analyticEventName="insight.page_loads.agent_models"
+      moduleName={ModuleName.MCP_PROMPTS}
+      analyticEventName="insight.page_loads.mcp_prompts"
     >
       <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <AgentModelsLandingPage />
+        <McpPromptsLandingPage />
       </TraceItemAttributeProvider>
     </ModulePageProviders>
   );

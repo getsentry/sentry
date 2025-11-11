@@ -8,7 +8,9 @@ import {BASE_URL as VITALS_BASE_URL} from 'sentry/views/insights/browser/webVita
 import {BASE_URL as CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
 import {BASE_URL as DB_BASE_URL} from 'sentry/views/insights/database/settings';
 import {BASE_URL as HTTP_BASE_URL} from 'sentry/views/insights/http/settings';
-import {BASE_URL as MCP_BASE_URL} from 'sentry/views/insights/mcp/settings';
+import {BASE_URL as MCP_PROMPTS_BASE_URL} from 'sentry/views/insights/mcp-prompts/settings';
+import {BASE_URL as MCP_RESOURCES_BASE_URL} from 'sentry/views/insights/mcp-resources/settings';
+import {BASE_URL as MCP_TOOLS_BASE_URL} from 'sentry/views/insights/mcp-tools/settings';
 import {BASE_URL as APP_STARTS_BASE_URL} from 'sentry/views/insights/mobile/appStarts/settings';
 import {BASE_URL as SCREEN_LOADS_BASE_URL} from 'sentry/views/insights/mobile/screenload/settings';
 import {BASE_URL as SCREEN_RENDERING_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
@@ -35,7 +37,9 @@ export const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.RESOURCE]: RESOURCES_BASE_URL,
   [ModuleName.AGENT_MODELS]: AGENT_MODELS_BASE_URL,
   [ModuleName.AGENT_TOOLS]: AGENT_TOOLS_BASE_URL,
-  [ModuleName.MCP]: MCP_BASE_URL,
+  [ModuleName.MCP_TOOLS]: MCP_TOOLS_BASE_URL,
+  [ModuleName.MCP_RESOURCES]: MCP_RESOURCES_BASE_URL,
+  [ModuleName.MCP_PROMPTS]: MCP_PROMPTS_BASE_URL,
   [ModuleName.AI_GENERATIONS]: AI_GENERATIONS_BASE_URL,
   [ModuleName.MOBILE_UI]: MOBILE_UI_BASE_URL,
   [ModuleName.MOBILE_VITALS]: MOBILE_SCREENS_BASE_URL,

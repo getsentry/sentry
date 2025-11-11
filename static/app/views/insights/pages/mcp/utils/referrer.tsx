@@ -14,4 +14,5 @@ export enum MCPReferrer {
   MCP_TRAFFIC_BY_CLIENT_WIDGET = 'api.insights.mcp.traffic-by-client-widget',
   MCP_TRAFFIC_WIDGET = 'api.insights.mcp.traffic-widget',
   MCP_TRANSPORT_WIDGET = 'api.insights.mcp.transport-widget',
+  MCP_OVERVIEW_TABLE = 'api.insights.mcp.overview-table',
 }

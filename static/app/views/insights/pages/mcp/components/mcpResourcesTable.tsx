@@ -13,12 +13,12 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {MCPReferrer} from 'sentry/views/insights/mcp/utils/referrer';
 import {
   HeadSortCell,
   useTableSort,
 } from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
+import {MCPReferrer} from 'sentry/views/insights/pages/mcp/utils/referrer';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {ErrorRateCell} from 'sentry/views/insights/pages/platform/shared/table/ErrorRateCell';
