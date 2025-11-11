@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 // Match the Python types from notifications/platform/types.py
 enum NotificationBodyFormattingBlockType {
-  SECTION = 'section',
+  PARAGRAPH = 'paragraph',
   CODE_BLOCK = 'code_block',
 }
 
@@ -50,7 +50,7 @@ function renderFormattingBlock(
   codeBlockBorder: string,
   codeBlockTextColor: string
 ) {
-  if (block.type === NotificationBodyFormattingBlockType.SECTION) {
+  if (block.type === NotificationBodyFormattingBlockType.PARAGRAPH) {
     return (
       <div key={index} style={{marginBottom: '8px'}}>
         {block.blocks.map((textBlock, i) => renderTextBlock(textBlock, i))}
