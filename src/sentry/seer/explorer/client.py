@@ -156,12 +156,9 @@ class SeerExplorerClient:
 
         # Extract and add custom tool definitions
         if self.custom_tools:
-            custom_tool_defs = []
-            for tool_fn in self.custom_tools:
-                tool_def = extract_tool_schema(tool_fn)
-                custom_tool_defs.append(tool_def.dict())
-            if custom_tool_defs:
-                payload["custom_tools"] = custom_tool_defs
+            payload["custom_tools"] = [
+                extract_tool_schema(tool).dict() for tool in self.custom_tools
+            ]
 
         if category_key or category_value:
             if not category_key or not category_value:
