@@ -19,7 +19,6 @@ import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/useDetailedProject';
@@ -29,7 +28,6 @@ interface CursorIntegrationCtaProps {
   project: Project;
   dismissKey?: string;
   dismissible?: boolean;
-  organization?: Organization;
 }
 
 export function CursorIntegrationCta({
