@@ -149,13 +149,12 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
-        # Set a low token limit to make the test reliable
-        with self.options({"seer.similarity.max_token_count": 100}):
+        # Set a very low token limit to make the test reliable and easy to exceed
+        with self.options({"seer.similarity.max_token_count": 10}):
             error_type = "FailedToFetchError"
             error_value = "Charlie didn't bring the ball back"
-            # Create very long context lines to exceed token count
-            # Each line will have many tokens when combined
-            long_context = "a " * 50  # 50 tokens per line, should easily exceed 100 tokens total
+            # Even with simple frames, the stacktrace string will exceed 10 tokens
+            context_line = f"raise {error_type}('{error_value}')"
             new_event = Event(
                 project_id=self.project.id,
                 event_id="33312012112120120908201304152013",
@@ -171,9 +170,11 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
                                         {
                                             "function": f"play_fetch_{i}",
                                             "filename": f"dogpark{i}.py",
-                                            "context_line": long_context,
+                                            "context_line": context_line,
                                         }
-                                        for i in range(5)  # Well under MAX_FRAME_COUNT
+                                        for i in range(
+                                            3
+                                        )  # Just 3 frames, well under MAX_FRAME_COUNT
                                     ]
                                 },
                             }
