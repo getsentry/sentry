@@ -172,7 +172,6 @@ def transform_preprod_artifact_to_build_details(
 
     size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
         preprod_artifact=artifact,
-        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
     )
 
     size_info = to_size_info(list(size_metrics_qs))
