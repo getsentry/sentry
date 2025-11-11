@@ -1076,17 +1076,17 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
     Returns:
         dict: {
             "statuses": list of booleans indicating if each repository exists and is active,
-            "integration_ids": list of integration IDs from the database,
+            "integration_ids": list of integration IDs (as integers) from the database,
                               or None if repository doesn't exist / doesn't have an integration id
         }
-        e.g., {"statuses": [True, False, True], "integration_ids": ["123", None, "456"]}
+        e.g., {"statuses": [True, False, True], "integration_ids": [123, None, 456]}
         Only repositories with supported SCM providers will return True.
         The integration_ids are returned so Seer can store them for future reference.
 
     Note:
         - Repositories are matched by (organization_id, provider, external_id) which has a unique constraint
         - integration_id is NOT required in the request and NOT used in matching
-        - integration_id from the database is returned as a string so Seer can store it for future reference
+        - integration_id from the database is returned as an integer so Seer can store it for future reference
     """
 
     if not repository_integrations:
