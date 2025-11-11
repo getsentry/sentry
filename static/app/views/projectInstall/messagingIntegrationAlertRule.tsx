@@ -116,14 +116,14 @@ export default function MessagingIntegrationAlertRule({
                 }
                 isSearchable
                 options={channels?.results.map(ch =>
-                  provider === 'discord'
+                  provider === 'slack'
                     ? {
-                        label: `${ch.display} (${ch.id})`,
-                        value: ch.id,
-                      }
-                    : {
                         label: ch.display,
                         value: ch.display,
+                      }
+                    : {
+                        label: `${ch.display} (${ch.id})`,
+                        value: ch.id,
                       }
                 )}
                 isLoading={isPending || validateChannel.isFetching}
