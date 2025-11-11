@@ -173,7 +173,7 @@ class SnubaTagStorage(TagStorage):
         **kwargs,
     ):
         tag = self.format_string.format(key)
-        filters = {"project_id": get_project_list(project_id), self.key_column: [key]}
+        filters = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
         conditions = kwargs.get("conditions", [])
@@ -202,8 +202,15 @@ class SnubaTagStorage(TagStorage):
             tenant_ids=tenant_ids,
         )
 
-        if raise_on_empty and (not result or totals.get("count", 0) == 0):
-            raise TagKeyNotFound if group is None else GroupTagKeyNotFound
+        if raise_on_empty:
+            if not result or totals.get("count", 0) == 0:
+                raise TagKeyNotFound if group is None else GroupTagKeyNotFound
+
+            # Treat keys that only have empty-string values as "not found" for the
+            # get_tag_key/get_group_tag_key family of calls.
+            has_non_empty_value = any(value != "" for value in result.keys())
+            if not has_non_empty_value:
+                raise TagKeyNotFound if group is None else GroupTagKeyNotFound
         else:
             if group is None:
                 return _make_result(
