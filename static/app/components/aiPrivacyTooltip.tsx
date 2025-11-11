@@ -15,6 +15,9 @@ interface AiPrivacyTooltipProps
   children: ReactNode;
 }
 
+const AI_PRIVACY_NOTICE_LINK =
+  'https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/';
+
 /**
  * This notice should be presented along with any AI-powered feature.
  */
@@ -22,12 +25,7 @@ export function AiPrivacyNotice({linkProps = {}}: AiPrivacyNoticeProps) {
   return tct(
     'Powered by generative AI. Learn more about our [link:AI privacy principles].',
     {
-      link: (
-        <ExternalLink
-          href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/"
-          {...linkProps}
-        />
-      ),
+      link: <ExternalLink href={AI_PRIVACY_NOTICE_LINK} {...linkProps} />,
     }
   );
 }
@@ -37,12 +35,7 @@ export function AiPrivacyNotice({linkProps = {}}: AiPrivacyNoticeProps) {
  */
 function AiPrivacyNoticeShort({linkProps = {}}: AiPrivacyNoticeProps) {
   return tct(`Powered by genAI. [link:Learn more.]`, {
-    link: (
-      <ExternalLink
-        href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/"
-        {...linkProps}
-      />
-    ),
+    link: <ExternalLink href={AI_PRIVACY_NOTICE_LINK} {...linkProps} />,
   });
 }
 
