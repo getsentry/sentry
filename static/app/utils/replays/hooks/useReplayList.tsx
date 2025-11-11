@@ -12,10 +12,10 @@ import type {
 } from 'sentry/views/replays/types';
 
 type Options = {
+  enabled: boolean;
   eventView: EventView;
   location: Location<ReplayListLocationQuery>;
   organization: Organization;
-  enabled?: boolean;
   perPage?: number;
   queryReferrer?: ReplayListQueryReferrer;
 };
@@ -46,9 +46,13 @@ function useReplayList({
     api.clear();
     setData(prev => ({
       ...prev,
-      isFetching: enabled ? true : false,
+      isFetching: true,
     }));
     if (!enabled) {
+      setData(prev => ({
+        ...prev,
+        isFetching: false,
+      }));
       return;
     }
     const response = await fetchReplayList({
