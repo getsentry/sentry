@@ -19,6 +19,7 @@ interface ExplorerMenuProps {
   inputValue: string;
   onChangeSession: (runId: number) => void;
   panelSize: 'max' | 'med';
+  panelVisible: boolean;
   slashCommandHandlers: {
     onMaxSize: () => void;
     onMedSize: () => void;
@@ -40,6 +41,7 @@ export function useExplorerMenu({
   focusInput,
   textAreaRef,
   panelSize,
+  panelVisible,
   slashCommandHandlers,
   onChangeSession,
 }: ExplorerMenuProps) {
@@ -57,7 +59,7 @@ export function useExplorerMenu({
   }, [allSlashCommands, inputValue]);
 
   const {sessionItems, refetchSessions, isSessionsPending, isSessionsError} = useSessions(
-    {onChangeSession}
+    {onChangeSession, enabled: panelVisible}
   );
 
   // Menu items and select handlers change based on the mode.
@@ -291,8 +293,14 @@ function useSlashCommands({
   );
 }
 
-function useSessions({onChangeSession}: {onChangeSession: (runId: number) => void}) {
-  const {data, isPending, isError, refetch} = useExplorerSessions({limit: 20});
+function useSessions({
+  onChangeSession,
+  enabled,
+}: {
+  onChangeSession: (runId: number) => void;
+  enabled?: boolean;
+}) {
+  const {data, isPending, isError, refetch} = useExplorerSessions({limit: 20, enabled});
 
   const formatDate = (date: string) => {
     const userTimezone = getUserTimezone();

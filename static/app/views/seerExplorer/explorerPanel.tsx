@@ -216,6 +216,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     focusInput,
     textAreaRef: textareaRef,
     panelSize,
+    panelVisible: isVisible,
     slashCommandHandlers: {
       onMaxSize: handleMaxSize,
       onMedSize: handleMedSize,
