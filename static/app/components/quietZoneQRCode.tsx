@@ -32,12 +32,12 @@ export function QuietZoneQRCode({size, value, ...props}: QuietZoneQRCodeProps) {
   return (
     <Wrapper>
       <StyledQRCodeCanvas
+        {...props}
         size={size}
         value={value}
         bgColor="#FFFFFF"
         fgColor="#000000"
         includeMargin
-        {...props}
       />
     </Wrapper>
   );
