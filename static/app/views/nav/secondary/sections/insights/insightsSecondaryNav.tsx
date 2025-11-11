@@ -19,6 +19,10 @@ import {
   FRONTEND_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {
+  MCP_LANDING_SUB_PATH,
+  MCP_SIDEBAR_LABEL,
+} from 'sentry/views/insights/pages/mcp/settings';
+import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/mobile/settings';
@@ -68,13 +72,18 @@ export function InsightsSecondaryNav() {
           >
             {MOBILE_SIDEBAR_LABEL}
           </SecondaryNav.Item>
-
           <SecondaryNav.Item
             to={`${baseUrl}/${AGENTS_LANDING_SUB_PATH}/`}
             analyticsItemName="insights_agents"
             trailingItems={<FeatureBadge type="new" />}
           >
             {AI_SIDEBAR_LABEL}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item
+            to={`${baseUrl}/${MCP_LANDING_SUB_PATH}/`}
+            analyticsItemName="insights_mcp"
+          >
+            {MCP_SIDEBAR_LABEL}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         <SecondaryNav.Section id="insights-monitors">
