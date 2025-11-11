@@ -329,7 +329,6 @@ describe('GroupActions', () => {
       <GroupActions group={group} project={project} disabled={false} event={null} />,
       {
         organization,
-        deprecatedRouterMocks: true,
       }
     );
 
