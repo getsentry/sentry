@@ -1,9 +1,9 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import SentryDocumentTitle from './sentryDocumentTitle';
+import SentryDocumentTitle from '.';
 
 describe('SentryDocumentTitle', () => {
-  it('sets the docuemnt title', () => {
+  it('sets the document title', () => {
     render(<SentryDocumentTitle title="This is a test" />);
     expect(document.title).toBe('This is a test — Sentry');
   });
