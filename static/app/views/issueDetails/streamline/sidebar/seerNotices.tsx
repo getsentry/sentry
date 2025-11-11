@@ -19,6 +19,7 @@ import {
   makeProjectSeerPreferencesQueryKey,
   useProjectSeerPreferences,
 } from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {useUpdateProjectAutomation} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectAutomation';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
 import {
@@ -102,6 +103,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     codeMappingRepos,
   } = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
+  const {mutateAsync: updateProjectAutomation} = useUpdateProjectAutomation(project);
   const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
   const {starredViews: views} = useStarredIssueViews();
 
@@ -167,10 +169,22 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     needsCursorIntegration,
   ];
 
-  const handleSetupCursorHandoff = useCallback(() => {
+  const handleSetupCursorHandoff = useCallback(async () => {
     if (!cursorIntegration) {
       return;
     }
+
+    const isAutomationDisabled =
+      project.seerScannerAutomation === false ||
+      project.autofixAutomationTuning === 'off';
+
+    if (isAutomationDisabled) {
+      await updateProjectAutomation({
+        autofixAutomationTuning: 'low',
+        seerScannerAutomation: true,
+      });
+    }
+
     updateProjectSeerPreferences(
       {
         repositories: preference?.repositories || [],
@@ -193,6 +207,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     );
   }, [
     cursorIntegration,
+    project.seerScannerAutomation,
+    project.autofixAutomationTuning,
+    updateProjectAutomation,
     updateProjectSeerPreferences,
     preference?.repositories,
     queryClient,
@@ -451,7 +468,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                           <Fragment>
                             <span>
                               {t(
-                                'Enable automatic handoff to Cursor Background Agents when Seer identifies a root cause.'
+                                'Enable Seer automation and set up handoff to Cursor Background Agents when Seer identifies a root cause.'
                               )}
                             </span>
                             <span>
