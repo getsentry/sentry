@@ -71,7 +71,8 @@ export const metrics = ({
         {
           type: 'code',
           language: 'python',
-          code: `from sentry_sdk import metrics
+          code: `import sentry_sdk
+from sentry_sdk import metrics
 
 sentry_sdk.init(
   dsn="${params.dsn.public}",
