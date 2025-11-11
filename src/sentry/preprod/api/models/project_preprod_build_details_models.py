@@ -120,10 +120,13 @@ def to_size_info(size_metrics: list[PreprodArtifactSizeMetrics]) -> None | SizeI
         return None
 
     main_metric = next(
-        metric
-        for metric in size_metrics
-        if metric.metrics_artifact_type
-        == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        (
+            metric
+            for metric in size_metrics
+            if metric.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        ),
+        size_metrics[0],
     )
 
     match main_metric.state:
