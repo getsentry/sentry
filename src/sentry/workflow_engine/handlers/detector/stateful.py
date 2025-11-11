@@ -403,7 +403,7 @@ class StatefulDetectorHandler(
                 # Reset counters if any were incremented while evaluating a
                 # different priority (but not reaching thresholds)
                 if any(state_data.counter_updates.values()):
-                    self.state_manager.enqueue_counter_reset()
+                    self.state_manager.enqueue_counter_reset(group_key)
 
                 continue
 
