@@ -36,7 +36,7 @@ function McpResourcesLandingPage() {
 
   return (
     <SearchQueryBuilderProvider {...mcpSpanSearchProps.provider}>
-      <ModuleFeature moduleName={ModuleName.MCP_TOOLS}>
+      <ModuleFeature moduleName={ModuleName.MCP_RESOURCES}>
         <Layout.Body>
           <Layout.Main width="full">
             <ModuleLayout.Layout>

@@ -36,7 +36,7 @@ function McpPromptsLandingPage() {
 
   return (
     <SearchQueryBuilderProvider {...mcpSpanSearchProps.provider}>
-      <ModuleFeature moduleName={ModuleName.MCP_TOOLS}>
+      <ModuleFeature moduleName={ModuleName.MCP_PROMPTS}>
         <Layout.Body>
           <Layout.Main width="full">
             <ModuleLayout.Layout>
