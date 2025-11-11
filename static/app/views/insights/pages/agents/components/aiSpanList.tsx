@@ -5,10 +5,8 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
-import {IconChevron, IconCode, IconFire} from 'sentry/icons';
+import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
-import {IconSpeechBubble} from 'sentry/icons/iconSpeechBubble';
-import {IconTool} from 'sentry/icons/iconTool';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {getIsAiRunNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -340,7 +338,7 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
   } else if (getIsAiGenerationSpan({op})) {
     const tokens = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
     const cost = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_COST);
-    nodeInfo.icon = <IconSpeechBubble size="md" />;
+    nodeInfo.icon = <IconChat size="md" />;
     nodeInfo.subtitle = tokens ? (
       <Fragment>
         <Count value={tokens} />
@@ -359,7 +357,7 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
     nodeInfo.color = colors[2];
   } else if (getIsExecuteToolSpan({op})) {
     const toolName = getNodeAttribute(SpanFields.GEN_AI_TOOL_NAME);
-    nodeInfo.icon = <IconTool size="md" />;
+    nodeInfo.icon = <IconFix size="md" />;
     nodeInfo.title = toolName || truncatedOp;
     nodeInfo.subtitle = toolName ? truncatedOp : '';
     nodeInfo.color = colors[5];
