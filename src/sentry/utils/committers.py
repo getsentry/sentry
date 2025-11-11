@@ -4,11 +4,9 @@ import operator
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, MutableMapping, Sequence
 from enum import Enum
-from functools import reduce
 from typing import Any, TypedDict
 
 from django.core.cache import cache
-from django.db.models import Q
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
@@ -24,6 +22,7 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.users.services.user.service import user_service
 from sentry.utils.event_frames import find_stack_frames, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
+from sentry.utils.iterators import chunked
 
 PATH_SEPARATORS = frozenset(["/", "\\"])
 # Limit the number of commits to batch in a single query to avoid query timeouts
@@ -90,28 +89,40 @@ def _get_commits(releases: Sequence[Release]) -> Sequence[Commit]:
 def _get_commit_file_changes(
     commits: Sequence[Commit], path_name_set: set[str]
 ) -> Sequence[CommitFileChange]:
-    # Get distinct file names and bail if there are no files.
-    filenames = {next(tokenize_path(path), None) for path in path_name_set}
-    filenames = {path for path in filenames if path is not None}
+    """
+    Find CommitFileChanges matching file paths in path_name_set.
+    Batches queries and deduplicates results across multiple filename matches.
+    """
+    filenames: set[str] = {
+        path for path in (next(tokenize_path(p), None) for p in path_name_set) if path is not None
+    }
     if not len(filenames):
         return []
+    if not commits:
+        return []
 
-    # build a single query to get all of the commit file that might match the first n frames
-    path_query = reduce(operator.or_, (Q(filename__iendswith=path) for path in filenames))
-
-    # Batch commits to avoid query timeouts from large IN clauses
-    # combined with complex LIKE conditions
-    all_file_changes: list[CommitFileChange] = []
     commit_ids = [c.id for c in commits]
 
-    for i in range(0, len(commit_ids), COMMIT_BATCH_SIZE):
-        batch_commit_ids = commit_ids[i : i + COMMIT_BATCH_SIZE]
-        commit_file_change_matches = CommitFileChange.objects.filter(
-            path_query, commit_id__in=batch_commit_ids
-        )
-        all_file_changes.extend(list(commit_file_change_matches))
+    # Collect unique CommitFileChange IDs
+    matching_ids: set[int] = set()
 
-    return all_file_changes
+    # Optimization 1: Batch commit IDs with chunked() to prevent huge IN clauses
+    for commit_batch in chunked(commit_ids, 100):
+        # Optimization 2: Split filename queries to eliminate OR conditions
+        for filename in filenames:
+            # Optimization 3 (Experimental): separate filter calls to hint optimizer to use indexes first
+            matches = CommitFileChange.objects.filter(commit_id__in=commit_batch).filter(
+                filename__iendswith=filename
+            )
+
+            # Collect IDs and deduplicate with set operations
+            matching_ids.update(matches.values_list("id", flat=True))
+
+    if not matching_ids:
+        return []
+
+    # Single bulk fetch of unique results, ordered by ID
+    return list(CommitFileChange.objects.filter(id__in=matching_ids).order_by("id"))
 
 
 def _match_commits_paths(
