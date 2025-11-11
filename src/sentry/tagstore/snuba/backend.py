@@ -1043,19 +1043,13 @@ class SnubaTagStorage(TagStorage):
             .distinct()
         )
 
-        qs = Release.objects.filter(
+        return Release.objects.filter(
             organization_id=organization_id,
             package__in=packages,
             id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
                 "release_id", flat=True
             ),
-        ).annotate_prerelease_column()  # type: ignore[attr-defined]
-
-        organization = Organization.objects.get_from_cache(id=organization_id)
-        if features.has("organizations:semver-ordering-with-build-code", organization):
-            qs = qs.annotate_build_code_column()
-
-        return qs
+        ).annotate_prerelease_column()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
 
     def _get_tag_values_for_semver(
         self,
