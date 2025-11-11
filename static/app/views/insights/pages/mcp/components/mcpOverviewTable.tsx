@@ -73,7 +73,7 @@ export function McpOverviewTable() {
     (column: string, direction: 'asc' | 'desc') => {
       trackAnalytics('mcp-monitoring.column-sort', {
         organization,
-        table: 'tools',
+        table: 'overview',
         column,
         direction,
       });
@@ -120,7 +120,7 @@ export function McpOverviewTable() {
                 query: `${query} span.status:internal_error ${SpanFields.SPAN_DESCRIPTION}:${dataRow[SpanFields.SPAN_DESCRIPTION]}`,
                 selection,
                 organization,
-                referrer: MCPReferrer.MCP_TOOL_TABLE,
+                referrer: MCPReferrer.MCP_OVERVIEW_TABLE,
               })}
             />
           );
