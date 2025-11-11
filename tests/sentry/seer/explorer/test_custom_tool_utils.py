@@ -22,10 +22,12 @@ from sentry.testutils.silo import create_test_regions, region_silo_test
 
 # Test helper tool classes (defined in module scope so they can be imported by call_custom_tool)
 class TestCustomTool(ExplorerTool):
-    def get_tool_description(self):
+    @classmethod
+    def get_description(cls):
         return "A test tool"
 
-    def get_params(self):
+    @classmethod
+    def get_params(cls):
         return [
             ExplorerToolParam(name="message", description="Message to repeat", type=StringType()),
             ExplorerToolParam(
@@ -33,17 +35,20 @@ class TestCustomTool(ExplorerTool):
             ),
         ]
 
-    def execute(self, organization, **kwargs):
+    @classmethod
+    def execute(cls, organization, **kwargs):
         message = kwargs["message"]
         count = kwargs.get("count", 1)
         return message * count
 
 
 class TestToolWithDefault(ExplorerTool):
-    def get_tool_description(self):
+    @classmethod
+    def get_description(cls):
         return "Test tool with default parameter"
 
-    def get_params(self):
+    @classmethod
+    def get_params(cls):
         return [
             ExplorerToolParam(name="value", description="Value", type=StringType()),
             ExplorerToolParam(
@@ -51,41 +56,50 @@ class TestToolWithDefault(ExplorerTool):
             ),
         ]
 
-    def execute(self, organization, **kwargs):
+    @classmethod
+    def execute(cls, organization, **kwargs):
         value = kwargs["value"]
         suffix = kwargs.get("suffix", "!")
         return value + suffix
 
 
 class BadTool(ExplorerTool):
-    def get_tool_description(self):
+    @classmethod
+    def get_description(cls):
         return "Tool that returns wrong type"
 
-    def get_params(self):
+    @classmethod
+    def get_params(cls):
         return []
 
-    def execute(self, organization, **kwargs):
+    @classmethod
+    def execute(cls, organization, **kwargs):
         return 123  # Returns wrong type to test runtime validation
 
 
 class GetUserInfoTool(ExplorerTool):
-    def get_tool_description(self):
+    @classmethod
+    def get_description(cls):
         return "Fetches user information"
 
-    def get_params(self):
+    @classmethod
+    def get_params(cls):
         return [
             ExplorerToolParam(name="user_id", description="User ID", type=IntegerType()),
         ]
 
-    def execute(self, organization, **kwargs):
+    @classmethod
+    def execute(cls, organization, **kwargs):
         return f"User {kwargs['user_id']}"
 
 
 class SearchLogsTool(ExplorerTool):
-    def get_tool_description(self):
+    @classmethod
+    def get_description(cls):
         return "Search application logs"
 
-    def get_params(self):
+    @classmethod
+    def get_params(cls):
         return [
             ExplorerToolParam(name="query", description="Search query", type=StringType()),
             ExplorerToolParam(
@@ -99,15 +113,18 @@ class SearchLogsTool(ExplorerTool):
             ),
         ]
 
-    def execute(self, organization, **kwargs):
+    @classmethod
+    def execute(cls, organization, **kwargs):
         return f"Found logs for: {kwargs['query']}"
 
 
 class ProcessItemsTool(ExplorerTool):
-    def get_tool_description(self):
+    @classmethod
+    def get_description(cls):
         return "Process a list of items"
 
-    def get_params(self):
+    @classmethod
+    def get_params(cls):
         return [
             ExplorerToolParam(
                 name="items",
@@ -121,32 +138,18 @@ class ProcessItemsTool(ExplorerTool):
             ),
         ]
 
-    def execute(self, organization, **kwargs):
+    @classmethod
+    def execute(cls, organization, **kwargs):
         return "Processed"
 
 
-class ToolWithNestedList(ExplorerTool):
-    def get_tool_description(self):
-        return "Tool that accepts nested list of dicts"
-
-    def get_params(self):
-        return [
-            ExplorerToolParam(
-                name="items",
-                description="Items",
-                type=ArrayType(item_type=ExplorerParamType.OBJECT),
-            ),
-        ]
-
-    def execute(self, organization, **kwargs):
-        return str(len(kwargs["items"]))
-
-
 class ToolWithEnum(ExplorerTool):
-    def get_tool_description(self):
+    @classmethod
+    def get_description(cls):
         return "Tool with enum parameter"
 
-    def get_params(self):
+    @classmethod
+    def get_params(cls):
         return [
             ExplorerToolParam(
                 name="unit",
@@ -155,7 +158,8 @@ class ToolWithEnum(ExplorerTool):
             ),
         ]
 
-    def execute(self, organization, **kwargs):
+    @classmethod
+    def execute(cls, organization, **kwargs):
         return kwargs["unit"]
 
 
@@ -171,13 +175,16 @@ class CustomToolUtilsTest(TestCase):
 
         class OuterClass:
             class NestedTool(ExplorerTool):
-                def get_tool_description(self):
+                @classmethod
+                def get_description(cls):
                     return "Nested tool"
 
-                def get_params(self):
+                @classmethod
+                def get_params(cls):
                     return []
 
-                def execute(self, organization, **kwargs):
+                @classmethod
+                def execute(cls, organization, **kwargs):
                     return "test"
 
         with pytest.raises(ValueError) as cm:
@@ -282,30 +289,6 @@ class CustomToolUtilsTest(TestCase):
                 organization_id=self.organization.id,
             )
         assert "must return str" in str(cm.value)
-
-    def test_tool_with_array_of_objects(self):
-        """Test that list[dict] is supported via ArrayType."""
-        schema = extract_tool_schema(ToolWithNestedList)
-
-        assert len(schema.parameters) == 1
-        items_param = schema.parameters[0]
-        assert items_param["name"] == "items"
-        assert items_param["type"] == "array"
-        assert "items" in items_param
-        assert items_param["items"]["type"] == "object"
-
-    def test_call_tool_with_array_of_objects(self):
-        """Test that arrays of objects work end-to-end."""
-        module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.ToolWithNestedList"
-
-        # Call with array of dicts
-        result = call_custom_tool(
-            module_path=module_path,
-            allowed_prefixes=("sentry.", "tests.sentry."),
-            organization_id=self.organization.id,
-            items=[{"name": "Alice", "age": "30"}, {"name": "Bob", "age": "25"}],
-        )
-        assert result == "2"
 
     def test_tool_with_enum(self):
         """Test that EnumType is converted correctly."""

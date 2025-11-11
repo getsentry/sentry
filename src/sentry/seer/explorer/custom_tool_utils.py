@@ -19,7 +19,6 @@ class ExplorerParamType(str, Enum):
     NUMBER = "number"
     BOOLEAN = "boolean"
     ARRAY = "array"
-    OBJECT = "object"
 
 
 # Type specifications for different parameter types
@@ -47,12 +46,6 @@ class BooleanType(BaseModel):
     kind: Literal["boolean"] = "boolean"
 
 
-class ObjectType(BaseModel):
-    """Simple object (dict) type."""
-
-    kind: Literal["object"] = "object"
-
-
 class EnumType(BaseModel):
     """String restricted to specific values."""
 
@@ -67,9 +60,7 @@ class ArrayType(BaseModel):
     item_type: ExplorerParamType
 
 
-ParamTypeSpec = (
-    StringType | IntegerType | NumberType | BooleanType | ObjectType | EnumType | ArrayType
-)
+ParamTypeSpec = StringType | IntegerType | NumberType | BooleanType | EnumType | ArrayType
 
 
 class ExplorerToolParam(BaseModel):
@@ -109,10 +100,12 @@ class ExplorerTool(ABC):
 
     Example:
         class DeploymentStatusTool(ExplorerTool):
-            def get_tool_description(self) -> str:
+            @classmethod
+            def get_description(cls) -> str:
                 return "Check if a service is deployed in an environment"
 
-            def get_params(self) -> list[ExplorerToolParam]:
+            @classmethod
+            def get_params(cls) -> list[ExplorerToolParam]:
                 return [
                     ExplorerToolParam(
                         name="environment",
@@ -126,22 +119,26 @@ class ExplorerTool(ABC):
                     ),
                 ]
 
-            def execute(self, organization: Organization, **kwargs) -> str:
+            @classmethod
+            def execute(cls, organization: Organization, **kwargs) -> str:
                 return check_deployment(organization, kwargs["environment"], kwargs["service"])
     """
 
+    @classmethod
     @abstractmethod
-    def get_tool_description(self) -> str:
+    def get_description(cls) -> str:
         """Return a description of what this tool does."""
         ...
 
+    @classmethod
     @abstractmethod
-    def get_params(self) -> list[ExplorerToolParam]:
+    def get_params(cls) -> list[ExplorerToolParam]:
         """Return the list of parameter definitions for this tool."""
         ...
 
+    @classmethod
     @abstractmethod
-    def execute(self, organization: Organization, **kwargs) -> str:
+    def execute(cls, organization: Organization, **kwargs) -> str:
         """Execute the tool with the given organization and parameters."""
         ...
 
@@ -171,8 +168,7 @@ def extract_tool_schema(tool_class: type[ExplorerTool]) -> CustomToolDefinition:
             f"Nested classes are not supported. (qualname: {tool_class.__qualname__})"
         )
 
-    tool_instance = tool_class()
-    params = tool_instance.get_params()
+    params = tool_class.get_params()
 
     # Convert ExplorerToolParam list to parameter dicts
     parameters: list[dict[str, Any]] = []
@@ -201,7 +197,7 @@ def extract_tool_schema(tool_class: type[ExplorerTool]) -> CustomToolDefinition:
         if param.required:
             required.append(param.name)
 
-    description = tool_instance.get_tool_description()
+    description = tool_class.get_description()
 
     return CustomToolDefinition(
         name=tool_class.__name__,
@@ -260,10 +256,9 @@ def call_custom_tool(
     if not isinstance(tool_class, type) or not issubclass(tool_class, ExplorerTool):
         raise ValueError(f"{module_path} must be a class that inherits from ExplorerTool")
 
-    # Instantiate and execute the tool
+    # Execute the tool
     try:
-        tool_instance = tool_class()
-        result = tool_instance.execute(organization, **kwargs)
+        result = tool_class.execute(organization, **kwargs)
     except Exception as e:
         raise RuntimeError(f"Error executing custom tool {module_path}: {e}")
 

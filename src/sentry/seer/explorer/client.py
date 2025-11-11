@@ -61,10 +61,12 @@ class SeerExplorerClient:
         from sentry.seer.explorer.custom_tool_utils import ExplorerTool, ExplorerToolParam, StringType
 
         class DeploymentStatusTool(ExplorerTool):
-            def get_tool_description(self):
+            @classmethod
+            def get_description(cls):
                 return "Check if a service is deployed in an environment"
 
-            def get_params(self):
+            @classmethod
+            def get_params(cls):
                 return [
                     ExplorerToolParam(
                         name="environment",
@@ -78,7 +80,8 @@ class SeerExplorerClient:
                     ),
                 ]
 
-            def execute(self, organization, **kwargs):
+            @classmethod
+            def execute(cls, organization, **kwargs):
                 return "deployed" if check_deployment(organization, kwargs["environment"], kwargs["service"]) else "not deployed"
 
         client = SeerExplorerClient(
