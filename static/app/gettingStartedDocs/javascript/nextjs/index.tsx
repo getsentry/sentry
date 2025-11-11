@@ -1,11 +1,11 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
+import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/metrics';
 
 import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
 import {logs} from './logs';
-import {metrics} from './metrics';
 import {onboarding} from './onboarding';
 import {performance} from './performance';
 import {profiling} from './profiling';
@@ -20,8 +20,11 @@ const docs: Docs = {
   featureFlagOnboarding: featureFlag,
   profilingOnboarding: profiling,
   logsOnboarding: logs,
+  metricsOnboarding: metricsFullStack({
+    docsPlatform: 'nextjs',
+    packageName: '@sentry/nextjs',
+  }),
   agentMonitoringOnboarding: agentMonitoring,
-  metricsOnboarding: metrics,
 };
 
 export default docs;
