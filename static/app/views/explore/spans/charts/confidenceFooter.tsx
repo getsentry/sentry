@@ -2,12 +2,14 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import usePrevious from 'sentry/utils/usePrevious';
-import {Placeholder} from 'sentry/views/explore/components/chart/placeholder';
+import {
+  Placeholder,
+  WarningIcon,
+} from 'sentry/views/explore/components/chart/placeholder';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 
 type Props = {
@@ -67,6 +69,7 @@ function confidenceMessage({
   const lowAccuracyFullSampleCount = <_LowAccuracyFullTooltip noSampling={noSampling} />;
 
   // The multi query mode does not fetch the raw span counts
+  // so make sure to have a backup when this happens.
   if (!defined(rawSpanCounts)) {
     const matchingSpansCount =
       sampleCount > 1
@@ -145,13 +148,11 @@ function confidenceMessage({
     });
   }
 
-  const warning = <IconWarning size="sm" />;
-
   if (isTopN) {
     return tct(
       '[warning] Extrapolated from [matchingSpansCount] for top [topEvents] groups after scanning [tooltip:[downSampledSpansCount] of [allSpansCount]]',
       {
-        warning,
+        warning: <WarningIcon />,
         topEvents,
         matchingSpansCount,
         downSampledSpansCount,
@@ -164,7 +165,7 @@ function confidenceMessage({
   return tct(
     '[warning] Extrapolated from [matchingSpansCount] after scanning [tooltip:[downSampledSpansCount] of [allSpansCount]]',
     {
-      warning,
+      warning: <WarningIcon />,
       matchingSpansCount,
       downSampledSpansCount,
       allSpansCount,

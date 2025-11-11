@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {IconWarning} from 'sentry/icons';
+
 const _OffsetContainer = styled('span')`
   position: relative;
   top: 2px;
@@ -21,6 +23,14 @@ export function Placeholder({width}: PlaceholderProps) {
   return (
     <_OffsetContainer data-test-id="loading-placeholder">
       <_Placeholder width={width} />
+    </_OffsetContainer>
+  );
+}
+
+export function WarningIcon() {
+  return (
+    <_OffsetContainer data-test-id="warning-placeholder">
+      <IconWarning size="sm" />
     </_OffsetContainer>
   );
 }
