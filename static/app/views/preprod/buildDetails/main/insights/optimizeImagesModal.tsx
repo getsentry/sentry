@@ -1,10 +1,11 @@
 import type {ReactNode} from 'react';
 
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text/heading';
+
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Heading} from 'sentry/components/core/text/heading';
 import {t} from 'sentry/locale';
 import {CodeBlockWrapper} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
@@ -13,10 +14,10 @@ const IOS_IMAGEMIN_SCRIPT = `# Install imagemin-cli
 npm install -g imagemin-cli
 
 # Optimize PNG with quality 85
-imagemin input.png --plugin=pngquant --plugin.quality=[0.85,0.85] > output.png
+npx imagemin input.png --plugin=pngquant --pngquant.quality=0.85-0.85 > output.png
 
 # Optimize JPEG with quality 85
-imagemin input.jpg --plugin=mozjpeg --plugin.quality=85 > output.jpg`;
+npx imagemin input.jpg --plugin=mozjpeg --plugin.mozjpeg.quality=85 > output.jpg`;
 
 const ANDROID_CWEBP_SCRIPT = `# Install cwebp (on Mac)
 brew install webp

@@ -101,14 +101,9 @@ class UptimeMonitorNoSeatAvailable(Exception):
     uptime monitor.
     """
 
-    result: SeatAssignmentResult | None
-    """
-    The assignment result. In rare cases may be None when there is a race
-    condition and seat assignment is not accepted after passing the assignment
-    check.
-    """
+    result: SeatAssignmentResult
 
-    def __init__(self, result: SeatAssignmentResult | None) -> None:
+    def __init__(self, result: SeatAssignmentResult) -> None:
         super().__init__()
         self.result = result
 
@@ -492,24 +487,18 @@ def enable_uptime_detector(
     are no available seats the monitor will be disabled and a
     `UptimeMonitorNoSeatAvailable` will be raised.
 
-    By default if the monitor is already marked as ACTIVE this function is a
+    By default if the detector is already marked as enabled this function is a
     no-op. Pass `ensure_assignment=True` to force seat assignment.
     """
     if not ensure_assignment and detector.enabled:
         return
 
     if not skip_quotas:
-        seat_assignment = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
-        if not seat_assignment.assignable:
-            disable_uptime_detector(detector)
-            raise UptimeMonitorNoSeatAvailable(seat_assignment)
-
         outcome = quotas.backend.assign_seat(DataCategory.UPTIME, detector)
         if outcome != Outcome.ACCEPTED:
-            # Race condition, we were unable to assign the seat even though the
-            # earlier assignment check indicated assignability
             disable_uptime_detector(detector)
-            raise UptimeMonitorNoSeatAvailable(None)
+            result = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
+            raise UptimeMonitorNoSeatAvailable(result)
 
     uptime_subscription: UptimeSubscription = get_uptime_subscription(detector)
     detector.update(enabled=True)

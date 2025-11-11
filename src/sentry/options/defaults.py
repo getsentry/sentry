@@ -342,6 +342,12 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "deletions.group-hash-metadata.batch-size",
+    default=1000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 register(
@@ -623,6 +629,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -662,6 +669,10 @@ register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIOR
 register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # if a region is in this list, it's safe to forward to codecov
 register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# if a region is in this list, it's safe to forward to overwatch
+register("overwatch.enabled-regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# enable verbose debug logging for overwatch webhook forwarding
+register("overwatch.forward-webhooks.verbose", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1968,6 +1979,11 @@ register(
     default=3,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "performance.issues.web_vitals.count_threshold",
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Adjusting some time buffers in the trace endpoint
 register(
@@ -2163,6 +2179,14 @@ register(
     "dynamic-sampling.check_span_feature_flag",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
+# List of organization IDs that should be using spans for rebalancing in dynamic sampling.
+register(
+    "dynamic-sampling.measure.spans",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # === Hybrid cloud subsystem options ===
@@ -3175,13 +3199,6 @@ register(
 )
 
 register(
-    "workflow_engine.sentry-app-actions-outbox",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "workflow_engine.num_cohorts",
     type=Int,
     default=1,
@@ -3591,6 +3608,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# The allowlist of organization IDs for which deletion from EAP is enabled.
+register(
+    "eventstream.eap.deletion_enabled.organization_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Send logs for sentry app webhooks sent. Should only be enabled for debugging a specific app or installation.
 register(
     "sentry-apps.webhook-logging.enabled",
@@ -3599,6 +3624,28 @@ register(
         "sentry_app_slug": [],
         "installation_uuid": [],
     },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Which issue categories should we send issue.created webhooks for
+register(
+    "sentry-apps.expanded-webhook-categories",
+    type=Sequence,
+    default=[
+        1,  # ERROR
+        4,  # CRON
+        6,  # FEEDBACK
+        7,  # UPTIME
+        10,  # OUTAGE
+    ],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Manual option for disabling misbehaving sentry apps from sending webhooks.
+register(
+    "sentry-apps.webhook.restricted-webhook-sending",
+    type=Sequence,
+    default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3623,5 +3670,13 @@ register(
     "github.webhook-type-routing.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Sets the sample rate for profiles collected via the JoinProfiler arroyo strategy
+register(
+    "consumer.join.profiling.rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

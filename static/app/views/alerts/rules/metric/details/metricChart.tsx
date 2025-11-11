@@ -99,7 +99,7 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
   return moment(date).format(format);
 }
 
-export function getRuleChangeSeries(
+function getRuleChangeSeries(
   rule: MetricRule,
   data: AreaChartSeries[],
   theme: Theme
@@ -517,7 +517,7 @@ export default function MetricChart({
   );
 }
 
-export function getMetricChartTooltipFormatter({
+function getMetricChartTooltipFormatter({
   interval,
   rule,
   theme,

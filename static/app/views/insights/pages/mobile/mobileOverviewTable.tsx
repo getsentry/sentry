@@ -6,6 +6,7 @@ import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
+import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -20,7 +21,6 @@ import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {StyledIconStar} from 'sentry/views/insights/pages/backend/backendTable';
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
@@ -180,7 +180,7 @@ export function MobileOverviewTable({response, sort}: Props) {
 
 function renderPrependColumns(isHeader: boolean, row?: Row | undefined) {
   if (isHeader) {
-    return [<StyledIconStar key="star" color="yellow300" isSolid />];
+    return [<IconStar key="star" color="yellow300" isSolid />];
   }
 
   if (!row) {

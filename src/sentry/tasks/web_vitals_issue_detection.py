@@ -3,17 +3,20 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta
 
-from sentry import options
+from sentry import features, options
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.seer.explorer.index_data import get_trace_for_transaction
+from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.explorer.utils import normalize_description
+from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.web_vitals.issue_platform_adapter import send_web_vitals_issue_to_platform
+from sentry.web_vitals.query import get_trace_by_web_vital_measurement
 from sentry.web_vitals.types import WebVitalIssueDetectionType, WebVitalIssueGroupData
 
 logger = logging.getLogger("sentry.tasks.web_vitals_issue_detection")
@@ -21,9 +24,7 @@ logger = logging.getLogger("sentry.tasks.web_vitals_issue_detection")
 TRANSACTIONS_PER_PROJECT_LIMIT = 5
 DEFAULT_START_TIME_DELTA = {"days": 7}  # Low scores within this time range create web vital issues
 SCORE_THRESHOLD = 0.9  # Scores below this threshold will create web vital issues
-SAMPLES_COUNT_THRESHOLD = (
-    10  # Web Vitals require at least this amount of samples to create an issue
-)
+SAMPLES_COUNT_THRESHOLD = 10  # TODO: Use project config threshold setting. Web Vitals require at least this amount of samples to create an issue
 VITALS: list[WebVitalIssueDetectionType] = ["lcp", "fcp", "cls", "ttfb", "inp"]
 
 
@@ -53,8 +54,13 @@ def run_web_vitals_issue_detection() -> None:
         return
 
     # Spawn a sub-task for each project
-    for project_id in enabled_project_ids:
-        detect_web_vitals_issues_for_project.delay(project_id)
+    projects = Project.objects.filter(id__in=enabled_project_ids).select_related("organization")
+
+    for project in projects:
+        if not check_seer_setup_for_project(project):
+            continue
+
+        detect_web_vitals_issues_for_project.delay(project.id)
 
 
 @instrumented_task(
@@ -73,8 +79,14 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
         project_id, limit=TRANSACTIONS_PER_PROJECT_LIMIT
     )
     for web_vital_issue_group in web_vital_issue_groups:
-        # TODO: Fetch the p75 trace instead
-        trace = get_trace_for_transaction(web_vital_issue_group["transaction"], project_id)
+        p75_vital_value = web_vital_issue_group["value"]
+        trace = get_trace_by_web_vital_measurement(
+            web_vital_issue_group["transaction"],
+            project_id,
+            web_vital_issue_group["vital"],
+            p75_vital_value,
+            start_time_delta=DEFAULT_START_TIME_DELTA,
+        )
         if trace:
             send_web_vitals_issue_to_platform(web_vital_issue_group, trace_id=trace.trace_id)
 
@@ -177,3 +189,25 @@ def get_highest_opportunity_page_vitals_for_project(
                 )
 
     return web_vital_issue_groups
+
+
+def check_seer_setup_for_project(project: Project) -> bool:
+    """
+    Checks if a project and it's organization have the necessary Seer setup to detect web vitals issues.
+    The project must have seer feature flags, seer acknowledgement, and a github code mapping.
+    """
+    if not features.has("organizations:gen-ai-features", project.organization):
+        return False
+
+    if project.organization.get_option("sentry:hide_ai_features"):
+        return False
+
+    if not get_seer_org_acknowledgement(project.organization):
+        return False
+
+    repos = get_autofix_repos_from_project_code_mappings(project)
+    github_repos = [repo for repo in repos if repo.get("provider") in SEER_SUPPORTED_SCM_PROVIDERS]
+    if not github_repos:
+        return False
+
+    return True

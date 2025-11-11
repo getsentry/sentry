@@ -21,10 +21,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
   telemetry_index_dependencies: (args, isLoading) => {
     const title = args.title || 'item';
-    const truncatedTitle = title.length > 75 ? title.slice(0, 75) + '...' : title;
-    return isLoading
-      ? `Tracing the flow of ${truncatedTitle}...`
-      : `Traced the flow of ${truncatedTitle}`;
+    return isLoading ? `Tracing the flow of ${title}...` : `Traced the flow of ${title}`;
   },
 
   google_search: (args, isLoading) => {
@@ -32,13 +29,24 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     return isLoading ? `Googling '${question}'...` : `Googled '${question}'`;
   },
 
-  trace_explorer_query: (args, isLoading) => {
-    const question = args.question || 'spans';
-    const truncatedQuestion =
-      question.length > 75 ? question.slice(0, 75) + '...' : question;
+  telemetry_live_search: (args, isLoading) => {
+    const question = args.question || 'data';
+    const dataset = args.dataset || 'spans';
+    const projectSlugs = args.project_slugs;
+
+    const projectInfo =
+      projectSlugs && projectSlugs.length > 0 ? ` in ${projectSlugs.join(', ')}` : '';
+
+    if (dataset === 'issues') {
+      return isLoading
+        ? `Searching for issues${projectInfo}: '${question}'...`
+        : `Searched for issues${projectInfo}: '${question}'`;
+    }
+
+    // Default to spans
     return isLoading
-      ? `Querying spans: '${truncatedQuestion}'`
-      : `Queried spans: '${truncatedQuestion}'`;
+      ? `Querying spans${projectInfo}: '${question}'...`
+      : `Queried spans${projectInfo}: '${question}'`;
   },
 
   get_trace_waterfall: (args, isLoading) => {
@@ -74,10 +82,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     switch (mode) {
       case 'read_file':
         if (path) {
-          const truncatedPath = path.length > 50 ? path.slice(0, 50) + '...' : path;
           return isLoading
-            ? `Reading ${truncatedPath} from ${repoName}...`
-            : `Read ${truncatedPath} from ${repoName}`;
+            ? `Reading ${path} from ${repoName}...`
+            : `Read ${path} from ${repoName}`;
         }
         return isLoading
           ? `Reading file from ${repoName}...`
@@ -85,11 +92,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
       case 'find_files':
         if (pattern) {
-          const truncatedPattern =
-            pattern.length > 40 ? pattern.slice(0, 40) + '...' : pattern;
           return isLoading
-            ? `Finding files matching '${truncatedPattern}' in ${repoName}...`
-            : `Found files matching '${truncatedPattern}' in ${repoName}`;
+            ? `Finding files matching '${pattern}' in ${repoName}...`
+            : `Found files matching '${pattern}' in ${repoName}`;
         }
         return isLoading
           ? `Finding files in ${repoName}...`
@@ -97,11 +102,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
 
       case 'search_content':
         if (pattern) {
-          const truncatedPattern =
-            pattern.length > 40 ? pattern.slice(0, 40) + '...' : pattern;
           return isLoading
-            ? `Searching for '${truncatedPattern}' in ${repoName}...`
-            : `Searched for '${truncatedPattern}' in ${repoName}`;
+            ? `Searching for '${pattern}' in ${repoName}...`
+            : `Searched for '${pattern}' in ${repoName}`;
         }
         return isLoading
           ? `Searching code in ${repoName}...`
@@ -141,11 +144,9 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     }
 
     if (filePath) {
-      const truncatedPath =
-        filePath.length > 40 ? filePath.slice(0, 40) + '...' : filePath;
       return isLoading
-        ? `Excavating commits affecting '${truncatedPath}'${dateRangeStr} in ${repoName}...`
-        : `Excavated commits affecting '${truncatedPath}'${dateRangeStr} in ${repoName}`;
+        ? `Excavating commits affecting '${filePath}'${dateRangeStr} in ${repoName}...`
+        : `Excavated commits affecting '${filePath}'${dateRangeStr} in ${repoName}`;
     }
 
     return isLoading
@@ -199,21 +200,54 @@ export function buildToolLinkUrl(
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
   switch (toolLink.kind) {
-    case 'trace_explorer_query': {
-      const {query, stats_period, y_axes, group_by, sort, mode, project_slug} =
-        toolLink.params;
+    case 'telemetry_live_search': {
+      const {dataset, query, stats_period, project_slugs, sort} = toolLink.params;
 
-      // Transform backend params to frontend format
+      if (dataset === 'issues') {
+        // Build URL for issues search
+        const queryParams: Record<string, any> = {
+          query: query || '',
+        };
+
+        // If project_slugs is provided, look up the project IDs
+        if (project_slugs && project_slugs.length > 0 && projects) {
+          const projectIds = project_slugs
+            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+            .filter((id: string | undefined) => id !== undefined);
+          if (projectIds.length > 0) {
+            queryParams.project = projectIds;
+          }
+        }
+
+        if (stats_period) {
+          queryParams.statsPeriod = stats_period;
+        }
+
+        if (sort) {
+          queryParams.sort = sort;
+        }
+
+        return {
+          pathname: `/organizations/${orgSlug}/issues/`,
+          query: queryParams,
+        };
+      }
+
+      // Default to spans (traces) search
+      const {y_axes, group_by, mode} = toolLink.params;
+
       const queryParams: Record<string, any> = {
         query: query || '',
         project: null,
       };
 
-      // If project_slug is provided, look up the project ID
-      if (project_slug && projects) {
-        const project = projects.find(p => p.slug === project_slug);
-        if (project) {
-          queryParams.project = project.id;
+      // If project_slugs is provided, look up the project IDs
+      if (project_slugs && project_slugs.length > 0 && projects) {
+        const projectIds = project_slugs
+          .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+          .filter((id: string | undefined) => id !== undefined);
+        if (projectIds.length > 0) {
+          queryParams.project = projectIds;
         }
       }
 
