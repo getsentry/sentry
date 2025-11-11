@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, {createContext, useContext, useEffect, useMemo, useState} from 'react';
 
 const DEFAULT_PAGE_TITLE = 'Sentry';
 const SEPARATOR = ' — ';
@@ -13,13 +6,12 @@ const SEPARATOR = ' — ';
 interface TitleEntry {
   id: string;
   noSuffix: boolean;
-  // mount order for stable sorting
   order: number;
   text: string;
 }
 
 interface DocumentTitleManager {
-  register: (id: string, text: string, noSuffix: boolean) => void;
+  register: (id: string, text: string, order: number, noSuffix: boolean) => void;
   unregister: (id: string) => void;
 }
 
@@ -32,16 +24,15 @@ export const useDocumentTitleManager = () => useContext(DocumentTitleContext);
 
 export function DocumentTitleManager({children}: React.PropsWithChildren) {
   const [entries, setEntries] = useState<TitleEntry[]>([]);
-  const orderCounter = useRef(0);
 
   const [manager] = useState<DocumentTitleManager>(() => ({
-    register: (id, text, noSuffix) => {
+    register: (id, text, order, noSuffix) => {
       setEntries(prev => {
         // update for same id
         if (prev.some(e => e.id === id)) {
           return prev.map(e => (e.id === id ? {...e, text, noSuffix} : e));
         }
-        return [...prev, {id, text, noSuffix, order: orderCounter.current++}];
+        return [...prev, {id, text, noSuffix, order}];
       });
     },
     unregister: id => {
@@ -50,14 +41,14 @@ export function DocumentTitleManager({children}: React.PropsWithChildren) {
   }));
 
   const fullTitle = useMemo(() => {
-    const parts = entries
+    const entry = entries
       .filter(e => e.text.trim() !== '')
-      .sort((a, b) => a.order - b.order)
-      .map(e => e.text)
-      // effects run bottom-up so registration order needs to be reversed
-      .reverse();
+      .sort((a, b) => b.order - a.order)
+      .at(0);
 
-    if (parts.length === 0 || entries.every(entry => !entry.noSuffix)) {
+    const parts = entry ? [entry.text] : [];
+
+    if (!entry?.noSuffix) {
       parts.push(DEFAULT_PAGE_TITLE);
     }
     return [...new Set([...parts])].join(SEPARATOR);

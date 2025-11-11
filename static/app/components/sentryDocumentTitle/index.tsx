@@ -1,4 +1,4 @@
-import {useEffect, useId, useMemo} from 'react';
+import {useEffect, useId, useMemo, useState} from 'react';
 
 import {useDocumentTitleManager} from './documentTitleManager';
 
@@ -32,6 +32,8 @@ function SentryDocumentTitle({
 }: Props) {
   const titleManager = useDocumentTitleManager();
   const id = useId();
+  // compute order once on mount because effects run bottom-up
+  const [order] = useState(() => performance.now());
 
   const pageTitle = useMemo(() => {
     if (orgSlug && projectSlug) {
@@ -51,8 +53,8 @@ function SentryDocumentTitle({
 
   // create or update title entry
   useEffect(() => {
-    titleManager.register(id, pageTitle, !!noSuffix);
-  }, [titleManager, id, pageTitle, noSuffix]);
+    titleManager.register(id, pageTitle, order, !!noSuffix);
+  }, [titleManager, id, pageTitle, order, noSuffix]);
 
   // cleanup on unmount
   useEffect(() => {
