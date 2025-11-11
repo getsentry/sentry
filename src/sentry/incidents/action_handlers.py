@@ -582,7 +582,7 @@ def generate_incident_trigger_email_context(
     if notification_uuid:
         alert_link_params["notification_uuid"] = notification_uuid
 
-    if features.has("organizations:workflow-engine-ui-links", organization):
+    if features.has("organizations:workflow-engine-ui", organization):
         assert (
             metric_issue_context.group is not None
         ), "Group should not be None when workflow engine ui links are enabled"
@@ -632,7 +632,7 @@ def generate_incident_trigger_email_context(
     snooze_alert = False
     # We don't have user muting for workflows in the new workflow engine system
     # so we don't need to show the snooze alert url
-    if not features.has("organizations:workflow-engine-ui-links", organization):
+    if not features.has("organizations:workflow-engine-ui", organization):
         snooze_alert = True
         snooze_alert_url = alert_link + "&" + urlencode({"mute": "1"})
 

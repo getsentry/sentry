@@ -261,7 +261,7 @@ class AlertRuleNotification(ProjectNotification):
 
         # We don't show the snooze alert if the organization has not enabled the workflow engine UI links
         # This is because in the new UI/system a user can't individually disable a workflow
-        if not features.has("organizations:workflow-engine-ui-links", self.organization):
+        if not features.has("organizations:workflow-engine-ui", self.organization):
             if len(self.rules) > 0:
                 context["snooze_alert"] = True
                 context["snooze_alert_url"] = get_snooze_url(
@@ -299,7 +299,7 @@ class AlertRuleNotification(ProjectNotification):
         title_str = "Alert triggered"
 
         if self.rules:
-            if features.has("organizations:workflow-engine-ui-links", self.organization):
+            if features.has("organizations:workflow-engine-ui", self.organization):
                 rule_url = absolute_uri(
                     create_link_to_workflow(
                         self.organization.id, get_key_from_rule_data(self.rules[0], "workflow_id")
