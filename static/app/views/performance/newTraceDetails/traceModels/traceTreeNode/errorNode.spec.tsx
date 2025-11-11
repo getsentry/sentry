@@ -55,7 +55,7 @@ describe('ErrorNode', () => {
       expect(node.extra).toBe(extra);
       expect(node.errors.size).toBe(1);
       expect(node.errors.has(value)).toBe(true);
-      expect(node.isEAPEvent).toBe(true);
+      expect(node.isEAPEvent).toBe(false);
     });
 
     it('should handle different timestamp formats', () => {
