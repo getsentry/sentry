@@ -71,6 +71,8 @@ export type IssueTypeConfig = {
     filterBar: DisabledWithReasonConfig & {
       // Display the environment filter in an inactive, locked state
       fixedEnvironment?: boolean;
+      // The search bar can be hidden if the issue type does not support event filtering
+      searchBar?: DisabledWithReasonConfig;
     };
     graph: DisabledWithReasonConfig & {
       type?: 'detector-history' | 'discover-events' | 'cron-checks' | 'uptime-checks';
