@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {QRCodeCanvas} from 'qrcode.react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -9,6 +8,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -114,17 +114,15 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
                   {tn('%s download', '%s downloads', installDetails.download_count)}
                 </Text>
               )}
-            <Container background="secondary" padding="lg" radius="md" border="primary">
-              <StyledQRCode
-                aria-label={t('Install QR Code')}
-                value={
-                  installDetails.platform === 'ios'
-                    ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
-                    : installDetails.install_url
-                }
-                size={120}
-              />
-            </Container>
+            <QuietZoneQRCode
+              aria-label={t('Install QR Code')}
+              value={
+                installDetails.platform === 'ios'
+                  ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
+                  : installDetails.install_url
+              }
+              size={120}
+            />
             {details}
             <Flex direction="column" maxWidth="300px" gap="xl" paddingTop="xl">
               <Text align="center" size="lg">
@@ -158,10 +156,6 @@ function InstallModal({projectId, artifactId, closeModal}: InstallModalProps) {
     </Fragment>
   );
 }
-
-const StyledQRCode = styled(QRCodeCanvas)`
-  display: block;
-`;
 
 export const CodeSignatureInfo = styled('div')`
   text-align: center;
