@@ -8,7 +8,6 @@ import orjson
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from sentry_relay.processing import parse_release as parse_release_relay
 
-from sentry import features
 from sentry.api.event_search import (
     AggregateFilter,
     ParenExpression,
@@ -20,7 +19,6 @@ from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releases.util import SemverFilter
@@ -330,25 +328,21 @@ def _semver_filter_converter(
     version: str = search_filter.value.raw_value
     operator: str = search_filter.operator
 
-    organization = Organization.objects.get_from_cache(id=organization_id)
-    order_by_build_code = features.has(
-        "organizations:semver-ordering-with-build-code", organization
-    )
-
     # Note that we sort this such that if we end up fetching more than
     # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
     # the passed filter.
-    order_by = Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
+    order_by = Release.SEMVER_COLS
     if operator.startswith("<"):
         order_by = list(map(_flip_field_sort, order_by))
-    qs = Release.objects.filter_by_semver(
-        organization_id,
-        parse_semver(version, operator),
-        project_ids=project_ids,
+    qs = (
+        Release.objects.filter_by_semver(
+            organization_id,
+            parse_semver(version, operator),
+            project_ids=project_ids,
+        )
+        .values_list("version", flat=True)
+        .order_by(*order_by)[:MAX_SEARCH_RELEASES]
     )
-    if order_by_build_code:
-        qs = qs.annotate_build_code_column()
-    qs = qs.values_list("version", flat=True).order_by(*order_by)[:MAX_SEARCH_RELEASES]
     versions = list(qs)
     final_operator = "IN"
     if len(versions) == MAX_SEARCH_RELEASES:
@@ -360,14 +354,11 @@ def _semver_filter_converter(
         # Note that the `order_by` here is important for index usage. Postgres seems
         # to seq scan with this query if the `order_by` isn't included, so we
         # include it even though we don't really care about order for this query
-        qs_flipped = Release.objects.filter_by_semver(
-            organization_id, parse_semver(version, operator)
+        qs_flipped = (
+            Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
+            .order_by(*map(_flip_field_sort, order_by))
+            .values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
         )
-        if order_by_build_code:
-            qs_flipped = qs_flipped.annotate_build_code_column()
-        qs_flipped = qs_flipped.order_by(*map(_flip_field_sort, order_by)).values_list(
-            "version", flat=True
-        )[:MAX_SEARCH_RELEASES]
 
         exclude_versions = list(qs_flipped)
         if exclude_versions and len(exclude_versions) < len(versions):
