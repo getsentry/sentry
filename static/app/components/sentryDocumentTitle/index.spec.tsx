@@ -58,7 +58,7 @@ describe('SentryDocumentTitle', () => {
       </DocumentTitleManager>
     );
 
-    expect(document.title).toBe('This is a test — child title — Sentry');
+    expect(document.title).toBe('child title — Sentry');
 
     rerender(
       <DocumentTitleManager>
