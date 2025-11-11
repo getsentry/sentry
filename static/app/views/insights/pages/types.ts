@@ -8,5 +8,5 @@ export const DOMAIN_VIEW_TITLES: Record<DomainView, string> = {
   backend: BACKEND_LANDING_TITLE,
   frontend: FRONTEND_LANDING_TITLE,
   mobile: MOBILE_LANDING_TITLE,
-  ai: AGENTS_LANDING_TITLE,
+  'ai-agents': AGENTS_LANDING_TITLE,
 };

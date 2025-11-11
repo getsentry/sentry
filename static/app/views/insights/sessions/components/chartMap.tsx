@@ -71,7 +71,7 @@ export const PAGE_CHART_OPTIONS: Record<
     'UserHealthRateChartWidget',
   ],
   backend: [],
-  ai: [],
+  'ai-agents': [],
 };
 
 export const DEFAULT_LAYOUTS: Record<
@@ -97,5 +97,5 @@ export const DEFAULT_LAYOUTS: Record<
     'UserHealthRateChartWidget',
   ],
   backend: [],
-  ai: [],
+  'ai-agents': [],
 };

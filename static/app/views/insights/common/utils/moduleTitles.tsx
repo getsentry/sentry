@@ -13,7 +13,7 @@ export const DOMAIN_VIEW_MODULE_TITLES: Record<
   DomainView,
   Partial<Record<ModuleName, string>>
 > = {
-  ai: {},
+  'ai-agents': {},
   backend: {},
   mobile: {
     [ModuleName.HTTP]: HTTP_MOBILE_MODULE_TITLE,

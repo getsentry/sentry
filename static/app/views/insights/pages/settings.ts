@@ -13,6 +13,6 @@ export const DOMAIN_VIEW_BASE_TITLE = t('Insights');
 export const DOMAIN_VIEW_MODULES: Record<DomainView, ModuleName[]> = {
   frontend: FRONTEND_MODULES,
   backend: BACKEND_MODULES,
-  ai: AGENTS_MODULES,
+  'ai-agents': AGENTS_MODULES,
   mobile: MOBILE_MODULES,
 };
