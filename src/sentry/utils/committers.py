@@ -27,7 +27,7 @@ from sentry.utils.iterators import chunked
 PATH_SEPARATORS = frozenset(["/", "\\"])
 # Limit the number of commits to batch in a single query to avoid query timeouts
 # from large IN clauses combined with complex LIKE conditions
-COMMIT_BATCH_SIZE = 50
+COMMIT_BATCH_SIZE = 100
 
 
 def tokenize_path(path: str) -> Iterator[str]:
@@ -107,7 +107,7 @@ def _get_commit_file_changes(
     matching_ids: set[int] = set()
 
     # Optimization 1: Batch commit IDs with chunked() to prevent huge IN clauses
-    for commit_batch in chunked(commit_ids, 100):
+    for commit_batch in chunked(commit_ids, COMMIT_BATCH_SIZE):
         # Optimization 2: Split filename queries to eliminate OR conditions
         for filename in filenames:
             # Optimization 3 (Experimental): separate filter calls to hint optimizer to use indexes first
