@@ -1,0 +1,27 @@
+import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
+
+import {agentMonitoring} from './agentMonitoring';
+import {crashReport} from './crashReport';
+import {feedback} from './feedback';
+import {logs} from './logs';
+import {metrics} from './metrics';
+import {onboarding} from './onboarding';
+import {performance} from './performance';
+import {profiling} from './profiling';
+import {replay} from './replay';
+
+const docs: Docs = {
+  onboarding,
+  feedbackOnboardingNpm: feedback,
+  replayOnboarding: replay,
+  performanceOnboarding: performance,
+  crashReportOnboarding: crashReport,
+  featureFlagOnboarding: featureFlag,
+  profilingOnboarding: profiling,
+  logsOnboarding: logs,
+  agentMonitoringOnboarding: agentMonitoring,
+  metricsOnboarding: metrics,
+};
+
+export default docs;
