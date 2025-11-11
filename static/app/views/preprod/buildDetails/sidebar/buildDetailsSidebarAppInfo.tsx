@@ -66,33 +66,52 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
       installSizeContent = (
         <Tooltip
           title={
-            <Stack>
-              <Text size="md">
-                {t('App')}: {formatBytesBase10(watchAppMetrics.install_size_bytes)}
-              </Text>
-              <Text size="md">
-                {t('Watch app')}: {formatBytesBase10(watchAppMetrics.install_size_bytes)}
-              </Text>
+            <Stack align="start">
+              <Flex gap="sm">
+                <Text size="md" bold>
+                  {t('App')}:
+                </Text>
+                <Text size="md">
+                  {formatBytesBase10(primarySizeMetric?.install_size_bytes ?? 0)}
+                </Text>
+              </Flex>
+              <Flex gap="sm">
+                <Text size="md" bold>
+                  {t('Watch app')}:
+                </Text>
+                <Text size="md">
+                  {formatBytesBase10(watchAppMetrics.install_size_bytes)}
+                </Text>
+              </Flex>
             </Stack>
           }
           position="left"
         >
           <Text size="md" underline="dotted">
-            {formatBytesBase10(watchAppMetrics.install_size_bytes)}
+            {formatBytesBase10(primarySizeMetric?.install_size_bytes ?? 0)}
           </Text>
         </Tooltip>
       );
       downloadSizeContent = (
         <Tooltip
           title={
-            <Stack>
-              <Text size="md">
-                {t('App')}:{' '}
-                {formatBytesBase10(primarySizeMetric?.download_size_bytes ?? 0)}
-              </Text>
-              <Text size="md">
-                {t('Watch app')}: {formatBytesBase10(watchAppMetrics.download_size_bytes)}
-              </Text>
+            <Stack align="start">
+              <Flex gap="sm">
+                <Text size="md" bold>
+                  {t('App')}:
+                </Text>
+                <Text size="md">
+                  {formatBytesBase10(watchAppMetrics.download_size_bytes)}
+                </Text>
+              </Flex>
+              <Flex gap="sm">
+                <Text size="md" bold>
+                  {t('Watch app')}:
+                </Text>
+                <Text size="md">
+                  {formatBytesBase10(watchAppMetrics.download_size_bytes)}
+                </Text>
+              </Flex>
             </Stack>
           }
           position="left"
