@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -121,7 +122,6 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
         """
-        TODO: How to integrate this with Swarm?
         Handle errors from PR comment operations.
         Perforce doesn't have native pull requests, so this always returns False.
         """
@@ -162,64 +162,94 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         # Relative paths always match (will be prepended with depot_path)
         return True
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
+    def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
         """
-        Format source URL for stacktrace linking with revision support.
+        Check if a filepath belongs to this Perforce repository and return the URL.
 
-        When the transformer remaps paths using SRCSRV data, it stores the revision
-        in the branch parameter as "revision:<number>". This method extracts that
-        revision and includes it in the generated URL.
+        Perforce doesn't have a REST API to check file existence, so we just
+        verify the filepath matches the depot_path configuration and return
+        the formatted URL.
 
         Args:
             repo: Repository object
-            filepath: File path (can be depot path or relative path)
-            branch: Revision info in format "revision:<number>" or None
+            filepath: File path (may be absolute depot path or relative path)
+            branch: Branch/stream name (optional)
 
         Returns:
-            Formatted URL (p4:// or web viewer URL) with revision anchor
+            Formatted URL if the filepath matches this repository, None otherwise
         """
-        # Extract revision from branch if present (from SRCSRV transformer)
-        revision = None
-        if branch and branch.startswith("revision:"):
-            revision = branch.split(":", 1)[1]
+        depot_path = repo.config.get("depot_path", repo.name)
 
+        # If filepath is absolute depot path, check if it starts with depot_path
+        if filepath.startswith("//"):
+            if not filepath.startswith(depot_path):
+                return None
+
+        # For matching paths, return the formatted URL
+        return self.format_source_url(repo, filepath, branch)
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
+        """
+        Format source URL for stacktrace linking.
+
+        The Symbolic transformer includes revision info directly in the filepath
+        using Perforce's native @revision syntax (e.g., "processor.cpp@42").
+
+        Args:
+            repo: Repository object
+            filepath: File path, may include @revision (e.g., "app/file.cpp@42")
+            branch: Stream name (e.g., "main", "dev") to be inserted after depot path.
+                   For Perforce streams: //depot/stream/path/to/file
+
+        Returns:
+            Formatted URL (p4:// or web viewer URL)
+        """
         # Handle absolute depot paths (from SRCSRV transformer)
         if filepath.startswith("//"):
             full_path = filepath
         else:
             # Relative path - prepend depot_path
-            depot_path = repo.config.get("depot_path", repo.name)
-            filepath = filepath.lstrip("/")
-            full_path = f"{depot_path}/{filepath}"
+            depot_path = repo.config.get("depot_path", repo.name).rstrip("/")
 
-        # Add revision specifier if available
-        if revision:
-            full_path_with_rev = f"{full_path}#{revision}"
-        else:
-            full_path_with_rev = full_path
+            # Handle Perforce streams: if branch/stream is specified, insert after depot
+            # Format: //depot/stream/path/to/file
+            if branch:
+                # depot_path is like "//depot", branch is like "main"
+                # Result should be "//depot/main/path/to/file"
+                full_path = f"{depot_path}/{branch}/{filepath.lstrip('/')}"
+            else:
+                filepath = filepath.lstrip("/")
+                full_path = f"{depot_path}/{filepath}"
 
         # If web viewer is configured, use it
         web_url = self.model.metadata.get("web_url")
         if web_url:
             viewer_type = self.model.metadata.get("web_viewer_type", "p4web")
 
+            # Extract revision from filepath if present (e.g., "file.cpp@42")
+            revision = None
+            path_without_rev = full_path
+            if "@" in full_path:
+                path_without_rev, revision = full_path.rsplit("@", 1)
+
             if viewer_type == "swarm":
                 # Swarm format: /files/<depot_path>?v=<revision>
                 if revision:
-                    return f"{web_url}/files{full_path}?v={revision}"
+                    return f"{web_url}/files{path_without_rev}?v={revision}"
                 return f"{web_url}/files{full_path}"
             elif viewer_type == "p4web":
                 # P4Web format: <depot_path>?ac=64&rev1=<revision>
                 if revision:
-                    return f"{web_url}{full_path}?ac=64&rev1={revision}"
+                    return f"{web_url}{path_without_rev}?ac=64&rev1={revision}"
                 return f"{web_url}{full_path}?ac=64"
 
-        # Default: p4:// protocol URL with revision
-        return f"p4://{full_path_with_rev}"
+        # Default: p4:// protocol URL
+        # Perforce uses @ for revisions, which is already in the filepath from Symbolic
+        # Strip leading // from full_path to avoid p4:////
+        return f"p4://{full_path.lstrip('/')}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
         """
-        TODO: How to do that?
         Extract branch/stream from URL.
         For Perforce, streams are part of the depot path, not separate refs.
         Returns empty string as we don't use branch refs.
@@ -436,7 +466,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             },
         ]
 
-    def update_organization_config(self, data: Mapping[str, Any]) -> None:
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         """
         Update organization config and optionally validate credentials.
         Only tests connection when password or ticket is changed to avoid annoying
@@ -509,7 +539,7 @@ class PerforceIntegrationProvider(IntegrationProvider):
         """Get pipeline views for installation flow."""
         return [PerforceInstallationView()]
 
-    def build_integration(self, state: Mapping[str, Any]) -> dict[str, Any]:
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         """
         Build integration data from installation state.
 

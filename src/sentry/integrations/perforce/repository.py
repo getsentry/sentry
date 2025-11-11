@@ -186,7 +186,11 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Get URL for pull request.
         Perforce doesn't have native PRs, but might integrate with Swarm.
         """
-        web_url = repo.integration.metadata.get("web_url") if repo.integration else None
+        web_url = None
+        if repo.integration_id:
+            integration = integration_service.get_integration(integration_id=repo.integration_id)
+            if integration:
+                web_url = integration.metadata.get("web_url")
 
         if web_url:
             # Swarm review URL format

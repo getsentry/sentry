@@ -5,8 +5,11 @@ from collections.abc import Sequence
 from datetime import datetime, timezone
 from typing import Any
 
+from P4 import P4, P4Exception
+
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextClient,
+    CommitInfo,
     FileBlameInfo,
     SourceLineInfo,
 )
@@ -41,16 +44,8 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         self.password = password
         self.client_name = client
         self.base_url = f"p4://{self.host}:{self.port}"
-
-        # Import P4 only when needed to avoid import errors if not installed
-        try:
-            from P4 import P4, P4Exception
-
-            self.P4 = P4
-            self.P4Exception = P4Exception
-        except ImportError as e:
-            logger.exception("P4Python not installed. Install with: pip install p4python")
-            raise ImportError("P4Python library is required for Perforce integration") from e
+        self.P4 = P4
+        self.P4Exception = P4Exception
 
     def _connect(self):
         """Create and connect a P4 instance."""
@@ -156,12 +151,32 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         finally:
             self._disconnect(p4)
 
-    def _build_depot_path(self, repo: Repository, path: str) -> str:
-        """Build full depot path from repo config and file path."""
-        depot_root = repo.config.get("depot_path", repo.name)
+    def _build_depot_path(self, repo: Repository, path: str, ref: str | None = None) -> str:
+        """
+        Build full depot path from repo config and file path.
+
+        Args:
+            repo: Repository object
+            path: File path (may include @revision syntax like "file.cpp@42")
+            ref: Optional ref/revision (for compatibility, but Perforce uses @revision in path)
+
+        Returns:
+            Full depot path with @revision preserved if present
+        """
+        depot_root = repo.config.get("depot_path", repo.name).rstrip("/")
+
         # Ensure path doesn't start with /
         path = path.lstrip("/")
-        return f"{depot_root}/{path}"
+
+        # If path contains @revision, preserve it (e.g., "file.cpp@42")
+        # If ref is provided and path doesn't have @revision, append it
+        full_path = f"{depot_root}/{path}"
+
+        # If ref is provided and path doesn't already have @revision, append it
+        if ref and "@" not in path:
+            full_path = f"{full_path}@{ref}"
+
+        return full_path
 
     def get_blame(
         self, repo: Repository, path: str, ref: str | None = None, lineno: int | None = None
@@ -175,8 +190,8 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         Args:
             repo: Repository object (depot_path includes stream if specified)
-            path: File path relative to depot
-            ref: Not used (streams are part of depot_path)
+            path: File path relative to depot (may include @revision like "file.cpp@42")
+            ref: Optional revision/changelist number (appended as @ref if not in path)
             lineno: Specific line number to blame (optional, currently ignored)
 
         Returns:
@@ -188,10 +203,11 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         """
         p4 = self._connect()
         try:
-            depot_path = self._build_depot_path(repo, path)
+            depot_path = self._build_depot_path(repo, path, ref)
 
             # Use 'p4 filelog' to get the most recent changelist for this file
             # This is much faster than 'p4 annotate'
+            # If depot_path includes @revision, filelog will show history up to that revision
             filelog = p4.run("filelog", "-m1", depot_path)
 
             if not filelog or len(filelog) == 0:
@@ -314,14 +330,16 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
     ) -> list[FileBlameInfo]:
         """
-        Get blame information for multiple files using p4 annotate.
+        Get blame information for multiple files using p4 filelog.
+
+        Uses 'p4 filelog' + 'p4 describe' which is much faster than 'p4 annotate'.
+        Returns the most recent changelist that modified each file.
+
+        Note: This does not provide line-specific blame. It returns the most recent
+        changelist for the entire file, which is sufficient for suspect commit detection.
+
         Returns a list of FileBlameInfo objects containing commit details for each file.
         """
-        from sentry.integrations.source_code_management.commit_context import (
-            CommitInfo,
-            FileBlameInfo,
-        )
-
         metrics.incr("integrations.perforce.get_blame_for_files")
         blames = []
         p4 = self._connect()
@@ -330,19 +348,18 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             for file in files:
                 try:
                     # Build depot path for the file (includes stream if specified)
-                    depot_path = self._build_depot_path(file.repo, file.path)
+                    # file.ref contains the revision/changelist if available
+                    depot_path = self._build_depot_path(file.repo, file.path, file.ref)
 
-                    # Run p4 annotate to get line-by-line blame info
-                    result = p4.run("annotate", "-q", "-c", depot_path)
+                    # Use faster p4 filelog approach to get most recent changelist
+                    # This is much faster than p4 annotate
+                    filelog = p4.run("filelog", "-m1", depot_path)
 
-                    # Find the changelist for the specific line number
                     changelist = None
-                    if file.lineno and result:
-                        for i, line in enumerate(result, start=1):
-                            if i == file.lineno and isinstance(line, str) and ":" in line:
-                                parts = line.split(":", 1)
-                                changelist = parts[0].strip()
-                                break
+                    if filelog and len(filelog) > 0:
+                        revisions = filelog[0].get("rev", [])
+                        if revisions and len(revisions) > 0:
+                            changelist = revisions[0].get("change")
 
                     # If we found a changelist, get detailed commit info
                     if changelist:
