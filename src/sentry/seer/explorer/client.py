@@ -227,6 +227,7 @@ class SeerExplorerClient:
             except ValidationError as e:
                 # Log but don't fail - keep artifact as None
                 state.artifact = None
+                state.raw_artifact = None
                 logger.warning(
                     "Failed to parse artifact",
                     extra={
