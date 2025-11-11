@@ -35,7 +35,6 @@ export function AgentsPageHeader({
 
   return (
     <DomainViewHeader
-      hasOverviewPage={false}
       domainBaseUrl={agentsBaseUrl}
       domainTitle={AI_SIDEBAR_LABEL}
       modules={MODULES}

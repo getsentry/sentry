@@ -25,8 +25,6 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
-import {TableUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -50,6 +48,8 @@ import McpTrafficByClientWidget from 'sentry/views/insights/mcp/components/mcpTr
 import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTransportWidget';
 import {WidgetGrid} from 'sentry/views/insights/mcp/components/styles';
 import {Onboarding} from 'sentry/views/insights/mcp/views/onboarding';
+import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const TableControl = SegmentedControl<ViewType>;

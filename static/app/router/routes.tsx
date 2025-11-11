@@ -2075,18 +2075,31 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
-          component: make(() => import('sentry/views/insights/pages/agents/redirect')),
+          handle: {module: undefined},
+          component: make(() => import('sentry/views/insights/pages/agents/overview')),
         },
         transactionSummaryRoute,
         traceView,
         {
-          path: `${MODULE_BASE_URLS[ModuleName.AGENTS]}/`,
+          path: `${MODULE_BASE_URLS[ModuleName.AGENT_MODELS]}/`,
           children: [
             {
               index: true,
-              handle: {module: ModuleName.AGENTS},
+              handle: {module: ModuleName.AGENT_MODELS},
               component: make(
-                () => import('sentry/views/insights/agents/views/overview')
+                () => import('sentry/views/insights/agentModels/views/modelsLandingPage')
+              ),
+            },
+          ],
+        },
+        {
+          path: `${MODULE_BASE_URLS[ModuleName.AGENT_TOOLS]}/`,
+          children: [
+            {
+              index: true,
+              handle: {module: ModuleName.AGENT_TOOLS},
+              component: make(
+                () => import('sentry/views/insights/agentTools/views/toolsLandingPage')
               ),
             },
           ],

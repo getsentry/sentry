@@ -36,8 +36,8 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
 function useOnboardingProject() {
   const {projects} = useProjects();
