@@ -6,6 +6,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
+import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {
   ExploreBodyContent,
   ExploreBodySearch,
@@ -31,6 +32,7 @@ import {
 import type {PickableDays} from 'sentry/views/explore/utils';
 
 const MAX_METRICS_ALLOWED = 4;
+export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = PickableDays;
 
@@ -118,20 +120,22 @@ function MetricsTabBodySection() {
       <ExploreControlSection expanded={false} />
       <ExploreContentSection expanded={false}>
         <Flex direction="column" gap="lg">
-          {metricQueries.map((metricQuery, index) => {
-            return (
-              <MetricsQueryParamsProvider
-                key={`queryPanel-${index}`}
-                queryParams={metricQuery.queryParams}
-                setQueryParams={metricQuery.setQueryParams}
-                traceMetric={metricQuery.metric}
-                setTraceMetric={metricQuery.setTraceMetric}
-                removeMetric={metricQuery.removeMetric}
-              >
-                <MetricPanel traceMetric={metricQuery.metric} queryIndex={index} />
-              </MetricsQueryParamsProvider>
-            );
-          })}
+          <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
+            {metricQueries.map((metricQuery, index) => {
+              return (
+                <MetricsQueryParamsProvider
+                  key={`queryPanel-${index}`}
+                  queryParams={metricQuery.queryParams}
+                  setQueryParams={metricQuery.setQueryParams}
+                  traceMetric={metricQuery.metric}
+                  setTraceMetric={metricQuery.setTraceMetric}
+                  removeMetric={metricQuery.removeMetric}
+                >
+                  <MetricPanel traceMetric={metricQuery.metric} queryIndex={index} />
+                </MetricsQueryParamsProvider>
+              );
+            })}
+          </WidgetSyncContextProvider>
         </Flex>
       </ExploreContentSection>
     </ExploreBodyContent>

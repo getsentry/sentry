@@ -8,6 +8,7 @@ import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {logs} from './logs';
 import {mcp} from './mcp';
+import {metrics} from './metrics';
 import {onboarding} from './onboarding';
 import {performance} from './performance';
 import {profiling} from './profiling';
@@ -20,6 +21,7 @@ const docs: Docs = {
   feedbackOnboardingJsLoader,
   profilingOnboarding: profiling,
   logsOnboarding: logs,
+  metricsOnboarding: metrics,
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
 };

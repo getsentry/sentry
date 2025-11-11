@@ -6,7 +6,8 @@ import {
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {verify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {logsVerify} from 'sentry/gettingStartedDocs/python/python/logs';
+import {metricsVerify} from 'sentry/gettingStartedDocs/python/python/metrics';
 import {alternativeProfiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 import {getPythonInstallCodeBlock} from 'sentry/gettingStartedDocs/python/python/utils';
 import {t, tct} from 'sentry/locale';
@@ -136,7 +137,8 @@ export const onboarding: OnboardingConfig = {
           language: 'python',
           code: getVerifySnippet(),
         },
-        verify(params),
+        logsVerify(params),
+        metricsVerify(params),
         {
           type: 'text',
           text: t(

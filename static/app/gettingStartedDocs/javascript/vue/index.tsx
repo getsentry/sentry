@@ -1,5 +1,6 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
+import {metrics} from 'sentry/gettingStartedDocs/javascript/javascript/metrics';
 
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
@@ -7,7 +8,7 @@ import {logs} from './logs';
 import {onboarding} from './onboarding';
 import {profiling} from './profiling';
 import {replay} from './replay';
-import {platformOptions, type PlatformOptions} from './utils';
+import {installSnippetBlock, platformOptions, type PlatformOptions} from './utils';
 
 const docs: Docs<PlatformOptions> = {
   onboarding,
@@ -18,6 +19,11 @@ const docs: Docs<PlatformOptions> = {
   profilingOnboarding: profiling,
   featureFlagOnboarding: featureFlag,
   logsOnboarding: logs,
+  metricsOnboarding: metrics({
+    installSnippetBlock,
+    docsPlatform: 'vue',
+    packageName: '@sentry/vue',
+  }),
 };
 
 export default docs;

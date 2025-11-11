@@ -150,6 +150,7 @@ export type TeamInsightsEventParameters = {
   'issue_stream.updated_empty_state_viewed': {platform: string};
   'project_creation_page.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
+    notification_rule_created: boolean;
     platform: string;
     project_id: string;
     rule_ids: string[];

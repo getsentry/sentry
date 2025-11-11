@@ -8,4 +8,5 @@ export interface InstallDetailsApiResponse {
   install_url?: string;
   is_code_signature_valid?: boolean;
   profile_name?: string;
+  release_notes?: string;
 }

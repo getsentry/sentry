@@ -136,6 +136,17 @@ export const onboarding: OnboardingConfig = {
       });
     }
 
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/connect/metrics/',
+      });
+    }
+
     return steps;
   },
 };
@@ -148,6 +159,12 @@ app.use(async function () {${
   Sentry.logger.info('User triggered test error', {
     action: 'test_error_middleware',
   });`
+    : ''
+}${
+  params.isMetricsSelected
+    ? `
+  // Send a test metric before throwing the error
+  Sentry.metrics.count('test_counter', 1);`
     : ''
 }
   throw new Error("My first Sentry error!");

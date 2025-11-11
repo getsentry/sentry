@@ -106,7 +106,7 @@ class GithubRequestParser(BaseRequestParser):
 
         # The overwatch forwarder implements its own region-based checks
         OverwatchGithubWebhookForwarder(integration=integration).forward_if_applicable(
-            event=event, headers=self.request.META
+            event=event, headers=self.request.headers
         )
 
         return response

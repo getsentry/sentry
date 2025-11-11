@@ -1,13 +1,12 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
-import {QRCodeCanvas} from 'qrcode.react';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -109,17 +108,15 @@ function InstallContent({
 
         {installDetails.install_url && (
           <Fragment>
-            <Container background="primary" padding="md" radius="sm" border="primary">
-              <StyledQRCode
-                aria-label={t('Install QR Code')}
-                value={
-                  installDetails.platform === 'ios'
-                    ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
-                    : installDetails.install_url
-                }
-                size={200}
-              />
-            </Container>
+            <QuietZoneQRCode
+              aria-label={t('Install QR Code')}
+              value={
+                installDetails.platform === 'ios'
+                  ? `itms-services://?action=download-manifest&url=${encodeURIComponent(installDetails.install_url)}`
+                  : installDetails.install_url
+              }
+              size={200}
+            />
 
             {details}
 
@@ -174,7 +171,3 @@ export default function InstallPage() {
     </SentryDocumentTitle>
   );
 }
-
-const StyledQRCode = styled(QRCodeCanvas)`
-  display: block;
-`;

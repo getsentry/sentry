@@ -476,6 +476,18 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
             delete_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
+def ensure_uptime_seat(detector: Detector) -> None:
+    """
+    Ensures that a billing seat is assigned for the uptime detector.
+
+    Raises UptimeMonitorNoSeatAvailable if no seats are available.
+    """
+    outcome = quotas.backend.assign_seat(DataCategory.UPTIME, detector)
+    if outcome != Outcome.ACCEPTED:
+        result = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
+        raise UptimeMonitorNoSeatAvailable(result)
+
+
 def enable_uptime_detector(
     detector: Detector, ensure_assignment: bool = False, skip_quotas: bool = False
 ):
@@ -494,11 +506,11 @@ def enable_uptime_detector(
         return
 
     if not skip_quotas:
-        outcome = quotas.backend.assign_seat(DataCategory.UPTIME, detector)
-        if outcome != Outcome.ACCEPTED:
-            disable_uptime_detector(detector)
-            result = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
-            raise UptimeMonitorNoSeatAvailable(result)
+        try:
+            ensure_uptime_seat(detector)
+        except UptimeMonitorNoSeatAvailable:
+            disable_uptime_detector(detector, skip_quotas=True)
+            raise
 
     uptime_subscription: UptimeSubscription = get_uptime_subscription(detector)
     detector.update(enabled=True)
@@ -513,9 +525,14 @@ def enable_uptime_detector(
         )
 
 
+def remove_uptime_seat(detector: Detector):
+    quotas.backend.remove_seat(DataCategory.UPTIME, detector)
+
+
 def delete_uptime_detector(detector: Detector):
     uptime_subscription = get_uptime_subscription(detector)
-    quotas.backend.remove_seat(DataCategory.UPTIME, detector)
+
+    remove_uptime_seat(detector)
     detector.update(status=ObjectStatus.PENDING_DELETION)
     RegionScheduledDeletion.schedule(detector, days=0)
     delete_uptime_subscription(uptime_subscription)

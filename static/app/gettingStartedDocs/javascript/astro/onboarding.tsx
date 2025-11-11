@@ -96,18 +96,24 @@ const getVerifySnippet = (params: DocsParams) => {
     });`
     : '';
 
+  const metricsCode = params.isMetricsSelected
+    ? `
+    // Send a test metric before throwing the error
+    Sentry.metrics.count('test_counter', 1);`
+    : '';
+
   return `
 <!-- your-page.astro -->
 ---
 ---
 <button id="error-button">Throw test error</button>
 <script>${
-    params.isLogsSelected
+    params.isLogsSelected || params.isMetricsSelected
       ? `
   import * as Sentry from "@sentry/astro";`
       : ''
   }
-  function handleClick () {${logsCode}
+  function handleClick () {${logsCode}${metricsCode}
     throw new Error('This is a test error');
   }
   document.querySelector("#error-button").addEventListener("click", handleClick);
@@ -308,6 +314,17 @@ export const onboarding: OnboardingConfig = {
           'Add logging integrations to automatically capture logs from your application.'
         ),
         link: 'https://docs.sentry.io/platforms/javascript/guides/astro/logs/#integrations',
+      });
+    }
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/astro/metrics/',
       });
     }
 

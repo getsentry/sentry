@@ -40,7 +40,16 @@ class InternalRegisteredTemplatesEndpoint(Endpoint):
 def serialize_rendered_example(rendered_template: NotificationRenderedTemplate) -> dict[str, Any]:
     response: dict[str, Any] = {
         "subject": rendered_template.subject,
-        "body": rendered_template.body,
+        "body": [
+            {
+                "type": block.type,
+                "blocks": [
+                    {"type": text_block.type, "text": text_block.text}
+                    for text_block in block.blocks
+                ],
+            }
+            for block in rendered_template.body
+        ],
         "actions": [
             {"label": action.label, "link": action.link} for action in rendered_template.actions
         ],

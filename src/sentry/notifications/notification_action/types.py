@@ -196,11 +196,9 @@ class BaseIssueAlertHandler(ABC):
         workflow_id = getattr(action, "workflow_id", None)
 
         label = detector.name
-        # We need to pass the legacy rule id when the workflow-engine-ui-links feature flag is disabled
+        # We need to pass the legacy rule id when the workflow-engine-ui feature flag is disabled
         # This is so we can build the old link to the rule
-        if not features.has(
-            "organizations:workflow-engine-ui-links", detector.project.organization
-        ):
+        if not features.has("organizations:workflow-engine-ui", detector.project.organization):
             if workflow_id is None:
                 raise ValueError("Workflow ID is required when triggering an action")
 

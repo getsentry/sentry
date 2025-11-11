@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Never
 from unittest.mock import patch
 
 from sentry.incidents.grouptype import MetricIssue
@@ -38,22 +39,22 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         )
         self.registry_patcher.start()
 
-        class MockDetectorHandler(DetectorHandler[dict, bool]):
+        class MockDetectorHandler(DetectorHandler[dict[Never, Never], bool]):
             def evaluate(
-                self, data_packet: DataPacket[dict]
+                self, data_packet: DataPacket[dict[Never, Never]]
             ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
                 return {None: DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)}
 
-            def extract_value(self, data_packet: DataPacket[dict]) -> bool:
+            def extract_value(self, data_packet: DataPacket[dict[Never, Never]]) -> bool:
                 return True
 
-            def extract_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
+            def extract_dedupe_value(self, data_packet: DataPacket[dict[Never, Never]]) -> int:
                 return 1
 
             def create_occurrence(
                 self,
                 evaluation_result: ProcessedDataConditionGroup,
-                data_packet: DataPacket[dict],
+                data_packet: DataPacket[dict[Never, Never]],
                 priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, EventData]:
                 return (

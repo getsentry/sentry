@@ -42,7 +42,7 @@ class TestWebhookActionValidator(TestCase):
             "data": {},
         }
 
-    def test_validate__sentry_app(self):
+    def test_validate__sentry_app(self) -> None:
         validator = BaseActionValidator(
             data=self.valid_data,
             context={"organization": self.organization},
@@ -52,7 +52,7 @@ class TestWebhookActionValidator(TestCase):
         assert result is True
         validator.save()
 
-    def test_validate__invalid_sentry_app(self):
+    def test_validate__invalid_sentry_app(self) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
@@ -72,7 +72,7 @@ class TestWebhookActionValidator(TestCase):
             ]
         }
 
-    def test_validate__plugin(self):
+    def test_validate__plugin(self) -> None:
         validator = BaseActionValidator(
             data={**self.valid_data, "config": {"targetIdentifier": self.webhooks_plugin.slug}},
             context={"organization": self.organization},
@@ -82,7 +82,7 @@ class TestWebhookActionValidator(TestCase):
         assert result is True
         validator.save()
 
-    def test_validate__invalid_plugin(self):
+    def test_validate__invalid_plugin(self) -> None:
         validator = BaseActionValidator(
             data={**self.valid_data, "config": {"targetIdentifier": self.trello_plugin.slug}},
             context={"organization": self.organization},

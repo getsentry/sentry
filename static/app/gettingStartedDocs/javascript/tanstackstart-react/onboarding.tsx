@@ -339,7 +339,13 @@ const route = createRoute({
               language: 'tsx',
               code: `<button
   type="button"
-  onClick={() => {
+  onClick={() => {${
+    params.isMetricsSelected
+      ? `
+    // Send a test metric before throwing the error
+    Sentry.metrics.count('test_counter', 1);`
+      : ''
+  }
     throw new Error("Sentry Test Error");
   }}
 >

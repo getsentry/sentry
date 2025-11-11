@@ -7,6 +7,7 @@ import {agentMonitoring} from 'sentry/gettingStartedDocs/python/python/agentMoni
 import {crashReport} from 'sentry/gettingStartedDocs/python/python/crashReport';
 import {featureFlag} from 'sentry/gettingStartedDocs/python/python/featureFlag';
 import {logs} from 'sentry/gettingStartedDocs/python/python/logs';
+import {metrics} from 'sentry/gettingStartedDocs/python/python/metrics';
 import {profiling} from 'sentry/gettingStartedDocs/python/python/profiling';
 
 import {onboarding} from './onboarding';
@@ -20,6 +21,7 @@ const docs: Docs = {
   profilingOnboarding: profiling(),
   agentMonitoringOnboarding: agentMonitoring,
   logsOnboarding: logs(),
+  metricsOnboarding: metrics(),
 };
 
 export default docs;

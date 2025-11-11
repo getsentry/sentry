@@ -43,14 +43,11 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
         )}
       </Flex>
     ),
-    help: tct(
-      'Use AI to review, find bugs, and generate tests in pull requests [link:Learn more]',
-      {
-        link: (
-          <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
-        ),
-      }
-    ),
+    help: tct('Use AI to review and find bugs in pull requests [link:Learn more]', {
+      link: (
+        <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
+      ),
+    }),
     visible: ({model}) => {
       // Show field when AI features are enabled (hideAiFeatures is false)
       const hideAiFeatures = model.getValue('hideAiFeatures');

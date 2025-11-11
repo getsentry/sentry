@@ -129,8 +129,11 @@ const LABEL_FOR_MODULE_NAME: Record<ModuleName, ReactNode> = {
   'mobile-ui': t('Action'),
   'mobile-vitals': t('Action'),
   'screen-rendering': t('Action'),
-  agents: t('Action'),
-  mcp: t('Action'),
+  'agent-models': t('Action'),
+  'agent-tools': t('Action'),
+  'mcp-tools': t('Action'),
+  'mcp-resources': t('Action'),
+  'mcp-prompts': t('Action'),
   'ai-generations': t('Action'),
   sessions: t('Action'),
 };

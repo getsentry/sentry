@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import {getIsAiNode} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 export function useTraceContextSections({

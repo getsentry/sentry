@@ -4,6 +4,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {metricsVerify} from 'sentry/gettingStartedDocs/python/python/metrics';
 import {
   getPythonAiocontextvarsCodeBlocks,
   getPythonInstallCodeBlock,
@@ -93,6 +94,7 @@ async def hello_world(request):
     return text("Hello, world.")
         `,
         },
+        metricsVerify(params),
         {
           type: 'text',
           text: tct(

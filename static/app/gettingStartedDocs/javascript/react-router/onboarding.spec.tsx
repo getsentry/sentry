@@ -105,4 +105,22 @@ describe('javascript-react-router onboarding docs', () => {
       screen.getByText(textWithMarkupMatcher(/Sentry\.logger\.info\(/))
     ).toBeInTheDocument();
   });
+
+  it('has metrics onboarding configuration', () => {
+    expect(docs.metricsOnboarding).toBeDefined();
+    expect(docs.metricsOnboarding?.install).toBeDefined();
+    expect(docs.metricsOnboarding?.configure).toBeDefined();
+    expect(docs.metricsOnboarding?.verify).toBeDefined();
+  });
+
+  it('does not show Metrics in next steps when metrics is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+  });
 });

@@ -360,6 +360,18 @@ class PrepareQueryParamsTest(TestCase):
         assert params.conditions[0] == ["foo", "=", "bar"]
         assert len(params.conditions) == 1
 
+        # Should not mutate inputs
+        filter_keys = {"group_id": {g4.id}}
+        conditions = [["group_id", "IN", [g1.id, g4.id]]]
+
+        SnubaQueryParams(
+            dataset=Dataset.Events,
+            filter_keys=filter_keys,
+            conditions=conditions,
+        )
+        assert filter_keys == {"group_id": {g4.id}}
+        assert conditions == [["group_id", "IN", [g1.id, g4.id]]]
+
 
 class QuantizeTimeTest(unittest.TestCase):
     def setUp(self) -> None:

@@ -470,6 +470,7 @@ def get_stream_processor(
     profile_consumer_join: bool = False,
     enable_autocommit: bool = False,
     retry_handle_destroyed: bool = False,
+    handle_poll_while_paused: bool = False,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -637,6 +638,7 @@ def get_stream_processor(
         join_timeout=join_timeout,
         dlq_policy=dlq_policy,
         shutdown_strategy_before_consumer=shutdown_strategy_before_consumer,
+        handle_poll_while_paused=handle_poll_while_paused,
     )
 
 

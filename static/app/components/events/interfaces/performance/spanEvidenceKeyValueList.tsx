@@ -347,6 +347,25 @@ function DBQueryInjectionVulnerabilityEvidence({
   );
 }
 
+function AIDetectedSpanEvidence({
+  event,
+  organization,
+  location,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) {
+  const evidenceData = event?.occurrence?.evidenceData ?? {};
+  return (
+    <PresortedKeyValueList
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        makeRow(t('Explanation'), evidenceData.explanation),
+        makeRow(t('Impact'), evidenceData.impact),
+        makeRow(t('Evidence'), evidenceData.evidence),
+      ]}
+    />
+  );
+}
+
 const PREVIEW_COMPONENTS: Partial<
   Record<IssueType, (p: SpanEvidenceKeyValueListProps) => React.ReactElement | null>
 > = {
@@ -368,6 +387,7 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
   [IssueType.QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
   [IssueType.WEB_VITALS]: WebVitalsEvidence,
+  [IssueType.LLM_DETECTED_EXPERIMENTAL]: AIDetectedSpanEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
@@ -401,7 +421,6 @@ export function SpanEvidenceKeyValueList({
       />
     );
   }
-
   const Component = PREVIEW_COMPONENTS[issueType] ?? DefaultSpanEvidence;
 
   return (

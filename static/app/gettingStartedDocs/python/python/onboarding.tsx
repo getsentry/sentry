@@ -5,7 +5,8 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-import {verify} from './logs';
+import {logsVerify} from './logs';
+import {metricsVerify} from './metrics';
 import {alternativeProfiling} from './profiling';
 import {getPythonInstallCodeBlock} from './utils';
 
@@ -123,7 +124,8 @@ export const onboarding: OnboardingConfig = {
           language: 'python',
           code: 'division_by_zero = 1 / 0',
         },
-        verify(params),
+        logsVerify(params),
+        metricsVerify(params),
       ],
     },
   ],
