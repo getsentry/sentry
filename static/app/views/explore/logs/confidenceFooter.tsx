@@ -1,6 +1,5 @@
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -8,7 +7,10 @@ import {
   Container,
   usePreviouslyLoaded,
 } from 'sentry/views/explore/components/chart/chartFooter';
-import {Placeholder} from 'sentry/views/explore/components/chart/placeholder';
+import {
+  Placeholder,
+  WarningIcon,
+} from 'sentry/views/explore/components/chart/placeholder';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 
@@ -125,13 +127,11 @@ function ConfidenceMessage({
 
   const downsampledTooltip = <DownsampledTooltip noSampling={noSampling} />;
 
-  const warning = <IconWarning size="sm" />;
-
   if (isTopN) {
     return tct(
       '[warning] Extrapolated from [matchingLogsCount] for top [topEvents] groups after scanning [tooltip:[downsampledLogsCount] of [allLogsCount]]',
       {
-        warning,
+        warning: <WarningIcon />,
         topEvents,
         matchingLogsCount,
         downsampledLogsCount,
@@ -144,7 +144,7 @@ function ConfidenceMessage({
   return tct(
     '[warning] Extrapolated from [matchingLogsCount] after scanning [tooltip:[downsampledLogsCount] of [allLogsCount]]',
     {
-      warning,
+      warning: <WarningIcon />,
       matchingLogsCount,
       downsampledLogsCount,
       allLogsCount,
