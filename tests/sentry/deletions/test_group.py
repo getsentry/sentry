@@ -522,12 +522,11 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             Group.objects.filter(id=group4.id).update(times_seen=3, type=FeedbackGroup.type_id)
 
             # This will delete the group and the events from the node store and Snuba
-            with self.tasks():
-                delete_groups_for_project(
-                    object_ids=[group1.id, group2.id, group3.id, group4.id],
-                    transaction_id=uuid4().hex,
-                    project_id=self.project.id,
-                )
+            delete_groups_for_project(
+                object_ids=[group1.id, group2.id, group3.id, group4.id],
+                transaction_id=uuid4().hex,
+                project_id=self.project.id,
+            )
 
             assert mock_bulk_snuba_queries.call_count == 1
             # There should be two batches with max_rows_to_delete=6
