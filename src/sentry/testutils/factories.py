@@ -564,21 +564,24 @@ class Factories:
                 create_project_detectors, sender=Project, dispatch_uid="create_project_detectors"
             )
 
-        with transaction.atomic(router.db_for_write(Project)):
-            project = Project.objects.create(organization=organization, **kwargs)
-            if teams:
-                for team in teams:
-                    project.add_team(team)
-            if fire_project_created:
-                project_created.send(
-                    project=project, user=AnonymousUser(), default_rules=True, sender=Factories
+        try:
+            with transaction.atomic(router.db_for_write(Project)):
+                project = Project.objects.create(organization=organization, **kwargs)
+                if teams:
+                    for team in teams:
+                        project.add_team(team)
+                if fire_project_created:
+                    project_created.send(
+                        project=project, user=AnonymousUser(), default_rules=True, sender=Factories
+                    )
+        finally:
+            if not create_default_detectors:
+                # reconnect signal
+                post_save.connect(
+                    create_project_detectors,
+                    sender=Project,
+                    dispatch_uid="create_project_detectors",
                 )
-
-        if not create_default_detectors:
-            # reconnect signal
-            post_save.connect(
-                create_project_detectors, sender=Project, dispatch_uid="create_project_detectors"
-            )
 
         return project
 
