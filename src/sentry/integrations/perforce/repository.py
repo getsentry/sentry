@@ -19,6 +19,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.plugins.providers.integration_repository import RepositoryConfig
+from sentry.shared_integrations.exceptions import IntegrationError
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +114,8 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Returns:
             Repository configuration
         """
+        depot_path = data["identifier"]
+
         return {
             "name": depot_path,
             "external_id": data["external_id"],
