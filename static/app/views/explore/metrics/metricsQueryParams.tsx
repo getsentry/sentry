@@ -225,5 +225,3 @@ function updateQueryParams(
     title: readableQueryParams.title,
   });
 }
-
-export {TableConfigContext};
