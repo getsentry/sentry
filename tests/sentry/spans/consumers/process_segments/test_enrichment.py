@@ -471,3 +471,215 @@ def _mock_performance_issue_span(is_segment, attributes, **fields) -> SpanEvent:
             **fields,
         },
     )
+
+
+def test_enrich_gen_ai_agent_name_from_immediate_parent() -> None:
+    """Test that gen_ai.agent.name is inherited from the immediate parent with gen_ai.invoke_agent operation."""
+    parent_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455605.0,
+        span_op="gen_ai.invoke_agent",
+        attributes={
+            "gen_ai.agent.name": {"type": "string", "value": "MyAgent"},
+        },
+    )
+
+    child_span = build_mock_span(
+        project_id=1,
+        span_id="bbbbbbbbbbbbbbbb",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455602.0,
+        span_op="gen_ai.execute_tool",
+    )
+
+    spans = [parent_span, child_span]
+    _, enriched_spans = TreeEnricher.enrich_spans(spans)
+    compatible_spans = [make_compatible(span) for span in enriched_spans]
+
+    parent, child = compatible_spans
+    assert attribute_value(parent, "gen_ai.agent.name") == "MyAgent"
+    assert attribute_value(child, "gen_ai.agent.name") == "MyAgent"
+
+
+def test_enrich_gen_ai_agent_name_not_overwritten() -> None:
+    """Test that gen_ai.agent.name is not overwritten if already set on the child."""
+    parent_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455605.0,
+        span_op="gen_ai.invoke_agent",
+        attributes={
+            "gen_ai.agent.name": {"type": "string", "value": "ParentAgent"},
+        },
+    )
+
+    child_span = build_mock_span(
+        project_id=1,
+        span_id="bbbbbbbbbbbbbbbb",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455602.0,
+        span_op="gen_ai.handoff",
+        attributes={
+            "gen_ai.agent.name": {"type": "string", "value": "ChildAgent"},
+        },
+    )
+
+    spans = [parent_span, child_span]
+    _, enriched_spans = TreeEnricher.enrich_spans(spans)
+    compatible_spans = [make_compatible(span) for span in enriched_spans]
+
+    parent, child = compatible_spans
+    assert attribute_value(parent, "gen_ai.agent.name") == "ParentAgent"
+    assert attribute_value(child, "gen_ai.agent.name") == "ChildAgent"
+
+
+def test_enrich_gen_ai_agent_name_not_set_without_ancestor() -> None:
+    """Test that gen_ai.agent.name is not set if no ancestor has it."""
+    parent_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455605.0,
+        span_op="some.operation",
+    )
+
+    child_span = build_mock_span(
+        project_id=1,
+        span_id="bbbbbbbbbbbbbbbb",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455602.0,
+        span_op="gen_ai.execute_tool",
+    )
+
+    spans = [parent_span, child_span]
+    _, enriched_spans = TreeEnricher.enrich_spans(spans)
+    compatible_spans = [make_compatible(span) for span in enriched_spans]
+
+    parent, child = compatible_spans
+    assert attribute_value(parent, "gen_ai.agent.name") is None
+    assert attribute_value(child, "gen_ai.agent.name") is None
+
+
+def test_enrich_gen_ai_agent_name_not_from_sibling() -> None:
+    """Test that gen_ai.agent.name is not taken from a sibling span."""
+    parent_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455605.0,
+        span_op="some.operation",
+    )
+
+    sibling_with_agent = build_mock_span(
+        project_id=1,
+        span_id="bbbbbbbbbbbbbbbb",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455602.0,
+        span_op="gen_ai.invoke_agent",
+        attributes={
+            "gen_ai.agent.name": {"type": "string", "value": "SiblingAgent"},
+        },
+    )
+
+    target_child = build_mock_span(
+        project_id=1,
+        span_id="cccccccccccccccc",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455602.5,
+        end_timestamp=1609455603.5,
+        span_op="gen_ai.execute_tool",
+    )
+
+    spans = [parent_span, sibling_with_agent, target_child]
+    _, enriched_spans = TreeEnricher.enrich_spans(spans)
+    compatible_spans = [make_compatible(span) for span in enriched_spans]
+
+    parent, sibling, target = compatible_spans
+    assert attribute_value(parent, "gen_ai.agent.name") is None
+    assert attribute_value(sibling, "gen_ai.agent.name") == "SiblingAgent"
+    assert attribute_value(target, "gen_ai.agent.name") is None
+
+
+def test_enrich_gen_ai_agent_name_only_from_invoke_agent_parent() -> None:
+    """Test that gen_ai.agent.name is only inherited from parent with gen_ai.invoke_agent operation."""
+    parent_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455605.0,
+        span_op="gen_ai.create_agent",
+        attributes={
+            "gen_ai.agent.name": {"type": "string", "value": "CreateAgentName"},
+        },
+    )
+
+    child_span = build_mock_span(
+        project_id=1,
+        span_id="bbbbbbbbbbbbbbbb",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455602.0,
+        span_op="gen_ai.run",
+    )
+
+    spans = [parent_span, child_span]
+    _, enriched_spans = TreeEnricher.enrich_spans(spans)
+    compatible_spans = [make_compatible(span) for span in enriched_spans]
+
+    parent, child = compatible_spans
+    assert attribute_value(parent, "gen_ai.agent.name") == "CreateAgentName"
+    assert attribute_value(child, "gen_ai.agent.name") is None
+
+
+def test_enrich_gen_ai_agent_name_not_from_grandparent() -> None:
+    """Test that gen_ai.agent.name is NOT inherited from grandparent, only from immediate parent."""
+    grandparent_span = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455605.0,
+        span_op="gen_ai.invoke_agent",
+        attributes={
+            "gen_ai.agent.name": {"type": "string", "value": "GrandparentAgent"},
+        },
+    )
+
+    parent_span = build_mock_span(
+        project_id=1,
+        span_id="bbbbbbbbbbbbbbbb",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455604.0,
+        span_op="some.operation",
+    )
+
+    child_span = build_mock_span(
+        project_id=1,
+        span_id="cccccccccccccccc",
+        parent_span_id="bbbbbbbbbbbbbbbb",
+        start_timestamp=1609455602.0,
+        end_timestamp=1609455603.0,
+        span_op="gen_ai.run",
+    )
+
+    spans = [grandparent_span, parent_span, child_span]
+    _, enriched_spans = TreeEnricher.enrich_spans(spans)
+    compatible_spans = [make_compatible(span) for span in enriched_spans]
+
+    grandparent, parent, child = compatible_spans
+    assert attribute_value(grandparent, "gen_ai.agent.name") == "GrandparentAgent"
+    assert attribute_value(parent, "gen_ai.agent.name") is None
+    assert attribute_value(child, "gen_ai.agent.name") is None
