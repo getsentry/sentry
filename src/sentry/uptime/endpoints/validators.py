@@ -7,11 +7,11 @@ from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
 
-from sentry import audit_log
+from sentry import audit_log, quotas
 from sentry.api.fields import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.environment import Environment
 from sentry.uptime.models import (
     UptimeSubscription,
@@ -28,6 +28,10 @@ from sentry.uptime.subscriptions.subscriptions import (
     check_url_limits,
     create_uptime_detector,
     create_uptime_subscription,
+    delete_uptime_subscription,
+    disable_uptime_detector,
+    enable_uptime_detector,
+    remove_uptime_seat,
     update_uptime_detector,
     update_uptime_subscription,
 )
@@ -462,7 +466,47 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
 class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
     data_sources = serializers.ListField(child=UptimeMonitorDataSourceValidator(), required=False)
 
+    def validate_enabled(self, value: bool) -> bool:
+        """
+        Validate that enabling a detector is allowed based on seat availability.
+
+        This check will ONLY be performed when a detector instance is provided via
+        context (i.e., during updates). For creation, seat assignment is handled
+        in the create() method after the detector is created.
+        """
+        detector = self.instance
+
+        # Only validate on updates when trying to enable a currently disabled detector
+        if detector and value and not detector.enabled:
+            result = quotas.backend.check_assign_seat(DataCategory.UPTIME, detector)
+            if not result.assignable:
+                raise serializers.ValidationError(result.reason)
+
+        return value
+
+    def create(self, validated_data):
+        detector = super().create(validated_data)
+
+        try:
+            enable_uptime_detector(detector, ensure_assignment=True)
+        except UptimeMonitorNoSeatAvailable:
+            # No need to do anything if we failed to handle seat
+            # assignment. The monitor will be created, but not enabled
+            pass
+
+        return detector
+
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        # Handle seat management when enabling/disabling
+        was_enabled = instance.enabled
+        enabled = validated_data.get("enabled", was_enabled)
+
+        if was_enabled != enabled:
+            if enabled:
+                enable_uptime_detector(instance)
+            else:
+                disable_uptime_detector(instance)
+
         super().update(instance, validated_data)
 
         data_source = None
@@ -497,5 +541,11 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
 
         return instance
 
-    def create(self, validated_data):
-        return super().create(validated_data)
+    def delete(self) -> None:
+        assert self.instance is not None
+
+        remove_uptime_seat(self.instance)
+        uptime_subscription = get_uptime_subscription(self.instance)
+        delete_uptime_subscription(uptime_subscription)
+
+        super().delete()
