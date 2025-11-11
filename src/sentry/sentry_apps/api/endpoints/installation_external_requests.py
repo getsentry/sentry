@@ -21,12 +21,15 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
     }
 
     def get(self, request: Request, installation) -> Response:
-        try:
-            project = Project.objects.get(
-                id=request.GET.get("projectId"), organization_id=installation.organization_id
-            )
-        except Project.DoesNotExist:
-            project = None
+        project_id = request.GET.get("projectId")
+        project = None
+        if project_id:
+            try:
+                project = Project.objects.get(
+                    id=project_id, organization_id=installation.organization_id
+                )
+            except Project.DoesNotExist:
+                pass
 
         kwargs = {
             "install": installation,
