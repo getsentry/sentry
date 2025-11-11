@@ -464,7 +464,7 @@ def process_workflows(
     event_data: WorkflowEventData,
     event_start_time: datetime,
     detector: Detector | None = None,
-) -> set[Workflow] | WorkflowNotProcessable:
+) -> tuple[set[Workflow], set[Action]] | WorkflowNotProcessable:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
@@ -480,6 +480,7 @@ def process_workflows(
 
     # This dictionary stores the data for WorkflowNotProcessable
     # and is eventually unpacked to pass into the frozen dataclass
+    # TODO -- should this be a workflow event context data instead?
     extra_data: dict[str, Any] = {
         "group_event": event_data.event,
     }
@@ -550,15 +551,14 @@ def process_workflows(
             **extra_data,
         )
 
+    # TODO - we should probably return here and have the rest from here be
+    # `process_actions`, this will take a list of "triggered_workflows"
     actions_to_trigger, queue_items_by_workflow_id = evaluate_workflows_action_filters(
         triggered_workflows, event_data, queue_items_by_workflow_id, event_start_time
     )
 
     enqueue_workflows(batch_client, queue_items_by_workflow_id)
 
-    # TODO - refactor to have action evaluation separate from workflow evaluation
-    # The result of processing a workflow, should be a list of actions we want to trigger.
-    # From here on we are probably doing too many side effects and things related to actions.
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
     sentry_sdk.set_tag("workflow_engine.triggered_actions", len(actions))
 
@@ -569,8 +569,10 @@ def process_workflows(
     }
 
     if not actions:
-        # If there aren't any actions on the associated workflows, there's nothing to trigger
-        return triggered_workflows
+        return WorkflowNotProcessable(
+            message="Actions have either triggered within the bound, or are filtered out",
+            **extra_data,
+        )
 
     should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
     create_workflow_fire_histories(
@@ -583,5 +585,43 @@ def process_workflows(
     )
 
     fire_actions(actions, detector, event_data)
+    return triggered_workflows, actions
 
-    return triggered_workflows
+
+def process_workflows_with_logs(
+    batch_client: DelayedWorkflowClient,
+    event_data: WorkflowEventData,
+    event_start_time: datetime,
+    detector: Detector | None = None,
+) -> None:
+    """
+    This method is used to create improved logging for `process_workflows`,
+    where we can capture the `WorkflowNotProcessable` results, and log them.
+
+    This should create a log for each issue, so we can determine why a workflow
+    did or did not trigger.
+
+    TODO - further refactor the `process_actions` portion, to improve handling / logging.
+    """
+    from sentry.workflow_engine.processors.workflow import process_workflows
+
+    evaluation = process_workflows(batch_client, event_data, event_start_time, detector)
+
+    if isinstance(evaluation, WorkflowNotProcessable):
+        # Attempted to evaluate, but no actions were triggered.
+
+        if evaluation.triggered_workflows is None:
+            # No workflow trigger conditions were met
+            logger.info(
+                "process_workflows.evaluation.workflow.not_triggered", extra=asdict(evaluation)
+            )
+        else:
+            # Workflow conditions met, but not action filters
+            logger.info("process_workflows.evaluation.workflow.triggered", extra=asdict(evaluation))
+    else:
+        # Workflow was fully processed, and actions were triggered
+        workflows, actions = evaluation
+        logger.info(
+            "process_workflows.evaluation.actions.triggered",
+            extra={"workflows": workflows, "actions": actions},
+        )
