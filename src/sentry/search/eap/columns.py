@@ -311,7 +311,7 @@ class AggregateDefinition(FunctionDefinition):
     An optional function that takes in the resolved argument and returns the attribute key to aggregate on.
     If not provided, assumes the aggregate is on the first argument.
     """
-    attribute_resolver: Callable[[ResolvedArguments], AttributeKey] | None = None
+    attribute_resolver: Callable[[ResolvedArgument], AttributeKey] | None = None
 
     def resolve(
         self,
@@ -334,7 +334,72 @@ class AggregateDefinition(FunctionDefinition):
                 raise InvalidSearchQuery("Aggregates accept attribute keys only")
             resolved_attribute = resolved_arguments[0]
             if self.attribute_resolver is not None:
-                resolved_attribute = self.attribute_resolver(resolved_arguments)
+                resolved_attribute = self.attribute_resolver(resolved_attribute)
+
+        return ResolvedAggregate(
+            public_alias=alias,
+            internal_name=self.internal_function,
+            search_type=search_type,
+            internal_type=self.internal_type,
+            processor=self.processor,
+            extrapolation=(
+                self.extrapolation if not search_config.disable_aggregate_extrapolation else False
+            ),
+            argument=resolved_attribute,
+        )
+
+
+@dataclass(kw_only=True)
+class TraceMetricAggregateDefinition(AggregateDefinition):
+    internal_function: Function.ValueType
+    attribute_resolver: Callable[[ResolvedArgument], AttributeKey] | None = None
+
+    def __post_init__(self) -> None:
+        if len(self.arguments) != 4:
+            raise InvalidSearchQuery(
+                f"Trace metric aggregates expects exactly 4 arguments to be defined, got {len(self.arguments)}"
+            )
+
+        if not isinstance(self.arguments[0], AttributeArgumentDefinition):
+            raise InvalidSearchQuery(
+                "Trace metric aggregates expect argument 0 to be of type AttributeArgumentDefinition"
+            )
+
+        for i in range(1, 4):
+            if not isinstance(self.arguments[i], ValueArgumentDefinition):
+                raise InvalidSearchQuery(
+                    f"Trace metric aggregates expects argument {i} to be of type ValueArgumentDefinition"
+                )
+
+    def resolve(
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
+        search_config: SearchResolverConfig,
+    ) -> ResolvedAggregate:
+        if not isinstance(resolved_arguments[0], AttributeKey):
+            raise InvalidSearchQuery(
+                "Trace metric aggregates expect argument 0 to be of type AttributeArgumentDefinition"
+            )
+
+        resolved_attribute = resolved_arguments[0]
+        if self.attribute_resolver is not None:
+            resolved_attribute = self.attribute_resolver(resolved_attribute)
+
+        if all(resolved_argument != "" for resolved_argument in resolved_arguments[1:]):
+            # a metric was passed
+            # TODO: we need to put it into the top level query conditions
+            pass
+        elif all(resolved_argument == "" for resolved_argument in resolved_arguments[1:]):
+            # no metrics were specified, assume we query all metrics
+            pass
+        else:
+            raise InvalidSearchQuery(
+                f"Trace metric aggregates expect the full metric to be specified, got name:{resolved_arguments[1]} type:{resolved_arguments[2]} unit:{resolved_arguments[3]}"
+            )
 
         return ResolvedAggregate(
             public_alias=alias,
@@ -519,25 +584,18 @@ def attribute_key_to_tuple(attribute_key: AttributeKey) -> tuple[str, AttributeK
 
 def count_argument_resolver_optimized(
     always_present_attributes: list[AttributeKey],
-) -> Callable[[ResolvedArguments], AttributeKey]:
+) -> Callable[[ResolvedArgument], AttributeKey]:
     always_present_attributes_set = {
         attribute_key_to_tuple(attribute) for attribute in always_present_attributes
     }
 
-    def count_argument_resolver(resolved_arguments: ResolvedArguments) -> AttributeKey:
-        if len(resolved_arguments) != 1:
-            raise InvalidSearchQuery(
-                f"Aggregates expects exactly 1 argument, got {len(resolved_arguments)}"
-            )
-
-        if not isinstance(resolved_arguments[0], AttributeKey):
+    def count_argument_resolver(resolved_argument: ResolvedArgument) -> AttributeKey:
+        if not isinstance(resolved_argument, AttributeKey):
             raise InvalidSearchQuery("Aggregates accept attribute keys only")
 
-        resolved_attribute: AttributeKey = resolved_arguments[0]
-
-        if attribute_key_to_tuple(resolved_attribute) in always_present_attributes_set:
+        if attribute_key_to_tuple(resolved_argument) in always_present_attributes_set:
             return AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT)
 
-        return resolved_attribute
+        return resolved_argument
 
     return count_argument_resolver

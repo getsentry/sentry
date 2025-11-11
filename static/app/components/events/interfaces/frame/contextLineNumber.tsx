@@ -69,17 +69,17 @@ const Wrapper = styled('div')`
 
   &.covered .line-number {
     background: ${p => p.theme.green100};
-    border-right: 3px solid ${p => p.theme.tokens.content.success};
+    border-right: 3px solid ${p => p.theme.tokens.border.success};
   }
 
   &.uncovered .line-number {
     background: ${p => p.theme.red100};
-    border-right: 3px solid ${p => p.theme.tokens.content.danger};
+    border-right: 3px solid ${p => p.theme.tokens.border.danger};
   }
 
   &.partial .line-number {
     background: ${p => p.theme.yellow100};
-    border-right: 3px dashed ${p => p.theme.tokens.content.warning};
+    border-right: 3px dashed ${p => p.theme.tokens.border.warning};
   }
 
   &.active {

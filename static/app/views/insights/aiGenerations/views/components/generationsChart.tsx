@@ -2,10 +2,10 @@ import {Fragment, useMemo} from 'react';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
-import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
@@ -14,18 +14,16 @@ import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/p
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {
-  useQueryParamsGroupBys,
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
-import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {AI_GENERATIONS_PAGE_FILTER} from 'sentry/views/insights/aiGenerations/views/utils/constants';
-import {Referrer} from 'sentry/views/insights/aiGenerations/views/utils/referrer';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
-import type {SpanFields} from 'sentry/views/insights/types';
 
 const CHART_TYPE_OPTIONS = [
   {
@@ -67,6 +65,15 @@ function prettifyAggregation(aggregation: string): string {
 export function GenerationsChart() {
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
+  const [caseInsensitive] = useCaseInsensitivity();
+
+  const {result: timeseriesResult} = useExploreTimeseries({
+    query: useCombinedQuery(AI_GENERATIONS_PAGE_FILTER),
+    enabled: true,
+    queryExtras: {
+      caseInsensitive,
+    },
+  });
 
   function handleChartTypeChange(index: number, chartType: ChartType) {
     const newVisualizes = visualizes.map((visualize, i) => {
@@ -86,6 +93,7 @@ export function GenerationsChart() {
             key={index}
             visualize={visualize}
             onChartTypeChange={chartType => handleChartTypeChange(index, chartType)}
+            timeseriesResult={timeseriesResult}
           />
         );
       })}
@@ -96,40 +104,19 @@ export function GenerationsChart() {
 function ChartWidget({
   visualize,
   onChartTypeChange,
+  timeseriesResult,
 }: {
   onChartTypeChange: (chartType: ChartType) => void;
+  timeseriesResult: ReturnType<typeof useExploreTimeseries>['result'];
   visualize: Visualize;
 }) {
-  const groupBys = useQueryParamsGroupBys().filter(Boolean);
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const chartType = visualize.chartType;
 
-  const query = useCombinedQuery(AI_GENERATIONS_PAGE_FILTER);
-  const {data, isLoading, error} = useFetchSpanTimeSeries(
-    {
-      query,
-      yAxis: [visualize.yAxis] as any,
-      groupBy: groupBys as SpanFields[],
-      interval,
-      sort:
-        groupBys.length > 0 && groupBys[0]
-          ? {
-              field: groupBys[0],
-              kind: 'desc' as const,
-            }
-          : undefined,
-      topEvents: groupBys.length > 0 ? 5 : undefined,
-    },
-    Referrer.GENERATIONS_CHART
-  );
-
   const plottables = useMemo(() => {
-    return (
-      data?.timeSeries.map(
-        timeSeries => new plottableConstructors[chartType](timeSeries)
-      ) ?? []
-    );
-  }, [chartType, data?.timeSeries]);
+    const timeSeries = timeseriesResult.data[visualize.yAxis] ?? [];
+    return timeSeries.map(series => new plottableConstructors[chartType](series)) ?? [];
+  }, [chartType, timeseriesResult.data, visualize.yAxis]);
 
   const isEmpty = useMemo(
     () => plottables.every(plottable => plottable.isEmpty),
@@ -170,8 +157,8 @@ function ChartWidget({
       revealActions="always"
       Visualization={
         <WidgetVisualizationStates
-          isLoading={isLoading}
-          error={error}
+          isLoading={timeseriesResult.isLoading}
+          error={timeseriesResult.error}
           isEmpty={isEmpty}
           VisualizationType={TimeSeriesWidgetVisualization}
           visualizationProps={{

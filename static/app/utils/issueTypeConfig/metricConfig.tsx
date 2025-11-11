@@ -101,8 +101,8 @@ const metricConfig: IssueCategoryConfigMapping = {
     },
     detector: {
       enabled: true,
-      title: t('Metric Alert Detector'),
-      ctaText: t('View detector details'),
+      title: t('Metric Monitor'),
+      ctaText: t('View monitor details'),
     },
     header: {
       filterBar: {enabled: true, fixedEnvironment: true},
