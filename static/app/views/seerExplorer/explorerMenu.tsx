@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {space} from 'sentry/styles/space';
+import {getUserTimezone} from 'sentry/utils/dates';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 
@@ -294,7 +295,8 @@ function useSessions({onChangeSession}: {onChangeSession: (runId: number) => voi
   const {data, isPending, isError, refetch} = useExplorerSessions({limit: 20});
 
   const formatDate = (date: string) => {
-    return moment(date).format('MM/DD/YYYY HH:mm');
+    const userTimezone = getUserTimezone();
+    return moment.tz(date, userTimezone || 'UTC').format('MM/DD/YYYY HH:mm z');
   };
 
   const sessionItems = useMemo(() => {
