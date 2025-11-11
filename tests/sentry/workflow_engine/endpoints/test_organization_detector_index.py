@@ -833,7 +833,9 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_valid_creation(
-        self, mock_audit: mock.MagicMock, mock_schedule_update_project_config
+        self,
+        mock_audit: mock.MagicMock,
+        mock_schedule_update_project_config: mock.MagicMock,
     ) -> None:
         with self.tasks():
             response = self.get_success_response(
