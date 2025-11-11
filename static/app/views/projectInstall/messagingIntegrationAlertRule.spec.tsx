@@ -358,7 +358,7 @@ describe('MessagingIntegrationAlertRule', () => {
     spy.mockRestore();
   });
 
-  it.only('displays and sends channel id for microsoft teams', async () => {
+  it('displays and sends channel id for microsoft teams', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${msteamsIntegrations[0]!.id}/channels/`,
       body: {
