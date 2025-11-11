@@ -1,23 +1,10 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
-import type {
-  DocsParams,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
 import {getConfigStep} from './utils';
-
-const getVerifySnippet = (params: DocsParams) => {
-  const metricsCode = params.isMetricsSelected
-    ? `  // Send a test metric before calling undefined function
-  Sentry.metrics.count('test_counter', 1);
-`
-    : '';
-
-  return `${metricsCode}myUndefinedFunction();`;
-};
 
 export const onboarding: OnboardingConfig = {
   install: params => [
@@ -49,7 +36,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: (params: DocsParams) => [
+  verify: () => [
     {
       type: StepType.VERIFY,
       content: [
@@ -74,7 +61,7 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'Javascript',
               language: 'javascript',
-              code: getVerifySnippet(params),
+              code: 'myUndefinedFunction();',
             },
           ],
         },

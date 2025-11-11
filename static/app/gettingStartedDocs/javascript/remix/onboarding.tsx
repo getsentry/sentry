@@ -9,16 +9,6 @@ import {t, tct} from 'sentry/locale';
 
 import {getInstallContent} from './utils';
 
-const getVerifySnippet = (params: DocsParams) => {
-  const metricsCode = params.isMetricsSelected
-    ? `  // Send a test metric before calling undefined function
-  Sentry.metrics.count('test_counter', 1);
-`
-    : '';
-
-  return `${metricsCode}myUndefinedFunction();`;
-};
-
 export const onboarding: OnboardingConfig = {
   introduction: () => (
     <p>
@@ -59,7 +49,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: (params: DocsParams) => [
+  verify: () => [
     {
       type: StepType.VERIFY,
       content: [
@@ -84,7 +74,7 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'Javascript',
               language: 'javascript',
-              code: getVerifySnippet(params),
+              code: 'myUndefinedFunction();',
             },
           ],
         },
@@ -97,20 +87,4 @@ export const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: (params: DocsParams) => {
-    const steps = [];
-
-    if (params.isMetricsSelected) {
-      steps.push({
-        id: 'metrics',
-        name: t('Metrics'),
-        description: t(
-          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
-        ),
-        link: 'https://docs.sentry.io/platforms/javascript/guides/remix/metrics/',
-      });
-    }
-
-    return steps;
-  },
 };
