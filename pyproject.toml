@@ -863,7 +863,7 @@ module = [
     "tests.sentry.web.frontend.generic.*",
     "tests.sentry.web.frontend.test_cli",
     "tests.sentry.workflow_engine.detectors.*",
-    "tests.sentry.workflow_engine.endpoints.utils.*",
+    "tests.sentry.workflow_engine.endpoints.*",
     "tests.sentry.workflow_engine.handlers.action.*",
     "tests.sentry.workflow_engine.models.*",
     "tests.sentry.workflow_engine.processors.contexts.*",

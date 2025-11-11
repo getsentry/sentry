@@ -26,7 +26,7 @@ class TestSentryAppActionValidator(TestCase):
     @mock.patch(
         "sentry.rules.actions.sentry_apps.utils.app_service.trigger_sentry_app_action_creators"
     )
-    def test_validate(self, mock_trigger_sentry_app_action_creators):
+    def test_validate(self, mock_trigger_sentry_app_action_creators: mock.MagicMock) -> None:
         mock_trigger_sentry_app_action_creators.return_value = RpcAlertRuleActionResult(
             success=True, message="success"
         )
@@ -43,7 +43,9 @@ class TestSentryAppActionValidator(TestCase):
     @mock.patch(
         "sentry.rules.actions.sentry_apps.utils.app_service.trigger_sentry_app_action_creators"
     )
-    def test_validate__rpc_failure(self, mock_trigger_sentry_app_action_creators):
+    def test_validate__rpc_failure(
+        self, mock_trigger_sentry_app_action_creators: mock.MagicMock
+    ) -> None:
         mock_trigger_sentry_app_action_creators.return_value = RpcAlertRuleActionResult(
             success=False,
             message="Could not create sentry app action",

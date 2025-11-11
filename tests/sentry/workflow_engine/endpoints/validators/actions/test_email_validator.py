@@ -13,7 +13,7 @@ class TestEmailActionValidator(TestCase):
             "data": {},
         }
 
-    def test_validate__user(self):
+    def test_validate__user(self) -> None:
         validator = BaseActionValidator(
             data=self.valid_data,
             context={"organization": self.organization},
@@ -21,7 +21,7 @@ class TestEmailActionValidator(TestCase):
         result = validator.is_valid()
         assert result is True
 
-    def test_validate_user__missing_identifier(self):
+    def test_validate_user__missing_identifier(self) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
@@ -32,7 +32,7 @@ class TestEmailActionValidator(TestCase):
         result = validator.is_valid()
         assert result is False
 
-    def test_validate__team(self):
+    def test_validate__team(self) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
@@ -46,7 +46,7 @@ class TestEmailActionValidator(TestCase):
         result = validator.is_valid(raise_exception=True)
         assert result is True
 
-    def test_validate__issue_owners(self):
+    def test_validate__issue_owners(self) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
@@ -57,7 +57,7 @@ class TestEmailActionValidator(TestCase):
         result = validator.is_valid(raise_exception=True)
         assert result is True
 
-    def test_validate__invalid_target_type(self):
+    def test_validate__invalid_target_type(self) -> None:
         validator = BaseActionValidator(
             data={
                 **self.valid_data,
