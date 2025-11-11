@@ -374,7 +374,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 extra={"num_missed_checks": 1, **result},
             )
 
-    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    @mock.patch("sentry.utils.eap.eap_items_producer.produce")
     def test_no_missed_check_for_disabled(self, mock_produce: MagicMock) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
@@ -405,7 +405,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
             assert check.attributes["check_status"].string_value == "failure"
 
-    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    @mock.patch("sentry.utils.eap.eap_items_producer.produce")
     def test_missed_check_true_positive(self, mock_produce: MagicMock) -> None:
         result = self.create_uptime_result(self.subscription.subscription_id)
 
@@ -1079,7 +1079,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 ]
             )
 
-    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    @mock.patch("sentry.utils.eap.eap_items_producer.produce")
     def test_produces_snuba_uptime_results(self, mock_produce: MagicMock) -> None:
         """
         Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
@@ -1100,7 +1100,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert trace_item.attributes["incident_status"].int_value == 0
         assert trace_item.retention_days == 90
 
-    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    @mock.patch("sentry.utils.eap.eap_items_producer.produce")
     def test_produces_snuba_uptime_results_in_incident(self, mock_produce: MagicMock) -> None:
         """
         Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
@@ -1120,7 +1120,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         trace_item = self.decode_trace_item(mock_produce.call_args.args[1].value)
         assert trace_item.attributes["incident_status"].int_value == 1
 
-    @mock.patch("sentry.uptime.consumers.eap_producer._eap_items_producer.produce")
+    @mock.patch("sentry.utils.eap.eap_items_producer.produce")
     def test_produces_eap_uptime_results(self, mock_produce: MagicMock) -> None:
         """
         Validates that the consumer produces TraceItems to EAP's Kafka topic for uptime check results
