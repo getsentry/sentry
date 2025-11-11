@@ -103,6 +103,8 @@ export enum IssueCategory {
   HTTP_CLIENT = 'http_client',
   DB_QUERY = 'db_query',
   MOBILE = 'mobile',
+
+  AI_DETECTED = 'ai_detected',
 }
 
 /**
@@ -133,6 +135,7 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.CRON]: '',
   [IssueCategory.REPLAY]: '',
   [IssueCategory.UPTIME]: '',
+  [IssueCategory.AI_DETECTED]: t('AI detected issues.'),
 };
 
 export enum IssueType {
@@ -179,6 +182,8 @@ export enum IssueType {
 
   // Insights Web Vitals
   WEB_VITALS = 'web_vitals',
+
+  LLM_DETECTED_EXPERIMENTAL = 'llm_detected_experimental',
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
@@ -295,6 +300,7 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   2007: IssueType.PROFILE_REGEX_MAIN_THREAD,
   2008: IssueType.PROFILE_FRAME_DROP,
   2010: IssueType.PROFILE_FUNCTION_REGRESSION,
+  3501: IssueType.LLM_DETECTED_EXPERIMENTAL,
   10001: IssueType.WEB_VITALS,
 };
 
