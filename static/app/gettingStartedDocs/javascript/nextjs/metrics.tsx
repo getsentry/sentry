@@ -1,6 +1,6 @@
-import {getJavascriptMetricsFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/metrics';
 
-export const metrics = getJavascriptMetricsFullStackOnboarding({
+export const metrics = metricsFullStack({
   docsPlatform: 'nextjs',
   packageName: '@sentry/nextjs',
 });

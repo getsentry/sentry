@@ -127,4 +127,15 @@ describe('javascript-svelte onboarding docs', () => {
     expect(docs.metricsOnboarding?.configure).toBeDefined();
     expect(docs.metricsOnboarding?.verify).toBeDefined();
   });
+
+  it('does not show Metrics in next steps when metrics is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+  });
 });
