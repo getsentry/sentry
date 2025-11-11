@@ -214,7 +214,7 @@ logger.fatal("Database connection pool exhausted", {
             {
               label: 'JavaScript',
               language: 'javascript',
-              code: `myUndefinedFunction();`,
+              code: 'myUndefinedFunction();',
             },
           ],
         },

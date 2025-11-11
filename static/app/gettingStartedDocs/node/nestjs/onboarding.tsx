@@ -53,6 +53,12 @@ getError() {${
     action: 'test_error_endpoint',
   });`
     : ''
+}${
+  params.isMetricsSelected
+    ? `
+  // Send a test metric before throwing the error
+  Sentry.metrics.count('test_counter', 1);`
+    : ''
 }
   throw new Error("My first Sentry error!");
 }
@@ -246,6 +252,17 @@ export const onboarding: OnboardingConfig = {
           'Add logging integrations to automatically capture logs from your application.'
         ),
         link: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/logs/#integrations',
+      });
+    }
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/metrics/',
       });
     }
 

@@ -156,4 +156,46 @@ describe('javascript-ember onboarding docs', () => {
       screen.queryByText(textWithMarkupMatcher(/Sentry\.logger\.info/))
     ).not.toBeInTheDocument();
   });
+
+  it('includes metrics code in verify snippet when metrics is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.METRICS],
+    });
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/Sentry\.metrics\.count\('test_counter', 1\)/)
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('excludes metrics code in verify snippet when metrics is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(
+      screen.queryByText(
+        textWithMarkupMatcher(/Sentry\.metrics\.count\('test_counter', 1\)/)
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows Metrics in next steps when metrics is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.METRICS],
+    });
+
+    expect(screen.getByText('Configure Ember Options')).toBeInTheDocument();
+    expect(screen.getByText('Metrics')).toBeInTheDocument();
+  });
+
+  it('does not show Metrics in next steps when metrics is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(screen.getByText('Configure Ember Options')).toBeInTheDocument();
+    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+  });
 });

@@ -9,17 +9,6 @@ import {t, tct, tctCode} from 'sentry/locale';
 
 import {getInstallContent} from './utils';
 
-const getVerifyNuxtSnippet = () => `
-<script setup>
-  const triggerError = () => {
-    throw new Error("Nuxt Button Error");
-  };
-</script>
-
-<template>
-  <button id="errorBtn" @click="triggerError">Trigger Error</button>
-</template>`;
-
 export const onboarding: OnboardingConfig = {
   install: (params: DocsParams) => [
     {
@@ -70,7 +59,15 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'Vue',
               language: 'html',
-              code: getVerifyNuxtSnippet(),
+              code: `<script setup>
+  const triggerError = () => {
+    throw new Error("Nuxt Button Error");
+  };
+</script>
+
+<template>
+  <button id="errorBtn" @click="triggerError">Trigger Error</button>
+</template>`,
             },
           ],
         },

@@ -70,7 +70,9 @@ const getVerifySnippetTemplate = () => `
 `;
 
 const getVerifySnippetComponent = (params: Params) => `${
-  params.isLogsSelected ? 'import * as Sentry from "@sentry/angular";\n\n' : ''
+  params.isLogsSelected || params.isMetricsSelected
+    ? 'import * as Sentry from "@sentry/angular";\n\n'
+    : ''
 }export class AppComponent {
   public throwTestError(): void {${
     params.isLogsSelected
@@ -79,6 +81,12 @@ const getVerifySnippetComponent = (params: Params) => `${
     Sentry.logger.info(Sentry.logger.fmt\`User \${"sentry-test"} triggered test error button\`, {
       action: "test_error_button_click",
     });`
+      : ''
+  }${
+    params.isMetricsSelected
+      ? `
+    // Send a test metric before throwing the error
+    Sentry.metrics.count('test_counter', 1);`
       : ''
   }
     throw new Error("Sentry Test Error");
@@ -239,6 +247,17 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
           'Add logging integrations to automatically capture logs from your application.'
         ),
         link: 'https://docs.sentry.io/platforms/javascript/guides/angular/logs/#integrations',
+      });
+    }
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/angular/metrics/',
       });
     }
 

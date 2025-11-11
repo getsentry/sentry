@@ -21,12 +21,18 @@ const getVerifySnippet = (params: DocsParams) => {
         });`
     : '';
 
+  const metricsCode = params.isMetricsSelected
+    ? `
+        // Send a test metric before throwing the error
+        Sentry.metrics.count('test_counter', 1);`
+    : '';
+
   return `import * as Sentry from '@sentry/react';
 // Add this button component to your app to test Sentry's error tracking
 function ErrorButton() {
   return (
     <button
-      onClick={() => {${logsCode}
+      onClick={() => {${logsCode}${metricsCode}
         throw new Error('This is your first error!');
       }}
     >
@@ -269,6 +275,17 @@ logger.fatal("Database connection pool exhausted", {
           'Add logging integrations to automatically capture logs from your application.'
         ),
         link: 'https://docs.sentry.io/platforms/javascript/guides/react/logs/#integrations',
+      });
+    }
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/metrics/',
       });
     }
 

@@ -126,10 +126,15 @@ const getVerifySnippet = (params: DocsParams) => {
     'action': 'test_loader_error',
   });`
     : '';
+  const metricsCode = params.isMetricsSelected
+    ? `
+  // Send a test metric before throwing the error
+  Sentry.metrics.count('test_counter', 1);`
+    : '';
   return `
 import type { Route } from "./+types/error-page";
 
-export async function loader() {${logsCode}
+export async function loader() {${logsCode}${metricsCode}
   throw new Error("Sentry Test Error");
 }
 
