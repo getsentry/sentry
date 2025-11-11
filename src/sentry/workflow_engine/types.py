@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from sentry.snuba.models import SnubaQueryEventType
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
     from sentry.workflow_engine.handlers.detector import DetectorHandler
-    from sentry.workflow_engine.models import Action, Detector
+    from sentry.workflow_engine.models import Action, Detector, Workflow
     from sentry.workflow_engine.models.data_condition import Condition
 
 T = TypeVar("T")
@@ -70,6 +70,17 @@ class WorkflowEventData:
     has_reappeared: bool | None = None
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
+
+
+@dataclass(frozen=True)
+class WorkflowNotProcessable:
+    group_event: GroupEvent
+    message: str
+    actions: list[Action] | None = None
+    workflows: list[Workflow] | None = None
+    triggered_actions: list[Action] | None = None
+    triggered_workflows: list[Workflow] | None = None
+    associated_detectors: list[Detector] | None = None
 
 
 class ConfigTransformer(ABC):

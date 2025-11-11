@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from enum import StrEnum
-from typing import DefaultDict
+from typing import Any, DefaultDict
 
 import sentry_sdk
 from django.db import router, transaction
@@ -33,7 +33,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
 )
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import WorkflowEventData, WorkflowNotProcessable
 from sentry.workflow_engine.utils import log_context, scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
@@ -464,7 +464,7 @@ def process_workflows(
     event_data: WorkflowEventData,
     event_start_time: datetime,
     detector: Detector | None = None,
-) -> set[Workflow]:
+) -> set[Workflow] | WorkflowNotProcessable:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
@@ -477,6 +477,12 @@ def process_workflows(
         filter_recently_fired_workflow_actions,
         fire_actions,
     )
+
+    # This dictionary stores the data for WorkflowNotProcessable
+    # and is eventually unpacked to pass into the frozen dataclass
+    extra_data: dict[str, Any] = {
+        "group_event": event_data.event,
+    }
 
     try:
         if detector is None and isinstance(event_data.event, GroupEvent):
@@ -496,7 +502,12 @@ def process_workflows(
             )
         )
     except Detector.DoesNotExist:
-        return set()
+        return WorkflowNotProcessable(
+            message="No Detectors associated with the issue were found",
+            **extra_data,
+        )
+
+    extra_data["associated_detector"] = [detector]
 
     try:
         environment = get_environment_by_event(event_data)
@@ -510,29 +521,52 @@ def process_workflows(
             )
         )
     except Environment.DoesNotExist:
-        return set()
+        return WorkflowNotProcessable(
+            message="Environment for event not found",
+            **extra_data,
+        )
 
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
     workflows = _get_associated_workflows(detector, environment, event_data)
+    extra_data["workflows"] = workflows
+
     if not workflows:
-        # If there aren't any workflows, there's nothing to evaluate
-        return set()
+        return WorkflowNotProcessable(
+            message="No workflows are associated with the detector in the event",
+            **extra_data,
+        )
 
     triggered_workflows, queue_items_by_workflow_id = evaluate_workflow_triggers(
         workflows, event_data, event_start_time
     )
+
+    extra_data["triggered_workflows"] = triggered_workflows
+
     if not triggered_workflows and not queue_items_by_workflow_id:
-        # if there aren't any triggered workflows, there's no action filters to evaluate
-        return set()
+        return WorkflowNotProcessable(
+            message="No items were triggered or queued for slow evaluation",
+            **extra_data,
+        )
 
     actions_to_trigger, queue_items_by_workflow_id = evaluate_workflows_action_filters(
         triggered_workflows, event_data, queue_items_by_workflow_id, event_start_time
     )
+
     enqueue_workflows(batch_client, queue_items_by_workflow_id)
+
+    # TODO - refactor to have action evaluation separate from workflow evaluation
+    # The result of processing a workflow, should be a list of actions we want to trigger.
+    # From here on we are probably doing too many side effects and things related to actions.
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
     sentry_sdk.set_tag("workflow_engine.triggered_actions", len(actions))
+
+    extra_data = {
+        **extra_data,
+        "actions": actions_to_trigger,  # All the actions we found to trigger
+        "triggered_actions": actions,  # All the actions we intend to trigger
+    }
 
     if not actions:
         # If there aren't any actions on the associated workflows, there's nothing to trigger

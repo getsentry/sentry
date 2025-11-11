@@ -1,5 +1,6 @@
 import random
 import time
+from dataclasses import asdict
 from datetime import UTC, datetime
 from typing import Any
 
@@ -18,15 +19,45 @@ from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import DataConditionGroup, Detector
 from sentry.workflow_engine.tasks.utils import (
     EventNotFoundError,
     build_workflow_event_data_from_event,
 )
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import WorkflowEventData, WorkflowNotProcessable
 from sentry.workflow_engine.utils import log_context, scopedstats
 
 logger = log_context.get_logger(__name__)
+
+
+# TODO - this seems like it should live in processors.workflow,
+# Then we can create a `process_new_issue` or `process_event` kind
+# of method. That will wrap a new `process_actions_with_logs`
+# (and `process_actions`) method. Allowing us to have a much cleaner
+# interface here, and between those processor methods.
+def process_workflows_with_logs(
+    batch_client: DelayedWorkflowClient,
+    event_data: WorkflowEventData,
+    event_start_time: datetime,
+    detector: Detector | None = None,
+) -> None:
+    """
+    This method is used to create improved logging for `process_workflows`,
+    where we can capture the `WorkflowNotProcessable` results, and log them.
+
+    This should create a log for each issue, so we can determine why a workflow
+    did or did not trigger.
+    """
+    from sentry.workflow_engine.processors.workflow import process_workflows
+
+    evaluation = process_workflows(batch_client, event_data, event_start_time, detector)
+
+    if isinstance(evaluation, WorkflowNotProcessable):
+        logger.info("process_workflows.evaluation", extra=asdict(evaluation))
+    else:
+        # TODO - Log the triggered workflows
+        pass
 
 
 @instrumented_task(
@@ -44,8 +75,6 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
     The task will get the Activity from the database, create a WorkflowEventData object,
     and then process the data in `process_workflows`.
     """
-    from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
-    from sentry.workflow_engine.processors.workflow import process_workflows
 
     with transaction.atomic(router.db_for_write(Detector)):
         try:
@@ -69,9 +98,10 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
     )
     with quiet_redis_noise():
         batch_client = DelayedWorkflowClient()
-        process_workflows(
+        process_workflows_with_logs(
             batch_client, event_data, event_start_time=activity.datetime, detector=detector
         )
+
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
         tags={"activity_type": activity.type, "detector_type": detector.type},
@@ -103,11 +133,9 @@ def process_workflows_event(
     start_timestamp_seconds: float | None = None,
     **kwargs: dict[str, Any],
 ) -> None:
-    from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
-    from sentry.workflow_engine.processors.workflow import process_workflows
-
     recorder = scopedstats.Recorder()
     start_time = time.time()
+
     with recorder.record():
         try:
             event_data = build_workflow_event_data_from_event(
@@ -131,7 +159,7 @@ def process_workflows_event(
         )
         with quiet_redis_noise():
             batch_client = DelayedWorkflowClient()
-            process_workflows(batch_client, event_data, event_start_time=event_start_time)
+            process_workflows_with_logs(batch_client, event_data, event_start_time=event_start_time)
     duration = time.time() - start_time
     is_slow = duration > 1.0
     # We want full coverage for particularly slow cases, plus a random sampling.
@@ -158,7 +186,6 @@ def schedule_delayed_workflows(**kwargs: Any) -> None:
     """
     Schedule delayed workflow buffers in a batch.
     """
-    from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
     from sentry.workflow_engine.processors.schedule import process_buffered_workflows
 
     lock_name = "schedule_delayed_workflows"
