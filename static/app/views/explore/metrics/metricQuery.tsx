@@ -3,6 +3,7 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -19,14 +20,21 @@ export interface TraceMetric {
   type: string;
 }
 
+export type TableConfig = {
+  orientation?: TableOrientation;
+  visible?: boolean;
+};
+
 export interface BaseMetricQuery {
   metric: TraceMetric;
   queryParams: ReadableQueryParams;
+  tableConfig?: TableConfig;
 }
 
 export interface MetricQuery extends BaseMetricQuery {
   removeMetric: () => void;
   setQueryParams: (queryParams: ReadableQueryParams) => void;
+  setTableConfig: (tableConfig: TableConfig) => void;
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
 
@@ -70,6 +78,11 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
     return null;
   }
 
+  const tableConfig = json.tableConfig;
+  if (defined(tableConfig) && typeof tableConfig !== 'object') {
+    return null;
+  }
+
   return {
     metric,
     queryParams: new ReadableQueryParams({
@@ -85,6 +98,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
       aggregateFields,
       aggregateSortBys,
     }),
+    tableConfig,
   };
 }
 
@@ -102,6 +116,7 @@ export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
     }),
     aggregateSortBys: metricQuery.queryParams.aggregateSortBys,
     mode: metricQuery.queryParams.mode,
+    tableConfig: metricQuery.tableConfig,
   });
 }
 

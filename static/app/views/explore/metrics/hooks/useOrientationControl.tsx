@@ -1,5 +1,7 @@
+import {useMemo} from 'react';
+
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
-import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {useTableConfig} from 'sentry/views/explore/metrics/metricsQueryParams';
 
 export type TableOrientation = 'right' | 'bottom';
 
@@ -9,17 +11,18 @@ export function useTableOrientationControl(): {
   visible: boolean;
 } {
   const breakpoints = useBreakpoints();
-  const visualize = useMetricVisualize();
+  const tableConfig = useTableConfig();
 
   // Derive the actual orientation based on screen size
-  const effectiveOrientation = breakpoints.md
-    ? visualize.tableConfig?.orientation
-    : 'bottom';
+  const effectiveOrientation = breakpoints.md ? tableConfig?.orientation : 'bottom';
   const canChangeOrientation = breakpoints.md;
 
-  return {
-    orientation: effectiveOrientation ?? 'right',
-    canChangeOrientation,
-    visible: visualize.tableConfig?.visible ?? true,
-  };
+  return useMemo(
+    () => ({
+      orientation: effectiveOrientation ?? 'right',
+      canChangeOrientation,
+      visible: tableConfig?.visible ?? true,
+    }),
+    [effectiveOrientation, canChangeOrientation, tableConfig?.visible]
+  );
 }

@@ -1,5 +1,3 @@
-import {useCallback} from 'react';
-
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -18,8 +16,8 @@ import {SideBySideOrientation} from 'sentry/views/explore/metrics/metricPanel/si
 import {StackedOrientation} from 'sentry/views/explore/metrics/metricPanel/stackedOrientation';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
-  useMetricVisualize,
-  useSetMetricVisualize,
+  useSetTableConfig,
+  useTableConfig,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
 import {
@@ -48,28 +46,21 @@ export function MetricPanel({traceMetric, queryIndex}: MetricPanelProps) {
     enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
   });
 
-  const visualize = useMetricVisualize();
-  const setVisualize = useSetMetricVisualize();
+  const tableConfig = useTableConfig();
+  const setTableConfig = useSetTableConfig();
 
-  const updateTableConfig = useCallback(
-    ({
-      visible,
-      newOrientation,
-    }: {
-      newOrientation?: TableOrientation;
-      visible?: boolean;
-    }) => {
-      setVisualize(
-        visualize.replace({
-          tableConfig: {
-            visible: visible ?? visualize.tableConfig?.visible,
-            orientation: newOrientation ?? visualize.tableConfig?.orientation,
-          },
-        })
-      );
-    },
-    [setVisualize, visualize]
-  );
+  const updateTableConfig = ({
+    visible,
+    newOrientation,
+  }: {
+    newOrientation?: TableOrientation;
+    visible?: boolean;
+  }) => {
+    setTableConfig?.({
+      visible: visible ?? tableConfig?.visible,
+      orientation: newOrientation ?? tableConfig?.orientation,
+    });
+  };
 
   const columns = TraceSamplesTableColumns;
   const fields = columns.filter(c => getMetricTableColumnType(c) !== 'stat');

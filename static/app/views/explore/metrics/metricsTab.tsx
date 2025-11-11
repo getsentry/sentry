@@ -1,3 +1,4 @@
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from 'sentry/components/core/layout';
@@ -16,6 +17,7 @@ import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
+import type {TableConfig} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {MetricSaveAs} from 'sentry/views/explore/metrics/metricToolbar/metricSaveAs';
@@ -81,6 +83,11 @@ function MetricsTabFilterSection({
 function MetricsQueryBuilderSection() {
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
+  const tableConfig = useMemo<TableConfig>(
+    () => ({orientation: 'right', visible: true}),
+    []
+  );
+  const setTableConfig = useCallback(() => {}, []);
   return (
     <MetricsQueryBuilderContainer borderTop="primary" padding="md" style={{flexGrow: 0}}>
       <Flex direction="column" gap="lg" align="start">
@@ -93,6 +100,8 @@ function MetricsQueryBuilderSection() {
               traceMetric={metricQuery.metric}
               setTraceMetric={metricQuery.setTraceMetric}
               removeMetric={metricQuery.removeMetric}
+              tableConfig={tableConfig}
+              setTableConfig={setTableConfig}
             >
               <MetricToolbar traceMetric={metricQuery.metric} queryIndex={index} />
             </MetricsQueryParamsProvider>
@@ -127,6 +136,8 @@ function MetricsTabBodySection() {
                 traceMetric={metricQuery.metric}
                 setTraceMetric={metricQuery.setTraceMetric}
                 removeMetric={metricQuery.removeMetric}
+                tableConfig={metricQuery.tableConfig}
+                setTableConfig={metricQuery.setTableConfig}
               >
                 <MetricPanel traceMetric={metricQuery.metric} queryIndex={index} />
               </MetricsQueryParamsProvider>

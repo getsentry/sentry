@@ -1,16 +1,10 @@
 import type {Location} from 'history';
 
 import {decodeList} from 'sentry/utils/queryString';
-import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
 import {parseVisualize, Visualize} from 'sentry/views/explore/queryParams/visualize';
-
-export type TableConfig = {
-  orientation?: TableOrientation;
-  visible?: boolean;
-};
 
 export type WritableAggregateField = GroupBy | BaseVisualize;
 
