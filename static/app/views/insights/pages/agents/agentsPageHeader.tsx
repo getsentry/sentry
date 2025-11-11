@@ -30,12 +30,11 @@ export function AgentsPageHeader({
   const organization = useOrganization();
 
   const agentsBaseUrl = normalizeUrl(
-    `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}`
+    `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`
   );
 
   return (
     <DomainViewHeader
-      hasOverviewPage={false}
       domainBaseUrl={agentsBaseUrl}
       domainTitle={AI_SIDEBAR_LABEL}
       modules={MODULES}

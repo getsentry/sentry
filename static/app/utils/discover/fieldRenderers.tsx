@@ -68,7 +68,6 @@ import {
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
@@ -76,6 +75,7 @@ import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/ta
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,

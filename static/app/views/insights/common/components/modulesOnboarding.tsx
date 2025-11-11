@@ -280,26 +280,40 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: appStartPreviewImg,
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
-
-  agents: {
+  'agent-models': {
     heading: t('TODO'),
     description: t('TODO'),
-    valuePropDescription: t('Mobile UI load insights include:'),
+    valuePropDescription: t('TODO'),
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
   },
-  mcp: {
-    heading: t('Model Context Providers'),
-    description: t(
-      'Monitor your MCP servers to ensure your AI applications have reliable access to tools, resources, and data sources they depend on.'
-    ),
+  'agent-tools': {
+    heading: t('TODO'),
+    description: t('TODO'),
+    valuePropDescription: t('TODO'),
+    valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
-    valuePropDescription: t('MCP monitoring gives you visibility into:'),
-    valuePropPoints: [
-      t('Tool execution success rates and failure patterns.'),
-      t('Resource access performance and availability.'),
-      t('Usage patterns across different tools and prompts.'),
-    ],
+  },
+  'mcp-tools': {
+    heading: t('TODO'),
+    description: t('TODO'),
+    valuePropDescription: t('TODO'),
+    valuePropPoints: [],
+    imageSrc: screenLoadsPreviewImg,
+  },
+  'mcp-resources': {
+    heading: t('TODO'),
+    description: t('TODO'),
+    valuePropDescription: t('TODO'),
+    valuePropPoints: [],
+    imageSrc: screenLoadsPreviewImg,
+  },
+  'mcp-prompts': {
+    heading: t('TODO'),
+    description: t('TODO'),
+    valuePropDescription: t('TODO'),
+    valuePropPoints: [],
+    imageSrc: screenLoadsPreviewImg,
   },
   'ai-generations': {
     heading: t('AI Generations'),

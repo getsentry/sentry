@@ -19,7 +19,7 @@ import type {
 import {
   getIsAiNode,
   getTraceNodeAttribute,
-} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';

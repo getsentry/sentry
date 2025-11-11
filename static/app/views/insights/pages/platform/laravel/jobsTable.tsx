@@ -10,12 +10,12 @@ import {
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   HeadSortCell,
   useTableSort,
-} from 'sentry/views/insights/agents/components/headSortCell';
-import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+} from 'sentry/views/insights/pages/agents/components/headSortCell';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';

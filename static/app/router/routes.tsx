@@ -22,6 +22,7 @@ import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL'
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {getModuleView} from 'sentry/views/insights/pages/utils';
@@ -2069,35 +2070,101 @@ function buildRoutes(): RouteObject[] {
         ...moduleRoutes,
       ],
     },
+    // Redirect old links to the new mcp landing page
+    {
+      path: `ai/mcp/`,
+      redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${MCP_LANDING_SUB_PATH}/`,
+    },
+    {
+      path: `${MCP_LANDING_SUB_PATH}/`,
+      component: make(() => import('sentry/views/insights/pages/mcp/layout')),
+      children: [
+        {
+          index: true,
+          handle: {module: undefined},
+          component: make(() => import('sentry/views/insights/pages/mcp/overview')),
+        },
+        transactionSummaryRoute,
+        traceView,
+        {
+          path: `${MODULE_BASE_URLS[ModuleName.MCP_TOOLS]}/`,
+          children: [
+            {
+              index: true,
+              handle: {module: ModuleName.MCP_TOOLS},
+              component: make(
+                () => import('sentry/views/insights/mcp-tools/views/mcpToolsLandingPage')
+              ),
+            },
+          ],
+        },
+        {
+          path: `${MODULE_BASE_URLS[ModuleName.MCP_RESOURCES]}/`,
+          children: [
+            {
+              index: true,
+              handle: {module: ModuleName.MCP_RESOURCES},
+              component: make(
+                () =>
+                  import(
+                    'sentry/views/insights/mcp-resources/views/mcpResourcesLandingPage'
+                  )
+              ),
+            },
+          ],
+        },
+        {
+          path: `${MODULE_BASE_URLS[ModuleName.MCP_PROMPTS]}/`,
+          children: [
+            {
+              index: true,
+              handle: {module: ModuleName.MCP_PROMPTS},
+              component: make(
+                () =>
+                  import('sentry/views/insights/mcp-prompts/views/mcpPromptsLandingPage')
+              ),
+            },
+          ],
+        },
+      ],
+    },
+    // Redirect old links to the new agents landing page
+    {
+      path: `ai/*`,
+      redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`,
+    },
     {
       path: `${AGENTS_LANDING_SUB_PATH}/`,
       component: make(() => import('sentry/views/insights/pages/agents/layout')),
       children: [
         {
           index: true,
-          component: make(() => import('sentry/views/insights/pages/agents/redirect')),
+          handle: {module: undefined},
+          component: make(() => import('sentry/views/insights/pages/agents/overview')),
         },
         transactionSummaryRoute,
         traceView,
         {
-          path: `${MODULE_BASE_URLS[ModuleName.AGENTS]}/`,
+          path: `${MODULE_BASE_URLS[ModuleName.AGENT_MODELS]}/`,
           children: [
             {
               index: true,
-              handle: {module: ModuleName.AGENTS},
+              handle: {module: ModuleName.AGENT_MODELS},
               component: make(
-                () => import('sentry/views/insights/agents/views/overview')
+                () => import('sentry/views/insights/agentModels/views/modelsLandingPage')
               ),
             },
           ],
         },
         {
-          path: `${MODULE_BASE_URLS[ModuleName.MCP]}/`,
+          path: `${MODULE_BASE_URLS[ModuleName.AGENT_TOOLS]}/`,
           children: [
             {
               index: true,
-              handle: {module: ModuleName.MCP},
-              component: make(() => import('sentry/views/insights/mcp/views/overview')),
+              handle: {module: ModuleName.AGENT_TOOLS},
+              component: make(
+                () => import('sentry/views/insights/agentTools/views/toolsLandingPage')
+              ),
             },
           ],
         },
