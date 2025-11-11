@@ -476,239 +476,95 @@ class TestGetSlowConditionsForGroups(TestCase):
         }
 
 
+# Constants to make TestTriggerResult easier to read
+TRUE = TriggerResult.TRUE
+FALSE = TriggerResult.FALSE
+ERR = ConditionError(msg="test error")
+
+
 class TestTriggerResult(unittest.TestCase):
-    def test_any_all_untainted_true_returns_untainted_true(self):
-        items = [
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=True, error=None),
-            TriggerResult(triggered=False, error=None),
-        ]
-        result = TriggerResult.any(items)
-        assert result.triggered is True
-        assert result.error is None
 
-    def test_any_only_tainted_true_returns_tainted_true(self):
-        error = ConditionError(msg="test error")
-        items = [
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=True, error=error),
-            TriggerResult(triggered=False, error=None),
-        ]
-        result = TriggerResult.any(items)
-        assert result.triggered is True
-        assert result.error == error
+    def test_any_all_untainted_true_returns_untainted_true(self) -> None:
+        assert TriggerResult.any([FALSE, TRUE, FALSE]) == TRUE
 
-    def test_any_no_true_returns_false_with_error_if_present(self):
-        error = ConditionError(msg="test error")
-        items = [
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=False, error=error),
-            TriggerResult(triggered=False, error=None),
-        ]
-        result = TriggerResult.any(items)
-        assert result.triggered is False
-        assert result.error == error
+    def test_any_one_untainted_true_returns_untainted_true(self) -> None:
+        assert TriggerResult.any([TRUE, TRUE.with_error(ERR)]) == TRUE
+        assert TriggerResult.any([TRUE.with_error(ERR), TRUE]) == TRUE
 
-    def test_any_all_false_untainted_returns_untainted_false(self):
-        items = [
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=False, error=None),
-        ]
-        result = TriggerResult.any(items)
-        assert result.triggered is False
-        assert result.error is None
+    def test_any_only_tainted_true_returns_tainted_true(self) -> None:
+        assert TriggerResult.any([FALSE, TRUE.with_error(ERR), FALSE]) == TRUE.with_error(ERR)
 
-    def test_all_all_untainted_true_returns_untainted_true(self):
-        items = [
-            TriggerResult(triggered=True, error=None),
-            TriggerResult(triggered=True, error=None),
-            TriggerResult(triggered=True, error=None),
-        ]
-        result = TriggerResult.all(items)
-        assert result.triggered is True
-        assert result.error is None
+    def test_any_no_true_returns_false_with_error_if_present(self) -> None:
+        assert TriggerResult.any([FALSE, FALSE.with_error(ERR), FALSE]) == FALSE.with_error(ERR)
 
-    def test_all_any_tainted_returns_tainted(self):
-        error = ConditionError(msg="test error")
-        items = [
-            TriggerResult(triggered=True, error=None),
-            TriggerResult(triggered=True, error=error),
-            TriggerResult(triggered=True, error=None),
-        ]
-        result = TriggerResult.all(items)
-        assert result.triggered is True
-        assert result.error == error
+    def test_any_all_false_untainted_returns_untainted_false(self) -> None:
+        assert TriggerResult.any([FALSE, FALSE, FALSE]) == FALSE
 
-    def test_all_with_untainted_false_and_tainted_true_returns_clean_false(self):
-        error = ConditionError(msg="test error")
-        items = [
-            TriggerResult(triggered=True, error=None),
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=True, error=error),
-        ]
-        result = TriggerResult.all(items)
-        assert result.triggered is False
-        assert result.error is None  # Clean because we have untainted False
+    def test_all_all_untainted_true_returns_untainted_true(self) -> None:
+        assert TriggerResult.all([TRUE, TRUE, TRUE]) == TRUE
 
-    def test_all_with_only_tainted_false_returns_tainted_false(self):
-        error = ConditionError(msg="test error")
-        items = [
-            TriggerResult(triggered=True, error=None),
-            TriggerResult(triggered=False, error=error),
-        ]
-        result = TriggerResult.all(items)
-        assert result.triggered is False
-        assert result.error == error  # Tainted because only False is tainted
+    def test_all_any_tainted_returns_tainted(self) -> None:
+        assert TriggerResult.all([TRUE, TRUE.with_error(ERR), TRUE]) == TRUE.with_error(ERR)
 
-    def test_all_all_false_untainted_returns_untainted_false(self):
-        items = [
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=False, error=None),
-        ]
-        result = TriggerResult.all(items)
-        assert result.triggered is False
-        assert result.error is None
+    def test_all_with_untainted_false_and_tainted_true_returns_clean_false(self) -> None:
+        # Clean because we have untainted False
+        assert TriggerResult.all([TRUE, FALSE, TRUE.with_error(ERR)]) == FALSE
 
-    def test_any_with_generator_preserves_error(self):
-        error = ConditionError(msg="test error")
-        items = [
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=False, error=error),
-            TriggerResult(triggered=False, error=None),
-        ]
-        result = TriggerResult.any(item for item in items)
-        assert result.triggered is False
-        assert result.error == error
+    def test_all_with_only_tainted_false_returns_tainted_false(self) -> None:
+        assert TriggerResult.all([TRUE, FALSE.with_error(ERR)]) == FALSE.with_error(ERR)
 
-    def test_any_untainted_true_with_tainted_false_returns_clean_true(self):
-        error = ConditionError(msg="test error")
-        items = [
-            TriggerResult(triggered=True, error=None),
-            TriggerResult(triggered=False, error=error),
-        ]
-        result = TriggerResult.any(items)
-        assert result.triggered is True
-        assert result.error is None
+    def test_all_all_false_untainted_returns_untainted_false(self) -> None:
+        assert TriggerResult.all([FALSE, FALSE, FALSE]) == FALSE
 
-    def test_all_untainted_false_with_tainted_true_returns_clean_false(self):
-        error = ConditionError(msg="test error")
-        items = [
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=True, error=error),
-        ]
-        result = TriggerResult.all(items)
-        assert result.triggered is False
-        assert result.error is None
+    def test_any_with_generator_preserves_error(self) -> None:
+        assert TriggerResult.any(iter([FALSE, FALSE.with_error(ERR), FALSE])) == FALSE.with_error(
+            ERR
+        )
 
-    def test_all_with_generator_preserves_error(self):
-        error = ConditionError(msg="test error")
-        items = [
-            TriggerResult(triggered=True, error=None),
-            TriggerResult(triggered=True, error=error),
-            TriggerResult(triggered=True, error=None),
-        ]
-        result = TriggerResult.all(item for item in items)
-        assert result.triggered is True
-        assert result.error == error
+    def test_any_untainted_true_with_tainted_false_returns_clean_true(self) -> None:
+        assert TriggerResult.any([TRUE, FALSE.with_error(ERR)]) == TRUE
 
-    def test_none_empty_returns_untainted_true(self):
-        result = TriggerResult.none([])
-        assert result.triggered is True
-        assert result.error is None
+    def test_all_untainted_false_with_tainted_true_returns_clean_false(self) -> None:
+        assert TriggerResult.all([FALSE, TRUE.with_error(ERR)]) == FALSE
 
-    def test_none_all_false_untainted_returns_untainted_true(self):
-        items = [
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=False, error=None),
-        ]
-        result = TriggerResult.none(items)
-        assert result.triggered is True
-        assert result.error is None
+    def test_all_with_generator_preserves_error(self) -> None:
+        assert TriggerResult.all(iter([TRUE, TRUE.with_error(ERR), TRUE])) == TRUE.with_error(ERR)
 
-    def test_none_all_false_with_error_returns_tainted_true(self):
-        error = ConditionError(msg="test error")
-        items = [
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=False, error=error),
-            TriggerResult(triggered=False, error=None),
-        ]
-        result = TriggerResult.none(items)
-        assert result.triggered is True
-        assert result.error == error
+    def test_none_empty_returns_untainted_true(self) -> None:
+        assert TriggerResult.none([]) == TRUE
 
-    def test_none_one_true_returns_untainted_false(self):
-        items = [
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=True, error=None),
-            TriggerResult(triggered=False, error=None),
-        ]
-        result = TriggerResult.none(items)
-        assert result.triggered is False
-        assert result.error is None
+    def test_none_all_false_untainted_returns_untainted_true(self) -> None:
+        assert TriggerResult.none([FALSE, FALSE, FALSE]) == TRUE
 
-    def test_none_one_true_with_error_returns_tainted_false(self):
-        error = ConditionError(msg="test error")
-        items = [
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=True, error=error),
-            TriggerResult(triggered=False, error=None),
-        ]
-        result = TriggerResult.none(items)
-        assert result.triggered is False
-        assert result.error == error
+    def test_none_all_false_with_error_returns_tainted_true(self) -> None:
+        assert TriggerResult.none([FALSE, FALSE.with_error(ERR), FALSE]) == TRUE.with_error(ERR)
 
-    def test_none_untainted_true_with_tainted_false_returns_clean_false(self):
-        error = ConditionError(msg="test error")
-        items = [
-            TriggerResult(triggered=True, error=None),
-            TriggerResult(triggered=False, error=error),
-        ]
-        result = TriggerResult.none(items)
-        assert result.triggered is False
-        assert result.error is None
+    def test_none_one_true_returns_untainted_false(self) -> None:
+        assert TriggerResult.none([FALSE, TRUE, FALSE]) == FALSE
 
-    def test_or_with_untainted_true_returns_clean_true(self):
-        error = ConditionError(msg="test error")
-        left = TriggerResult(triggered=True, error=None)
-        right = TriggerResult(triggered=False, error=error)
-        result = left | right
-        assert result.triggered is True
-        assert result.error is None  # Clean because we have untainted True
+    def test_none_one_true_with_error_returns_tainted_false(self) -> None:
+        assert TriggerResult.none([FALSE, TRUE.with_error(ERR), FALSE]) == FALSE.with_error(ERR)
 
-    def test_or_with_only_tainted_true_returns_tainted_true(self):
-        error = ConditionError(msg="test error")
-        left = TriggerResult(triggered=True, error=error)
-        right = TriggerResult(triggered=False, error=None)
-        result = left | right
-        assert result.triggered is True
-        assert result.error == error  # Tainted because only True is tainted
+    def test_none_untainted_true_with_tainted_false_returns_clean_false(self) -> None:
+        assert TriggerResult.none([TRUE, FALSE.with_error(ERR)]) == FALSE
 
-    def test_and_with_untainted_false_returns_clean_false(self):
-        error = ConditionError(msg="test error")
-        left = TriggerResult(triggered=False, error=None)
-        right = TriggerResult(triggered=True, error=error)
-        result = left & right
-        assert result.triggered is False
-        assert result.error is None  # Clean because we have untainted False
+    def test_or_with_untainted_true_returns_clean_true(self) -> None:
+        # Clean because we have untainted True
+        assert (TRUE | FALSE.with_error(ERR)) == TRUE
 
-    def test_and_with_only_tainted_false_returns_tainted_false(self):
-        error = ConditionError(msg="test error")
-        left = TriggerResult(triggered=True, error=None)
-        right = TriggerResult(triggered=False, error=error)
-        result = left & right
-        assert result.triggered is False
-        assert result.error == error  # Tainted because only False is tainted
+    def test_or_with_only_tainted_true_returns_tainted_true(self) -> None:
+        # Tainted because only True is tainted
+        assert (TRUE.with_error(ERR) | FALSE) == TRUE.with_error(ERR)
 
-    def test_none_with_generator_preserves_error(self):
-        error = ConditionError(msg="test error")
-        items = [
-            TriggerResult(triggered=False, error=None),
-            TriggerResult(triggered=False, error=error),
-            TriggerResult(triggered=False, error=None),
-        ]
-        result = TriggerResult.none(item for item in items)
-        assert result.triggered is True
-        assert result.error == error
+    def test_and_with_untainted_false_returns_clean_false(self) -> None:
+        # Clean because we have untainted False
+        assert (FALSE & TRUE.with_error(ERR)) == FALSE
+
+    def test_and_with_only_tainted_false_returns_tainted_false(self) -> None:
+        # Tainted because only False is tainted
+        assert (TRUE & FALSE.with_error(ERR)) == FALSE.with_error(ERR)
+
+    def test_none_with_generator_preserves_error(self) -> None:
+        assert TriggerResult.none(iter([FALSE, FALSE.with_error(ERR), FALSE])) == TRUE.with_error(
+            ERR
+        )

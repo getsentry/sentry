@@ -50,7 +50,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
                     result={None: DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)},
                     tainted=False,
                 )
-                return {None: DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)}
 
             def extract_value(self, data_packet: DataPacket[dict[Never, Never]]) -> bool:
                 return True

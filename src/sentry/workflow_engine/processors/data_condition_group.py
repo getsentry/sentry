@@ -53,6 +53,15 @@ class TriggerResult:
         """
         return self.error is not None
 
+    def with_error(self, error: ConditionError) -> "TriggerResult":
+        """
+        Returns a new TriggerResult with the same triggered value but the given error.
+        If the result is already tainted, the error is ignored.
+        """
+        if self.is_tainted():
+            return self
+        return TriggerResult(triggered=self.triggered, error=error)
+
     @staticmethod
     def any(items: Iterable["TriggerResult"]) -> "TriggerResult":
         """
