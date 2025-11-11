@@ -213,9 +213,9 @@ def extract_tool_schema(tool_class: type[ExplorerTool]) -> CustomToolDefinition:
 
 
 def call_custom_tool(
+    *,
     module_path: str,
     organization_id: int,
-    *,
     allowed_prefixes: tuple[str, ...] = ("sentry.",),
     **kwargs: Any,
 ) -> str:

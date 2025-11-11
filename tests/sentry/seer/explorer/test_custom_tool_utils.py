@@ -233,7 +233,7 @@ class CustomToolUtilsTest(TestCase):
 
         # Call via the utility function
         result = call_custom_tool(
-            module_path,
+            module_path=module_path,
             allowed_prefixes=("sentry.", "tests.sentry."),
             organization_id=self.organization.id,
             message="Hi",
@@ -245,7 +245,7 @@ class CustomToolUtilsTest(TestCase):
         """Test calling a custom tool with default parameter."""
         module_path = "tests.sentry.seer.explorer.test_custom_tool_utils.TestToolWithDefault"
         result = call_custom_tool(
-            module_path,
+            module_path=module_path,
             allowed_prefixes=("sentry.", "tests.sentry."),
             organization_id=self.organization.id,
             value="Hello",
@@ -255,14 +255,21 @@ class CustomToolUtilsTest(TestCase):
     def test_call_custom_tool_security_restriction(self):
         """Test that only allowed prefixes module paths are allowed."""
         with pytest.raises(ValueError) as cm:
-            call_custom_tool("os.system", self.organization.id, command="ls")
+            call_custom_tool(
+                module_path="os.system",
+                organization_id=self.organization.id,
+                command="ls",
+            )
         assert "must start with one of" in str(cm.value)
         assert "('sentry.',)" in str(cm.value)
 
     def test_call_custom_tool_invalid_path(self):
         """Test calling with invalid module path."""
         with pytest.raises(ValueError) as cm:
-            call_custom_tool("sentry.nonexistent.module.function", self.organization.id)
+            call_custom_tool(
+                module_path="sentry.nonexistent.module.function",
+                organization_id=self.organization.id,
+            )
         assert "Could not import" in str(cm.value)
 
     def test_call_custom_tool_wrong_return_type(self):
