@@ -335,7 +335,7 @@ def stacktrace_exceeds_limits(
     - Platforms in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK bypass all checks
     - Other platforms are checked against MAX_FRAME_COUNT and max_token_count limits
     """
-    platform = event.platform
+    platform: str = event.platform or "unknown"
     shared_tags = {"referrer": referrer.value, "platform": platform}
 
     contributing_variant, contributing_component = get_contributing_variant_and_component(variants)
@@ -392,7 +392,7 @@ def stacktrace_exceeds_limits(
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**shared_tags, "outcome": "block_tokens"},
         )
-        report_token_count_metric(event, variants, "block_tokens")
+        report_token_count_metric(event, variants, "block_tokens", token_count)
         return True
 
     metrics.incr(
@@ -520,6 +520,7 @@ def report_token_count_metric(
     event: Event | GroupEvent,
     variants: dict[str, BaseVariant],
     outcome: str,
+    token_count: int | None = None,
 ) -> None:
     """
     Calculate token count and report metrics for stacktrace token analysis.
@@ -537,7 +538,8 @@ def report_token_count_metric(
 
     platform = event.platform or "unknown"
 
-    token_count = get_token_count(event, variants, platform)
+    if token_count is None:
+        token_count = get_token_count(event, variants, platform)
 
     metrics.distribution(
         "grouping.similarity.token_count",
