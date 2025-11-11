@@ -260,6 +260,12 @@ Sentry.startSpan({
       action: 'test_error_span',
     });`
       : ''
+  }${
+    params.isMetricsSelected
+      ? `
+    // Send a test metric before throwing the error
+    Sentry.metrics.count('test_counter', 1);`
+      : ''
   }
     foo();
   } catch (e) {
@@ -276,7 +282,13 @@ Sentry.logger.info('User triggered test error', {
   action: 'test_error_basic',
 });`
     : ''
-}
+}${
+                params.isMetricsSelected
+                  ? `
+// Send a test metric before throwing the error
+Sentry.metrics.count('test_counter', 1);`
+                  : ''
+              }
 try {
   foo();
 } catch (e) {
@@ -297,6 +309,17 @@ try {
           'Add logging integrations to automatically capture logs from your application.'
         ),
         link: 'https://docs.sentry.io/platforms/javascript/guides/node/logs/#integrations',
+      });
+    }
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/node/metrics/',
       });
     }
 

@@ -1,4 +1,5 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/metrics';
 
 import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
@@ -18,6 +19,10 @@ const docs: Docs = {
   profilingOnboarding: profiling,
   agentMonitoringOnboarding: agentMonitoring,
   logsOnboarding: logs,
+  metricsOnboarding: metricsFullStack({
+    docsPlatform: 'react-router',
+    packageName: '@sentry/react-router',
+  }),
 };
 
 export default docs;

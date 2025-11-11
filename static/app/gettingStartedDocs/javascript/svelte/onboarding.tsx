@@ -1,22 +1,45 @@
-import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 import {getSdkSetupSnippet, installSnippetBlock} from './utils';
 
-const getVerifySnippet = (isVersion5: boolean) =>
-  isVersion5
+const getVerifySnippet = (params: DocsParams, isVersion5: boolean) => {
+  const logsCode = params.isLogsSelected
+    ? `    // Send a log before throwing the error
+    Sentry.logger.info('User triggered test error', {
+      action: 'test_error_button_click',
+    });
+`
+    : '';
+
+  const metricsCode = params.isMetricsSelected
+    ? `    // Send a test metric before throwing the error
+    Sentry.metrics.count('test_counter', 1);
+`
+    : '';
+
+  const errorCode =
+    logsCode || metricsCode
+      ? `${logsCode}${metricsCode}    throw new Error("This is your first error!");`
+      : `throw new Error("This is your first error!")`;
+
+  return isVersion5
     ? `
 // SomeComponent.svelte
-<button type="button" onclick="{() => {throw new Error("This is your first error!");}}">
+<button type="button" onclick="{() => {${errorCode}}}">
   Break the world
 </button>`
     : `
 // SomeComponent.svelte
-<button type="button" on:click="{() => {throw new Error("This is your first error!");}}">
+<button type="button" on:click="{() => {${errorCode}}}">
   Break the world
 </button>`;
+};
 
 export const onboarding: OnboardingConfig = {
   introduction: () =>
@@ -74,7 +97,7 @@ export const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -90,12 +113,12 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'Svelte v5',
               language: 'html',
-              code: getVerifySnippet(true),
+              code: getVerifySnippet(params, true),
             },
             {
               label: 'Svelte v3/v4',
               language: 'html',
-              code: getVerifySnippet(false),
+              code: getVerifySnippet(params, false),
             },
           ],
         },
@@ -122,6 +145,17 @@ export const onboarding: OnboardingConfig = {
           'Add logging integrations to automatically capture logs from your application.'
         ),
         link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/logs/#integrations',
+      });
+    }
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/metrics/',
       });
     }
 

@@ -96,6 +96,41 @@ describe('javascript-react onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
+  it('includes metrics API calls in verify when metrics is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.METRICS],
+    });
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/Sentry\.metrics\.count\('test_counter', 1\)/)
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('shows Metrics in next steps when metrics is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.METRICS,
+      ],
+    });
+
+    expect(screen.getByText('Metrics')).toBeInTheDocument();
+  });
+
+  it('does not show Metrics in next steps when metrics is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+  });
+
   it('shows Logging Integrations in next steps when logs is selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
@@ -117,5 +152,12 @@ describe('javascript-react onboarding docs', () => {
     });
 
     expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
+  });
+
+  it('has metrics onboarding configuration', () => {
+    expect(docs.metricsOnboarding).toBeDefined();
+    expect(docs.metricsOnboarding?.install).toBeDefined();
+    expect(docs.metricsOnboarding?.configure).toBeDefined();
+    expect(docs.metricsOnboarding?.verify).toBeDefined();
   });
 });

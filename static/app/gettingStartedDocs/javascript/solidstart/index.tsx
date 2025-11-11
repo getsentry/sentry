@@ -1,5 +1,6 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
+import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/metrics';
 
 import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
@@ -18,6 +19,10 @@ const docs: Docs = {
   profilingOnboarding: profiling,
   agentMonitoringOnboarding: agentMonitoring,
   logsOnboarding: logs,
+  metricsOnboarding: metricsFullStack({
+    docsPlatform: 'solidstart',
+    packageName: '@sentry/solidstart',
+  }),
 };
 
 export default docs;

@@ -61,7 +61,7 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'Javascript',
               language: 'javascript',
-              code: `myUndefinedFunction();`,
+              code: 'myUndefinedFunction();',
             },
           ],
         },

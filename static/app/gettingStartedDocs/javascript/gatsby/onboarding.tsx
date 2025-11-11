@@ -17,11 +17,17 @@ const getVerifySnippet = (params: DocsParams) => {
 `
     : '';
 
+  const metricsCode = params.isMetricsSelected
+    ? `// Send a test metric before throwing the error
+    Sentry.metrics.count('test_counter', 1);
+`
+    : '';
+
   return `
 import * as Sentry from "@sentry/gatsby";
 
 setTimeout(() => {
-  ${logsCode}throw new Error("Sentry Test Error");
+  ${logsCode}${metricsCode}throw new Error("Sentry Test Error");
 });`;
 };
 
@@ -89,6 +95,17 @@ export const onboarding: OnboardingConfig = {
           'Add logging integrations to automatically capture logs from your application.'
         ),
         link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/logs/#integrations',
+      });
+    }
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/metrics/',
       });
     }
 
