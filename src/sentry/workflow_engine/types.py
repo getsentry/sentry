@@ -120,7 +120,7 @@ class WorkflowEvaluation:
         else:
             log_str = f"{log_str}.actions.triggered"
 
-        logger.info(log_str, extra={**asdict(self.data), "msg": self.msg})
+        logger.info(log_str, extra={**asdict(self.data), "debug_msg": self.msg})
 
 
 class ConfigTransformer(ABC):
