@@ -34,7 +34,12 @@ class SearchResolverConfig:
     # Whether to set the timestamp granularities to stable buckets
     stable_timestamp_quantization: bool = True
 
-    def extra_conditions(self, search_resolver: "SearchResolver") -> TraceItemFilter | None:
+    def extra_conditions(
+        self,
+        search_resolver: "SearchResolver",
+        selected_columns: list[str] | None,
+        equations: list[str] | None,
+    ) -> TraceItemFilter | None:
         return None
 
 
@@ -81,3 +86,6 @@ class AdditionalQueries:
     span: list[str] | None
     log: list[str] | None
     metric: list[str] | None
+
+
+MetricType = Literal["counter", "gauge", "distribution"]
