@@ -74,7 +74,10 @@ export function MetricDetails({
                   renderers={LogAttributesRendererMap}
                   rendererExtra={{
                     attributeTypes: {},
-                    attributes: {},
+                    attributes: data.attributes.reduce(
+                      (it, {name, value}) => ({...it, [name]: value}),
+                      {}
+                    ),
                     highlightTerms: [],
                     logColors: getLogColors(SeverityLevel.INFO, theme),
                     location,

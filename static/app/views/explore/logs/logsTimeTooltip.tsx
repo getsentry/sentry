@@ -38,7 +38,9 @@ function TimestampTooltipBody({
     : null;
   const timestampToUse = preciseTimestampMs ? new Date(preciseTimestampMs) : timestamp;
 
-  const observedTimeNanos = attributes[OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE];
+  const observedTimeNanos =
+    attributes[OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE] ??
+    attributes['sentry.observed_timestamp_nanos']; // Deprecated, should be removed in the future once the alias is fixed in metrics.
   const observedTimeMs =
     observedTimeNanos && typeof observedTimeNanos === 'string'
       ? Math.floor(Number(observedTimeNanos) / 1_000_000)

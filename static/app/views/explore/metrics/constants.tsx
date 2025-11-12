@@ -23,6 +23,7 @@ export const AlwaysPresentTraceMetricFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.METRIC_TYPE,
   TraceMetricKnownFieldKey.METRIC_NAME,
   TraceMetricKnownFieldKey.TIMESTAMP,
+  TraceMetricKnownFieldKey.OBSERVED_TIMESTAMP_NANOS,
 ];
 
 /**
