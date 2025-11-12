@@ -366,6 +366,7 @@ def as_trace_item(
     # Extend the attributes with the replay_id to make it queryable by replay_id after we
     # eventually use the trace_id in its rightful position.
     trace_item_context["attributes"]["replay_id"] = context["replay_id"]
+    trace_item_context["attributes"]["segment_id"] = context["segment_id"]
 
     return new_trace_item(
         {
