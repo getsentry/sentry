@@ -50,6 +50,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
+    from sentry.workflow_engine.models import Detector
 
 MONITOR_CONFIG = {
     "type": "object",
@@ -810,6 +811,15 @@ class MonitorEnvBrokenDetection(Model):
     class Meta:
         app_label = "monitors"
         db_table = "sentry_monitorenvbrokendetection"
+
+
+def get_cron_monitor(detector: Detector) -> Monitor:
+    """
+    Given a detector get the matching cron monitor.
+    """
+    data_source = detector.data_sources.first()
+    assert data_source
+    return Monitor.objects.get(id=int(data_source.source_id))
 
 
 @data_source_type_registry.register(DATA_SOURCE_CRON_MONITOR)
