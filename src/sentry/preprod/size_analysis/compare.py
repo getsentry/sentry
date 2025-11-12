@@ -113,8 +113,7 @@ def compare_size_analysis(
             extra={
                 "head_analysis_version": head_size_analysis_results.analysis_version,
                 "base_analysis_version": base_size_analysis_results.analysis_version,
-                "organization_id": head_size_analysis.organization_id,
-                "project_id": head_size_analysis.project_id,
+                "preprod_artifact_id": head_size_analysis.preprod_artifact_id,
             },
         )
 
