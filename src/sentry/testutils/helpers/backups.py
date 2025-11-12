@@ -700,6 +700,7 @@ class ExhaustiveFixtures(Fixtures):
 
         # Use the alert_rule's QuerySubscription for the DataSource
         query_subscription = alert.snuba_query.subscriptions.first()
+        assert query_subscription is not None
         data_source = self.create_data_source(
             organization=org,
             source_id=str(query_subscription.id),
