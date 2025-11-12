@@ -583,4 +583,118 @@ describe('ProjectSeer', () => {
     });
     expect(toggle).toBeInTheDocument();
   });
+
+  describe('Auto-Trigger Fixes with triage-signals-v0', () => {
+    it('shows as toggle when flag enabled, dropdown when disabled', async () => {
+      const projectWithFlag = ProjectFixture({
+        features: ['triage-signals-v0'],
+        seerScannerAutomation: true,
+        autofixAutomationTuning: 'off',
+      });
+
+      const {unmount} = render(<ProjectSeer />, {
+        organization,
+        outletContext: {project: projectWithFlag},
+      });
+
+      await screen.findByText(/Automation/i);
+      expect(
+        screen.getByRole('checkbox', {name: /Auto-Trigger Fixes/i})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('textbox', {name: /Auto-Trigger Fixes/i})
+      ).not.toBeInTheDocument();
+
+      unmount();
+
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {
+          project: ProjectFixture({
+            seerScannerAutomation: true,
+            autofixAutomationTuning: 'high',
+          }),
+        },
+      });
+
+      await screen.findByText(/Automation/i);
+      expect(
+        screen.getByRole('textbox', {name: /Auto-Trigger Fixes/i})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('checkbox', {name: /Auto-Trigger Fixes/i})
+      ).not.toBeInTheDocument();
+    });
+
+    it('maps values correctly: off=unchecked, others=checked', async () => {
+      const {unmount} = render(<ProjectSeer />, {
+        organization,
+        outletContext: {
+          project: ProjectFixture({
+            features: ['triage-signals-v0'],
+            seerScannerAutomation: true,
+            autofixAutomationTuning: 'off',
+          }),
+        },
+      });
+
+      expect(
+        await screen.findByRole('checkbox', {name: /Auto-Trigger Fixes/i})
+      ).not.toBeChecked();
+      unmount();
+
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {
+          project: ProjectFixture({
+            features: ['triage-signals-v0'],
+            seerScannerAutomation: true,
+            autofixAutomationTuning: 'high',
+          }),
+        },
+      });
+
+      expect(
+        await screen.findByRole('checkbox', {name: /Auto-Trigger Fixes/i})
+      ).toBeChecked();
+    });
+
+    it('saves "always" when toggled ON, "off" when toggled OFF', async () => {
+      const projectPutRequest = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      render(<ProjectSeer />, {
+        organization,
+        outletContext: {
+          project: ProjectFixture({
+            features: ['triage-signals-v0'],
+            seerScannerAutomation: true,
+            autofixAutomationTuning: 'off',
+          }),
+        },
+      });
+
+      const toggle = await screen.findByRole('checkbox', {name: /Auto-Trigger Fixes/i});
+      await userEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(projectPutRequest).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({data: {autofixAutomationTuning: 'always'}})
+        );
+      });
+
+      await userEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(projectPutRequest).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({data: {autofixAutomationTuning: 'off'}})
+        );
+      });
+    });
+  });
 });

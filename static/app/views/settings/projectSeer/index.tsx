@@ -84,6 +84,21 @@ export const autofixAutomatingTuningField = {
   visible: ({model}) => model?.getValue('seerScannerAutomation') === true,
 } satisfies FieldObject;
 
+export const autofixAutomationToggleField = {
+  name: 'autofixAutomationTuning',
+  label: t('Auto-Trigger Fixes'),
+  help: () =>
+    t(
+      'When enabled, Seer will automatically analyze actionable issues in the background based on fixability analysis.'
+    ),
+  type: 'boolean',
+  saveOnBlur: true,
+  saveMessage: t('Automatic Seer settings updated'),
+  getData: (data: Record<string, boolean>) => ({
+    autofixAutomationTuning: data.autofixAutomationTuning ? 'always' : 'off',
+  }),
+} satisfies FieldObject;
+
 function ProjectSeerGeneralForm({project}: {project: Project}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -222,7 +237,9 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       ),
       fields: [
         ...(isTriageSignalsFeatureOn ? [] : [seerScannerAutomationField]),
-        autofixAutomatingTuningField,
+        isTriageSignalsFeatureOn
+          ? autofixAutomationToggleField
+          : autofixAutomatingTuningField,
         automatedRunStoppingPointField,
       ],
     },
@@ -235,14 +252,16 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           preference?.automation_handoff
             ? 'cursor_handoff'
             : (preference?.automated_run_stopping_point ?? 'root_cause')
-        }`}
+        }-${isTriageSignalsFeatureOn}`}
         saveOnBlur
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
         allowUndo
         initialData={{
           seerScannerAutomation: project.seerScannerAutomation ?? false,
-          autofixAutomationTuning: project.autofixAutomationTuning ?? 'off',
+          autofixAutomationTuning: isTriageSignalsFeatureOn
+            ? (project.autofixAutomationTuning ?? 'off') !== 'off'
+            : (project.autofixAutomationTuning ?? 'off'),
           automated_run_stopping_point: preference?.automation_handoff
             ? 'cursor_handoff'
             : (preference?.automated_run_stopping_point ?? 'root_cause'),
