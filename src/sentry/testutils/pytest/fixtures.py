@@ -182,7 +182,7 @@ elif _snapshot_writeback != "new":
 repo_abs_path = os.path.realpath(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(sentry.__file__))))
 )
-SNAPSHOT_REGEX = re.compile(r"^---\r?\n(.*?)\r?\n---\r?\n(.*)$", re.DOTALL)
+SNAPSHOT_REGEX = re.compile(r"^---\r?\n.*?\r?\n---\r?\n(.*)$", re.DOTALL)
 
 
 @pytest.fixture
