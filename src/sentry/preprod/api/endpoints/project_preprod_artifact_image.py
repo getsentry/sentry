@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from django.http import HttpResponse
+from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -59,6 +60,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
 
     def get(
         self,
+        _: Request,
         project: Project,
         image_id: str,
     ) -> HttpResponse:
