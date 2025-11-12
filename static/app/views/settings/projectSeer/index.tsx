@@ -84,6 +84,21 @@ export const autofixAutomatingTuningField = {
   visible: ({model}) => model?.getValue('seerScannerAutomation') === true,
 } satisfies FieldObject;
 
+const autofixAutomationToggleField = {
+  name: 'autofixAutomationTuning',
+  label: t('Auto-Trigger Fixes'),
+  help: () =>
+    t(
+      'When enabled, Seer will automatically analyze actionable issues in the background.'
+    ),
+  type: 'boolean',
+  saveOnBlur: true,
+  saveMessage: t('Automatic Seer settings updated'),
+  getData: (data: Record<PropertyKey, unknown>) => ({
+    autofixAutomationTuning: data.autofixAutomationTuning ? 'always' : 'off',
+  }),
+} satisfies FieldObject;
+
 function ProjectSeerGeneralForm({project}: {project: Project}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -91,6 +106,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
   const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
 
+  const isTriageSignalsFeatureOn = project.features.includes('triage-signals-v0');
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
 
   const cursorIntegration = codingAgentIntegrations?.integrations.find(
@@ -190,12 +206,22 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     saveOnBlur: true,
     saveMessage: t('Stopping point updated'),
     onChange: handleStoppingPointChange,
-    visible: ({model}) =>
-      model?.getValue('seerScannerAutomation') === true &&
-      model?.getValue('autofixAutomationTuning') !== 'off',
-  } satisfies FieldObject;
+    visible: ({model}) => {
+      const tuningValue = model?.getValue('autofixAutomationTuning');
+      // Handle both boolean (toggle) and string (dropdown) values
+      const automationEnabled =
+        typeof tuningValue === 'boolean' ? tuningValue : tuningValue !== 'off';
 
-  const isTriageSignalsFeatureOn = project.features.includes('triage-signals-v0');
+      // When feature flag is ON (toggle mode): only check automation
+      // When feature flag is OFF (dropdown mode): check both scanner and automation
+      if (isTriageSignalsFeatureOn) {
+        return automationEnabled;
+      }
+
+      const scannerEnabled = model?.getValue('seerScannerAutomation') === true;
+      return scannerEnabled && automationEnabled;
+    },
+  } satisfies FieldObject;
 
   const seerFormGroups: JsonFormObject[] = [
     {
@@ -222,7 +248,9 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       ),
       fields: [
         ...(isTriageSignalsFeatureOn ? [] : [seerScannerAutomationField]),
-        autofixAutomatingTuningField,
+        isTriageSignalsFeatureOn
+          ? autofixAutomationToggleField
+          : autofixAutomatingTuningField,
         automatedRunStoppingPointField,
       ],
     },
@@ -235,14 +263,17 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
           preference?.automation_handoff
             ? 'cursor_handoff'
             : (preference?.automated_run_stopping_point ?? 'root_cause')
-        }`}
+        }-${isTriageSignalsFeatureOn}`}
         saveOnBlur
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
         allowUndo
         initialData={{
           seerScannerAutomation: project.seerScannerAutomation ?? false,
-          autofixAutomationTuning: project.autofixAutomationTuning ?? 'off',
+          // Same DB field, different UI: toggle (boolean) vs dropdown (string)
+          autofixAutomationTuning: isTriageSignalsFeatureOn
+            ? (project.autofixAutomationTuning ?? 'off') !== 'off'
+            : (project.autofixAutomationTuning ?? 'off'),
           automated_run_stopping_point: preference?.automation_handoff
             ? 'cursor_handoff'
             : (preference?.automated_run_stopping_point ?? 'root_cause'),

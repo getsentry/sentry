@@ -838,9 +838,6 @@ class Referrer(StrEnum):
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"
     TAGSTORE_GET_GROUPS_USER_COUNTS = "tagstore.get_groups_user_counts"
-    TAGSTORE_GET_GROUPS_USER_COUNTS_OPEN_PR_COMMENT = (
-        "tagstore.get_groups_user_counts.open_pr_comment"
-    )
     TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE = "tagstore.get_groups_user_counts.groupsnooze"
     TAGSTORE_GET_GROUPS_USER_COUNTS_IGNORED = "tagstore.get_groups_user_counts.ignored"
     TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION = (
