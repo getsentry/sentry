@@ -44,8 +44,8 @@ export function ChapterList({timeRanges}: Props) {
       timeRanges
         .filter(
           ({period_start, period_end}) =>
-            period_start > (replay?.getStartTimestampMs() ?? 0) &&
-            period_end > (replay?.getStartTimestampMs() ?? 0)
+            period_start >= (replay?.getStartTimestampMs() ?? 0) &&
+            period_end >= (replay?.getStartTimestampMs() ?? 0)
         )
         .map(({period_title, period_start, period_end}) => ({
           title: period_title,
