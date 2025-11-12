@@ -86,13 +86,16 @@ class WorkflowEvaluationData:
 @dataclass(frozen=True)
 class WorkflowEvaluation:
     """
-    The result of when a workflow is evaluated,
-    the only required property is the `tainted` field,
-    this is used to determine if the evaluation was
-    successfully executed or not.
+    This is the result of `process_workflows`, and is used to
+    encapsulate different stages of completion for the method.
 
-    The rest of the data is meant to include debug information
-    so we can easily determine why a workflow was or was not triggered.
+    The `tainted` flag is used to indicate whether or not actions
+    have been triggered during the workflows evaluation.
+
+    The `msg` field is used for debug information during the evaluation.
+
+    The `data` attribute will include all the data used to evaluate the
+    workflows, and determine if an action should be triggered.
     """
 
     tainted: bool
@@ -117,7 +120,7 @@ class WorkflowEvaluation:
         else:
             log_str = f"{log_str}.actions.triggered"
 
-        logger.info(log_str, extra=asdict(self.data))
+        logger.info(log_str, extra={**asdict(self.data), "msg": self.msg})
 
 
 class ConfigTransformer(ABC):
