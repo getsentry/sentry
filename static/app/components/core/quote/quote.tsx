@@ -19,14 +19,15 @@ export type QuoteProps = QuoteBaseProps & Omit<StackProps<'blockquote'>, 'childr
 export function Quote(props: QuoteProps) {
   const {children, ...spreadProps} = props;
   return (
-    <Stack as="figure" position="relative" {...spreadProps}>
+    <Stack gap="md" as="figure" position="relative" {...spreadProps}>
       <Line aria-orientation="vertical" />
       <Blockquote cite={props.source?.href} as="blockquote">
         {children}
       </Blockquote>
       {props.source ? (
-        <figcaption>
+        <Caption>
           <Text as="p">
+            &ndash;&nbsp;
             {props.source.author}
             {props.source?.label ? (
               <Fragment>
@@ -34,7 +35,7 @@ export function Quote(props: QuoteProps) {
               </Fragment>
             ) : null}
           </Text>
-        </figcaption>
+        </Caption>
       ) : null}
     </Stack>
   );
@@ -55,6 +56,16 @@ const Line = styled('hr')`
 `;
 
 const Blockquote = styled('blockquote')`
+  /**
+   * Reset any properties that might be set by the global CSS styles.
+   */
+  margin: 0;
+  padding: 0;
+  border: none;
+  padding-left: calc(${p => `${p.theme.space.xl} + ${p.theme.space.lg}`});
+`;
+
+const Caption = styled('figcaption')`
   /**
    * Reset any properties that might be set by the global CSS styles.
    */
