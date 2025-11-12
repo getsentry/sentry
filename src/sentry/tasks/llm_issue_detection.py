@@ -82,8 +82,8 @@ def create_issue_occurrence_from_detection(
     occurrence_id = uuid4().hex
     detection_time = datetime.now(UTC)
     project = Project.objects.get_from_cache(id=project_id)
-
-    fingerprint = [f"llm-detected-{detected_issue.title}-{transaction_name}"]
+    title = detected_issue.title.lower().replace(" ", "-")
+    fingerprint = [f"llm-detected-{title}-{transaction_name}"]
 
     evidence_data = {
         "trace_id": trace.trace_id,
