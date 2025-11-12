@@ -694,15 +694,15 @@ class Fixtures:
 
     def create_detector(
         self,
+        project: Project | None = None,
+        type: str | None = ErrorGroupType.slug,
         *args,
-        project=None,
-        type=ErrorGroupType.slug,
         **kwargs,
     ) -> Detector:
         if project is None:
             project = self.create_project(organization=self.organization)
 
-        return Factories.create_detector(*args, project=project, type=type, **kwargs)
+        return Factories.create_detector(project=project, type=type, *args, **kwargs)
 
     def create_detector_state(self, *args, **kwargs) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)
