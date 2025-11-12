@@ -119,7 +119,7 @@ def query_replay_instance_with_short_id(
     end: datetime,
     organization: Organization | None = None,
     request_user_id: int | None = None,
-) -> list[dict[str, Any]] | None:
+) -> list[dict[str, Any]]:
     """
     Query aggregated replay instance with a string prefix filter.
     Date range is chunked into 14 day intervals, newest to oldest, to avoid timeouts.
@@ -149,7 +149,7 @@ def query_replay_instance_with_short_id(
 
         window_end = window_start
 
-    return None
+    return []
 
 
 def query_replay_viewed_by_ids(

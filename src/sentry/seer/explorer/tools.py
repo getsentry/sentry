@@ -542,15 +542,12 @@ def get_replay_metadata(
     if not features.has("organizations:session-replay", organization):
         return None
 
-    # Validate the replay ID.
+    # Validate full IDs and normalize with dashes. Short IDs are expected to be valid - query errors if not.
     if len(replay_id) >= 32:
         try:
             replay_id = str(uuid.UUID(replay_id))  # UUID with dashes is recommended for the query.
         except ValueError:
             return None
-
-    elif len(replay_id) != 8 or not replay_id.isalnum():
-        return None
 
     p_ids_and_slugs = list(
         Project.objects.filter(
@@ -563,13 +560,16 @@ def get_replay_metadata(
     start, end = default_start_end_dates()
 
     if len(replay_id) >= 32:
-        snuba_response = query_replay_instance(
-            project_id=[id for id, _ in p_ids_and_slugs],
-            replay_id=replay_id,
-            start=start,
-            end=end,
-            organization=organization,
-            request_user_id=None,
+        snuba_response = (
+            query_replay_instance(
+                project_id=[id for id, _ in p_ids_and_slugs],
+                replay_id=replay_id,
+                start=start,
+                end=end,
+                organization=organization,
+                request_user_id=None,
+            )
+            or []
         )
     else:
         snuba_response = query_replay_instance_with_short_id(
