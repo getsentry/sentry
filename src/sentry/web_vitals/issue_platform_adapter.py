@@ -68,7 +68,7 @@ def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: st
 
     # TODO: Add better titles and subtitles
     if data["vital_grouping"] == "rendering":
-        title = "Rendering Web Vital scores needs improvement"
+        title = "Render time Web Vital scores need improvement"
     else:
         title = f"{data['vital_grouping'].upper()} score needs improvement"
     subtitle_parts = []

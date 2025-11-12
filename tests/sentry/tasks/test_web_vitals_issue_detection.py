@@ -231,7 +231,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
             lcp_call = call_args_list[0]
             lcp_occurrence = lcp_call.kwargs["occurrence"]
             assert lcp_occurrence.fingerprint == ["d94185e6d794589212c74476702515734b703f86"]
-            assert lcp_occurrence.issue_title == "Rendering score needs improvement"
+            assert lcp_occurrence.issue_title == "Render time Web Vital scores need improvement"
             assert (
                 lcp_occurrence.subtitle == "/home has an LCP score of 0.5 and an FCP score of 0.8"
             )
