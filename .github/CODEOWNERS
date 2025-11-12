@@ -680,6 +680,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/*/migrations/                                @getsentry/owners-migrations
 /src/social_auth/migrations/                             @getsentry/owners-migrations
 /fixtures/safe_migrations_apps/                          @getsentry/owners-migrations
+/tools/migrations/                                       @getsentry/owners-migrations
+/.github/workflows/migrations-drift.yml                  @getsentry/owners-migrations
 
 # Preprod build artifact analysis
 /src/sentry/preprod                                   @getsentry/emerge-tools
