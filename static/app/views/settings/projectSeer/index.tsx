@@ -84,7 +84,7 @@ export const autofixAutomatingTuningField = {
   visible: ({model}) => model?.getValue('seerScannerAutomation') === true,
 } satisfies FieldObject;
 
-export const autofixAutomationToggleField = {
+const autofixAutomationToggleField = {
   name: 'autofixAutomationTuning',
   label: t('Auto-Trigger Fixes'),
   help: () =>
