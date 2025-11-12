@@ -3364,15 +3364,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# option used to enable/disable applying
-# stack trace rules in profiles
-register(
-    "profiling.stack_trace_rules.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "performance.event-tracker.sample-rate.transactions",
     default=0.0,
