@@ -249,8 +249,6 @@ describe('AutofixRootCause', () => {
     });
     await userEvent.click(dropdownTrigger);
 
-    expect(
-      await screen.findByText('Send to Cursor Cloud Agent')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Send to Cursor Cloud Agent')).toBeInTheDocument();
   });
 });

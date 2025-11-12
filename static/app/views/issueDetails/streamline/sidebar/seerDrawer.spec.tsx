@@ -801,8 +801,6 @@ describe('SeerDrawer', () => {
     );
 
     // Should not show the step since it was skipped
-    expect(
-      screen.queryByText('Hand Off to Cursor Cloud Agents')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Hand Off to Cursor Cloud Agents')).not.toBeInTheDocument();
   });
 });
