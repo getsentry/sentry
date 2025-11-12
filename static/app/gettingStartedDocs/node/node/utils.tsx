@@ -892,32 +892,16 @@ export const getNodeMetricsOnboarding = <
       ],
     },
   ],
-  configure: (params: DocsParams) => [
+  configure: () => [
     {
       type: StepType.CONFIGURE,
       content: [
         {
           type: 'text',
           text: tct(
-            'Metrics are automatically enabled in your [code:Sentry.init()] configuration. You can emit metrics using the [code:Sentry.metrics] API.',
+            'Metrics are automatically enabled after Sentry is initialized. You can emit metrics using the [code:Sentry.metrics] API.',
             {code: <code />}
           ),
-        },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: `
-const Sentry = require("${packageName}");
-
-Sentry.init({
-  dsn: "${params.dsn.public}",
-});
-
-// Emit custom metrics
-Sentry.metrics.count('button_click', 1);
-Sentry.metrics.gauge('page_load_time', 150);
-Sentry.metrics.distribution('response_time', 200);
-`,
         },
         {
           type: 'text',
