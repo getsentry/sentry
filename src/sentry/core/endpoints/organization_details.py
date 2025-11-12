@@ -183,12 +183,6 @@ ORG_OPTIONS = (
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
     (
-        "githubOpenPRBot",
-        "sentry:github_open_pr_bot",
-        bool,
-        GITHUB_COMMENT_BOT_DEFAULT,
-    ),
-    (
         "githubNudgeInvite",
         "sentry:github_nudge_invite",
         bool,
