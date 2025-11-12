@@ -14,6 +14,7 @@ from sentry.digests.notifications import (
 )
 from sentry.digests.types import NotificationWithRuleObjects, Record, RecordWithRuleObjects
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.testutils.cases import TestCase
@@ -24,6 +25,10 @@ pytestmark = [requires_snuba]
 
 class BindRecordsTestCase(TestCase):
     notification_uuid = str(uuid.uuid4())
+
+    @cached_property
+    def project(self) -> Project:
+        return self.create_project(fire_project_created=True)
 
     @cached_property
     def rule(self) -> Rule:
@@ -59,6 +64,10 @@ class GroupRecordsTestCase(TestCase):
     notification_uuid = str(uuid.uuid4())
 
     @cached_property
+    def project(self) -> Project:
+        return self.create_project(fire_project_created=True)
+
+    @cached_property
     def rule(self) -> Rule:
         return self.project.rule_set.all()[0]
 
@@ -82,6 +91,10 @@ class GroupRecordsTestCase(TestCase):
 
 
 class SortDigestTestCase(TestCase):
+    @cached_property
+    def project(self) -> Project:
+        return self.create_project(fire_project_created=True)
+
     def test_success(self) -> None:
         Rule.objects.create(
             project=self.project,
