@@ -3559,14 +3559,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for treating demo user as unauthenticated
-# in our auth pipelines.
-register(
-    "demo-user.auth.pipelines.always.unauthenticated.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Rate at which to forward events to eap_items. 1.0
 # means that 100% of projects will forward events to eap_items.
