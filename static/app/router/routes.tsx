@@ -1088,7 +1088,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/organizationIntegrations/configureIntegration'
               )
           ),
-          deprecatedRouteProps: true,
         },
       ],
     },
