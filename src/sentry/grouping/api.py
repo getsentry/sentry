@@ -376,7 +376,7 @@ def _get_variants_from_strategies(
     return variants
 
 
-# This is called by the Event model in get_grouping_variants()
+# This is called by the Event model in `get_grouping_variants()`
 def get_grouping_variants_for_event(
     event: Event, config: StrategyConfiguration | None = None
 ) -> dict[str, BaseVariant]:

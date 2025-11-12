@@ -1,5 +1,5 @@
 ---
-created: '2025-11-05T23:19:00.565524+00:00'
+created: '2025-11-06T19:58:02.007898+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -45,7 +45,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (path:**https://unpkg.com/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (path:**https://unpkg.com/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -80,7 +80,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (path:**https://cdnjs.cloudflare.com/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (path:**https://cdnjs.cloudflare.com/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -113,7 +113,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (path:**https://cdn.jsdelivr.net/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (path:**https://cdn.jsdelivr.net/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -146,7 +146,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (path:**https://esm.run/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (path:**https://esm.run/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [

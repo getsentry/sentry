@@ -1,5 +1,5 @@
 ---
-created: '2025-11-05T23:18:58.307452+00:00'
+created: '2025-11-06T19:58:00.710516+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -277,7 +277,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -308,7 +308,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -339,7 +339,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -401,7 +401,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:internals -group)",
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
                     "id": "frame",
                     "name": null,
                     "values": [

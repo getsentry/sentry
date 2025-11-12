@@ -26,8 +26,10 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.event import EventDict
 from sentry.snuba.events import Columns
 from sentry.spans.grouping.api import load_span_grouping_config
+from sentry.utils import metrics
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
+from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 logger = logging.getLogger(__name__)
 
@@ -337,7 +339,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
         `variants` data used in grouping.
         """
 
-        variants = self.get_grouping_variants(config)
+        # variants = self.get_grouping_variants(config)
+        variants = self.get_grouping_variants(config, normalize_stacktraces=True)
         hashes_by_variant = {
             variant_name: variant.get_hash() for variant_name, variant in variants.items()
         }
@@ -412,6 +415,12 @@ class BaseEvent(metaclass=abc.ABCMeta):
         """
         from sentry.grouping.api import get_grouping_variants_for_event, load_grouping_config
 
+        # if not normalize_stacktraces:
+        #     breakpoint()
+        #     assert 1 == 1
+        # else:
+        #     breakpoint()
+        #     assert 1 == 1
         # Forcing configs has two separate modes.  One is where just the
         # config ID is given in which case it's merged with the stored or
         # default config dictionary
@@ -437,7 +446,19 @@ class BaseEvent(metaclass=abc.ABCMeta):
             loaded_grouping_config = load_grouping_config(grouping_config)
 
         if normalize_stacktraces:
-            with sentry_sdk.start_span(op="grouping.normalize_stacktraces_for_grouping") as span:
+            with (
+                metrics.timer(
+                    # TODO: Change the name of this metric from `event_manager` and update dashboards
+                    # See https://app.datadoghq.com/metric/summary?filter=normalize_stacktraces_for_grouping
+                    "event_manager.normalize_stacktraces_for_grouping",
+                    tags={
+                        "grouping_config": loaded_grouping_config.id,
+                        "platform": self.platform or "unknown",
+                        "sdk": normalized_sdk_tag_from_event(self.data),
+                    },
+                ),
+                sentry_sdk.start_span(op="grouping.normalize_stacktraces_for_grouping") as span,
+            ):
                 span.set_tag("project", self.project_id)
                 span.set_tag("event_id", self.event_id)
                 self.normalize_stacktraces_for_grouping(loaded_grouping_config)

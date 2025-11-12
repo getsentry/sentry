@@ -1,5 +1,5 @@
 ---
-created: '2025-11-05T23:19:00.044117+00:00'
+created: '2025-11-06T19:58:01.657770+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouping_info.py
 ---
@@ -421,7 +421,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
+                    "hint": "marked out of app by built-in stack trace rule (family:native function:std::* -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -454,7 +454,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (family:native function:std::* -app)",
+                    "hint": "marked out of app by built-in stack trace rule (family:native function:std::* -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1016,7 +1016,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
+                    "hint": "marked out of app by built-in stack trace rule (category:throw ^-app -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1047,7 +1047,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
+                    "hint": "marked out of app by built-in stack trace rule (category:throw ^-app -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1078,7 +1078,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (category:throw ^-app -app)",
+                    "hint": "marked out of app by built-in stack trace rule (category:throw ^-app -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1161,7 +1161,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1192,7 +1192,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1223,7 +1223,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1254,7 +1254,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:threadbase -group v-group)",
+                    "hint": "ignored by built-in stack trace rule (category:threadbase -group v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1378,7 +1378,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:indirection -group)",
+                    "hint": "ignored by built-in stack trace rule (category:indirection -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1473,7 +1473,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:indirection -group)",
+                    "hint": "ignored by built-in stack trace rule (category:indirection -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1537,7 +1537,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:internals -group)",
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1570,7 +1570,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:internals -group)",
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -1727,7 +1727,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:indirection -group)",
+                    "hint": "ignored by built-in stack trace rule (category:indirection -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -2132,7 +2132,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:throw ^-group -group)",
+                    "hint": "ignored by built-in stack trace rule (category:throw ^-group -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -2163,7 +2163,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:throw ^-group -group)",
+                    "hint": "ignored by built-in stack trace rule (category:throw ^-group -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -2194,7 +2194,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:throw ^-group -group)",
+                    "hint": "ignored by built-in stack trace rule (category:throw ^-group -group)",
                     "id": "frame",
                     "name": null,
                     "values": [

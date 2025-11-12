@@ -510,11 +510,18 @@ def _single_stacktrace_variant(
         and frame_components[0].contributes
         and get_behavior_family_for_platform(frames[0].platform or event.platform) == "javascript"
         and not frames[0].function
-        and has_url_origin(frames[0].abs_path, files_count_as_urls=True)
     ):
-        frame_components[0].update(
-            contributes=False, hint="ignored single non-URL JavaScript frame"
-        )
+        # TODO: The `newstyle:2023-01-11` config has this backwards - it finds frames *with* URLs
+        # rather than frames without them. Once we've fully transitioned off of it, the
+        # `should_ignore_frame` condition can get moved to the main `if`.
+        should_ignore_frame = not has_url_origin(frames[0].abs_path, files_count_as_urls=True)
+        if context.get("handle_js_single_frame_url_origin_backwards"):
+            should_ignore_frame = not should_ignore_frame
+
+        if should_ignore_frame:
+            frame_components[0].update(
+                contributes=False, hint="ignored single non-URL JavaScript frame"
+            )
 
     stacktrace_component = context.config.enhancements.assemble_stacktrace_component(
         variant_name,
@@ -650,7 +657,7 @@ def chained_exception(
     # Filter the exceptions according to rules for handling exception groups.
     try:
         exceptions = filter_exceptions_for_exception_groups(
-            all_exceptions, exception_components_by_exception, event
+            all_exceptions, exception_components_by_exception, event, context
         )
     except Exception:
         # We shouldn't have exceptions here. But if we do, just record it and continue with the
@@ -715,19 +722,23 @@ def filter_exceptions_for_exception_groups(
     exceptions: list[SingleException],
     exception_components: dict[int, dict[str, ExceptionGroupingComponent]],
     event: Event,
+    context: GroupingContext,
 ) -> list[SingleException]:
     # This function only filters exceptions if there are at least two exceptions.
     if len(exceptions) <= 1:
         return exceptions
 
-    # TODO: Get rid of this hack!
+    # TODO: Get rid of this hack once we are fully transitioned off of the `newstyle:2023-01-11`
+    # config
     #
     # A change in the python SDK between version 2 and version 3 means that suddenly this function
     # applies where it didn't used to, which in turn changes how some exception groups are hashed.
     # As a temporary stopgap, until we can build a system akin to the grouping config transition
     # system to compensate for the change, we're just emulating the old behavior.
-    if event.platform == "python" and get_path(event.data, "sdk", "version", default="").startswith(
-        "3"
+    if (
+        event.platform == "python"
+        and get_path(event.data, "sdk", "version", default="").startswith("3")
+        and context.get("use_python_sdk_version_2_to_3_hack")
     ):
         return exceptions
 
