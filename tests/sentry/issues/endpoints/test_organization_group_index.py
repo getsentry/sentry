@@ -3104,7 +3104,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolvedInNextRelease"
+            qs_params={"id": group.id},
+            status="resolved",
+            statusDetails={"inNextRelease": True},
         )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
@@ -3157,7 +3159,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolvedInNextRelease"
+            qs_params={"id": group.id},
+            status="resolved",
+            statusDetails={"inNextRelease": True},
         )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
@@ -3215,7 +3219,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolvedInNextRelease"
+            qs_params={"id": group.id},
+            status="resolved",
+            statusDetails={"inNextRelease": True},
         )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
@@ -3281,7 +3287,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert Group.objects.get(id=group.id).get_last_release() == release_1.version
 
         response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolvedInNextRelease"
+            qs_params={"id": group.id},
+            status="resolved",
+            statusDetails={"inNextRelease": True},
         )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
@@ -3322,7 +3330,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         response = self.get_success_response(
-            qs_params={"id": group.id}, status="resolvedInNextRelease"
+            qs_params={"id": group.id},
+            status="resolved",
+            statusDetails={"inNextRelease": True},
         )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]

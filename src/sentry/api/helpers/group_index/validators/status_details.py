@@ -76,14 +76,7 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
                 )
 
     def validate_inNextRelease(self, value: bool) -> "Release":
-        project = self.context["project"]
-        try:
-            return (
-                Release.objects.filter(projects=project, organization_id=project.organization_id)
-                .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                .order_by("-sort")[0]
-            )
-        except IndexError:
-            raise serializers.ValidationError(
-                "No release data present in the system to form a basis for 'Next Release'"
-            )
+        # Just validate it's a boolean - the actual release selection logic
+        # is handled by get_release_to_resolve_by() which properly handles
+        # both semver and non-semver projects
+        return value

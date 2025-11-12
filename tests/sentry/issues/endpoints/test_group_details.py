@@ -339,7 +339,9 @@ class GroupUpdateTest(APITestCase):
         assert GroupResolution.objects.all().count() == 0
 
         url = f"/api/0/issues/{group.id}/"
-        response = self.client.put(url, data={"status": "resolvedInNextRelease"})
+        response = self.client.put(
+            url, data={"status": "resolved", "statusDetails": {"inNextRelease": True}}
+        )
         assert response.status_code == 200, response.content
 
         # Refetch from DB to ensure the latest state is fetched
@@ -397,7 +399,7 @@ class GroupUpdateTest(APITestCase):
         assert GroupResolution.objects.all().count() == 0
 
         url = f"/api/0/issues/{group.id}/"
-        data = {"status": "resolvedInNextRelease"}
+        data = {"status": "resolved", "statusDetails": {"inNextRelease": True}, "substatus": None}
         response = self.client.put(url, data=data)
         assert response.status_code == 200, response.content == {}
 
@@ -445,7 +447,9 @@ class GroupUpdateTest(APITestCase):
         group = self.create_group_with_no_release(project)
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
-        response = self.client.put(url, data={"status": "resolvedInNextRelease"})
+        response = self.client.put(
+            url, data={"status": "resolved", "statusDetails": {"inNextRelease": True}}
+        )
         assert response.status_code == 200, response.content
 
         # Refetch from DB to ensure the latest state is fetched
