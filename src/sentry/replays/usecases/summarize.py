@@ -253,7 +253,11 @@ def get_summary_logs(
     error_events.sort(key=lambda x: x["timestamp"])
     return list(
         generate_summary_logs(
-            segment_data, error_events, project_id, is_mobile_replay, replay_start
+            segment_data,
+            error_events,
+            project_id,
+            is_mobile_replay=is_mobile_replay,
+            replay_start=replay_start,
         )
     )
 
@@ -595,5 +599,11 @@ def rpc_get_replay_summary_logs(
     segment_data = iter_segment_data(segment_md)
 
     # Combine replay and error data and parse into logs.
-    logs = get_summary_logs(segment_data, error_events, project.id, is_mobile_replay, replay_start)
+    logs = get_summary_logs(
+        segment_data,
+        error_events,
+        project.id,
+        is_mobile_replay=is_mobile_replay,
+        replay_start=replay_start,
+    )
     return {"logs": logs}
