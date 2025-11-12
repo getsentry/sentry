@@ -182,7 +182,7 @@ elif _snapshot_writeback != "new":
 repo_abs_path = os.path.realpath(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(sentry.__file__))))
 )
-_yaml_snap_re = re.compile(r"^---\r?\n(.*?)\r?\n---\r?\n(.*)$", re.DOTALL)
+SNAPSHOT_REGEX = re.compile(r"^---\r?\n(.*?)\r?\n---\r?\n(.*)$", re.DOTALL)
 
 
 @pytest.fixture
@@ -202,7 +202,7 @@ class ReadableYamlDumper(yaml.dumper.SafeDumper):
 
 def read_snapshot_file(reference_file: str) -> tuple[str, str]:
     with open(reference_file, encoding="utf-8") as f:
-        match = _yaml_snap_re.match(f.read())
+        match = SNAPSHOT_REGEX.match(f.read())
         if match is None:
             raise OSError()
 
