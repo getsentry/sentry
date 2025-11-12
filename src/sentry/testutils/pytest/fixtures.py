@@ -179,7 +179,7 @@ if _snapshot_writeback in ("true", "1", "overwrite"):
     _snapshot_writeback = "overwrite"
 elif _snapshot_writeback != "new":
     _snapshot_writeback = None
-_test_base = os.path.realpath(
+repo_abs_path = os.path.realpath(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(sentry.__file__))))
 )
 _yaml_snap_re = re.compile(r"^---\r?\n(.*?)\r?\n---\r?\n(.*)$", re.DOTALL)
@@ -278,8 +278,8 @@ def insta_snapshot(request: pytest.FixtureRequest) -> Generator[InstaSnapshotter
         if _snapshot_writeback is not None and is_unequal:
             os.makedirs(os.path.dirname(reference_file), exist_ok=True)
             source = os.path.realpath(str(request.node.fspath))
-            if source.startswith(_test_base + os.path.sep):
-                source = source[len(_test_base) + 1 :]
+            if source.startswith(repo_abs_path + os.path.sep):
+                source = source[len(repo_abs_path) + 1 :]
             if _snapshot_writeback == "new":
                 reference_file += ".new"
             with open(reference_file, "w") as f:
