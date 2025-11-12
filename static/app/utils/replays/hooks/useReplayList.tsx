@@ -25,7 +25,7 @@ type State = Awaited<ReturnType<typeof fetchReplayList>> & {isFetching: boolean}
 type Result = State;
 
 /**
- * @deprecated due to its reliance on EventView which is considered bad practice
+ * @deprecated due to its reliance on EventView which is unpleasant to work with
  * Use useApiQuery instead
  */
 function useReplayList({
