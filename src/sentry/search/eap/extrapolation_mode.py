@@ -13,7 +13,7 @@ def resolve_extrapolation_mode(
     if argument_override:
         return argument_override
 
-    if search_config.extrapolation_mode:
+    if search_config.extrapolation_mode is not None:
         return search_config.extrapolation_mode
 
     return ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
