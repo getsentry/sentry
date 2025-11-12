@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -192,13 +193,17 @@ function _LowAccuracyFullTooltip({
           {t(
             "You can try adjusting your query by narrowing the date range, removing filters or increasing the chart's time interval."
           )}
-          <br />
-          {t(
-            'You can also increase your sampling rates to get more samples and accurate trends.'
+          {/* Do not show if no sampling happened to the data points in the series as they are already at 100% sampling  */}
+          {!noSampling && (
+            <Fragment>
+              <br />
+              {t(
+                'You can also increase your sampling rates to get more samples and accurate trends.'
+              )}
+            </Fragment>
           )}
         </div>
       }
-      disabled={noSampling}
       maxWidth={270}
       showUnderline
     >
