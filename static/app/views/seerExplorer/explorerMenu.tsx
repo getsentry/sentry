@@ -1,9 +1,8 @@
 import {Activity, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
+import {DateTime} from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
-import {getUserTimezone} from 'sentry/utils/dates';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
 
@@ -29,7 +28,7 @@ interface ExplorerMenuProps {
 }
 
 interface MenuItemProps {
-  description: string;
+  description: string | React.ReactNode;
   handler: () => void;
   key: string;
   title: string;
@@ -307,15 +306,14 @@ function useSessions({
       return [];
     }
 
-    const formatDate = (date: string) => {
-      const userTimezone = getUserTimezone();
-      return moment.tz(date, userTimezone || 'UTC').format('MM/DD/YYYY HH:mm z');
-    };
-
     return data.data.map(session => ({
       title: session.title,
       key: session.run_id.toString(),
-      description: `Last updated at ${formatDate(session.last_triggered_at)}`,
+      description: (
+        <span>
+          Last updated at <DateTime date={session.last_triggered_at} />
+        </span>
+      ),
       handler: () => {
         onChangeSession(session.run_id);
       },

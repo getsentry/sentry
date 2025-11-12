@@ -94,15 +94,12 @@ const InputRow = styled('div')`
 const ButtonContainer = styled('div')`
   display: flex;
   align-items: stretch;
+  padding: ${p => p.theme.space.sm};
 
   button {
     flex: 1;
     height: 100%;
     min-height: 100%;
-    border-radius: 0;
-    border-left: none;
-    border-top: none;
-    border-bottom: none;
   }
 `;
 
