@@ -10,8 +10,6 @@ import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {ReplayListQueryReferrer, ReplayListRecord} from 'sentry/views/replays/types';
 
-export const DEFAULT_SORT = '-started_at';
-
 type State = {
   fetchError: undefined | RequestError;
   pageLinks: null | string;
