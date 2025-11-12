@@ -1,10 +1,9 @@
 import logging
+import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
-from django.urls import reverse
-
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.api import client
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer, IssueEventSerializerResponse
@@ -16,6 +15,8 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.replays.post_process import process_raw_response
+from sentry.replays.query import query_replay_instance, query_replay_instance_with_short_id
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
@@ -521,7 +522,7 @@ def get_replay_metadata(
     Get the metadata for a replay through an aggregate replay event query.
 
     Args:
-        replay_id: The ID of the replay.
+        replay_id: The ID of the replay. Either a valid UUID or a 8-character hex string prefix. If known, the full ID is recommended for performance.
         organization_id: The ID of the organization the replay belongs to.
         project_id: The projects to query. If not provided, all projects in the organization will be queried.
 
@@ -538,38 +539,65 @@ def get_replay_metadata(
         )
         return None
 
-    path = reverse(
-        "sentry-api-0-organization-replay-details",
-        args=(organization.slug, replay_id),
+    if not features.has("organizations:session-replay", organization):
+        return None
+
+    # Validate the replay ID.
+    if len(replay_id) >= 32:
+        try:
+            replay_id = str(uuid.UUID(replay_id))  # UUID with dashes is recommended for the query.
+        except ValueError:
+            return None
+
+    elif len(replay_id) != 8 or not replay_id.isalnum():
+        return None
+
+    p_ids_and_slugs = list(
+        Project.objects.filter(
+            organization_id=organization.id,
+            status=ObjectStatus.ACTIVE,
+            **({"id": project_id} if project_id else {}),
+        ).values_list("id", "slug")
     )
-    path = path.strip("/")[len("api/0") :] + "/"
 
-    params = {}
-    if project_id:
-        params["project"] = project_id
+    start, end = default_start_end_dates()
 
-    resp = client.get(
-        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
-        user=None,
-        path=path,
-        params=params,
+    if len(replay_id) >= 32:
+        snuba_response = query_replay_instance(
+            project_id=[id for id, _ in p_ids_and_slugs],
+            replay_id=replay_id,
+            start=start,
+            end=end,
+            organization=organization,
+            request_user_id=None,
+        )
+    else:
+        snuba_response = query_replay_instance_with_short_id(
+            project_ids=[id for id, _ in p_ids_and_slugs],
+            replay_id_prefix=replay_id,
+            start=start,
+            end=end,
+            organization=organization,
+            request_user_id=None,
+        )
+
+    response = process_raw_response(
+        snuba_response,
+        fields=[],
     )
 
-    if resp.status_code != 200 or not (resp.data or {}).get("data"):
+    if not response:
         logger.warning(
-            "Failed to get replay metadata",
+            "Replay instance not found - no data returned from query",
             extra={
                 "replay_id": replay_id,
                 "organization_id": organization_id,
-                "project_id": project_id,
-                "status_code": resp.status_code,
             },
         )
         return None
 
     # Add project_slug field.
-    result = resp.data["data"]
-    project = Project.objects.get(id=result["project_id"])
-    result["project_slug"] = project.slug
-
+    result = cast(dict[str, Any], response[0])
+    _, project_slug = next(filter(lambda x: x[0] == int(result["project_id"]), p_ids_and_slugs))
+    result["project_slug"] = project_slug
     return result

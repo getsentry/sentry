@@ -32,6 +32,7 @@ from sentry.replays.usecases.query import (
     Paginators,
     execute_query,
     make_full_aggregation_query,
+    make_full_aggregation_query_with_short_id,
     query_using_optimized_search,
 )
 from sentry.search.events.types import SnubaParams
@@ -109,6 +110,46 @@ def query_replay_instance(
         tenant_id={"organization_id": organization.id} if organization else {},
         referrer="replays.query.details_query",
     )["data"]
+
+
+def query_replay_instance_with_short_id(
+    project_ids: list[int],
+    replay_id_prefix: str,
+    start: datetime,
+    end: datetime,
+    organization: Organization | None = None,
+    request_user_id: int | None = None,
+) -> list[dict[str, Any]] | None:
+    """
+    Query aggregated replay instance with a string prefix filter.
+    Date range is chunked into 14 day intervals, newest to oldest, to avoid timeouts.
+    This query can do large scans over the time range and project list.
+    """
+    window_size = timedelta(days=14)
+    window_end = end
+    while window_end > start:
+        window_start = max(window_end - window_size, start)
+
+        snuba_response = execute_query(
+            query=make_full_aggregation_query_with_short_id(
+                fields=["replay_id"],
+                replay_id_prefix=replay_id_prefix,
+                project_ids=project_ids,
+                period_start=window_start,
+                period_end=window_end,
+                request_user_id=request_user_id,
+                limit=1,
+            ),
+            tenant_id={"organization_id": organization.id} if organization else {},
+            referrer="replays.query.short_id_details_query",
+        )["data"]
+
+        if snuba_response:
+            return snuba_response
+
+        window_end = window_start
+
+    return None
 
 
 def query_replay_viewed_by_ids(

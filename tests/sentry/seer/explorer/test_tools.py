@@ -1,6 +1,6 @@
 import uuid
 from datetime import UTC, datetime, timedelta
-from typing import Literal
+from typing import Any, Literal
 from unittest.mock import patch
 
 import pytest
@@ -11,17 +11,24 @@ from sentry.constants import ObjectStatus
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.repository import Repository
+from sentry.replays.testutils import mock_replay
 from sentry.seer.endpoints.seer_rpc import get_organization_project_ids
 from sentry.seer.explorer.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     execute_trace_query_chart,
     execute_trace_query_table,
     get_issue_details,
+    get_replay_metadata,
     get_repository_definition,
     get_trace_waterfall,
 )
 from sentry.seer.sentry_data_models import EAPTrace
-from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
+from sentry.testutils.cases import (
+    APITransactionTestCase,
+    ReplaysSnubaTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.samples import load_data
@@ -577,62 +584,58 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         assert result is None
 
 
-class _Project(BaseModel):
-    id: int
-    slug: str
-
-
-class _Actor(BaseModel):
-    """Output of ActorSerializer."""
-
-    type: Literal["user", "team"]
-    id: str
-    name: str
-    email: str | None = None
-
-
-class _IssueMetadata(BaseModel):
-    """
-    A subset of BaseGroupSerializerResponse fields useful for Seer Explorer. In prod we send the full response.
-    """
-
-    id: int
-    shortId: str
-    title: str
-    culprit: str | None
-    permalink: str
-    level: str
-    status: str
-    substatus: str | None
-    platform: str | None
-    priority: str | None
-    type: str
-    issueType: str
-    issueTypeDescription: str  # Extra field added by get_issue_details.
-    issueCategory: str
-    hasSeen: bool
-    project: _Project
-    assignedTo: _Actor | None
-
-    # Optionals
-    isUnhandled: bool | None = None
-    count: str | None = None
-    userCount: int | None = None
-    firstSeen: datetime | None = None
-    lastSeen: datetime | None = None
-
-
-class _SentryEventData(BaseModel):
-    """
-    Required fields for the serialized events used by Seer Explorer.
-    """
-
-    title: str
-    entries: list[dict]
-    tags: list[dict[str, str | None]] | None = None
-
-
 class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
+
+    class _Project(BaseModel):
+        id: int
+        slug: str
+
+    class _Actor(BaseModel):
+        """Output of ActorSerializer."""
+
+        type: Literal["user", "team"]
+        id: str
+        name: str
+        email: str | None = None
+
+    class _IssueMetadata(BaseModel):
+        """
+        A subset of BaseGroupSerializerResponse fields useful for Seer Explorer. In prod we send the full response.
+        """
+
+        id: int
+        shortId: str
+        title: str
+        culprit: str | None
+        permalink: str
+        level: str
+        status: str
+        substatus: str | None
+        platform: str | None
+        priority: str | None
+        type: str
+        issueType: str
+        issueTypeDescription: str  # Extra field added by get_issue_details.
+        issueCategory: str
+        hasSeen: bool
+        project: "TestGetIssueDetails._Project"
+        assignedTo: "TestGetIssueDetails._Actor | None" = None
+
+        # Optionals
+        isUnhandled: bool | None = None
+        count: str | None = None
+        userCount: int | None = None
+        firstSeen: datetime | None = None
+        lastSeen: datetime | None = None
+
+    class _SentryEventData(BaseModel):
+        """
+        Required fields for the serialized events used by Seer Explorer.
+        """
+
+        title: str
+        entries: list[dict]
+        tags: list[dict[str, str | None]] | None = None
 
     def _validate_event_timeseries(self, timeseries: dict):
         assert isinstance(timeseries, dict)
@@ -707,12 +710,12 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
             # Validate fields of the main issue payload.
             assert isinstance(result["issue"], dict)
-            _IssueMetadata.parse_obj(result["issue"])
+            self._IssueMetadata.parse_obj(result["issue"])
 
             # Validate fields of the selected event.
             event_dict = result["event"]
             assert isinstance(event_dict, dict)
-            _SentryEventData.parse_obj(event_dict)
+            self._SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
 
             # Check correct event is returned based on selected_event_type.
@@ -819,7 +822,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert "event_trace_id" in result
         assert isinstance(result.get("project_id"), int)
         assert isinstance(result.get("issue"), dict)
-        _IssueMetadata.parse_obj(result.get("issue", {}))
+        self._IssueMetadata.parse_obj(result.get("issue", {}))
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
@@ -846,7 +849,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         )
 
         assert result is not None
-        md = _IssueMetadata.parse_obj(result["issue"])
+        md = self._IssueMetadata.parse_obj(result["issue"])
         assert md.assignedTo is not None
         assert md.assignedTo.type == "user"
         assert md.assignedTo.id == str(self.user.id)
@@ -874,7 +877,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         )
 
         assert result is not None
-        md = _IssueMetadata.parse_obj(result["issue"])
+        md = self._IssueMetadata.parse_obj(result["issue"])
         assert md.assignedTo is not None
         assert md.assignedTo.type == "team"
         assert md.assignedTo.id == str(self.team.id)
@@ -1144,3 +1147,165 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert result is not None
         assert result["provider"] == "integrations:github"
         assert result["external_id"] == "12345678"
+
+
+class TestGetReplayMetadata(ReplaysSnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    class _ReplayMetadataResponse(BaseModel):
+        """Extended from the ReplayDetailsResponse type. Though that type has total=False, we expect all fields to be present for this tool."""
+
+        id: str
+        project_id: str
+        project_slug: str  # Added for this tool.
+        trace_ids: list[str]
+        error_ids: list[str]
+        environment: str | None
+        tags: dict[str, list[str]] | list
+        user: dict[str, Any]
+        sdk: dict[str, Any]
+        os: dict[str, Any]
+        browser: dict[str, Any]
+        device: dict[str, Any]
+        ota_updates: dict[str, Any]
+        is_archived: bool | None
+        urls: list[str] | None
+        clicks: list[dict[str, Any]]
+        count_dead_clicks: int | None
+        count_rage_clicks: int | None
+        count_errors: int | None
+        duration: int | None
+        finished_at: str | None
+        started_at: str | None
+        activity: int | None
+        count_urls: int | None
+        replay_type: str
+        count_segments: int | None
+        platform: str | None
+        releases: list[str]
+        dist: str | None
+        warning_ids: list[str] | None
+        info_ids: list[str] | None
+        count_warnings: int | None
+        count_infos: int | None
+        has_viewed: bool
+
+    def test_get_replay_metadata_full_id(self) -> None:
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.now(UTC) - timedelta(seconds=10)
+        seq2_timestamp = datetime.now(UTC) - timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay1_id))
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay2_id))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay2_id))
+
+        with self.feature({"organizations:session-replay": True}):
+            # Replay 1
+            result = get_replay_metadata(
+                replay_id=replay1_id,
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+            )
+            assert result is not None
+            assert result["id"] == replay1_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Replay 2
+            result = get_replay_metadata(
+                replay_id=replay2_id,
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+            )
+            assert result is not None
+            assert result["id"] == replay2_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # No project ID
+            result = get_replay_metadata(
+                replay_id=replay1_id,
+                organization_id=self.organization.id,
+            )
+            assert result is not None
+            assert result["id"] == replay1_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Different project ID
+            result = get_replay_metadata(
+                replay_id=replay1_id,
+                organization_id=self.organization.id,
+                project_id=self.project.id + 1,
+            )
+            assert result is None
+
+    def test_get_replay_metadata_short_id(self) -> None:
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(datetime.now(UTC) - timedelta(seconds=10), self.project.id, replay1_id)
+        )
+        self.store_replays(
+            mock_replay(datetime.now(UTC) - timedelta(seconds=5), self.project.id, replay1_id)
+        )
+
+        # Store a replay at the very start of the retention period.
+        self.store_replays(
+            mock_replay(
+                datetime.now(UTC) - timedelta(days=89, seconds=10), self.project.id, replay2_id
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                datetime.now(UTC) - timedelta(days=89, seconds=5), self.project.id, replay2_id
+            )
+        )
+
+        with self.feature({"organizations:session-replay": True}):
+            # Replay 1
+            result = get_replay_metadata(
+                replay_id=replay1_id[:8],
+                organization_id=self.organization.id,
+            )
+            assert result is not None
+            assert result["id"] == replay1_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Replay 2
+            result = get_replay_metadata(
+                replay_id=replay2_id[:8],
+                organization_id=self.organization.id,
+            )
+            assert result is not None
+            assert result["id"] == replay2_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Short ID < 8 characters or has dashes (should fail gracefully)
+            assert (
+                get_replay_metadata(
+                    replay_id=replay1_id[:7],
+                    organization_id=self.organization.id,
+                )
+                is None
+            )
+
+            assert (
+                get_replay_metadata(
+                    replay_id=replay1_id[:7] + "-a",
+                    organization_id=self.organization.id,
+                )
+                is None
+            )

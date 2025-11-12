@@ -29,6 +29,7 @@ from snuba_sdk import (
     Entity,
     Function,
     Granularity,
+    Limit,
     Op,
     Or,
     OrderBy,
@@ -437,6 +438,62 @@ def make_full_aggregation_query(
         having=[Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0)],
         groupby=[Column("replay_id")],
         granularity=Granularity(3600),
+    )
+
+
+def make_full_aggregation_query_with_short_id(
+    fields: list[str],
+    replay_id_prefix: str,
+    project_ids: list[int],
+    period_start: datetime,
+    period_end: datetime,
+    request_user_id: int | None,
+    limit: int,
+) -> Query:
+    """Return a query to fetch a replay with a short ID - an 8-character replay ID prefix.
+    This query does not make use of the replay_id index and can potentially scan all rows in the time range and project list.
+
+    Arguments:
+        fields -- if non-empty, used to query a subset of fields. Corresponds to the keys in QUERY_ALIAS_COLUMN_MAP.
+    """
+
+    if len(replay_id_prefix) != 8 or not replay_id_prefix.isalnum():
+        raise ValueError("Invalid short ID. Must be 8 hexadecimal characters.")
+
+    from sentry.replays.query import select_from_fields
+
+    select = select_from_fields(fields, user_id=request_user_id)
+
+    return Query(
+        match=Entity("replays"),
+        select=select,
+        where=[
+            Condition(Column("project_id"), Op.IN, project_ids),
+            # Range queries on UUID column don't work as expected due to comparison on the binary representation, and Clickhouse endianness.
+            # It's slower as we're no longer using the replay_id index, but the only way to do this is through a string prefix filter.
+            Condition(
+                Function(
+                    "startsWith",
+                    parameters=[
+                        Function("toString", parameters=[Column("replay_id")]),
+                        replay_id_prefix,
+                    ],
+                ),
+                Op.EQ,
+                1,
+            ),
+            # We can scan an extended time range to account for replays which span either end of
+            # the range.
+            Condition(Column("timestamp"), Op.GTE, period_start - timedelta(hours=1)),
+            Condition(Column("timestamp"), Op.LT, period_end + timedelta(hours=1)),
+        ],
+        # NOTE: Refer to this note: "make_scalar_search_conditions_query".
+        #
+        # This condition ensures that every replay shown to the user is valid.
+        having=[Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0)],
+        groupby=[Column("replay_id")],
+        granularity=Granularity(3600),
+        limit=Limit(limit),
     )
 
 
