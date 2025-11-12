@@ -47,7 +47,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   },
   defaultTimePeriod: {sinceFirstSeen: true},
   header: {
-    filterBar: {enabled: true, fixedEnvironment: false},
+    filterBar: {enabled: true, fixedEnvironment: false, searchBar: {enabled: true}},
     graph: {enabled: true, type: 'discover-events'},
     tagDistribution: {enabled: true},
     occurrenceSummary: {enabled: false},

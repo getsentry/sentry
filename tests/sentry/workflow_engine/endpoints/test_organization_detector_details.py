@@ -82,7 +82,7 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
             condition_result=DetectorPriorityLevel.OK,
         )
         self.detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Test Detector",
             type=MetricIssue.slug,
             workflow_condition_group=self.data_condition_group,
@@ -709,6 +709,59 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 == 0
             )
 
+    def test_update_config_valid(self) -> None:
+        """Test updating detector config with valid schema data"""
+        # Initial config
+        initial_config = {"detection_type": "static", "comparison_delta": None}
+        self.detector.config = initial_config
+        self.detector.save()
+
+        # Update with valid new config
+        updated_config = {"detection_type": "dynamic", "comparison_delta": 3600}
+        data = {
+            "config": updated_config,
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        self.detector.refresh_from_db()
+        # Verify config was updated in database (snake_case)
+        assert self.detector.config == updated_config
+        # API returns camelCase
+        assert response.data["config"] == {
+            "detectionType": "dynamic",
+            "comparisonDelta": 3600,
+        }
+
+    def test_update_config_invalid_schema(self) -> None:
+        """Test updating detector config with invalid schema data fails validation"""
+        # Config missing required field 'detection_type'
+        invalid_config = {"comparison_delta": 3600}
+        data = {
+            "config": invalid_config,
+        }
+
+        with self.tasks():
+            response = self.get_error_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=400,
+            )
+
+        assert "config" in response.data
+        assert "detection_type" in str(response.data["config"])
+
+        # Verify config was not updated
+        self.detector.refresh_from_db()
+        assert self.detector.config != invalid_config
+
 
 @region_silo_test
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
@@ -740,7 +793,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         """
         data_condition_group = self.create_data_condition_group()
         error_detector = self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Error Monitor",
             type=ErrorGroupType.slug,
             workflow_condition_group=data_condition_group,

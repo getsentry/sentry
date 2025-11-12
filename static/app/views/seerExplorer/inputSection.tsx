@@ -93,13 +93,12 @@ const InputRow = styled('div')`
 
 const ButtonContainer = styled('div')`
   display: flex;
-  align-items: stretch;
+  align-items: center;
   padding: ${p => p.theme.space.sm};
 
   button {
-    flex: 1;
-    height: 100%;
-    min-height: 100%;
+    width: auto;
+    padding: ${p => p.theme.space.md};
   }
 `;
 

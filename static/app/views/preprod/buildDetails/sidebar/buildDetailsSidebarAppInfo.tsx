@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {CodeBlock} from '@sentry/scraps/code';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -12,12 +12,16 @@ import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
+import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   BuildDetailsSizeAnalysisState,
+  getMainArtifactSizeMetric,
   type BuildDetailsAppInfo,
   type BuildDetailsSizeInfo,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
+  formattedPrimaryMetricDownloadSize,
+  formattedPrimaryMetricInstallSize,
   getLabels,
   getPlatformIconFromPlatform,
   getReadableArtifactTypeLabel,
@@ -40,6 +44,101 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
     timeZone: true,
   });
 
+  let sizeInfoGroup = null;
+  if (
+    props.sizeInfo &&
+    props.sizeInfo.state === BuildDetailsSizeAnalysisState.COMPLETED
+  ) {
+    const primarySizeMetric = getMainArtifactSizeMetric(props.sizeInfo);
+    const watchAppMetrics = props.sizeInfo.size_metrics.find(
+      metric => metric.metrics_artifact_type === MetricsArtifactType.WATCH_ARTIFACT
+    );
+
+    let installSizeContent = (
+      <Text size="md">{formattedPrimaryMetricInstallSize(props.sizeInfo)}</Text>
+    );
+    let downloadSizeContent = (
+      <Text size="md">{formattedPrimaryMetricDownloadSize(props.sizeInfo)}</Text>
+    );
+    if (watchAppMetrics) {
+      installSizeContent = (
+        <Tooltip
+          title={
+            <Stack align="start">
+              <Flex gap="sm">
+                <Text size="md" bold>
+                  {t('App')}:
+                </Text>
+                <Text size="md">
+                  {formatBytesBase10(primarySizeMetric?.install_size_bytes ?? 0)}
+                </Text>
+              </Flex>
+              <Flex gap="sm">
+                <Text size="md" bold>
+                  {t('Watch')}:
+                </Text>
+                <Text size="md">
+                  {formatBytesBase10(watchAppMetrics.install_size_bytes)}
+                </Text>
+              </Flex>
+            </Stack>
+          }
+          position="left"
+        >
+          <Text size="md" underline="dotted">
+            {formattedPrimaryMetricInstallSize(props.sizeInfo)}
+          </Text>
+        </Tooltip>
+      );
+      downloadSizeContent = (
+        <Tooltip
+          title={
+            <Stack align="start">
+              <Flex gap="sm">
+                <Text size="md" bold>
+                  {t('App')}:
+                </Text>
+                <Text size="md">
+                  {formatBytesBase10(watchAppMetrics.download_size_bytes)}
+                </Text>
+              </Flex>
+              <Flex gap="sm">
+                <Text size="md" bold>
+                  {t('Watch')}:
+                </Text>
+                <Text size="md">
+                  {formatBytesBase10(watchAppMetrics.download_size_bytes)}
+                </Text>
+              </Flex>
+            </Stack>
+          }
+          position="left"
+        >
+          <Text size="md" underline="dotted">
+            {formattedPrimaryMetricDownloadSize(props.sizeInfo)}
+          </Text>
+        </Tooltip>
+      );
+    }
+
+    sizeInfoGroup = (
+      <Flex gap="sm">
+        <Flex direction="column" gap="xs" flex={1}>
+          <Tooltip title={labels.installSizeDescription} position="left">
+            <Heading as="h4">{labels.installSizeLabel}</Heading>
+          </Tooltip>
+          {installSizeContent}
+        </Flex>
+        <Flex direction="column" gap="xs" flex={1}>
+          <Tooltip title={labels.downloadSizeDescription} position="left">
+            <Heading as="h4">{labels.downloadSizeLabel}</Heading>
+          </Tooltip>
+          {downloadSizeContent}
+        </Flex>
+      </Flex>
+    );
+  }
+
   return (
     <Flex direction="column" gap="xl">
       <Flex align="center" gap="sm">
@@ -49,27 +148,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         {props.appInfo.name && <Heading as="h3">{props.appInfo.name}</Heading>}
       </Flex>
 
-      {props.sizeInfo &&
-        props.sizeInfo.state === BuildDetailsSizeAnalysisState.COMPLETED && (
-          <Flex gap="sm">
-            <Flex direction="column" gap="xs" flex={1}>
-              <Tooltip title={labels.installSizeDescription} position="left">
-                <Heading as="h4">{labels.installSizeLabel}</Heading>
-              </Tooltip>
-              <Text size="md">
-                {formatBytesBase10(props.sizeInfo.install_size_bytes)}
-              </Text>
-            </Flex>
-            <Flex direction="column" gap="xs" flex={1}>
-              <Tooltip title={labels.downloadSizeDescription} position="left">
-                <Heading as="h4">{labels.downloadSizeLabel}</Heading>
-              </Tooltip>
-              <Text size="md">
-                {formatBytesBase10(props.sizeInfo.download_size_bytes)}
-              </Text>
-            </Flex>
-          </Flex>
-        )}
+      {sizeInfoGroup}
 
       <Flex wrap="wrap" gap="md">
         <Flex gap="2xs" align="center">

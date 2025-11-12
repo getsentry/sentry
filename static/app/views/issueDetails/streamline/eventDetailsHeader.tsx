@@ -96,6 +96,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   }
 
   const FilterBar = theme.isChonk ? PageFilterBar : StyledPageFilterBar;
+  const searchBarEnabled = issueTypeConfig.header.filterBar.searchBar?.enabled !== false;
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
@@ -114,11 +115,11 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
             )}
             position="bottom-start"
           >
-            <Flex>
+            <Flex direction={{xs: 'column', md: 'row'}} gap="sm">
               <Grid
                 width="100%"
                 gap="sm"
-                columns="auto minmax(100px, 1fr) auto"
+                columns={{xs: '1fr', md: 'auto minmax(100px, 1fr) auto'}}
                 rows={`minmax(${theme.form.md.height}, auto)`}
               >
                 <FilterBar>
@@ -174,22 +175,24 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                     }}
                   />
                 </FilterBar>
-                <EventSearch
-                  group={group}
-                  handleSearch={query => {
-                    navigate(
-                      {...location, query: {...location.query, query}},
-                      {replace: true}
-                    );
-                  }}
-                  environments={environments}
-                  query={searchQuery}
-                  queryBuilderProps={{
-                    disallowFreeText: true,
-                    placeholder: searchText,
-                    label: searchText,
-                  }}
-                />
+                {searchBarEnabled && (
+                  <EventSearch
+                    group={group}
+                    handleSearch={query => {
+                      navigate(
+                        {...location, query: {...location.query, query}},
+                        {replace: true}
+                      );
+                    }}
+                    environments={environments}
+                    query={searchQuery}
+                    queryBuilderProps={{
+                      disallowFreeText: true,
+                      placeholder: searchText,
+                      label: searchText,
+                    }}
+                  />
+                )}
               </Grid>
               <ToggleSidebar />
             </Flex>
@@ -277,7 +280,12 @@ const StyledPageFilterBar = styled(PageFilterBar)`
 
 const GraphSection = styled('div')`
   display: flex;
-  gap: ${p => p.theme.space.lg};
+  gap: ${p => p.theme.space.sm};
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    gap: ${p => p.theme.space.lg};
+  }
+
   & > * {
     background: ${p => p.theme.background};
     border-radius: ${p => p.theme.borderRadius};
