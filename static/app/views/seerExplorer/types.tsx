@@ -28,3 +28,10 @@ export interface ExplorerPanelProps {
   isVisible?: boolean;
   onClose?: () => void;
 }
+
+export interface ExplorerSession {
+  created_at: string; // ISO date string
+  last_triggered_at: string;
+  run_id: number;
+  title: string; // ISO date string
+}
