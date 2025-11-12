@@ -639,7 +639,7 @@ function SummaryContainer(props: FlexProps) {
   const theme = useTheme();
   return (
     <Flex
-      padding="lg"
+      padding="lg xs lg lg"
       direction="column"
       gap={theme.isChonk ? 'sm' : 'xs'}
       radius="md"
