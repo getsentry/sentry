@@ -1,5 +1,6 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/logs';
+import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/profiling';
 
 import {agentMonitoring} from './agentMonitoring';
@@ -16,6 +17,10 @@ const docs: Docs = {
   }),
   agentMonitoringOnboarding: agentMonitoring,
   logsOnboarding: logsFullStack({
+    docsPlatform: 'tanstackstart-react',
+    packageName: '@sentry/tanstackstart-react',
+  }),
+  metricsOnboarding: metricsFullStack({
     docsPlatform: 'tanstackstart-react',
     packageName: '@sentry/tanstackstart-react',
   }),

@@ -10,6 +10,16 @@ import {
   type PlatformOptions,
 } from './utils';
 
+const getVerifySnippet = (params: Params) => {
+  const metricsCode = params.isMetricsSelected
+    ? `  // Send a test metric before calling undefined function
+  Sentry.metrics.count('test_counter', 1);
+`
+    : '';
+
+  return `${metricsCode}myUndefinedFunction();`;
+};
+
 export const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
@@ -52,7 +62,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -68,7 +78,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
             {
               label: 'JavaScript',
               language: 'javascript',
-              code: `myUndefinedFunction();`,
+              code: getVerifySnippet(params),
             },
           ],
         },
@@ -93,6 +103,17 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
           'Add logging integrations to automatically capture logs from your application.'
         ),
         link: 'https://docs.sentry.io/platforms/javascript/guides/vue/logs/#integrations',
+      });
+    }
+
+    if (params.isMetricsSelected) {
+      steps.push({
+        id: 'metrics',
+        name: t('Metrics'),
+        description: t(
+          'Learn how to track custom metrics to monitor your application performance and business KPIs.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/metrics/',
       });
     }
 

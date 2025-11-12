@@ -4875,11 +4875,11 @@ describe('SearchQueryBuilder', () => {
 
         await userEvent.hover(askSeerText);
 
-        const tooltipTitle = await screen.findByText(/Powered by generative AI/);
+        const tooltipTitle = await screen.findByText(/Powered by genAI/);
         expect(tooltipTitle).toBeInTheDocument();
         expect(tooltipTitle).toBeVisible();
 
-        const tooltipLink = screen.getByText(/AI privacy principles/);
+        const tooltipLink = screen.getByText(/Learn more/);
         expect(tooltipLink).toBeInTheDocument();
         expect(tooltipLink).toBeVisible();
         expect(tooltipLink).toHaveAttribute(

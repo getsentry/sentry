@@ -8,6 +8,7 @@ import {crashReport} from './crashReport';
 import {featureFlag} from './featureFlag';
 import {feedback} from './feedback';
 import {logs} from './logs';
+import {metrics} from './metrics';
 import {onboarding} from './onboarding';
 import {performance} from './performance';
 import {profiling} from './profiling';
@@ -29,6 +30,11 @@ const docs: Docs<PlatformOptions> = {
   }),
   featureFlagOnboarding: featureFlag,
   logsOnboarding: logs({
+    installSnippetBlock,
+    docsPlatform: 'javascript',
+    packageName: '@sentry/browser',
+  }),
+  metricsOnboarding: metrics({
     installSnippetBlock,
     docsPlatform: 'javascript',
     packageName: '@sentry/browser',

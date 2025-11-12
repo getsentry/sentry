@@ -1,6 +1,7 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/logs';
+import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/metrics';
 import {profiling} from 'sentry/gettingStartedDocs/javascript/javascript/profiling';
 
 import {agentMonitoring} from './agentMonitoring';
@@ -22,6 +23,10 @@ const docs: Docs = {
   }),
   featureFlagOnboarding: featureFlag,
   logsOnboarding: logsFullStack({
+    docsPlatform: 'nuxt',
+    packageName: '@sentry/nuxt',
+  }),
+  metricsOnboarding: metricsFullStack({
     docsPlatform: 'nuxt',
     packageName: '@sentry/nuxt',
   }),

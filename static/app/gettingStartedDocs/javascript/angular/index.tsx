@@ -1,6 +1,7 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
 import {logs} from 'sentry/gettingStartedDocs/javascript/javascript/logs';
+import {metrics} from 'sentry/gettingStartedDocs/javascript/javascript/metrics';
 import {profiling} from 'sentry/gettingStartedDocs/javascript/javascript/profiling';
 
 import {crashReport} from './crashReport';
@@ -22,6 +23,11 @@ const docs: Docs<PlatformOptions> = {
   }),
   featureFlagOnboarding: featureFlag,
   logsOnboarding: logs({
+    installSnippetBlock,
+    docsPlatform: 'angular',
+    packageName: '@sentry/angular',
+  }),
+  metricsOnboarding: metrics({
     installSnippetBlock,
     docsPlatform: 'angular',
     packageName: '@sentry/angular',

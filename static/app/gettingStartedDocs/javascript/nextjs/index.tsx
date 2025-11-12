@@ -1,6 +1,7 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/logs';
+import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/profiling';
 import {tct} from 'sentry/locale';
 
@@ -78,6 +79,10 @@ const docs: Docs = {
     ],
   }),
   logsOnboarding: logsFullStack({
+    docsPlatform: 'nextjs',
+    packageName: '@sentry/nextjs',
+  }),
+  metricsOnboarding: metricsFullStack({
     docsPlatform: 'nextjs',
     packageName: '@sentry/nextjs',
   }),

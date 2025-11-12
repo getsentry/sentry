@@ -1,6 +1,7 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
 import {logs} from 'sentry/gettingStartedDocs/javascript/javascript/logs';
+import {metrics} from 'sentry/gettingStartedDocs/javascript/javascript/metrics';
 import {profiling} from 'sentry/gettingStartedDocs/javascript/javascript/profiling';
 
 import {crashReport} from './crashReport';
@@ -27,6 +28,11 @@ const docs: Docs = {
     packageName: '@sentry/react',
   }),
   featureFlagOnboarding: featureFlag,
+  metricsOnboarding: metrics({
+    installSnippetBlock,
+    docsPlatform: 'react',
+    packageName: '@sentry/react',
+  }),
 };
 
 export default docs;

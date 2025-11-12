@@ -24,9 +24,6 @@ from sentry.organizations.services.organization.model import RpcOrganizationSumm
 
 if TYPE_CHECKING:
     from sentry.integrations.discord.message_builder.base.base import DiscordMessage
-    from sentry.integrations.discord.message_builder.base.embed.field import (
-        DiscordMessageEmbedField,
-    )
 
 # TODO(ecosystem): Proper typing - https://discord.com/developers/docs/resources/message#create-message
 type DiscordRenderable = DiscordMessage
@@ -65,7 +62,7 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
         embeds.append(
             DiscordMessageEmbed(
                 title=rendered_template.subject,
-                fields=body_blocks,
+                description=body_blocks,
                 image=(
                     DiscordMessageEmbedImage(url=rendered_template.chart.url)
                     if rendered_template.chart
@@ -94,28 +91,15 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
         return builder.build()
 
     @classmethod
-    def render_body_blocks(
-        cls, body: list[NotificationBodyFormattingBlock]
-    ) -> list[DiscordMessageEmbedField]:
-        from sentry.integrations.discord.message_builder.base.embed.field import (
-            DiscordMessageEmbedField,
-        )
+    def render_body_blocks(cls, body: list[NotificationBodyFormattingBlock]) -> str:
 
-        fields = []
+        description = []
         for block in body:
             if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:
-                fields.append(
-                    DiscordMessageEmbedField(
-                        name=block.type.value, value=cls.render_text_blocks(block.blocks)
-                    )
-                )
+                description.append(f"\n{cls.render_text_blocks(block.blocks)}")
             elif block.type == NotificationBodyFormattingBlockType.CODE_BLOCK:
-                fields.append(
-                    DiscordMessageEmbedField(
-                        name=block.type.value, value=f"```{cls.render_text_blocks(block.blocks)}```"
-                    )
-                )
-        return fields
+                description.append(f"\n```{cls.render_text_blocks(block.blocks)}```")
+        return "".join(description)
 
     @classmethod
     def render_text_blocks(cls, blocks: list[NotificationBodyTextBlock]) -> str:
