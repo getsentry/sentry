@@ -73,9 +73,22 @@ class WorkflowEventData:
 
 
 @dataclass(frozen=True)
-class WorkflowNotProcessable:
-    group_event: GroupEvent
-    message: str
+class WorkflowEvaluation:
+    """
+    The result of when a workflow is evaluated,
+    the only required property is the `tainted` field,
+    this is used to determine if the evaluation was
+    successfully executed or not.
+
+    The rest of the data is meant to include debug information
+    so we can easily determine why a workflow was or was not triggered.
+    """
+
+    tainted: bool
+
+    group_event: GroupEvent | None = None
+    message: str | None = None
+
     actions: list[Action] | None = None
     workflows: list[Workflow] | None = None
     triggered_actions: list[Action] | None = None

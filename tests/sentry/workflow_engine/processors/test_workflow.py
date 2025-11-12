@@ -39,7 +39,7 @@ from sentry.workflow_engine.processors.workflow import (
     process_workflows,
 )
 from sentry.workflow_engine.tasks.workflows import process_workflows_event
-from sentry.workflow_engine.types import WorkflowEventData, WorkflowNotProcessable
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
@@ -89,12 +89,10 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert isinstance(result, WorkflowNotProcessable)
         assert result.triggered_workflows == {self.error_workflow}
 
     def test_error_event(self) -> None:
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert isinstance(result, WorkflowNotProcessable)
         assert result.triggered_workflows == {self.error_workflow}
 
     @patch("sentry.workflow_engine.processors.action.fire_actions")
@@ -163,9 +161,9 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert self.event_data.group_state
         self.event_data.group_state["is_new"] = True
 
-        process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         mock_filter.assert_called_with({workflow_filters}, self.event_data)
+        assert result.tainted is False
 
     def test_same_environment_only(self) -> None:
         env = self.create_environment(project=self.project)
@@ -211,7 +209,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert isinstance(result, WorkflowNotProcessable)
         assert result.triggered_workflows == {self.error_workflow, matching_env_workflow}
         assert result.message == "No actions to evaluate; filtered or not triggered"
 
@@ -220,7 +217,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self.group_event.occurrence = issue_occurrence
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert isinstance(result, WorkflowNotProcessable)
         assert result.triggered_workflows == {self.workflow}
 
     def test_regressed_event(self) -> None:
@@ -239,7 +235,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert isinstance(result, WorkflowNotProcessable)
+        assert result.tainted is True
         assert result.triggered_workflows == {self.error_workflow, workflow}
         assert result.message == "No actions to evaluate; filtered or not triggered"
 
@@ -249,7 +245,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert isinstance(result, WorkflowNotProcessable)
         assert result.message == "No Detectors associated with the issue were found"
 
         mock_incr.assert_called_once_with("workflow_engine.detectors.error")
@@ -269,7 +264,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         cache.clear()
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
-        assert isinstance(result, WorkflowNotProcessable)
         assert not result.triggered_workflows
         assert result.message == "Environment for event not found"
 
@@ -349,9 +343,8 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
-        assert isinstance(result, WorkflowNotProcessable)
+        assert result.tainted is True
         assert result.triggered_workflows == {self.error_workflow}
-
         assert result.triggered_actions is not None
         assert len(result.triggered_actions) == 0
 

@@ -9,7 +9,6 @@ from django.db import router, transaction
 from django.db.models import Q
 
 from sentry import features
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
@@ -34,7 +33,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
 )
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
-from sentry.workflow_engine.types import WorkflowEventData, WorkflowNotProcessable
+from sentry.workflow_engine.types import WorkflowEvaluation, WorkflowEventData
 from sentry.workflow_engine.utils import log_context, scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
@@ -465,7 +464,7 @@ def process_workflows(
     event_data: WorkflowEventData,
     event_start_time: datetime,
     detector: Detector | None = None,
-) -> tuple[set[Workflow], BaseQuerySet[Action]] | WorkflowNotProcessable:
+) -> WorkflowEvaluation:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
@@ -479,7 +478,7 @@ def process_workflows(
         fire_actions,
     )
 
-    # This dictionary stores the data for WorkflowNotProcessable
+    # This dictionary stores the data for WorkflowEvaluation
     # and is eventually unpacked to pass into the frozen dataclass
     # TODO -- should this be a workflow event context data instead?
     extra_data: dict[str, Any] = {
@@ -504,7 +503,8 @@ def process_workflows(
             )
         )
     except Detector.DoesNotExist:
-        return WorkflowNotProcessable(
+        return WorkflowEvaluation(
+            tainted=True,
             message="No Detectors associated with the issue were found",
             **extra_data,
         )
@@ -523,7 +523,8 @@ def process_workflows(
             )
         )
     except Environment.DoesNotExist:
-        return WorkflowNotProcessable(
+        return WorkflowEvaluation(
+            tainted=True,
             message="Environment for event not found",
             **extra_data,
         )
@@ -535,7 +536,8 @@ def process_workflows(
     extra_data["workflows"] = workflows
 
     if not workflows:
-        return WorkflowNotProcessable(
+        return WorkflowEvaluation(
+            tainted=True,
             message="No workflows are associated with the detector in the event",
             **extra_data,
         )
@@ -547,7 +549,8 @@ def process_workflows(
     extra_data["triggered_workflows"] = triggered_workflows
 
     if not triggered_workflows and not queue_items_by_workflow_id:
-        return WorkflowNotProcessable(
+        return WorkflowEvaluation(
+            tainted=True,
             message="No items were triggered or queued for slow evaluation",
             **extra_data,
         )
@@ -570,7 +573,8 @@ def process_workflows(
     }
 
     if not actions:
-        return WorkflowNotProcessable(
+        return WorkflowEvaluation(
+            tainted=True,
             message="No actions to evaluate; filtered or not triggered",
             **extra_data,
         )
@@ -586,7 +590,7 @@ def process_workflows(
     )
 
     fire_actions(actions, detector, event_data)
-    return triggered_workflows, actions
+    return WorkflowEvaluation(tainted=False, **extra_data)
 
 
 def process_workflows_with_logs(
@@ -594,10 +598,10 @@ def process_workflows_with_logs(
     event_data: WorkflowEventData,
     event_start_time: datetime,
     detector: Detector | None = None,
-) -> None:
+) -> WorkflowEvaluation:
     """
     This method is used to create improved logging for `process_workflows`,
-    where we can capture the `WorkflowNotProcessable` results, and log them.
+    where we can capture the `WorkflowEvaluation` results, and log them.
 
     This should create a log for each issue, so we can determine why a workflow
     did or did not trigger.
@@ -608,7 +612,7 @@ def process_workflows_with_logs(
 
     evaluation = process_workflows(batch_client, event_data, event_start_time, detector)
 
-    if isinstance(evaluation, WorkflowNotProcessable):
+    if isinstance(evaluation, WorkflowEvaluation):
         # Attempted to evaluate, but no actions were triggered.
 
         if evaluation.triggered_workflows is None:
@@ -621,8 +625,6 @@ def process_workflows_with_logs(
             logger.info("process_workflows.evaluation.workflow.triggered", extra=asdict(evaluation))
     else:
         # Workflow was fully processed, and actions were triggered
-        workflows, actions = evaluation
-        logger.info(
-            "process_workflows.evaluation.actions.triggered",
-            extra={"workflows": workflows, "actions": actions},
-        )
+        logger.info("process_workflows.evaluation.actions.triggered", extra=asdict(evaluation))
+
+    return evaluation
