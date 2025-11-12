@@ -44,15 +44,6 @@ interface CheckInTimelineProps<Status extends string>
   makeUnit?: (count: number) => React.ReactNode;
 }
 
-function getBucketedCheckInsPosition(
-  timestamp: number,
-  timelineStart: Date,
-  msPerPixel: number
-) {
-  const elapsedSinceStart = new Date(timestamp).getTime() - timelineStart.getTime();
-  return elapsedSinceStart / msPerPixel;
-}
-
 export function CheckInTimeline<Status extends string>({
   bucketedData,
   timeWindowConfig,
@@ -109,21 +100,31 @@ interface MockCheckInTimelineProps<Status extends string>
   status: Status;
 }
 
+function getBucketedCheckInsPosition(
+  timestamp: number,
+  timelineStart: Date,
+  msPerPixel: number
+) {
+  const elapsedSinceStart = new Date(timestamp).getTime() - timelineStart.getTime();
+  return elapsedSinceStart / msPerPixel;
+}
+
 export function MockCheckInTimeline<Status extends string>({
   mockTimestamps,
   timeWindowConfig,
   status,
   statusStyle,
 }: MockCheckInTimelineProps<Status>) {
-  const {start, end} = timeWindowConfig;
-  const elapsedMs = end.getTime() - start.getTime();
-  const msPerPixel = elapsedMs / timeWindowConfig.timelineWidth;
+  const {periodStart, elapsedMinutes, timelineWidth, rollupConfig} = timeWindowConfig;
+  const msPerPixel = (elapsedMinutes * 60 * 1000) / timelineWidth;
+  const startOffset = rollupConfig.timelineUnderscanWidth;
 
   return (
     <TimelineContainer>
       {mockTimestamps.map(ts => {
         const timestampMs = ts.getTime();
-        const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
+        const left =
+          startOffset + getBucketedCheckInsPosition(timestampMs, periodStart, msPerPixel);
 
         return (
           <Tooltip
