@@ -1,5 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
-import {useEffectEvent} from '@react-aria/utils';
+import {useEffect, useEffectEvent, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import isEmpty from 'lodash/isEmpty';
 import isEqualWith from 'lodash/isEqualWith';
