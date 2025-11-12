@@ -1,7 +1,7 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {onboarding} from 'sentry/gettingStartedDocs/go-negroni/onboarding';
 import {crashReport} from 'sentry/gettingStartedDocs/go/crashReport';
 import {logs} from 'sentry/gettingStartedDocs/go/logs';
-import {onboarding} from 'sentry/gettingStartedDocs/go-negroni/onboarding';
 import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
