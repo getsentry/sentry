@@ -201,7 +201,6 @@ class ResolvedAggregate(ResolvedFunction):
 
     # The internal rpc alias for this column
     internal_name: Function.ValueType
-    # Whether to enable extrapolation
     extrapolation_mode: ExtrapolationMode.ValueType
     is_aggregate: bool = field(default=True, init=False)
     # Only for aggregates, we only support functions with 1 argument right now
@@ -229,7 +228,6 @@ class ResolvedMetricAggregate(ResolvedAggregate):
 class ResolvedConditionalAggregate(ResolvedFunction):
     # The internal rpc alias for this column
     internal_name: Function.ValueType
-    # Whether to enable extrapolation
     extrapolation_mode: ExtrapolationMode.ValueType
     # The condition to filter on
     filter: TraceItemFilter
@@ -279,7 +277,7 @@ class FunctionDefinition:
     infer_search_type_from_arguments: bool = True
     # The internal rpc type for this function, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
-    # Whether to request extrapolation or not, should be true for all functions except for _sample functions for debugging
+    # Extrapolation mode to be used
     extrapolation_mode_override: ExtrapolationMode.ValueType | None = None
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
