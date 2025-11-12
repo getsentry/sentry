@@ -641,7 +641,6 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
     def test_query_by_project_owner_user(self) -> None:
         new_project = self.create_project(organization=self.organization)
-        Detector.objects.all().delete()
         detector = self.create_detector(
             project_id=new_project.id, name="Test Detector", type=MetricIssue.slug
         )

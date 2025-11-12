@@ -67,7 +67,6 @@ class IssueAlertMigratorTest(TestCase):
             },
         ]
         self.issue_alert = self.create_project_rule(
-            project=self.project,
             name="test",
             condition_data=conditions,
             action_match="any",

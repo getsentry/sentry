@@ -89,6 +89,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         self.uuid_patcher = mock.patch("sentry.workflow_engine.handlers.detector.stateful.uuid4")
         self.mock_uuid4 = self.uuid_patcher.start()
         self.mock_uuid4.return_value = self.get_mock_uuid()
+        project_id = self.project.id
 
         class NoHandlerGroupType(GroupType):
             type_id = 1
@@ -173,8 +174,6 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             category = GroupCategory.METRIC_ALERT.value
             category_v2 = GroupCategory.METRIC.value
             detector_settings = DetectorSettings(handler=MockDetectorWithUpdateHandler)
-
-        project_id = self.project.id
 
         self.no_handler_type = NoHandlerGroupType
         self.handler_type = HandlerGroupType
