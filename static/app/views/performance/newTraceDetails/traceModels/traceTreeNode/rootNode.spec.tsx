@@ -38,7 +38,7 @@ describe('RootNode', () => {
       const extra = createMockExtra();
       const rootNode = new RootNode(null, null, extra);
 
-      expect(rootNode.pathToNode()).toStrictEqual([]);
+      expect(rootNode.type).toBe('root');
     });
   });
 

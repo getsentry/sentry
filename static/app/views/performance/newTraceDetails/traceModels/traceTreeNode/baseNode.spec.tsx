@@ -16,6 +16,10 @@ import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/trace
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 
 class TestNode extends BaseNode {
+  get id(): string {
+    return (this.value as any).event_id;
+  }
+
   get type(): TraceTree.NodeType {
     return 'test' as TraceTree.NodeType;
   }
@@ -571,7 +575,7 @@ describe('BaseNode', () => {
 
       parent.children = [child1, child2];
 
-      expect(parent.directChildren).toEqual([child1, child2]);
+      expect(parent.directVisibleChildren).toEqual([child1, child2]);
     });
 
     it('should return visible children when expanded', () => {
@@ -710,7 +714,6 @@ describe('BaseNode', () => {
 
       const result = await node.fetchChildren(false, {} as TraceTree, {
         api: {} as any,
-        preferences: {} as any,
       });
 
       expect(result).toBeNull();

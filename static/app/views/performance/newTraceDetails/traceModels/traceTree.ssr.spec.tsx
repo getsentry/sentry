@@ -176,7 +176,7 @@ describe('server side rendering', () => {
       const tree = TraceTree.FromTrace(ssrEAPTrace, traceMetadata);
 
       const pageload = tree.root.children[0]!.children[0]!;
-      tree.expand(pageload, true);
+      pageload.expand(true, tree);
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });

@@ -8,7 +8,6 @@ import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceD
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
-import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 export interface TraceTreeNodeExtra {
   organization: Organization;
@@ -21,6 +20,10 @@ export interface TraceTreeNodeExtra {
 }
 
 export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> {
+  abstract id: string;
+
+  abstract type: TraceTree.NodeType;
+
   /**
    * The parent node of this node.
    */
@@ -183,10 +186,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     }
   }
 
-  get id(): string | undefined {
-    return this.value && 'event_id' in this.value ? this.value.event_id : undefined;
-  }
-
   get op(): string | undefined {
     return this.value && 'op' in this.value ? this.value.op : undefined;
   }
@@ -262,9 +261,9 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   get visibleChildren(): BaseNode[] {
     const queue: BaseNode[] = [];
     const visibleChildren: BaseNode[] = [];
-    if (this.expanded) {
-      for (let i = this.directChildren.length - 1; i >= 0; i--) {
-        queue.push(this.directChildren[i]!);
+    if (this.directVisibleChildren.length > 0) {
+      for (let i = this.directVisibleChildren.length - 1; i >= 0; i--) {
+        queue.push(this.directVisibleChildren[i]!);
       }
     }
 
@@ -274,9 +273,9 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       visibleChildren.push(node);
 
       // iterate in reverse to ensure nodes are processed in order
-      if (node.expanded || node.visibleChildren.length > 0) {
-        for (let i = node.directChildren.length - 1; i >= 0; i--) {
-          queue.push(node.directChildren[i]!);
+      if (node.directVisibleChildren.length > 0) {
+        for (let i = node.directVisibleChildren.length - 1; i >= 0; i--) {
+          queue.push(node.directVisibleChildren[i]!);
         }
       }
     }
@@ -284,7 +283,11 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return visibleChildren;
   }
 
-  get directChildren(): BaseNode[] {
+  get directVisibleChildren(): BaseNode[] {
+    if (!this.expanded) {
+      return [];
+    }
+
     return this.children;
   }
 
@@ -409,7 +412,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   expand(expanding: boolean, tree: TraceTree): boolean {
-    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     const index = tree.list.indexOf(this);
 
     // Expanding is not allowed for zoomed in nodes
@@ -422,7 +424,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       this.expanded = expanding;
 
       // Flip expanded so that we can collect visible children
-      // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
       tree.list.splice(index + 1, 0, ...this.visibleChildren);
     } else {
       tree.list.splice(index + 1, this.visibleChildren.length);
@@ -442,14 +443,19 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return pickBarColor('default', theme);
   }
 
+  /**
+   * Fetches and adds children to this node.
+   * Returns the bounds of the added subtree as [start, end] timestamps.
+   * This can be used by the tree to update its overall bounds if the new children
+   * extend beyond the tree's current bounds.
+   */
   fetchChildren(
     _fetching: boolean,
     _tree: TraceTree,
     _options: {
       api: Client;
-      preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
-  ): Promise<any> {
+  ): Promise<[number, number] | null> {
     return Promise.resolve(null);
   }
 
@@ -479,10 +485,8 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     if (!id) {
       return false;
     }
-    return this.matchById(id);
+    return this.id === id;
   }
-
-  abstract get type(): TraceTree.NodeType;
 
   abstract get drawerTabsTitle(): string;
 

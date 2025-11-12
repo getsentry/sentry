@@ -11,9 +11,8 @@ import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/tr
 import {BaseNode} from './baseNode';
 
 export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming> {
-  get type(): TraceTree.NodeType {
-    return 'uptime-check-timing';
-  }
+  id: string = this.value.event_id;
+  type: TraceTree.NodeType = 'uptime-check-timing';
 
   get drawerTabsTitle(): string {
     return this.value.description || this.value.op;
@@ -46,7 +45,6 @@ export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming>
   renderDetails<NodeType extends TraceTreeNode<TraceTree.NodeValue>>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    // @ts-expect-error Abdullah Khan: Will be fixed as BaseNode is used in TraceTree
     return <UptimeTimingDetails {...props} node={this} />;
   }
 
