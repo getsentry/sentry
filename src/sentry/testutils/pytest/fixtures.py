@@ -277,9 +277,9 @@ def insta_snapshot(request: pytest.FixtureRequest) -> Generator[InstaSnapshotter
 
         if _snapshot_writeback is not None and is_unequal:
             os.makedirs(os.path.dirname(reference_file), exist_ok=True)
-            source = os.path.realpath(str(request.node.fspath))
-            if source.startswith(repo_abs_path + os.path.sep):
-                source = source[len(repo_abs_path) + 1 :]
+            test_file = os.path.realpath(str(request.node.fspath))
+            if test_file.startswith(repo_abs_path + os.path.sep):
+                test_file = test_file[len(repo_abs_path) + 1 :]
             if _snapshot_writeback == "new":
                 reference_file += ".new"
             with open(reference_file, "w") as f:
@@ -290,7 +290,7 @@ def insta_snapshot(request: pytest.FixtureRequest) -> Generator[InstaSnapshotter
                             {
                                 "created": timezone.now().isoformat(),
                                 "creator": "sentry",
-                                "source": source,
+                                "source": test_file,
                             },
                             indent=2,
                             default_flow_style=False,
