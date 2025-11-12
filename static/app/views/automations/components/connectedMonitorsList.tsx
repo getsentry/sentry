@@ -149,6 +149,7 @@ export default function ConnectedMonitorsList({
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
         {isSuccess &&
+          (detectorIds === null || detectorIds.length > 0) &&
           detectors.map(detector => (
             <SimpleTable.Row key={detector.id}>
               <SimpleTable.RowCell>
