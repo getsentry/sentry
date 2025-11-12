@@ -2,12 +2,12 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
+import {DEFAULT_REPLAY_LIST_SORT} from 'sentry/components/replays/table/useReplayTableSort';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
@@ -66,7 +66,7 @@ export default function useReplaysFromIssue({
       query: replayIds.length ? `id:[${String(replayIds)}]` : `id:1`,
       range: '90d',
       projects: [],
-      orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
+      orderby: decodeScalar(location.query.sort, DEFAULT_REPLAY_LIST_SORT),
     });
   }, [location.query.sort, replayIds]);
 
