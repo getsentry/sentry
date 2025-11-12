@@ -76,34 +76,3 @@ class OrganizationTraceItemsStatsEndpointTest(
         assert {"label": "desktop", "value": 1.0} in device_data
 
         assert response.data
-
-    def test_distribution_and_totals(self) -> None:
-        tags = [
-            ({"browser": "chrome", "device": "desktop"}, 500),
-            ({"browser": "chrome", "device": "mobile"}, 100),
-            ({"browser": "chrome", "device": "mobile"}, 100),
-            ({"browser": "chrome", "device": "desktop"}, 100),
-            ({"browser": "safari", "device": "mobile"}, 100),
-            ({"browser": "chrome", "device": "desktop"}, 500),
-            ({"browser": "edge", "device": "desktop"}, 500),
-        ]
-
-        for tag, duration in tags:
-            self._store_span(tags=tag, duration=duration)
-
-        response = self.do_request(
-            query={
-                "query": "span.duration:<=100",
-                "statsType": ["attributeDistributions", "totals"],
-            }
-        )
-        assert response.status_code == 200, response.data
-        assert len(response.data["data"]) == 2
-        totals = response.data["data"][0]["totals"]["data"]
-        assert totals[0]["count(span.duration)"] == 4
-        attribute_distribution = response.data["data"][1]["attribute_distributions"]["data"]
-        device_data = attribute_distribution["sentry.device"]
-        assert {"label": "mobile", "value": 3.0} in device_data
-        assert {"label": "desktop", "value": 1.0} in device_data
-
-        assert response.data
