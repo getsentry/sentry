@@ -104,7 +104,6 @@ class SnubaParams:
     sampling_mode: SAMPLING_MODES | None = None
     debug: bool = False
     case_insensitive: bool = False
-    supports_virtual_context: bool = False
 
     def __post_init__(self) -> None:
         if self.start:
