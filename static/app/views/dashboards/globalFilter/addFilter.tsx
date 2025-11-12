@@ -33,6 +33,7 @@ export const DATASET_CHOICES = new Map<WidgetType, string>([
 
 const UNSUPPORTED_FIELD_KINDS = [FieldKind.FUNCTION];
 const UNSUPPORTED_FIELD_VALUE_TYPES = [FieldValueType.DATE];
+const IGNORE_DEFAULT_VALUES = [FieldValueType.STRING, FieldValueType.BOOLEAN];
 
 export function getDatasetLabel(dataset: WidgetType) {
   return DATASET_CHOICES.get(dataset) ?? '';
@@ -129,7 +130,7 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
             const fieldDefinition = fieldDefinitionMap.get(selectedFilterKey.key) ?? null;
             const valueType = fieldDefinition?.valueType;
 
-            if (valueType && valueType !== FieldValueType.STRING) {
+            if (valueType && !IGNORE_DEFAULT_VALUES.includes(valueType)) {
               defaultFilterValue = getInitialFilterText(
                 selectedFilterKey.key,
                 fieldDefinition,

@@ -2,12 +2,15 @@ import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Button} from 'sentry/components/core/button';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
-import {getPredefinedValues} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
+import {
+  getPredefinedValues,
+  tokenSupportsMultipleValues,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -64,6 +67,10 @@ function FilterSelector({
     [globalFilter, fieldDefinition]
   );
 
+  const canSelectMultipleValues = filterToken
+    ? tokenSupportsMultipleValues(filterToken, datasetFilterKeys, fieldDefinition)
+    : true;
+
   // Retrieve predefined values if the tag has any
   const predefinedValues = useMemo(() => {
     if (!filterToken) {
@@ -105,6 +112,15 @@ function FilterSelector({
   const {data: fetchedFilterValues, isFetching} = queryResult;
 
   const options = useMemo(() => {
+    if (predefinedValues && !canSelectMultipleValues) {
+      return predefinedValues.flatMap(section =>
+        section.suggestions.map(suggestion => ({
+          label: suggestion.value,
+          value: suggestion.value,
+        }))
+      );
+    }
+
     const optionMap = new Map<string, SelectOption<string>>();
     const fixedOptionMap = new Map<string, SelectOption<string>>();
     const addOption = (value: string, map: Map<string, SelectOption<string>>) =>
@@ -139,6 +155,7 @@ function FilterSelector({
     activeFilterValues,
     stagedFilterValues,
     searchQuery,
+    canSelectMultipleValues,
   ]);
 
   const handleChange = (opts: string[]) => {
@@ -162,6 +179,64 @@ function FilterSelector({
     });
   };
 
+  const renderMenuHeaderTrailingItems = ({closeOverlay}: any) => (
+    <Flex gap="md">
+      {activeFilterValues.length > 0 && (
+        <StyledButton
+          aria-label={t('Clear Selections')}
+          size="zero"
+          borderless
+          onClick={() => {
+            setSearchQuery('');
+            handleChange([]);
+            closeOverlay();
+          }}
+        >
+          {t('Clear')}
+        </StyledButton>
+      )}
+      <StyledButton
+        aria-label={t('Remove Filter')}
+        size="zero"
+        onClick={() => onRemoveFilter(globalFilter)}
+      >
+        {t('Remove Filter')}
+      </StyledButton>
+    </Flex>
+  );
+
+  const renderFilterSelectorTrigger = () => (
+    <FilterSelectorTrigger
+      globalFilter={globalFilter}
+      activeFilterValues={initialValues}
+      options={options}
+      queryResult={queryResult}
+    />
+  );
+
+  if (!canSelectMultipleValues) {
+    return (
+      <CompactSelect
+        multiple={false}
+        disabled={false}
+        options={options}
+        value={activeFilterValues.length > 0 ? activeFilterValues[0] : undefined}
+        onChange={option => {
+          const newValue = option?.value;
+          handleChange(newValue ? [newValue] : []);
+        }}
+        onClose={() => {
+          setStagedFilterValues([]);
+        }}
+        menuTitle={t('%s Filter', getDatasetLabel(dataset))}
+        menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
+        triggerProps={{
+          children: renderFilterSelectorTrigger(),
+        }}
+      />
+    );
+  }
+
   return (
     <HybridFilter
       checkboxPosition="leading"
@@ -177,7 +252,7 @@ function FilterSelector({
         setStagedFilterValues(value);
       }}
       sizeLimit={30}
-      menuWidth={400}
+      maxMenuWidth={500}
       onClose={() => {
         setSearchQuery('');
         setStagedFilterValues([]);
@@ -187,40 +262,9 @@ function FilterSelector({
         isFetching ? t('Loading filter values...') : t('No filter values found')
       }
       menuTitle={t('%s Filter', getDatasetLabel(dataset))}
-      menuHeaderTrailingItems={({closeOverlay}: any) => (
-        <Flex gap="md">
-          {activeFilterValues.length > 0 && (
-            <StyledButton
-              aria-label={t('Clear Selections')}
-              size="zero"
-              borderless
-              onClick={() => {
-                setSearchQuery('');
-                handleChange([]);
-                closeOverlay();
-              }}
-            >
-              {t('Clear')}
-            </StyledButton>
-          )}
-          <StyledButton
-            aria-label={t('Remove Filter')}
-            size="zero"
-            onClick={() => onRemoveFilter(globalFilter)}
-          >
-            {t('Remove Filter')}
-          </StyledButton>
-        </Flex>
-      )}
+      menuHeaderTrailingItems={renderMenuHeaderTrailingItems}
       triggerProps={{
-        children: (
-          <FilterSelectorTrigger
-            globalFilter={globalFilter}
-            activeFilterValues={initialValues}
-            options={options}
-            queryResult={queryResult}
-          />
-        ),
+        children: renderFilterSelectorTrigger(),
       }}
     />
   );
