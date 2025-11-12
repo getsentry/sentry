@@ -96,11 +96,9 @@ def _fetch_user_preference(project_id: int) -> str | None:
         if preference:
             return preference.get("automated_run_stopping_point")
         return None
-    except Exception:
-        logger.exception(
-            "Failed to fetch user preference from Seer",
-            extra={"project_id": project_id},
-        )
+    except Exception as e:
+        sentry_sdk.set_context("project", {"project_id": project_id})
+        sentry_sdk.capture_exception(e)
         return None
 
 
