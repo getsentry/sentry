@@ -869,7 +869,7 @@ class RPCBase:
         cls,
         *,
         params: SnubaParams,
-        stats_types: list[str],
+        stats_types: set[str],
         query_string: str,
         referrer: str,
         config: SearchResolverConfig,

@@ -1,6 +1,5 @@
 import logging
 from collections import defaultdict
-from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
 
@@ -257,12 +256,13 @@ class Spans(rpc_dataset_common.RPCBase):
         cls,
         *,
         params: SnubaParams,
-        stats_types: Sequence[str],
+        stats_types: set[str],
         query_string: str,
         referrer: str,
         config: SearchResolverConfig,
         search_resolver: SearchResolver | None = None,
-    ) -> dict[str, Any]:
+    ) -> list[dict[str, Any]]:
+        search_resolver = search_resolver or cls.get_resolver(params, config)
         stats_filter, _, _ = search_resolver.resolve_query(query_string)
         meta = search_resolver.resolve_meta(
             referrer=referrer,

@@ -1,5 +1,6 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -52,7 +53,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsV2EndpointBase):
             thread_name_prefix=__name__,
             max_workers=4,
         ) as query_thread_pool:
-            futures_store = {}
+            futures_store: dict[str, Any] = {}
             if "totals" in stats_types:
                 totals_future = query_thread_pool.submit(
                     Spans.run_table_query,
@@ -80,7 +81,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 )
                 futures_store["stats"] = stats_future
 
-        results = []
+        results: list[dict[str, Any]] = []
 
         if "totals" in futures_store:
             totals_f = futures_store["totals"]
