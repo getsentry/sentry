@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
+from logging import Logger
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
 from sentry.types.group import PriorityLevel
@@ -86,14 +87,47 @@ class WorkflowEvaluation:
 
     tainted: bool
 
-    group_event: GroupEvent | None = None
     message: str | None = None
 
+    # data: WorkflowProcessingContextData
+
+    group_event: GroupEvent | None = None
     actions: list[Action] | None = None
     workflows: list[Workflow] | None = None
     triggered_actions: list[Action] | None = None
     triggered_workflows: list[Workflow] | None = None
     associated_detectors: list[Detector] | None = None
+
+    def to_log(self, logger: Logger) -> None:
+        """
+        Determines how far in the process the evaluation got to
+        and creates a structured log string to quickly find.
+
+        Then this will return the that log string, and the
+        relevant processing data to be logged.
+        """
+        log_str = "workflow_engine.process_workflows.evaluation"
+
+        if self.tainted:
+            if self.triggered_workflows is None:
+                log_str = f"{log_str}.workflows.not_triggered"
+            else:
+                log_str = f"{log_str}.workflows.triggered"
+        else:
+            log_str = f"{log_str}.actions.triggered"
+
+        # TODO - simplify the extra data with context data class
+        logger.info(
+            log_str,
+            extra={
+                "group_event": self.group_event,
+                "actions": self.actions,
+                "triggered_actions": self.triggered_actions,
+                "workflows": self.workflows,
+                "triggered_workflows": self.triggered_workflows,
+                "associated_detectors": self.associated_detectors,
+            },
+        )
 
 
 class ConfigTransformer(ABC):

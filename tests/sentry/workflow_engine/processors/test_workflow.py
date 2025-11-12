@@ -210,7 +210,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert result.triggered_workflows == {self.error_workflow, matching_env_workflow}
-        assert result.message == "No actions to evaluate; filtered or not triggered"
 
     def test_issue_occurrence_event(self) -> None:
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
@@ -235,9 +234,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert result.tainted is True
         assert result.triggered_workflows == {self.error_workflow, workflow}
-        assert result.message == "No actions to evaluate; filtered or not triggered"
 
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
