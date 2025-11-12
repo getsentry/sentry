@@ -544,6 +544,10 @@ table.table.key-value {
   left: 50%;
   transform: translate(-50%, -50%);
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 
   .loading-indicator {
     height: 256px;
@@ -560,6 +564,7 @@ table.table.key-value {
 
   .loading-message {
     font-family: @font-family-code;
+    text-align: center;
   }
 }
 .splash-loader code {
