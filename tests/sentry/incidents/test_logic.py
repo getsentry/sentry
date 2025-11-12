@@ -2180,7 +2180,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
         mock_seer_logger.error.assert_called_with(
             "Request to delete alert rule from Seer was unsuccessful",
-            extra={"source_id": query_sub.id},
+            extra={"source_id": query_sub.id, "message": None},
         )
         mock_model_logger.error.assert_called_with(
             "Call to delete rule data in Seer failed",
