@@ -89,11 +89,11 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert result.triggered_workflows == {self.error_workflow}
+        assert result.data.triggered_workflows == {self.error_workflow}
 
     def test_error_event(self) -> None:
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert result.triggered_workflows == {self.error_workflow}
+        assert result.data.triggered_workflows == {self.error_workflow}
 
     @patch("sentry.workflow_engine.processors.action.fire_actions")
     def test_process_workflows_event(self, mock_fire_actions: MagicMock) -> None:
@@ -209,14 +209,14 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert result.triggered_workflows == {self.error_workflow, matching_env_workflow}
+        assert result.data.triggered_workflows == {self.error_workflow, matching_env_workflow}
 
     def test_issue_occurrence_event(self) -> None:
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group_event.occurrence = issue_occurrence
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert result.triggered_workflows == {self.workflow}
+        assert result.data.triggered_workflows == {self.workflow}
 
     def test_regressed_event(self) -> None:
         dcg = self.create_data_condition_group()
@@ -234,7 +234,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert result.triggered_workflows == {self.error_workflow, workflow}
+        assert result.data.triggered_workflows == {self.error_workflow, workflow}
 
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.detector.logger")
@@ -242,7 +242,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert result.message == "No Detectors associated with the issue were found"
+        assert result.msg == "No Detectors associated with the issue were found"
 
         mock_incr.assert_called_once_with("workflow_engine.detectors.error")
         mock_logger.exception.assert_called_once_with(
@@ -261,8 +261,8 @@ class TestProcessWorkflows(BaseWorkflowTest):
         cache.clear()
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
-        assert not result.triggered_workflows
-        assert result.message == "Environment for event not found"
+        assert not result.data.triggered_workflows
+        assert result.msg == "Environment for event not found"
 
         mock_incr.assert_called_once_with(
             "workflow_engine.process_workflows.error", 1, tags={"detector_type": "error"}
@@ -341,9 +341,9 @@ class TestProcessWorkflows(BaseWorkflowTest):
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
         assert result.tainted is True
-        assert result.triggered_workflows == {self.error_workflow}
-        assert result.triggered_actions is not None
-        assert len(result.triggered_actions) == 0
+        assert result.data.triggered_workflows == {self.error_workflow}
+        assert result.data.triggered_actions is not None
+        assert len(result.data.triggered_actions) == 0
 
 
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
