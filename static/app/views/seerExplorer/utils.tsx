@@ -153,6 +153,14 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? `Excavating commit history${dateRangeStr} in ${repoName}...`
       : `Excavated commit history${dateRangeStr} in ${repoName}`;
   },
+
+  get_replay_details: (args, isLoading) => {
+    const replayId = args.replay_id || '';
+    const shortReplayId = replayId.slice(0, 8);
+    return isLoading
+      ? `Watching replay ${shortReplayId}...`
+      : `Watched replay ${shortReplayId}`;
+  },
 };
 
 /**
@@ -309,6 +317,16 @@ export function buildToolLinkUrl(
       const {event_id, issue_id} = toolLink.params;
 
       return {pathname: `/issues/${issue_id}/events/${event_id}/`};
+    }
+    case 'get_replay_details': {
+      const {replay_id} = toolLink.params;
+      if (!replay_id) {
+        return null;
+      }
+
+      return {
+        pathname: `/organizations/${orgSlug}/replays/${replay_id}/`,
+      };
     }
     default:
       return null;

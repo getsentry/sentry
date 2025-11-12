@@ -13,6 +13,7 @@ class OrganizationAlertRuleDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
+        self.project = self.create_project(fire_project_created=True)
         self.rule = Rule.objects.get(project=self.project)
         self.path = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rule.id}/details/"
 
