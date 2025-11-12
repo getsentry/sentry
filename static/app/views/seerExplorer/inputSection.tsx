@@ -1,40 +1,35 @@
 import styled from '@emotion/styled';
 
-import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
+import {Button} from '@sentry/scraps/button';
 
-import SlashCommands, {type SlashCommand} from './slashCommands';
+import {IconMenu} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 
 interface InputSectionProps {
   focusedBlockIndex: number;
   inputValue: string;
   interruptRequested: boolean;
   isPolling: boolean;
+  menu: React.ReactElement;
   onClear: () => void;
-  onCommandSelect: (command: SlashCommand) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onInputClick: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  onMaxSize: () => void;
-  onMedSize: () => void;
-  onSlashCommandsVisibilityChange: (isVisible: boolean) => void;
-  ref?: React.RefObject<HTMLTextAreaElement | null>;
+  onMenuButtonClick: () => void;
+  textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 function InputSection({
+  menu,
+  onMenuButtonClick,
   inputValue,
   focusedBlockIndex,
   isPolling,
   interruptRequested,
-  onClear,
   onInputChange,
-  onKeyDown,
   onInputClick,
-  onCommandSelect,
-  onSlashCommandsVisibilityChange,
-  onMaxSize,
-  onMedSize,
-  ref,
+  onKeyDown,
+  textAreaRef,
 }: InputSectionProps) {
   const getPlaceholder = () => {
     if (focusedBlockIndex !== -1) {
@@ -51,28 +46,28 @@ function InputSection({
 
   return (
     <InputBlock>
-      <InputContainer onClick={onInputClick}>
-        <SlashCommands
-          inputValue={inputValue}
-          onCommandSelect={onCommandSelect}
-          onVisibilityChange={onSlashCommandsVisibilityChange}
-          onMaxSize={onMaxSize}
-          onMedSize={onMedSize}
-          onClear={onClear}
-        />
-        <InputRow>
-          <ChevronIcon direction="right" size="sm" />
-          <InputTextarea
-            ref={ref}
-            value={inputValue}
-            onChange={onInputChange}
-            onKeyDown={onKeyDown}
-            placeholder={getPlaceholder()}
-            rows={1}
+      {menu}
+      <InputRow>
+        <ButtonContainer>
+          <Button
+            priority="default"
+            aria-label="Toggle Menu"
+            onClick={onMenuButtonClick}
+            icon={<IconMenu size="md" />}
           />
-        </InputRow>
-        {focusedBlockIndex === -1 && <FocusIndicator />}
-      </InputContainer>
+        </ButtonContainer>
+        <InputTextarea
+          ref={textAreaRef}
+          value={inputValue}
+          onChange={onInputChange}
+          onKeyDown={onKeyDown}
+          onClick={onInputClick}
+          placeholder={getPlaceholder()}
+          rows={1}
+          data-test-id="seer-explorer-input"
+        />
+      </InputRow>
+      {focusedBlockIndex === -1 && <FocusIndicator />}
     </InputBlock>
   );
 }
@@ -88,23 +83,24 @@ const InputBlock = styled('div')`
   bottom: 0;
 `;
 
-const InputContainer = styled('div')`
-  position: relative;
-  width: 100%;
-`;
-
 const InputRow = styled('div')`
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   width: 100%;
+  padding: 0;
+  gap: ${space(1)};
 `;
 
-const ChevronIcon = styled(IconChevron)`
-  color: ${p => p.theme.subText};
-  margin-top: 18px;
-  margin-left: ${space(2)};
-  margin-right: ${space(1)};
-  flex-shrink: 0;
+const ButtonContainer = styled('div')`
+  display: flex;
+  align-items: stretch;
+  padding: ${p => p.theme.space.sm};
+
+  button {
+    flex: 1;
+    height: 100%;
+    min-height: 100%;
+  }
 `;
 
 const FocusIndicator = styled('div')`
