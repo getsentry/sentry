@@ -101,7 +101,7 @@ function MetricsHeader() {
 
         <Layout.Title>
           {title ? title : t('Metrics')}
-          <FeatureBadge type="alpha" />
+          <FeatureBadge type="beta" />
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>

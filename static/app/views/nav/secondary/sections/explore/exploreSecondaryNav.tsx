@@ -87,7 +87,7 @@ export function ExploreSecondaryNav() {
               <SecondaryNav.Item
                 to={`${baseUrl}/metrics/`}
                 analyticsItemName="explore_metrics"
-                trailingItems={<FeatureBadge type="alpha" />}
+                trailingItems={<FeatureBadge type="beta" />}
               >
                 {t('Metrics')}
               </SecondaryNav.Item>
