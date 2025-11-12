@@ -26,7 +26,7 @@ export const metrics = <
         {
           type: 'text',
           text: tct(
-            'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports metrics is [code:10.24.0].',
+            'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports metrics is [code:10.25.0].',
             {
               code: <code />,
               packageName: <code>{packageName}</code>,
@@ -135,7 +135,7 @@ export const metricsFullStack = <
         {
           type: 'text',
           text: tct(
-            'To add metrics make sure [packageName] is up-to-date. The minimum version of [packageName] that supports metrics is [code:10.24.0].',
+            'To add metrics make sure [packageName] is up-to-date. The minimum version of [packageName] that supports metrics is [code:10.25.0].',
             {
               code: <code />,
               packageName: <code>{packageName}</code>,
