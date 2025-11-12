@@ -78,6 +78,7 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
     rpc_get_profiles_for_trace,
@@ -1196,6 +1197,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "execute_trace_query_chart": execute_trace_query_chart,
     "execute_trace_query_table": execute_trace_query_table,
     "get_repository_definition": get_repository_definition,
+    "call_custom_tool": call_custom_tool,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,
