@@ -83,12 +83,13 @@ function AnimatedComponent() {
 
 The easing curve of an animation drastically changes our perception of it. These easing tokens have been chosen to provide snappy, natural motion to interactions.
 
-| **Name** | **Description**                                                            | **Value**                         |
-| -------- | -------------------------------------------------------------------------- | --------------------------------- |
-| `smooth` | similar to `ease-in-out`, natural acceleration and deceleration            | `cubic-bezier(0.72, 0, 0.16, 1)`  |
-| `snap`   | an expressive snap, with slight anticipation and overshoot before settling | `cubic-bezier(0.8, -0.4, 0.5, 1)` |
-| `enter`  | similar to `ease-out`, starts fast and slows into place smoothly           | `cubic-bezier(0.24, 1, 0.32, 1)`  |
-| `exit`   | similar to `ease-in`, starts slowly and accelerates away quickly           | `cubic-bezier(0.64, 0, 0.8, 0)`   |
+| **Name** | **Description**                                                            | **Value**                                                                                      |
+| -------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `smooth` | similar to `ease-in-out`, natural acceleration and deceleration            | `cubic-bezier(0.72, 0, 0.16, 1)`                                                               |
+| `snap`   | an expressive snap, with slight anticipation and overshoot before settling | `cubic-bezier(0.8, -0.4, 0.5, 1)`                                                              |
+| `spring` | a bouncy spring with some overshoot                                        | `linear(0, 0.4005, 0.8613, 1.0429, 1.0528, 1.0214, 1.0015, 0.9965, 0.9977, 0.9994, 1.0001, 1)` |
+| `enter`  | similar to `ease-out`, starts fast and slows into place smoothly           | `cubic-bezier(0.24, 1, 0.32, 1)`                                                               |
+| `exit`   | similar to `ease-in`, starts slowly and accelerates away quickly           | `cubic-bezier(0.64, 0, 0.8, 0)`                                                                |
 
 ## Duration
 
