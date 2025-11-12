@@ -1,7 +1,7 @@
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
-import type {SentryRouteObject} from 'sentry/components/route';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
+import type {SentryRouteObject} from 'sentry/router/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
