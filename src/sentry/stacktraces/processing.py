@@ -387,16 +387,17 @@ def normalize_stacktraces_for_grouping(
 
 
 def _trim_function_name(frame: dict[str, Any], platform: str | None) -> None:
+    function = frame.get("function")
+    raw_function = frame.get("raw_function")
 
-    if frame.get("raw_function") is not None:
+    # Nothing to trim or trimming has already been done
+    if not function or raw_function is not None:
         return
-    raw_func = frame.get("function")
-    if not raw_func:
-        return
-    function_name = trim_function_name(raw_func, frame.get("platform") or platform)
-    if function_name != raw_func:
-        frame["raw_function"] = raw_func
-        frame["function"] = function_name
+
+    trimmed_function = trim_function_name(function, frame.get("platform", platform))
+    if trimmed_function != function:
+        frame["raw_function"] = function
+        frame["function"] = trimmed_function
 
 
 def should_process_for_stacktraces(data):
