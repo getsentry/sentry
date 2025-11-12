@@ -7,7 +7,7 @@ export function DescribeSection() {
   return (
     <Container>
       <Section
-        title={t('Describe')}
+        title={t('Description')}
         description={t('Additional context about this monitor for other team members.')}
       >
         <TextareaField

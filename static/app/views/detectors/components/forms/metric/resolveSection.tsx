@@ -4,8 +4,6 @@ import {Text} from 'sentry/components/core/text/text';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import RadioField from 'sentry/components/forms/fields/radioField';
-import {Container} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
@@ -108,66 +106,58 @@ export function ResolveSection() {
   const resolutionStrategyChoices: RadioOption[] = [
     [
       'default' satisfies MetricDetectorFormData['resolutionStrategy'],
+      t('Default'),
       <div key="automatic">
-        <Text>{t('Default')}</Text>
-        <div>
-          <Text size="sm" variant="muted" style={{marginTop: '4px'}}>
-            {descriptionContent}
-          </Text>
-        </div>
+        <Text size="sm" variant="muted" style={{marginTop: '4px'}}>
+          {descriptionContent}
+        </Text>
       </div>,
     ],
     [
       'custom' satisfies MetricDetectorFormData['resolutionStrategy'],
+      t('Custom'),
       <div key="manual">
-        <Text>{t('Custom')}</Text>
-        <div>
-          <Text size="sm" variant="muted" style={{marginTop: '4px'}}>
-            {t('Issue will be resolved when the query result is\u2026')}
-          </Text>
-        </div>
+        <Text size="sm" variant="muted" style={{marginTop: '4px'}}>
+          {t('Issue will be resolved when the query result is\u2026')}
+        </Text>
       </div>,
     ],
   ];
 
   return (
-    <Container>
-      <Section title={t('Resolve')}>
-        <div>
-          <FormRow>
-            <StyledRadioField
-              name={METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy}
-              aria-label={t('Resolution method')}
-              choices={resolutionStrategyChoices}
-              defaultValue="automatic"
-              preserveOnUnmount
-            />
-          </FormRow>
-          {resolutionStrategy === 'custom' && (
-            <DescriptionContainer onClick={e => e.preventDefault()}>
-              <Text>
-                {conditionType === DataConditionType.GREATER
-                  ? t('Less than')
-                  : t('More than')}
-              </Text>
-              <ThresholdField
-                hideLabel
-                aria-label={t('Resolution threshold')}
-                name={METRIC_DETECTOR_FORM_FIELDS.resolutionValue}
-                inline={false}
-                flexibleControlStateSize
-                placeholder="0"
-                suffix={thresholdSuffix}
-                validate={validateResolutionThreshold}
-                required
-                preserveOnUnmount
-                size="xs"
-              />
-            </DescriptionContainer>
-          )}
-        </div>
-      </Section>
-    </Container>
+    <div>
+      <FormRow>
+        <StyledRadioField
+          name={METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy}
+          aria-label={t('Resolution method')}
+          choices={resolutionStrategyChoices}
+          defaultValue="automatic"
+          preserveOnUnmount
+        />
+      </FormRow>
+      {resolutionStrategy === 'custom' && (
+        <DescriptionContainer onClick={e => e.preventDefault()}>
+          <Text>
+            {conditionType === DataConditionType.GREATER
+              ? t('Less than')
+              : t('More than')}
+          </Text>
+          <ThresholdField
+            hideLabel
+            aria-label={t('Resolution threshold')}
+            name={METRIC_DETECTOR_FORM_FIELDS.resolutionValue}
+            inline={false}
+            flexibleControlStateSize
+            placeholder="0"
+            suffix={detectionType === 'percent' ? '%' : thresholdSuffix}
+            validate={validateResolutionThreshold}
+            required
+            preserveOnUnmount
+            size="xs"
+          />
+        </DescriptionContainer>
+      )}
+    </div>
   );
 }
 

@@ -19,7 +19,7 @@ export enum SizeAnalysisComparisonState {
   FAILED = 3,
 }
 
-interface SizeAnalysisComparison {
+export interface SizeAnalysisComparison {
   base_size_metric_id: number;
   comparison_id: number | null;
   error_code: string | null;
@@ -34,6 +34,15 @@ export interface SizeComparisonApiResponse {
   base_build_details: BuildDetailsApiResponse;
   comparisons: SizeAnalysisComparison[];
   head_build_details: BuildDetailsApiResponse;
+}
+
+export function isSizeAnalysisComparisonInProgress(
+  sizeComparison: SizeAnalysisComparison | undefined
+): boolean {
+  return (
+    sizeComparison?.state === SizeAnalysisComparisonState.PENDING ||
+    sizeComparison?.state === SizeAnalysisComparisonState.PROCESSING
+  );
 }
 
 /**

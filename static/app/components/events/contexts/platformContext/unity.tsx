@@ -6,6 +6,12 @@ import type {KeyValueListData} from 'sentry/types/group';
 export function getUnityContextData({data}: {data: UnityContext}): KeyValueListData {
   return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
+      case UnityContextKey.ACTIVE_SCENE_NAME:
+        return {
+          key: ctxKey,
+          subject: t('Active Scene Name'),
+          value: data.active_scene_name,
+        };
       case UnityContextKey.COPY_TEXTURE_SUPPORT:
         return {
           key: ctxKey,

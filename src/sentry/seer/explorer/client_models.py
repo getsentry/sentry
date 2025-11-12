@@ -51,7 +51,7 @@ class SeerRunState(BaseModel):
     status: Literal["processing", "completed", "error"]
     updated_at: str
     raw_artifact: dict[str, Any] | None = None
-    artifact: Any | None = None
+    artifact: BaseModel | None = None
     artifact_reason: str | None = None
 
     class Config:

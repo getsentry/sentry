@@ -2,9 +2,11 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text/heading';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text/heading';
+
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,6 +20,16 @@ interface AppSizeInsightsSidebarProps {
   onClose: () => void;
   processedInsights: ProcessedInsight[];
   platform?: Platform;
+}
+
+function getInsightsDocsUrl(platform?: Platform): string {
+  if (platform === 'macos' || platform === 'ios') {
+    return 'https://docs.sentry.io/platforms/apple/guides/ios/size-analysis/insights/';
+  }
+  if (platform === 'android') {
+    return 'https://docs.sentry.io/platforms/android/size-analysis/insights/';
+  }
+  return 'https://docs.sentry.io/product/size-analysis/#build-details';
 }
 
 export function AppSizeInsightsSidebar({
@@ -88,9 +100,17 @@ export function AppSizeInsightsSidebar({
       >
         <Flex height="100%" direction="column">
           <Header padding="xl" align="center" justify="between">
-            <Heading as="h2" size="xl">
-              {t('Insights')}
-            </Heading>
+            <Flex align="center" gap="sm">
+              <Heading as="h2" size="xl">
+                {t('Insights')}
+              </Heading>
+              <PageHeadingQuestionTooltip
+                docsUrl={getInsightsDocsUrl(platform)}
+                title={t(
+                  'Insights help you identify opportunities to reduce your app size.'
+                )}
+              />
+            </Flex>
             <Button
               size="sm"
               icon={<IconClose />}

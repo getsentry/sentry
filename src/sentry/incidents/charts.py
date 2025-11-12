@@ -136,6 +136,7 @@ def fetch_metric_issue_open_periods(
     open_period_identifier: int,
     time_period: Mapping[str, str],
     user: User | RpcUser | None = None,
+    time_window: int = 0,
 ) -> list[Any]:
     detector_id = open_period_identifier
     try:
@@ -157,6 +158,7 @@ def fetch_metric_issue_open_periods(
                 path=f"/organizations/{organization.slug}/open-periods/",
                 params={
                     "detectorId": detector_id,
+                    "bucketSize": time_window,
                     **time_period,
                 },
             )
@@ -260,6 +262,7 @@ def build_metric_alert_chart(
                 alert_context.action_identifier_id,
                 time_period,
                 user,
+                snuba_query.time_window,
             ),
         }
     else:

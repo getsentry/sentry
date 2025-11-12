@@ -219,11 +219,15 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert detector.enabled is True
 
     @mock.patch(
+        "sentry.quotas.backend.assign_seat",
+        return_value=1,  # Outcome.RATE_LIMITED (anything != Outcome.ACCEPTED)
+    )
+    @mock.patch(
         "sentry.quotas.backend.check_assign_seat",
         return_value=SeatAssignmentResult(assignable=False, reason="Assignment failed in test"),
     )
     def test_status_enable_no_seat_assignment(
-        self, _mock_check_assign_seat: mock.MagicMock
+        self, _mock_check_assign_seat: mock.MagicMock, _mock_assign_seat: mock.MagicMock
     ) -> None:
         detector = self.create_uptime_detector(enabled=False)
         resp = self.get_error_response(

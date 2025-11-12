@@ -1179,6 +1179,17 @@ class SnubaTestCase(BaseTestCase):
         )
         assert response.status_code == 200
 
+    def store_profile_functions(self, profile_functions):
+        files = {
+            f"profile_functions_{i}": profile_function.SerializeToString()
+            for i, profile_function in enumerate(profile_functions)
+        }
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert_bytes",
+            files=files,
+        )
+        assert response.status_code == 200
+
     def store_issues(self, issues):
         assert (
             requests.post(
@@ -3481,6 +3492,7 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
         metric_name: str,
         metric_value: float,
         metric_type: Literal["counter", "distribution", "gauge"],
+        metric_unit: str | None = None,
         organization: Organization | None = None,
         project: Project | None = None,
         timestamp: datetime | None = None,
@@ -3512,6 +3524,12 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
             f"sentry._internal.cooccuring.type.{metric_type}": AnyValue(bool_value=True),
         }
 
+        if metric_unit is not None:
+            attributes_proto["sentry.metric_unit"] = AnyValue(string_value=metric_unit)
+            attributes_proto[f"sentry._internal.cooccuring.unit.{metric_unit}"] = AnyValue(
+                bool_value=True
+            )
+
         if attributes:
             for k, v in attributes.items():
                 attributes_proto[k] = scalar_to_any_value(v)
@@ -3520,6 +3538,51 @@ class TraceMetricsTestCase(BaseTestCase, TraceItemTestCase):
             organization_id=organization.id,
             project_id=project.id,
             item_type=TraceItemType.TRACE_ITEM_TYPE_METRIC,
+            timestamp=timestamp_proto,
+            trace_id=trace_id or uuid4().hex,
+            item_id=item_id.bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes=attributes_proto,
+        )
+
+
+class ProfileFunctionsTestCase(BaseTestCase, TraceItemTestCase):
+    def create_profile_function(
+        self,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        timestamp: datetime | None = None,
+        trace_id: str | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> TraceItem:
+        if organization is None:
+            organization = self.organization
+            assert organization is not None
+
+        if project is None:
+            project = self.project
+            assert project is not None
+
+        if timestamp is None:
+            timestamp = datetime.now() - timedelta(minutes=1)
+            assert timestamp is not None
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        item_id = self.random_item_id()
+
+        attributes_proto = {}
+
+        if attributes:
+            for k, v in attributes.items():
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
             timestamp=timestamp_proto,
             trace_id=trace_id or uuid4().hex,
             item_id=item_id.bytes,

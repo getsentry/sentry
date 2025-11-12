@@ -24,6 +24,20 @@ class BaseGroupTypeTest(TestCase):
         self.registry_patcher = patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry())
         self.registry_patcher.__enter__()
 
+        class ErrorGroupType(GroupType):
+            type_id = -1
+            slug = "error"
+            description = "Error"
+            category = GroupCategory.TEST_NOTIFICATION.value
+            category_v2 = GroupCategory.TEST_NOTIFICATION.value
+
+        class IssueStreamGroupType(GroupType):
+            type_id = 0
+            slug = "issue_stream"
+            description = "Issue Stream"
+            category = GroupCategory.TEST_NOTIFICATION.value
+            category_v2 = GroupCategory.TEST_NOTIFICATION.value
+
     def tearDown(self) -> None:
         super().tearDown()
         self.registry_patcher.__exit__(None, None, None)
