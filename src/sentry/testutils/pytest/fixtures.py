@@ -200,14 +200,13 @@ class ReadableYamlDumper(yaml.dumper.SafeDumper):
         return True
 
 
-def read_snapshot_file(reference_file: str) -> tuple[str, str]:
+def read_snapshot_file(reference_file: str) -> str:
     with open(reference_file, encoding="utf-8") as f:
         match = SNAPSHOT_REGEX.match(f.read())
         if match is None:
             raise OSError()
 
-        header, refval = match.groups()
-        return (header, refval)
+        return match.group(1)
 
 
 InequalityComparator = Callable[[str, str], bool | str]
@@ -267,7 +266,7 @@ def insta_snapshot(request: pytest.FixtureRequest) -> Generator[InstaSnapshotter
             )
 
         try:
-            _, refval = read_snapshot_file(reference_file)
+            refval = read_snapshot_file(reference_file)
         except OSError:
             refval = ""
 
