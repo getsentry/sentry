@@ -195,6 +195,8 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
       model?.getValue('autofixAutomationTuning') !== 'off',
   } satisfies FieldObject;
 
+  const isTriageSignalsFeatureOn = project.features.includes('triage-signals-v0');
+
   const seerFormGroups: JsonFormObject[] = [
     {
       title: (
@@ -219,7 +221,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         </div>
       ),
       fields: [
-        seerScannerAutomationField,
+        ...(isTriageSignalsFeatureOn ? [] : [seerScannerAutomationField]),
         autofixAutomatingTuningField,
         automatedRunStoppingPointField,
       ],
