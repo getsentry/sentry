@@ -31,6 +31,15 @@ module.exports = async function (context, req) {
 };
 `;
 
+const getVerifySnippet = (params: DocsParams) => `
+${
+  params.isMetricsSelected
+    ? `// Send a test metric before throwing the error
+Sentry.metrics.count('test_counter', 1);
+`
+    : ''
+}throw new Error("This should show up in Sentry!");`;
+
 export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct("In this quick guide you'll use [strong:npm] or [strong:yarn] to set up:", {
@@ -79,7 +88,24 @@ export const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [],
+  verify: params => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that your Sentry installation is working by triggering a test error in your Azure Function:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
+          code: getVerifySnippet(params),
+        },
+      ],
+    },
+  ],
   nextSteps: params => {
     const steps = [];
 
