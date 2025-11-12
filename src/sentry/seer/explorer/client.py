@@ -5,6 +5,7 @@ from typing import Any
 
 import orjson
 import requests
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel, ValidationError
@@ -273,15 +274,7 @@ class SeerExplorerClient:
             except ValidationError as e:
                 # Log but don't fail - keep artifact as None
                 state.artifact = None
-                logger.warning(
-                    "Failed to parse artifact",
-                    extra={
-                        "run_id": run_id,
-                        "error": str(e),
-                        "artifact_schema": self.artifact_schema.__name__,
-                        "raw_artifact": state.raw_artifact,
-                    },
-                )
+                sentry_sdk.capture_exception(e, level="warning")
 
         return state
 

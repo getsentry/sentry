@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib
 from abc import ABC, abstractmethod
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Literal
 
 from pydantic import BaseModel
@@ -11,7 +11,7 @@ from sentry.models.organization import Organization
 from sentry.seer.explorer.client_models import CustomToolDefinition
 
 
-class ExplorerParamType(str, Enum):
+class ExplorerParamType(StrEnum):
     """Allowed parameter types for Explorer tools."""
 
     STRING = "string"
