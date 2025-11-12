@@ -107,8 +107,9 @@ class ActionHandler:
         raise NotImplementedError
 
 
-class DataSourceTypeHandler(Generic[T]):
+class DataSourceTypeHandler(ABC, Generic[T]):
     @staticmethod
+    @abstractmethod
     def bulk_get_query_object(data_sources) -> dict[int, T | None]:
         """
         Bulk fetch related data-source models returning a dict of the
@@ -117,6 +118,7 @@ class DataSourceTypeHandler(Generic[T]):
         raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def related_model(instance) -> list[ModelRelation]:
         """
         A list of deletion ModelRelations. The model relation query should map
@@ -126,6 +128,7 @@ class DataSourceTypeHandler(Generic[T]):
         raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def get_instance_limit(org: Organization) -> int | None:
         """
         Returns the maximum number of instances of this data source type for the organization.
@@ -134,10 +137,21 @@ class DataSourceTypeHandler(Generic[T]):
         raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def get_current_instance_count(org: Organization) -> int:
         """
         Returns the current number of instances of this data source type for the organization.
         Only called if `get_instance_limit` returns a number >0
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    @abstractmethod
+    def get_relocation_model_name() -> str:
+        """
+        Returns the normalized model name (e.g., "sentry.querysubscription") for the model that
+        source_id references. This is used during backup/relocation to map old PKs to new PKs.
+        The format is "app_label.model_name" in lowercase.
         """
         raise NotImplementedError
 

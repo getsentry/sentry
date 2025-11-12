@@ -108,6 +108,7 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
@@ -122,6 +123,7 @@ from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
 from sentry.workflow_engine.models import Action, DataConditionAlertRuleTrigger, DataConditionGroup
 from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
+from sentry.workflow_engine.registry import data_source_type_registry
 
 __all__ = [
     "export_to_file",
@@ -697,7 +699,14 @@ class ExhaustiveFixtures(Fixtures):
             workflow=workflow, condition_group=notification_condition_group
         )
 
-        data_source = self.create_data_source(organization=org)
+        # Use the alert_rule's QuerySubscription for the DataSource
+        query_subscription = alert.snuba_query.subscriptions.first()
+        assert query_subscription is not None
+        data_source = self.create_data_source(
+            organization=org,
+            source_id=str(query_subscription.id),
+            type=data_source_type_registry.get_key(QuerySubscriptionDataSourceHandler),
+        )
 
         self.create_data_source_detector(data_source, detector)
         detector_conditions = self.create_data_condition_group(
