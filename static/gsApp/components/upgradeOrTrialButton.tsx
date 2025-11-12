@@ -154,7 +154,7 @@ function UpgradeOrTrialButton({
     // send self-serve directly to checkout
     const baseUrl = subscription.canSelfServe
       ? '/checkout/'
-      : `settings/${slug}/billing/overview/`;
+      : `/settings/${slug}/billing/overview/`;
 
     return (
       <LinkButton
