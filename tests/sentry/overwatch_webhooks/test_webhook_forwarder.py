@@ -6,6 +6,10 @@ from django.db import router, transaction
 from django.test.utils import override_settings
 
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.integrations.github.webhook_types import (
+    GITHUB_INSTALLATION_TARGET_ID_HEADER,
+    GITHUB_WEBHOOK_TYPE_HEADER_KEY,
+)
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.overwatch_webhooks.types import (
     DEFAULT_REQUEST_TYPE,
@@ -46,15 +50,15 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
 
     def test_should_forward_to_overwatch_with_valid_events(self):
         for event_action in GITHUB_EVENTS_TO_FORWARD_OVERWATCH:
-            headers = {"HTTP_X_GITHUB_EVENT": event_action}
+            headers = {GITHUB_WEBHOOK_TYPE_HEADER_KEY: event_action}
             assert self.forwarder.should_forward_to_overwatch(headers) is True
 
     def test_should_forward_to_overwatch_with_invalid_events(self):
         invalid_events = [
-            {"HTTP_X_GITHUB_EVENT": "invalid_action"},
-            {"HTTP_X_GITHUB_EVENT": "create"},
-            {"HTTP_X_GITHUB_EVENT": "delete"},
-            {"HTTP_X_GITHUB_EVENT": "some_other_action"},
+            {GITHUB_WEBHOOK_TYPE_HEADER_KEY: "invalid_action"},
+            {GITHUB_WEBHOOK_TYPE_HEADER_KEY: "create"},
+            {GITHUB_WEBHOOK_TYPE_HEADER_KEY: "delete"},
+            {GITHUB_WEBHOOK_TYPE_HEADER_KEY: "some_other_action"},
             {},
         ]
 
@@ -128,7 +132,9 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         event = {"action": "push", "data": "test"}
 
         with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
-            self.forwarder.forward_if_applicable(event, headers={"HTTP_X_GITHUB_EVENT": "push"})
+            self.forwarder.forward_if_applicable(
+                event, headers={GITHUB_WEBHOOK_TYPE_HEADER_KEY: "push"}
+            )
             mock_enqueue.assert_not_called()
 
     @override_options({"overwatch.enabled-regions": ["us"]})
@@ -143,7 +149,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
 
         with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
             self.forwarder.forward_if_applicable(
-                event, headers={"HTTP_X_GITHUB_EVENT": "invalid_action"}
+                event, headers={GITHUB_WEBHOOK_TYPE_HEADER_KEY: "invalid_action"}
             )
             mock_enqueue.assert_not_called()
 
@@ -161,8 +167,8 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             self.forwarder.forward_if_applicable(
                 event,
                 headers={
-                    "HTTP_X_GITHUB_EVENT": "pull_request",
-                    "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID": "987654",
+                    GITHUB_WEBHOOK_TYPE_HEADER_KEY: "pull_request",
+                    GITHUB_INSTALLATION_TARGET_ID_HEADER: "987654",
                 },
             )
 
@@ -188,7 +194,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
 
         with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
             self.forwarder.forward_if_applicable(
-                event, headers={"HTTP_X_GITHUB_EVENT": "pull_request"}
+                event, headers={GITHUB_WEBHOOK_TYPE_HEADER_KEY: "pull_request"}
             )
 
             mock_enqueue.assert_called_once()
@@ -213,7 +219,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
 
             with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
                 self.forwarder.forward_if_applicable(
-                    event, headers={"HTTP_X_GITHUB_EVENT": event_type}
+                    event, headers={GITHUB_WEBHOOK_TYPE_HEADER_KEY: event_type}
                 )
                 mock_enqueue.assert_called_once()
 
@@ -246,7 +252,7 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
 
         with patch.object(OverwatchWebhookPublisher, "enqueue_webhook") as mock_enqueue:
             self.forwarder.forward_if_applicable(
-                complex_event, headers={"HTTP_X_GITHUB_EVENT": "pull_request"}
+                complex_event, headers={GITHUB_WEBHOOK_TYPE_HEADER_KEY: "pull_request"}
             )
 
             mock_enqueue.assert_called_once()
@@ -294,8 +300,8 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         self.forwarder.forward_if_applicable(
             event,
             headers={
-                "HTTP_X_GITHUB_EVENT": "pull_request",
-                "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID": "987654",
+                GITHUB_WEBHOOK_TYPE_HEADER_KEY: "pull_request",
+                GITHUB_INSTALLATION_TARGET_ID_HEADER: "987654",
             },
         )
 
@@ -319,8 +325,8 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             ],
             "webhook_body": event,
             "webhook_headers": {
-                "HTTP_X_GITHUB_EVENT": "pull_request",
-                "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID": "987654",
+                GITHUB_WEBHOOK_TYPE_HEADER_KEY: "pull_request",
+                GITHUB_INSTALLATION_TARGET_ID_HEADER: "987654",
             },
             "integration_provider": "github",
             "region": "us",
@@ -342,8 +348,8 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             ],
             "webhook_body": event,
             "webhook_headers": {
-                "HTTP_X_GITHUB_EVENT": "pull_request",
-                "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID": "987654",
+                GITHUB_WEBHOOK_TYPE_HEADER_KEY: "pull_request",
+                GITHUB_INSTALLATION_TARGET_ID_HEADER: "987654",
             },
             "integration_provider": "github",
             "region": "de",
@@ -385,8 +391,8 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
         self.forwarder.forward_if_applicable(
             event,
             headers={
-                "HTTP_X_GITHUB_EVENT": "pull_request",
-                "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID": "987654",
+                GITHUB_WEBHOOK_TYPE_HEADER_KEY: "pull_request",
+                GITHUB_INSTALLATION_TARGET_ID_HEADER: "987654",
             },
         )
 
@@ -407,8 +413,8 @@ class OverwatchGithubWebhookForwarderTest(TestCase):
             ],
             "webhook_body": event,
             "webhook_headers": {
-                "HTTP_X_GITHUB_EVENT": "pull_request",
-                "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID": "987654",
+                GITHUB_WEBHOOK_TYPE_HEADER_KEY: "pull_request",
+                GITHUB_INSTALLATION_TARGET_ID_HEADER: "987654",
             },
             "integration_provider": "github",
             "region": "us",
