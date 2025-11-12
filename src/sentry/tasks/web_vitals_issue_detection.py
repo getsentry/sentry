@@ -17,7 +17,11 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.web_vitals.issue_platform_adapter import send_web_vitals_issue_to_platform
 from sentry.web_vitals.query import get_trace_by_web_vital_measurement
-from sentry.web_vitals.types import WebVitalIssueDetectionType, WebVitalIssueGroupData
+from sentry.web_vitals.types import (
+    WebVitalIssueDetectionGroupingType,
+    WebVitalIssueDetectionType,
+    WebVitalIssueGroupData,
+)
 
 logger = logging.getLogger("sentry.tasks.web_vitals_issue_detection")
 
@@ -26,6 +30,13 @@ DEFAULT_START_TIME_DELTA = {"days": 7}  # Low scores within this time range crea
 SCORE_THRESHOLD = 0.9  # Scores below this threshold will create web vital issues
 SAMPLES_COUNT_THRESHOLD = 10  # TODO: Use project config threshold setting. Web Vitals require at least this amount of samples to create an issue
 VITALS: list[WebVitalIssueDetectionType] = ["lcp", "fcp", "cls", "ttfb", "inp"]
+VITAL_GROUPING_MAP: dict[WebVitalIssueDetectionType, WebVitalIssueDetectionGroupingType] = {
+    "lcp": "rendering",
+    "fcp": "rendering",
+    "ttfb": "rendering",
+    "cls": "cls",
+    "inp": "inp",
+}
 
 
 def get_enabled_project_ids() -> list[int]:
@@ -79,11 +90,18 @@ def detect_web_vitals_issues_for_project(project_id: int) -> None:
         project_id, limit=TRANSACTIONS_PER_PROJECT_LIMIT
     )
     for web_vital_issue_group in web_vital_issue_groups:
-        p75_vital_value = web_vital_issue_group["value"]
+        scores = web_vital_issue_group["scores"]
+        values = web_vital_issue_group["values"]
+
+        # We can only use a single trace sample for an issue event
+        # Use the p75 of the worst performing vital
+        vital = sorted(scores.items(), key=lambda item: item[1])[0][0]
+        p75_vital_value = values[vital]
+
         trace = get_trace_by_web_vital_measurement(
             web_vital_issue_group["transaction"],
             project_id,
-            web_vital_issue_group["vital"],
+            vital,
             p75_vital_value,
             start_time_delta=DEFAULT_START_TIME_DELTA,
         )
@@ -155,7 +173,7 @@ def get_highest_opportunity_page_vitals_for_project(
         sampling_mode="NORMAL",
     )
 
-    web_vital_issue_groups: list[WebVitalIssueGroupData] = []
+    web_vital_issue_groups: dict[WebVitalIssueDetectionGroupingType, WebVitalIssueGroupData] = {}
     seen_names = set()
     for row in result.get("data", []):
         name = row.get("transaction")
@@ -166,6 +184,8 @@ def get_highest_opportunity_page_vitals_for_project(
         if normalized_name in seen_names:
             continue
         seen_names.add(normalized_name)
+
+        # Collect all vital scores and values
         for vital in VITALS:
             score = row.get(f"performance_score(measurements.score.{vital})")
             p75_value = row.get(f"p75(measurements.{vital})")
@@ -178,17 +198,19 @@ def get_highest_opportunity_page_vitals_for_project(
                 and enough_samples
                 and p75_value is not None
             ):
-                web_vital_issue_groups.append(
-                    {
+                if VITAL_GROUPING_MAP[vital] not in web_vital_issue_groups:
+                    web_vital_issue_groups[VITAL_GROUPING_MAP[vital]] = {
                         "transaction": name,
-                        "vital": vital,
-                        "score": score,
                         "project": project,
-                        "value": p75_value,
+                        "vital_grouping": VITAL_GROUPING_MAP[vital],
+                        "scores": {vital: score},
+                        "values": {vital: p75_value},
                     }
-                )
+                else:
+                    web_vital_issue_groups[VITAL_GROUPING_MAP[vital]]["scores"][vital] = score
+                    web_vital_issue_groups[VITAL_GROUPING_MAP[vital]]["values"][vital] = p75_value
 
-    return web_vital_issue_groups
+    return list(web_vital_issue_groups.values())
 
 
 def check_seer_setup_for_project(project: Project) -> bool:
