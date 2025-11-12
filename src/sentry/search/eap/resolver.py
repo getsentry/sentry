@@ -56,6 +56,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
     VirtualColumnDefinition,
 )
+from sentry.search.eap.rpc_utils import and_trace_item_filters
 from sentry.search.eap.sampling import validate_sampling
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
@@ -139,31 +140,34 @@ class SearchResolver:
             span.set_tag("SearchResolver.resolved_query", where)
             span.set_tag("SearchResolver.environment_query", environment_query)
 
-        # The RPC request meta does not contain the environment.
-        # So we have to inject it as a query condition.
-        #
-        # To do so, we want to AND it with the query.
-        # So if either one is not defined, we just use the other.
-        # But if both are defined, we AND them together.
-
-        if not environment_query:
-            return where, having, contexts
-
-        if not where:
-            return environment_query, having, []
-
-        return (
-            TraceItemFilter(
-                and_filter=AndFilter(
-                    filters=[
-                        environment_query,
-                        where,
-                    ]
-                )
-            ),
-            having,
-            contexts,
+        where = and_trace_item_filters(
+            where,
+            # The RPC request meta does not contain the environment.
+            # So we have to inject it as a query condition.
+            environment_query,
         )
+
+        return where, having, contexts
+
+    @sentry_sdk.trace
+    def resolve_query_with_columns(
+        self,
+        querystring: str | None,
+        selected_columns: list[str] | None,
+        equations: list[str] | None,
+    ) -> tuple[
+        TraceItemFilter | None,
+        AggregationFilter | None,
+        list[VirtualColumnDefinition | None],
+    ]:
+        where, having, contexts = self.resolve_query(querystring)
+
+        # Some datasets like trace metrics require we inject additional
+        # conditions in the top level.
+        dataset_conditions = self.resolve_dataset_conditions(selected_columns, equations)
+        where = and_trace_item_filters(where, dataset_conditions)
+
+        return where, having, contexts
 
     def __resolve_environment_query(self) -> TraceItemFilter | None:
         resolved_column, _ = self.resolve_column("environment")
@@ -1174,3 +1178,12 @@ class SearchResolver:
                 return Column(conditional_aggregation=col.proto_definition), contexts
             elif isinstance(col, ResolvedFormula):
                 return Column(formula=col.proto_definition), contexts
+
+    def resolve_dataset_conditions(
+        self,
+        selected_columns: list[str] | None,
+        equations: list[str] | None,
+    ) -> TraceItemFilter | None:
+        extra_conditions = self.config.extra_conditions(self, selected_columns, equations)
+
+        return and_trace_item_filters(extra_conditions)
