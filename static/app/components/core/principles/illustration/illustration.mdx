@@ -1,0 +1,106 @@
+---
+title: Illustration
+layout: document
+description: Guidelines for using illustration in Sentry's user interface.
+---
+
+import {Image} from '@sentry/scraps/image';
+
+import final from './final.png';
+import mockup from './mockup.png';
+import requirements from './requirements.png';
+import sketch from './sketch.png';
+
+## Introduction
+
+Sentry is distinct among similar tools because of its branding, specifically its vibrant and dynamic illustrations, that have defined Sentry since its creation. However, as is often the case, there’s a fall-off between the brightly illustrated marketing materials and the data heavy app itself. Part of the goal of Scraps was to bring the app and its illustrations slightly closer together, increasing texture and depth and saturation of color.
+
+Another way to bring the app closer to our marketing materials is to include some illustrations within the app itself. It is easy enough to go through our library and slap on a fun looking illustration, but our goal here is to provide some guidance around when and where to include illustrations, and how to request a new one from our Creative Team.
+
+## When to use illustrations?
+
+Illustrations are a powerful tool! And as a result we want to use them sparingly. We want them to enhance the experience and not distract. As a result you should not use them in the most common user flows, you should not use them when a user is in a hurry or trying to resolve an issue, and you should not embed them within the UI in a non-dismissible state.
+
+You can (and should!) use illustrations for temporary or less important states, for example a full page 404 error, onboarding, or upsells, when a user is going to be in less of a hurry, and where there is a clear path of action to take.
+
+**Do use illustrations**
+
+- For full-screen experiences — ex. HTTP error pages
+- Upsells
+- Onboarding
+  - Sentry onboarding
+  - Product-specific onboarding
+- Authorization flows
+- Emails (onboarding or auth related)
+- Empty states (USE CAUTION)
+
+**Don’t use illustrations**
+
+- Within regular workflows
+- On detail pages
+- In dashboards
+- In tables
+- In high priority or actionable emails
+
+<aside>
+💡
+
+**Remember:** if you’re unsure or worried you’re cluttering a page or distracting from the main user journey— don’t include an illustration!
+
+</aside>
+
+## Picking the right illustration
+
+Over the years our talented illustration team has created dozens (hundreds??) of spot and banner illustrations. While it can be tempting to lift from from our existing libraries, or borrow a spot illustration from somewhere else in the app, do not do this! Illustrations are a moment of delight within the app, that also ideally communicate something about the page or product. By reusing the same illustration across multiple surfaces its power and meaning is diluted. It is better to use no illustration than to use one that is inappropriate or meaningless.
+
+If you have determined you do need an illustration submit a [Creative Request](https://www.notion.so/Submit-Creative-Request-7e78df575bc0420ba19200c817df77a1?pvs=21) to the team. For best results try to provide images of the UI into which you want the illustration to fit. If you can provide ideal dimensions for the illustration and context on what you are trying to communicate. Feel free to use illustrations from the library to give illustrators a sense of what you want, or Engineers and PMs a preview of your general idea, but don’t use them in the final implemented designs.
+
+**Types of illustrations**
+
+**Small Spot** - a small illustration, generally a single figure or image. Useful in product specific onboarding or empty states. Shorter turnaround. Roughly 200 x 200px - 400 x 400px
+
+**Large Spot** - medium illustration, could be a few figures interacting. For instances where you have a bit more space — 404 pages or high level onboarding.
+
+**Banner/Hero** - larger illustration generally stretching across the top of a page. Can have several figures or a more complex central image. Often found in our blogs, less in product. Longer turnaround. 1430 x 715px is standard for the blog, but you can request different dimensions.
+
+**Full page** - A large and complicated illustration with many figures. Long turnaround! Really plan ahead and only request these for high profile projects. Most recently requested for log in page redesign. Size varies.
+
+**Example of how to best prepare your illustration request:**
+
+This is the real process of asking for a spot illustration for our redesigned auth flow.
+
+1. Write out the dimensions and the contents of the requested illustration.
+
+<Image src={requirements} alt="" />
+
+1. Mock up how it can appear in the UI, using an existing illustration that fits the general theme or vibe I want.
+
+<Image src={mockup} alt="" />
+
+1. Check the sketch from the illustrator against my mockups.
+
+<Image src={sketch} alt="" />
+
+1. Enjoy the final illustration!
+
+<Image src={final} alt="" />
+
+## In summary
+
+**General Dos and Don’ts**
+
+- **Don’t** re-use existing illustrations
+- **Do** request purpose-specific illustrations from our Creative Team
+- **Don’t** interrupt urgent or data dense user flows with illustrations, now is not the time
+- **Do** use illustrations as moments to pause or brand — upsells, onboarding, new product tours
+
+**Requesting an illustration (this is a multi-week process. Plan ahead!)**
+
+1. Create a mock up of your (mostly) final UI
+2. Determine the dimensions of the illustration you need
+3. Write a few sentences describing the context of the illustration, mood or tone or specific images you’d want to see
+   1. Ex. “This is an in-line illustration for when a search returns no Issues. It should feature someone looking for something, or exploring, or an objet that has disappeared. 300px by 300px.”
+   2. “This is a full page illustration for our 404 page. It can have some animated elements. Should communicate that something has been lost or something is confused. Dimensions flexible.”
+4. Submit a Creative Request
+5. View sketches from the illustrator, help them pick the one best suited to your needs
+6. Enjoy your final illustration 🙂
