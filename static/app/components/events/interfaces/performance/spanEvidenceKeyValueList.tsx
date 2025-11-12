@@ -354,9 +354,6 @@ function AIDetectedSpanEvidence({
   projectSlug,
 }: SpanEvidenceKeyValueListProps) {
   const evidenceData = event?.occurrence?.evidenceData ?? {};
-  // LLM detected issues create synthetic events, not real transaction events.
-  // event.title contains the issue title (e.g., "Unhandled Exception in API Call"),
-  // so we must use evidenceData.transaction for the actual transaction name.
   const transactionName = evidenceData.transaction ?? event.title;
 
   const transactionSummaryLocation = transactionSummaryRouteWithQuery({
