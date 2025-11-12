@@ -106,6 +106,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
   const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
 
+  const isTriageSignalsFeatureOn = project.features.includes('triage-signals-v0');
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
 
   const cursorIntegration = codingAgentIntegrations?.integrations.find(
@@ -206,16 +207,21 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     saveMessage: t('Stopping point updated'),
     onChange: handleStoppingPointChange,
     visible: ({model}) => {
-      const scannerEnabled = model?.getValue('seerScannerAutomation') === true;
       const tuningValue = model?.getValue('autofixAutomationTuning');
       // Handle both boolean (toggle) and string (dropdown) values
       const automationEnabled =
         typeof tuningValue === 'boolean' ? tuningValue : tuningValue !== 'off';
+
+      // When feature flag is ON (toggle mode): only check automation
+      // When feature flag is OFF (dropdown mode): check both scanner and automation
+      if (isTriageSignalsFeatureOn) {
+        return automationEnabled;
+      }
+
+      const scannerEnabled = model?.getValue('seerScannerAutomation') === true;
       return scannerEnabled && automationEnabled;
     },
   } satisfies FieldObject;
-
-  const isTriageSignalsFeatureOn = project.features.includes('triage-signals-v0');
 
   const seerFormGroups: JsonFormObject[] = [
     {
