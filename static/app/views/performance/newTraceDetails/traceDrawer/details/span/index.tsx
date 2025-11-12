@@ -46,10 +46,7 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  isEAPSpanNode,
-  isEAPTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
@@ -400,7 +397,7 @@ function EAPSpanNodeDetailsContent({
 }) {
   const attributes = traceItemData.attributes;
   const links = traceItemData.links;
-  const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
+  const isTransaction = node.value.is_transaction && !!eventTransaction;
 
   const threadIdAttribute: TraceItemResponseAttribute | undefined = attributes.find(
     attribute => attribute.name === 'thread.id'

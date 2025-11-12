@@ -134,10 +134,6 @@ export function TraceSpanRow(
 function getChildrenCount(
   node: SpanNode | EapSpanNode | UptimeCheckNode | UptimeCheckTimingNode
 ) {
-  if (isUptimeCheckTimingNode(node)) {
-    return 0;
-  }
-
   if (isEAPTransactionNode(node) && !node.expanded) {
     return node.children.length - node.directVisibleChildren.length;
   }
