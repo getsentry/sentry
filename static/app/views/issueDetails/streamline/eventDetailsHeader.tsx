@@ -96,6 +96,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   }
 
   const FilterBar = theme.isChonk ? PageFilterBar : StyledPageFilterBar;
+  const searchBarEnabled = issueTypeConfig.header.filterBar.searchBar?.enabled !== false;
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
@@ -174,22 +175,24 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                     }}
                   />
                 </FilterBar>
-                <EventSearch
-                  group={group}
-                  handleSearch={query => {
-                    navigate(
-                      {...location, query: {...location.query, query}},
-                      {replace: true}
-                    );
-                  }}
-                  environments={environments}
-                  query={searchQuery}
-                  queryBuilderProps={{
-                    disallowFreeText: true,
-                    placeholder: searchText,
-                    label: searchText,
-                  }}
-                />
+                {searchBarEnabled && (
+                  <EventSearch
+                    group={group}
+                    handleSearch={query => {
+                      navigate(
+                        {...location, query: {...location.query, query}},
+                        {replace: true}
+                      );
+                    }}
+                    environments={environments}
+                    query={searchQuery}
+                    queryBuilderProps={{
+                      disallowFreeText: true,
+                      placeholder: searchText,
+                      label: searchText,
+                    }}
+                  />
+                )}
               </Grid>
               <ToggleSidebar />
             </Flex>
