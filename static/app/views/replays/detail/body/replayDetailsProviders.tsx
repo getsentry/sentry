@@ -3,6 +3,7 @@ import type {Location} from 'history';
 
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {DEFAULT_REPLAY_LIST_SORT} from 'sentry/components/replays/table/useReplayTableSort';
 import EventView from 'sentry/utils/discover/eventView';
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
@@ -60,8 +61,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
       newLocation.query.start = location.query.playlistStart;
       newLocation.query.end = location.query.playlistEnd;
     }
-    // TODO: import shared DEFAULT_SORT
-    newLocation.query.sort = location.query.playlistSort ?? '-started_at';
+    newLocation.query.sort = location.query.playlistSort ?? DEFAULT_REPLAY_LIST_SORT;
     return newLocation;
   }, [location]);
 

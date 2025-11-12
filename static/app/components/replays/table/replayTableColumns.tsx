@@ -540,8 +540,8 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       query = {...query, ...{cursor: location.query.cursor}};
     }
 
-    // Because the sort field is only generated if the corresponding fields is added, but we
-    // want to avoid dirtying the URL with fields, we manually add it to the query here.
+    // Because the sort field is only generated if the corresponding fields are also in the URL, but we
+    // want to avoid dirtying the URL with fields, we manually add the sort field to the query here.
     if (location.query.sort) {
       query = {...query, ...{playlistSort: location.query.sort}};
     }
