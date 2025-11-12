@@ -525,9 +525,11 @@ from sentry.seer.endpoints.organization_seer_explorer_runs import (
 from sentry.seer.endpoints.organization_seer_explorer_update import (
     OrganizationSeerExplorerUpdateEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheck
 from sentry.seer.endpoints.organization_trace_summary import OrganizationTraceSummaryEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
+from sentry.seer.endpoints.project_seer_rpc import ProjectSeerRpcEndpoint
 from sentry.seer.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.seer.endpoints.trace_explorer_ai_query import TraceExplorerAIQuery
 from sentry.seer.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
@@ -2334,6 +2336,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-setup-check",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer-rpc/(?P<method_name>\w+)/$",
+        OrganizationSeerRpcEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-rpc",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sentry-app-components/$",
         OrganizationSentryAppComponentsEndpoint.as_view(),
         name="sentry-api-0-organization-sentry-app-components",
@@ -3239,6 +3246,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/preferences/$",
         ProjectSeerPreferencesEndpoint.as_view(),
         name="sentry-api-0-project-seer-preferences",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer-rpc/(?P<method_name>\w+)/$",
+        ProjectSeerRpcEndpoint.as_view(),
+        name="sentry-api-0-project-seer-rpc",
     ),
     # User Issue
     re_path(
