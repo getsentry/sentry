@@ -469,16 +469,27 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
     def validate_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Validate that only superusers can change mode to non-MANUAL values.
+
+        When a non-superuser updates a monitor that is not in MANUAL mode,
+        automatically switch to MANUAL.
         """
         if "mode" not in config:
             return config
 
         mode = config["mode"]
 
-        # For updates, only validate if mode is being changed
+        # For updates, if current mode is not MANUAL and user is not a superuser,
+        # automatically switch to MANUAL mode
         if self.instance:
             current_mode = self.instance.config.get("mode")
-            # If mode hasn't changed, no validation needed
+
+            if current_mode != UptimeMonitorMode.MANUAL:
+                request = self.context["request"]
+                if not is_active_superuser(request):
+                    config["mode"] = UptimeMonitorMode.MANUAL
+                    return config
+
+            # If mode hasn't changed, no further validation needed
             if current_mode == mode:
                 return config
 
