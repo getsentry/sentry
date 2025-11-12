@@ -335,36 +335,6 @@ class CommitContextIntegration(ABC):
 
                     pr_comment_workflow.queue_task(pr=pr, project_id=group_owner.project_id)
 
-    def queue_open_pr_comment_task_if_needed(
-        self, pr: PullRequest, organization: Organization
-    ) -> None:
-        try:
-            open_pr_comment_workflow = self.get_open_pr_comment_workflow()
-        except NotImplementedError:
-            return
-
-        if not OrganizationOption.objects.get_value(
-            organization=organization,
-            key=open_pr_comment_workflow.organization_option_key,
-            default=True,
-        ):
-            logger.info(
-                _open_pr_comment_log(
-                    integration_name=self.integration_name, suffix="option_missing"
-                ),
-                extra={"organization_id": organization.id},
-            )
-            return
-
-        metrics.incr(
-            OPEN_PR_METRICS_BASE.format(integration=self.integration_name, key="queue_task")
-        )
-        logger.info(
-            _open_pr_comment_log(integration_name=self.integration_name, suffix="queue_task"),
-            extra={"pr_id": pr.id},
-        )
-        open_pr_comment_workflow.queue_task(pr=pr)
-
     def create_or_update_comment(
         self,
         repo: Repository,
@@ -629,11 +599,6 @@ class OpenPRCommentWorkflow(ABC):
     @abstractmethod
     def referrer_id(self) -> str:
         raise NotImplementedError
-
-    def queue_task(self, pr: PullRequest) -> None:
-        from sentry.integrations.source_code_management.tasks import open_pr_comment_workflow
-
-        open_pr_comment_workflow.delay(pr_id=pr.id)
 
     @abstractmethod
     def get_pr_files_safe_for_comment(

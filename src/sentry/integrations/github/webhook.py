@@ -29,7 +29,6 @@ from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
-from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
@@ -754,7 +753,7 @@ class PullRequestEventWebhook(GitHubWebhook):
 
         author.preload_users()
         try:
-            pr, created = PullRequest.objects.update_or_create(
+            PullRequest.objects.update_or_create(
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
@@ -766,14 +765,6 @@ class PullRequestEventWebhook(GitHubWebhook):
                     "merge_commit_sha": merge_commit_sha,
                 },
             )
-
-            installation = integration.get_installation(organization_id=organization.id)
-            if (
-                action == "opened"
-                and created
-                and isinstance(installation, CommitContextIntegration)
-            ):
-                installation.queue_open_pr_comment_task_if_needed(pr=pr, organization=organization)
 
         except IntegrityError:
             pass

@@ -540,10 +540,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     codecovAccess: bool
     hideAiFeatures: bool
     githubPRBot: bool
-    githubOpenPRBot: bool
     githubNudgeInvite: bool
     gitlabPRBot: bool
-    gitlabOpenPRBot: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
     isDynamicallySampled: bool
@@ -662,16 +660,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),
             "githubPRBot": bool(obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)),
-            "githubOpenPRBot": bool(
-                obj.get_option("sentry:github_open_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
-            ),
             "githubNudgeInvite": bool(
                 obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
             ),
             "gitlabPRBot": bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
-            "gitlabOpenPRBot": bool(
-                obj.get_option("sentry:gitlab_open_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)
-            ),
             "genAIConsent": bool(
                 obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
             ),
