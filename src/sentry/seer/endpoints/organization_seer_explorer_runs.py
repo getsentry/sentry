@@ -13,7 +13,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
-from sentry.seer.explorer.client import get_seer_runs
+from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.models import SeerPermissionError
 
 logger = logging.getLogger(__name__)
@@ -48,9 +48,8 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
 
         def _make_seer_runs_request(offset: int, limit: int) -> dict[str, Any]:
             try:
-                runs = get_seer_runs(
-                    organization=organization,
-                    user=request.user,
+                client = SeerExplorerClient(organization, request.user)
+                runs = client.get_runs(
                     category_key=category_key,
                     category_value=category_value,
                     offset=offset,

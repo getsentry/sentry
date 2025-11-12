@@ -130,19 +130,15 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
               <IconLink />
             </InfoIcon>
             <Text>
-              {props.projectId && props.appInfo.is_installable ? (
+              {props.projectId ? (
                 <InstallableLink
                   onClick={() => {
                     openInstallModal(props.projectId!, props.artifactId);
                   }}
                 >
-                  Installable
+                  Install
                 </InstallableLink>
-              ) : (
-                <Tooltip title={labels.installUnavailableTooltip}>
-                  Not Installable
-                </Tooltip>
-              )}
+              ) : null}
             </Text>
           </Flex>
         </Feature>
