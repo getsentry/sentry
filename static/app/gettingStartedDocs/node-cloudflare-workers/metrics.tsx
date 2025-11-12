@@ -1,4 +1,4 @@
-import {getNodeMetricsOnboarding} from 'sentry/gettingStartedDocs/node/node/metrics';
+import {getNodeMetricsOnboarding} from 'sentry/gettingStartedDocs/node/metrics';
 
 export const metrics = getNodeMetricsOnboarding({
   docsPlatform: 'cloudflare',

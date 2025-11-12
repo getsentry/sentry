@@ -6,7 +6,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/node/utils';
+import {getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 
 export const getNodeMetricsOnboarding = <

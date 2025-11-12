@@ -59,10 +59,10 @@ export function onRequest(context) {${
   // Send a log before throwing the error
   Sentry.logger.info('User triggered test error', {
     action: 'test_error_function',
-  });`
+  });
+`
     : ''
-}
-${
+}${
   params.isMetricsSelected
     ? `
 // Send a test metric before throwing the error
@@ -72,7 +72,7 @@ Sentry.metrics.count('test_counter', 1);
 }
 setTimeout(() => {
   throw new Error();
-}`;
+});}`;
 
 export const onboarding: OnboardingConfig = {
   introduction: () =>
