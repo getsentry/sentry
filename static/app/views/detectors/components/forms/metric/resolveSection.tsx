@@ -149,7 +149,7 @@ export function ResolveSection() {
             inline={false}
             flexibleControlStateSize
             placeholder="0"
-            suffix={thresholdSuffix}
+            suffix={detectionType === 'percent' ? '%' : thresholdSuffix}
             validate={validateResolutionThreshold}
             required
             preserveOnUnmount
