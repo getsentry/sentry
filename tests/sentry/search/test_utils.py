@@ -839,7 +839,7 @@ class GetLatestReleaseTest(TestCase):
         self.create_release(version="test@1.0.0")
         release_latest_created = self.create_release(version="test@1.0.0+aaa")
 
-        # no build code ordering -> tiebreaker is sr.id
+        # no build code ordering -> tiebreaker is insertion order (id)
         result = get_latest_release([self.project], None)
         assert result == [release_latest_created.version]
 
