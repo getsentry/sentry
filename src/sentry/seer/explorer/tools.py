@@ -516,7 +516,7 @@ def get_replay_metadata(
     *,
     replay_id: str,
     organization_id: int,
-    project_id: int | None = None,
+    project_slug: str | None = None,
 ) -> dict[str, Any] | None:
     """
     Get the metadata for a replay through an aggregate replay event query.
@@ -524,7 +524,7 @@ def get_replay_metadata(
     Args:
         replay_id: The ID of the replay. Either a valid UUID or a 8-character hex string prefix. If known, the full ID is recommended for performance.
         organization_id: The ID of the organization the replay belongs to.
-        project_id: The projects to query. If not provided, all projects in the organization will be queried.
+        project_slug: The slug of the project to query. If not provided, all projects in the organization will be queried.
 
     Returns:
         A dict containing the metadata for the replay, or None if it's not found.
@@ -556,7 +556,7 @@ def get_replay_metadata(
         Project.objects.filter(
             organization_id=organization.id,
             status=ObjectStatus.ACTIVE,
-            **({"id": project_id} if project_id else {}),
+            **({"slug": project_slug} if project_slug else {}),
         ).values_list("id", "slug")
     )
 

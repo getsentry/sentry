@@ -1208,7 +1208,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             result = get_replay_metadata(
                 replay_id=replay1_id,
                 organization_id=self.organization.id,
-                project_id=self.project.id,
+                project_slug=self.project.slug,
             )
             assert result is not None
             assert result["id"] == replay1_id
@@ -1220,7 +1220,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             result = get_replay_metadata(
                 replay_id=replay2_id,
                 organization_id=self.organization.id,
-                project_id=self.project.id,
+                project_slug=self.project.slug,
             )
             assert result is not None
             assert result["id"] == replay2_id
@@ -1228,7 +1228,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["project_slug"] == self.project.slug
             self._ReplayMetadataResponse.parse_obj(result)
 
-            # No project ID
+            # No project slug
             result = get_replay_metadata(
                 replay_id=replay1_id,
                 organization_id=self.organization.id,
@@ -1239,11 +1239,11 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["project_slug"] == self.project.slug
             self._ReplayMetadataResponse.parse_obj(result)
 
-            # Different project ID
+            # Different project slug
             result = get_replay_metadata(
                 replay_id=replay1_id,
                 organization_id=self.organization.id,
-                project_id=self.project.id + 1,
+                project_slug="banana",
             )
             assert result is None
 
