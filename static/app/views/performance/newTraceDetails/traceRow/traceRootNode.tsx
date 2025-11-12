@@ -1,10 +1,6 @@
 import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
-import {
-  isEAPTraceNode,
-  isTraceNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/traceNode';
 import {
   maybeFocusTraceRow,
@@ -15,10 +11,6 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 export function TraceRootRow(props: TraceRowProps<TraceNode>) {
-  if (!isTraceNode(props.node) && !isEAPTraceNode(props.node)) {
-    throw new Error('Trace row rendered called on row that is not root');
-  }
-
   return (
     <div
       key={props.index}

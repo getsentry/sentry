@@ -14,11 +14,6 @@ import {ellipsize} from 'sentry/utils/string/ellipsize';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {
-  isEAPSpanNode,
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 export function TraceProfiles({tree}: {tree: TraceTree}) {
@@ -65,15 +60,11 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
           return null;
         }
 
-        const query = isTransactionNode(node)
+        const query = node.transactionId
           ? {
-              eventId: node.value.event_id,
+              eventId: node.transactionId,
             }
-          : isSpanNode(node)
-            ? {
-                eventId: node.findParentTransaction()?.value?.event_id,
-              }
-            : {};
+          : {};
 
         const link =
           'profiler_id' in profile
@@ -95,57 +86,29 @@ export function TraceProfiles({tree}: {tree: TraceTree}) {
         const profileOrProfilerId =
           'profiler_id' in profile ? profile.profiler_id : profile.profile_id;
 
-        if (isTransactionNode(node)) {
-          const event = (
-            <Fragment>
-              <PlatformIcon
-                platform={projectLookup[node.value.project_slug] ?? 'default'}
-              />
-              <span>{node.value['transaction.op']}</span> —{' '}
-              <span>{node.value.transaction}</span>
-            </Fragment>
-          );
-          return (
-            <ProfilesTableRow key={index}>
-              <div>{event}</div>
-              <div>
-                <Link to={link} onClick={() => onProfileLinkClick(profile)}>
-                  {profileOrProfilerId.substring(0, 8)}
-                </Link>
-              </div>
-            </ProfilesTableRow>
-          );
-        }
-        if (isSpanNode(node) || isEAPSpanNode(node)) {
-          const spanId =
-            'span_id' in node.value ? node.value.span_id : node.value.event_id;
-          const event = (
-            <Fragment>
-              {node.value.project_slug && (
-                <PlatformIcon
-                  platform={projectLookup[node.value.project_slug] ?? 'default'}
-                />
-              )}
-              <span>{node.value.op ?? '<unknown>'}</span> —{' '}
-              <span className="TraceDescription" title={node.value.description}>
-                {node.value.description
-                  ? ellipsize(node.value.description, 100)
-                  : (spanId ?? 'unknown')}
-              </span>
-            </Fragment>
-          );
-          return (
-            <ProfilesTableRow key={index}>
-              <div>{event}</div>
-              <div>
-                <Link to={link} onClick={() => onProfileLinkClick(profile)}>
-                  {profileOrProfilerId.substring(0, 8)}
-                </Link>
-              </div>
-            </ProfilesTableRow>
-          );
-        }
-        return null;
+        const event = (
+          <Fragment>
+            {node.projectSlug && (
+              <PlatformIcon platform={projectLookup[node.projectSlug] ?? 'default'} />
+            )}
+            <span>{node.op ?? '<unknown>'}</span> —{' '}
+            <span className="TraceDescription" title={node.description}>
+              {node.description
+                ? ellipsize(node.description, 100)
+                : (node.id ?? 'unknown')}
+            </span>
+          </Fragment>
+        );
+        return (
+          <ProfilesTableRow key={index}>
+            <div>{event}</div>
+            <div>
+              <Link to={link} onClick={() => onProfileLinkClick(profile)}>
+                {profileOrProfilerId.substring(0, 8)}
+              </Link>
+            </div>
+          </ProfilesTableRow>
+        );
       })}
     </ProfilesTable>
   );

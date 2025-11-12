@@ -11,11 +11,8 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {
-  isAutogroupedNode,
-  isEAPErrorNode,
   isEAPSpanNode,
   isSpanNode,
-  isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -287,14 +284,14 @@ export function searchInTraceTreeText(
   let matchCount = 0;
 
   function search() {
-    enforceVisibilityForAllMatches(tree, node => evaluateNodeFreeText(query, node));
+    enforceVisibilityForAllMatches(tree, node => node.matchWithFreeText(query));
 
     const count = tree.list.length;
     const ts = performance.now();
     while (i < count && performance.now() - ts < 12) {
       const node = tree.list[i]!;
 
-      if (evaluateNodeFreeText(query, node)) {
+      if (node.matchWithFreeText(query)) {
         results.push({index: i, value: node});
         resultLookup.set(node, matchCount);
 
@@ -579,79 +576,6 @@ function resolveValueFromKey(node: BaseNode, token: ProcessedTokenResult): any |
   }
 
   return null;
-}
-
-/**
- * Evaluates the node based on freetext. This is a simple search that checks if the query
- * is present in a very small subset of the node's properties.
- */
-function evaluateNodeFreeText(query: string, node: BaseNode): boolean {
-  if (isSpanNode(node) || isEAPSpanNode(node)) {
-    if (node.value.op?.includes(query)) {
-      return true;
-    }
-    if (node.value.description?.includes(query)) {
-      return true;
-    }
-    if (
-      'name' in node.value &&
-      typeof node.value.name === 'string' &&
-      node.value.name.includes(query)
-    ) {
-      return true;
-    }
-
-    const spanId = 'span_id' in node.value ? node.value.span_id : node.value.event_id;
-    if (spanId && spanId === query) {
-      return true;
-    }
-  }
-
-  if (isTransactionNode(node)) {
-    if (node.value['transaction.op']?.includes(query)) {
-      return true;
-    }
-    if (node.value.transaction?.includes(query)) {
-      return true;
-    }
-    if (node.value.event_id && node.value.event_id === query) {
-      return true;
-    }
-  }
-
-  if (isAutogroupedNode(node)) {
-    if (node.value.op?.includes(query)) {
-      return true;
-    }
-    if (node.value.description?.includes(query)) {
-      return true;
-    }
-    if (
-      'name' in node.value &&
-      typeof node.value.name === 'string' &&
-      node.value.name.includes(query)
-    ) {
-      return true;
-    }
-  }
-
-  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
-    if (node.value.level === query) {
-      return true;
-    }
-    if (
-      isTraceErrorNode(node) &&
-      (node.value.title?.includes(query) || node.value.message?.includes(query))
-    ) {
-      return true;
-    }
-
-    if (isEAPErrorNode(node) && node.value.description?.includes(query)) {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 function enforceVisibilityForAllMatches(

@@ -75,12 +75,7 @@ export function getTraceNodeAttribute(
 
 function createGetIsAiNode(predicate: ({op}: {op?: string}) => boolean) {
   return (node: BaseNode): node is AITraceSpanNode => {
-    if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-      return false;
-    }
-
-    const op = isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op;
-    return predicate({op});
+    return predicate({op: node.op});
   };
 }
 

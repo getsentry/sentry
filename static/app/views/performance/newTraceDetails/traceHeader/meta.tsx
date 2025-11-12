@@ -12,7 +12,6 @@ import type {RepresentativeTraceEvent} from 'sentry/views/performance/newTraceDe
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   isEAPError,
-  isEAPTraceNode,
   isTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -75,7 +74,7 @@ export function Meta(props: MetaProps) {
   const {timestamp} = useTraceQueryParams();
 
   const spansCount =
-    traceNode && isEAPTraceNode(traceNode)
+    props.tree.eap_spans_count > 0
       ? props.tree.eap_spans_count
       : (props.meta?.span_count ?? 0);
 

@@ -1,7 +1,6 @@
 import type {Theme} from '@emotion/react';
 
 import Placeholder from 'sentry/components/placeholder';
-import {isTraceNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
@@ -47,7 +46,7 @@ export function TraceLoadingRow(props: {
           }}
         >
           <div
-            className={`TraceChildrenCountWrapper ${isTraceNode(props.node) ? 'Root' : ''}`}
+            className={`TraceChildrenCountWrapper ${props.node.isRootNodeChild() ? 'Root' : ''}`}
           >
             <TraceRowConnectors node={props.node} manager={props.manager} />
             {props.node.children.length > 0 || props.node.canFetchChildren ? (

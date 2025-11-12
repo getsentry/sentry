@@ -5,10 +5,8 @@ import type {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import type {CollapsedNode} from './traceModels/traceTreeNode/collapsedNode';
 import type {EapSpanNode} from './traceModels/traceTreeNode/eapSpanNode';
-import type {ErrorNode} from './traceModels/traceTreeNode/errorNode';
 import type {NoInstrumentationNode} from './traceModels/traceTreeNode/noInstrumentationNode';
 import type {ParentAutogroupNode} from './traceModels/traceTreeNode/parentAutogroupNode';
-import type {RootNode} from './traceModels/traceTreeNode/rootNode';
 import type {SiblingAutogroupNode} from './traceModels/traceTreeNode/siblingAutogroupNode';
 import type {SpanNode} from './traceModels/traceTreeNode/spanNode';
 import type {TransactionNode} from './traceModels/traceTreeNode/transactionNode';
@@ -26,11 +24,7 @@ export function isMissingInstrumentationNode(
 }
 
 export function isSpanNode(node: BaseNode): node is SpanNode {
-  return (
-    !!(node.value && !('transaction' in node.value) && 'span_id' in node.value) &&
-    !isMissingInstrumentationNode(node) &&
-    !isAutogroupedNode(node)
-  );
+  return !!(node.value && !('transaction' in node.value) && 'span_id' in node.value);
 }
 
 export function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
@@ -61,19 +55,8 @@ export function isUptimeCheckTimingNode(node: BaseNode): node is UptimeCheckTimi
   );
 }
 
-export function isNonTransactionEAPSpanNode(node: BaseNode): node is EapSpanNode {
-  return isEAPSpanNode(node) && !isEAPTransactionNode(node);
-}
-
 export function isTransactionNode(node: BaseNode): node is TransactionNode {
-  return (
-    !!(node.value && 'transaction' in node.value) &&
-    !isAutogroupedNode(node) &&
-    !isEAPSpanNode(node) &&
-    !isUptimeCheckNode(node) &&
-    !isUptimeCheckTimingNode(node) &&
-    !isEAPErrorNode(node)
-  );
+  return !!(node.value && 'transaction.op' in node.value);
 }
 
 export function isUptimeCheck(
@@ -89,10 +72,6 @@ export function isEAPError(value: TraceTree.NodeValue): value is TraceTree.EAPEr
     value.event_type === 'error' &&
     'description' in value // a bit gross, but we won't need this soon as we remove the legacy error type
   );
-}
-
-export function isEAPErrorNode(node: BaseNode): node is BaseNode<TraceTree.EAPError> {
-  return isEAPError(node.value);
 }
 
 export function isParentAutogroupedNode(node: BaseNode): node is ParentAutogroupNode {
@@ -111,12 +90,6 @@ export function isSiblingAutogroupedNode(node: BaseNode): node is SiblingAutogro
   );
 }
 
-export function isAutogroupedNode(
-  node: BaseNode
-): node is ParentAutogroupNode | SiblingAutogroupNode {
-  return isParentAutogroupedNode(node) || isSiblingAutogroupedNode(node);
-}
-
 export function isCollapsedNode(node: BaseNode): node is CollapsedNode {
   return !!(node.value && 'type' in node.value && node.value.type === 'collapsed');
 }
@@ -127,15 +100,6 @@ export function isTraceError(value: TraceTree.NodeValue): value is TraceTree.Tra
 
 export function isTraceErrorNode(node: BaseNode): node is BaseNode<TraceTree.TraceError> {
   return isTraceError(node.value);
-}
-
-// TODO Abdullah Khan: Won't be needed once we fully migrate to the new BaseNode subclass
-export function isErrorNode(node: BaseNode): node is ErrorNode {
-  return isTraceErrorNode(node) || isEAPErrorNode(node);
-}
-
-export function isRootNode(node: BaseNode): node is RootNode {
-  return node.value === null;
 }
 
 export function isTraceNode(
@@ -188,12 +152,6 @@ export function isJavascriptSDKEvent(value: TraceTree.NodeValue): boolean {
       value.sdk_name
     )
   );
-}
-
-export function isTransactionNodeEquivalent(
-  node: BaseNode
-): node is TransactionNode | EapSpanNode {
-  return isTransactionNode(node) || isEAPTransaction(node.value);
 }
 
 export function isBrowserRequestNode(node: BaseNode): boolean {

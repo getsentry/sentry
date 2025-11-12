@@ -229,12 +229,13 @@ export function SpanDescription({
   return (
     <TraceDrawerComponents.Highlights
       node={node}
-      transaction={undefined}
       project={project}
       avgDuration={avgSpanDuration ? avgSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
       hideNodeActions={hideNodeActions}
+      footerContent={<TraceDrawerComponents.HighLightEAPOpsBreakdown node={node} />}
+      comparisonDescription={t('Average duration for this span over the last 24 hours')}
       highlightedAttributes={getHighlightedSpanAttributes({
         attributes,
         op: span.op,

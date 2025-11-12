@@ -267,7 +267,10 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
 
   matchWithFreeText(query: string): boolean {
     return (
-      this.op?.includes(query) || this.description?.includes(query) || this.id === query
+      this.op?.includes(query) ||
+      this.description?.includes(query) ||
+      this.value.name?.includes(query) ||
+      this.id === query
     );
   }
 }

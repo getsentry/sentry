@@ -46,10 +46,7 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  isEAPSpanNode,
-  isEAPTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
@@ -68,40 +65,6 @@ import {hasSpanHTTPInfo, SpanHTTPInfo} from './sections/http';
 import {hasSpanKeys, SpanKeys} from './sections/keys';
 import Measurements, {hasSpanMeasurements} from './sections/measurements';
 import {hasSpanTags, Tags} from './sections/tags';
-
-function SpanNodeDetailHeader({
-  node,
-  organization,
-  onTabScrollToNode,
-  hideNodeActions,
-}: {
-  node: SpanNode | EapSpanNode;
-  onTabScrollToNode: (node: BaseNode) => void;
-  organization: Organization;
-  hideNodeActions?: boolean;
-}) {
-  const spanId = isEAPSpanNode(node) ? node.value.event_id : node.value.span_id;
-  return (
-    <TraceDrawerComponents.HeaderContainer>
-      <TraceDrawerComponents.Title>
-        <TraceDrawerComponents.LegacyTitleText>
-          <TraceDrawerComponents.TitleText>{t('Span')}</TraceDrawerComponents.TitleText>
-          <TraceDrawerComponents.SubtitleWithCopyButton
-            subTitle={`ID: ${spanId}`}
-            clipboardText={spanId}
-          />
-        </TraceDrawerComponents.LegacyTitleText>
-      </TraceDrawerComponents.Title>
-      {!hideNodeActions && (
-        <TraceDrawerComponents.NodeActions
-          node={node}
-          organization={organization}
-          onTabScrollToNode={onTabScrollToNode}
-        />
-      )}
-    </TraceDrawerComponents.HeaderContainer>
-  );
-}
 
 function SpanSections({
   node,
@@ -189,7 +152,7 @@ export function SpanNodeDetails(
 
   const project = projects.find(proj => proj.slug === node.projectSlug);
 
-  const spanId = isEAPSpanNode(node) ? node.value.event_id : node.value.span_id;
+  const spanId = node.id;
 
   const content = isEAPSpanNode(node) ? (
     <EAPSpanNodeDetails
@@ -261,12 +224,27 @@ function SpanNodeDetailsContent({
 }) {
   return (
     <TraceDrawerComponents.DetailContainer>
-      <SpanNodeDetailHeader
-        node={node}
-        organization={organization}
-        onTabScrollToNode={onTabScrollToNode}
-        hideNodeActions={hideNodeActions}
-      />
+      <TraceDrawerComponents.HeaderContainer>
+        <TraceDrawerComponents.Title>
+          <TraceDrawerComponents.LegacyTitleText>
+            <TraceDrawerComponents.TitleText>{t('Span')}</TraceDrawerComponents.TitleText>
+            <TraceDrawerComponents.SubtitleWithCopyButton
+              subTitle={`ID: ${node.id}`}
+              clipboardText={node.id}
+            />
+          </TraceDrawerComponents.LegacyTitleText>
+        </TraceDrawerComponents.Title>
+        {!hideNodeActions && (
+          <TraceDrawerComponents.NodeActions
+            node={node}
+            organization={organization}
+            profileId={node.event?.contexts?.profile?.profile_id}
+            profilerId={node.value.sentry_tags?.profiler_id}
+            threadId={node.value.data?.['thread.id']}
+            onTabScrollToNode={onTabScrollToNode}
+          />
+        )}
+      </TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.BodyContainer>
         <Alerts node={node} />
         {issues.length > 0 ? (
@@ -419,7 +397,7 @@ function EAPSpanNodeDetailsContent({
 }) {
   const attributes = traceItemData.attributes;
   const links = traceItemData.links;
-  const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
+  const isTransaction = node.value.is_transaction && !!eventTransaction;
 
   const threadIdAttribute: TraceItemResponseAttribute | undefined = attributes.find(
     attribute => attribute.name === 'thread.id'
@@ -458,12 +436,25 @@ function EAPSpanNodeDetailsContent({
 
   return (
     <TraceDrawerComponents.DetailContainer>
-      <SpanNodeDetailHeader
-        node={node}
-        organization={organization}
-        onTabScrollToNode={onTabScrollToNode}
-        hideNodeActions={hideNodeActions}
-      />
+      <TraceDrawerComponents.HeaderContainer>
+        <TraceDrawerComponents.Title>
+          <TraceDrawerComponents.LegacyTitleText>
+            <TraceDrawerComponents.TitleText>{t('Span')}</TraceDrawerComponents.TitleText>
+            <TraceDrawerComponents.SubtitleWithCopyButton
+              subTitle={`ID: ${node.id}`}
+              clipboardText={node.id}
+            />
+          </TraceDrawerComponents.LegacyTitleText>
+        </TraceDrawerComponents.Title>
+        {!hideNodeActions && (
+          <TraceDrawerComponents.NodeActions
+            node={node}
+            organization={organization}
+            onTabScrollToNode={onTabScrollToNode}
+            showJSONLink={node.value.is_transaction}
+          />
+        )}
+      </TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.BodyContainer>
         {issues.length > 0 ? (
           <IssueList organization={organization} issues={issues} node={node} />

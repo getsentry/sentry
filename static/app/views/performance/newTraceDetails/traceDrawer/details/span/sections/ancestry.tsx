@@ -13,7 +13,6 @@ import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceG
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 
 export function useSpanAncestryAndGroupingItems({
   node,
@@ -42,7 +41,7 @@ export function useSpanAncestryAndGroupingItems({
       key: 'parent_transaction',
       value: (
         <a href="#" onClick={() => onParentClick(parentTransaction)}>
-          {getTraceTabTitle(parentTransaction)}
+          {parentTransaction.drawerTabsTitle}
         </a>
       ),
       subject: t('Parent Transaction'),

@@ -15,7 +15,6 @@ import type {
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
-  isAutogroupedNode,
   isEAPError,
   isEAPSpan,
   isJavascriptSDKEvent,
@@ -855,9 +854,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
         throw new Error('Parent node is missing, this should be unreachable code');
       }
 
-      const children = isParentAutogroupedNode(node.parent)
-        ? node.parent.tail.children
-        : node.parent.children;
+      // Check for direct visible children first, this helps respect the expanded state of the node in concern.
+      const children =
+        node.parent.directVisibleChildren.length > 0
+          ? node.parent.directVisibleChildren
+          : node.parent.children;
+
       const index = children.indexOf(node);
       if (index === -1) {
         throw new Error('Node is not a child of its parent');
@@ -927,7 +929,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       queue.push(...node.getNextTraversalNodes());
 
-      if (node.children.length < 5 || isAutogroupedNode(node)) {
+      if (node.children.length < 5) {
         continue;
       }
 

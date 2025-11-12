@@ -4,7 +4,6 @@ import {PlatformIcon} from 'platformicons';
 import {IconSentry, IconTimer} from 'sentry/icons';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {
-  isEAPSpanNode,
   isEAPTransactionNode,
   isSpanNode,
   isUptimeCheckNode,
@@ -15,10 +14,7 @@ import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceMo
 import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
 import type {UptimeCheckTimingNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckTimingNode';
-import {
-  makeTraceNodeBarColor,
-  TraceBar,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+import {TraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
@@ -26,21 +22,14 @@ import {
   TraceRowConnectors,
   type TraceRowProps,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 
 const NO_PROFILES: any = [];
 
 export function TraceSpanRow(
   props: TraceRowProps<SpanNode | EapSpanNode | UptimeCheckNode | UptimeCheckTimingNode>
 ) {
-  const spanId =
-    isEAPSpanNode(props.node) ||
-    isUptimeCheckNode(props.node) ||
-    isUptimeCheckTimingNode(props.node)
-      ? props.node.value.event_id
-      : props.node.value.span_id;
+  const spanId = props.node.id;
 
-  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
   const childrenCount = getChildrenCount(props.node);
 
   const icon = isUptimeCheckNode(props.node) ? (
@@ -106,23 +95,12 @@ export function TraceSpanRow(
                 <strong className="TraceEmDash"> — </strong>
               </React.Fragment>
             )}
-            {shouldUseOTelFriendlyUI &&
-            isEAPSpanNode(props.node) &&
-            props.node.value.name &&
-            props.node.value.name !== props.node.value.op ? (
-              <React.Fragment>
-                <span className="TraceName" title={props.node.value.name}>
-                  {ellipsize(props.node.value.name, 100)}
-                </span>
-              </React.Fragment>
-            ) : (
-              <span className="TraceDescription" title={props.node.value.description}>
-                {isPrefetch ? '(prefetch) ' : ''}
-                {props.node.value.description
-                  ? ellipsize(props.node.value.description, 100)
-                  : (spanId ?? 'unknown')}
-              </span>
-            )}
+            <span className="TraceDescription" title={props.node.description}>
+              {isPrefetch ? '(prefetch) ' : ''}
+              {props.node.description
+                ? ellipsize(props.node.description, 100)
+                : (spanId ?? 'unknown')}
+            </span>
           </React.Fragment>
         </div>
       </div>
@@ -135,7 +113,7 @@ export function TraceSpanRow(
           node={props.node}
           virtualized_index={props.virtualized_index}
           manager={props.manager}
-          color={makeTraceNodeBarColor(props.theme, props.node)}
+          color={props.node.makeBarColor(props.theme)}
           node_space={props.node.space}
           errors={props.node.errors}
           occurrences={props.node.occurrences}
@@ -156,10 +134,6 @@ export function TraceSpanRow(
 function getChildrenCount(
   node: SpanNode | EapSpanNode | UptimeCheckNode | UptimeCheckTimingNode
 ) {
-  if (isUptimeCheckTimingNode(node)) {
-    return 0;
-  }
-
   if (isEAPTransactionNode(node) && !node.expanded) {
     return node.children.length - node.directVisibleChildren.length;
   }

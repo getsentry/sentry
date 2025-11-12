@@ -10,10 +10,8 @@ import {
   isEAPSpanNode,
   isSpanNode,
   isTransactionNode,
-  isTransactionNodeEquivalent,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
@@ -69,17 +67,10 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
 
         tree.build();
 
-        const fetchableTransactions = tree.root
-          .findAllChildren(node => {
-            return (
-              isTransactionNode(node) && node.canFetchChildren && node.value !== null
-            );
-          })
-          .filter((node): node is TransactionNode => isTransactionNode(node));
+        const fetchableNodes = tree.root.findAllChildren(node => node.canFetchChildren);
 
-        const uniqueTransactions = fetchableTransactions.filter(
-          (node, index, array) =>
-            index === array.findIndex(tx => tx.value.event_id === node.value.event_id)
+        const uniqueTransactions = fetchableNodes.filter(
+          (node, index, array) => index === array.findIndex(n => n.id === node.id)
         );
 
         const zoomPromises = uniqueTransactions.map(node =>
@@ -94,11 +85,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
 
         // Keep only transactions that include AI spans and the AI spans themselves
         const flattenedNodes = tree.root.findAllChildren<AITraceSpanNode>(node => {
-          if (
-            !isTransactionNodeEquivalent(node) &&
-            !isSpanNode(node) &&
-            !isEAPSpanNode(node)
-          ) {
+          if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
             return false;
           }
 

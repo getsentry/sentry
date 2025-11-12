@@ -68,24 +68,15 @@ import {
 } from './traceState/traceStateProvider';
 import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
-import {isEAPTraceNode, isTraceNode} from './traceGuards';
 import {TracePreferencesDropdown} from './tracePreferencesDropdown';
 import {TraceResetZoomButton} from './traceResetZoomButton';
 import type {TraceReducer, TraceReducerState} from './traceState';
-import {
-  traceNodeAdjacentAnalyticsProperties,
-  traceNodeAnalyticsName,
-} from './traceTreeAnalytics';
+import {traceNodeAdjacentAnalyticsProperties} from './traceTreeAnalytics';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
-
-const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
-  node: 'trace',
-  label: t('Trace'),
-};
 
 export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
@@ -284,7 +275,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     ) => {
       // sync query string with the clicked node
       if (node) {
-        if (isTraceNode(node) || isEAPTraceNode(node)) {
+        if (!node.canShowDetails) {
           return;
         }
 
@@ -319,11 +310,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           });
         }
 
-        if (isTraceNode(node)) {
-          traceDispatch({type: 'activate tab', payload: TRACE_TAB.node});
-          return;
-        }
-
         traceDispatch({
           type: 'activate tab',
           payload: node,
@@ -336,7 +322,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const onRowClick = useCallback(
     (node: BaseNode, event: React.MouseEvent<HTMLElement>, index: number) => {
-      if (isTraceNode(node) || isEAPTraceNode(node)) {
+      if (!node.canShowDetails) {
         traceDispatch({
           type: 'set roving index',
           action_source: 'click',
@@ -349,7 +335,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       trackAnalytics('trace.trace_layout.span_row_click', {
         organization,
         num_children: node.children.length,
-        type: traceNodeAnalyticsName(node),
+        type: node.analyticsName(),
         project_platform:
           projects.find(p => p.slug === node.projectSlug)?.platform || 'other',
         ...traceNodeAdjacentAnalyticsProperties(node),
@@ -409,11 +395,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     // TODO Abdullah Khan: Remove this once /trace-meta/ starts responding
     // with the correct spans count for EAP traces.
-    if (
-      traceNode &&
-      isEAPTraceNode(traceNode) &&
-      props.tree.eap_spans_count !== props.meta?.data?.span_count
-    ) {
+    if (traceNode && props.tree.eap_spans_count !== props.meta?.data?.span_count) {
       Sentry.withScope(scope => {
         scope.setFingerprint(['trace-eap-spans-count-mismatch']);
         scope.captureMessage(
@@ -448,11 +430,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     if (query.fov && typeof query.fov === 'string') {
       viewManager.maybeInitializeTraceViewFromQS(query.fov);
     }
-
-    TraceTree.ApplyPreferences(props.tree.root, {
-      preferences: traceStateRef.current.preferences,
-      organization: props.organization,
-    });
 
     // Construct the visual representation of the tree
     props.tree.build();
@@ -517,7 +494,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     traceScheduler,
     scrollQueueRef,
     props.tree,
-    props.organization,
   ]);
 
   // Setup the middleware for the trace reducer

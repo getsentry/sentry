@@ -16,10 +16,8 @@ import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLoca
 import {useNodeDetailsLink} from 'sentry/views/insights/agents/hooks/useNodeDetailsLink';
 import {useUrlTraceDrawer} from 'sentry/views/insights/agents/hooks/useUrlTraceDrawer';
 import {getDefaultSelectedNode} from 'sentry/views/insights/agents/utils/getDefaultSelectedNode';
-import {getNodeId} from 'sentry/views/insights/agents/utils/getNodeId';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
 import {DrawerUrlParams} from 'sentry/views/insights/agents/utils/urlParams';
-import {TraceTreeNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -53,7 +51,7 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
 
   const handleSelectNode = useCallback(
     (node: AITraceSpanNode) => {
-      const uniqueKey = getNodeId(node);
+      const uniqueKey = node.id;
       setSelectedNodeKey(uniqueKey);
 
       trackAnalytics('agent-monitoring.drawer.span-select', {
@@ -64,7 +62,7 @@ const TraceViewDrawer = memo(function TraceViewDrawer({
   );
 
   const selectedNode =
-    (selectedNodeKey && nodes.find(node => getNodeId(node) === selectedNodeKey)) ||
+    (selectedNodeKey && nodes.find(node => node.id === selectedNodeKey)) ||
     getDefaultSelectedNode(nodes);
 
   const nodeDetailsLink = useNodeDetailsLink({
@@ -183,21 +181,20 @@ function AITraceView({
         <SpansHeader>{t('AI Spans')}</SpansHeader>
         <AISpanList
           nodes={nodes}
-          selectedNodeKey={getNodeId(selectedNode!)}
+          selectedNodeKey={selectedNode?.id ?? null}
           onSelectNode={onSelectNode}
         />
       </LeftPanel>
       <RightPanel>
-        <TraceTreeNodeDetails
-          node={selectedNode}
-          manager={null}
-          onParentClick={() => {}}
-          onTabScrollToNode={() => {}}
-          organization={organization}
-          replay={null}
-          traceId={traceSlug}
-          hideNodeActions
-        />
+        {selectedNode?.renderDetails({
+          node: selectedNode,
+          manager: null,
+          onParentClick: () => {},
+          onTabScrollToNode: () => {},
+          organization,
+          replay: null,
+          traceId: traceSlug,
+        })}
       </RightPanel>
     </SplitContainer>
   );

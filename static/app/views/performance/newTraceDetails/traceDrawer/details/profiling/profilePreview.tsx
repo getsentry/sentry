@@ -28,7 +28,6 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {NoInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/noInstrumentationNode';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
@@ -73,9 +72,10 @@ export function ProfilePreview({
   }, [profileGroup.profiles, profileGroup.activeProfileIndex, spanThreadId]);
 
   const transactionHasProfile = useMemo(() => {
-    return isEAPSpanNode(missingInstrumentationNode.previous)
-      ? (missingInstrumentationNode.findParentEapTransaction()?.profiles?.size ?? 0) > 0
-      : (missingInstrumentationNode.findParentTransaction()?.profiles?.size ?? 0) > 0;
+    const parentTransaction =
+      missingInstrumentationNode.findParentEapTransaction() ??
+      missingInstrumentationNode.findParentTransaction();
+    return (parentTransaction?.profiles?.size ?? 0) > 0;
   }, [missingInstrumentationNode]);
 
   const flamegraph = useMemo(() => {

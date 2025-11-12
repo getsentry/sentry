@@ -3,10 +3,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
-import {
-  makeTraceNodeBarColor,
-  TraceBar,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+import {TraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
@@ -91,11 +88,13 @@ export function TraceTransactionRow(props: TraceRowProps<TransactionNode>) {
           node={props.node}
           virtualized_index={props.virtualized_index}
           manager={props.manager}
-          color={makeTraceNodeBarColor(props.theme, props.node)}
+          color={props.node.makeBarColor(props.theme)}
           node_space={props.node.space}
           errors={props.node.errors}
           occurrences={props.node.occurrences}
           profiles={props.node.profiles}
+          // Since transactions have ms precision, we show 2 decimal places only if the duration is greater than 1 second.
+          durationPrecision={props.node.space[1] >= 1000 ? 2 : 0}
         />
         <button
           ref={props.registerSpanArrowRef}
