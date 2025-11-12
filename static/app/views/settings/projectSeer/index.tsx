@@ -205,9 +205,14 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
     saveOnBlur: true,
     saveMessage: t('Stopping point updated'),
     onChange: handleStoppingPointChange,
-    visible: ({model}) =>
-      model?.getValue('seerScannerAutomation') === true &&
-      model?.getValue('autofixAutomationTuning') !== 'off',
+    visible: ({model}) => {
+      const scannerEnabled = model?.getValue('seerScannerAutomation') === true;
+      const tuningValue = model?.getValue('autofixAutomationTuning');
+      // Handle both boolean (toggle) and string (dropdown) values
+      const automationEnabled =
+        typeof tuningValue === 'boolean' ? tuningValue : tuningValue !== 'off';
+      return scannerEnabled && automationEnabled;
+    },
   } satisfies FieldObject;
 
   const isTriageSignalsFeatureOn = project.features.includes('triage-signals-v0');
