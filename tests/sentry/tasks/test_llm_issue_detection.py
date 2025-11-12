@@ -83,7 +83,7 @@ class LLMIssueDetectionTest(TestCase):
         assert len(occurrence.fingerprint) == 1
         assert (
             occurrence.fingerprint[0]
-            == "llm-detected-Database Connection Pool Exhaustion-test_transaction"
+            == "llm-detected-database-connection-pool-exhaustion-test_transaction"
         )
 
         assert occurrence.evidence_data["trace_id"] == "abc123xyz"
