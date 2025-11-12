@@ -1,27 +1,26 @@
 import type {ReactNode} from 'react';
 
-import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
-import {defaultSortBys} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {ExploreStateQueryParamsProvider} from 'sentry/views/explore/exploreStateQueryParamsProvider';
 import {
+  defaultAggregateFields,
   defaultAggregateSortBys,
-  defaultVisualizes,
-} from 'sentry/views/explore/logs/logsQueryParams';
-import {defaultGroupBys} from 'sentry/views/explore/queryParams/groupBy';
+  defaultFields,
+  defaultSortBys,
+} from 'sentry/views/explore/metrics/metricQuery';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 
-interface LogsStateQueryParamsProviderProps {
+interface MetricsStateQueryParamsProviderProps {
   children: ReactNode;
   frozenParams?: Partial<ReadableQueryParamsOptions>;
 }
 
-export function LogsStateQueryParamsProvider({
+export function MetricsStateQueryParamsProvider({
   children,
   frozenParams,
-}: LogsStateQueryParamsProviderProps) {
+}: MetricsStateQueryParamsProviderProps) {
   return (
     <ExploreStateQueryParamsProvider
-      defaultFields={defaultLogFields}
+      defaultFields={defaultFields}
       defaultSortBys={defaultSortBys}
       defaultAggregateFields={defaultAggregateFields}
       defaultAggregateSortBys={defaultAggregateSortBys}
@@ -30,8 +29,4 @@ export function LogsStateQueryParamsProvider({
       {children}
     </ExploreStateQueryParamsProvider>
   );
-}
-
-function defaultAggregateFields() {
-  return [...defaultGroupBys(), ...defaultVisualizes()];
 }
