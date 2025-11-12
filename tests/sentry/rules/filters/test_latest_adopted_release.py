@@ -6,6 +6,7 @@ from sentry.rules.filters.latest_adopted_release_filter import (
 )
 from sentry.search.utils import LatestReleaseOrders
 from sentry.testutils.cases import RuleTestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class LatestAdoptedReleaseFilterTest(RuleTestCase):
@@ -129,6 +130,101 @@ class LatestAdoptedReleaseFilterTest(RuleTestCase):
         self.create_group_release(group=group_2, release=test_release)
         # Oldest release for group is 1.9, latest adopted release for environment is 1.0
         self.assertPasses(rule, event_2)
+
+    @with_feature("organizations:semver-ordering-with-build-code")
+    def test_semver_with_build_code(self) -> None:
+        """
+        Test that the rule uses build number when ordering releases by semver.
+
+        Without build code ordering, whichever release is created last will get
+        picked as the latest adopted release for the env. Ie, the behavior that
+        we are changing is the fallback to insertion order (id), NOT date_added.
+        In prod, id and date_added are closely linked, but we specify here for
+        clarity.
+        """
+        event = self.get_event()
+        now = datetime.now(UTC)
+        prod = self.create_environment(name="prod")
+        test = self.create_environment(name="test")
+
+        release_9 = self.create_release(
+            project=event.group.project,
+            version="test@2.0+9",
+            environments=[test],
+            date_added=now - timedelta(days=2),
+            adopted=now - timedelta(days=2),
+        )
+        self.create_group_release(group=self.event.group, release=release_9)
+
+        release_11 = self.create_release(
+            project=event.group.project,
+            version="test@2.0+11",
+            environments=[test],
+            date_added=now - timedelta(days=2),
+            adopted=now - timedelta(days=2),
+        )
+
+        self.create_release(
+            project=event.group.project,
+            version="test@2.0+10",
+            environments=[prod],
+            date_added=now - timedelta(days=1),
+            adopted=now - timedelta(days=1),
+        )
+
+        self.create_release(
+            project=event.group.project,
+            version="test@2.0+8",
+            environments=[prod],
+            date_added=now,
+            adopted=now,
+        )
+
+        # The newest adopted release associated with the event's issue (2.0+9)
+        # is older than the latest adopted release in prod (2.0+10)
+        data = {"oldest_or_newest": "newest", "older_or_newer": "newer", "environment": prod.name}
+        rule = self.get_rule(data=data)
+        self.assertDoesNotPass(rule, event)
+        data = {"oldest_or_newest": "newest", "older_or_newer": "older", "environment": prod.name}
+        rule = self.get_rule(data=data)
+        self.assertPasses(rule, event)
+
+        self.create_group_release(group=self.event.group, release=release_11)
+
+        # The newest adopted release associated with the event's issue (2.0+11)
+        # is newer than the latest adopted release in prod (2.0+10)
+        data = {"oldest_or_newest": "newest", "older_or_newer": "newer", "environment": prod.name}
+        rule = self.get_rule(data=data)
+        self.assertPasses(rule, event)
+        data = {"oldest_or_newest": "newest", "older_or_newer": "older", "environment": prod.name}
+        rule = self.get_rule(data=data)
+        self.assertDoesNotPass(rule, event)
+
+        # The oldest adopted release associated with the event's issue (2.0+9)
+        # is older than the latest adopted release in prod (2.0+10)
+        data = {"oldest_or_newest": "oldest", "older_or_newer": "newer", "environment": prod.name}
+        rule = self.get_rule(data=data)
+        self.assertDoesNotPass(rule, event)
+        data = {"oldest_or_newest": "oldest", "older_or_newer": "older", "environment": prod.name}
+        rule = self.get_rule(data=data)
+        self.assertPasses(rule, event)
+
+        self.create_release(
+            project=event.group.project,
+            version="test@2.0+a",
+            environments=[prod],
+            date_added=now - timedelta(days=3),
+            adopted=now - timedelta(days=3),
+        )
+
+        # The newest adopted release associated with the event's issue (2.0+11)
+        # is older than the latest adopted release in prod (2.0+a)
+        data = {"oldest_or_newest": "newest", "older_or_newer": "newer", "environment": prod.name}
+        rule = self.get_rule(data=data)
+        self.assertDoesNotPass(rule, event)
+        data = {"oldest_or_newest": "newest", "older_or_newer": "older", "environment": prod.name}
+        rule = self.get_rule(data=data)
+        self.assertPasses(rule, event)
 
     def test_no_adopted_release(self) -> None:
         event = self.get_event()
