@@ -61,14 +61,14 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
     },
   });
 
-  const newQuery = {...query};
+  const {playlistStart, playlistEnd, playlistSort, ...newQuery} = query;
 
-  if (query.playlistStart && query.playlistEnd) {
-    newQuery.start = query.playlistStart;
-    newQuery.end = query.playlistEnd;
+  if (playlistStart && playlistEnd) {
+    newQuery.start = playlistStart;
+    newQuery.end = playlistEnd;
   }
-  if (query.playlistSort) {
-    newQuery.sort = query.playlistSort;
+  if (playlistSort) {
+    newQuery.sort = playlistSort;
   }
 
   const queryKey = useReplayListQueryKey({
