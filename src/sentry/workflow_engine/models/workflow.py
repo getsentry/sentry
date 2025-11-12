@@ -18,7 +18,8 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.processors.data_condition_group import TriggerResult
+from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
 from .json_config import JSONConfigBase
 
@@ -93,7 +94,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     def evaluate_trigger_conditions(
         self, event_data: WorkflowEventData, when_data_conditions: list[DataCondition] | None = None
-    ) -> tuple[bool, list[DataCondition]]:
+    ) -> tuple[TriggerResult, list[DataCondition]]:
         """
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
         If there aren't any workflow trigger conditions, the workflow is considered triggered.
@@ -104,7 +105,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         )
 
         if self.when_condition_group_id is None:
-            return True, []
+            return TriggerResult.TRUE, []
 
         workflow_event_data = replace(event_data, workflow_env=self.environment)
         try:
@@ -116,7 +117,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 "DataConditionGroup does not exist",
                 extra={"id": self.when_condition_group_id},
             )
-            return False, []
+            return TriggerResult(False, ConditionError(msg="DataConditionGroup does not exist")), []
         group_evaluation, remaining_conditions = process_data_condition_group(
             group, workflow_event_data, when_data_conditions
         )

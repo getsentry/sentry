@@ -322,9 +322,6 @@ def process_detectors[T](
         ):
             detector_results = handler.evaluate(data_packet)
 
-        if detector_results is None:
-            return results
-
         for result in detector_results.values():
             logger_extra = {
                 "detector": detector.id,

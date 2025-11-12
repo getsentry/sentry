@@ -14,7 +14,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.utils import metrics, registry
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLevel
+from sentry.workflow_engine.types import ConditionError, DataConditionResult, DetectorPriorityLevel
 from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
@@ -145,7 +145,7 @@ class DataCondition(DefaultFieldsModel):
             "condition_result": self.condition_result,
         }
 
-    def get_condition_result(self) -> DataConditionResult:
+    def get_condition_result(self) -> DataConditionResult | ConditionError:
         match self.condition_result:
             case float() | bool():
                 return self.condition_result
@@ -159,15 +159,15 @@ class DataCondition(DefaultFieldsModel):
                     "Invalid condition result",
                     extra={"condition_result": self.condition_result, "id": self.id},
                 )
+                return ConditionError(msg="Invalid condition result")
 
-        return None
-
-    def _evaluate_operator(self, condition_type: Condition, value: T) -> DataConditionResult:
+    def _evaluate_operator(
+        self, condition_type: Condition, value: T
+    ) -> DataConditionResult | ConditionError:
         # If the condition is a base type, handle it directly
         op = CONDITION_OPS[condition_type]
-        result = None
         try:
-            result = op(cast(Any, value), self.comparison)
+            return op(cast(Any, value), self.comparison)
         except TypeError:
             logger.exception(
                 "Invalid comparison for data condition",
@@ -178,11 +178,12 @@ class DataCondition(DefaultFieldsModel):
                     "condition_id": self.id,
                 },
             )
-
-        return result
+            return ConditionError(msg="Invalid comparison for data condition")
 
     @scopedstats.timer()
-    def _evaluate_condition(self, condition_type: Condition, value: T) -> DataConditionResult:
+    def _evaluate_condition(
+        self, condition_type: Condition, value: T
+    ) -> DataConditionResult | ConditionError:
         try:
             handler = condition_handler_registry.get(condition_type)
         except registry.NoRegistrationExistsError:
@@ -190,7 +191,7 @@ class DataCondition(DefaultFieldsModel):
                 "No registration exists for condition",
                 extra={"type": self.type, "id": self.id},
             )
-            return None
+            return ConditionError(msg="No registration exists for condition")
 
         should_be_fast = not is_slow_condition(self)
         start_time = time.time()
@@ -212,7 +213,7 @@ class DataCondition(DefaultFieldsModel):
                     "error": str(e),
                 },
             )
-            return None
+            return ConditionError(msg=str(e))
         finally:
             duration = time.time() - start_time
             if should_be_fast and duration >= FAST_CONDITION_TOO_SLOW_THRESHOLD.total_seconds():
@@ -230,7 +231,7 @@ class DataCondition(DefaultFieldsModel):
 
         return result
 
-    def evaluate_value(self, value: T) -> DataConditionResult:
+    def evaluate_value(self, value: T) -> DataConditionResult | ConditionError:
         try:
             condition_type = Condition(self.type)
         except ValueError:
@@ -238,9 +239,9 @@ class DataCondition(DefaultFieldsModel):
                 "Invalid condition type",
                 extra={"type": self.type, "id": self.id},
             )
-            return None
+            return ConditionError(msg="Invalid condition type")
 
-        result: DataConditionResult
+        result: DataConditionResult | ConditionError
         if condition_type in CONDITION_OPS:
             result = self._evaluate_operator(condition_type, value)
         else:

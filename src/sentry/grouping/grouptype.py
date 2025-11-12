@@ -5,23 +5,20 @@ from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.group import DEFAULT_TYPE_ID
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.endpoints.validators.error_detector import ErrorDetectorValidator
-from sentry.workflow_engine.handlers.detector.base import DetectorHandler
-from sentry.workflow_engine.models.data_source import DataPacket
-from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
-    DetectorGroupKey,
-    DetectorSettings,
+from sentry.workflow_engine.handlers.detector.base import (
+    DetectorHandler,
+    GroupedDetectorEvaluationResult,
 )
+from sentry.workflow_engine.models.data_source import DataPacket
+from sentry.workflow_engine.types import DetectorSettings
 
 T = TypeVar("T")
 
 
 class ErrorDetectorHandler(DetectorHandler):
-    def evaluate(
-        self, data_packet: DataPacket[T]
-    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+    def evaluate_impl(self, data_packet: DataPacket[T]) -> GroupedDetectorEvaluationResult:
         # placeholder
-        return {}
+        return GroupedDetectorEvaluationResult(result={}, tainted=False)
 
 
 @dataclass(frozen=True)
