@@ -132,7 +132,7 @@ def query_replay_instance_with_short_id(
 
         snuba_response = execute_query(
             query=make_full_aggregation_query_with_short_id(
-                fields=["replay_id"],
+                fields=[],
                 replay_id_prefix=replay_id_prefix,
                 project_ids=project_ids,
                 period_start=window_start,
