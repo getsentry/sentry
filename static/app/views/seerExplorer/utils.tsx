@@ -200,6 +200,40 @@ export function getToolsStringFromBlock(block: Block): string[] {
 }
 
 /**
+ * Converts issue short IDs in text to markdown links.
+ * Examples: INTERNAL-4K, JAVASCRIPT-2SDJ, PROJECT-1
+ */
+function linkifyIssueShortIds(text: string): string {
+  // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
+  // Requires at least 2 chars before hyphen and 1+ chars after
+  const shortIdPattern = /\b([A-Z0-9_]{2,}-[A-Z0-9]+)\b/g;
+
+  return text.replace(shortIdPattern, match => {
+    return `[${match}](/issues/${match}/)`;
+  });
+}
+
+/**
+ * Post-processes markdown text from LLM responses.
+ * Applies various transformations to enhance the text with links and formatting.
+ * Add new processing rules to this function as needed.
+ */
+export function postProcessLLMMarkdown(text: string | null | undefined): string {
+  if (!text) {
+    return '';
+  }
+
+  let processed = text;
+
+  // Convert issue short IDs to clickable links
+  processed = linkifyIssueShortIds(processed);
+
+  // Add more processing rules here as needed
+
+  return processed;
+}
+
+/**
  * Build a URL/LocationDescriptor for a tool link based on its kind and params
  */
 export function buildToolLinkUrl(

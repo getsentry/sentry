@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -14,7 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 import type {Block} from './types';
-import {buildToolLinkUrl, getToolsStringFromBlock} from './utils';
+import {buildToolLinkUrl, getToolsStringFromBlock, postProcessLLMMarkdown} from './utils';
 
 interface BlockProps {
   block: Block;
@@ -110,6 +110,11 @@ function BlockComponent({
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
   const hasContent = hasValidContent(block.message.content);
+
+  const processedContent = useMemo(
+    () => postProcessLLMMarkdown(block.message.content),
+    [block.message.content]
+  );
 
   // State to track selected tool link (for navigation)
   const [selectedLinkIndex, setSelectedLinkIndex] = useState(0);
@@ -261,7 +266,24 @@ function BlockComponent({
                 hasOnlyTools={!hasContent && hasTools}
               />
               <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
-                {hasContent && <BlockContent text={block.message.content} />}
+                {hasContent && (
+                  <BlockContent
+                    text={processedContent}
+                    onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                      // Intercept clicks on links to use client-side navigation
+                      const target = e.target as HTMLElement;
+                      if (target.tagName === 'A') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const href = target.getAttribute('href');
+                        if (href?.startsWith('/')) {
+                          navigate(href);
+                          onNavigate?.();
+                        }
+                      }
+                    }}
+                  />
+                )}
                 {hasTools && (
                   <ToolCallStack gap="md">
                     {block.message.tool_calls?.map((toolCall, idx) => {
