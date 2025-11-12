@@ -7,6 +7,7 @@ import {
   type ReactAsyncQueuer,
 } from '@tanstack/react-pacer';
 
+import useOrganization from 'sentry/utils/useOrganization';
 import type GenericWidgetQueries from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 
 export type QueueItem<SeriesResponse, TableResponse> = {
@@ -22,18 +23,21 @@ type Context = {
 const WidgetQueueContext = createContext<Context | undefined>(undefined);
 
 export function useWidgetQueryQueue() {
-  return useContext(WidgetQueueContext) ?? {queue: undefined};
-}
+  const organization = useOrganization();
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
 
-const fetchWidgetItem = async (item: QueueItem<any, any>) => {
-  const result = await item.widget.fetchData();
-  return result;
-};
+  const queueContext = useContext(WidgetQueueContext);
+
+  return hasQueueFeature && queueContext ? queueContext : {queue: undefined};
+}
 
 export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}) {
   const queueOptions: AsyncQueuerOptions<QueueItem<any, any>> = {
     //
-    concurrency: 10,
+    concurrency: 1,
+    wait: 5000,
     started: true,
     key: 'widget-query-queue',
   };
@@ -47,3 +51,8 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
     <WidgetQueueContext.Provider value={context}>{children}</WidgetQueueContext.Provider>
   );
 }
+
+const fetchWidgetItem = async (item: QueueItem<any, any>) => {
+  const result = await item.widget.fetchData();
+  return result;
+};

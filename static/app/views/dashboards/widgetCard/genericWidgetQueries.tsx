@@ -127,13 +127,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
   componentDidMount() {
     this._isMounted = true;
     if (!this.props.loading) {
-      if (this.props.queue) {
-        this.props.queue.addItem({
-          widget: this,
-        });
-      } else {
-        this.fetchData();
-      }
+      this.fetchDataWithQueueIfAvailable();
     }
   }
 
@@ -192,13 +186,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           !isSelectionEqual(selection, prevProps.selection) ||
           cursor !== prevProps.cursor
     ) {
-      if (this.props.queue) {
-        this.props.queue.addItem({
-          widget: this,
-        });
-      } else {
-        this.fetchData();
-      }
+      this.fetchDataWithQueueIfAvailable();
       return;
     }
 
@@ -398,6 +386,23 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
         timeseriesResultsTypes,
       });
     }
+  }
+
+  fetchDataWithQueueIfAvailable() {
+    const {queue} = this.props;
+    if (queue) {
+      const itemAlreadyInQueue = queue
+        .peekPendingItems()
+        .some(item => item.widget === this);
+      // Never add the same widget to the queue twice
+      // even if the date selection has change fetchData() will still be called with the latest state.
+      if (itemAlreadyInQueue) {
+        return;
+      }
+      queue.addItem({widget: this});
+      return;
+    }
+    this.fetchData();
   }
 
   async fetchData() {
