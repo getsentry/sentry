@@ -8,7 +8,7 @@ from django.test.utils import override_settings
 from django.utils import timezone
 
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType
 from sentry.monitors.validators import (
@@ -217,9 +217,9 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         monitor = validator.save()
         assert monitor.config["checkin_margin"] == 1
 
-    @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_create_monitor_assigns_seat(self, assign_monitor_seat):
-        assign_monitor_seat.return_value = Outcome.ACCEPTED
+    @patch("sentry.quotas.backend.assign_seat")
+    def test_create_monitor_assigns_seat(self, assign_seat):
+        assign_seat.return_value = Outcome.ACCEPTED
 
         data = {
             "project": self.project.slug,
@@ -232,12 +232,12 @@ class MonitorValidatorCreateTest(MonitorTestCase):
 
         monitor = validator.save()
 
-        assign_monitor_seat.assert_called_with(monitor)
+        assign_seat.assert_called_with(DataCategory.MONITOR, monitor)
         assert monitor.status == ObjectStatus.ACTIVE
 
-    @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_create_monitor_without_seat(self, assign_monitor_seat):
-        assign_monitor_seat.return_value = Outcome.RATE_LIMITED
+    @patch("sentry.quotas.backend.assign_seat")
+    def test_create_monitor_without_seat(self, assign_seat):
+        assign_seat.return_value = Outcome.RATE_LIMITED
 
         data = {
             "project": self.project.slug,
@@ -250,7 +250,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
 
         monitor = validator.save()
 
-        assert assign_monitor_seat.called
+        assert assign_seat.called
         monitor.refresh_from_db()
         assert monitor.status == ObjectStatus.DISABLED
 
@@ -539,7 +539,7 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         updated_monitor = validator.save()
         assert updated_monitor.status == ObjectStatus.DISABLED
 
-    @patch("sentry.quotas.backend.check_assign_monitor_seat")
+    @patch("sentry.quotas.backend.check_assign_seat")
     def test_update_status_to_active_with_quota_check(self, mock_check_seat):
         """Test updating monitor status to active checks quota."""
         # Start with disabled monitor
@@ -564,9 +564,9 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
 
         updated_monitor = validator.save()
         assert updated_monitor.status == ObjectStatus.ACTIVE
-        mock_check_seat.assert_called_once_with(self.monitor)
+        mock_check_seat.assert_called_once_with(DataCategory.MONITOR, self.monitor)
 
-    @patch("sentry.quotas.backend.check_assign_monitor_seat")
+    @patch("sentry.quotas.backend.check_assign_seat")
     def test_update_status_to_active_quota_exceeded(self, mock_check_seat):
         """Test updating monitor status to active fails when quota exceeded."""
         # Start with disabled monitor
@@ -973,7 +973,7 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert monitor.owner_user_id is None
         assert monitor.owner_team_id is None
 
-    @patch("sentry.quotas.backend.assign_monitor_seat")
+    @patch("sentry.quotas.backend.assign_seat")
     def test_create_source_creates_monitor(self, mock_assign_seat):
         mock_assign_seat.return_value = Outcome.ACCEPTED
         validator = self._create_validator()
@@ -1021,7 +1021,7 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert "slug" in validator.errors
         assert 'The slug "test-monitor" is already in use.' in str(validator.errors["slug"])
 
-    @patch("sentry.quotas.backend.assign_monitor_seat")
+    @patch("sentry.quotas.backend.assign_seat")
     def test_quota_rejection_disables_monitor(self, mock_assign_seat):
         mock_assign_seat.return_value = Outcome.RATE_LIMITED
         validator = self._create_validator()

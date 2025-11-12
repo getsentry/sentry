@@ -15,7 +15,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
 from sentry import audit_log, killswitches
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models.environment import Environment
 from sentry.monitors.constants import TIMEOUT, PermitCheckInStatus
@@ -1332,12 +1332,12 @@ class MonitorConsumerTest(TestCase):
         checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
         assert len(checkins) == 0
 
-    @mock.patch("sentry.quotas.backend.assign_monitor_seat")
+    @mock.patch("sentry.quotas.backend.assign_seat")
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
     def test_monitor_accept_upsert_with_seat(
         self,
         check_accept_monitor_checkin,
-        assign_monitor_seat,
+        assign_seat,
     ):
         """
         Validates that a monitor can be upserted and processes a full check-in
@@ -1345,7 +1345,7 @@ class MonitorConsumerTest(TestCase):
         allocated with a Outcome.ACCEPTED.
         """
         check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPTED_FOR_UPSERT
-        assign_monitor_seat.return_value = Outcome.ACCEPTED
+        assign_seat.return_value = Outcome.ACCEPTED
 
         with outbox_runner():
             self.send_checkin(
@@ -1361,7 +1361,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor is not None
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
-        assign_monitor_seat.assert_called_with(monitor)
+        assign_seat.assert_called_with(DataCategory.MONITOR, monitor)
 
         assert_org_audit_log_exists(
             organization=self.organization,
@@ -1369,12 +1369,12 @@ class MonitorConsumerTest(TestCase):
             data={"upsert": True, **monitor.get_audit_log_data()},
         )
 
-    @mock.patch("sentry.quotas.backend.assign_monitor_seat")
+    @mock.patch("sentry.quotas.backend.assign_seat")
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
     def test_monitor_accept_upsert_no_seat(
         self,
         check_accept_monitor_checkin,
-        assign_monitor_seat,
+        assign_seat,
     ):
         """
         Validates that a monitor can be upserted but have the check-in dropped
@@ -1382,7 +1382,7 @@ class MonitorConsumerTest(TestCase):
         unable to be allocated with a Outcome.RATE_LIMITED
         """
         check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPTED_FOR_UPSERT
-        assign_monitor_seat.return_value = Outcome.RATE_LIMITED
+        assign_seat.return_value = Outcome.RATE_LIMITED
 
         self.send_checkin(
             "my-monitor",
@@ -1403,21 +1403,21 @@ class MonitorConsumerTest(TestCase):
         assert monitor.status == ObjectStatus.DISABLED
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
-        assign_monitor_seat.assert_called_with(monitor)
+        assign_seat.assert_called_with(DataCategory.MONITOR, monitor)
 
-    @mock.patch("sentry.quotas.backend.assign_monitor_seat")
+    @mock.patch("sentry.quotas.backend.assign_seat")
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
     def test_monitor_accept_upsert_existing_monitor(
         self,
         check_accept_monitor_checkin,
-        assign_monitor_seat,
+        assign_seat,
     ):
         """
         Validate the unusual casse where a seat does not already exist but a
         monitor does exist. We should ensure assign_monitor_seat is called
         """
         check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPTED_FOR_UPSERT
-        assign_monitor_seat.return_value = Outcome.RATE_LIMITED
+        assign_seat.return_value = Outcome.RATE_LIMITED
 
         monitor = self._create_monitor(slug="my-monitor")
         self.send_checkin("my-monitor", environment="my-environment")
@@ -1431,4 +1431,4 @@ class MonitorConsumerTest(TestCase):
         assert monitor.status == ObjectStatus.DISABLED
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
-        assign_monitor_seat.assert_called_with(monitor)
+        assign_seat.assert_called_with(DataCategory.MONITOR, monitor)

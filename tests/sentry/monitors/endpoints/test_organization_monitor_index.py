@@ -10,7 +10,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry import audit_log
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType
 from sentry.monitors.utils import get_detector_for_monitor
@@ -540,9 +540,9 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, **data)
         assert Monitor.objects.get(slug=response.data["slug"]).config["checkin_margin"] == 1
 
-    @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_create_monitor_assigns_seat(self, assign_monitor_seat: MagicMock) -> None:
-        assign_monitor_seat.return_value = Outcome.ACCEPTED
+    @patch("sentry.quotas.backend.assign_seat")
+    def test_create_monitor_assigns_seat(self, assign_seat: MagicMock) -> None:
+        assign_seat.return_value = Outcome.ACCEPTED
 
         data = {
             "project": self.project.slug,
@@ -554,12 +554,12 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(slug=response.data["slug"])
 
-        assign_monitor_seat.assert_called_with(monitor)
+        assign_seat.assert_called_with(DataCategory.MONITOR, monitor)
         assert monitor.status == ObjectStatus.ACTIVE
 
-    @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_create_monitor_without_seat(self, assign_monitor_seat: MagicMock) -> None:
-        assign_monitor_seat.return_value = Outcome.RATE_LIMITED
+    @patch("sentry.quotas.backend.assign_seat")
+    def test_create_monitor_without_seat(self, assign_seat: MagicMock) -> None:
+        assign_seat.return_value = Outcome.RATE_LIMITED
 
         data = {
             "project": self.project.slug,
@@ -571,7 +571,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(slug=response.data["slug"])
 
-        assert assign_monitor_seat.called
+        assert assign_seat.called
         assert response.data["status"] == "disabled"
         assert monitor.status == ObjectStatus.DISABLED
 
@@ -678,15 +678,15 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         assert monitor_one.status == ObjectStatus.ACTIVE
         assert monitor_two.status == ObjectStatus.ACTIVE
 
-    @patch("sentry.quotas.backend.check_assign_monitor_seats")
-    def test_enable_no_quota(self, check_assign_monitor_seats: MagicMock) -> None:
+    @patch("sentry.quotas.backend.check_assign_seats")
+    def test_enable_no_quota(self, check_assign_seats: MagicMock) -> None:
         monitor_one = self._create_monitor(slug="monitor_one", status=ObjectStatus.DISABLED)
         monitor_two = self._create_monitor(slug="monitor_two", status=ObjectStatus.DISABLED)
         result = SeatAssignmentResult(
             assignable=False,
             reason="Over quota",
         )
-        check_assign_monitor_seats.return_value = result
+        check_assign_seats.return_value = result
 
         data = {
             "ids": [monitor_one.guid, monitor_two.guid],
