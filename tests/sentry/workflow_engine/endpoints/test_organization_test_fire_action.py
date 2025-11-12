@@ -67,8 +67,11 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         return_value=PagerDutyIssueAlertHandler,
     )
     def test_pagerduty_action(
-        self, mock_get_issue_alert_handler, mock_get_group_type_handler, mock_send_trigger
-    ):
+        self,
+        mock_get_issue_alert_handler: mock.MagicMock,
+        mock_get_group_type_handler: mock.MagicMock,
+        mock_send_trigger: mock.MagicMock,
+    ) -> None:
         """Test a PagerDuty action"""
         service_info = self.setup_pd_service()
 
@@ -90,6 +93,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         assert response.status_code == 200
         assert mock_send_trigger.call_count == 1
         pagerduty_data = mock_send_trigger.call_args.kwargs.get("data")
+        assert pagerduty_data is not None
         assert pagerduty_data["payload"]["summary"].startswith("[Test Detector]:")
 
     @mock.patch.object(NotifyEventAction, "after")
@@ -102,8 +106,11 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         return_value=PluginIssueAlertHandler,
     )
     def test_plugin_notify_event_action(
-        self, mock_get_issue_alert_handler, mock_get_group_type_handler, mock_after
-    ):
+        self,
+        mock_get_issue_alert_handler: mock.MagicMock,
+        mock_get_group_type_handler: mock.MagicMock,
+        mock_after: mock.MagicMock,
+    ) -> None:
         """Test a Plugin action (NotifyEventAction)"""
         action_data = [
             {
@@ -214,8 +221,8 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
     )
     @mock.patch("sentry.integrations.slack.actions.form.get_channel_id")
     def test_updates_action_with_validated_data(
-        self, mock_get_channel_id, mock_send_test_notification
-    ):
+        self, mock_get_channel_id: mock.MagicMock, mock_send_test_notification: mock.MagicMock
+    ) -> None:
         self.integration, self.org_integration = self.create_provider_integration_for(
             provider="slack",
             organization=self.organization,

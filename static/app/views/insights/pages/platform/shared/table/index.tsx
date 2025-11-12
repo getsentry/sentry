@@ -12,7 +12,7 @@ import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/use
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
+import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
 interface PlatformInsightsTableProps<DataRow extends Record<string, any>>
   extends Omit<

@@ -2,8 +2,8 @@ import {useMemo} from 'react';
 
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useTableCursor} from 'sentry/views/insights/agents/hooks/useTableCursor';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import type {SpanProperty} from 'sentry/views/insights/types';
 
 const PER_PAGE = 10;

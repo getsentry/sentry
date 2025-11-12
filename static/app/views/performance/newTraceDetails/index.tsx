@@ -74,14 +74,12 @@ export default function TraceView() {
 
   return (
     <TraceViewLogsDataProvider traceSlug={traceSlug}>
-      <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
-        <TraceStateProvider
-          initialPreferences={preferences}
-          preferencesStorageKey={TRACE_VIEW_PREFERENCES_KEY}
-        >
-          <TraceViewImpl traceSlug={traceSlug} />
-        </TraceStateProvider>
-      </TraceViewMetricsProviderWrapper>
+      <TraceStateProvider
+        initialPreferences={preferences}
+        preferencesStorageKey={TRACE_VIEW_PREFERENCES_KEY}
+      >
+        <TraceViewImpl traceSlug={traceSlug} />
+      </TraceStateProvider>
     </TraceViewLogsDataProvider>
   );
 }
@@ -193,7 +191,9 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               <TraceViewLogsSection scrollContainer={traceInnerLayoutRef} />
             ) : null}
             {currentTab === TraceLayoutTabKeys.METRICS ? (
-              <TraceViewMetricsSection />
+              <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
+                <TraceViewMetricsSection />
+              </TraceViewMetricsProviderWrapper>
             ) : null}
             {currentTab === TraceLayoutTabKeys.SUMMARY ? (
               <TraceSummarySection traceSlug={traceSlug} />

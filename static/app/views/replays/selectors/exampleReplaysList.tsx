@@ -74,6 +74,7 @@ export default function ExampleReplaysList({
   );
 
   const {replays, isFetching, fetchError} = useReplayList({
+    enabled: true,
     eventView,
     location: emptyLocation,
     organization,

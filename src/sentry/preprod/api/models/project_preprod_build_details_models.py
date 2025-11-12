@@ -52,6 +52,12 @@ class BuildDetailsVcsInfo(BaseModel):
     pr_number: int | None = None
 
 
+class SizeInfoSizeMetric(BaseModel):
+    metrics_artifact_type: PreprodArtifactSizeMetrics.MetricsArtifactType
+    install_size_bytes: int
+    download_size_bytes: int
+
+
 class SizeInfoPending(BaseModel):
     state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING] = (
         PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING
@@ -68,8 +74,11 @@ class SizeInfoCompleted(BaseModel):
     state: Literal[PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED] = (
         PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
     )
+    # Deprecated, use size_metrics instead
     install_size_bytes: int
+    # Deprecated, use size_metrics instead
     download_size_bytes: int
+    size_metrics: list[SizeInfoSizeMetric]
 
 
 class SizeInfoFailed(BaseModel):
@@ -106,44 +115,65 @@ def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> 
             raise ValueError(f"Unknown artifact type: {artifact_type}")
 
 
-def to_size_info(size_metrics: None | PreprodArtifactSizeMetrics) -> None | SizeInfo:
-    if size_metrics is None:
+def to_size_info(size_metrics: list[PreprodArtifactSizeMetrics]) -> None | SizeInfo:
+    if len(size_metrics) == 0:
         return None
-    match size_metrics.state:
+
+    main_metric = next(
+        (
+            metric
+            for metric in size_metrics
+            if metric.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        ),
+        # Fallback to the first metric if no main artifact is found
+        size_metrics[0],
+    )
+
+    match main_metric.state:
         case PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING:
             return SizeInfoPending()
         case PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING:
             return SizeInfoProcessing()
         case PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED:
-            max_install_size = size_metrics.max_install_size
-            max_download_size = size_metrics.max_download_size
+            max_install_size = main_metric.max_install_size
+            max_download_size = main_metric.max_download_size
             if max_install_size is None or max_download_size is None:
                 raise ValueError(
                     "COMPLETED state requires both max_install_size and max_download_size"
                 )
+
             return SizeInfoCompleted(
-                install_size_bytes=max_install_size, download_size_bytes=max_download_size
+                install_size_bytes=max_install_size,
+                download_size_bytes=max_download_size,
+                size_metrics=[
+                    SizeInfoSizeMetric(
+                        metrics_artifact_type=metric.metrics_artifact_type,
+                        install_size_bytes=metric.max_install_size,
+                        download_size_bytes=metric.max_download_size,
+                    )
+                    for metric in size_metrics
+                ],
             )
         case PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
-            error_code = size_metrics.error_code
-            error_message = size_metrics.error_message
+            error_code = main_metric.error_code
+            error_message = main_metric.error_message
             if error_code is None or error_message is None:
                 raise ValueError("FAILED state requires both error_code and error_message")
             return SizeInfoFailed(error_code=error_code, error_message=error_message)
         case _:
-            raise ValueError(f"Unknown SizeAnalysisState {size_metrics.state}")
+            raise ValueError(f"Unknown SizeAnalysisState {main_metric.state}")
 
 
 def transform_preprod_artifact_to_build_details(
     artifact: PreprodArtifact,
 ) -> BuildDetailsApiResponse:
 
-    size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+    size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
         preprod_artifact=artifact,
-        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-    ).first()
+    )
 
-    size_info = to_size_info(size_metrics)
+    size_info = to_size_info(list(size_metrics_qs))
 
     platform = None
     # artifact_type can be null before preprocessing has completed

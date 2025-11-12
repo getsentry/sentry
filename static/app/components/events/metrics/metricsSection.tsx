@@ -21,6 +21,8 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceViewMetricsProviderWrapper} from 'sentry/views/performance/newTraceDetails/traceMetrics';
 
+import {NUMBER_ABBREVIATED_METRICS} from './useMetricsIssueSection';
+
 export function MetricsSection({
   event,
   project,
@@ -30,9 +32,15 @@ export function MetricsSection({
   group: Group;
   project: Project;
 }) {
+  const organization = useOrganization();
   const traceId = event.contexts?.trace?.trace_id;
 
   if (!traceId) {
+    // If there isn't a traceId, we shouldn't show metrics since they are trace specific
+    return null;
+  }
+
+  if (!canUseMetricsUI(organization)) {
     return null;
   }
 
@@ -60,11 +68,12 @@ function MetricsSectionContent({
   traceId: string;
 }) {
   const organization = useOrganization();
-  const feature = canUseMetricsUI(organization);
   const {openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const {result} = useMetricsIssueSection({traceId});
-  const abbreviatedTableData = result.data ? result.data.slice(0, 5) : undefined;
+  const abbreviatedTableData = result.data
+    ? result.data.slice(0, NUMBER_ABBREVIATED_METRICS)
+    : undefined;
 
   const onOpenMetricsDrawer = useCallback(
     (e: React.MouseEvent) => {
@@ -96,15 +105,6 @@ function MetricsSectionContent({
     [group, event, project, openDrawer, organization, traceId]
   );
 
-  if (!feature) {
-    return null;
-  }
-
-  if (!traceId) {
-    // If there isn't a traceId, we shouldn't show metrics since they are trace specific
-    return null;
-  }
-
   if (!result.data || result.data.length === 0) {
     // Don't show the metrics section if there are no metrics
     return null;
@@ -119,7 +119,7 @@ function MetricsSectionContent({
     >
       <Flex direction="column" gap="xl">
         <MetricsSamplesTable embedded overrideTableData={abbreviatedTableData} />
-        {result.data && result.data.length > 5 ? (
+        {result.data && result.data.length > NUMBER_ABBREVIATED_METRICS ? (
           <div>
             <Button
               icon={<IconChevron direction="right" />}

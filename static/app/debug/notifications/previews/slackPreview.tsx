@@ -9,6 +9,7 @@ import {Image} from 'sentry/components/core/image/image';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
+import {NotificationBodyRenderer} from 'sentry/debug/notifications/components/notificationBodyRenderer';
 import {
   NotificationProviderKey,
   type NotificationTemplateRegistration,
@@ -54,7 +55,13 @@ export function SlackPreview({
             <SlackBlackText size="xl" bold>
               {subject}
             </SlackBlackText>
-            <SlackBodyText>{body}</SlackBodyText>
+            <SlackBodyText>
+              <NotificationBodyRenderer
+                body={body}
+                codeBlockBackground="#f8f8f8"
+                codeBlockBorder="#e0e0e0"
+              />
+            </SlackBodyText>
             <Flex gap="xs">
               {actions.map(action => (
                 <SlackLinkButton key={action.label} href={action.link}>

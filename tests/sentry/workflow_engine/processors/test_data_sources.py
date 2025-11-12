@@ -37,8 +37,10 @@ class TestProcessDataSources(BaseWorkflowTest):
         self.ds2 = self.create_data_source(source_id=source_id_2, type="test")
         self.ds2.detectors.set([self.detector_one, self.detector_two])
 
-        self.packet = DataPacket[dict](source_id_1, {"source_id": source_id_1, "foo": "bar"})
-        self.two_detector_packet = DataPacket[dict](
+        self.packet = DataPacket[dict[str, str]](
+            source_id_1, {"source_id": source_id_1, "foo": "bar"}
+        )
+        self.two_detector_packet = DataPacket[dict[str, str]](
             source_id_2, {"source_id": source_id_2, "foo": "baz"}
         )
 

@@ -69,10 +69,10 @@ class DiscordRendererTest(TestCase):
         # Test embed content
         embeds = renderable["embeds"]
         assert len(embeds) == 1
-
         embed = embeds[0]
+        description = embed["description"]
+        assert description == "\ntest"
         assert embed["title"] == "Mock Notification"
-        assert embed["description"] == "test"
         assert embed["footer"]["text"] == "This is a mock footer"
         assert (
             embed["image"]["url"]
@@ -93,13 +93,27 @@ class DiscordRendererTest(TestCase):
     def test_renderer_without_chart(self) -> None:
         """Test rendering when no chart is provided"""
         from sentry.notifications.platform.types import (
+            NotificationBodyFormattingBlockType,
+            NotificationBodyTextBlockType,
             NotificationRenderedAction,
             NotificationRenderedTemplate,
+            ParagraphBlock,
+            PlainTextBlock,
         )
 
         rendered_template = NotificationRenderedTemplate(
             subject="Test Without Chart",
-            body="test without chart",
+            body=[
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text="test without chart",
+                        )
+                    ],
+                )
+            ],
             actions=[
                 NotificationRenderedAction(label="Visit Sentry", link="https://www.sentry.io")
             ],
@@ -120,14 +134,28 @@ class DiscordRendererTest(TestCase):
     def test_renderer_without_footer(self) -> None:
         """Test rendering when no footer is provided"""
         from sentry.notifications.platform.types import (
+            NotificationBodyFormattingBlockType,
+            NotificationBodyTextBlockType,
             NotificationRenderedAction,
             NotificationRenderedImage,
             NotificationRenderedTemplate,
+            ParagraphBlock,
+            PlainTextBlock,
         )
 
         rendered_template = NotificationRenderedTemplate(
             subject="Test Without Footer",
-            body="test without footer",
+            body=[
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text="test without footer",
+                        )
+                    ],
+                )
+            ],
             actions=[
                 NotificationRenderedAction(label="Visit Sentry", link="https://www.sentry.io")
             ],
@@ -151,13 +179,27 @@ class DiscordRendererTest(TestCase):
     def test_renderer_without_actions(self) -> None:
         """Test rendering when no actions are provided"""
         from sentry.notifications.platform.types import (
+            NotificationBodyFormattingBlockType,
+            NotificationBodyTextBlockType,
             NotificationRenderedImage,
             NotificationRenderedTemplate,
+            ParagraphBlock,
+            PlainTextBlock,
         )
 
         rendered_template = NotificationRenderedTemplate(
             subject="Test Without Actions",
-            body="test without actions",
+            body=[
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text="test without actions",
+                        )
+                    ],
+                )
+            ],
             actions=[],  # No actions
             footer="Test footer",
             chart=NotificationRenderedImage(
@@ -180,9 +222,13 @@ class DiscordRendererTest(TestCase):
     def test_renderer_multiple_actions(self) -> None:
         """Test rendering with multiple action buttons"""
         from sentry.notifications.platform.types import (
+            NotificationBodyFormattingBlockType,
+            NotificationBodyTextBlockType,
             NotificationRenderedAction,
             NotificationRenderedImage,
             NotificationRenderedTemplate,
+            ParagraphBlock,
+            PlainTextBlock,
         )
 
         actions = [
@@ -194,7 +240,17 @@ class DiscordRendererTest(TestCase):
         # Create a custom rendered template with multiple actions
         rendered_template = NotificationRenderedTemplate(
             subject="Test Multiple Actions",
-            body="test with multiple actions",
+            body=[
+                ParagraphBlock(
+                    type=NotificationBodyFormattingBlockType.PARAGRAPH,
+                    blocks=[
+                        PlainTextBlock(
+                            type=NotificationBodyTextBlockType.PLAIN_TEXT,
+                            text="test with multiple actions",
+                        )
+                    ],
+                )
+            ],
             actions=actions,
             footer="Test footer",
             chart=NotificationRenderedImage(

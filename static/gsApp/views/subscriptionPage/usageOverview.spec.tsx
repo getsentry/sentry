@@ -48,6 +48,7 @@ describe('UsageOverview', () => {
         usageData={usageData}
       />
     );
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
     expect(screen.getByRole('columnheader', {name: 'Product'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Total usage'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Reserved'})).toBeInTheDocument();
@@ -73,6 +74,7 @@ describe('UsageOverview', () => {
         usageData={usageData}
       />
     );
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
     expect(screen.getByRole('columnheader', {name: 'Product'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Total usage'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Reserved'})).toBeInTheDocument();
@@ -91,6 +93,54 @@ describe('UsageOverview', () => {
     expect(screen.getAllByRole('row', {name: /^View .+ usage$/i}).length).toBeGreaterThan(
       0
     );
+  });
+
+  it('renders some spend columns for non-self-serve with PAYG support', () => {
+    const newSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      supportsOnDemand: true,
+      canSelfServe: false,
+    });
+    SubscriptionStore.set(organization.slug, newSubscription);
+    render(
+      <UsageOverview
+        subscription={newSubscription}
+        organization={organization}
+        usageData={usageData}
+      />
+    );
+    expect(screen.getAllByRole('columnheader')).toHaveLength(5);
+    expect(
+      screen.queryByRole('columnheader', {name: 'Reserved spend'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Pay-as-you-go spend'})
+    ).toBeInTheDocument();
+  });
+
+  it('does not render spend columns for non-self-serve without PAYG support', () => {
+    const newSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      supportsOnDemand: false,
+      canSelfServe: false,
+    });
+    SubscriptionStore.set(organization.slug, newSubscription);
+    render(
+      <UsageOverview
+        subscription={newSubscription}
+        organization={organization}
+        usageData={usageData}
+      />
+    );
+    expect(screen.getAllByRole('columnheader')).toHaveLength(4);
+    expect(
+      screen.queryByRole('columnheader', {name: 'Reserved spend'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('columnheader', {name: 'Pay-as-you-go spend'})
+    ).not.toBeInTheDocument();
   });
 
   it('renders table based on subscription state', () => {
