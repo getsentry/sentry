@@ -137,7 +137,8 @@ class TestProcessWorkflowActivity(TestCase):
         self.activity.save()
         self.detector = self.create_detector(type=MetricIssue.slug)
 
-    def test_process_workflow_activity__no_workflows(self) -> None:
+    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
+    def test_process_workflow_activity__no_workflows(self, mock_logger) -> None:
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
             return_value=set(),
@@ -150,6 +151,19 @@ class TestProcessWorkflowActivity(TestCase):
             # Short-circuit evaluation, no workflows associated
             assert mock_evaluate.call_count == 0
 
+            mock_logger.info.assert_called_once_with(
+                "workflow_engine.process_workflows.evaluation.workflows.not_triggered",
+                extra={
+                    "msg": "No workflows are associated with the detector in the event",
+                    "group_event": self.activity,
+                    "action_groups": None,
+                    "triggered_actions": None,
+                    "workflows": set(),
+                    "triggered_workflows": None,
+                    "associated_detector": self.detector,
+                },
+            )
+
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
         return_value=(set(), {}),
@@ -158,8 +172,9 @@ class TestProcessWorkflowActivity(TestCase):
         "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
         return_value=set(),
     )
+    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity__workflows__no_actions(
-        self, mock_eval_actions, mock_evaluate
+        self, mock_logger, mock_eval_actions, mock_evaluate
     ):
         self.workflow = self.create_workflow(organization=self.organization)
         self.create_detector_workflow(
@@ -181,8 +196,24 @@ class TestProcessWorkflowActivity(TestCase):
         mock_evaluate.assert_called_once_with({self.workflow}, event_data, mock.ANY)
         assert mock_eval_actions.call_count == 0
 
+        mock_logger.info.assert_called_once_with(
+            "workflow_engine.process_workflows.evaluation.workflows.triggered",
+            extra={
+                "msg": "No items were triggered or queued for slow evaluation",
+                "group_event": self.activity,
+                "action_groups": None,
+                "triggered_actions": None,
+                "workflows": {self.workflow},
+                "triggered_workflows": set(),  # from the mock
+                "associated_detector": self.detector,
+            },
+        )
+
     @mock.patch("sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions")
-    def test_process_workflow_activity(self, mock_filter_actions: mock.MagicMock) -> None:
+    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
+    def test_process_workflow_activity(
+        self, mock_logger, mock_filter_actions: mock.MagicMock
+    ) -> None:
         self.workflow = self.create_workflow(organization=self.organization)
 
         self.action_group = self.create_data_condition_group(logic_type="any-short")
@@ -210,6 +241,18 @@ class TestProcessWorkflowActivity(TestCase):
         )
 
         mock_filter_actions.assert_called_once_with({self.action_group}, expected_event_data)
+        mock_logger.info.assert_called_once_with(
+            "workflow_engine.process_workflows.evaluation.actions.triggered",
+            extra={
+                "msg": None,
+                "group_event": self.activity,
+                "action_groups": {self.action_group},
+                "triggered_actions": set(),
+                "workflows": {self.workflow},
+                "triggered_workflows": {self.workflow},
+                "associated_detector": self.detector,
+            },
+        )
 
     @mock.patch(
         "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"

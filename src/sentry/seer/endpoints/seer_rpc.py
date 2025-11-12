@@ -78,6 +78,7 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
+from sentry.seer.explorer.custom_tool_utils import call_custom_tool
 from sentry.seer.explorer.index_data import (
     rpc_get_issues_for_transaction,
     rpc_get_profiles_for_trace,
@@ -1068,20 +1069,28 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
 
     Args:
         repository_integrations: List of dicts, each containing:
-            - organization_id: Organization ID
-            - integration_id: Integration ID
-            - external_id: External repository ID
-            - provider: Provider identifier (e.g., "github", "github_enterprise")
+            - organization_id: Organization ID (required)
+            - external_id: External repository ID (required)
+            - provider: Provider identifier (required, e.g., "github", "github_enterprise")
                        Supports both with and without "integrations:" prefix
 
     Returns:
-        dict: {"statuses": list of booleans indicating if each repository exists and is active}
-              e.g., {"statuses": [True, False, True]}
-              Only repositories with supported SCM providers will return True.
+        dict: {
+            "integration_ids": list of integration IDs (as integers) from the database,
+                              or None if repository doesn't exist/isn't active/doesn't have an integration id
+        }
+        e.g., {"integration_ids": [123, None, 456]}
+        None indicates repository not found, inactive, or has unsupported SCM provider.
+        The integration_ids are returned so Seer can store them for future reference.
+
+    Note:
+        - Repositories are matched by (organization_id, provider, external_id) which has a unique constraint
+        - integration_id is NOT required in the request and NOT used in matching
+        - integration_id from the database is returned as an integer so Seer can store it for future reference
     """
 
     if not repository_integrations:
-        return {"statuses": []}
+        return {"integration_ids": []}
 
     logger.info(
         "seer_rpc.check_repository_integrations_status.called",
@@ -1094,16 +1103,14 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
     q_objects = Q()
 
     for item in repository_integrations:
-        # Support both "integrations:{provider}" and just "{provider}"
+        # Match only by organization_id, provider, and external_id
         q_objects |= Q(
             organization_id=item["organization_id"],
             provider=f"integrations:{item['provider']}",
-            integration_id=item["integration_id"],
             external_id=item["external_id"],
         ) | Q(
             organization_id=item["organization_id"],
             provider=item["provider"],
-            integration_id=item["integration_id"],
             external_id=item["external_id"],
         )
 
@@ -1111,33 +1118,40 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
         q_objects, status=ObjectStatus.ACTIVE, provider__in=SEER_SUPPORTED_SCM_PROVIDERS
     ).values_list("organization_id", "provider", "integration_id", "external_id")
 
-    existing_set = set(existing_repos)
+    existing_map: dict[tuple, int | None] = {}
 
-    statuses = []
+    for org_id, provider, integration_id, external_id in existing_repos:
+        key = (org_id, provider, external_id)
+        # If multiple repos match (shouldn't happen), keep the first one
+        if key not in existing_map:
+            existing_map[key] = integration_id
+
+    integration_ids = []
+
     for item in repository_integrations:
-        # Check both with and without "integrations:" prefix
         repo_tuple_with_prefix = (
             item["organization_id"],
             f"integrations:{item['provider']}",
-            item["integration_id"],
             item["external_id"],
         )
         repo_tuple_without_prefix = (
             item["organization_id"],
             item["provider"],
-            item["integration_id"],
             item["external_id"],
         )
-        statuses.append(
-            repo_tuple_with_prefix in existing_set or repo_tuple_without_prefix in existing_set
+
+        found_integration_id = existing_map.get(repo_tuple_with_prefix) or existing_map.get(
+            repo_tuple_without_prefix
         )
+
+        integration_ids.append(found_integration_id)
 
     logger.info(
         "seer_rpc.check_repository_integrations_status.completed",
-        extra={"statuses": statuses},
+        extra={"integration_ids": integration_ids},
     )
 
-    return {"statuses": statuses}
+    return {"integration_ids": integration_ids}
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
@@ -1183,6 +1197,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "execute_trace_query_chart": execute_trace_query_chart,
     "execute_trace_query_table": execute_trace_query_table,
     "get_repository_definition": get_repository_definition,
+    "call_custom_tool": call_custom_tool,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,
