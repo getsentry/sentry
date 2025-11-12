@@ -55,6 +55,7 @@ GROUP_HASH_METADATA_ITERATIONS = 10000
 # 3. Safe to bulk update with group_id changes during merge/unmerge operations
 DIRECT_GROUP_RELATED_MODELS = (
     # prioritize GroupHash
+    # XXX: We could remove GroupHash from here since we call delete_group_hashes() in the _delete_children() method.
     models.GroupHash,
     models.GroupAssignee,
     models.GroupCommitResolution,
@@ -206,15 +207,27 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 
     def _delete_children(self, instance_list: Sequence[Group]) -> None:
         group_ids = [group.id for group in instance_list]
+        project_id = instance_list[0].project_id  # All groups should have same project_id
         # Remove child relations for all groups first.
         child_relations: list[BaseRelation] = []
         for model in _GROUP_RELATED_MODELS:
-            child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
+            if model == models.GroupHash:
+                # Using the composite index on (project_id, group_id) is very efficient compared to
+                # using the index on group_id alone. This index only shows up in production.
+                # XXX: Follow up with a PR to add this composite index
+                child_relations.append(
+                    ModelRelation(model, {"project_id": project_id, "group_id__in": group_ids})
+                )
+            else:
+                child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
         error_group_ids = [group.id for group in error_groups]
         issue_platform_group_ids = [group.id for group in issue_platform_groups]
 
+        # delete_children() will delete GroupHash rows and related GroupHashMetadata rows,
+        # however, we have added multiple optimizations in this function that would need to
+        # be ported to a custom deletion task.
         delete_group_hashes(instance_list[0].project_id, error_group_ids, seer_deletion=True)
         delete_group_hashes(instance_list[0].project_id, issue_platform_group_ids)
 
