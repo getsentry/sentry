@@ -75,7 +75,7 @@ export function AISpanList({
   const nodesByTransaction = useMemo(() => {
     const result: Map<TransactionNode | EapSpanNode, AITraceSpanNode[]> = new Map();
     for (const node of nodes) {
-      const transaction = node.findParentEapTransaction() ?? node.findParentTransaction();
+      const transaction = node.findClosestParentTransaction();
       if (!transaction) {
         continue;
       }

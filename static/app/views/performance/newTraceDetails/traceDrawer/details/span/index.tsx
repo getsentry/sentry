@@ -123,14 +123,10 @@ export function SpanNodeDetails(
   const {projects} = useProjects();
   const issues = node.uniqueIssues;
 
-  const parentTransaction = isEAPSpanNode(node)
-    ? node.value.is_transaction
-      ? node
-      : node.findParentEapTransaction()
-    : node.findParentTransaction();
-  const profileId = parentTransaction?.value.profile_id;
-  const profilerId = parentTransaction?.value.profiler_id;
+  const profileId = node.profileId;
+  const profilerId = node.profilerId;
 
+  const parentTransaction = node.findClosestParentTransaction();
   const profilerStart = parentTransaction?.startTimestamp;
   const profilerEnd = parentTransaction?.endTimestamp;
 

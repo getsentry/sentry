@@ -27,7 +27,7 @@ function getEventId(node: BaseNode): string | undefined {
   if (isTransactionNode(node)) {
     return node.value.event_id;
   }
-  return node.findParentTransaction()?.value?.event_id;
+  return node.findParentNodeStoreTransaction()?.value?.event_id;
 }
 
 export function makeTransactionProfilingLink(
@@ -69,7 +69,9 @@ export function makeTraceContinuousProfilingLink(
 
   // We compute a time offset based on the duration of the span so that
   // users can see some context of things that occurred before and after the span.
-  const transaction = isTransactionNode(node) ? node : node.findParentTransaction();
+  const transaction = isTransactionNode(node)
+    ? node
+    : node.findParentNodeStoreTransaction();
   if (!transaction) {
     return null;
   }

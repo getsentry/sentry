@@ -68,7 +68,6 @@ export function TraceAutogroupedRow(
           color={props.node.makeBarColor(props.theme)}
           node_spaces={props.node.autogroupedSegments}
           occurrences={props.node.occurrences}
-          profiles={props.node.profiles}
         />
         <button
           ref={props.registerSpanArrowRef}
