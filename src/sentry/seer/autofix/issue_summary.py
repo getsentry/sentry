@@ -51,6 +51,13 @@ auto_run_source_map = {
     SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
 }
 
+STOPPING_POINT_HIERARCHY = {
+    AutofixStoppingPoint.ROOT_CAUSE: 1,
+    AutofixStoppingPoint.SOLUTION: 2,
+    AutofixStoppingPoint.CODE_CHANGES: 3,
+    AutofixStoppingPoint.OPEN_PR: 4,
+}
+
 
 def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStoppingPoint | None:
     """
@@ -90,10 +97,9 @@ def _fetch_user_preference(project_id: int) -> str | None:
             return preference.get("automated_run_stopping_point")
         return None
     except Exception:
-        logger.warning(
+        logger.exception(
             "Failed to fetch user preference from Seer",
             extra={"project_id": project_id},
-            exc_info=True,
         )
         return None
 
@@ -109,26 +115,12 @@ def _apply_user_preference_upper_bound(
     if fixability_suggestion is None or user_preference is None:
         return fixability_suggestion
 
-    stopping_point_hierarchy = {
-        AutofixStoppingPoint.ROOT_CAUSE: 1,
-        AutofixStoppingPoint.SOLUTION: 2,
-        AutofixStoppingPoint.CODE_CHANGES: 3,
-        AutofixStoppingPoint.OPEN_PR: 4,
-    }
-
-    try:
-        user_stopping_point = AutofixStoppingPoint(user_preference)
-    except ValueError:
-        logger.warning(
-            "Invalid user preference value",
-            extra={"user_preference": user_preference},
-        )
-        return fixability_suggestion
+    user_stopping_point = AutofixStoppingPoint(user_preference)
 
     return (
         fixability_suggestion
-        if stopping_point_hierarchy[fixability_suggestion]
-        <= stopping_point_hierarchy[user_stopping_point]
+        if STOPPING_POINT_HIERARCHY[fixability_suggestion]
+        <= STOPPING_POINT_HIERARCHY[user_stopping_point]
         else user_stopping_point
     )
 

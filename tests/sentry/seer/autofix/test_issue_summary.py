@@ -905,11 +905,6 @@ class TestApplyUserPreferenceUpperBound:
         result = _apply_user_preference_upper_bound(fixability, user_pref)
         assert result == expected
 
-    def test_invalid_user_preference(self):
-        result = _apply_user_preference_upper_bound(AutofixStoppingPoint.OPEN_PR, "invalid_value")
-        # Should return fixability suggestion when user preference is invalid
-        assert result == AutofixStoppingPoint.OPEN_PR
-
 
 @with_feature({"organizations:gen-ai-features": True, "projects:triage-signals-v0": True})
 class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
