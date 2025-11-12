@@ -354,10 +354,48 @@ function AIDetectedSpanEvidence({
   projectSlug,
 }: SpanEvidenceKeyValueListProps) {
   const evidenceData = event?.occurrence?.evidenceData ?? {};
+  // LLM detected issues create synthetic events, not real transaction events.
+  // event.title contains the issue title (e.g., "Unhandled Exception in API Call"),
+  // so we must use evidenceData.transaction for the actual transaction name.
+  const transactionName = evidenceData.transaction ?? event.title;
+
+  const transactionSummaryLocation = transactionSummaryRouteWithQuery({
+    organization,
+    projectID: event.projectID,
+    transaction: transactionName,
+    query: {},
+  });
+
+  const traceSlug = event.contexts?.trace?.trace_id ?? '';
+
+  const eventDetailsLocation = generateLinkToEventInTraceView({
+    traceSlug,
+    eventId: event.eventID,
+    timestamp: event.endTimestamp ?? '',
+    location,
+    organization,
+  });
+
+  const actionButton = projectSlug ? (
+    <LinkButton size="xs" to={eventDetailsLocation}>
+      {t('View Full Trace')}
+    </LinkButton>
+  ) : undefined;
+
+  const transactionRow = makeRow(
+    t('Transaction'),
+    <pre>
+      <Tooltip title={t('View Transaction Summary')} skipWrapper>
+        <Link to={transactionSummaryLocation}>{transactionName}</Link>
+      </Tooltip>
+    </pre>,
+    actionButton
+  );
+
   return (
     <PresortedKeyValueList
       data={[
-        makeTransactionNameRow(event, organization, location, projectSlug),
+        transactionRow,
         makeRow(t('Explanation'), evidenceData.explanation),
         makeRow(t('Impact'), evidenceData.impact),
         makeRow(t('Evidence'), evidenceData.evidence),
