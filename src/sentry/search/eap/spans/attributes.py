@@ -422,6 +422,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("messaging.destination.name"),
         simple_sentry_field("messaging.message.id"),
         simple_sentry_field("platform"),
+        simple_sentry_field("previous_trace"),
         simple_sentry_field("raw_domain"),
         simple_sentry_field("release"),
         simple_sentry_field("sdk.name"),
