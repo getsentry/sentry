@@ -4,7 +4,7 @@ from sentry.models.repository import Repository
 from sentry.seer.fetch_issues.by_text_query import _fetch_issues_from_repo_projects, fetch_issues
 from sentry.seer.fetch_issues.utils import get_repo_and_projects
 from sentry.testutils.cases import IntegrationTestCase
-from tests.sentry.integrations.github.tasks.test_open_pr_comment import CreateEventTestCase
+from tests.sentry.seer.fetch_issues.test_by_function_name import CreateEventTestCase
 
 
 class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
