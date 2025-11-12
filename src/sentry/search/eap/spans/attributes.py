@@ -552,6 +552,7 @@ def device_class_context_constructor(params: SnubaParams) -> VirtualColumnContex
         from_column_name="sentry.device.class",
         to_column_name="device.class",
         value_map=value_map,
+        default_value="Unknown",
     )
 
 

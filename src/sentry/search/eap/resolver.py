@@ -564,6 +564,9 @@ class SearchResolver:
             else:
                 raise InvalidSearchQuery(f"Unsupported operator for empty strings {term.operator}")
 
+        if not self.params.is_timeseries_request and context_definition:
+            value = self.remap_value_using_context_definition(context_definition, value)
+
         return (
             TraceItemFilter(
                 comparison_filter=ComparisonFilter(
@@ -632,6 +635,8 @@ class SearchResolver:
         def remap_value(old_value: str) -> list[str]:
             if old_value in inverse_value_map:
                 return inverse_value_map[old_value]
+            elif old_value in context.value_map:
+                return [old_value]
             elif context.default_value:
                 return [context.default_value]
             else:
@@ -1187,3 +1192,27 @@ class SearchResolver:
         extra_conditions = self.config.extra_conditions(self, selected_columns, equations)
 
         return and_trace_item_filters(extra_conditions)
+
+    def remap_value_using_context_definition(
+        self, context_definition: VirtualColumnDefinition, value: str | int | list[str] | Any
+    ) -> str | int | list[str] | Any:
+        context = context_definition.constructor(self.params)
+
+        # if the value passed is one of the potential values, then it's expected
+        # and we should pass it through as is
+        for val in context.value_map.values():
+            if val == value:
+                return value
+
+        # if the value passed is one of the potential keys, then it should before
+        # remapped to the value
+        if isinstance(value, str) and value in context.value_map:
+            value = context.value_map[value]
+
+        # now that we've checked all potential allowed values, we should fall back
+        # to using the default
+        if context.default_value:
+            return context.default_value
+
+        # no default, so not much we can do but try it and see what happens
+        return value
