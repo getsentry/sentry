@@ -185,7 +185,6 @@ def get_highest_opportunity_page_vitals_for_project(
             continue
         seen_names.add(normalized_name)
 
-        # Collect all vital scores and values
         for vital in VITALS:
             score = row.get(f"performance_score(measurements.score.{vital})")
             p75_value = row.get(f"p75(measurements.{vital})")
