@@ -1293,19 +1293,32 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             assert result["project_slug"] == self.project.slug
             self._ReplayMetadataResponse.parse_obj(result)
 
-            # Short ID < 8 characters or has dashes (should fail gracefully)
-            assert (
+            # Upper (supported but not expected)
+            result = get_replay_metadata(
+                replay_id=replay1_id[:8].upper(),
+                organization_id=self.organization.id,
+            )
+            assert result is not None
+            assert result["id"] == replay1_id
+            assert result["project_id"] == str(self.project.id)
+            assert result["project_slug"] == self.project.slug
+            self._ReplayMetadataResponse.parse_obj(result)
+
+            # Short ID != 8 characters or not hex (should raise)
+            with pytest.raises(ValueError):
                 get_replay_metadata(
                     replay_id=replay1_id[:7],
                     organization_id=self.organization.id,
                 )
-                is None
-            )
 
-            assert (
+            with pytest.raises(ValueError):
                 get_replay_metadata(
-                    replay_id=replay1_id[:7] + "-a",
+                    replay_id=replay1_id[:9],
                     organization_id=self.organization.id,
                 )
-                is None
-            )
+
+            with pytest.raises(ValueError):
+                get_replay_metadata(
+                    replay_id=replay1_id[:6] + "gg",
+                    organization_id=self.organization.id,
+                )

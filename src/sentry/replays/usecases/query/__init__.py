@@ -457,8 +457,15 @@ def make_full_aggregation_query_with_short_id(
         fields -- if non-empty, used to query a subset of fields. Corresponds to the keys in QUERY_ALIAS_COLUMN_MAP.
     """
 
-    if len(replay_id_prefix) != 8 or not replay_id_prefix.isalnum():
+    if len(replay_id_prefix) != 8:
         raise ValueError("Invalid short ID. Must be 8 hexadecimal characters.")
+
+    try:
+        int(replay_id_prefix, 16)
+    except ValueError as e:
+        raise ValueError("Invalid short ID. Must be 8 hexadecimal characters.") from e
+
+    replay_id_prefix = replay_id_prefix.lower()
 
     from sentry.replays.query import select_from_fields
 
