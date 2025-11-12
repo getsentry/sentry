@@ -25,11 +25,17 @@ export function useWidgetQueryQueue() {
   return useContext(WidgetQueueContext) ?? {queue: undefined};
 }
 
+const fetchWidgetItem = async (item: QueueItem<any, any>) => {
+  const result = await item.widget.fetchData();
+  return result;
+};
+
 export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}) {
   const queueOptions: AsyncQueuerOptions<QueueItem<any, any>> = {
-    concurrency: 2,
-    wait: 5000,
+    //
+    concurrency: 10,
     started: true,
+    key: 'widget-query-queue',
   };
 
   const queue = useAsyncQueuer<QueueItem<any, any>>(fetchWidgetItem, queueOptions);
@@ -41,8 +47,3 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
     <WidgetQueueContext.Provider value={context}>{children}</WidgetQueueContext.Provider>
   );
 }
-
-const fetchWidgetItem = async (item: QueueItem<any, any>) => {
-  const result = await item.widget.fetchData();
-  return result;
-};
