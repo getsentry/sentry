@@ -18,7 +18,6 @@ import pytest
 import requests
 import yaml
 from django.core.cache import cache
-from django.utils import timezone
 
 import sentry
 from sentry.types.activity import ActivityType
@@ -282,21 +281,8 @@ def insta_snapshot(request: pytest.FixtureRequest) -> Generator[InstaSnapshotter
             if _snapshot_writeback == "new":
                 reference_file += ".new"
             with open(reference_file, "w") as f:
-                f.write(
-                    "---\n%s\n---\n%s\n"
-                    % (
-                        yaml.safe_dump(
-                            {
-                                "created": timezone.now().isoformat(),
-                                "creator": "sentry",
-                                "source": test_file,
-                            },
-                            indent=2,
-                            default_flow_style=False,
-                        ).rstrip(),
-                        output,
-                    )
-                )
+                header = f"---\nsource: {test_file}\n---"
+                f.write(f"{header}\n{output}\n")
         elif is_unequal:
             __tracebackhide__ = True
             if isinstance(is_unequal, str):
