@@ -35,6 +35,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   BuildDetailsState,
+  getPrimarySizeMetric,
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -249,13 +250,21 @@ function BuildItem({build, isSelected, onSelect}: BuildItemProps) {
           {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
               <IconCode size="xs" color="gray300" />
-              <Text>{formatBytesBase10(sizeInfo.install_size_bytes)}</Text>
+              <Text>
+                {formatBytesBase10(
+                  getPrimarySizeMetric(sizeInfo)?.install_size_bytes ?? 0
+                )}
+              </Text>
             </Flex>
           )}
           {isSizeInfoCompleted(sizeInfo) && (
             <Flex align="center" gap="sm">
               <IconDownload size="xs" color="gray300" />
-              <Text>{formatBytesBase10(sizeInfo.download_size_bytes)}</Text>
+              <Text>
+                {formatBytesBase10(
+                  getPrimarySizeMetric(sizeInfo)?.download_size_bytes ?? 0
+                )}
+              </Text>
             </Flex>
           )}
         </Flex>
