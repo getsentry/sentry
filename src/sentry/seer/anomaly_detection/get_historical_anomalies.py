@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 
+import sentry_sdk
 from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
@@ -140,6 +141,35 @@ def get_historical_anomaly_data_from_seer_preview(
         return None
 
     results: DetectAnomaliesResponse = json.loads(response.data.decode("utf-8"))
+
+    if organization_id == 502263 and project_id == 5588224:
+        try:
+            sentry_sdk.add_attachment(
+                bytes=response.data,
+                filename="seer_response.json",
+                content_type="application/json",
+            )
+
+            results_json_bytes = json.dumps(results).encode("utf-8")
+            sentry_sdk.add_attachment(
+                bytes=results_json_bytes,
+                filename="seer_results.json",
+                content_type="application/json",
+            )
+            sentry_sdk.capture_message(
+                "Seer anomalies detected for org 502263 / project 5588224 (attachment included)",
+                level="info",
+            )
+        except Exception as exc:
+            # Log the failure, do not interrupt the main operation flow
+            logger.warning(
+                "Failed to send Seer anomalies to Sentry as attachment",
+                extra={
+                    "organization_id": organization_id,
+                    "project_id": project_id,
+                    "error": str(exc),
+                },
+            )
     return results.get("timeseries")
 
 
