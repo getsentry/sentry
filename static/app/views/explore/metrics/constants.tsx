@@ -38,6 +38,7 @@ export const HiddenTraceMetricDetailFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.TRACE_FLAGS,
   TraceMetricKnownFieldKey.METRIC_NAME,
   TraceMetricKnownFieldKey.METRIC_TYPE,
+  TraceMetricKnownFieldKey.METRIC_UNIT,
   TraceMetricKnownFieldKey.CLIENT_SAMPLE_RATE,
 ];
 
@@ -45,6 +46,7 @@ export const HiddenTraceMetricSearchFields: TraceMetricFieldKey[] = [
   ...AlwaysHiddenTraceMetricFields,
   TraceMetricKnownFieldKey.METRIC_NAME,
   TraceMetricKnownFieldKey.METRIC_TYPE,
+  TraceMetricKnownFieldKey.METRIC_UNIT,
 ];
 
 export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
