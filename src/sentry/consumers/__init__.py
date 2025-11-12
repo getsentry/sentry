@@ -469,7 +469,6 @@ def get_stream_processor(
     add_global_tags: bool = False,
     profile_consumer_join: bool = False,
     enable_autocommit: bool = False,
-    retry_handle_destroyed: bool = False,
     handle_poll_while_paused: bool = False,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
@@ -529,7 +528,6 @@ def get_stream_processor(
             auto_offset_reset=auto_offset_reset,
             strict_offset_reset=strict_offset_reset,
             enable_auto_commit=enable_autocommit,
-            retry_handle_destroyed=retry_handle_destroyed,
         )
 
         if max_poll_interval_ms is not None:

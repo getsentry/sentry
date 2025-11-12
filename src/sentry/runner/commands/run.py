@@ -557,12 +557,6 @@ def taskbroker_send_tasks(
     help="Enable Kafka autocommit mode with 1s commit interval. Offsets are stored via store_offsets and rdkafka commits them automatically.",
 )
 @click.option(
-    "--retry-handle-destroyed",
-    is_flag=True,
-    default=False,
-    help="Enable retrying on `KafkaError._DESTROY` during commit.",
-)
-@click.option(
     "--handle-poll-while-paused",
     is_flag=True,
     default=False,
