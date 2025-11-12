@@ -332,7 +332,7 @@ def delete_project_group_hashes(
         seer_deletion: Whether to notify Seer about the deletion
     """
     # Safety: empty filter means nothing to delete
-    if group_ids_filter is not None and not group_ids_filter:
+    if group_ids_filter is not None and len(group_ids_filter) == 0:
         return
 
     hashes_batch_size = max(1, options.get("deletions.group-hashes-batch-size"))

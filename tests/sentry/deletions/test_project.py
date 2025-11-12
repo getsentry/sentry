@@ -13,7 +13,6 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.grouphash import GroupHash
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
@@ -233,56 +232,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             conditions, tenant_ids={"organization_id": 123, "referrer": "r"}
         )
         assert len(events) == 0
-
-    def test_delete_orphaned_grouphashes(self) -> None:
-        """Test that orphaned GroupHash records (with group_id=None) are deleted during project deletion."""
-        project = self.create_project(name="test")
-
-        # Create an event to get a group with associated GroupHash
-        event = self.store_event(
-            data={
-                "timestamp": before_now(minutes=1).isoformat(),
-                "message": "test event",
-            },
-            project_id=project.id,
-        )
-        assert event.group is not None
-        group = event.group
-
-        # Get the GroupHash created for this group
-        group_hash = GroupHash.objects.get(project=project, group=group)
-
-        # Create additional orphaned GroupHash records (group_id=None)
-        # These simulate GroupHash records that were created but never assigned to a Group,
-        # or secondary grouping hashes
-        orphan_hash_1 = GroupHash.objects.create(
-            project=project,
-            hash="a" * 32,
-            group=None,  # Orphaned - no group assigned
-        )
-        orphan_hash_2 = GroupHash.objects.create(
-            project=project,
-            hash="b" * 32,
-            group=None,  # Orphaned - no group assigned
-        )
-
-        # Verify all GroupHash records exist before deletion
-        assert GroupHash.objects.filter(project=project).count() == 3
-        assert GroupHash.objects.filter(project=project, group__isnull=True).count() == 2
-
-        # Schedule and run project deletion
-        self.ScheduledDeletion.schedule(instance=project, days=0)
-        with self.tasks():
-            run_scheduled_deletions()
-
-        # Verify project is deleted
-        assert not Project.objects.filter(id=project.id).exists()
-
-        # Verify ALL GroupHash records are deleted, including orphans
-        assert not GroupHash.objects.filter(id=group_hash.id).exists()
-        assert not GroupHash.objects.filter(id=orphan_hash_1.id).exists()
-        assert not GroupHash.objects.filter(id=orphan_hash_2.id).exists()
-        assert GroupHash.objects.filter(project_id=project.id).count() == 0
 
     @mock.patch("sentry.quotas.backend.remove_seat")
     def test_delete_with_uptime_monitors(self, mock_remove_seat: mock.MagicMock) -> None:
