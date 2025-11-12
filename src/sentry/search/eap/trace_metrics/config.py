@@ -15,7 +15,12 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import MetricType, SearchResolverConfig
 from sentry.search.events import fields
 
-Metric = tuple[str, MetricType, str | None]
+
+@dataclass(frozen=True, kw_only=True)
+class Metric:
+    metric_name: str
+    metric_type: MetricType
+    metric_unit: str | None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -64,10 +69,10 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
                 if not resolved_function.metric_name or not resolved_function.metric_type:
                     continue
 
-                metric: Metric = (
-                    resolved_function.metric_name,
-                    resolved_function.metric_type,
-                    resolved_function.metric_unit,
+                metric = Metric(
+                    metric_name=resolved_function.metric_name,
+                    metric_type=resolved_function.metric_type,
+                    metric_unit=resolved_function.metric_unit,
                 )
                 selected_metrics.add(metric)
 
@@ -79,9 +84,7 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
 
         selected_metric = selected_metrics.pop()
 
-        return get_metric_filter(
-            search_resolver, selected_metric[0], selected_metric[1], selected_metric[2]
-        )
+        return get_metric_filter(search_resolver, selected_metric)
 
     def _extra_conditions_from_metric(
         self,
@@ -90,16 +93,18 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         if not self.metric_name or not self.metric_type:
             return None
 
-        return get_metric_filter(
-            search_resolver, self.metric_name, self.metric_type, self.metric_unit
+        metric = Metric(
+            metric_name=self.metric_name,
+            metric_type=self.metric_type,
+            metric_unit=self.metric_unit,
         )
+
+        return get_metric_filter(search_resolver, metric)
 
 
 def get_metric_filter(
     search_resolver: SearchResolver,
-    name: str,
-    type: MetricType,
-    unit: str | None,
+    metric: Metric,
 ) -> TraceItemFilter:
     metric_name, _ = search_resolver.resolve_column("metric.name")
     if not isinstance(metric_name.proto_definition, AttributeKey):
@@ -114,19 +119,19 @@ def get_metric_filter(
             comparison_filter=ComparisonFilter(
                 key=metric_name.proto_definition,
                 op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_str=name),
+                value=AttributeValue(val_str=metric.metric_name),
             )
         ),
         TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=metric_type.proto_definition,
                 op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_str=type),
+                value=AttributeValue(val_str=metric.metric_type),
             )
         ),
     ]
 
-    if unit:
+    if metric.metric_unit:
         metric_unit, _ = search_resolver.resolve_column("metric.unit")
         if not isinstance(metric_unit.proto_definition, AttributeKey):
             raise ValueError("Unable to resolve metric.unit")
@@ -135,7 +140,7 @@ def get_metric_filter(
                 comparison_filter=ComparisonFilter(
                     key=metric_unit.proto_definition,
                     op=ComparisonFilter.OP_EQUALS,
-                    value=AttributeValue(val_str=unit),
+                    value=AttributeValue(val_str=metric.metric_unit),
                 )
             )
         )

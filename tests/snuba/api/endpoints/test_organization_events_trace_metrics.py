@@ -366,7 +366,32 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             {"count(value,foo,counter,-)": 2},
         ]
 
-    def test_aggregation_multiple_embedded_metric_name(self):
+    def test_aggregation_multiple_embedded_same_metric_name(self):
+        trace_metrics = [
+            self.create_trace_metric("foo", 1, "distribution"),
+            self.create_trace_metric("foo", 2, "distribution"),
+            self.create_trace_metric("bar", 2, "counter"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "min(value,foo,distribution,-)",
+                    "max(value,foo,distribution,-)",
+                ],
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "min(value,foo,distribution,-)": 1,
+                "max(value,foo,distribution,-)": 2,
+            },
+        ]
+
+    def test_aggregation_multiple_embedded_different_metric_name(self):
         response = self.do_request(
             {
                 "field": [
