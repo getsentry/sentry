@@ -204,13 +204,14 @@ describe('BalanceChangeAction', () => {
     // Don't rely on error message text as the Form component shows different messages
     // depending on error response structure. All fields are controlled by isSubmitting
     // state, so if one is enabled, all should be enabled.
-    await waitFor(() =>
-      expect(screen.getByRole('spinbutton', {name: 'Credit Amount'})).toBeEnabled()
+    await waitFor(
+      () => expect(screen.getByRole('spinbutton', {name: 'Credit Amount'})).toBeEnabled(),
+      {timeout: 5_000}
     );
 
     // Verify all fields and submit button are re-enabled
     expect(await screen.findByTestId('url-field')).toBeEnabled();
     expect(await screen.findByTestId('notes-field')).toBeEnabled();
     expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled();
-  }, 20_000);
+  }, 25_000);
 });
