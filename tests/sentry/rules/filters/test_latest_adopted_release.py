@@ -336,17 +336,33 @@ class IsNewerReleaseTest(TestCase):
             assert is_newer_release(newer_release, older_release, LatestReleaseOrders.SEMVER)
 
             # all releases with version 1.0 are considered equal
+
             assert not is_newer_release(
                 newer_release_newer_numeric, newer_release_older_numeric, LatestReleaseOrders.SEMVER
             )
             assert not is_newer_release(
                 newer_release_older_numeric, newer_release_newer_numeric, LatestReleaseOrders.SEMVER
             )
+
+            assert not is_newer_release(
+                newer_release_older_numeric, newer_release_newer_numeric, LatestReleaseOrders.SEMVER
+            )
+            assert not is_newer_release(
+                newer_release_newer_numeric, newer_release_older_numeric, LatestReleaseOrders.SEMVER
+            )
+
             assert not is_newer_release(
                 newer_release_alpha, newer_release_older_numeric, LatestReleaseOrders.SEMVER
             )
             assert not is_newer_release(
+                newer_release_older_numeric, newer_release_alpha, LatestReleaseOrders.SEMVER
+            )
+
+            assert not is_newer_release(
                 newer_release, newer_release_older_numeric, LatestReleaseOrders.SEMVER
+            )
+            assert not is_newer_release(
+                newer_release_older_numeric, newer_release, LatestReleaseOrders.SEMVER
             )
 
     def test_is_newer_release_semver(self) -> None:
