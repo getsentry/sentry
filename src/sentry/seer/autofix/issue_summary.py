@@ -319,6 +319,14 @@ def _run_automation(
     ):
         return
 
+    # With triage-signals-v0: require event count >= 10 and fixability >= MEDIUM
+    if features.has("projects:triage-signals-v0", group.project):
+        if (
+            group.times_seen < 10
+            or issue_summary.scores.fixability_score < FixabilityScoreThresholds.MEDIUM.value
+        ):
+            return
+
     has_budget: bool = quotas.backend.has_available_reserved_budget(
         org_id=group.organization.id,
         data_category=DataCategory.SEER_AUTOFIX,

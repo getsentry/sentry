@@ -792,6 +792,96 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] is None
 
+    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
+    @patch(
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
+        return_value=False,
+    )
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
+    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_skips_when_event_count_too_low(
+        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
+    ):
+        self.project.update_option("sentry:autofix_automation_tuning", "always")
+        self.group.times_seen = 5  # Below minimum of 10
+        self.group.save()
+        mock_gen.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
+            scores=SummarizeIssueScores(fixability_score=0.80),
+        )
+
+        with self.feature(
+            {"organizations:gen-ai-features": True, "projects:triage-signals-v0": True}
+        ):
+            _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+
+        mock_trigger.assert_not_called()
+
+    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
+    @patch(
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
+        return_value=False,
+    )
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
+    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_skips_when_fixability_too_low(
+        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
+    ):
+        self.project.update_option("sentry:autofix_automation_tuning", "always")
+        self.group.times_seen = 15  # Above minimum
+        self.group.save()
+        mock_gen.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
+            scores=SummarizeIssueScores(fixability_score=0.30),  # Below MEDIUM (0.40)
+        )
+
+        with self.feature(
+            {"organizations:gen-ai-features": True, "projects:triage-signals-v0": True}
+        ):
+            _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+
+        mock_trigger.assert_not_called()
+
+    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
+    @patch(
+        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
+        return_value=False,
+    )
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
+    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_runs_when_event_count_and_fixability_meet_threshold(
+        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
+    ):
+        self.project.update_option("sentry:autofix_automation_tuning", "always")
+        self.group.times_seen = 15  # Above minimum
+        self.group.save()
+        mock_gen.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
+            scores=SummarizeIssueScores(fixability_score=0.50),  # Above MEDIUM (0.40)
+        )
+
+        with self.feature(
+            {"organizations:gen-ai-features": True, "projects:triage-signals-v0": True}
+        ):
+            _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+
+        mock_trigger.assert_called_once()
+
 
 class TestFetchUserPreference:
     @patch("sentry.seer.autofix.issue_summary.sign_with_seer_secret", return_value={})

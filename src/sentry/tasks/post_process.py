@@ -1628,7 +1628,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
 
-    # Only run on issues with no existing scan - TODO: Update condition for triage signals V0
+    # Only run on issues with no existing scan
     if group.seer_fixability_score is not None:
         return
 
