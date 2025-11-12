@@ -36,8 +36,8 @@ export function useWidgetQueryQueue() {
 export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}) {
   const queueOptions: AsyncQueuerOptions<QueueItem<any, any>> = {
     //
-    concurrency: 1,
-    wait: 5000,
+    concurrency: 10,
+    wait: 5,
     started: true,
     key: 'widget-query-queue',
   };
