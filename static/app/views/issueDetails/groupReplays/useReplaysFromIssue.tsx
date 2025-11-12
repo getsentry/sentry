@@ -6,7 +6,7 @@ import {DEFAULT_REPLAY_LIST_SORT} from 'sentry/components/replays/table/useRepla
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import EventView, {encodeSort} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -66,7 +66,7 @@ export default function useReplaysFromIssue({
       query: replayIds.length ? `id:[${String(replayIds)}]` : `id:1`,
       range: '90d',
       projects: [],
-      orderby: decodeScalar(location.query.sort, encodeSort(DEFAULT_REPLAY_LIST_SORT)),
+      orderby: decodeScalar(location.query.sort, DEFAULT_REPLAY_LIST_SORT),
     });
   }, [location.query.sort, replayIds]);
 
