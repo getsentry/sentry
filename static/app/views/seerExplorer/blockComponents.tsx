@@ -271,11 +271,11 @@ function BlockComponent({
                     text={processedContent}
                     onClick={(e: React.MouseEvent<HTMLDivElement>) => {
                       // Intercept clicks on links to use client-side navigation
-                      const target = e.target as HTMLElement;
-                      if (target.tagName === 'A') {
+                      const anchor = (e.target as HTMLElement).closest('a');
+                      if (anchor) {
                         e.preventDefault();
                         e.stopPropagation();
-                        const href = target.getAttribute('href');
+                        const href = anchor.getAttribute('href');
                         if (href?.startsWith('/')) {
                           navigate(href);
                           onNavigate?.();

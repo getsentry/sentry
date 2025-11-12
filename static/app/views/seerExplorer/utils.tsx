@@ -202,14 +202,55 @@ export function getToolsStringFromBlock(block: Block): string[] {
 /**
  * Converts issue short IDs in text to markdown links.
  * Examples: INTERNAL-4K, JAVASCRIPT-2SDJ, PROJECT-1
+ * Excludes IDs that are already inside markdown code blocks, links, or URLs.
  */
 function linkifyIssueShortIds(text: string): string {
   // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
   // Requires at least 2 chars before hyphen and 1+ chars after
   const shortIdPattern = /\b([A-Z0-9_]{2,}-[A-Z0-9]+)\b/g;
 
-  return text.replace(shortIdPattern, match => {
-    return `[${match}](/issues/${match}/)`;
+  // Track positions that should be excluded (inside code blocks, links, or URLs)
+  const excludedRanges: Array<{end: number; start: number}> = [];
+
+  // Find all markdown code blocks (inline and block)
+  const codeBlockPattern = /(`+)([^`]+)\1|```[\s\S]*?```/g;
+  for (const codeMatch of text.matchAll(codeBlockPattern)) {
+    excludedRanges.push({
+      end: codeMatch.index + codeMatch[0].length,
+      start: codeMatch.index,
+    });
+  }
+  // Find all markdown links [text](url)
+  const markdownLinkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+  for (const linkMatch of text.matchAll(markdownLinkPattern)) {
+    excludedRanges.push({
+      end: linkMatch.index + linkMatch[0].length,
+      start: linkMatch.index,
+    });
+  }
+  // Find all URLs (http://, https://, or starting with /)
+  const urlPattern = /(https?:\/\/[^\s]+|\/[^\s)]+)/g;
+  for (const urlMatch of text.matchAll(urlPattern)) {
+    excludedRanges.push({
+      end: urlMatch.index + urlMatch[0].length,
+      start: urlMatch.index,
+    });
+  }
+
+  // Sort ranges by start position for efficient checking
+  excludedRanges.sort((a, b) => a.start - b.start);
+
+  // Helper function to check if a position is within any excluded range
+  const isExcluded = (pos: number): boolean => {
+    return excludedRanges.some(range => pos >= range.start && pos < range.end);
+  };
+
+  // Replace matches, but skip those in excluded ranges
+  return text.replace(shortIdPattern, (idMatch, _content, offset) => {
+    if (isExcluded(offset)) {
+      return idMatch;
+    }
+    return `[${idMatch}](/issues/${idMatch}/)`;
   });
 }
 
