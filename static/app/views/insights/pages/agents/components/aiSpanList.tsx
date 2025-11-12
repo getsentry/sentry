@@ -2,7 +2,8 @@ import {Fragment, memo, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Container, Flex, Stack} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
@@ -218,16 +219,38 @@ const TraceListItem = memo(function TraceListItem({
       onClick={onClick}
       indent={indent}
     >
-      <ListItemIcon color={safeColor}>{icon} </ListItemIcon>
-      <ListItemContent>
-        <ListItemHeader align="center" gap="xs">
-          <ListItemTitle>{title}</ListItemTitle>
-          {subtitle && <ListItemSubtitle>- {subtitle}</ListItemSubtitle>}
-          <FlexSpacer />
-          <DurationText>{getDuration(duration, 2, true, true)}</DurationText>
-        </ListItemHeader>
+      <Flex align="center" style={{color: safeColor}}>
+        {icon}
+      </Flex>
+      <Stack gap="xs" flex="1" minWidth="0">
+        <Flex align="center" gap="xs">
+          <Container maxWidth="40%" flexShrink={0}>
+            <Tooltip title={title} showOnlyOnOverflow skipWrapper delay={500}>
+              <Text bold size="sm" ellipsis>
+                {title}
+              </Text>
+            </Tooltip>
+          </Container>
+          {subtitle && (
+            <Tooltip
+              title={subtitle}
+              showOnlyOnOverflow
+              skipWrapper
+              delay={500}
+              maxWidth={500}
+            >
+              <Text size="sm" variant="muted" ellipsis>
+                - {subtitle}
+              </Text>
+            </Tooltip>
+          )}
+          <Container flex={1} />
+          <Text size="xs" variant="muted">
+            {getDuration(duration, 2, true, true)}
+          </Text>
+        </Flex>
         <DurationBar color={safeColor} relativeTiming={relativeTiming} />
-      </ListItemContent>
+      </Stack>
     </ListItemContainer>
   );
 });
@@ -338,6 +361,7 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
   } else if (getIsAiGenerationSpan({op})) {
     const tokens = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
     const cost = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_COST);
+    nodeInfo.title = node.value.description || nodeInfo.title;
     nodeInfo.icon = <IconChat size="md" />;
     nodeInfo.subtitle = tokens ? (
       <Fragment>
@@ -414,6 +438,7 @@ const ListItemContainer = styled('div')<{
 }>`
   display: flex;
   align-items: center;
+  gap: ${p => p.theme.space.md};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xs};
   padding-left: ${p => (p.indent ? p.indent * 16 : 4)}px;
   border-radius: ${p => p.theme.borderRadius};
@@ -430,41 +455,6 @@ const ListItemContainer = styled('div')<{
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
   }
-`;
-
-const ListItemIcon = styled('div')<{color: string}>`
-  display: flex;
-  align-items: center;
-  margin-right: ${p => p.theme.space.md};
-  color: ${p => p.color};
-`;
-
-const ListItemContent = styled('div')`
-  flex: 1;
-  min-width: 0;
-`;
-
-const ListItemHeader = styled(Flex)`
-  margin-bottom: ${p => p.theme.space.xs};
-`;
-
-const ListItemTitle = styled('div')`
-  font-weight: 600;
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.textColor};
-  white-space: nowrap;
-  flex-basis: max-content;
-  flex-shrink: 0;
-`;
-
-const ListItemSubtitle = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-  flex-basis: max-content;
 `;
 
 const DurationBar = styled('div')<{
@@ -487,11 +477,6 @@ const DurationBar = styled('div')<{
     background-color: ${p => p.color};
     border-radius: 2px;
   }
-`;
-
-const DurationText = styled('div')`
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
 `;
 
 const TransactionButton = styled('button')`
@@ -528,10 +513,4 @@ const TransactionButton = styled('button')`
 
 const StyledIconChevron = styled(IconChevron)`
   flex-shrink: 0;
-`;
-
-const FlexSpacer = styled('div')`
-  flex-grow: 1;
-  min-width: 0;
-  flex-basis: 0;
 `;
