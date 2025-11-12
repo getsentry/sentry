@@ -15,7 +15,6 @@ import ReplayBadge from 'sentry/components/replays/replayBadge';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import NumericDropdownFilter from 'sentry/components/replays/table/filters/numericDropdownFilter';
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
-import {DEFAULT_SORT} from 'sentry/components/replays/table/useReplayTableSort';
 import ScoreBar from 'sentry/components/scoreBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
@@ -27,7 +26,7 @@ import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView, {encodeSort} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -44,7 +43,6 @@ import type {
   ReplayListRecord,
   ReplayRecordNestedFieldName,
 } from 'sentry/views/replays/types';
-import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
 type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 
@@ -526,24 +524,26 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     const referrer = getRouteStringFromRoutes(routes);
     const eventView = EventView.fromLocation(location);
 
-    const sort = location.query.sort ?? encodeSort(DEFAULT_SORT);
-
     const {statsPeriod, ...eventViewQuery} = eventView.generateQueryStringObject();
 
     let query = {
       referrer,
       ...eventViewQuery,
-      sort,
-      field: REPLAY_LIST_FIELDS,
     };
 
     if (!eventViewQuery.start && !eventViewQuery.end && typeof statsPeriod === 'string') {
-      const {start, end} = parseStatsPeriod(statsPeriod);
-      query = {...query, ...{start, end}};
+      const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(statsPeriod);
+      query = {...query, ...{playlistStart, playlistEnd}};
     }
 
     if (location.query.cursor) {
       query = {...query, ...{cursor: location.query.cursor}};
+    }
+
+    // Because the sort field is only generated if the corresponding fields is added, but we
+    // want to avoid dirtying the URL with fields, we manually add it to the query here.
+    if (location.query.sort) {
+      query = {...query, ...{playlistSort: location.query.sort}};
     }
 
     const replayDetailsPathname = makeReplaysPathname({

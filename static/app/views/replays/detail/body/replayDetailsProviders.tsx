@@ -1,4 +1,5 @@
 import {useEffect, useMemo, type ReactNode} from 'react';
+import type {Location} from 'history';
 
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
@@ -14,9 +15,10 @@ import {ReplayPlaylistProvider} from 'sentry/utils/replays/playback/providers/re
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
-import {useLocation} from 'sentry/utils/useLocation';
+import {useLocation, type DefaultQuery} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReplaySummaryContextProvider} from 'sentry/views/replays/detail/ai/replaySummaryContext';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
 interface Props {
   children: ReactNode;
@@ -44,14 +46,34 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
 
   const location = useLocation();
 
-  const eventView = useMemo(() => {
-    return EventView.fromLocation(location);
+  const locationWithPlaylist = useMemo(() => {
+    const newLocation: Location<DefaultQuery<string>> = {
+      ...location,
+      query: {
+        ...location.query,
+        // We add the fields to the query so that eventView.fromLocation
+        // will read the sort field from the query
+        field: REPLAY_LIST_FIELDS,
+      },
+    };
+    if (location.query.playlistStart && location.query.playlistEnd) {
+      newLocation.query.start = location.query.playlistStart;
+      newLocation.query.end = location.query.playlistEnd;
+    }
+    // TODO: import shared DEFAULT_SORT
+    newLocation.query.sort = location.query.playlistSort ?? '-started_at';
+    return newLocation;
   }, [location]);
+
+  const eventView = useMemo(
+    () => EventView.fromLocation(locationWithPlaylist),
+    [locationWithPlaylist]
+  );
 
   const {replays} = useReplayList({
     enabled: Boolean(eventView.start && eventView.end && eventView.sorts.length),
     eventView,
-    location,
+    location: locationWithPlaylist,
     organization,
     queryReferrer: 'playlist',
   });
