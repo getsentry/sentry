@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from enum import IntEnum, StrEnum
+from logging import Logger
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
 from sentry.types.group import PriorityLevel
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
     from sentry.snuba.models import SnubaQueryEventType
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
     from sentry.workflow_engine.handlers.detector import DetectorHandler
-    from sentry.workflow_engine.models import Action, Detector
+    from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
     from sentry.workflow_engine.models.data_condition import Condition
 
 T = TypeVar("T")
@@ -70,6 +71,56 @@ class WorkflowEventData:
     has_reappeared: bool | None = None
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
+
+
+@dataclass
+class WorkflowEvaluationData:
+    group_event: GroupEvent | Activity
+    action_groups: set[DataConditionGroup] | None = None
+    workflows: set[Workflow] | None = None
+    triggered_actions: set[Action] | None = None
+    triggered_workflows: set[Workflow] | None = None
+    associated_detector: Detector | None = None
+
+
+@dataclass(frozen=True)
+class WorkflowEvaluation:
+    """
+    This is the result of `process_workflows`, and is used to
+    encapsulate different stages of completion for the method.
+
+    The `tainted` flag is used to indicate whether or not actions
+    have been triggered during the workflows evaluation.
+
+    The `msg` field is used for debug information during the evaluation.
+
+    The `data` attribute will include all the data used to evaluate the
+    workflows, and determine if an action should be triggered.
+    """
+
+    tainted: bool
+    msg: str | None
+    data: WorkflowEvaluationData
+
+    def to_log(self, logger: Logger) -> None:
+        """
+        Determines how far in the process the evaluation got to
+        and creates a structured log string to quickly find.
+
+        Then this will return the that log string, and the
+        relevant processing data to be logged.
+        """
+        log_str = "workflow_engine.process_workflows.evaluation"
+
+        if self.tainted:
+            if self.data.triggered_workflows is None:
+                log_str = f"{log_str}.workflows.not_triggered"
+            else:
+                log_str = f"{log_str}.workflows.triggered"
+        else:
+            log_str = f"{log_str}.actions.triggered"
+
+        logger.info(log_str, extra={**asdict(self.data), "msg": self.msg})
 
 
 class ConfigTransformer(ABC):
