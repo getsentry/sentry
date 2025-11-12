@@ -12,7 +12,8 @@ type StackLayoutProps = Pick<
   'align' | 'direction' | 'gap' | 'justify' | 'wrap'
 >;
 
-type StackProps<T extends ContainerElement = 'div'> = StackLayoutProps & FlexProps<T>;
+export type StackProps<T extends ContainerElement = 'div'> = StackLayoutProps &
+  FlexProps<T>;
 
 const StackComponent = styled(
   <T extends ContainerElement = 'div'>({

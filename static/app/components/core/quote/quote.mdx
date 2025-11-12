@@ -1,0 +1,91 @@
+---
+title: Quote
+description: A blockquote component for displaying extended quotations with optional source attribution and citations.
+source: 'sentry/components/core/quote'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/quote/quote.tsx
+---
+
+import * as Storybook from 'sentry/stories';
+
+import {Quote} from './quote';
+
+import documentation from '!!type-loader!@sentry/scraps/quote';
+
+export {documentation};
+
+The `Quote` component renders a `<blockquote>` element to indicate that the enclosed text is an extended quotation. It provides semantic HTML with proper styling and optional citation support through the `source` prop.
+
+## Basic Usage
+
+A simple quotation without attribution:
+
+<Storybook.Demo>
+  <Quote>It’s not a bug; it’s an undocumented feature.</Quote>
+</Storybook.Demo>
+```jsx
+<Quote>It’s not a bug; it’s an undocumented feature.</Quote>
+```
+
+## Props
+
+### Source Attribution
+
+The `source` prop accepts an object with optional `author`, `href`, and `label` properties for attribution and citation. These properties are rendered with proper semantic HTML using the `cite` attribute and `<cite>` element.
+
+#### With Author
+
+Provide attribution to a specific person or entity:
+
+<Storybook.Demo>
+  <Quote source={{author: 'Developer'}}>It’s not a bug, it’s a feature.</Quote>
+</Storybook.Demo>
+```jsx
+<Quote source={{author: 'Developer'}}>It’s not a bug, it’s a feature.</Quote>
+```
+
+#### With Author and Label
+
+Include both the author and additional context about the source:
+
+<Storybook.Demo>
+  <Quote source={{author: 'Developer', label: 'in complete denial'}}>
+    It’s not a bug, it’s a feature.
+  </Quote>
+</Storybook.Demo>
+```jsx
+<Quote source={{author: 'Developer', label: 'in complete denial'}}>
+  It’s not a bug, it’s a feature.
+</Quote>
+```
+
+#### With URL Reference
+
+The `href` property sets the `cite` attribute on the `<blockquote>` element, providing a machine-readable source reference:
+
+<Storybook.Demo>
+  <Quote
+    source={{
+      author: 'Developer',
+      label: 'in complete denial',
+      href: 'https://example.com/source',
+    }}
+  >
+    It’s not a bug, it’s a feature.
+  </Quote>
+</Storybook.Demo>
+```jsx
+<Quote
+  source={{
+    author: 'Developer',
+    label: 'in complete denial',
+    href: 'https://example.com/source',
+  }}
+>
+  It’s not a bug, it’s a feature.
+</Quote>
+```
+
+## Accessibility
+
+`<Quote>` uses semantic HTML to ensure quotes are correctly announced by assistive technologies, including the `cite` element for machine-readable source references.
