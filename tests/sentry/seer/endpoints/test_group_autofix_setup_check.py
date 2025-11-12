@@ -133,7 +133,10 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
                 "ok": True,
                 "reason": None,
             },
-            "githubWriteIntegration": None,
+            "githubWriteIntegration": {
+                "ok": None,
+                "repos": [],
+            },
             "setupAcknowledgement": {
                 "orgHasAcknowledged": False,
                 "userHasAcknowledged": False,
