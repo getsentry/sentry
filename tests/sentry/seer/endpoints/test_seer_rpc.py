@@ -924,7 +924,7 @@ class TestSeerRpcMethods(APITestCase):
     def test_check_repository_integrations_status_empty_list(self) -> None:
         """Test with empty input list"""
         result = check_repository_integrations_status(repository_integrations=[])
-        assert result == {"statuses": []}
+        assert result == {"integration_ids": []}
 
     def test_check_repository_integrations_status_single_existing_repo(self) -> None:
         """Test when a single repository exists and is active"""
@@ -952,7 +952,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [True]}
+        assert result == {"integration_ids": [integration.id]}
 
     def test_check_repository_integrations_status_single_non_existing_repo(self) -> None:
         """Test when repository does not exist"""
@@ -967,10 +967,10 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [False]}
+        assert result == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_mixed_existing_and_non_existing(self) -> None:
-        """Test with a mix of existing and non-existing repositories"""
+        """Test with a mix of existing and non-existing repositories (integration_id ignored)"""
         integration = self.create_integration(
             organization=self.organization, provider="github", external_id="github:1"
         )
@@ -993,7 +993,7 @@ class TestSeerRpcMethods(APITestCase):
             integration_id=integration.id,
         )
 
-        # Check 4 repos: 2 exist, 2 don't
+        # Check 3 repos: 2 exist, 1 doesn't
         result = check_repository_integrations_status(
             repository_integrations=[
                 {
@@ -1014,16 +1014,12 @@ class TestSeerRpcMethods(APITestCase):
                     "external_id": "456",
                     "provider": "github",
                 },  # exists
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": 888,
-                    "external_id": "123",
-                    "provider": "github",
-                },  # wrong integration_id
             ]
         )
 
-        assert result == {"statuses": [True, False, True, False]}
+        assert result == {
+            "integration_ids": [integration.id, None, integration.id],
+        }
 
     def test_check_repository_integrations_status_inactive_repo(self) -> None:
         """Test that inactive repositories are not matched"""
@@ -1052,7 +1048,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [False]}
+        assert result == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_wrong_organization_id(self) -> None:
         """Test that repositories from different organizations are not matched"""
@@ -1083,10 +1079,10 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [False]}
+        assert result == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_wrong_integration_id(self) -> None:
-        """Test that repositories with different integration_id are not matched"""
+        """Test that integration_id in request is ignored - only (org, provider, external_id) matter"""
         integration1 = self.create_integration(
             organization=self.organization, provider="github", external_id="github:1"
         )
@@ -1104,19 +1100,20 @@ class TestSeerRpcMethods(APITestCase):
             integration_id=integration1.id,
         )
 
-        # Try to find it with integration2's ID
+        # Query with integration2's ID - should still find the repo and return integration1's ID
         result = check_repository_integrations_status(
             repository_integrations=[
                 {
                     "organization_id": self.organization.id,
-                    "integration_id": integration2.id,
+                    "integration_id": integration2.id,  # Different from DB, but ignored
                     "external_id": "123",
                     "provider": "github",
                 }
             ]
         )
 
-        assert result == {"statuses": [False]}
+        # Should find the repo and return the ACTUAL integration_id from the database
+        assert result == {"integration_ids": [integration1.id]}
 
     def test_check_repository_integrations_status_wrong_external_id(self) -> None:
         """Test that repositories with different external_id are not matched"""
@@ -1146,7 +1143,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [False]}
+        assert result == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_multiple_all_exist(self) -> None:
         """Test when all queried repositories exist"""
@@ -1203,7 +1200,9 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [True, True, True]}
+        assert result == {
+            "integration_ids": [integration.id, integration.id, integration.id],
+        }
 
     def test_check_repository_integrations_status_multiple_orgs(self) -> None:
         """Test with repositories from multiple organizations"""
@@ -1253,7 +1252,9 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [True, True]}
+        assert result == {
+            "integration_ids": [integration1.id, integration2.id],
+        }
 
     def test_check_repository_integrations_status_unsupported_provider(self) -> None:
         """Test that repositories with unsupported providers are not matched"""
@@ -1283,7 +1284,7 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [False]}
+        assert result == {"integration_ids": [None]}
 
     def test_check_repository_integrations_status_mixed_supported_and_unsupported_providers(
         self,
@@ -1334,4 +1335,97 @@ class TestSeerRpcMethods(APITestCase):
             ]
         )
 
-        assert result == {"statuses": [True, False]}
+        assert result == {
+            "integration_ids": [github_integration.id, None],
+        }
+
+    def test_check_repository_integrations_status_integration_id_as_string(self) -> None:
+        """Test that integration_id as string is properly handled (type mismatch)"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        # Create repository with integration_id as integer
+        Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="123",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        # Query with integration_id as string (like from Seer)
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": str(integration.id),  # String instead of int
+                    "external_id": "123",
+                    "provider": "github",
+                }
+            ]
+        )
+
+        assert result == {"integration_ids": [integration.id]}
+
+    def test_check_repository_integrations_status_integration_id_none(self) -> None:
+        """Test that integration_id=None is ignored in matching"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        # Create repository with an integration_id
+        Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="456",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        # Query with integration_id=None should still match by org_id, provider, external_id
+        # and return the actual integration_id from the database
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "integration_id": None,
+                    "external_id": "456",
+                    "provider": "github",
+                }
+            ]
+        )
+
+        assert result == {"integration_ids": [integration.id]}
+
+    def test_check_repository_integrations_status_no_integration_id_in_request(self) -> None:
+        """Test that integration_id is completely optional - Seer doesn't need to send it"""
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+        # Create repository with an integration_id
+        Repository.objects.create(
+            name="test/repo",
+            organization_id=self.organization.id,
+            provider="integrations:github",
+            external_id="789",
+            status=ObjectStatus.ACTIVE,
+            integration_id=integration.id,
+        )
+
+        # Query WITHOUT integration_id field at all - should still match and return it
+        result = check_repository_integrations_status(
+            repository_integrations=[
+                {
+                    "organization_id": self.organization.id,
+                    "external_id": "789",
+                    "provider": "github",
+                    # No integration_id field at all
+                }
+            ]
+        )
+
+        assert result == {"integration_ids": [integration.id]}
