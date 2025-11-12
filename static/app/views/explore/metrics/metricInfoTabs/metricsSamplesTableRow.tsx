@@ -302,7 +302,7 @@ export function SampleTableRow({
 
   return (
     <TableRowContainer ref={ref}>
-      <StickyTableRow isSticky={isExpanded}>
+      <StickyTableRow sticky={isExpanded ? true : undefined}>
         {columns.map((field, i) => {
           const isValueColumn = field === TraceMetricKnownFieldKey.METRIC_VALUE;
           const cellContent = renderFieldCell(field);
