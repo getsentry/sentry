@@ -278,7 +278,7 @@ def insta_snapshot(request: pytest.FixtureRequest) -> Generator[InstaSnapshotter
             os.makedirs(os.path.dirname(reference_file), exist_ok=True)
             test_file = os.path.realpath(str(request.node.fspath))
             if test_file.startswith(repo_abs_path + os.path.sep):
-                test_file = test_file[len(repo_abs_path) + 1 :]
+                test_file = test_file.replace(repo_abs_path + os.path.sep, "")
             if _snapshot_writeback == "new":
                 reference_file += ".new"
             with open(reference_file, "w") as f:
