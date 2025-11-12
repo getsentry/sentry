@@ -31,6 +31,7 @@ from sentry.snuba.entity_subscription import (
 )
 from sentry.snuba.metrics.naming_layer.mri import is_mri
 from sentry.snuba.models import (
+    ExtrapolationMode,
     QuerySubscription,
     QuerySubscriptionDataSourceHandler,
     SnubaQuery,
@@ -86,6 +87,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         required=False,
         allow_empty=False,
     )
+    extrapolation_mode = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         model = QuerySubscription
@@ -98,6 +100,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             "environment",
             "event_types",
             "group_by",
+            "extrapolation_mode",
         ]
 
     data_source_type_handler = QuerySubscriptionDataSourceHandler
@@ -402,6 +405,9 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     @override
     def create_source(self, validated_data) -> QuerySubscription:
+        extrapolation_mode = validated_data.get("extrapolation_mode")
+        if extrapolation_mode is not None:
+            extrapolation_mode = ExtrapolationMode(extrapolation_mode)
         snuba_query = create_snuba_query(
             query_type=validated_data["query_type"],
             dataset=validated_data["dataset"],
@@ -412,6 +418,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             environment=validated_data["environment"],
             event_types=validated_data["event_types"],
             group_by=validated_data.get("group_by"),
+            extrapolation_mode=extrapolation_mode,
         )
         return create_snuba_subscription(
             project=self.context["project"],
