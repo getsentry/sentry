@@ -20,7 +20,7 @@ import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import type {ProductTrial, Subscription} from 'getsentry/types';
-import {UsageAction} from 'getsentry/utils/billing';
+import {isBizPlanFamily, UsageAction} from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
@@ -178,10 +178,20 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
     }
   } else if (daysLeft < 0 && daysLeft >= -7 && trial.isStarted) {
     alertHeader = t('%s Trial', titleCase(getProductName(trial.category)));
-    alertText = t(
-      'Your unlimited %s trial ended. Keep using more by upgrading your plan.',
-      getProductName(product ?? trial.category)
-    );
+
+    if (isPaid && isBizPlanFamily(subscription.planDetails)) {
+      // For Business plan users, just say the trial ended without upgrade prompt
+      alertText = t(
+        'Your unlimited %s trial ended.',
+        getProductName(product ?? trial.category)
+      );
+    } else {
+      // For free and Team plan users, show the upgrade prompt
+      alertText = t(
+        'Your unlimited %s trial ended. Keep using more by upgrading your plan.',
+        getProductName(product ?? trial.category)
+      );
+    }
 
     alertButton =
       isPaid && !hasBillingRole ? (

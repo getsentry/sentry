@@ -940,6 +940,7 @@ class SnubaQueryParams:
         in_groups = None
         out_groups: set[int | str] = set()
         if "group_id" in self.filter_keys:
+            self.filter_keys = self.filter_keys.copy()
             in_groups = get_all_merged_group_ids(self.filter_keys["group_id"])
             del self.filter_keys["group_id"]
 
