@@ -51,10 +51,10 @@ const getEnablementForm = ({
         name: 'is_enabled',
         label: t('Enable data forwarding'),
         type: 'boolean',
-        defaultValue: false,
+        defaultValue: dataForwarder?.isEnabled ?? true,
         help: hasCompleteSetup
           ? t('Will override everything to shut-off data forwarding.')
-          : t('Will be disabled until the initial setup is complete.'),
+          : t('Will be enabled after the initial setup is complete.'),
         disabled: !hasCompleteSetup,
       },
     ],
@@ -81,6 +81,7 @@ function getProjectConfigurationForm(projects: Project[]): JsonFormObject {
         label: 'Forwarding projects',
         type: 'select',
         multiple: true,
+        required: true,
         defaultValue: [],
         help: 'Select the projects which should forward their data.',
         options: projectOptions,

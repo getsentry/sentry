@@ -1,10 +1,33 @@
 import type {PlatformKey} from 'sentry/types/project';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
+import type {DataForwarderProviderSlug} from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 type SetupType = 'automatic' | 'manual';
 type StackTraceView = 'stacktrace_issue_details' | 'integration_configuration_detail';
 
 export type EcosystemEventParameters = {
+  'data_forwarding.add_forwarder_clicked': Record<string, unknown>;
+  'data_forwarding.back_button_clicked': Record<string, unknown>;
+  'data_forwarding.delete_cancelled': {
+    provider?: DataForwarderProviderSlug;
+  };
+  'data_forwarding.delete_confirmed': {
+    provider?: DataForwarderProviderSlug;
+  };
+  'data_forwarding.docs_link_clicked': Record<string, unknown>;
+  'data_forwarding.edit_clicked': Record<string, unknown>;
+  'data_forwarding.edit_complete': {
+    are_new_projects_enrolled: boolean;
+    new_project_count: number;
+    old_project_count: number;
+    provider?: DataForwarderProviderSlug;
+  };
+  'data_forwarding.onboarding_cta_clicked': Record<string, unknown>;
+  'data_forwarding.setup_complete': {
+    are_new_projects_enrolled: boolean;
+    project_count: number;
+    provider?: DataForwarderProviderSlug;
+  };
   'integrations.non_inapp_stacktrace_link_clicked': {
     group_id: number;
     provider: string;

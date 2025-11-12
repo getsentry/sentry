@@ -12,6 +12,8 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {getDataForwarderFormGroups} from 'sentry/views/settings/organizationDataForwarding/util/forms';
@@ -26,6 +28,7 @@ import {
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 export default function OrganizationDataForwardingSetup() {
+  const navigate = useNavigate();
   const organization = useOrganization();
   const dataForwarders = useDataForwarders({params: {orgSlug: organization.slug}});
 
@@ -41,6 +44,15 @@ export default function OrganizationDataForwardingSetup() {
   );
   const {mutate: createDataForwarder} = useMutateDataForwarder({
     params: {orgSlug: organization.slug},
+    onSuccess: df => {
+      navigate(`/settings/${organization.slug}/data-forwarding/`);
+      trackAnalytics('data_forwarding.setup_complete', {
+        organization,
+        provider,
+        are_new_projects_enrolled: df?.enrollNewProjects ?? false,
+        project_count: df?.enrolledProjects?.length ?? 0,
+      });
+    },
   });
 
   const [combinedFormState, setCombinedFormState] = useState<
@@ -95,6 +107,9 @@ export default function OrganizationDataForwardingSetup() {
             size="sm"
             to={`/settings/${organization.slug}/data-forwarding/`}
             icon={<IconArrow direction="left" />}
+            onClick={() => {
+              trackAnalytics('data_forwarding.back_button_clicked', {organization});
+            }}
           >
             {t('Back')}
           </LinkButton>

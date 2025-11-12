@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -11,13 +12,16 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconDelete} from 'sentry/icons';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';
 import {getDataForwarderFormGroups} from 'sentry/views/settings/organizationDataForwarding/util/forms';
 import {
   useDataForwarders,
@@ -56,8 +60,15 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
   const formModel = useMemo(() => new FormModel(), []);
   const {mutate: updateDataForwarder} = useMutateDataForwarder({
     params: {orgSlug: organization.slug, dataForwarderId: dataForwarder.id},
-    onSuccess: () => {
+    onSuccess: df => {
       navigate(`/settings/${organization.slug}/data-forwarding/`);
+      trackAnalytics('data_forwarding.edit_complete', {
+        organization,
+        provider,
+        are_new_projects_enrolled: df?.enrollNewProjects ?? false,
+        new_project_count: df?.enrolledProjects?.length ?? 0,
+        old_project_count: dataForwarder.enrolledProjects.length,
+      });
     },
   });
 
@@ -120,6 +131,9 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
             size="sm"
             to={`/settings/${organization.slug}/data-forwarding/`}
             icon={<IconArrow direction="left" />}
+            onClick={() => {
+              trackAnalytics('data_forwarding.back_button_clicked', {organization});
+            }}
           >
             {t('Back')}
           </LinkButton>
@@ -162,6 +176,13 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
               ...dataForwardingPayload,
             });
           }}
+          extraButton={
+            <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
+              <Button icon={<IconDelete color="danger" />}>
+                {t('Delete Data Forwarder')}
+              </Button>
+            </DataForwarderDeleteConfirm>
+          }
           submitLabel={t('Update Forwarder')}
         >
           <JsonForm

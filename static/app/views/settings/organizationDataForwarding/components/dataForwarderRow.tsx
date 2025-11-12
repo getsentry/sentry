@@ -5,12 +5,12 @@ import {LinkButton} from '@sentry/scraps/button/linkButton';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import Confirm from 'sentry/components/confirm';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useDeleteDataForwarder} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
+import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';
 import {
   ProviderLabels,
   type DataForwarder,
@@ -18,9 +18,6 @@ import {
 
 export function DataForwarderRow({dataForwarder}: {dataForwarder: DataForwarder}) {
   const organization = useOrganization();
-  const {mutate: deleteDataForwarder} = useDeleteDataForwarder({
-    params: {orgSlug: organization.slug, dataForwarderId: dataForwarder?.id},
-  });
   return (
     <Container padding="xl" border="muted" radius="md" key={dataForwarder.id}>
       <Grid columns="auto 1fr auto" align="center" gap="md">
@@ -44,28 +41,19 @@ export function DataForwarderRow({dataForwarder}: {dataForwarder: DataForwarder}
           <LinkButton
             icon={<IconEdit />}
             to={`/settings/${organization.slug}/data-forwarding/${dataForwarder.id}/edit/`}
+            onClick={() => {
+              trackAnalytics('data_forwarding.edit_clicked', {organization});
+            }}
           >
             {t('Edit')}
           </LinkButton>
-          <Confirm
-            message={t(
-              'Are you sure you want to delete this data forwarder? All configuration, both global and project-level will be lost.'
-            )}
-            confirmText={t('Delete')}
-            priority="danger"
-            onConfirm={() => {
-              deleteDataForwarder({
-                dataForwarderId: dataForwarder.id,
-                orgSlug: organization.slug,
-              });
-            }}
-          >
+          <DataForwarderDeleteConfirm dataForwarder={dataForwarder}>
             <Button
               title={t('Delete Data Forwarder')}
               aria-label={t('Delete Data Forwarder')}
               icon={<IconDelete />}
             />
-          </Confirm>
+          </DataForwarderDeleteConfirm>
         </ButtonBar>
       </Grid>
     </Container>
