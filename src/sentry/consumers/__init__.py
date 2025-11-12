@@ -465,7 +465,6 @@ def get_stream_processor(
     group_instance_id: str | None = None,
     max_dlq_buffer_length: int | None = None,
     kafka_slice_id: int | None = None,
-    shutdown_strategy_before_consumer: bool = False,
     add_global_tags: bool = False,
     profile_consumer_join: bool = False,
 ) -> StreamProcessor:
@@ -631,7 +630,6 @@ def get_stream_processor(
         commit_policy=ONCE_PER_SECOND,
         join_timeout=join_timeout,
         dlq_policy=dlq_policy,
-        shutdown_strategy_before_consumer=shutdown_strategy_before_consumer,
     )
 
 
