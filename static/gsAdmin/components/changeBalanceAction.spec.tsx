@@ -196,7 +196,7 @@ describe('BalanceChangeAction', () => {
 
     // Disable pointer-events check to avoid false positive in CI
     // where modal overlay may still be settling during initialization
-    await userEvent.click(screen.getByRole('button', {name: /submit/i}), {
+    await userEvent.click(await screen.findByRole('button', {name: /submit/i}), {
       pointerEventsCheck: 0,
     });
 
