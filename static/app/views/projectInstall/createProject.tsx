@@ -7,7 +7,6 @@ import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
-import {removeProject} from 'sentry/actionCreators/projects';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
@@ -35,7 +34,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -138,7 +136,6 @@ function getSubmitTooltipText({
 
 export function CreateProject() {
   const globalModal = useGlobalModal();
-  const api = useApi();
   const navigate = useNavigate();
   const organization = useOrganization();
   const location = useLocation();
@@ -343,34 +340,12 @@ export function CreateProject() {
             Sentry.captureMessage('Project creation failed');
           });
         }
-
-        if (error.createdProject) {
-          Sentry.logger.error('Rolling back project', {
-            projectToRollback: error.createdProject,
-          });
-          try {
-            // Rolling back the project also deletes its associated alert rules
-            // due to the cascading delete constraint.
-            await removeProject({
-              api,
-              orgSlug: organization.slug,
-              projectSlug: error.createdProject.slug,
-              origin: 'getting_started',
-            });
-          } catch (err) {
-            Sentry.withScope(scope => {
-              scope.setExtra('error', err);
-              Sentry.captureMessage('Failed to rollback project');
-            });
-          }
-        }
       }
     },
     [
       organization,
       setCreatedProject,
       navigate,
-      api,
       createProjectAndRules,
       createNotificationAction,
       alertRuleConfig,
