@@ -26,7 +26,7 @@ def record_lifecycle_termination_level(lifecycle: EventLifecycle, error: ApiErro
 def translate_discord_api_error(error: ApiError) -> None:
     if isinstance(error, ApiRateLimitedError):
         # TODO(ecosystem): We should batch this on a per-organization basis
-        raise IntegrationConfigurationError(error.text) from error
+        raise IntegrationError(error.text) from error
     elif error.json and error.json.get("code") in DISCORD_HALT_ERROR_CODES:
         raise IntegrationConfigurationError(error.text) from error
     else:

@@ -21,11 +21,7 @@ from sentry.notifications.platform.types import (
     NotificationTarget,
     NotificationTemplate,
 )
-from sentry.shared_integrations.exceptions import (
-    ApiError,
-    IntegrationConfigurationError,
-    IntegrationError,
-)
+from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_tasks
@@ -99,7 +95,7 @@ class NotificationService[T: NotificationData]:
             except IntegrationConfigurationError as e:
                 lifecycle.record_halt(halt_reason=e, create_issue=False)
                 raise
-            except (IntegrationError, Exception) as e:
+            except Exception as e:
                 lifecycle.record_failure(failure_reason=e, create_issue=True)
                 raise
 
@@ -229,5 +225,5 @@ def notify_target_async[T: NotificationData](
             provider.send(target=target, renderable=renderable)
         except IntegrationConfigurationError as e:
             lifecycle.record_halt(halt_reason=e, create_issue=False)
-        except (IntegrationError, Exception) as e:
+        except Exception as e:
             lifecycle.record_failure(failure_reason=e, create_issue=True)
