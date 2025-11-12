@@ -190,8 +190,8 @@ function CreditCardPanel({
           />
         ) : subscription.paymentSource ? (
           <Fragment>
-            <Text>{`${subscription.paymentSource.brand ? toTitleCase(subscription.paymentSource.brand, {allowInnerUpperCase: true}) + ' ' : ''}****${subscription.paymentSource.last4} ${subscription.paymentSource.expYear && subscription.paymentSource.expMonth ? moment(new Date(subscription.paymentSource.expYear, subscription.paymentSource.expMonth - 1)).format('MM/YY') : ''}`}</Text>
-            <Text>{`${countryName ? `${countryName} ` : ''} ${subscription.paymentSource.zipCode}`}</Text>
+            <Text>{`${toTitleCase(subscription.paymentSource.brand, {allowInnerUpperCase: true})} ****${subscription.paymentSource.last4} ${moment(new Date(subscription.paymentSource.expYear, subscription.paymentSource.expMonth - 1)).format('MM/YY')}`}</Text>
+            <Text>{`${countryName ? `${countryName} ` : ''} ${subscription.paymentSource.zipCode ? subscription.paymentSource.zipCode : ''}`}</Text>
           </Fragment>
         ) : (
           <Text>{t('No payment method on file')}</Text>

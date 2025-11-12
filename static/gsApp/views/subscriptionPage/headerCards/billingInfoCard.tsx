@@ -146,9 +146,7 @@ function PaymentSourceInfo({subscription}: {subscription: Subscription}) {
   return (
     <Text ellipsis size="sm" variant="muted">
       {tct('[cardBrand] ending in [last4]', {
-        cardBrand: paymentSource.brand
-          ? toTitleCase(paymentSource.brand, {allowInnerUpperCase: true})
-          : t('Card'),
+        cardBrand: toTitleCase(paymentSource.brand, {allowInnerUpperCase: true}),
         last4: paymentSource.last4,
       })}
     </Text>
