@@ -3520,13 +3520,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for linking identities for demo users
-register(
-    "identity.prevent-link-identity-for-demo-users.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "sentry.send_onboarding_task_metrics",
