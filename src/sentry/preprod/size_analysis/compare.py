@@ -107,6 +107,16 @@ def compare_size_analysis(
                         type=DiffType.REMOVED,
                     )
                 )
+    else:
+        logger.info(
+            "preprod.size_analysis.compare.skipped_diff_item_comparison",
+            extra={
+                "head_analysis_version": head_size_analysis_results.analysis_version,
+                "base_analysis_version": base_size_analysis_results.analysis_version,
+                "organization_id": head_size_analysis.organization_id,
+                "project_id": head_size_analysis.project_id,
+            },
+        )
 
     size_metric_diff_item = SizeMetricDiffItem(
         metrics_artifact_type=head_size_analysis.metrics_artifact_type,
