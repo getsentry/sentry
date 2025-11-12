@@ -195,8 +195,12 @@ jobs:
           mode: migrations
 
       - name: Run test
-        run: |
-          make test-cli
+        env:
+          # This short circuits the create_default_projects post_upgrade hook
+          # which spawns taskworkers which will spin for 5 minutes on kafka
+          # not being up. We don't need the default project here as this is not local dev.
+          SENTRY_NO_CREATE_DEFAULT_PROJECT: 1
+        run: make test-cli
 
       - name: Inspect failure
         if: failure()

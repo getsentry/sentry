@@ -79,7 +79,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
 
       cursor: '',
       fields: defaultFields(),
-      sortBys: defaultSortBys(),
+      sortBys: defaultSortBys(defaultFields()),
 
       aggregateCursor: '',
       aggregateFields,
@@ -115,11 +115,11 @@ export function defaultMetricQuery(): BaseMetricQuery {
 
       cursor: '',
       fields: defaultFields(),
-      sortBys: defaultSortBys(),
+      sortBys: defaultSortBys(defaultFields()),
 
       aggregateCursor: '',
       aggregateFields: defaultAggregateFields(),
-      aggregateSortBys: defaultAggregateSortBys(),
+      aggregateSortBys: defaultAggregateSortBys(defaultAggregateFields()),
     }),
   };
 }
@@ -128,19 +128,38 @@ export function defaultQuery(): string {
   return '';
 }
 
-function defaultFields(): string[] {
+export function defaultFields(): string[] {
   return ['id', 'timestamp'];
 }
 
-function defaultSortBys(): Sort[] {
-  return [{field: 'timestamp', kind: 'desc'}];
+export function defaultSortBys(fields: string[]): Sort[] {
+  if (fields.includes('timestamp')) {
+    return [
+      {
+        field: 'timestamp',
+        kind: 'desc' as const,
+      },
+    ];
+  }
+
+  if (fields.length) {
+    return [
+      {
+        field: fields[0]!,
+        kind: 'desc' as const,
+      },
+    ];
+  }
+
+  return [];
 }
 
-function defaultAggregateFields(): AggregateField[] {
+export function defaultAggregateFields(): AggregateField[] {
   return [new VisualizeFunction('per_second(value)')];
 }
 
-function defaultAggregateSortBys(): Sort[] {
+export function defaultAggregateSortBys(_: AggregateField[]): Sort[] {
+  // TODO: Handle aggregate fields for compound sort-by.
   return [{field: 'per_second(value)', kind: 'desc'}];
 }
 

@@ -171,6 +171,64 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         assert error is not None
         assert result == {}
 
+    def test_empty_string_head_sha_filtered_out(self) -> None:
+        """Test empty string for head_sha is accepted and filtered out."""
+        data = {"checksum": "a" * 40, "chunks": [], "head_sha": ""}
+        body = orjson.dumps(data)
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is None
+        assert "head_sha" not in result
+        assert result == {"checksum": "a" * 40, "chunks": []}
+
+    def test_empty_string_base_sha_filtered_out(self) -> None:
+        """Test empty string for base_sha is accepted and filtered out."""
+        data = {"checksum": "a" * 40, "chunks": [], "base_sha": ""}
+        body = orjson.dumps(data)
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is None
+        assert "base_sha" not in result
+        assert result == {"checksum": "a" * 40, "chunks": []}
+
+    def test_empty_string_provider_filtered_out(self) -> None:
+        """Test empty string for provider is accepted and filtered out."""
+        data = {"checksum": "a" * 40, "chunks": [], "provider": ""}
+        body = orjson.dumps(data)
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is None
+        assert "provider" not in result
+        assert result == {"checksum": "a" * 40, "chunks": []}
+
+    def test_empty_string_head_ref_filtered_out(self) -> None:
+        """Test empty string for head_ref is accepted and filtered out."""
+        data = {"checksum": "a" * 40, "chunks": [], "head_ref": ""}
+        body = orjson.dumps(data)
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is None
+        assert "head_ref" not in result
+        assert result == {"checksum": "a" * 40, "chunks": []}
+
+    def test_empty_strings_with_valid_data_filtered_out(self) -> None:
+        """Test empty strings are filtered out while keeping valid data."""
+        data = {
+            "checksum": "a" * 40,
+            "chunks": ["b" * 40],
+            "head_sha": "",
+            "provider": "",
+            "head_ref": "feature/xyz",
+            "build_configuration": "debug",
+        }
+        body = orjson.dumps(data)
+        result, error = validate_preprod_artifact_schema(body)
+        assert error is None
+        assert "head_sha" not in result
+        assert "provider" not in result
+        assert result == {
+            "checksum": "a" * 40,
+            "chunks": ["b" * 40],
+            "head_ref": "feature/xyz",
+            "build_configuration": "debug",
+        }
+
 
 class ValidateVcsParametersTest(TestCase):
     """Unit tests for VCS parameter validation function - no database required."""
@@ -355,7 +413,9 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
         assert response.status_code == 400, response.content
-        assert response.data["error"] == "Unsupported provider"
+        assert "Unsupported VCS provider 'invalid'" in response.data["error"]
+        assert "Supported providers are:" in response.data["error"]
+        assert "github" in response.data["error"]
 
     def test_assemble_json_schema_missing_checksum(self) -> None:
         """Test that missing checksum field is rejected."""

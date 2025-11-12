@@ -318,10 +318,7 @@ describe('Performance > Table', () => {
           setError={jest.fn()}
           summaryConditions=""
           projects={data.projects}
-        />,
-        {
-          deprecatedRouterMocks: true,
-        }
+        />
       );
 
       expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
