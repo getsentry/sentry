@@ -37,7 +37,6 @@ function metricOptionsQueryKey({
     field: [
       TraceMetricKnownFieldKey.METRIC_NAME,
       TraceMetricKnownFieldKey.METRIC_TYPE,
-      TraceMetricKnownFieldKey.METRIC_UNIT,
       `count(${TraceMetricKnownFieldKey.METRIC_NAME})`,
     ],
     query: searchValue.formatString(),
@@ -48,15 +47,12 @@ function metricOptionsQueryKey({
     query.project = projectIds.map(String);
   }
 
-  if (search && datetime) {
-    // If searching we use the full filters in order to not miss the result.
+  if (datetime) {
     Object.entries(normalizeDateTimeParams(datetime)).forEach(([key, value]) => {
       if (value !== undefined) {
         query[key] = value as string | string[];
       }
     });
-  } else {
-    query.statsPeriod = '24h'; // Default to a much smaller time window if not searching.
   }
 
   return [`/organizations/${orgSlug}/events/`, {query}];
@@ -112,5 +108,13 @@ export function useMetricOptions({
     }
   }, [result.data]);
 
-  return result;
+  const isMetricOptionsEmpty =
+    !result.isFetching &&
+    !result.isLoading &&
+    (!result.data?.data || result.data.data.length === 0);
+
+  return {
+    ...result,
+    isMetricOptionsEmpty,
+  };
 }

@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -10,6 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {ExploreSavedQueryNavItems} from 'sentry/views/nav/secondary/sections/explore/exploreSavedQueryNavItems';
@@ -30,27 +31,40 @@ export function ExploreSecondaryNav() {
     perPage: MAX_STARRED_QUERIES_DISPLAYED,
   });
 
-  const hasMetricsSupportedPlatform = projects.some(project => {
-    const platform = project.platform || 'unknown';
-    return Array.from(limitedMetricsSupportPrefixes).some(prefix =>
-      platform.startsWith(prefix)
-    );
-  });
-
   const userPlatforms = useMemo(
-    () => [
-      ...new Set(projects.map(project => (project.platform as PlatformKey) || 'unknown')),
-    ],
+    () =>
+      Array.from(
+        new Set(projects.map(project => (project.platform as PlatformKey) || 'unknown'))
+      ).sort(),
     [projects]
   );
 
+  const metricsSupportedPlatformNameRef = useRef<string | undefined>(undefined);
+
+  if (!metricsSupportedPlatformNameRef.current) {
+    const metricsSupportedPlatform = projects.find(project => {
+      const platform = project.platform || 'unknown';
+      return Array.from(limitedMetricsSupportPrefixes).find(prefix =>
+        platform.startsWith(prefix)
+      );
+    });
+    metricsSupportedPlatformNameRef.current = metricsSupportedPlatform?.slug;
+  }
+
+  const hasMetricsSupportedPlatform = !!metricsSupportedPlatformNameRef.current;
+
   useEffect(() => {
+    if (userPlatforms.length === 0) {
+      return;
+    }
     trackAnalytics('metrics.nav.rendered', {
       organization,
-      metrics_tab_visible: hasMetricsSupportedPlatform,
-      platforms: userPlatforms,
+      has_feature_flag: canUseMetricsUI(organization),
+      has_metrics_supported_platform: hasMetricsSupportedPlatform,
+      metrics_supported_platform_name: metricsSupportedPlatformNameRef.current,
+      metrics_tab_visible: hasMetricsSupportedPlatform && canUseMetricsUI(organization),
     });
-  }, [organization, hasMetricsSupportedPlatform, userPlatforms]);
+  }, [organization, hasMetricsSupportedPlatform, userPlatforms.length]);
 
   return (
     <Fragment>
@@ -83,7 +97,7 @@ export function ExploreSecondaryNav() {
               <SecondaryNav.Item
                 to={`${baseUrl}/metrics/`}
                 analyticsItemName="explore_metrics"
-                trailingItems={<FeatureBadge type="alpha" />}
+                trailingItems={<FeatureBadge type="beta" />}
               >
                 {t('Metrics')}
               </SecondaryNav.Item>

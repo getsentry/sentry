@@ -78,28 +78,6 @@ describe('ProjectSeer', () => {
       ],
     });
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      method: 'GET',
-      body: {
-        ...project,
-        options: {
-          'sentry:seer_optimization': {
-            repositories: [
-              {
-                provider: 'github',
-                owner: 'getsentry',
-                name: 'sentry',
-                external_id: '101',
-                branch_name: 'main',
-                instructions: '',
-              },
-            ],
-          },
-        },
-      },
-    });
-
     const seerPreferencesResponse: SeerPreferencesResponse = {
       code_mapping_repos: [
         {
@@ -136,7 +114,10 @@ describe('ProjectSeer', () => {
       method: 'POST',
     });
 
-    render(<ProjectSeer project={project} />, {organization});
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project},
+    });
     renderGlobalModal();
 
     // Wait for initial repos to load
@@ -204,7 +185,10 @@ describe('ProjectSeer', () => {
       method: 'POST',
     });
 
-    render(<ProjectSeer project={project} />, {organization});
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project},
+    });
     renderGlobalModal();
 
     const repoItem = await screen.findByText('getsentry/sentry');
@@ -255,7 +239,10 @@ describe('ProjectSeer', () => {
       method: 'POST',
     });
 
-    render(<ProjectSeer project={project} />, {organization});
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project},
+    });
     renderGlobalModal();
 
     const repoItem = await screen.findByText('getsentry/sentry');
@@ -292,12 +279,6 @@ describe('ProjectSeer', () => {
       seerScannerAutomation: true,
     };
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      method: 'GET',
-      body: initialProject,
-    });
-
     const projectPutRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
@@ -306,7 +287,10 @@ describe('ProjectSeer', () => {
       },
     });
 
-    render(<ProjectSeer project={initialProject} />, {organization});
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project: initialProject},
+    });
 
     // Find the select menu
     const select = await screen.findByRole('textbox', {
@@ -353,19 +337,16 @@ describe('ProjectSeer', () => {
       seerScannerAutomation: false, // Start from off
     };
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      method: 'GET',
-      body: initialProject,
-    });
-
     const projectPutRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
       body: {},
     });
 
-    render(<ProjectSeer project={initialProject} />, {organization});
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project: initialProject},
+    });
 
     // Find the toggle for Automate Issue Scans
     const toggle = await screen.findByRole('checkbox', {
@@ -396,12 +377,6 @@ describe('ProjectSeer', () => {
       seerScannerAutomation: true,
     };
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      method: 'GET',
-      body: initialProject,
-    });
-
     const projectPutRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
@@ -413,7 +388,10 @@ describe('ProjectSeer', () => {
       method: 'POST',
     });
 
-    render(<ProjectSeer project={initialProject} />, {organization});
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project: initialProject},
+    });
 
     // Find the select menu for Where should Seer stop?
     const select = await screen.findByRole('textbox', {
@@ -529,8 +507,9 @@ describe('ProjectSeer', () => {
       method: 'POST',
     });
 
-    render(<ProjectSeer project={initialProject} />, {
+    render(<ProjectSeer />, {
       organization: orgWithCursorFeature,
+      outletContext: {project: initialProject},
     });
 
     // Find the select menu for Where should Seer stop?
@@ -569,5 +548,39 @@ describe('ProjectSeer', () => {
         })
       );
     });
+  });
+
+  it('hides Scan Issues toggle when triage-signals-v0 feature flag is enabled', async () => {
+    const projectWithFeatureFlag = ProjectFixture({
+      features: ['triage-signals-v0'],
+    });
+
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project: projectWithFeatureFlag},
+    });
+
+    // Wait for the page to load
+    await screen.findByText(/Automation/i);
+
+    // The Scan Issues toggle should NOT be visible
+    expect(
+      screen.queryByRole('checkbox', {
+        name: /Scan Issues/i,
+      })
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows Scan Issues toggle when triage-signals-v0 feature flag is disabled', async () => {
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project},
+    });
+
+    // The Scan Issues toggle should be visible
+    const toggle = await screen.findByRole('checkbox', {
+      name: /Scan Issues/i,
+    });
+    expect(toggle).toBeInTheDocument();
   });
 });

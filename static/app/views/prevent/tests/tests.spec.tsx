@@ -1,3 +1,4 @@
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -135,6 +136,13 @@ const mockApiCall = () => {
     url: '/organizations/org-slug/prevent/owner/123/repository/some-repository/',
     method: 'GET',
     body: mockRepoData,
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/config/integrations/`,
+    method: 'GET',
+    body: {
+      providers: [GitHubIntegrationProviderFixture()],
+    },
   });
 };
 

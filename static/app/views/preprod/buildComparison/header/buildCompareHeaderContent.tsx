@@ -2,12 +2,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text/heading';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Heading} from 'sentry/components/core/text/heading';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {IconCode, IconDownload, IconJson, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -17,8 +18,8 @@ import {
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
-  formattedDownloadSize,
-  formattedInstallSize,
+  formattedPrimaryMetricDownloadSize,
+  formattedPrimaryMetricInstallSize,
   getLabels,
   getPlatformIconFromPlatform,
   getReadablePlatformLabel,
@@ -99,7 +100,9 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
             <Tooltip title={labels.installSizeDescription}>
               <Flex gap="sm" align="center">
                 <IconCode size="sm" color="gray300" />
-                <Text underline="dotted">{formattedInstallSize(buildDetails)}</Text>
+                <Text underline="dotted">
+                  {formattedPrimaryMetricInstallSize(buildDetails.size_info)}
+                </Text>
               </Flex>
             </Tooltip>
           )}
@@ -107,7 +110,9 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
             <Tooltip title={labels.downloadSizeDescription}>
               <Flex gap="sm" align="center">
                 <IconDownload size="sm" color="gray300" />
-                <Text underline="dotted">{formattedDownloadSize(buildDetails)}</Text>
+                <Text underline="dotted">
+                  {formattedPrimaryMetricDownloadSize(buildDetails.size_info)}
+                </Text>
               </Flex>
             </Tooltip>
           )}

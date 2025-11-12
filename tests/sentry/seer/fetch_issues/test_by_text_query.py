@@ -45,6 +45,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             external_id=self.gh_repo.external_id,
             query="hello",
         )
+        assert "error" not in seer_response
         assert len(seer_response["issues"]) > 0, "Should find issue with 'hello' substring"
         assert group.id in seer_response["issues"]
 
@@ -56,6 +57,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             external_id=self.gh_repo.external_id,
             query="auth",
         )
+        assert "error" not in seer_response
         assert len(seer_response["issues"]) > 0, "Should find issue with 'auth' substring"
         assert group.id in seer_response["issues"]
 
@@ -115,6 +117,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             query="database conn",
         )
 
+        assert "error" not in seer_response
         assert len(seer_response["issues"]) > 0
         assert group.id in seer_response["issues"]
 
@@ -139,6 +142,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             limit=limit,
         )
 
+        assert "error" not in seer_response
         assert len(seer_response["issues"]) <= limit
 
     def test_fetch_issues_from_repo_projects_returns_groups(self):

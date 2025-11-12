@@ -112,7 +112,7 @@ class IssueAlertMigrator:
         default_detectors = self._create_detector_lookups()
         for detector in default_detectors:
             if detector:
-                DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
+                DetectorWorkflow.objects.get_or_create(detector=detector, workflow=workflow)
 
     def _bulk_create_data_conditions(
         self,

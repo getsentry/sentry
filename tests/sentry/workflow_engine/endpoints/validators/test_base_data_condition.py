@@ -12,7 +12,7 @@ from sentry.workflow_engine.models import Condition
 from sentry.workflow_engine.types import DataConditionHandler
 
 
-class MockDataConditionHandler(DataConditionHandler):
+class MockDataConditionHandler(DataConditionHandler[dict[str, str]]):
     comparison_json_schema = {"type": "number"}
     condition_result_schema = {"type": "boolean"}
 
@@ -56,7 +56,7 @@ class TestBaseDataConditionValidator(TestCase):
         assert validator.is_valid() is True
 
 
-class MockComplexDataConditionHandler(DataConditionHandler):
+class MockComplexDataConditionHandler(DataConditionHandler[dict[str, Any]]):
     comparison_json_schema = {
         "type": "object",
         "properties": {
