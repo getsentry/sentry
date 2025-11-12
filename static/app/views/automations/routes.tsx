@@ -102,7 +102,7 @@ function RedirectToRuleDetails({children}: {children: React.ReactNode}) {
   const shouldRedirect =
     !user.isStaff && !organization.features.includes('workflow-engine-ui');
 
-  const {data} = useApiQuery<AlertRuleWorkflow>(
+  const {data, isLoading} = useApiQuery<AlertRuleWorkflow>(
     [
       `/organizations/${organization.slug}/alert-rule-workflows/`,
       {
@@ -113,19 +113,27 @@ function RedirectToRuleDetails({children}: {children: React.ReactNode}) {
   );
 
   if (shouldRedirect) {
-    if (!data) {
+    if (isLoading) {
       return <LoadingIndicator />;
     }
-    return (
-      <Redirect
-        to={makeAlertsPathname({
-          path: data.ruleId
-            ? `/rules/details/${data.ruleId}/`
-            : `/rules/details/${data.alertRuleId}/`,
-          organization,
-        })}
-      />
-    );
+    if (data) {
+      return (
+        <Redirect
+          to={makeAlertsPathname({
+            path: data.ruleId
+              ? `/rules/details/${data.ruleId}/`
+              : `/rules/details/${data.alertRuleId}/`,
+            organization,
+          })}
+        />
+      );
+    }
+    <Redirect
+      to={makeAlertsPathname({
+        path: '/rules/',
+        organization,
+      })}
+    />;
   }
 
   return children;
