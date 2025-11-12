@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from sentry.models.organizationmember import OrganizationMember
 from sentry.seer.explorer.client_utils import collect_user_org_context
@@ -22,8 +22,8 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 404
         assert response.data == {"session": None}
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_run")
-    def test_get_with_run_id_calls_client(self, mock_get_seer_run: MagicMock) -> None:
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_get_with_run_id_calls_client(self, mock_client_class: MagicMock) -> None:
         from sentry.seer.explorer.client_models import SeerRunState
 
         # Mock client response
@@ -33,14 +33,16 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
         )
-        mock_get_seer_run.return_value = mock_state
+        mock_client = MagicMock()
+        mock_client.get_run.return_value = mock_state
+        mock_client_class.return_value = mock_client
 
         response = self.client.get(f"{self.url}123/")
 
         assert response.status_code == 200
         assert response.data["session"]["run_id"] == 123
         assert response.data["session"]["status"] == "completed"
-        assert mock_get_seer_run.call_count == 1
+        mock_client.get_run.assert_called_once_with(run_id=123)
 
     def test_post_without_query_returns_400(self) -> None:
         data: dict[str, Any] = {}
@@ -54,9 +56,11 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 
         assert response.status_code == 400
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.start_seer_run")
-    def test_post_new_conversation_calls_client(self, mock_start_seer_run: MagicMock):
-        mock_start_seer_run.return_value = 456
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_new_conversation_calls_client(self, mock_client_class: MagicMock):
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = 456
+        mock_client_class.return_value = mock_client
 
         data = {"query": "What is this error about?"}
         response = self.client.post(self.url, data, format="json")
@@ -64,18 +68,17 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"run_id": 456}
 
-        # Verify client was called
-        assert mock_start_seer_run.call_count == 1
-        call_kwargs = mock_start_seer_run.call_args[1]
-        assert call_kwargs["organization"] == self.organization
-        assert call_kwargs["prompt"] == "What is this error about?"
-        assert call_kwargs["on_page_context"] is None
+        # Verify client was called correctly
+        mock_client_class.assert_called_once_with(self.organization, ANY)
+        mock_client.start_run.assert_called_once_with(
+            prompt="What is this error about?", on_page_context=None
+        )
 
-    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.continue_seer_run")
-    def test_post_continue_conversation_calls_client(
-        self, mock_continue_seer_run: MagicMock
-    ) -> None:
-        mock_continue_seer_run.return_value = 789
+    @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
+    def test_post_continue_conversation_calls_client(self, mock_client_class: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.continue_run.return_value = 789
+        mock_client_class.return_value = mock_client
 
         data = {
             "query": "Follow up question",
@@ -86,14 +89,11 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"run_id": 789}
 
-        # Verify client was called
-        assert mock_continue_seer_run.call_count == 1
-        call_kwargs = mock_continue_seer_run.call_args[1]
-        assert call_kwargs["organization"] == self.organization
-        assert call_kwargs["prompt"] == "Follow up question"
-        assert call_kwargs["run_id"] == 789
-        assert call_kwargs["insert_index"] == 2
-        assert call_kwargs["on_page_context"] is None
+        # Verify client was called correctly
+        mock_client_class.assert_called_once_with(self.organization, ANY)
+        mock_client.continue_run.assert_called_once_with(
+            run_id=789, prompt="Follow up question", insert_index=2, on_page_context=None
+        )
 
 
 class CollectUserOrgContextTest(APITestCase):

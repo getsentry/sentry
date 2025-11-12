@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,7 +13,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.explorer.client import continue_seer_run, get_seer_run, start_seer_run
+from sentry.seer.explorer.client import SeerExplorerClient
+from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -77,8 +79,11 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             return Response({"session": None}, status=404)
 
         try:
-            state = get_seer_run(run_id=int(run_id), organization=organization, user=request.user)
+            client = SeerExplorerClient(organization, request.user)
+            state = client.get_run(run_id=int(run_id))
             return Response({"session": state.dict()})
+        except SeerPermissionError as e:
+            raise PermissionDenied(e.message) from e
         except ValueError:
             return Response({"session": None}, status=404)
 
@@ -106,23 +111,22 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         insert_index = validated_data.get("insert_index")
         on_page_context = validated_data.get("on_page_context")
 
-        # Use client to start or continue run
-        if run_id:
-            # Continue existing conversation
-            result_run_id = continue_seer_run(
-                run_id=int(run_id),
-                organization=organization,
-                prompt=query,
-                user=request.user,
-                insert_index=insert_index,
-                on_page_context=on_page_context,
-            )
-        else:
-            # Start new conversation
-            result_run_id = start_seer_run(
-                organization=organization,
-                prompt=query,
-                user=request.user,
-                on_page_context=on_page_context,
-            )
-        return Response({"run_id": result_run_id})
+        try:
+            client = SeerExplorerClient(organization, request.user)
+            if run_id:
+                # Continue existing conversation
+                result_run_id = client.continue_run(
+                    run_id=int(run_id),
+                    prompt=query,
+                    insert_index=insert_index,
+                    on_page_context=on_page_context,
+                )
+            else:
+                # Start new conversation
+                result_run_id = client.start_run(
+                    prompt=query,
+                    on_page_context=on_page_context,
+                )
+            return Response({"run_id": result_run_id})
+        except SeerPermissionError as e:
+            raise PermissionDenied(e.message) from e
