@@ -1,5 +1,5 @@
 from sentry.api.serializers import serialize
-from sentry.incidents.endpoints.serializers.utils import OFFSET
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
     WorkflowEngineDetailedIncidentSerializer,
     WorkflowEngineIncidentSerializer,
@@ -71,29 +71,33 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
         serialized_incident = serialize(
             self.group_open_period, self.user, WorkflowEngineIncidentSerializer()
         )
-        self.expected.update({"id": str(self.detector.id + OFFSET)})
+        fake_alert_rule_id = get_fake_id_from_object_id(self.detector.id)
+        fake_incident_id = get_fake_id_from_object_id(self.group_open_period.id)
+        self.expected.update({"id": str(fake_alert_rule_id)})
         self.expected["triggers"][0].update(
             {
-                "id": str(self.critical_detector_trigger.id + OFFSET),
-                "alertRuleId": str(self.detector.id + OFFSET),
+                "id": str(get_fake_id_from_object_id(self.critical_detector_trigger.id)),
+                "alertRuleId": str(fake_alert_rule_id),
             }
         )
         self.expected["triggers"][1].update(
             {
-                "alertRuleId": str(self.detector.id + OFFSET),
+                "alertRuleId": str(fake_alert_rule_id),
             }
         )
         self.expected["triggers"][0]["actions"][0].update(
             {
-                "id": str(self.critical_action.id + OFFSET),
-                "alertRuleTriggerId": str(self.critical_detector_trigger.id + OFFSET),
+                "id": str(get_fake_id_from_object_id(self.critical_action.id)),
+                "alertRuleTriggerId": str(
+                    get_fake_id_from_object_id(self.critical_detector_trigger.id)
+                ),
             }
         )
 
         self.incident_expected.update(
             {
-                "id": str(self.group_open_period.id + OFFSET),
-                "identifier": str(self.group_open_period.id + OFFSET),
+                "id": str(fake_incident_id),
+                "identifier": str(fake_incident_id),
             }
         )
         assert serialized_incident == self.incident_expected
