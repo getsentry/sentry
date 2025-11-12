@@ -5,6 +5,7 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
+  AnomalyDetectionComparison,
   Detector,
   MetricCondition,
   MetricConditionGroup,
@@ -183,6 +184,22 @@ interface NewDataSource {
   timeWindow: number;
 }
 
+function createAnomalyDetectionCondition(
+  data: Pick<MetricDetectorFormData, 'sensitivity' | 'thresholdType'>
+): NewConditionGroup['conditions'] {
+  return [
+    {
+      type: DataConditionType.ANOMALY_DETECTION,
+      comparison: {
+        sensitivity: data.sensitivity,
+        seasonality: 'auto' as const,
+        thresholdType: data.thresholdType,
+      },
+      conditionResult: DetectorPriorityLevel.HIGH,
+    },
+  ];
+}
+
 /**
  * Creates escalation conditions based on priority level and available thresholds
  */
@@ -303,7 +320,11 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
 export function metricDetectorFormDataToEndpointPayload(
   data: MetricDetectorFormData
 ): MetricDetectorUpdatePayload {
-  const conditions = createConditions(data);
+  const conditions =
+    data.detectionType === 'dynamic'
+      ? createAnomalyDetectionCondition(data)
+      : createConditions(data);
+
   const dataSource = createDataSource(data);
 
   // Create config based on detection type
@@ -311,22 +332,18 @@ export function metricDetectorFormDataToEndpointPayload(
   switch (data.detectionType) {
     case 'percent':
       config = {
-        thresholdPeriod: 1,
         detectionType: 'percent',
         comparisonDelta: data.conditionComparisonAgo || 3600,
       };
       break;
     case 'dynamic':
       config = {
-        thresholdPeriod: 1,
         detectionType: 'dynamic',
-        sensitivity: data.sensitivity,
       };
       break;
     case 'static':
     default:
       config = {
-        thresholdPeriod: 1,
         detectionType: 'static',
       };
       break;
@@ -423,6 +440,24 @@ function processDetectorConditions(
   };
 }
 
+function getAnomalyCondition(detector: MetricDetector): AnomalyDetectionComparison {
+  const anomalyCondition = detector.conditionGroup?.conditions?.find(
+    condition => condition.type === DataConditionType.ANOMALY_DETECTION
+  );
+
+  const comparison = anomalyCondition?.comparison;
+  if (typeof comparison === 'object') {
+    return comparison;
+  }
+
+  // Fallback to default values
+  return {
+    sensitivity: AlertRuleSensitivity.MEDIUM,
+    seasonality: 'auto',
+    thresholdType: AlertRuleThresholdType.ABOVE_AND_BELOW,
+  };
+}
+
 /**
  * Converts a Detector to MetricDetectorFormData for editing
  */
@@ -444,6 +479,7 @@ export function metricSavedDetectorToFormData(
     : DetectorDataset.SPANS;
 
   const datasetConfig = getDatasetConfig(dataset);
+  const anomalyCondition = getAnomalyCondition(detector);
 
   return {
     // Core detector fields
@@ -471,15 +507,8 @@ export function metricSavedDetectorToFormData(
         ? detector.config.comparisonDelta
         : DEFAULT_THRESHOLD_METRIC_FORM_DATA.conditionComparisonAgo,
 
-    // Dynamic fields - extract from config for dynamic detectors
-    sensitivity:
-      detector.config.detectionType === 'dynamic' && defined(detector.config.sensitivity)
-        ? detector.config.sensitivity
-        : DEFAULT_THRESHOLD_METRIC_FORM_DATA.sensitivity,
-    thresholdType:
-      detector.config.detectionType === 'dynamic' &&
-      defined(detector.config.thresholdType)
-        ? detector.config.thresholdType
-        : DEFAULT_THRESHOLD_METRIC_FORM_DATA.thresholdType,
+    // Dynamic fields - extract from anomaly detection condition for dynamic detectors
+    sensitivity: anomalyCondition.sensitivity,
+    thresholdType: anomalyCondition.thresholdType,
   };
 }

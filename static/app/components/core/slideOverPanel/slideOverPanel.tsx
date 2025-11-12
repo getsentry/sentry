@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type Transition} from 'framer-motion';
 
@@ -56,6 +56,8 @@ export function SlideOverPanel({
   panelWidth,
   ref,
 }: SlideOverPanelProps) {
+  const theme = useTheme();
+
   useEffect(() => {
     if (!collapsed && onOpen) {
       onOpen();
@@ -76,9 +78,7 @@ export function SlideOverPanel({
       exit={collapsedStyle}
       slidePosition={slidePosition}
       transition={{
-        type: 'spring',
-        stiffness: 1000,
-        damping: 50,
+        ...theme.motion.framer.spring.moderate,
         ...transitionProps,
       }}
       role="complementary"

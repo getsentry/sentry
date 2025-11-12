@@ -1,3 +1,4 @@
+import sentry_sdk
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import (
     DownsampledStorageConfig,
     DownsampledStorageMeta,
@@ -23,10 +24,18 @@ def validate_sampling(sampling_mode: SAMPLING_MODES | None) -> DownsampledStorag
 
 
 def events_meta_from_rpc_request_meta(meta: ResponseMeta) -> EventsMeta:
+    full_scan = handle_downsample_meta(meta.downsampled_storage_meta)
+    bytes_scanned = (
+        sum(info.stats.progress_bytes for info in meta.query_info) if meta.query_info else None
+    )
+
+    span = sentry_sdk.get_current_span()
+    if span:
+        span.set_data("data_scanned", "full" if full_scan else "partial")
+        span.set_data("bytes_scanned", bytes_scanned)
+
     return EventsMeta(
         fields={},
-        full_scan=handle_downsample_meta(meta.downsampled_storage_meta),
-        bytes_scanned=(
-            sum(info.stats.progress_bytes for info in meta.query_info) if meta.query_info else None
-        ),
+        full_scan=full_scan,
+        bytes_scanned=bytes_scanned,
     )

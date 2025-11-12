@@ -106,24 +106,20 @@ export function ResolveSection() {
   const resolutionStrategyChoices: RadioOption[] = [
     [
       'default' satisfies MetricDetectorFormData['resolutionStrategy'],
+      t('Default'),
       <div key="automatic">
-        <Text>{t('Default')}</Text>
-        <div>
-          <Text size="sm" variant="muted" style={{marginTop: '4px'}}>
-            {descriptionContent}
-          </Text>
-        </div>
+        <Text size="sm" variant="muted" style={{marginTop: '4px'}}>
+          {descriptionContent}
+        </Text>
       </div>,
     ],
     [
       'custom' satisfies MetricDetectorFormData['resolutionStrategy'],
+      t('Custom'),
       <div key="manual">
-        <Text>{t('Custom')}</Text>
-        <div>
-          <Text size="sm" variant="muted" style={{marginTop: '4px'}}>
-            {t('Issue will be resolved when the query result is\u2026')}
-          </Text>
-        </div>
+        <Text size="sm" variant="muted" style={{marginTop: '4px'}}>
+          {t('Issue will be resolved when the query result is\u2026')}
+        </Text>
       </div>,
     ],
   ];
@@ -153,7 +149,7 @@ export function ResolveSection() {
             inline={false}
             flexibleControlStateSize
             placeholder="0"
-            suffix={thresholdSuffix}
+            suffix={detectionType === 'percent' ? '%' : thresholdSuffix}
             validate={validateResolutionThreshold}
             required
             preserveOnUnmount

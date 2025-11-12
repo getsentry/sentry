@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -14,13 +13,6 @@ jest.mock('sentry/utils/useNavigate', () => ({
 const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('DatasetSelector', () => {
-  let router!: ReturnType<typeof RouterFixture>;
-  let organization!: ReturnType<typeof OrganizationFixture>;
-  beforeEach(() => {
-    router = RouterFixture();
-    organization = OrganizationFixture();
-  });
-
   it('changes the dataset', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
@@ -28,19 +20,13 @@ describe('DatasetSelector', () => {
     render(
       <WidgetBuilderProvider>
         <DatasetSelector />
-      </WidgetBuilderProvider>,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
+      </WidgetBuilderProvider>
     );
 
     await userEvent.click(await screen.findByLabelText('Issues'));
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        ...router.location,
         query: expect.objectContaining({dataset: 'issue'}),
       }),
       expect.anything()
@@ -60,9 +46,7 @@ describe('DatasetSelector', () => {
         <DatasetSelector />
       </WidgetBuilderProvider>,
       {
-        router,
         organization: organizationWithDeprecation,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -83,7 +67,6 @@ describe('DatasetSelector', () => {
     // Verify navigation to spans dataset
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        ...router.location,
         query: expect.objectContaining({dataset: 'spans'}),
       }),
       expect.anything()
@@ -103,9 +86,7 @@ describe('DatasetSelector', () => {
         <DatasetSelector />
       </WidgetBuilderProvider>,
       {
-        router,
         organization: organizationWithoutDeprecation,
-        deprecatedRouterMocks: true,
       }
     );
 
@@ -117,7 +98,6 @@ describe('DatasetSelector', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        ...router.location,
         query: expect.objectContaining({dataset: 'transaction-like'}),
       }),
       expect.anything()
