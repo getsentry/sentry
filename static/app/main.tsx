@@ -7,6 +7,7 @@ import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 import {AppQueryClientProvider} from 'sentry/appQueryClient';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
 import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
+import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {SENTRY_RELEASE_VERSION, USE_REACT_QUERY_DEVTOOL} from 'sentry/constants';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
@@ -26,20 +27,22 @@ function Main() {
 
   return (
     <AppQueryClientProvider>
-      <FrontendVersionProvider releaseVersion={SENTRY_RELEASE_VERSION ?? null}>
-        <ThemeAndStyleProvider>
-          <NuqsAdapter defaultOptions={{shallow: false}}>
-            <CommandPaletteProvider>
-              <RouteConfigProvider value={router.routes}>
-                <RouterProvider router={router} />
-              </RouteConfigProvider>
-            </CommandPaletteProvider>
-          </NuqsAdapter>
-          {USE_REACT_QUERY_DEVTOOL && (
-            <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
-          )}
-        </ThemeAndStyleProvider>
-      </FrontendVersionProvider>
+      <DocumentTitleManager>
+        <FrontendVersionProvider releaseVersion={SENTRY_RELEASE_VERSION ?? null}>
+          <ThemeAndStyleProvider>
+            <NuqsAdapter defaultOptions={{shallow: false}}>
+              <CommandPaletteProvider>
+                <RouteConfigProvider value={router.routes}>
+                  <RouterProvider router={router} />
+                </RouteConfigProvider>
+              </CommandPaletteProvider>
+            </NuqsAdapter>
+            {USE_REACT_QUERY_DEVTOOL && (
+              <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+            )}
+          </ThemeAndStyleProvider>
+        </FrontendVersionProvider>
+      </DocumentTitleManager>
     </AppQueryClientProvider>
   );
 }
