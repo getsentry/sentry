@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class OrganizationTraceItemsStatsSerializer(serializers.Serializer):
     query = serializers.CharField(required=False)
     statsType = serializers.ListField(
-        child=serializers.ChoiceField(SUPPORTED_STATS_TYPES), required=True
+        child=serializers.ChoiceField(list(SUPPORTED_STATS_TYPES)), required=True
     )
 
 
