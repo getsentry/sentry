@@ -13,7 +13,7 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import TraceAiSpans from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
-  TraceViewMetricsDataProvider,
+  TraceViewMetricsProviderWrapper,
   TraceViewMetricsSection,
 } from 'sentry/views/performance/newTraceDetails/traceMetrics';
 import {
@@ -191,9 +191,9 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               <TraceViewLogsSection scrollContainer={traceInnerLayoutRef} />
             ) : null}
             {currentTab === TraceLayoutTabKeys.METRICS ? (
-              <TraceViewMetricsDataProvider traceSlug={traceSlug}>
+              <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
                 <TraceViewMetricsSection />
-              </TraceViewMetricsDataProvider>
+              </TraceViewMetricsProviderWrapper>
             ) : null}
             {currentTab === TraceLayoutTabKeys.SUMMARY ? (
               <TraceSummarySection traceSlug={traceSlug} />

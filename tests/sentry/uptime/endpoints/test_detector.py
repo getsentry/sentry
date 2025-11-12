@@ -157,6 +157,47 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
         )
         assert updated_sub.timeout_ms == 15000
 
+    def test_update_auto_detected_switches_to_manual(self) -> None:
+        """Test that when a user modifies an AUTO_DETECTED detector, it automatically switches to MANUAL mode."""
+        # Create an AUTO_DETECTED detector
+        auto_detector = self.create_uptime_detector(
+            project=self.project,
+            env=self.environment,
+            uptime_subscription=self.uptime_subscription,
+            name="Auto Detected Monitor",
+            mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
+        )
+
+        assert auto_detector.workflow_condition_group is not None
+        # User modifies the detector (e.g., changes name)
+        # They pass the current config including the AUTO_DETECTED mode
+        valid_data = {
+            "id": auto_detector.id,
+            "projectId": self.project.id,
+            "name": "User Modified Monitor",
+            "type": UptimeDomainCheckFailure.slug,
+            "dateCreated": auto_detector.date_added,
+            "dateUpdated": timezone.now(),
+            "conditionGroup": {
+                "id": auto_detector.workflow_condition_group.id,
+                "organizationId": self.organization.id,
+            },
+            "config": auto_detector.config,  # Passing existing config with AUTO_DETECTED mode
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            auto_detector.id,
+            **valid_data,
+            status_code=status.HTTP_200_OK,
+            method="PUT",
+        )
+
+        # Verify that mode was automatically switched to MANUAL
+        auto_detector.refresh_from_db()
+        assert auto_detector.name == "User Modified Monitor"
+        assert auto_detector.config["mode"] == UptimeMonitorMode.MANUAL.value
+
     def test_update_invalid(self) -> None:
         assert self.detector.workflow_condition_group is not None
         valid_data = {
