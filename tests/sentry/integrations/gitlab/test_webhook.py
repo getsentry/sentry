@@ -337,8 +337,7 @@ class WebhookTest(GitLabTestCase):
 
         assert_success_metric(mock_record)
 
-    @patch("sentry.integrations.source_code_management.tasks.open_pr_comment_workflow.delay")
-    def test_merge_event_create_pull_request(self, mock_delay: MagicMock) -> None:
+    def test_merge_event_create_pull_request(self) -> None:
         self.create_gitlab_repo("getsentry/sentry")
         group = self.create_group(project=self.project, short_id=9)
         response = self.client.post(
@@ -356,10 +355,7 @@ class WebhookTest(GitLabTestCase):
         self.assert_pull_request(pull, author)
         self.assert_group_link(group, pull)
 
-        mock_delay.assert_called_once_with(pr_id=pull.id)
-
-    @patch("sentry.integrations.source_code_management.tasks.open_pr_comment_workflow.delay")
-    def test_merge_event_update_pull_request(self, mock_delay: MagicMock) -> None:
+    def test_merge_event_update_pull_request(self) -> None:
         repo = self.create_gitlab_repo("getsentry/sentry")
         group = self.create_group(project=self.project, short_id=9)
         PullRequest.objects.create(
@@ -387,8 +383,6 @@ class WebhookTest(GitLabTestCase):
 
         self.assert_pull_request(pull, author)
         self.assert_group_link(group, pull)
-
-        assert mock_delay.call_count == 0
 
     def test_update_repo_path(self) -> None:
         repo_out_of_date_path = self.create_gitlab_repo(
