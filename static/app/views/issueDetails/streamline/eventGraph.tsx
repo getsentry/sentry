@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type RefObject,
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -107,20 +106,6 @@ function createSeriesAndCount(stats: EventsStats) {
       };
     },
     {series: [], count: 0}
-  );
-}
-
-function GraphPlaceholder({
-  ref,
-  height = 96,
-}: {
-  height?: number;
-  ref?: RefObject<HTMLDivElement | null>;
-}) {
-  return (
-    <LoadingChartContainer ref={ref}>
-      <Placeholder height={`${height}px`} testId="event-graph-loading" />
-    </LoadingChartContainer>
   );
 }
 
@@ -509,7 +494,9 @@ export function EventGraph({
         ) : (
           <div />
         )}
-        <GraphPlaceholder ref={chartContainerRef} />
+        <Flex ref={chartContainerRef} justify="center" align="center" margin="0 md 0 xs">
+          <Placeholder height="90px" testId="event-graph-loading" />
+        </Flex>
       </Grid>
     );
   }
@@ -639,7 +626,7 @@ function SummaryContainer(props: FlexProps) {
   const theme = useTheme();
   return (
     <Flex
-      padding="lg"
+      padding="lg xs lg lg"
       direction="column"
       gap={theme.isChonk ? 'sm' : 'xs'}
       radius="md"
@@ -678,12 +665,6 @@ const ChartContainer = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
     padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.sm} 0;
   }
-`;
-
-const LoadingChartContainer = styled('div')`
-  position: relative;
-  padding: ${p => p.theme.space.sm} 0 ${p => p.theme.space.sm} 0;
-  margin: 0 ${p => p.theme.space.md};
 `;
 
 export const GraphAlert = styled(Alert)`
