@@ -99,8 +99,9 @@ class TestQueryReplayInstanceEAP(TestCase, ReplayEAPTestCase):
         assert isinstance(res2, dict)
         assert res1.get("data") is not None
         assert res2.get("data") is not None
-        assert len(res1["data"]) > 0, f"res1 returned no data: {res1}"
-        assert len(res2["data"]) > 0, f"res2 returned no data: {res2}"
+
+        assert len(res1["data"]) == 1, f"Expected 1 row for replay_id1, got {len(res1['data'])}"
+        assert len(res2["data"]) == 1, f"Expected 1 row for replay_id2, got {len(res2['data'])}"
 
         assert res1["data"][0]["replay_id"] == replay_id1
         assert res2["data"][0]["replay_id"] == replay_id2
