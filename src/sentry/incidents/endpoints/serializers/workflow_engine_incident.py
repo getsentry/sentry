@@ -148,7 +148,6 @@ class WorkflowEngineIncidentSerializer(Serializer):
             incident_id = get_fake_id_from_object_id(obj.id)
             incident_identifier = incident_id
 
-        # TODO: get event time using offset
         date_closed = obj.date_ended.replace(second=0, microsecond=0) if obj.date_ended else None
         return {
             "id": str(incident_id),
