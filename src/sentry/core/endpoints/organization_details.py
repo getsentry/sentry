@@ -304,7 +304,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
-    githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
     gitlabPRBot = serializers.BooleanField(required=False)
@@ -883,10 +882,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     # github features
     githubPRBot = serializers.BooleanField(
         help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitHub integration.",
-        required=False,
-    )
-    githubOpenPRBot = serializers.BooleanField(
-        help_text="Specify `true` to allow Sentry to comment on open pull requests to show recent error issues for the code being changed. Requires a GitHub integration.",
         required=False,
     )
     githubNudgeInvite = serializers.BooleanField(

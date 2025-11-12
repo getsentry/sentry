@@ -540,7 +540,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     codecovAccess: bool
     hideAiFeatures: bool
     githubPRBot: bool
-    githubOpenPRBot: bool
     githubNudgeInvite: bool
     gitlabPRBot: bool
     gitlabOpenPRBot: bool
