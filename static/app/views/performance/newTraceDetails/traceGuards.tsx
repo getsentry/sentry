@@ -5,10 +5,8 @@ import type {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import type {CollapsedNode} from './traceModels/traceTreeNode/collapsedNode';
 import type {EapSpanNode} from './traceModels/traceTreeNode/eapSpanNode';
-import type {ErrorNode} from './traceModels/traceTreeNode/errorNode';
 import type {NoInstrumentationNode} from './traceModels/traceTreeNode/noInstrumentationNode';
 import type {ParentAutogroupNode} from './traceModels/traceTreeNode/parentAutogroupNode';
-import type {RootNode} from './traceModels/traceTreeNode/rootNode';
 import type {SiblingAutogroupNode} from './traceModels/traceTreeNode/siblingAutogroupNode';
 import type {SpanNode} from './traceModels/traceTreeNode/spanNode';
 import type {TransactionNode} from './traceModels/traceTreeNode/transactionNode';
@@ -76,10 +74,6 @@ export function isEAPError(value: TraceTree.NodeValue): value is TraceTree.EAPEr
   );
 }
 
-export function isEAPErrorNode(node: BaseNode): node is BaseNode<TraceTree.EAPError> {
-  return isEAPError(node.value);
-}
-
 export function isParentAutogroupedNode(node: BaseNode): node is ParentAutogroupNode {
   return !!(
     node.value &&
@@ -96,12 +90,6 @@ export function isSiblingAutogroupedNode(node: BaseNode): node is SiblingAutogro
   );
 }
 
-export function isAutogroupedNode(
-  node: BaseNode
-): node is ParentAutogroupNode | SiblingAutogroupNode {
-  return isParentAutogroupedNode(node) || isSiblingAutogroupedNode(node);
-}
-
 export function isCollapsedNode(node: BaseNode): node is CollapsedNode {
   return !!(node.value && 'type' in node.value && node.value.type === 'collapsed');
 }
@@ -112,15 +100,6 @@ export function isTraceError(value: TraceTree.NodeValue): value is TraceTree.Tra
 
 export function isTraceErrorNode(node: BaseNode): node is BaseNode<TraceTree.TraceError> {
   return isTraceError(node.value);
-}
-
-// TODO Abdullah Khan: Won't be needed once we fully migrate to the new BaseNode subclass
-export function isErrorNode(node: BaseNode): node is ErrorNode {
-  return isTraceErrorNode(node) || isEAPErrorNode(node);
-}
-
-export function isRootNode(node: BaseNode): node is RootNode {
-  return node.value === null;
 }
 
 export function isTraceNode(
