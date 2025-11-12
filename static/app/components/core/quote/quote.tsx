@@ -6,9 +6,9 @@ import {Text} from '@sentry/scraps/text';
 
 interface QuoteProps extends React.HTMLProps<HTMLElementTagNameMap['blockquote']> {
   source?: {
+    author?: string;
     href?: string;
     label?: string;
-    author?: string;
   };
 }
 export function Quote(props: QuoteProps) {
