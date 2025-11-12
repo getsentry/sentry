@@ -126,6 +126,7 @@ def to_size_info(size_metrics: list[PreprodArtifactSizeMetrics]) -> None | SizeI
             if metric.metrics_artifact_type
             == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
         ),
+        # Fallback to the first metric if no main artifact is found
         size_metrics[0],
     )
 
