@@ -791,25 +791,10 @@ class Project(Model):
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
     ) -> tuple[int, ImportKind] | None:
-        from django.db.models.signals import post_save
+        from sentry.receivers.project_detectors import disable_default_detector_creation
 
-        from sentry.receivers.project_detectors import create_project_detectors
-
-        # Temporarily disconnect the signal that auto-creates default detectors
-        # They'll be imported separately from the backup data
-        post_save.disconnect(
-            create_project_detectors, sender=Project, dispatch_uid="create_project_detectors"
-        )
-        try:
+        with disable_default_detector_creation():
             return super().write_relocation_import(scope, flags)
-        finally:
-            # Reconnect the signal
-            post_save.connect(
-                create_project_detectors,
-                sender=Project,
-                dispatch_uid="create_project_detectors",
-                weak=False,
-            )
 
     # pending deletion implementation
     _pending_fields = ("slug",)

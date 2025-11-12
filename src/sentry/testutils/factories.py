@@ -547,10 +547,7 @@ class Factories:
         create_default_detectors=False,
         **kwargs,
     ) -> Project:
-        # imports to disconnect signal
-        from django.db.models.signals import post_save
-
-        from sentry.receivers.project_detectors import create_project_detectors
+        from sentry.receivers.project_detectors import disable_default_detector_creation
 
         if not kwargs.get("name"):
             kwargs["name"] = petname.generate(2, " ", letters=10).title()
@@ -559,12 +556,11 @@ class Factories:
         if not organization and teams:
             organization = teams[0].organization
 
-        if not create_default_detectors:
-            post_save.disconnect(
-                create_project_detectors, sender=Project, dispatch_uid="create_project_detectors"
-            )
-
-        try:
+        with (
+            disable_default_detector_creation()
+            if not create_default_detectors
+            else contextlib.nullcontext()
+        ):
             with transaction.atomic(router.db_for_write(Project)):
                 project = Project.objects.create(organization=organization, **kwargs)
                 if teams:
@@ -574,15 +570,6 @@ class Factories:
                     project_created.send(
                         project=project, user=AnonymousUser(), default_rules=True, sender=Factories
                     )
-        finally:
-            if not create_default_detectors:
-                # reconnect signal
-                post_save.connect(
-                    create_project_detectors,
-                    sender=Project,
-                    dispatch_uid="create_project_detectors",
-                    weak=False,
-                )
 
         return project
 
