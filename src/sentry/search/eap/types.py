@@ -1,11 +1,15 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Literal, NotRequired, TypedDict
 
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Reliability
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.search.events.types import EventsResponse
+
+if TYPE_CHECKING:
+    from sentry.search.eap.resolver import SearchResolver
 
 
 @dataclass(frozen=True)
@@ -14,7 +18,7 @@ class FieldsACL:
     attributes: set[str] = field(default_factory=set)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class SearchResolverConfig:
     # Automatically add id, etc. if there are no aggregates
     auto_fields: bool = False
@@ -29,6 +33,14 @@ class SearchResolverConfig:
     disable_aggregate_extrapolation: bool = False
     # Whether to set the timestamp granularities to stable buckets
     stable_timestamp_quantization: bool = True
+
+    def extra_conditions(
+        self,
+        search_resolver: "SearchResolver",
+        selected_columns: list[str] | None,
+        equations: list[str] | None,
+    ) -> TraceItemFilter | None:
+        return None
 
 
 CONFIDENCES: dict[Reliability.ValueType, Literal["low", "high"]] = {
@@ -45,6 +57,7 @@ class SupportedTraceItemType(str, Enum):
     SPANS = "spans"
     UPTIME_RESULTS = "uptime_results"
     TRACEMETRICS = "tracemetrics"
+    PROFILE_FUNCTIONS = "profile_functions"
 
 
 class AttributeSourceType(str, Enum):
@@ -73,3 +86,6 @@ class AdditionalQueries:
     span: list[str] | None
     log: list[str] | None
     metric: list[str] | None
+
+
+MetricType = Literal["counter", "gauge", "distribution"]

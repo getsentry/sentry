@@ -343,9 +343,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "deletions.fetch-subset-of-fields",
-    default=False,
-    type=Bool,
+    "deletions.group-hash-metadata.batch-size",
+    default=1000,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -629,6 +629,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -643,6 +644,8 @@ register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # Debug values are used for the Notification Debug CLI
 register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Log unfurl payloads for debugging
+register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Issue Summary on Alerts (timeout in seconds)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -666,6 +669,10 @@ register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIOR
 register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # if a region is in this list, it's safe to forward to codecov
 register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# if a region is in this list, it's safe to forward to overwatch
+register("overwatch.enabled-regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# enable verbose debug logging for overwatch webhook forwarding
+register("overwatch.forward-webhooks.verbose", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1972,6 +1979,11 @@ register(
     default=3,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "performance.issues.web_vitals.count_threshold",
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Adjusting some time buffers in the trace endpoint
 register(
@@ -2167,6 +2179,14 @@ register(
     "dynamic-sampling.check_span_feature_flag",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
+# List of organization IDs that should be using spans for rebalancing in dynamic sampling.
+register(
+    "dynamic-sampling.measure.spans",
+    default=[],
+    type=Sequence,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # === Hybrid cloud subsystem options ===
@@ -2825,6 +2845,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# This is here in case we want to roll out a new config gradually. Can also be used as a killswitch
+# for config upgrades if one is ever needed.
+register(
+    "grouping.config_transition.config_upgrade_sample_rate",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Sample rate for double writing to experimental dsn
 register(
@@ -3170,13 +3199,6 @@ register(
 )
 
 register(
-    "workflow_engine.sentry-app-actions-outbox",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "workflow_engine.num_cohorts",
     type=Int,
     default=1,
@@ -3342,15 +3364,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# option used to enable/disable applying
-# stack trace rules in profiles
-register(
-    "profiling.stack_trace_rules.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "performance.event-tracker.sample-rate.transactions",
     default=0.0,
@@ -3507,13 +3520,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for linking identities for demo users
-register(
-    "identity.prevent-link-identity-for-demo-users.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "sentry.send_onboarding_task_metrics",
@@ -3553,14 +3559,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for treating demo user as unauthenticated
-# in our auth pipelines.
-register(
-    "demo-user.auth.pipelines.always.unauthenticated.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Rate at which to forward events to eap_items. 1.0
 # means that 100% of projects will forward events to eap_items.
@@ -3586,6 +3584,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# The allowlist of organization IDs for which deletion from EAP is enabled.
+register(
+    "eventstream.eap.deletion_enabled.organization_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Send logs for sentry app webhooks sent. Should only be enabled for debugging a specific app or installation.
 register(
     "sentry-apps.webhook-logging.enabled",
@@ -3597,10 +3603,56 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Which issue categories should we send issue.created webhooks for
+register(
+    "sentry-apps.expanded-webhook-categories",
+    type=Sequence,
+    default=[
+        1,  # ERROR
+        4,  # CRON
+        6,  # FEEDBACK
+        7,  # UPTIME
+        10,  # OUTAGE
+    ],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Manual option for disabling misbehaving sentry apps from sending webhooks.
+register(
+    "sentry-apps.webhook.restricted-webhook-sending",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for web vital issue detection
+register(
+    "issue-detection.web-vitals-detection.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Allow list for projects with web vital issue detection enabled
+register(
+    "issue-detection.web-vitals-detection.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enables or disables Github webhook routing based on the type of webhook
 register(
     "github.webhook-type-routing.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Sets the sample rate for profiles collected via the JoinProfiler arroyo strategy
+register(
+    "consumer.join.profiling.rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

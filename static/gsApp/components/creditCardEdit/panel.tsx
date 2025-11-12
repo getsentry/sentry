@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
-import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
@@ -29,6 +28,7 @@ interface CreditCardPanelProps {
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
   isNewBillingUI?: boolean;
+  maxPanelWidth?: string;
   shouldExpandInitially?: boolean;
 }
 
@@ -52,6 +52,7 @@ function CreditCardPanel({
   ftcLocation,
   analyticsEvent,
   shouldExpandInitially,
+  maxPanelWidth,
 }: CreditCardPanelProps) {
   const [cardLastFourDigits, setCardLastFourDigits] = useState<string | null>(null);
   const [cardZipCode, setCardZipCode] = useState<string | null>(null);
@@ -163,6 +164,7 @@ function CreditCardPanel({
       border="primary"
       radius="md"
       data-test-id="credit-card-panel"
+      maxWidth={maxPanelWidth}
     >
       <Flex direction="column" gap="lg" width="100%">
         <Heading as="h2" size="lg">
@@ -186,7 +188,7 @@ function CreditCardPanel({
           />
         ) : subscription.paymentSource ? (
           <Fragment>
-            <Text>{`****${subscription.paymentSource.last4} ${moment(new Date(subscription.paymentSource.expYear, subscription.paymentSource.expMonth - 1)).format('MM/YY')}`}</Text>
+            <Text>{`****${subscription.paymentSource.last4} ${String(subscription.paymentSource.expMonth).padStart(2, '0')}/${String(subscription.paymentSource.expYear).slice(-2)}`}</Text>
             <Text>{`${countryName ? `${countryName} ` : ''} ${subscription.paymentSource.zipCode}`}</Text>
           </Fragment>
         ) : (

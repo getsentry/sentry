@@ -37,12 +37,12 @@ import {
 } from 'sentry/views/automations/components/automationFormData';
 import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
 import {EditAutomationActions} from 'sentry/views/automations/components/editAutomationActions';
+import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -52,21 +52,16 @@ function AutomationDocumentTitle() {
 function AutomationBreadcrumbs({automationId}: {automationId: string}) {
   const title = useFormField('name');
   const organization = useOrganization();
-  const {automationsLinkPrefix} = useMonitorViewContext();
   return (
     <Breadcrumbs
       crumbs={[
         {
           label: t('Alerts'),
-          to: makeAutomationBasePathname(organization.slug, automationsLinkPrefix),
+          to: makeAutomationBasePathname(organization.slug),
         },
         {
           label: title,
-          to: makeAutomationDetailsPathname(
-            organization.slug,
-            automationId,
-            automationsLinkPrefix
-          ),
+          to: makeAutomationDetailsPathname(organization.slug, automationId),
         },
         {label: t('Configure')},
       ]}
@@ -100,7 +95,6 @@ export default function AutomationEdit() {
 function AutomationEditForm({automation}: {automation: Automation}) {
   const navigate = useNavigate();
   const organization = useOrganization();
-  const {automationsLinkPrefix} = useMonitorViewContext();
   const params = useParams<{automationId: string}>();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
@@ -159,23 +153,10 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           ...formData,
         };
         const updatedAutomation = await updateAutomation(updatedData);
-        navigate(
-          makeAutomationDetailsPathname(
-            organization.slug,
-            updatedAutomation.id,
-            automationsLinkPrefix
-          )
-        );
+        navigate(makeAutomationDetailsPathname(organization.slug, updatedAutomation.id));
       }
     },
-    [
-      automation.id,
-      organization.slug,
-      navigate,
-      updateAutomation,
-      state,
-      automationsLinkPrefix,
-    ]
+    [automation.id, organization.slug, navigate, updateAutomation, state]
   );
 
   return (
@@ -185,50 +166,52 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       initialData={initialData}
       onSubmit={handleFormSubmit}
     >
-      <AutomationDocumentTitle />
-      <Layout.Page>
-        <StyledLayoutHeader>
-          <HeaderInner maxWidth={maxWidth}>
-            <Layout.HeaderContent>
-              <AutomationBreadcrumbs automationId={params.automationId} />
-              <Layout.Title>
-                <EditableAutomationName />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <div>
-              <AutomationFeedbackButton />
-            </div>
-          </HeaderInner>
-        </StyledLayoutHeader>
-        <StyledBody maxWidth={maxWidth}>
-          <Layout.Main width="full">
-            <AutomationBuilderErrorContext.Provider
-              value={{
-                errors: automationBuilderErrors,
-                setErrors: setAutomationBuilderErrors,
-                removeError,
-                mutationErrors: error?.responseJSON,
-              }}
-            >
-              <AutomationBuilderContext.Provider
+      <AutomationFormProvider automation={automation}>
+        <AutomationDocumentTitle />
+        <Layout.Page>
+          <StyledLayoutHeader>
+            <HeaderInner maxWidth={maxWidth}>
+              <Layout.HeaderContent>
+                <AutomationBreadcrumbs automationId={params.automationId} />
+                <Layout.Title>
+                  <EditableAutomationName />
+                </Layout.Title>
+              </Layout.HeaderContent>
+              <div>
+                <AutomationFeedbackButton />
+              </div>
+            </HeaderInner>
+          </StyledLayoutHeader>
+          <StyledBody maxWidth={maxWidth}>
+            <Layout.Main width="full">
+              <AutomationBuilderErrorContext.Provider
                 value={{
-                  state,
-                  actions,
-                  showTriggerLogicTypeSelector:
-                    state.triggers.logicType === DataConditionGroupLogicType.ALL,
+                  errors: automationBuilderErrors,
+                  setErrors: setAutomationBuilderErrors,
+                  removeError,
+                  mutationErrors: error?.responseJSON,
                 }}
               >
-                <AutomationForm model={model} />
-              </AutomationBuilderContext.Provider>
-            </AutomationBuilderErrorContext.Provider>
-          </Layout.Main>
-        </StyledBody>
-      </Layout.Page>
-      <StickyFooter>
-        <Flex style={{maxWidth}} align="center" gap="md" justify="end">
-          <EditAutomationActions automation={automation} />
-        </Flex>
-      </StickyFooter>
+                <AutomationBuilderContext.Provider
+                  value={{
+                    state,
+                    actions,
+                    showTriggerLogicTypeSelector:
+                      state.triggers.logicType === DataConditionGroupLogicType.ALL,
+                  }}
+                >
+                  <AutomationForm model={model} />
+                </AutomationBuilderContext.Provider>
+              </AutomationBuilderErrorContext.Provider>
+            </Layout.Main>
+          </StyledBody>
+        </Layout.Page>
+        <StickyFooter>
+          <Flex style={{maxWidth}} align="center" gap="md" justify="end">
+            <EditAutomationActions automation={automation} />
+          </Flex>
+        </StickyFooter>
+      </AutomationFormProvider>
     </FullHeightForm>
   );
 }

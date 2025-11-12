@@ -1,20 +1,13 @@
 import logging
 from typing import Any
 
-from django.db import router, transaction
-from rest_framework import status
-
-from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.locks import locks
-from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
 from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.processing.processor import split_conditions_and_filters
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     create_event_unique_user_frequency_condition_with_conditions,
     translate_to_data_condition,
@@ -37,57 +30,12 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
     enforce_data_condition_json_schema,
 )
-from sentry.workflow_engine.types import ERROR_DETECTOR_NAME
+from sentry.workflow_engine.types import ERROR_DETECTOR_NAME, ISSUE_STREAM_DETECTOR_NAME
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 logger = logging.getLogger(__name__)
 
 SKIPPED_CONDITIONS = [Condition.EVERY_EVENT]
-
-
-class UnableToAcquireLockApiError(SentryAPIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    code = "unable_to_acquire_lock"
-    message = "Unable to acquire lock for issue alert migration."
-
-
-def ensure_default_error_detector(project: Project) -> Detector:
-    """
-    Ensure that the default error detector exists for a project.
-    If the Detector doesn't already exist, we try to acquire a lock to avoid double-creating,
-    and UnableToAcquireLockApiError if that fails.
-    """
-    # If it already exists, life is simple and we can return immediately.
-    # If there happen to be duplicates, we prefer the oldest.
-    existing = (
-        Detector.objects.filter(type=ErrorGroupType.slug, project=project).order_by("id").first()
-    )
-    if existing:
-        return existing
-
-    # If we may need to create it, we acquire a lock to avoid double-creating.
-    # There isn't a unique constraint on the detector, so we can't rely on get_or_create
-    # to avoid duplicates.
-    # However, by only locking during the one-time creation, the window for a race condition is small.
-    lock = locks.get(
-        f"workflow-engine-project-error-detector:{project.id}",
-        duration=2,
-        name="workflow_engine_default_error_detector",
-    )
-    try:
-        with (
-            # Creation should be fast, so it's worth blocking a little rather
-            # than failing a request.
-            lock.blocking_acquire(initial_delay=0.1, timeout=3),
-            transaction.atomic(router.db_for_write(Detector)),
-        ):
-            detector, _ = Detector.objects.get_or_create(
-                type=ErrorGroupType.slug,
-                project=project,
-                defaults={"config": {}, "name": ERROR_DETECTOR_NAME},
-            )
-            return detector
-    except UnableToAcquireLock:
-        raise UnableToAcquireLockApiError
 
 
 class IssueAlertMigrator:
@@ -107,14 +55,12 @@ class IssueAlertMigrator:
         self.organization = self.project.organization
 
     def run(self) -> Workflow:
-        error_detector = self._create_detector_lookup()
         conditions, filters = split_conditions_and_filters(self.data["conditions"])
         action_match = self.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         workflow = self._create_workflow_and_lookup(
             conditions=conditions,
             filters=filters,
             action_match=action_match,
-            detector=error_detector,
         )
         filter_match = self.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
         if_dcg = self._create_if_dcg(
@@ -128,9 +74,9 @@ class IssueAlertMigrator:
 
         return workflow
 
-    def _create_detector_lookup(self) -> Detector | None:
+    def _create_detector_lookups(self) -> list[Detector | None]:
         if self.rule.source == RuleSource.CRON_MONITOR:
-            return None
+            return [None, None]
 
         if self.is_dry_run:
             error_detector = Detector.objects.filter(
@@ -139,6 +85,14 @@ class IssueAlertMigrator:
             if not error_detector:
                 error_detector = Detector(type=ErrorGroupType.slug, project=self.project)
 
+            issue_stream_detector = Detector.objects.filter(
+                type=IssueStreamGroupType.slug, project=self.project
+            ).first()
+            if not issue_stream_detector:
+                issue_stream_detector = Detector(
+                    type=IssueStreamGroupType.slug, project=self.project
+                )
+
         else:
             error_detector, _ = Detector.objects.get_or_create(
                 type=ErrorGroupType.slug,
@@ -146,8 +100,19 @@ class IssueAlertMigrator:
                 defaults={"config": {}, "name": ERROR_DETECTOR_NAME},
             )
             AlertRuleDetector.objects.get_or_create(detector=error_detector, rule_id=self.rule.id)
+            issue_stream_detector, _ = Detector.objects.get_or_create(
+                type=IssueStreamGroupType.slug,
+                project=self.project,
+                defaults={"config": {}, "name": ISSUE_STREAM_DETECTOR_NAME},
+            )
 
-        return error_detector
+        return [error_detector, issue_stream_detector]
+
+    def _connect_default_detectors(self, workflow: Workflow) -> None:
+        default_detectors = self._create_detector_lookups()
+        for detector in default_detectors:
+            if detector:
+                DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
 
     def _bulk_create_data_conditions(
         self,
@@ -229,7 +194,6 @@ class IssueAlertMigrator:
         conditions: list[dict[str, Any]],
         filters: list[dict[str, Any]],
         action_match: str,
-        detector: Detector | None,
     ) -> Workflow:
         when_dcg = self._create_when_dcg(action_match=action_match)
         data_conditions = self._bulk_create_data_conditions(
@@ -283,8 +247,8 @@ class IssueAlertMigrator:
         else:
             workflow = Workflow.objects.create(**kwargs)
             workflow.update(date_added=self.rule.date_added)
-            if detector:
-                DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
+            if not self.rule.source == RuleSource.CRON_MONITOR:
+                self._connect_default_detectors(workflow=workflow)
             AlertRuleWorkflow.objects.create(rule_id=self.rule.id, workflow=workflow)
 
         return workflow

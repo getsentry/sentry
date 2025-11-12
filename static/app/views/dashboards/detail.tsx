@@ -226,8 +226,13 @@ class DashboardDetail extends Component<Props, State> {
 
     if (
       prevProps.organization !== this.props.organization ||
-      prevProps.location !== this.props.location ||
-      prevProps.router !== this.props.router ||
+      // The only part of `location` used by `WidgetLegendSelectionState` is
+      // `unselectedSeries`. Don't bother comparing anything else. Once this
+      // component is a functional component, we'll move the selection state
+      // into a hook, and make sure it doesn't re-render too much.
+      prevProps.location.query.unselectedSeries !==
+        this.props.location.query.unselectedSeries ||
+      prevProps.navigate !== this.props.navigate ||
       prevProps.dashboard !== this.props.dashboard
     ) {
       this.setState({
@@ -954,6 +959,7 @@ class DashboardDetail extends Component<Props, State> {
                   filters={{}} // Default Dashboards don't have filters set
                   location={location}
                   hasUnsavedChanges={false}
+                  hasTemporaryFilters={false}
                   isEditingDashboard={false}
                   isPreview={false}
                   onDashboardFilterChange={this.handleChangeFilter}
@@ -1034,6 +1040,10 @@ class DashboardDetail extends Component<Props, State> {
       dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
+
+    const hasTemporaryFilters = defined(
+      location.query?.[DashboardFilterKeys.TEMPORARY_FILTERS]
+    );
 
     const eventView = generatePerformanceEventView(location, projects, {}, organization);
 
@@ -1167,6 +1177,7 @@ class DashboardDetail extends Component<Props, State> {
                                 dashboardCreator={dashboard.createdBy}
                                 location={location}
                                 hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
+                                hasTemporaryFilters={hasTemporaryFilters}
                                 isEditingDashboard={
                                   dashboardState !== DashboardState.CREATE &&
                                   this.isEditingDashboard

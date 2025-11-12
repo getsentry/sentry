@@ -103,6 +103,7 @@ describe('SeerDrawer', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    localStorage.clear();
 
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
@@ -137,10 +138,24 @@ describe('SeerDrawer', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/group-search-views/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/`,
       body: {
         autofixAutomationTuning: 'off',
       },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/integrations/coding-agents/`,
+      body: {
+        integrations: [],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/autofix-repos/`,
+      body: [],
     });
   });
 
@@ -173,6 +188,48 @@ describe('SeerDrawer', () => {
 
     expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
 
+    expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
+  });
+
+  it('renders issue summary if consent flow is removed and there is no autofix quota', async () => {
+    const orgWithConsentFlowRemoved = OrganizationFixture({
+      hideAiFeatures: false,
+      features: ['seer-billing', 'gen-ai-features', 'gen-ai-consent-flow-removal'],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        integration: {ok: false, reason: null},
+        githubWriteIntegration: {ok: false, repos: []},
+        billing: {hasAutofixQuota: false},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization: orgWithConsentFlowRemoved,
+    });
+
+    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    // Issue summary fields are rendered
+    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(screen.getByText('Test trace')).toBeInTheDocument();
+    expect(screen.getByText('Test possible cause')).toBeInTheDocument();
+    expect(screen.getByText('Test headline')).toBeInTheDocument();
+
+    // Should display the seer purchase flow
     expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
   });
 
@@ -590,5 +647,162 @@ describe('SeerDrawer', () => {
     expect(
       screen.getByText(/It currently only supports GitHub repositories/)
     ).toBeInTheDocument();
+  });
+
+  it('shows cursor integration onboarding step if integration is installed but handoff not configured', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/integrations/coding-agents/`,
+      body: {
+        integrations: [
+          {
+            id: '123',
+            provider: 'cursor',
+            name: 'Cursor',
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/seer/preferences/`,
+      body: {
+        code_mapping_repos: [],
+        preference: {
+          repositories: [{external_id: 'repo-123', name: 'org/repo', provider: 'github'}],
+          automated_run_stopping_point: 'root_cause',
+          // No automation_handoff
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/`,
+      body: {
+        autofixAutomationTuning: 'medium',
+        seerScannerAutomation: true,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/autofix-repos/`,
+      body: [
+        {
+          name: 'org/repo',
+          provider: 'github',
+          owner: 'org',
+          external_id: 'repo-123',
+          is_readable: true,
+          is_writeable: true,
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/group-search-views/starred/`,
+      body: [
+        {
+          id: '1',
+          name: 'Fixability View',
+          query: 'is:unresolved issue.seer_actionability:high',
+          starred: true,
+        },
+      ],
+    });
+
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization: OrganizationFixture({
+        features: ['gen-ai-features', 'integrations-cursor', 'issue-views'],
+      }),
+    });
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    expect(
+      await screen.findByText('Hand Off to Cursor Background Agents')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Set Seer to hand off to Cursor'})
+    ).toBeInTheDocument();
+  });
+
+  it('does not show cursor integration step if localStorage skip key is set', async () => {
+    // Set skip key BEFORE rendering
+    localStorage.setItem(`seer-onboarding-cursor-skipped:${mockProject.id}`, 'true');
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/integrations/coding-agents/`,
+      body: {
+        integrations: [
+          {
+            id: '123',
+            provider: 'cursor',
+            name: 'Cursor',
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/seer/preferences/`,
+      body: {
+        code_mapping_repos: [],
+        preference: {
+          repositories: [{external_id: 'repo-123', name: 'org/repo', provider: 'github'}],
+          automated_run_stopping_point: 'root_cause',
+          // No automation_handoff
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/`,
+      body: {
+        autofixAutomationTuning: 'medium',
+        seerScannerAutomation: true,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/autofix-repos/`,
+      body: [
+        {
+          name: 'org/repo',
+          provider: 'github',
+          owner: 'org',
+          external_id: 'repo-123',
+          is_readable: true,
+          is_writeable: true,
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/group-search-views/starred/`,
+      body: [
+        {
+          id: '1',
+          name: 'Fixability View',
+          query: 'is:unresolved issue.seer_actionability:high',
+          starred: true,
+        },
+      ],
+    });
+
+    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization: OrganizationFixture({
+        features: ['gen-ai-features', 'integrations-cursor', 'issue-views'],
+      }),
+    });
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    // Should not show the step since it was skipped
+    expect(
+      screen.queryByText('Hand Off to Cursor Background Agents')
+    ).not.toBeInTheDocument();
   });
 });

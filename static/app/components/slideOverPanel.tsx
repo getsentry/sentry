@@ -1,25 +1,25 @@
 import {useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type Transition} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
 
-const PANEL_WIDTH = '50vw';
+const RIGHT_SIDE_PANEL_WIDTH = '50vw';
 const LEFT_SIDE_PANEL_WIDTH = '40vw';
 const PANEL_HEIGHT = '50vh';
 
 const OPEN_STYLES = {
-  bottom: {opacity: 1, x: 0, y: 0},
-  right: {opacity: 1, x: 0, y: 0},
-  left: {opacity: 1, x: 0, y: 0},
+  bottom: {transform: 'translateX(0) translateY(0)', opacity: 1},
+  right: {transform: 'translateX(0) translateY(0)', opacity: 1},
+  left: {transform: 'translateX(0) translateY(0)', opacity: 1},
 };
 
 const COLLAPSED_STYLES = {
-  bottom: {opacity: 0, x: 0, y: PANEL_HEIGHT},
-  right: {opacity: 0, x: PANEL_WIDTH, y: 0},
-  left: {opacity: 0, x: '-100%', y: 0},
+  bottom: {transform: `translateX(0) translateY(${PANEL_HEIGHT})`, opacity: 0},
+  right: {transform: `translateX(${RIGHT_SIDE_PANEL_WIDTH}) translateY(0)`, opacity: 0},
+  left: {transform: `translateX(-${LEFT_SIDE_PANEL_WIDTH}) translateY(0)`, opacity: 0},
 };
 
 type SlideOverPanelProps = {
@@ -49,6 +49,8 @@ function SlideOverPanel({
   panelWidth,
   ref,
 }: SlideOverPanelProps) {
+  const theme = useTheme();
+
   useEffect(() => {
     if (!collapsed && onOpen) {
       onOpen();
@@ -69,9 +71,7 @@ function SlideOverPanel({
       exit={collapsedStyle}
       slidePosition={slidePosition}
       transition={{
-        type: 'spring',
-        stiffness: 1000,
-        damping: 50,
+        ...theme.motion.framer.spring.moderate,
         ...transitionProps,
       }}
       role="complementary"
@@ -130,7 +130,7 @@ const _SlideOverPanel = styled(motion.div, {
           ? css`
               position: fixed;
 
-              width: ${p.panelWidth ?? PANEL_WIDTH};
+              width: ${p.panelWidth ?? RIGHT_SIDE_PANEL_WIDTH};
               height: 100%;
 
               top: 0;

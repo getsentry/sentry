@@ -4,8 +4,6 @@ import {Text} from 'sentry/components/core/text/text';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import RadioField from 'sentry/components/forms/fields/radioField';
-import {Container} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
@@ -33,13 +31,13 @@ function validateResolutionThreshold({
   form: MetricDetectorFormData;
   id: string;
 }): Array<[string, string]> {
-  const {conditionType, conditionValue, detectionType, resolutionStrategy} = form;
+  const {conditionType, highThreshold, detectionType, resolutionStrategy} = form;
   if (!conditionType || detectionType !== 'static' || resolutionStrategy !== 'custom') {
     return [];
   }
 
   const resolutionNum = Number(form.resolutionValue);
-  const conditionNum = Number(conditionValue);
+  const conditionNum = Number(highThreshold);
 
   if (
     Number.isFinite(resolutionNum) &&
@@ -61,8 +59,8 @@ export function ResolveSection() {
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
-  const conditionValue = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.conditionValue
+  const highThreshold = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.highThreshold
   );
   const conditionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.conditionType
@@ -88,7 +86,7 @@ export function ResolveSection() {
       ? {
           detectionType: 'percent',
           conditionType,
-          conditionValue: conditionValue || 0,
+          highThreshold: highThreshold || 0,
           comparisonDelta: conditionComparisonAgo ?? 3600, // Default to 1 hour if not set
           thresholdSuffix,
         }
@@ -96,7 +94,7 @@ export function ResolveSection() {
         ? {
             detectionType: 'static',
             conditionType,
-            conditionValue: conditionValue || 0,
+            highThreshold: highThreshold || 0,
             thresholdSuffix,
           }
         : {
@@ -108,66 +106,58 @@ export function ResolveSection() {
   const resolutionStrategyChoices: RadioOption[] = [
     [
       'default' satisfies MetricDetectorFormData['resolutionStrategy'],
+      t('Default'),
       <div key="automatic">
-        <Text>{t('Default')}</Text>
-        <div>
-          <Text size="sm" variant="muted" style={{marginTop: '4px'}}>
-            {descriptionContent}
-          </Text>
-        </div>
+        <Text size="sm" variant="muted" style={{marginTop: '4px'}}>
+          {descriptionContent}
+        </Text>
       </div>,
     ],
     [
       'custom' satisfies MetricDetectorFormData['resolutionStrategy'],
+      t('Custom'),
       <div key="manual">
-        <Text>{t('Custom')}</Text>
-        <div>
-          <Text size="sm" variant="muted" style={{marginTop: '4px'}}>
-            {t('Issue will be resolved when the query result is\u2026')}
-          </Text>
-        </div>
+        <Text size="sm" variant="muted" style={{marginTop: '4px'}}>
+          {t('Issue will be resolved when the query result is\u2026')}
+        </Text>
       </div>,
     ],
   ];
 
   return (
-    <Container>
-      <Section title={t('Resolve')}>
-        <div>
-          <FormRow>
-            <StyledRadioField
-              name={METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy}
-              aria-label={t('Resolution method')}
-              choices={resolutionStrategyChoices}
-              defaultValue="automatic"
-              preserveOnUnmount
-            />
-          </FormRow>
-          {resolutionStrategy === 'custom' && (
-            <DescriptionContainer onClick={e => e.preventDefault()}>
-              <Text>
-                {conditionType === DataConditionType.GREATER
-                  ? t('Less than')
-                  : t('More than')}
-              </Text>
-              <ThresholdField
-                hideLabel
-                aria-label={t('Resolution threshold')}
-                name={METRIC_DETECTOR_FORM_FIELDS.resolutionValue}
-                inline={false}
-                flexibleControlStateSize
-                placeholder="0"
-                suffix={thresholdSuffix}
-                validate={validateResolutionThreshold}
-                required
-                preserveOnUnmount
-                size="xs"
-              />
-            </DescriptionContainer>
-          )}
-        </div>
-      </Section>
-    </Container>
+    <div>
+      <FormRow>
+        <StyledRadioField
+          name={METRIC_DETECTOR_FORM_FIELDS.resolutionStrategy}
+          aria-label={t('Resolution method')}
+          choices={resolutionStrategyChoices}
+          defaultValue="automatic"
+          preserveOnUnmount
+        />
+      </FormRow>
+      {resolutionStrategy === 'custom' && (
+        <DescriptionContainer onClick={e => e.preventDefault()}>
+          <Text>
+            {conditionType === DataConditionType.GREATER
+              ? t('Less than')
+              : t('More than')}
+          </Text>
+          <ThresholdField
+            hideLabel
+            aria-label={t('Resolution threshold')}
+            name={METRIC_DETECTOR_FORM_FIELDS.resolutionValue}
+            inline={false}
+            flexibleControlStateSize
+            placeholder="0"
+            suffix={detectionType === 'percent' ? '%' : thresholdSuffix}
+            validate={validateResolutionThreshold}
+            required
+            preserveOnUnmount
+            size="xs"
+          />
+        </DescriptionContainer>
+      )}
+    </div>
   );
 }
 

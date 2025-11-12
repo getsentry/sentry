@@ -77,23 +77,20 @@ export type DetectorType =
   | 'error'
   | 'metric_issue'
   | 'monitor_check_in_failure'
-  | 'uptime_domain_failure';
-
-interface BaseMetricDetectorConfig {
-  thresholdPeriod: number;
-}
+  | 'uptime_domain_failure'
+  | 'issue_stream';
 
 /**
  * Configuration for static/threshold-based detection
  */
-interface MetricDetectorConfigStatic extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigStatic {
   detectionType: 'static';
 }
 
 /**
  * Configuration for percentage-based change detection
  */
-interface MetricDetectorConfigPercent extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigPercent {
   comparisonDelta: number;
   detectionType: 'percent';
 }
@@ -101,11 +98,8 @@ interface MetricDetectorConfigPercent extends BaseMetricDetectorConfig {
 /**
  * Configuration for dynamic/anomaly detection
  */
-interface MetricDetectorConfigDynamic extends BaseMetricDetectorConfig {
+interface MetricDetectorConfigDynamic {
   detectionType: 'dynamic';
-  seasonality?: 'auto' | 'daily' | 'weekly' | 'monthly';
-  sensitivity?: AlertRuleSensitivity;
-  thresholdType?: AlertRuleThresholdType;
 }
 
 export type MetricDetectorConfig =
@@ -124,6 +118,7 @@ type BaseDetector = Readonly<{
   createdBy: string | null;
   dateCreated: string;
   dateUpdated: string;
+  description: string | null;
   enabled: boolean;
   id: string;
   lastTriggered: string;
@@ -190,6 +185,7 @@ export interface BaseDetectorUpdatePayload {
   projectId: Detector['projectId'];
   type: Detector['type'];
   workflowIds: string[];
+  description?: string | null;
   enabled?: boolean;
 }
 
@@ -230,7 +226,7 @@ export interface MetricCondition {
 /**
  * See AnomalyDetectionHandler
  */
-interface AnomalyDetectionComparison {
+export interface AnomalyDetectionComparison {
   seasonality:
     | 'auto'
     | 'hourly'
@@ -240,8 +236,8 @@ interface AnomalyDetectionComparison {
     | 'hourly_weekly'
     | 'hourly_daily_weekly'
     | 'daily_weekly';
-  sensitivity: 'low' | 'medium' | 'high';
-  threshold_type: 0 | 1 | 2;
+  sensitivity: AlertRuleSensitivity;
+  thresholdType: AlertRuleThresholdType;
 }
 
 type MetricDataCondition = AnomalyDetectionComparison | number;

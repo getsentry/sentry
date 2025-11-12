@@ -17,7 +17,6 @@ from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.workflow_engine.models import Action
@@ -112,7 +111,6 @@ class TestSentryAppInstallationDeletionTask(TestCase):
 
         assert c.fetchone()[0] == 1
 
-    @override_options({"workflow_engine.sentry-app-actions-outbox": True})
     def test_disables_actions(self) -> None:
         action = self.create_action(
             type=Action.Type.SENTRY_APP,

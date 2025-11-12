@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import logging
+import random
+from datetime import UTC, datetime
+from uuid import uuid4
 
+import sentry_sdk
 from django.conf import settings
 from pydantic import BaseModel
 
 from sentry import options
+from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.explorer.index_data import get_trace_for_transaction, get_transactions_for_project
@@ -22,9 +29,11 @@ SEER_ANALYZE_ISSUE_ENDPOINT_PATH = "/v1/automation/issue-detection/analyze"
 SEER_TIMEOUT_S = 120
 SEER_RETRIES = 1
 
+NUM_TRANSACTIONS_TO_PROCESS = 10
+
 
 seer_issue_detection_connection_pool = connection_from_url(
-    settings.SEER_DEFAULT_URL,
+    settings.SEER_SUMMARIZATION_URL,
     timeout=SEER_TIMEOUT_S,
     retries=SEER_RETRIES,
     maxsize=10,
@@ -60,6 +69,75 @@ class LLMIssueDetectionError(SeerApiError):
         self.error_message = error_message
 
 
+def create_issue_occurrence_from_detection(
+    detected_issue: DetectedIssue,
+    trace: TraceData,
+    project_id: int,
+    transaction_name: str,
+) -> None:
+    """
+    Create and produce an IssueOccurrence from an LLM-detected issue.
+    """
+    event_id = uuid4().hex
+    occurrence_id = uuid4().hex
+    detection_time = datetime.now(UTC)
+    project = Project.objects.get_from_cache(id=project_id)
+
+    fingerprint = [f"llm-detected-{detected_issue.title}-{transaction_name}"]
+
+    evidence_data = {
+        "trace_id": trace.trace_id,
+        "transaction": transaction_name,
+        "explanation": detected_issue.explanation,
+        "impact": detected_issue.impact,
+        "evidence": detected_issue.evidence,
+        "missing_telemetry": detected_issue.missing_telemetry,
+    }
+
+    evidence_display = [
+        IssueEvidence(name="Explanation", value=detected_issue.explanation, important=True),
+        IssueEvidence(name="Impact", value=detected_issue.impact, important=False),
+        IssueEvidence(name="Evidence", value=detected_issue.evidence, important=False),
+    ]
+
+    occurrence = IssueOccurrence(
+        id=occurrence_id,
+        event_id=event_id,
+        project_id=project_id,
+        fingerprint=fingerprint,
+        issue_title=detected_issue.title,
+        subtitle=detected_issue.explanation[:200],  # Truncate for subtitle
+        resource_id=None,
+        evidence_data=evidence_data,
+        evidence_display=evidence_display,
+        type=LLMDetectedExperimentalGroupType,
+        detection_time=detection_time,
+        culprit=transaction_name,
+        level="warning",
+    )
+
+    event_data = {
+        "event_id": event_id,
+        "project_id": project_id,
+        "platform": project.platform or "other",
+        "received": detection_time.isoformat(),
+        "timestamp": detection_time.isoformat(),
+        "transaction": transaction_name,
+        "contexts": {
+            "trace": {
+                "trace_id": trace.trace_id,
+                "type": "trace",
+            }
+        },
+    }
+
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.OCCURRENCE,
+        occurrence=occurrence,
+        event_data=event_data,
+    )
+
+
 def get_enabled_project_ids() -> list[int]:
     """
     Get the list of project IDs that are explicitly enabled for LLM detection.
@@ -93,7 +171,7 @@ def run_llm_issue_detection() -> None:
 @instrumented_task(
     name="sentry.tasks.llm_issue_detection.detect_llm_issues_for_project",
     namespace=issues_tasks,
-    processing_deadline_duration=120,
+    processing_deadline_duration=300,
 )
 def detect_llm_issues_for_project(project_id: int) -> None:
     """
@@ -105,6 +183,11 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     transactions = get_transactions_for_project(
         project_id, limit=50, start_time_delta={"minutes": 30}
     )
+    if not transactions:
+        return
+
+    # Sample a random subset of transactions to process
+    transactions = random.sample(transactions, min(len(transactions), NUM_TRANSACTIONS_TO_PROCESS))
     for transaction in transactions:
         try:
             trace: TraceData | None = get_trace_for_transaction(
@@ -118,6 +201,8 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                 extra={
                     "trace_id": trace.trace_id,
                     "project_id": project_id,
+                    "total_spans": trace.total_spans,
+                    "transaction_name": trace.transaction_name,
                 },
             )
 
@@ -168,5 +253,17 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                     ),
                 },
             )
-        except LLMIssueDetectionError:
+            for detected_issue in response_data.issues:
+                try:
+                    create_issue_occurrence_from_detection(
+                        detected_issue=detected_issue,
+                        trace=trace,
+                        project_id=project_id,
+                        transaction_name=transaction.name,
+                    )
+
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
+        except LLMIssueDetectionError as e:
+            sentry_sdk.capture_exception(e)
             continue  # if one transaction encounters an error, don't block processing of the others

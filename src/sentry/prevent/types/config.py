@@ -3,6 +3,7 @@ _TRIGGER_SCHEMA = {
     "properties": {
         "on_command_phrase": {"type": "boolean"},
         "on_ready_for_review": {"type": "boolean"},
+        "on_new_commit": {"type": "boolean"},
     },
     "required": ["on_command_phrase", "on_ready_for_review"],
     "additionalProperties": False,
@@ -89,35 +90,38 @@ ORG_CONFIG_SCHEMA = {
     "additionalProperties": False,
 }
 
-PREVENT_AI_CONFIG_GITHUB_DEFAULT = {
+PREVENT_AI_CONFIG_DEFAULT = {
     "schema_version": "v1",
     "default_org_config": {
         "org_defaults": {
             "bug_prediction": {
-                "enabled": False,
+                "enabled": True,
                 "sensitivity": "medium",
                 "triggers": {
                     "on_command_phrase": True,
                     "on_ready_for_review": True,
+                    "on_new_commit": False,
                 },
             },
             "test_generation": {
-                "enabled": False,
+                "enabled": True,
                 "triggers": {
                     "on_command_phrase": True,
                     "on_ready_for_review": False,
+                    "on_new_commit": False,
                 },
             },
             "vanilla": {
-                "enabled": False,
+                "enabled": True,
                 "sensitivity": "medium",
                 "triggers": {
                     "on_command_phrase": True,
                     "on_ready_for_review": False,
+                    "on_new_commit": False,
                 },
             },
         },
         "repo_overrides": {},
     },
-    "github_organization": {},
+    "organization": {},
 }

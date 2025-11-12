@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.856517+00:00'
+created: '2025-11-03T21:48:48.836639+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,6 +10,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value*
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             function*
@@ -30,10 +34,6 @@ app:
             function*
               "OpenAdapter10"
           frame (marked out of app by the client)
-        type (ignored because exception is synthetic)
-          "EXCEPTION_ACCESS_VIOLATION_READ"
-        value*
-          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
 --------------------------------------------------------------------------
 system:
   hash: "2e0d26cae5986fcda5edf66612a78268"
@@ -42,6 +42,10 @@ system:
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
         stacktrace*
           frame*
             function*
@@ -62,7 +66,3 @@ system:
             function*
               "OpenAdapter10"
           frame
-        type (ignored because exception is synthetic)
-          "EXCEPTION_ACCESS_VIOLATION_READ"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"

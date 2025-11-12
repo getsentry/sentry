@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import Placeholder from 'sentry/components/placeholder';
 import {IconClose, IconGrid, IconRefresh, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
@@ -211,6 +212,30 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const missingDsymBinaries =
     buildDetailsData?.app_info?.apple_app_info?.missing_dsym_binaries;
 
+  const missingProguardMapping =
+    buildDetailsData?.app_info?.android_app_info?.has_proguard_mapping === false;
+
+  const getAlertMessage = () => {
+    if (missingDsymBinaries && missingDsymBinaries.length > 0) {
+      if (missingDsymBinaries?.length === 1) {
+        return t(
+          'Missing debug symbols for some binaries (%s). Those binaries will not have a detailed breakdown.',
+          missingDsymBinaries[0]
+        );
+      }
+      return t(
+        'Missing debug symbols for some binaries (%s and others). Those binaries will not have a detailed breakdown.',
+        missingDsymBinaries[0]
+      );
+    }
+
+    if (missingProguardMapping) {
+      return t('Missing proguard mapping. Dex will not have a detailed breakdown.');
+    }
+
+    return undefined;
+  };
+
   // Filter data based on search query and categories
   const filteredRoot = filterTreemapElement(
     appSizeData.treemap.root,
@@ -234,7 +259,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             root={filteredTreemapData.root}
             searchQuery={searchQuery || ''}
             unfilteredRoot={appSizeData.treemap.root}
-            missingDsymBinaries={missingDsymBinaries}
+            alertMessage={getAlertMessage()}
             onSearchChange={value => setSearchQuery(value || undefined)}
           />
         ) : (
@@ -249,7 +274,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         root={filteredTreemapData.root}
         searchQuery={searchQuery || ''}
         unfilteredRoot={appSizeData.treemap.root}
-        missingDsymBinaries={missingDsymBinaries}
+        alertMessage={getAlertMessage()}
         onSearchChange={value => setSearchQuery(value || undefined)}
       />
     ) : (
@@ -301,12 +326,10 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             onToggleCategory={handleToggleCategory}
           />
         )}
-        {processedInsights.length > 0 && (
-          <AppSizeInsights
-            processedInsights={processedInsights}
-            platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
-          />
-        )}
+        <AppSizeInsights
+          processedInsights={processedInsights}
+          platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
+        />
       </Stack>
     </Flex>
   );

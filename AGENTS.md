@@ -290,6 +290,12 @@ class OrganizationDetailsTest(APITestCase):
         assert response.data["id"] == str(org.id)
 ```
 
+Notes:
+
+- Tests should ALWAYS be procuderal with NO branching logic. It is very rare
+  that you will need an if statement as part of a Frontend Jest test or backend
+  pytest.
+
 ## Common Patterns
 
 ### Feature Flags
@@ -312,6 +318,22 @@ class MyPermission(SentryPermission):
         'POST': ['org:write'],
     }
 ```
+
+### Options System
+
+Sentry uses a centralized options system where all options are registered in `src/sentry/options/defaults.py` with required default values.
+
+```python
+# CORRECT: options.get() without default - registered default is used
+from sentry import options
+
+batch_size = options.get("deletions.group-hash-metadata.batch-size")
+
+# WRONG: Redundant default value
+batch_size = options.get("deletions.group-hash-metadata.batch-size", 1000)
+```
+
+**Important**: Never suggest adding a default value to `options.get()` calls. All options are registered via `register()` in `defaults.py` which requires a default value. The options system will always return the registered default if no value is set, making a second default parameter redundant and potentially inconsistent.
 
 ### Logging Pattern
 
@@ -388,6 +410,61 @@ class MultiProducer:
 4. Add indexes for queries on 1M+ row tables
 5. Use `db_index=True` or `db_index_together`
 
+#### Composite Index Strategy: Match Your Query Patterns
+
+**Critical Rule**: When writing a query that filters on multiple columns simultaneously, you MUST verify that a composite index exists covering those columns in the filter order.
+
+**How to Identify When You Need a Composite Index:**
+
+1. **Look for Multi-Column Filters**: Any query using multiple columns in `.filter()` or `WHERE` clause
+2. **Check Index Coverage**: Verify the model's `Meta.indexes` includes those columns
+3. **Consider Query Order**: Index column order should match the most selective filters first
+
+**Common Patterns Requiring Composite Indexes:**
+
+```python
+# NEEDS COMPOSITE INDEX: Filtering on foreign_key_id AND id
+Model.objects.filter(
+    foreign_key_id__in=ids,  # First column
+    id__gt=last_id           # Second column
+)[:batch_size]
+# Required: Index(fields=["foreign_key", "id"])
+
+# NEEDS COMPOSITE INDEX: Status + timestamp range queries
+Model.objects.filter(
+    status="open",           # First column
+    created_at__gte=start    # Second column
+)
+# Required: Index(fields=["status", "created_at"])
+
+# NEEDS COMPOSITE INDEX: Org + project + type lookups
+Model.objects.filter(
+    organization_id=org_id,  # First column
+    project_id=proj_id,      # Second column
+    type=event_type          # Third column
+)
+# Required: Index(fields=["organization", "project", "type"])
+```
+
+**How to Check if Index Exists:**
+
+1. Read the model file: Check the `Meta` class for `indexes = [...]`
+2. Single foreign key gets auto-index, but **NOT** when combined with other filters
+3. If you filter on FK + another column, you need explicit composite index
+
+**Red Flags to Watch For:**
+
+- Query uses `column1__in=[...]` AND `column2__gt/lt/gte/lte`
+- Query filters on FK relationship PLUS primary key or timestamp
+- Pagination queries combining filters with cursor-based `id__gt`
+- Large IN clauses combined with range filters
+
+**When in Doubt:**
+
+1. Check production query performance in Sentry issues (slow query alerts)
+2. Run `EXPLAIN ANALYZE` on similar queries against production-sized data
+3. Add the composite index if table has 1M+ rows and query runs in loops/batches
+
 ## Anti-Patterns (NEVER DO)
 
 ### Backend
@@ -431,6 +508,17 @@ def my_function():
     ...
 ```
 
+## Exception Handling
+
+- Avoid blanket exception handling (`except Exception:` or bare `except:`)
+- Only catch specific exceptions when you have a meaningful way to handle them
+- We have global exception handlers in tasks and endpoints that automatically log errors and report them to Sentry
+- Let exceptions bubble up unless you need to:
+  - Add context to the error
+  - Perform cleanup operations
+  - Convert one exception type to another with additional information
+  - Recover from expected error conditions
+
 ## Performance Considerations
 
 1. Use database indexing appropriately
@@ -446,6 +534,50 @@ def my_function():
 3. Implement proper permission checks
 4. Sanitize data before rendering
 5. Follow OWASP guidelines
+
+## Secure Code Practices
+
+### Preventing Indirect Object References (IDOR)
+
+**Indirect Object Reference** vulnerabilities occur when an attacker can access resources they shouldn't by manipulating IDs passed in requests. This is one of the most critical security issues in multi-tenant applications like Sentry.
+
+#### Core Principle: Always Scope Queries by Organization/Project
+
+When querying resources, ALWAYS include `organization_id` and/or `project_id` in your query filters. Never trust user-supplied IDs alone.
+
+```python
+# WRONG: Vulnerable to IDOR - user can access any resource by guessing IDs
+resource = Resource.objects.get(id=request.data["resource_id"])
+
+# RIGHT: Properly scoped to organization
+resource = Resource.objects.get(
+    id=request.data["resource_id"],
+    organization_id=organization.id
+)
+
+# RIGHT: Properly scoped to project
+resource = Resource.objects.get(
+    id=request.data["resource_id"],
+    project_id=project.id
+)
+```
+
+#### Project ID Handling: Use `self.get_projects()`
+
+When project IDs are passed in the request (query string or body), NEVER directly access or trust `request.data["project_id"]` or `request.GET["project_id"]`. Instead, use the endpoint's `self.get_projects()` method which performs proper permission checks.
+
+```python
+# WRONG: Direct access bypasses permission checks
+project_ids = request.data.get("project_id")
+projects = Project.objects.filter(id__in=project_ids)
+
+# RIGHT: Use self.get_projects() which validates permissions
+projects = self.get_projects(
+    request=request,
+    organization=organization,
+    project_ids=request.data.get("project_id")
+)
+```
 
 ## Debugging Tips
 

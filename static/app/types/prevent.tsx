@@ -8,6 +8,7 @@ interface PreventAIFeatureConfig {
 
 export interface PreventAIFeatureTriggers {
   on_command_phrase: boolean;
+  on_new_commit: boolean;
   on_ready_for_review: boolean;
 }
 
@@ -17,13 +18,10 @@ export interface PreventAIFeatureConfigsByName {
   vanilla: PreventAIFeatureConfig; // "vanilla" basic ai pr review
 }
 
-export interface PreventAIOrgConfig {
+export interface PreventAIConfig {
   org_defaults: PreventAIFeatureConfigsByName;
   repo_overrides: Record<string, PreventAIFeatureConfigsByName>;
-}
-
-export interface PreventAIConfig {
-  default_org_config: PreventAIOrgConfig;
-  github_organizations: Record<string, PreventAIOrgConfig>;
   schema_version: string;
 }
+
+export const PREVENT_AI_CONFIG_SCHEMA_VERSION_DEFAULT = 'v1';

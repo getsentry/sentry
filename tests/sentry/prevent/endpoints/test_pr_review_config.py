@@ -4,7 +4,7 @@ from unittest import mock
 
 from sentry.constants import ObjectStatus
 from sentry.prevent.models import PreventAIConfiguration
-from sentry.prevent.types.config import PREVENT_AI_CONFIG_GITHUB_DEFAULT
+from sentry.prevent.types.config import PREVENT_AI_CONFIG_DEFAULT
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -53,8 +53,8 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
         """Test GET endpoint returns default config when no configuration exists."""
         resp = self.client.get(self.url)
         assert resp.status_code == 200
-        assert resp.data == PREVENT_AI_CONFIG_GITHUB_DEFAULT
-        assert resp.data["github_organization"] == {}
+        assert resp.data == PREVENT_AI_CONFIG_DEFAULT
+        assert resp.data["organization"] == {}
 
     def test_get_returns_config_when_exists(self):
         """Test GET endpoint returns the saved configuration when it exists."""
@@ -66,7 +66,7 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
 
         resp = self.client.get(self.url)
         assert resp.status_code == 200
-        assert resp.data["github_organization"][self.git_org] == VALID_ORG_CONFIG
+        assert resp.data["organization"] == VALID_ORG_CONFIG
 
     def test_get_returns_404_when_integration_not_found(self):
         """Test GET endpoint returns 404 when GitHub integration doesn't exist."""
@@ -88,7 +88,7 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
         """Test PUT endpoint creates a new configuration entry."""
         resp = self.client.put(self.url, data=VALID_ORG_CONFIG, format="json")
         assert resp.status_code == 200
-        assert resp.data["github_organization"][self.git_org] == VALID_ORG_CONFIG
+        assert resp.data["organization"] == VALID_ORG_CONFIG
 
         config = PreventAIConfiguration.objects.get(
             organization_id=self.org.id, integration_id=self.integration.id
@@ -191,8 +191,6 @@ class OrganizationPreventGitHubConfigTest(APITestCase):
         resp = self.client.get(self.url)
         assert resp.status_code == 200
         assert (
-            resp.data["github_organization"][self.git_org]["repo_overrides"]["my-repo"][
-                "bug_prediction"
-            ]["sensitivity"]
+            resp.data["organization"]["repo_overrides"]["my-repo"]["bug_prediction"]["sensitivity"]
             == "high"
         )

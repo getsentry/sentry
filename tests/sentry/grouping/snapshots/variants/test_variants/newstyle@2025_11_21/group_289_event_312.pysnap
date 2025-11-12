@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:18:52.844160+00:00'
+created: '2025-11-05T19:32:39.171127+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,6 +10,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value* (stripped event-specific values)
+          "Fatal Error: <hex> / <hex>"
         stacktrace (ignored because it contains no in-app frames)
           frame (non app frame)
             filename*
@@ -82,27 +86,27 @@ app:
           frame (non app frame)
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "__abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (category:throw ^-app -app))
             function*
               "__pthread_kill"
-        type (ignored because exception is synthetic)
-          "0x00000000 / 0x00000000"
-        value* (stripped event-specific values)
-          "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "9c336f632f6764c0f082a6a66edbf22d"
+  hash: "d90cd4f110751aff5a0a7df3c546a339"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename*
@@ -175,16 +179,12 @@ system:
           frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame*
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "__abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by stack trace rule (category:throw ^-group -group))
             function*
               "__pthread_kill"
-        type (ignored because exception is synthetic)
-          "0x00000000 / 0x00000000"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: <hex> / <hex>"

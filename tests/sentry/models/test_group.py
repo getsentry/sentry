@@ -170,7 +170,6 @@ class GroupTest(TestCase, SnubaTestCase):
                 group.organization.id, [group_short_id, group_2_short_id]
             )
 
-    @with_feature("organizations:group-case-insensitive-short-id-lookup")
     def test_by_qualified_short_id_bulk_case_insensitive_project_slug(self) -> None:
         project = self.create_project(slug="mixedcaseslug")
         group = self.create_group(project=project, short_id=project.next_short_id())

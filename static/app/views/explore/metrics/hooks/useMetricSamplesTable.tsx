@@ -1,54 +1,196 @@
 import {useCallback, useMemo} from 'react';
 import moment from 'moment-timezone';
 
-import type {PageFilters} from 'sentry/types/core';
-import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
-  useQueryParamsSearch,
+  SAMPLING_MODE,
+  useProgressiveQuery,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {AlwaysPresentTraceMetricFields} from 'sentry/views/explore/metrics/constants';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  useMetricsFrozenSearch,
+  useMetricsFrozenTracePeriod,
+} from 'sentry/views/explore/metrics/metricsFrozenContext';
+import {type TraceMetricEventsResponseItem} from 'sentry/views/explore/metrics/types';
+import {
+  useQueryParamsQuery,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
-import {
-  DATE_FORMAT,
-  useSpansQuery,
-} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
+import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
+const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 const MILLISECONDS_PER_SECOND = 1000;
 
 interface UseMetricSamplesTableOptions {
-  enabled: boolean;
   fields: string[];
   limit: number;
-  metricName: string;
+  disabled?: boolean;
   ingestionDelaySeconds?: number;
   queryExtras?: RPCQueryExtras;
+  traceMetric?: TraceMetric;
 }
 
 interface MetricSamplesTableResult {
-  eventView: EventView;
+  result: {
+    data: TraceMetricEventsResponseItem[] | undefined;
+    isFetched: boolean;
+    isFetching: boolean;
+    meta?: EventsMetaType;
+  };
+  error?: Error;
+  eventView?: EventView;
+  isError?: boolean;
+  isFetching?: boolean;
+  isPending?: boolean;
+  meta?: EventsMetaType;
+}
+
+function useMetricsQueryKey({
+  limit,
+  traceMetric,
+  fields,
+  ingestionDelaySeconds = INGESTION_DELAY,
+  referrer,
+  queryExtras,
+}: {
   fields: string[];
-  result: ReturnType<typeof useSpansQuery<any[]>>;
+  limit: number;
+  referrer: string;
+  ingestionDelaySeconds?: number;
+  queryExtras?: RPCQueryExtras;
+  traceMetric?: TraceMetric;
+}) {
+  const organization = useOrganization();
+  const query = useQueryParamsQuery();
+  const frozenSearch = useMetricsFrozenSearch();
+  const frozenTracePeriod = useMetricsFrozenTracePeriod();
+  const sortBys = useQueryParamsSortBys();
+  const {selection, isReady: pageFiltersReady} = usePageFilters();
+  const location = useLocation();
+
+  const fieldsToUse = useMemo(
+    () => Array.from(new Set([...AlwaysPresentTraceMetricFields, ...fields])),
+    [fields]
+  );
+  const queryString = useMemo(() => {
+    const queryStr = query;
+    const frozenSearchStr = frozenSearch?.formatString() ?? '';
+
+    const parts = [frozenSearchStr, queryStr].filter(Boolean);
+
+    if (parts.length === 0) {
+      return '';
+    }
+    if (parts.length === 1) {
+      return parts[0];
+    }
+
+    return parts.join(' ');
+  }, [query, frozenSearch]);
+
+  const adjustedDatetime = useMemo(() => {
+    const baseDatetime = frozenTracePeriod
+      ? {
+          start: frozenTracePeriod.start ?? null,
+          end: frozenTracePeriod.end ?? null,
+          period: frozenTracePeriod.period ?? null,
+          utc: selection.datetime.utc,
+        }
+      : selection.datetime;
+
+    const {start, end, period, utc} = baseDatetime;
+
+    const periodMs = period ? intervalToMilliseconds(period) : 0;
+    if (period && periodMs > ingestionDelaySeconds * MILLISECONDS_PER_SECOND && !end) {
+      const startTime = moment().subtract(periodMs, 'milliseconds');
+      const delayedEndTime = moment().subtract(ingestionDelaySeconds, 'seconds');
+
+      return {
+        start: startTime.format(DATE_FORMAT),
+        end: delayedEndTime.format(DATE_FORMAT),
+        period: null,
+        utc,
+      };
+    }
+
+    return {start, end, period, utc};
+  }, [selection.datetime, frozenTracePeriod, ingestionDelaySeconds]);
+
+  const pageFilters = {
+    ...selection,
+    datetime: adjustedDatetime,
+  };
+  const dataset = DiscoverDatasets.TRACEMETRICS;
+
+  const eventView = getEventView(
+    queryString,
+    fieldsToUse,
+    sortBys.slice(),
+    pageFilters,
+    dataset,
+    pageFilters.projects
+  );
+
+  if (queryString) {
+    eventView.query = queryString;
+  }
+
+  const eventViewPayload = eventView.getEventsAPIPayload(location);
+
+  const orderby = sortBys.map(formatSort);
+
+  const params = {
+    query: {
+      ...eventViewPayload,
+      orderby: orderby.length > 0 ? orderby : undefined,
+      per_page: limit,
+      referrer,
+      metricName: traceMetric?.name,
+      metricType: traceMetric?.type,
+      sampling: queryExtras?.samplingMode ?? SAMPLING_MODE.NORMAL,
+      caseInsensitive: queryExtras?.caseInsensitive,
+      disableAggregateExtrapolation: queryExtras?.disableAggregateExtrapolation
+        ? '1'
+        : undefined,
+    },
+    pageFiltersReady,
+    eventView,
+  };
+
+  const queryKey: ApiQueryKey = [`/organizations/${organization.slug}/events/`, params];
+
+  return {
+    queryKey,
+    other: {
+      eventView,
+      pageFiltersReady,
+    },
+  };
 }
 
 export function useMetricSamplesTable({
-  enabled,
+  disabled,
   limit,
-  metricName,
+  traceMetric,
   fields,
   ingestionDelaySeconds,
   queryExtras,
 }: UseMetricSamplesTableOptions) {
   const canTriggerHighAccuracy = useCallback(
-    (result: ReturnType<typeof useMetricSamplesTableImpl>['result']) => {
+    (result: MetricSamplesTableResult['result']) => {
       const canGoToHigherAccuracyTier = result.meta?.dataScanned === 'partial';
       const hasData = defined(result.data) && result.data.length > 0;
       return !hasData && canGoToHigherAccuracyTier;
@@ -59,12 +201,15 @@ export function useMetricSamplesTable({
   return useProgressiveQuery<typeof useMetricSamplesTableImpl>({
     queryHookImplementation: useMetricSamplesTableImpl,
     queryHookArgs: {
-      enabled,
+      enabled: !disabled,
       limit,
-      metricName,
+      traceMetric,
       fields,
       ingestionDelaySeconds,
-      queryExtras,
+      queryExtras: {
+        ...queryExtras,
+        traceMetric,
+      },
     },
     queryOptions: {
       canTriggerHighAccuracy,
@@ -75,75 +220,37 @@ export function useMetricSamplesTable({
 function useMetricSamplesTableImpl({
   enabled,
   limit,
-  metricName,
+  traceMetric,
   fields,
   ingestionDelaySeconds = INGESTION_DELAY,
   queryExtras,
-}: UseMetricSamplesTableOptions): MetricSamplesTableResult {
-  const {selection} = usePageFilters();
-  const searchQuery = useQueryParamsSearch();
-  const sortBys = useQueryParamsSortBys();
-
-  const query = useMemo(() => {
-    const currentSearch = new MutableSearch(`metric.name:${metricName}`);
-    if (!searchQuery.isEmpty()) {
-      currentSearch.addStringFilter(searchQuery.formatString());
-    }
-    return currentSearch.formatString();
-  }, [metricName, searchQuery]);
-
-  // Calculate adjusted datetime values with ingestion delay applied
-  // This is memoized separately to prevent recalculating on every render
-  const adjustedDatetime: PageFilters['datetime'] = useMemo(() => {
-    const {start, end, period, utc} = selection.datetime;
-
-    // Only apply delay for relative time periods (statsPeriod), not absolute timestamps
-    // because absolute timestamps are explicitly set by the user
-    const periodMs = period ? intervalToMilliseconds(period) : 0;
-    if (period && periodMs > ingestionDelaySeconds * MILLISECONDS_PER_SECOND && !end) {
-      const startTime = moment().subtract(periodMs, 'milliseconds');
-      const delayedEndTime = moment().subtract(ingestionDelaySeconds, 'seconds');
-
-      return {
-        start: startTime.format(DATE_FORMAT),
-        end: delayedEndTime.format(DATE_FORMAT),
-        period: null, // Clear period since we now have explicit timestamps
-        utc,
-      };
-    }
-
-    return {start, end, period, utc};
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selection.datetime.period, ingestionDelaySeconds]); // Only recalc when period or delay changes
-
-  const eventView = useMemo(() => {
-    const discoverQuery: NewQuery = {
-      id: undefined,
-      name: 'Explore - Metric Samples',
-      fields,
-      orderby: sortBys.map(formatSort),
-      query,
-      version: 2,
-      dataset: DiscoverDatasets.TRACEMETRICS,
-    };
-
-    return EventView.fromNewQueryWithPageFilters(discoverQuery, {
-      ...selection,
-      datetime: adjustedDatetime,
-    });
-  }, [fields, query, selection, adjustedDatetime, sortBys]);
-
-  const result = useSpansQuery({
-    enabled: enabled && Boolean(metricName),
-    eventView,
-    initialData: [],
+}: UseMetricSamplesTableOptions & {enabled: boolean}): MetricSamplesTableResult {
+  const {queryKey, other} = useMetricsQueryKey({
     limit,
+    traceMetric,
+    fields,
+    ingestionDelaySeconds,
     referrer: 'api.explore.metric-samples-table',
-    trackResponseAnalytics: false,
     queryExtras,
   });
 
-  return useMemo(() => {
-    return {eventView, fields, result};
-  }, [eventView, fields, result]);
+  const result = useApiQuery<{data: any[]; meta?: EventsMetaType}>(queryKey, {
+    enabled,
+    staleTime: getStaleTimeForEventView(other.eventView),
+  });
+
+  return {
+    error: result.error ?? undefined,
+    isError: result.isError,
+    isFetching: result.isFetching,
+    isPending: result.isPending,
+    meta: result.data?.meta,
+    result: {
+      data: result.data?.data,
+      isFetched: result.isFetched,
+      isFetching: result.isFetching,
+      meta: result.data?.meta,
+    },
+    eventView: other?.eventView,
+  };
 }

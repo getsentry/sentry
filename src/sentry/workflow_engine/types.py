@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 ERROR_DETECTOR_NAME = "Error Monitor"
+ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
 
 
 class DetectorException(Exception):

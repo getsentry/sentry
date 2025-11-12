@@ -23,6 +23,7 @@ from sentry.conf.types.kafka_definition import (
     validate_consumer_definition,
 )
 from sentry.consumers.dlq import DlqStaleMessagesStrategyFactoryWrapper, maybe_build_dlq_producer
+from sentry.consumers.profiler import JoinProfiler
 from sentry.consumers.validate_schema import ValidateSchema
 from sentry.eventstream.types import EventStreamEventType
 from sentry.ingest.types import ConsumerType
@@ -464,8 +465,8 @@ def get_stream_processor(
     group_instance_id: str | None = None,
     max_dlq_buffer_length: int | None = None,
     kafka_slice_id: int | None = None,
-    shutdown_strategy_before_consumer: bool = False,
     add_global_tags: bool = False,
+    profile_consumer_join: bool = False,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -535,6 +536,9 @@ def get_stream_processor(
         if group_instance_id is not None:
             consumer_config["group.instance.id"] = group_instance_id
 
+        # Set commit interval to 1 second (1000ms)
+        consumer_config["auto.commit.interval.ms"] = 1000
+
         return consumer_config
 
     consumer: Consumer = KafkaConsumer(build_consumer_config(group_id))
@@ -594,6 +598,9 @@ def get_stream_processor(
             healthcheck_file_path, strategy_factory
         )
 
+    if profile_consumer_join:
+        strategy_factory = JoinProfilerStrategyFactoryWrapper(strategy_factory)
+
     if enable_dlq and consumer_definition.get("dlq_topic"):
         dlq_topic = consumer_definition["dlq_topic"]
     else:
@@ -623,7 +630,6 @@ def get_stream_processor(
         commit_policy=ONCE_PER_SECOND,
         join_timeout=join_timeout,
         dlq_policy=dlq_policy,
-        shutdown_strategy_before_consumer=shutdown_strategy_before_consumer,
     )
 
 
@@ -674,3 +680,12 @@ class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory):
     def create_with_partitions(self, commit, partitions):
         rv = self.inner.create_with_partitions(commit, partitions)
         return Healthcheck(self.healthcheck_file_path, rv)
+
+
+class JoinProfilerStrategyFactoryWrapper(ProcessingStrategyFactory):
+    def __init__(self, inner: ProcessingStrategyFactory):
+        self.inner = inner
+
+    def create_with_partitions(self, commit, partitions):
+        rv = self.inner.create_with_partitions(commit, partitions)
+        return JoinProfiler(rv)

@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:19:59.419187+00:00'
+created: '2025-11-03T21:52:55.736291+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -24,12 +24,14 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "ecb890e5cd60dec2b626d500cc866de4"
+    hash: "2301317599ab22875b83ce2dafdab6ce"
     contributing component: exception
     hint: None
     root_component:
       app*
         exception*
+          type*
+            "EXC_BAD_ACCESS"
           stacktrace*
             frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
               function*
@@ -106,15 +108,15 @@ contributing variants:
             frame* (marked in-app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
               function*
                 "USentryPlaygroundUtils::Terminate"
-          type*
-            "EXC_BAD_ACCESS"
   system*
-    hash: "57493ac3e558feffb778cf170a7fd986"
+    hash: "65c0ee687814f8d166cc29c9443ffc8a"
     contributing component: exception
     hint: None
     root_component:
       system*
         exception*
+          type*
+            "EXC_BAD_ACCESS"
           stacktrace*
             frame*
               function*
@@ -203,5 +205,3 @@ contributing variants:
             frame*
               function*
                 "FGenericPlatformMisc::RaiseException"
-          type*
-            "EXC_BAD_ACCESS"

@@ -63,6 +63,7 @@ STATUS_LABELS = {
 }
 
 STATS_PERIOD_CHOICES = {
+    "90d": StatsPeriod(90, timedelta(days=1)),
     "30d": StatsPeriod(30, timedelta(hours=24)),
     "14d": StatsPeriod(14, timedelta(hours=24)),
     "7d": StatsPeriod(7, timedelta(hours=24)),
@@ -300,7 +301,6 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasInsightsVitals: bool
     hasInsightsCaches: bool
     hasInsightsQueues: bool
-    hasInsightsLlmMonitoring: bool
     hasInsightsAgentMonitoring: bool
     hasInsightsMCP: bool
     hasLogs: bool
@@ -571,7 +571,6 @@ class ProjectSerializer(Serializer):
             "hasInsightsVitals": bool(obj.flags.has_insights_vitals),
             "hasInsightsCaches": bool(obj.flags.has_insights_caches),
             "hasInsightsQueues": bool(obj.flags.has_insights_queues),
-            "hasInsightsLlmMonitoring": bool(obj.flags.has_insights_llm_monitoring),
             "hasInsightsAgentMonitoring": bool(obj.flags.has_insights_agent_monitoring),
             "hasInsightsMCP": bool(obj.flags.has_insights_mcp),
             "hasLogs": get_has_logs(obj),
@@ -809,7 +808,6 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasInsightsVitals=bool(obj.flags.has_insights_vitals),
             hasInsightsCaches=bool(obj.flags.has_insights_caches),
             hasInsightsQueues=bool(obj.flags.has_insights_queues),
-            hasInsightsLlmMonitoring=bool(obj.flags.has_insights_llm_monitoring),
             hasInsightsAgentMonitoring=bool(obj.flags.has_insights_agent_monitoring),
             hasInsightsMCP=bool(obj.flags.has_insights_mcp),
             hasLogs=get_has_logs(obj),

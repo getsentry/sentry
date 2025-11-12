@@ -1,14 +1,28 @@
+"""
+Group deletion configuration.
+
+This module defines which models should be deleted when a group is deleted and how
+they should be handled during reprocessing operations.
+
+IMPORTANT: When adding a new model with a group_id foreign key, you MUST add it to
+one of the model lists below, or tests will fail. See:
+  - tests/sentry/deletions/test_validate_group_related_models.py
+
+For guidance on which list to use, see the comments on DIRECT_GROUP_RELATED_MODELS
+and ADDITIONAL_GROUP_RELATED_MODELS below.
+"""
+
 from __future__ import annotations
 
 import logging
 import os
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any, TypeGuard
+from typing import Any
 
 from sentry import models, options
 from sentry.deletions.tasks.nodestore import delete_events_for_groups_from_nodestore_and_eventstore
-from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError, get_group_type_by_type_id
+from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
@@ -28,15 +42,20 @@ logger = logging.getLogger(__name__)
 GROUP_CHUNK_SIZE = 100
 EVENT_CHUNK_SIZE = 10000
 GROUP_HASH_ITERATIONS = 10000
+GROUP_HASH_METADATA_ITERATIONS = 10000
 
-# These fields are to reduce how much data we fetch from the database.
-FIELDS_TO_FETCH = ["id", "project_id", "times_seen", "type", "project__organization_id"]
-_F_IDX = {field: index for index, field in enumerate(FIELDS_TO_FETCH)}
-# Group models that relate only to groups and not to events. We assume those to
-# be safe to delete/mutate within a single transaction for user-triggered
-# actions (delete/reprocess/merge/unmerge)
+# Group models that relate only to groups and not to events. These models are
+# transferred during reprocessing operations because they represent group-level
+# metadata that should follow the group when events are reprocessed.
+#
+# Add a model to this list if it meets ALL of these criteria:
+# 1. NO event_id field - represents group state, not individual event data
+# 2. Should be TRANSFERRED during reprocessing - the metadata is about the group itself
+#    (e.g., assignments, bookmarks, resolutions, history) and should move with it
+# 3. Safe to bulk update with group_id changes during merge/unmerge operations
 DIRECT_GROUP_RELATED_MODELS = (
     # prioritize GroupHash
+    # XXX: We could remove GroupHash from here since we call delete_group_hashes() in the _delete_children() method.
     models.GroupHash,
     models.GroupAssignee,
     models.GroupCommitResolution,
@@ -57,20 +76,26 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupOwner,
     models.GroupEmailThread,
     models.GroupSubscription,
-    models.GroupHistory,
+    models.GroupReaction,
+    models.Activity,
     RuleFireHistory,
 )
 
-_GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
+# Additional group-related models that require special handling during reprocessing.
+# Unlike DIRECT_GROUP_RELATED_MODELS which are migrated in bulk, these models need
+# per-event processing or should not be transferred at all.
+#
+# Add a model to this list if it meets ANY of these criteria:
+# 1. Has an event_id field - per-event data that must be migrated during event
+#    reprocessing pipeline, not as a group bulk operation (UserReport, EventAttachment)
+# 2. Should NOT be transferred during reprocessing - transient or notification data
+#    that doesn't represent core group state (NotificationMessage)
+ADDITIONAL_GROUP_RELATED_MODELS = (
     models.UserReport,
     models.EventAttachment,
     NotificationMessage,
 )
-
-
-def _is_group_sequence(groups: Sequence[Group | tuple[Any, ...]]) -> TypeGuard[Sequence[Group]]:
-    """Type guard to narrow Sequence[Group | tuple] to Sequence[Group]."""
-    return all(isinstance(group, Group) for group in groups)
+_GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + ADDITIONAL_GROUP_RELATED_MODELS
 
 
 class EventsBaseDeletionTask(BaseDeletionTask[Group]):
@@ -84,34 +109,28 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
     dataset: Dataset
 
     def __init__(
-        self, manager: DeletionTaskManager, groups: Sequence[Group | tuple[Any, ...]], **kwargs: Any
+        self, manager: DeletionTaskManager, groups: Sequence[Group], **kwargs: Any
     ) -> None:
+        self.groups = groups
         # Use self.last_event to keep track of the last event processed in the chunk method.
         self.last_event: Event | None = None
-        self.set_group_and_project_ids(groups)
+        self.set_group_and_project_ids()
         super().__init__(manager, **kwargs)
 
-    def set_group_and_project_ids(self, groups: Sequence[Group | tuple[Any, ...]]) -> None:
-        # Deletion tasks always belong to the same organization.
-        if not groups:
-            self.organization_id = None
-        elif isinstance(groups[0], Group):
-            self.organization_id = groups[0].project.organization_id
-        else:
-            self.organization_id = groups[0][_F_IDX["project__organization_id"]]
-
-        self.project_groups: defaultdict[int, list[Group | tuple[Any, ...]]] = defaultdict(list)
-        for group in groups:
-            if isinstance(group, Group):
-                self.project_groups[group.project_id].append(group)
-            else:
-                self.project_groups[group[_F_IDX["project_id"]]].append(group)
+    def set_group_and_project_ids(self) -> None:
+        group_ids = []
+        self.project_groups: defaultdict[int, list[Group]] = defaultdict(list)
+        for group in self.groups:
+            self.project_groups[group.project_id].append(group)
+            group_ids.append(group.id)
+        self.group_ids = group_ids
+        self.project_ids = list(self.project_groups.keys())
 
     @property
     def tenant_ids(self) -> Mapping[str, Any]:
         result = {"referrer": self.referrer}
-        if self.organization_id:
-            result["organization_id"] = self.organization_id
+        if self.groups:
+            result["organization_id"] = self.groups[0].project.organization_id
         return result
 
     def chunk(self, apply_filter: bool = False) -> bool:
@@ -122,31 +141,22 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
 
     def delete_events_from_nodestore_and_eventstore(self) -> None:
         """Schedule asynchronous deletion of events from the nodestore and eventstore for all groups."""
-        if not self.project_groups:
+        if not self.group_ids:
             return
+
+        # Get organization_id from the first group
+        organization_id = self.groups[0].project.organization_id
 
         # Schedule nodestore deletion task for each project
         for project_id, groups in self.project_groups.items():
-            if _is_group_sequence(groups):
-                sorted_groups = sorted(groups, key=lambda g: (g.times_seen, g.id))
-                sorted_group_ids = [group.id for group in sorted_groups]
-                sorted_times_seen = [group.times_seen for group in sorted_groups]
-            else:
-                # groups must be list[tuple[Any, ...]]
-                tuple_groups: list[tuple[Any, ...]] = groups  # type: ignore[assignment]
-                times_seen_index = _F_IDX["times_seen"]
-                id_index = _F_IDX["id"]
-                sorted_tuple_groups = sorted(
-                    tuple_groups,
-                    key=lambda g: (g[times_seen_index], g[id_index]),
-                )
-                sorted_group_ids = [group[id_index] for group in sorted_tuple_groups]
-                sorted_times_seen = [group[times_seen_index] for group in sorted_tuple_groups]
+            sorted_groups = sorted(groups, key=lambda g: (g.times_seen, g.id))
+            sorted_group_ids = [group.id for group in sorted_groups]
+            sorted_times_seen = [group.times_seen for group in sorted_groups]
             # The scheduled task will not have access to the Group model, thus, we need to pass the times_seen
             # in order to enable proper batching and calling deletions with less than ISSUE_PLATFORM_MAX_ROWS_TO_DELETE
             delete_events_for_groups_from_nodestore_and_eventstore.apply_async(
                 kwargs={
-                    "organization_id": self.organization_id,
+                    "organization_id": organization_id,
                     "project_id": project_id,
                     "group_ids": sorted_group_ids,
                     "times_seen": sorted_times_seen,
@@ -180,41 +190,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
     # balance the number of snuba replacements with memory limits.
     DEFAULT_CHUNK_SIZE = GROUP_CHUNK_SIZE
 
-    def chunk(self, apply_filter: bool = False) -> bool:
-        """
-        Deletes a chunk of this instance's data. Return ``True`` if there is
-        more work, or ``False`` if all matching entities have been removed.
-        """
-        query_limit = self.query_limit
-        remaining = self.chunk_size
-        query = self.query
-        order_by = self.order_by
-
-        while remaining > 0:
-            queryset = getattr(self.model, self.manager_name).filter(**query)
-
-            if apply_filter:
-                query_filter = self.get_query_filter()
-                if query_filter is not None:
-                    queryset = queryset.filter(query_filter)
-
-            if self.order_by:
-                queryset = queryset.order_by(order_by)
-
-            if options.get("deletions.fetch-subset-of-fields"):
-                # This reduces the number of fields fetched from the database
-                queryset = list(queryset.values_list(*FIELDS_TO_FETCH)[:query_limit])
-            else:
-                queryset = list(queryset[:query_limit])
-
-            if not queryset:
-                return False
-
-            self.delete_bulk(queryset)
-            remaining = remaining - len(queryset)
-        return True
-
-    def delete_bulk(self, instance_list: Sequence[Group | tuple[Any, ...]]) -> bool:
+    def delete_bulk(self, instance_list: Sequence[Group]) -> bool:
         """
         Group deletion operates as a quasi-bulk operation so that we don't flood
         snuba replacements with deletions per group.
@@ -225,49 +201,35 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         self.mark_deletion_in_progress(instance_list)
         self._delete_children(instance_list)
         # Remove group objects with children removed.
-        # If instances are tuples, convert them to Group objects for deletion
-        if _is_group_sequence(instance_list):
-            self.delete_instance_bulk(instance_list)
-        else:
-            # Convert tuples to Group objects
-            tuple_list: Sequence[tuple[Any, ...]] = instance_list  # type: ignore[assignment]
-            group_ids = [group[_F_IDX["id"]] for group in tuple_list]
-            groups = list(Group.objects.filter(id__in=group_ids))
-            self.delete_instance_bulk(groups)
+        self.delete_instance_bulk(instance_list)
 
         return False
 
-    def _delete_children(self, instance_list: Sequence[Group | tuple[Any, ...]]) -> None:
-        if not instance_list:
-            return
-
-        if _is_group_sequence(instance_list):
-            group_ids = [group.id for group in instance_list]
-            project_id = instance_list[0].project_id
-        else:
-            tuple_list: Sequence[tuple[Any, ...]] = instance_list  # type: ignore[assignment]
-            group_ids = [group[_F_IDX["id"]] for group in tuple_list]
-            project_id = tuple_list[0][_F_IDX["project_id"]]
-
+    def _delete_children(self, instance_list: Sequence[Group]) -> None:
+        group_ids = [group.id for group in instance_list]
+        project_id = instance_list[0].project_id  # All groups should have same project_id
         # Remove child relations for all groups first.
         child_relations: list[BaseRelation] = []
         for model in _GROUP_RELATED_MODELS:
-            child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
+            if model == models.GroupHash:
+                # Using the composite index on (project_id, group_id) is very efficient compared to
+                # using the index on group_id alone. This index only shows up in production.
+                # XXX: Follow up with a PR to add this composite index
+                child_relations.append(
+                    ModelRelation(model, {"project_id": project_id, "group_id__in": group_ids})
+                )
+            else:
+                child_relations.append(ModelRelation(model, {"group_id__in": group_ids}))
 
         error_groups, issue_platform_groups = separate_by_group_category(instance_list)
-        if _is_group_sequence(error_groups) and _is_group_sequence(issue_platform_groups):
-            error_group_ids = [group.id for group in error_groups]
-            issue_platform_group_ids = [group.id for group in issue_platform_groups]
-        else:
-            error_tuple_groups: list[tuple[Any, ...]] = error_groups  # type: ignore[assignment]
-            issue_platform_tuple_groups: list[tuple[Any, ...]] = issue_platform_groups  # type: ignore[assignment]
-            error_group_ids = [group[_F_IDX["id"]] for group in error_tuple_groups]
-            issue_platform_group_ids = [
-                group[_F_IDX["id"]] for group in issue_platform_tuple_groups
-            ]
+        error_group_ids = [group.id for group in error_groups]
+        issue_platform_group_ids = [group.id for group in issue_platform_groups]
 
-        delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
-        delete_group_hashes(project_id, issue_platform_group_ids)
+        # delete_children() will delete GroupHash rows and related GroupHashMetadata rows,
+        # however, we have added multiple optimizations in this function that would need to
+        # be ported to a custom deletion task.
+        delete_group_hashes(instance_list[0].project_id, error_group_ids, seer_deletion=True)
+        delete_group_hashes(instance_list[0].project_id, issue_platform_group_ids)
 
         # If this isn't a retention cleanup also remove event data.
         if not os.environ.get("_SENTRY_CLEANUP"):
@@ -283,50 +245,82 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 
         self.delete_children(child_relations)
 
-    def delete_instance(self, instance: Group | tuple[Any, ...]) -> None:
+    def delete_instance(self, instance: Group) -> None:
         from sentry import similarity
-
-        if isinstance(instance, tuple):
-            instance = Group.objects.get(id=instance[_F_IDX["id"]])
 
         if not self.skip_models or similarity not in self.skip_models:
             similarity.delete(None, instance)
 
         return super().delete_instance(instance)
 
-    def mark_deletion_in_progress(self, instance_list: Sequence[Group | tuple[Any, ...]]) -> None:
-        if _is_group_sequence(instance_list):
-            group_ids = [group.id for group in instance_list]
-        else:
-            tuple_list: Sequence[tuple[Any, ...]] = instance_list  # type: ignore[assignment]
-            group_ids = [group[_F_IDX["id"]] for group in tuple_list]
-        Group.objects.filter(id__in=group_ids).exclude(
+    def mark_deletion_in_progress(self, instance_list: Sequence[Group]) -> None:
+        Group.objects.filter(id__in=[i.id for i in instance_list]).exclude(
             status=GroupStatus.DELETION_IN_PROGRESS
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
 
 
 def delete_project_group_hashes(project_id: int) -> None:
-    groups: list[Group] = []
+    groups = []
     for group in RangeQuerySetWrapper(
         Group.objects.filter(project_id=project_id), step=GROUP_CHUNK_SIZE
     ):
         groups.append(group)
 
     error_groups, issue_platform_groups = separate_by_group_category(groups)
-    # Since groups are all Group objects, the separated groups should also be Group objects
-    if _is_group_sequence(error_groups):
-        error_group_ids = [group.id for group in error_groups]
-    else:
-        tuple_groups: list[tuple[Any, ...]] = error_groups  # type: ignore[assignment]
-        error_group_ids = [group[_F_IDX["id"]] for group in tuple_groups]
+    error_group_ids = [group.id for group in error_groups]
     delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
 
-    if _is_group_sequence(issue_platform_groups):
-        issue_platform_group_ids = [group.id for group in issue_platform_groups]
-    else:
-        tuple_issue_platform_groups: list[tuple[Any, ...]] = issue_platform_groups  # type: ignore[assignment]
-        issue_platform_group_ids = [group[_F_IDX["id"]] for group in tuple_issue_platform_groups]
+    issue_platform_group_ids = [group.id for group in issue_platform_groups]
     delete_group_hashes(project_id, issue_platform_group_ids)
+
+
+def update_group_hash_metadata_in_batches(hash_ids: Sequence[int]) -> None:
+    """
+    Update seer_matched_grouphash to None for GroupHashMetadata rows
+    that reference the given hash_ids, in batches to avoid timeouts.
+
+    This function performs the update in smaller batches to reduce lock
+    contention and prevent statement timeouts when many rows need updating.
+    Includes a maximum iteration limit as a safeguard against potential
+    infinite loops.
+    """
+    option_batch_size = options.get("deletions.group-hash-metadata.batch-size")
+    batch_size = max(1, option_batch_size)
+
+    # Process rows in batches with a maximum iteration limit to prevent
+    # infinite loops while still allowing processing of large datasets.
+    updated_rows = 0
+    iteration_count = 0
+    while iteration_count < GROUP_HASH_METADATA_ITERATIONS:
+        iteration_count += 1
+        # Note: hash_ids is bounded to ~100 items (deletions.group-hashes-batch-size)
+        # from the caller, so this IN clause is intentionally not batched
+        batch_metadata_ids = list(
+            GroupHashMetadata.objects.filter(seer_matched_grouphash_id__in=hash_ids).values_list(
+                "id", flat=True
+            )[:batch_size]
+        )
+        if not batch_metadata_ids:
+            break
+
+        updated = GroupHashMetadata.objects.filter(id__in=batch_metadata_ids).update(
+            seer_matched_grouphash=None
+        )
+        updated_rows += updated
+        metrics.incr("deletions.group_hash_metadata.rows_updated", amount=updated, sample_rate=1.0)
+        # It could be possible we could be trying to update the same rows again and again,
+        # thus, let's break the loop.
+        if updated == 0:
+            break
+
+    # We will try again these hash_ids on the next run of the cleanup script.
+    # This is a safeguard to prevent infinite loops.
+    if iteration_count >= GROUP_HASH_METADATA_ITERATIONS:
+        logger.warning(
+            "update_group_hash_metadata_in_batches.max_iterations_reached",
+            extra={"updated_rows": updated_rows},
+        )
+        metrics.incr("deletions.group_hash_metadata.max_iterations_reached", sample_rate=1.0)
 
 
 def delete_group_hashes(
@@ -358,20 +352,13 @@ def delete_group_hashes(
             logger.warning("Error scheduling task to delete hashes from seer")
         finally:
             hash_ids = [gh[0] for gh in hashes_chunk]
-            # If we delete the grouphash metadata rows first we will not need to update the references to the other grouphashes.
-            # If we try to delete the group hashes first, then it will require the updating of the columns first.
-            #
-            # To understand this, let's say we have the following relationships:
-            # gh A -> ghm A -> no reference to another grouphash
-            # gh B -> ghm B -> gh C
-            # gh C -> ghm C -> gh A
-            #
-            # Deleting group hashes A, B & C (since they all point to the same group) will require:
-            # * Updating columns ghmB & ghmC to point to None
-            # * Deleting the group hash metadata rows
-            # * Deleting the group hashes
-            #
-            # If we delete the metadata first, we will not need to update the columns before deleting them.
+            # GroupHashMetadata rows can reference GroupHash rows via seer_matched_grouphash_id.
+            # Before deleting these GroupHash rows, we need to either:
+            # 1. Update seer_matched_grouphash to None first (to avoid foreign key constraint errors), OR
+            # 2. Delete the GroupHashMetadata rows entirely (they'll be deleted anyway)
+            # If we update the columns first, the deletion of the grouphash metadata rows will have less work to do,
+            # thus, improving the performance of the deletion.
+            update_group_hash_metadata_in_batches(hash_ids)
             GroupHashMetadata.objects.filter(grouphash_id__in=hash_ids).delete()
             GroupHash.objects.filter(id__in=hash_ids).delete()
 
@@ -385,30 +372,15 @@ def delete_group_hashes(
         )
 
 
-def separate_by_group_category(
-    instance_list: Sequence[Group | tuple[Any, ...]],
-) -> tuple[list[Group | tuple[Any, ...]], list[Group | tuple[Any, ...]]]:
-    error_groups: list[Group | tuple[Any, ...]] = []
-    issue_platform_groups: list[Group | tuple[Any, ...]] = []
-
-    # Return early if the list is empty
-    if not instance_list:
-        return error_groups, issue_platform_groups
-
+def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Group], list[Group]]:
+    error_groups = []
+    issue_platform_groups = []
     for group in instance_list:
         # XXX: If a group type has been removed, we shouldn't error here.
         # Ideally, we should refactor `issue_category` to return None if the type is
         # unregistered.
         try:
-            if isinstance(group, Group):
-                issue_category = group.issue_category
-            else:
-                # See issue_type() and issue_category() in group.py
-                issue_category = GroupCategory(
-                    get_group_type_by_type_id(group[_F_IDX["type"]]).category
-                )
-
-            if issue_category == GroupCategory.ERROR:
+            if group.issue_category == GroupCategory.ERROR:
                 error_groups.append(group)
                 continue
         except InvalidGroupTypeError:

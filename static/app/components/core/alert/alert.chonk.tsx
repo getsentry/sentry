@@ -37,7 +37,7 @@ export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   min-height: 44px;
   ${props => makeChonkAlertTheme(props)};
 
-  a {
+  a:not([role='button']) {
     text-decoration: underline;
   }
 `;

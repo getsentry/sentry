@@ -42,6 +42,7 @@ const SPANS_CURSOR_KEY = 'cursor';
 const SPANS_FIELD_KEY = 'field';
 const SPANS_SORT_KEY = 'sort';
 const SPANS_AGGREGATE_FIELD_KEY = 'aggregateField';
+export const SPANS_AGGREGATE_CURSOR = 'aggregateCursor';
 const SPANS_GROUP_BY_KEY = 'groupBy';
 const SPANS_VISUALIZATION_KEY = 'visualize';
 const SPANS_AGGREGATE_SORT_KEY = 'aggregateSort';
@@ -71,7 +72,7 @@ export function getReadableQueryParamsFromLocation(
   const sortBys =
     getSortBysFromLocation(location, SPANS_SORT_KEY, fields) ?? defaultSortBys(fields);
 
-  const aggregateCursor = cursor; // currently sharing a single cursor between modes
+  const aggregateCursor = getCursorFromLocation(location, SPANS_AGGREGATE_CURSOR);
   const aggregateFields = getSpansAggregateFieldsFromLocation(location);
   const aggregateSortBys =
     getAggregateSortBysFromLocation(

@@ -18,7 +18,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {OnDemandBudgetMode} from 'getsentry/types';
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
+import {displayBudgetName, formatReservedWithUnits} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {
@@ -156,18 +156,20 @@ class CheckoutOverview extends Component<Props> {
       return null;
     }
 
-    let title = t('On-Demand');
+    let prefix = '';
 
     if (displayNewOnDemandBudgetsUI) {
       if (onDemandBudget) {
         if (onDemandBudget.budgetMode === OnDemandBudgetMode.SHARED) {
-          title = t('Shared On-Demand');
+          prefix = t('Shared ');
         }
         if (onDemandBudget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-          title = t('Per-Category On-Demand');
+          prefix = t('Per-Category ');
         }
       }
     }
+
+    const title = `${prefix}${displayBudgetName(activePlan, {title: true})}`;
 
     const details: React.ReactNode[] = [];
 
@@ -328,13 +330,14 @@ class CheckoutOverview extends Component<Props> {
             </TotalPrice>
             {onDemandBudget && getTotalBudget(onDemandBudget) > 0 ? (
               <OnDemandAdditionalCost data-test-id="on-demand-additional-cost">
-                {tct('+ On-Demand charges up to [amount][break] based on usage', {
+                {tct('+ [budgetTerm] charges up to [amount][break] based on usage', {
+                  budgetTerm: displayBudgetName(activePlan, {title: true}),
                   amount: `${formatCurrency(getTotalBudget(onDemandBudget))}/mo`,
                   break: <br />,
                 })}
               </OnDemandAdditionalCost>
             ) : (
-              // Placeholder to avoid jumping when on-demand charges are added
+              // Placeholder to avoid jumping when PAYG charges are added
               <div style={{height: 33}} />
             )}
           </div>

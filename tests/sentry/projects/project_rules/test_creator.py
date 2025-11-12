@@ -7,9 +7,6 @@ from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.actor import Actor
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import (
-    UnableToAcquireLockApiError,
-)
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
@@ -18,6 +15,9 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.processors.detector import UnableToAcquireLockApiError
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 class TestProjectRuleCreator(TestCase):
@@ -122,6 +122,8 @@ class TestProjectRuleCreator(TestCase):
         detector = alert_rule_detector.detector
         assert detector.project_id == self.project.id
         assert detector.type == ErrorGroupType.slug
+
+        assert Detector.objects.get(project=self.project, type=IssueStreamGroupType.slug)
 
         workflow = alert_rule_workflow.workflow
         assert workflow.config["frequency"] == 5

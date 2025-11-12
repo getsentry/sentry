@@ -118,6 +118,9 @@ def _make_rpc_requests(
         len(referrers) == len(requests) == len(endpoint_names)
     ), "Length of Referrers must match length of requests for making requests"
 
+    if referrers:
+        sentry_sdk.set_tag("query.referrer", referrers[0])
+
     # Sets the thread parameters once so we're not doing it in the map repeatedly
     partial_request = partial(
         _make_rpc_request,

@@ -1,10 +1,11 @@
 import type React from 'react';
 import {useMemo} from 'react';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   IconAdd,
   IconCheckmark,
@@ -27,6 +28,8 @@ import {
 } from 'getsentry/utils/dataCategory';
 import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
+// TODO(isabella): Clean up repetitive code in this component
+
 type PlanType = 'developer' | 'team' | 'business';
 
 type FeatureKey =
@@ -39,6 +42,9 @@ type FeatureKey =
   | 'baa'
   | 'alerts'
   | 'dashboards'
+  | 'inbound-filters'
+  | 'gh-multi-org'
+  | 'relay'
   | DataCategory;
 
 type FeatureInfo = {
@@ -65,10 +71,9 @@ const EXPANSION_PACK_FEATURES: FeatureInfo[] = [
   },
   {
     key: 'sso',
-    displayStringPrefix: t('SSO w/ '),
     displayStringMap: {
-      team: t('GitHub and Google'),
-      business: t('SAML + SCIM support'),
+      team: t('SSO w/ GitHub and Google'),
+      business: t('+ SAML and SCIM support'),
     },
   },
   {
@@ -86,20 +91,38 @@ const EXPANSION_PACK_FEATURES: FeatureInfo[] = [
   {
     key: 'insights',
     displayStringMap: {
-      business: t('Insights (90 day lookback)'),
+      business: t('Insights (90 day lookback) + 13 month sampled retention'),
     },
     excludedTiers: [PlanTier.AM1],
   },
   {
     key: 'codeowners',
     displayStringMap: {
-      business: t('Code Owners support'),
+      business: t('Code Owners and ownership rules'),
+    },
+  },
+  {
+    key: 'inbound-filters',
+    displayStringMap: {
+      business: t('Advanced inbound filtering'),
+    },
+  },
+  {
+    key: 'gh-multi-org',
+    displayStringMap: {
+      business: t('Multi-org support for GitHub'),
     },
   },
   {
     key: 'baa',
     displayStringMap: {
-      business: t('BAA'),
+      business: t('Business Associate Agreement'),
+    },
+  },
+  {
+    key: 'relay',
+    displayStringMap: {
+      business: t('Relay'),
     },
   },
 ];
@@ -265,10 +288,12 @@ function MonitoringAndDataFeatures({
   const activePlanType = activePlan.name.toLowerCase() as PlanType;
 
   return (
-    <Flex direction="column" gap="lg">
-      <Heading as="h4" size="xs" variant="muted">
-        {t('MONITORING & DATA')}
-      </Heading>
+    <Flex direction="column" gap="md">
+      <Flex paddingBottom="md">
+        <Heading as="h4" size="xs" variant="muted">
+          {t('MONITORING & DATA')}
+        </Heading>
+      </Flex>
       {orderedKeys.map(key => {
         const info = featureKeyToInfo[key];
         if (!info) {
@@ -284,7 +309,7 @@ function MonitoringAndDataFeatures({
               Object.keys(info.displayStringMap)[0] === 'business'
             }
           >
-            <Flex direction="column" gap="sm">
+            <Flex direction="column" gap="xs">
               {Object.entries(info.displayStringMap).map(([planType, displayString]) => {
                 const isActivePlanType = planType === activePlanType;
                 const planTypeIndex = ORDERED_PLAN_TYPES.indexOf(planType);
@@ -363,10 +388,12 @@ function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
   );
 
   return (
-    <Flex direction="column" gap="lg">
-      <Heading as="h4" size="xs" variant="muted">
-        {t('EXPANSION PACK')}
-      </Heading>
+    <Flex direction="column" gap="md">
+      <Flex paddingBottom="md">
+        <Heading as="h4" size="xs" variant="muted">
+          {t('EXPANSION PACK')}
+        </Heading>
+      </Flex>
       {EXPANSION_PACK_FEATURES.map(info => {
         const {key} = info;
         const minPlanType = getMinimumPlanType({featureInfo: info});
@@ -383,7 +410,7 @@ function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
             isOnlyOnBusiness={isOnlyOnBusiness}
             isIncluded={hasFeature}
           >
-            <Flex direction="column" gap="sm">
+            <Flex direction="column" gap="xs">
               {Object.entries(info.displayStringMap).map(([planType, displayString]) => {
                 const hasFeatureVersion = checkHasFeatureVersion({
                   activePlanTypeIndex,
@@ -395,15 +422,13 @@ function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
                   as: 'span' as const,
                   variant: hasFeatureVersion ? ('primary' as const) : ('muted' as const),
                   size:
-                    (isBusinessFeature && !hasFeatureVersion) ||
-                    (isOnlyOnBusiness && !hasFeature)
-                      ? ('xs' as const)
+                    isBusinessFeature && !hasFeatureVersion && !isOnlyOnBusiness
+                      ? ('sm' as const)
                       : ('md' as const),
                 };
 
                 return (
                   <Text key={planType + displayString} as="div">
-                    <Text {...commonProps}>{info.displayStringPrefix}</Text>
                     <Text
                       {...commonProps}
                       variant={
@@ -447,12 +472,12 @@ function FeatureItem({
       <Container padding="0">
         {isIncluded ? (
           isOnlyOnBusiness ? (
-            <IconAdd size="sm" color="active" />
+            <IconAdd size="sm" color="activeText" />
           ) : (
             <IconCheckmark size="sm" color="success" />
           )
         ) : (
-          <IconClose size="xs" color="disabled" />
+          <IconClose size="sm" color="disabled" />
         )}
       </Container>
       {children}

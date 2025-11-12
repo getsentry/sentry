@@ -46,11 +46,13 @@ function BillingDetailsPanel({
   isNewBillingUI,
   analyticsEvent,
   shouldExpandInitially,
+  maxPanelWidth,
 }: {
   organization: Organization;
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
   isNewBillingUI?: boolean;
+  maxPanelWidth?: string;
   shouldExpandInitially?: boolean;
   title?: string;
 }) {
@@ -171,6 +173,7 @@ function BillingDetailsPanel({
       border="primary"
       radius="md"
       data-test-id="billing-details-panel"
+      maxWidth={maxPanelWidth}
     >
       <Flex direction="column" gap="lg" width="100%">
         <Heading as="h2" size="lg">

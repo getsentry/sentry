@@ -46,7 +46,6 @@ from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
-from sentry.releases.commits import bulk_create_commit_file_changes, create_commit
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.service import user_service
@@ -444,9 +443,9 @@ class PushEventWebhook(GitHubWebhook):
                 author.preload_users()
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
-                    c, _ = create_commit(
-                        organization=organization,
-                        repo_id=repo.id,
+                    c = Commit.objects.create(
+                        organization_id=organization.id,
+                        repository_id=repo.id,
                         key=commit["id"],
                         message=commit["message"],
                         author=author,
@@ -489,7 +488,7 @@ class PushEventWebhook(GitHubWebhook):
                         )
 
                     if file_changes:
-                        bulk_create_commit_file_changes(file_changes)
+                        CommitFileChange.objects.bulk_create(file_changes)
                         post_bulk_create(file_changes)
 
             except IntegrityError:
@@ -548,14 +547,43 @@ class IssuesEventWebhook(GitHubWebhook):
         """
         Handle issue assignment and unassignment events.
 
+        When switching assignees, GitHub sends two webhooks (assigned and unassigned) in
+        non-deterministic order. To avoid race conditions, we sync based on the current
+        state in issue.assignees rather than the delta in the assignee field.
+
         Args:
             integration: The GitHub integration
             event: The webhook event payload
             external_issue_key: The formatted issue key
             action: The action type ('assigned' or 'unassigned')
         """
-        assignee = event.get("assignee", {})
-        assignee_gh_name = assignee.get("login")
+        # Use issue.assignees (current state) instead of assignee (delta) to avoid race conditions
+        issue = event.get("issue", {})
+        assignees = issue.get("assignees", [])
+
+        # If there are no assignees, deassign
+        if not assignees:
+            sync_group_assignee_inbound_by_external_actor(
+                integration=integration,
+                external_user_name="",  # Not used for deassignment
+                external_issue_key=external_issue_key,
+                assign=False,
+            )
+            logger.info(
+                "github.webhook.assignment.synced",
+                extra={
+                    "integration_id": integration.id,
+                    "external_issue_key": external_issue_key,
+                    "assignee_name": None,
+                    "action": "deassigned",
+                },
+            )
+            return
+
+        # GitHub supports multiple assignees, but Sentry currently only supports one
+        # Take the first assignee from the current state
+        first_assignee = assignees[0]
+        assignee_gh_name = first_assignee.get("login")
 
         if not assignee_gh_name:
             logger.warning(
@@ -575,7 +603,7 @@ class IssuesEventWebhook(GitHubWebhook):
             integration=integration,
             external_user_name=assignee_name,
             external_issue_key=external_issue_key,
-            assign=(action == IssueEvenntWebhookActionType.ASSIGNED.value),
+            assign=True,
         )
 
         logger.info(
@@ -585,6 +613,7 @@ class IssuesEventWebhook(GitHubWebhook):
                 "external_issue_key": external_issue_key,
                 "assignee_name": assignee_name,
                 "action": action,
+                "total_assignees": len(assignees),
             },
         )
 

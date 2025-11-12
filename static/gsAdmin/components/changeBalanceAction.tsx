@@ -32,6 +32,7 @@ function ChangeBalanceModal({
 }: ModalProps) {
   const [ticketUrl, setTicketUrl] = useState('');
   const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const api = useApi();
 
   function coerceValue(value: number) {
@@ -47,6 +48,12 @@ function ChangeBalanceModal({
       return;
     }
 
+    // Prevent concurrent submissions
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       await api.requestPromise(`/_admin/customers/${orgId}/balance-changes/`, {
         method: 'POST',
@@ -60,6 +67,8 @@ function ChangeBalanceModal({
       onSubmitError({
         responseJSON: err.responseJSON,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -76,7 +85,8 @@ function ChangeBalanceModal({
         <Form
           onSubmit={onSubmit}
           onCancel={closeModal}
-          submitLabel="Submit"
+          submitLabel={isSubmitting ? 'Submitting...' : 'Submit'}
+          submitDisabled={isSubmitting}
           cancelLabel="Cancel"
           footerClass="modal-footer"
         >
@@ -84,6 +94,7 @@ function ChangeBalanceModal({
             label="Credit Amount"
             name="creditAmount"
             help="Add or remove credit, in dollars"
+            disabled={isSubmitting}
           />
           <AuditFields>
             <InputField
@@ -94,6 +105,7 @@ function ChangeBalanceModal({
               inline={false}
               stacked
               flexibleControlStateSize
+              disabled={isSubmitting}
               onChange={(ticketUrlInput: any) => setTicketUrl(ticketUrlInput)}
             />
             <TextField
@@ -104,6 +116,7 @@ function ChangeBalanceModal({
               stacked
               flexibleControlStateSize
               maxLength={500}
+              disabled={isSubmitting}
               onChange={(notesInput: any) => setNotes(notesInput)}
             />
           </AuditFields>

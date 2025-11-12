@@ -4,7 +4,8 @@ import Color from 'color';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Stack} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -21,7 +22,11 @@ import {
   type SharedOnDemandBudget,
   type Subscription,
 } from 'getsentry/types';
-import {formatReservedWithUnits, isNewPayingCustomer} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  formatReservedWithUnits,
+  isNewPayingCustomer,
+} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
@@ -210,9 +215,14 @@ function OnDemandDiff({
               if (index === 0) {
                 leftComponent = (
                   <ChangeSectionTitle>
-                    {newPlan.budgetTerm === 'pay-as-you-go'
-                      ? t('PAYG spend limit')
-                      : t('Shared spend limit')}
+                    {tct('[budgetTerm] spend limit', {
+                      budgetTerm: displayBudgetName(
+                        newPlan,
+                        newPlan.budgetTerm === 'pay-as-you-go'
+                          ? {abbreviated: true}
+                          : {title: true}
+                      ),
+                    })}
                   </ChangeSectionTitle>
                 );
               }
@@ -542,25 +552,38 @@ function CartDiff({
   }
 
   return (
-    <Flex
+    <Stack
       data-test-id="cart-diff"
-      direction="column"
-      padding="xl"
       border="primary"
+      radius="lg"
+      align="start"
       background="primary"
-      radius="md"
+      overflow="hidden"
     >
-      <Flex justify="between" align="center">
-        <Title>{tct('Changes ([numChanges])', {numChanges: allChanges.length})}</Title>
+      <Stack
+        direction="row"
+        justify="between"
+        align="center"
+        width="100%"
+        padding="lg xl"
+      >
+        <Heading as="h3">{t('Changes')}</Heading>
         <Button
           aria-label={`${isOpen ? 'Hide' : 'Show'} changes`}
           onClick={() => onToggle(!isOpen)}
           borderless
+          size="zero"
           icon={<IconChevron direction={isOpen ? 'up' : 'down'} />}
         />
-      </Flex>
+      </Stack>
       {isOpen && (
-        <ChangesContainer>
+        <Stack
+          width="100%"
+          padding="xl xl 0 xl"
+          maxHeight="240px"
+          overflowY="auto"
+          borderTop="primary"
+        >
           {planChanges.length + productChanges.length + cycleChanges.length > 0 && (
             <PlanDiff
               currentPlan={currentPlan}
@@ -585,27 +608,13 @@ function CartDiff({
               reservedChanges={reservedChanges}
             />
           )}
-        </ChangesContainer>
+        </Stack>
       )}
-    </Flex>
+    </Stack>
   );
 }
 
 export default CartDiff;
-
-const ChangesContainer = styled('div')`
-  & > div:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-  max-height: 300px;
-  overflow-y: auto;
-`;
-
-const Title = styled('h1')`
-  font-size: ${p => p.theme.fontSize.xl};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0;
-`;
 
 const Change = styled('div')`
   display: flex;
@@ -645,10 +654,12 @@ const Removed = styled(Change)<{prefersDarkMode?: boolean}>`
 
 const ChangedCategory = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
 `;
 
 const ChangeSection = styled('div')`
-  padding: ${p => p.theme.space.lg} 0;
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const ChangeGrid = styled('div')`
@@ -659,7 +670,7 @@ const ChangeGrid = styled('div')`
   align-items: center;
 `;
 
-const ChangeSectionTitle = styled('h2')<{hasBottomMargin?: boolean}>`
+const ChangeSectionTitle = styled(Text)<{hasBottomMargin?: boolean}>`
   font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   margin-bottom: ${p => (p.hasBottomMargin ? p.theme.space.xs : 0)};

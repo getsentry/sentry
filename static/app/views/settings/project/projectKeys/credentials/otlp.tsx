@@ -8,6 +8,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 
 interface OtlpTabProps {
+  integrationEndpoint: string;
   logsEndpoint: string;
   publicKey: string;
   showOtlpLogs: boolean;
@@ -21,6 +22,7 @@ export function OtlpTab({
   publicKey,
   showOtlpLogs,
   showOtlpTraces,
+  integrationEndpoint,
 }: OtlpTabProps) {
   // Build the OTEL collector config example
   const buildCollectorConfig = useMemo(() => {
@@ -51,6 +53,16 @@ export function OtlpTab({
 
   return (
     <Fragment>
+      <FieldGroup
+        label={t('OTLP Endpoint')}
+        help={t('The base OTLP endpoint for your project.')}
+        inline={false}
+        flexibleControlStateSize
+      >
+        <TextCopyInput aria-label={t('OTLP Endpoint')}>
+          {`${integrationEndpoint}otlp`}
+        </TextCopyInput>
+      </FieldGroup>
       {showOtlpLogs && (
         <Fragment>
           <FieldGroup

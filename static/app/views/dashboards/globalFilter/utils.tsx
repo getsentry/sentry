@@ -4,13 +4,14 @@ import {
 } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {getFilterValueType} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {cleanFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/utils';
+import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {
   TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {Tag} from 'sentry/types/group';
 import {getFieldDefinition, type FieldDefinition} from 'sentry/utils/fields';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 
@@ -37,20 +38,34 @@ export function getFieldDefinitionForDataset(
 
 export function parseFilterValue(
   filterValue: string,
-  filterKeys: TagCollection,
   globalFilter: GlobalFilter
 ): Array<TokenResult<Token.FILTER>> {
   const parsedResult = parseQueryBuilderValue(
     filterValue,
     () => getFieldDefinitionForDataset(globalFilter.tag, globalFilter.dataset),
     {
-      filterKeys,
+      filterKeys: {
+        [globalFilter.tag.key]: globalFilter.tag,
+      },
     }
   );
   if (!parsedResult) {
     return [];
   }
   return parsedResult.filter(token => token.type === Token.FILTER);
+}
+
+export function getFilterToken(
+  globalFilter: GlobalFilter,
+  fieldDefinition: FieldDefinition | null
+) {
+  const {tag, value} = globalFilter;
+  let filterValue = value;
+  if (value === '') {
+    filterValue = getInitialFilterText(tag.key, fieldDefinition, false);
+  }
+  const filterTokens = parseFilterValue(filterValue, globalFilter);
+  return filterTokens[0] ?? null;
 }
 
 export function isValidNumericFilterValue(
@@ -76,7 +91,6 @@ export function newNumericFilterQuery(
   newValue: string,
   newOperator: TermOperator,
   filterToken: TokenResult<Token.FILTER>,
-  filterKeys: TagCollection,
   globalFilter: GlobalFilter
 ) {
   // Update the value of the filter
@@ -91,22 +105,18 @@ export function newNumericFilterQuery(
     token: filterToken,
   });
   if (!cleanedValue) return '';
-  const filterWithNewValue = modifyFilterValue(
-    filterToken.text,
-    filterToken,
-    cleanedValue
-  );
+  const newFilterValue = modifyFilterValue(filterToken.text, filterToken, cleanedValue);
 
-  const newFilterTokens = parseFilterValue(filterWithNewValue, filterKeys, globalFilter);
-  const filterTokenWithNewValue = newFilterTokens?.[0];
-  if (!filterTokenWithNewValue) {
+  const newFilterTokens = parseFilterValue(newFilterValue, globalFilter);
+  const newFilterToken = newFilterTokens?.[0];
+  if (!newFilterToken) {
     return '';
   }
 
   // Update the operator of the filter
   const newFilterQuery = modifyFilterOperatorQuery(
-    filterWithNewValue,
-    filterTokenWithNewValue,
+    newFilterValue,
+    newFilterToken,
     newOperator,
     false
   );

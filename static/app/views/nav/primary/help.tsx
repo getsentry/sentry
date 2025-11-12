@@ -131,10 +131,14 @@ export function PrimaryNavigationHelp() {
                 startTour();
               },
             },
-            organization?.features?.includes('chonk-ui')
-              ? user.options.prefersChonkUI
+            organization?.features?.includes('chonk-ui') ||
+            organization?.features?.includes('chonk-ui-enforce')
+              ? user.options.prefersChonkUI ||
+                // Show opt-out if the user has not indicated a preference and enforce flag is enabled
+                (user.options.prefersChonkUI === null &&
+                  organization?.features?.includes('chonk-ui-enforce'))
                 ? {
-                    key: 'new-chonk-ui',
+                    key: 'old-chonk-ui',
                     label: t('Switch back to our old look'),
                     onAction() {
                       mutateUserOptions({prefersChonkUI: false});

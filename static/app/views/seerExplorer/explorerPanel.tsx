@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 
 import useOrganization from 'sentry/utils/useOrganization';
@@ -8,9 +8,9 @@ import {usePanelSizing} from './hooks/usePanelSizing';
 import {useSeerExplorer} from './hooks/useSeerExplorer';
 import BlockComponent from './blockComponents';
 import EmptyState from './emptyState';
+import {useExplorerMenu} from './explorerMenu';
 import InputSection from './inputSection';
 import PanelContainers, {BlocksContainer} from './panelContainers';
-import type {SlashCommand} from './slashCommands';
 import type {Block, ExplorerPanelProps} from './types';
 
 function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
@@ -18,7 +18,6 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
 
   const [inputValue, setInputValue] = useState('');
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1); // -1 means input is focused
-  const [isSlashCommandsVisible, setIsSlashCommandsVisible] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false); // state for slide-down
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -28,6 +27,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   >(new Map());
   const panelRef = useRef<HTMLDivElement>(null);
   const hoveredBlockIndex = useRef<number>(-1);
+  const userScrolledUpRef = useRef<boolean>(false);
 
   // Custom hooks
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
@@ -39,6 +39,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     isPolling,
     interruptRun,
     interruptRequested,
+    setRunId,
   } = useSeerExplorer();
 
   // Get blocks from session data or empty array
@@ -65,6 +66,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     },
     onNavigate: () => {
       setIsMinimized(false);
+      userScrolledUpRef.current = true;
     },
   });
 
@@ -73,6 +75,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     if (isVisible) {
       setFocusedBlockIndex(-1);
       setIsMinimized(false); // Expand when opening
+      userScrolledUpRef.current = false;
       setTimeout(() => {
         // Scroll to bottom when panel opens
         if (scrollContainerRef.current) {
@@ -101,9 +104,42 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     };
   }, [isVisible]);
 
-  // Auto-scroll to bottom when new blocks are added
+  // Track scroll position to detect if user scrolled up
   useEffect(() => {
-    if (scrollContainerRef.current) {
+    if (!isVisible) {
+      return undefined;
+    }
+
+    const handleScroll = () => {
+      const container = scrollContainerRef.current;
+      if (!container) {
+        return;
+      }
+
+      const {scrollTop, scrollHeight, clientHeight} = container;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50; // 50px threshold
+
+      // If user is at/near bottom, mark that they haven't scrolled up
+      if (isAtBottom) {
+        userScrolledUpRef.current = false;
+      } else {
+        userScrolledUpRef.current = true;
+      }
+    };
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => {
+        container.removeEventListener('scroll', handleScroll);
+      };
+    }
+    return undefined;
+  }, [isVisible, focusedBlockIndex]);
+
+  // Auto-scroll to bottom when new blocks are added, but only if user hasn't scrolled up
+  useEffect(() => {
+    if (!userScrolledUpRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   }, [blocks]);
@@ -113,41 +149,31 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     blockRefs.current = blockRefs.current.slice(0, blocks.length);
   }, [blocks]);
 
-  // Auto-focus input when user starts typing while a block is focused
+  // Reset scroll state when navigating to input (which is at the bottom)
   useEffect(() => {
-    if (!isVisible) {
-      return undefined;
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (focusedBlockIndex !== -1) {
-        const isPrintableChar =
-          e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
-
-        if (isPrintableChar) {
-          e.preventDefault();
-          setFocusedBlockIndex(-1);
-          textareaRef.current?.focus();
-          setInputValue(prev => prev + e.key);
+    if (focusedBlockIndex === -1 && scrollContainerRef.current) {
+      // Small delay to let scrollIntoView complete
+      setTimeout(() => {
+        const container = scrollContainerRef.current;
+        if (container) {
+          const {scrollTop, scrollHeight, clientHeight} = container;
+          const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+          if (isAtBottom) {
+            userScrolledUpRef.current = false;
+          }
         }
-      }
-    };
+      }, 100);
+    }
+  }, [focusedBlockIndex]);
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isVisible, focusedBlockIndex]);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Escape' && isPolling && !interruptRequested) {
-      e.preventDefault();
-      interruptRun();
-    } else if (e.key === 'Enter' && !e.shiftKey) {
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (inputValue.trim() && !isPolling) {
-        sendMessage(inputValue.trim());
+        sendMessage(inputValue.trim(), undefined);
         setInputValue('');
+        // Reset scroll state so we auto-scroll to show the response
+        userScrolledUpRef.current = false;
         // Reset textarea height
         if (textareaRef.current) {
           textareaRef.current.style.height = 'auto';
@@ -177,29 +203,79 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     setIsMinimized(false);
   };
 
-  const handleInputClick = () => {
+  const focusInput = useCallback(() => {
     hoveredBlockIndex.current = -1;
     setFocusedBlockIndex(-1);
     textareaRef.current?.focus();
     setIsMinimized(false);
-  };
+  }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
-  const handlePanelBackgroundClick = () => {
+  const {menu, isMenuOpen, closeMenu, onMenuButtonClick} = useExplorerMenu({
+    clearInput: () => setInputValue(''),
+    inputValue,
+    focusInput,
+    textAreaRef: textareaRef,
+    panelSize,
+    panelVisible: isVisible,
+    slashCommandHandlers: {
+      onMaxSize: handleMaxSize,
+      onMedSize: handleMedSize,
+      onNew: startNewSession,
+    },
+    onChangeSession: setRunId,
+  });
+
+  const handlePanelBackgroundClick = useCallback(() => {
     setIsMinimized(false);
-  };
+    closeMenu();
+  }, [closeMenu]);
 
-  const handleCommandSelect = (command: SlashCommand) => {
-    // Execute the command
-    command.handler();
+  const handleInputClick = useCallback(() => {
+    // Click handler for the input textarea.
+    focusInput();
+    closeMenu();
+  }, [closeMenu, focusInput]);
 
-    // Clear input
-    setInputValue('');
-
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+  useEffect(() => {
+    if (!isVisible || isMinimized || isMenuOpen) {
+      return undefined;
     }
-  };
+
+    // Global keyboard event listeners for when the panel is open and menu is closed.
+    // Menu keyboard listeners are in the menu component.
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+
+      if (e.key === 'Escape' && isPolling && !interruptRequested) {
+        e.preventDefault();
+        interruptRun();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsMinimized(true);
+      } else if (isPrintableChar) {
+        if (focusedBlockIndex !== -1) {
+          // If a block is focused, auto-focus input when user starts typing.
+          e.preventDefault();
+          setFocusedBlockIndex(-1);
+          textareaRef.current?.focus();
+          setInputValue(prev => prev + e.key);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [
+    isVisible,
+    isMenuOpen,
+    isPolling,
+    focusedBlockIndex,
+    interruptRun,
+    interruptRequested,
+    isMinimized,
+  ]);
 
   const panelContent = (
     <PanelContainers
@@ -226,8 +302,8 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
               isPolling={isPolling}
               onClick={() => handleBlockClick(index)}
               onMouseEnter={() => {
-                // Don't change focus while slash commands menu is open or if already on this block
-                if (isSlashCommandsVisible || hoveredBlockIndex.current === index) {
+                // Don't change focus while menu is open or if already on this block
+                if (isMenuOpen || hoveredBlockIndex.current === index) {
                   return;
                 }
 
@@ -252,19 +328,17 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
         )}
       </BlocksContainer>
       <InputSection
-        ref={textareaRef}
-        inputValue={inputValue}
+        menu={menu}
+        onMenuButtonClick={onMenuButtonClick}
         focusedBlockIndex={focusedBlockIndex}
-        isPolling={isPolling}
+        inputValue={inputValue}
         interruptRequested={interruptRequested}
+        isPolling={isPolling}
+        onClear={() => setInputValue('')}
         onInputChange={handleInputChange}
-        onKeyDown={handleKeyDown}
         onInputClick={handleInputClick}
-        onCommandSelect={handleCommandSelect}
-        onSlashCommandsVisibilityChange={setIsSlashCommandsVisible}
-        onMaxSize={handleMaxSize}
-        onMedSize={handleMedSize}
-        onClear={startNewSession}
+        textAreaRef={textareaRef}
+        onKeyDown={handleInputKeyDown}
       />
     </PanelContainers>
   );

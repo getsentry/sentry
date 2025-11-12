@@ -566,7 +566,8 @@ function TableComponent({
               field,
               meta as MetaType,
               widget,
-              organization
+              organization,
+              dashboardFilters
             )!;
 
             return customRenderer;

@@ -613,10 +613,19 @@ def single_exception(
             )
 
         values: list[ExceptionGroupingComponentChildren] = []
+
         if ns_error_component is not None:
-            values = [stacktrace_component, type_component, ns_error_component, value_component]
+            values = [type_component, value_component, ns_error_component, stacktrace_component]
         else:
-            values = [stacktrace_component, type_component, value_component]
+            values = [type_component, value_component, stacktrace_component]
+
+        # TODO: Once we're fully transitioned off of the `newstyle:2023-01-11` config, the code here
+        # (and the option controlling it) can be deleted
+        if context.get("use_legacy_exception_subcomponent_order"):
+            if ns_error_component is not None:
+                values = [stacktrace_component, type_component, ns_error_component, value_component]
+            else:
+                values = [stacktrace_component, type_component, value_component]
 
         exception_components_by_variant[variant_name] = ExceptionGroupingComponent(
             values=values, frame_counts=stacktrace_component.frame_counts

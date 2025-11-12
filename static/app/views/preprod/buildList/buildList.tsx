@@ -1,4 +1,5 @@
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';

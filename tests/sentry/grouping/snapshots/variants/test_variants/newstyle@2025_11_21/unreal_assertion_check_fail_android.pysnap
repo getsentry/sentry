@@ -1,5 +1,5 @@
 ---
-created: '2025-10-29T21:18:54.621684+00:00'
+created: '2025-11-03T21:48:49.519229+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,6 +10,10 @@ app:
   root_component:
     app*
       exception*
+        type (ignored because exception is synthetic)
+          "SIGTRAP"
+        value (ignored because stacktrace takes precedence)
+          "Trap"
         stacktrace*
           frame (marked out of app by stack trace rule (family:native function:FDebug::CheckVerifyFailedImpl* v+app -app ^-app))
             function*
@@ -79,10 +83,6 @@ app:
           frame (marked out of app by stack trace rule (category:system -app))
             function*
               "tgkill"
-        type (ignored because exception is synthetic)
-          "SIGTRAP"
-        value (ignored because stacktrace takes precedence)
-          "Trap"
 --------------------------------------------------------------------------
 system:
   hash: "f203e9bc12df86bb01fbd92a45643f86"
@@ -91,6 +91,10 @@ system:
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "SIGTRAP"
+        value (ignored because stacktrace takes precedence)
+          "Trap"
         stacktrace*
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
@@ -160,7 +164,3 @@ system:
           frame*
             function*
               "tgkill"
-        type (ignored because exception is synthetic)
-          "SIGTRAP"
-        value (ignored because stacktrace takes precedence)
-          "Trap"

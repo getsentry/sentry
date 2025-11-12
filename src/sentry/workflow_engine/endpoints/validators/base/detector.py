@@ -9,6 +9,8 @@ from rest_framework import serializers
 from sentry import audit_log
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
@@ -47,6 +49,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     type = serializers.CharField()
     config = serializers.JSONField(default=dict)
     owner = ActorField(required=False, allow_null=True)
+    description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     enabled = serializers.BooleanField(required=False)
     condition_group = BaseDataConditionGroupValidator(required=False)
 
@@ -97,6 +100,10 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             if "name" in validated_data:
                 instance.name = validated_data.get("name", instance.name)
 
+            # Handle description field update
+            if "description" in validated_data:
+                instance.description = validated_data.get("description", instance.description)
+
             # Handle enable/disable detector
             if "enabled" in validated_data:
                 enabled = validated_data.get("enabled")
@@ -135,7 +142,20 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             event=audit_log.get_event_id("DETECTOR_EDIT"),
             data=instance.get_audit_log_data(),
         )
+
         return instance
+
+    def delete(self) -> None:
+        """
+        Delete the detector by scheduling it for deletion.
+
+        Subclasses can override this to perform detector-specific cleanup before
+        deletion (e.g., removing billing seats, cleaning up external resources).
+        They should call super().delete() to perform the actual deletion.
+        """
+        assert self.instance is not None
+        RegionScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
+        self.instance.update(status=ObjectStatus.PENDING_DELETION)
 
     def _create_data_source(self, validated_data_source, detector: Detector):
         data_source_creator = validated_data_source["_creator"]
@@ -180,6 +200,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             detector = Detector(
                 project_id=self.context["project"].id,
                 name=validated_data["name"],
+                description=validated_data.get("description"),
                 workflow_condition_group=condition_group,
                 type=validated_data["type"].slug,
                 config=validated_data.get("config", {}),
@@ -207,4 +228,5 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 event=audit_log.get_event_id("DETECTOR_ADD"),
                 data=detector.get_audit_log_data(),
             )
+
         return detector

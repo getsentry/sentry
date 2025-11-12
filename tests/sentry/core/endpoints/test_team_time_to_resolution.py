@@ -32,7 +32,7 @@ class TeamTimeToResolutionTest(APITestCase):
             group1,
             GroupHistoryStatus.RESOLVED,
             user_id=self.user.id,
-            prev_history=gh1,
+            prev_history_date=gh1.date_added,
             date_added=before_now(days=2),
         )
 
@@ -47,7 +47,7 @@ class TeamTimeToResolutionTest(APITestCase):
             group2,
             GroupHistoryStatus.RESOLVED,
             user_id=self.user.id,
-            prev_history=gh2,
+            prev_history_date=gh2.date_added,
         )
         today = str(now().date())
         yesterday = str((now() - timedelta(days=1)).date())
@@ -72,7 +72,7 @@ class TeamTimeToResolutionTest(APITestCase):
             group2,
             GroupHistoryStatus.RESOLVED,
             user_id=self.user.id,
-            prev_history=gh2,
+            prev_history_date=gh2.date_added,
         )
 
         # making sure it doesnt bork anything
@@ -80,7 +80,7 @@ class TeamTimeToResolutionTest(APITestCase):
             group2,
             GroupHistoryStatus.DELETED,
             user_id=self.user.id,
-            prev_history=gh2,
+            prev_history_date=gh2.date_added,
         )
         # Make sure that if we have a `GroupHistory` row with no prev history then we don't crash.
         self.create_group_history(
@@ -114,7 +114,7 @@ class TeamTimeToResolutionTest(APITestCase):
             group1,
             GroupHistoryStatus.RESOLVED,
             user_id=self.user.id,
-            prev_history=gh1,
+            prev_history_date=gh1.date_added,
             date_added=before_now(days=2),
         )
 

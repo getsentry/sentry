@@ -1,7 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import triggerChangeBalanceModal from 'admin/components/changeBalanceAction';
 
@@ -106,5 +111,94 @@ describe('BalanceChangeAction', () => {
         },
       })
     );
+  });
+
+  it('prevents double submission', async () => {
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/_admin/customers/${organization.slug}/balance-changes/`,
+      method: 'POST',
+      body: OrganizationFixture(),
+    });
+
+    triggerChangeBalanceModal({subscription, ...modalProps});
+
+    renderGlobalModal();
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Credit Amount'}), '10');
+
+    const submitButton = screen.getByRole('button', {name: 'Submit'});
+
+    // Rapidly click submit button multiple times
+    await userEvent.click(submitButton);
+    await userEvent.click(submitButton);
+    await userEvent.click(submitButton);
+
+    // Should only call API once (double-clicks prevented)
+    expect(updateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables form fields during submission', async () => {
+    // Mock with delay to keep isSubmitting true during test
+    MockApiClient.addMockResponse({
+      url: `/_admin/customers/${organization.slug}/balance-changes/`,
+      method: 'POST',
+      body: OrganizationFixture(),
+      asyncDelay: 100,
+    });
+
+    triggerChangeBalanceModal({subscription, ...modalProps});
+
+    renderGlobalModal();
+    const creditInput = screen.getByRole('spinbutton', {name: 'Credit Amount'});
+    await userEvent.type(creditInput, '10');
+
+    const submitButton = screen.getByRole('button', {name: 'Submit'});
+    await userEvent.click(submitButton);
+
+    // During submission, button should show "Submitting...", be disabled, and fields should be disabled
+    expect(submitButton).toHaveTextContent('Submitting...');
+    expect(submitButton).toBeDisabled();
+    expect(creditInput).toBeDisabled();
+    expect(screen.getByTestId('url-field')).toBeDisabled();
+    expect(screen.getByTestId('notes-field')).toBeDisabled();
+  });
+
+  it('re-enables form after error', async () => {
+    MockApiClient.addMockResponse({
+      url: `/_admin/customers/${organization.slug}/balance-changes/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'Invalid amount'},
+      asyncDelay: 10,
+    });
+
+    triggerChangeBalanceModal({subscription, ...modalProps});
+    renderGlobalModal();
+
+    // Pre-grab stable references to fields using findBy to wait for modal content
+    const creditInput = await screen.findByRole('spinbutton', {name: 'Credit Amount'});
+    const urlField = await screen.findByTestId('url-field');
+    const notesField = await screen.findByTestId('notes-field');
+    const submitButton = screen.getByRole('button', {name: /submit/i});
+
+    await userEvent.type(creditInput, '10');
+    await waitFor(() => expect(creditInput).toHaveValue(10));
+
+    // Wait for button to be enabled before clicking
+    await waitFor(() => expect(submitButton).toBeEnabled());
+
+    // Disable pointer-events check to avoid false positive in CI
+    // where modal overlay may still be settling during initialization
+    await userEvent.click(submitButton, {pointerEventsCheck: 0});
+
+    // Wait for form to be re-enabled after error
+    // Don't rely on error message text as the Form component shows different messages
+    // depending on error response structure. All fields are controlled by isSubmitting
+    // state, so if one is enabled, all should be enabled.
+    await waitFor(() => expect(creditInput).toBeEnabled());
+
+    // Verify all fields and submit button are re-enabled
+    expect(urlField).toBeEnabled();
+    expect(notesField).toBeEnabled();
+    expect(submitButton).toBeEnabled();
   });
 });

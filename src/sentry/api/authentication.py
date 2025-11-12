@@ -9,6 +9,8 @@ from typing import Any, ClassVar
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.core.cache import cache
+from django.http import HttpHeaders
 from django.urls import resolve
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
@@ -40,10 +42,13 @@ from sentry.models.relay import Relay
 from sentry.organizations.services.organization import organization_service
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils import jwt
 from sentry.utils.linksign import process_signature
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
 
@@ -328,6 +333,88 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
         if user_id is None:
             raise invalid_pair_error
         return self.transform_auth(user_id, None)
+
+
+def get_payload_from_client_secret_jwt(
+    headers: HttpHeaders, installation: SentryAppInstallation
+) -> dict[str, Any]:
+    auth_header = headers.get("Authorization")
+    if auth_header is None:
+        raise AuthenticationFailed("Header is in invalid form")
+
+    tokens = auth_header.split(" ")  # Should be Bearer <token>
+    if tokens[0].lower() != "bearer":
+        raise AuthenticationFailed("Bearer not present in token")
+
+    application = installation.sentry_app.application
+    if application is None:
+        raise AuthenticationFailed("Application not found")
+
+    client_secret = application.client_secret
+    try:
+        encoded_jwt = tokens[1]
+    except IndexError:
+        raise AuthenticationFailed("Invalid Authorization header, should be Bearer <token>")
+
+    try:
+        payload = jwt.decode(encoded_jwt, client_secret, algorithms=["HS256"])
+    except Exception as e:
+        raise AuthenticationFailed("Could not validate JWT") from e
+
+    return payload
+
+
+class JWTClientSecretAuthentication(QuietBasicAuthentication):
+    """
+    Authenticates a Sentry App by validating given JWT was issued by the Sentry App
+
+    Currently used for authenticating requests to manually refresh an installation's API token.
+    Expects the URL to contain a `uuid` in the path
+    """
+
+    def _create_cache_key(self, installation_uuid: str, jti: str) -> str:
+        return f"jwt_client_secret:{installation_uuid}:{jti}"
+
+    def authenticate(self, request: Request):
+        if not request.data:
+            raise AuthenticationFailed("Invalid request")
+
+        if request.data.get("grant_type") != GrantTypes.CLIENT_SECRET_JWT:
+            return None
+
+        path_params = request.resolver_match
+        installation_uuid = path_params.kwargs.get("uuid") if path_params else None
+        if not installation_uuid:
+            raise AuthenticationFailed("Installation UUID not found")
+
+        try:
+            installation = SentryAppInstallation.objects.get(uuid=installation_uuid)
+        except SentryAppInstallation.DoesNotExist:
+            raise AuthenticationFailed("Installation not found")
+
+        application = installation.sentry_app.application
+        if application is None:
+            raise AuthenticationFailed("Application not found")
+        payload = get_payload_from_client_secret_jwt(request.headers, installation)
+        # Store the JWT payload on the request object for later use
+        setattr(request, "jwt_payload", payload)
+
+        valid_client_id = payload.get("iss") is not None and constant_time_compare(
+            payload["iss"], application.client_id
+        )
+        if not valid_client_id:
+            raise AuthenticationFailed("JWT is not valid for this application")
+
+        jti = payload.get("jti")
+        if not jti:
+            raise AuthenticationFailed("JWT is missing a jti claim")
+
+        cache_key = self._create_cache_key(installation.uuid, jti)
+        if cache.get(cache_key):
+            raise AuthenticationFailed("JWT has already been used")
+        cache.set(cache_key, True, timeout=60)  # 1 minute
+
+        return self.transform_auth(installation.sentry_app.proxy_user_id, None)
 
 
 @AuthenticationSiloLimit(SiloMode.REGION, SiloMode.CONTROL)

@@ -1963,13 +1963,9 @@ class Factories:
         release: Release | None = None,
         user_id: int | None = None,
         team_id: int | None = None,
-        prev_history: GroupHistory | None = None,
+        prev_history_date: datetime | None = None,
         date_added: datetime | None = None,
     ) -> GroupHistory:
-        prev_history_date = None
-        if prev_history:
-            prev_history_date = prev_history.date_added
-
         kwargs = {}
         if date_added:
             kwargs["date_added"] = date_added
@@ -1981,7 +1977,6 @@ class Factories:
             user_id=user_id,
             team_id=team_id,
             status=status,
-            prev_history=prev_history,
             prev_history_date=prev_history_date,
             **kwargs,
         )
