@@ -451,6 +451,7 @@ def make_full_aggregation_query_with_short_id(
     limit: int,
 ) -> Query:
     """Return a query to fetch a replay with a short ID - an 8-character replay ID prefix.
+    This query does not make use of the replay_id index and can potentially scan all rows in the time range and project list.
 
     Arguments:
         fields -- if non-empty, used to query a subset of fields. Corresponds to the keys in QUERY_ALIAS_COLUMN_MAP.

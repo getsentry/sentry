@@ -114,24 +114,29 @@ def query_replay_instance(
 
 def query_replay_instance_with_short_id(
     project_ids: list[int],
-    replay_id: str,
+    replay_id_prefix: str,
     start: datetime,
     end: datetime,
     organization: Organization | None = None,
     request_user_id: int | None = None,
 ) -> list[dict[str, Any]] | None:
-    """Query aggregated replay instance with a range query over {id}000.. - {id}fff.. Date range is chunked into 14 day intervals, newest to oldest, to avoid timeouts."""
-    chunk_end = end
-    while chunk_end > start:
-        chunk_start = max(chunk_end - timedelta(days=14), start)
+    """
+    Query aggregated replay instance with a string prefix filter.
+    Date range is chunked into 14 day intervals, newest to oldest, to avoid timeouts.
+    This query can do large scans over the time range and project list.
+    """
+    window_size = timedelta(days=14)
+    window_end = end
+    while window_end > start:
+        window_start = max(window_end - window_size, start)
 
         snuba_response = execute_query(
             query=make_full_aggregation_query_with_short_id(
                 fields=["replay_id"],
-                replay_id_prefix=replay_id,
+                replay_id_prefix=replay_id_prefix,
                 project_ids=project_ids,
-                period_start=chunk_start,
-                period_end=chunk_end,
+                period_start=window_start,
+                period_end=window_end,
                 request_user_id=request_user_id,
                 limit=1,
             ),
@@ -142,7 +147,7 @@ def query_replay_instance_with_short_id(
         if snuba_response:
             return snuba_response
 
-        chunk_end = chunk_start
+        window_end = window_start
 
     return None
 

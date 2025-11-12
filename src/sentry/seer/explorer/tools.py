@@ -574,7 +574,7 @@ def get_replay_metadata(
     else:
         snuba_response = query_replay_instance_with_short_id(
             project_ids=[id for id, _ in p_ids_and_slugs],
-            replay_id=replay_id,
+            replay_id_prefix=replay_id,
             start=start,
             end=end,
             organization=organization,
