@@ -68,7 +68,6 @@ def _fetch_related_models(
             condition_result__in=[
                 DetectorPriorityLevel.HIGH,
                 DetectorPriorityLevel.MEDIUM,
-                DetectorPriorityLevel.LOW,
             ],
         )
     except (DataCondition.DoesNotExist, DataCondition.MultipleObjectsReturned):
