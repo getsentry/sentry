@@ -64,6 +64,75 @@ def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStopp
         return AutofixStoppingPoint.CODE_CHANGES
 
 
+def _fetch_user_preference(project_id: int) -> str | None:
+    """
+    Fetch the user's automated_run_stopping_point preference from Seer.
+    Returns None if preference is not set or if the API call fails.
+    """
+    try:
+        path = "/v1/project-preference"
+        body = orjson.dumps({"project_id": project_id})
+
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+            timeout=5,
+        )
+        response.raise_for_status()
+
+        result = response.json()
+        preference = result.get("preference")
+        if preference:
+            return preference.get("automated_run_stopping_point")
+        return None
+    except Exception:
+        logger.warning(
+            "Failed to fetch user preference from Seer",
+            extra={"project_id": project_id},
+            exc_info=True,
+        )
+        return None
+
+
+def _apply_user_preference_upper_bound(
+    fixability_suggestion: AutofixStoppingPoint | None,
+    user_preference: str | None,
+) -> AutofixStoppingPoint | None:
+    """
+    Apply user preference as an upper bound on the fixability-based stopping point.
+    Returns the more conservative (earlier) stopping point between the two.
+    """
+    if fixability_suggestion is None or user_preference is None:
+        return fixability_suggestion
+
+    stopping_point_hierarchy = {
+        AutofixStoppingPoint.ROOT_CAUSE: 1,
+        AutofixStoppingPoint.SOLUTION: 2,
+        AutofixStoppingPoint.CODE_CHANGES: 3,
+        AutofixStoppingPoint.OPEN_PR: 4,
+    }
+
+    try:
+        user_stopping_point = AutofixStoppingPoint(user_preference)
+    except ValueError:
+        logger.warning(
+            "Invalid user preference value",
+            extra={"user_preference": user_preference},
+        )
+        return fixability_suggestion
+
+    return (
+        fixability_suggestion
+        if stopping_point_hierarchy[fixability_suggestion]
+        <= stopping_point_hierarchy[user_stopping_point]
+        else user_stopping_point
+    )
+
+
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_autofix_from_issue_summary",
     namespace=seer_tasks,
@@ -277,8 +346,19 @@ def _run_automation(
 
     stopping_point = None
     if features.has("projects:triage-signals-v0", group.project):
-        stopping_point = _get_stopping_point_from_fixability(issue_summary.scores.fixability_score)
-        logger.info("Fixability-based stopping point: %s", stopping_point)
+        fixability_stopping_point = _get_stopping_point_from_fixability(
+            issue_summary.scores.fixability_score
+        )
+        logger.info("Fixability-based stopping point: %s", fixability_stopping_point)
+
+        # Fetch user preference and apply as upper bound
+        user_preference = _fetch_user_preference(group.project.id)
+        logger.info("User preference stopping point: %s", user_preference)
+
+        stopping_point = _apply_user_preference_upper_bound(
+            fixability_stopping_point, user_preference
+        )
+        logger.info("Final stopping point after upper bound: %s", stopping_point)
 
     _trigger_autofix_task.delay(
         group_id=group.id,
