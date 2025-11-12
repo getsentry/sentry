@@ -133,6 +133,14 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                     group_validator = BaseDataConditionGroupValidator()
                     group_validator.update(instance.workflow_condition_group, condition_group)
 
+            # Handle config field update
+            if "config" in validated_data:
+                instance.config = validated_data.get("config", instance.config)
+                try:
+                    enforce_config_schema(instance)
+                except JSONSchemaValidationError as error:
+                    raise serializers.ValidationError({"config": [str(error)]})
+
             instance.save()
 
         create_audit_entry(
