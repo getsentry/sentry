@@ -1,5 +1,6 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {onboarding} from 'sentry/gettingStartedDocs/nintendo-switch/onboarding';
+
+import {onboarding} from './onboarding';
 
 const docs: Docs = {
   onboarding,
