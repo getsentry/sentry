@@ -100,18 +100,13 @@ class GithubRequestParser(BaseRequestParser):
             if codecov_regions:
                 self.try_forward_to_codecov(event=event)
 
-        logger.info(
-            "overwatch.debug.forward_if_applicable.begin",
-            extra={
-                "headers_keys": list(self.request.headers.keys()),
-                "integration_id": integration.id,
-            },
+        response = self.get_response_from_webhookpayload(
+            regions=regions, identifier=integration.id, integration_id=integration.id
         )
+
         # The overwatch forwarder implements its own region-based checks
         OverwatchGithubWebhookForwarder(integration=integration).forward_if_applicable(
             event=event, headers=self.request.headers
         )
 
-        return self.get_response_from_webhookpayload(
-            regions=regions, identifier=integration.id, integration_id=integration.id
-        )
+        return response

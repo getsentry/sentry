@@ -194,6 +194,39 @@ function Controls({
         })
       : null
     : t('You do not have permission to edit this dashboard');
+
+  const renderEditButton = (hasFeature: boolean) => {
+    if (!hasFeature) {
+      return null;
+    }
+    const isDisabled = !hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving;
+    const toolTipMessage = isSaving
+      ? DASHBOARD_SAVING_MESSAGE
+      : hasEditAccess
+        ? hasUnsavedFilters
+          ? UNSAVED_FILTERS_MESSAGE
+          : null
+        : t('You do not have permission to edit this dashboard');
+
+    return (
+      <Tooltip title={t('Edit Dashboard')} disabled={isDisabled}>
+        <Button
+          data-test-id="dashboard-edit"
+          aria-label={t('edit-dashboard')}
+          onClick={e => {
+            e.preventDefault();
+            onEdit();
+          }}
+          icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
+          disabled={isDisabled}
+          title={toolTipMessage}
+          priority="default"
+          size="sm"
+        />
+      </Tooltip>
+    );
+  };
+
   return (
     <StyledButtonBar key="controls">
       <DashboardEditFeature>
@@ -256,27 +289,7 @@ function Controls({
                 />
               </Tooltip>
             )}
-            <Tooltip title={t('Edit Dashboard')}>
-              <Button
-                data-test-id="dashboard-edit"
-                aria-label={t('edit-dashboard')}
-                onClick={e => {
-                  e.preventDefault();
-                  onEdit();
-                }}
-                icon={isSaving ? <LoadingIndicator size={14} /> : <IconEdit />}
-                disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving}
-                title={
-                  isSaving
-                    ? DASHBOARD_SAVING_MESSAGE
-                    : hasEditAccess
-                      ? hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
-                      : t('You do not have permission to edit this dashboard')
-                }
-                priority="default"
-                size="sm"
-              />
-            </Tooltip>
+            {renderEditButton(hasFeature)}
             {hasFeature ? (
               <Tooltip
                 title={tooltipMessage}

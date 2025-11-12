@@ -1416,6 +1416,24 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
         assert len(audit_log_entry) == 1
 
+    def test_invalid_extrapolation_mode(self) -> None:
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        alert_rule_dict = deepcopy(self.alert_rule_dict)
+        alert_rule_dict["dataset"] = "events_analytics_platform"
+        alert_rule_dict["alertType"] = "eap_metrics"
+        alert_rule_dict["extrapolation_mode"] = "server_weighted"
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
+            )
+        assert resp.data[0] == "Invalid extrapolation mode for this alert type."
+
 
 class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
     method = "put"

@@ -666,7 +666,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         rule_id = None
         rule_environment_id = None
         if self.rules:
-            if features.has("organizations:workflow-engine-ui-links", self.group.organization):
+            if features.has("organizations:workflow-engine-ui", self.group.organization):
                 rule_id = int(get_key_from_rule_data(self.rules[0], "workflow_id"))
             elif should_fire_workflow_actions(self.group.organization, self.group.type):
                 rule_id = int(get_key_from_rule_data(self.rules[0], "legacy_rule_id"))
@@ -680,7 +680,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             has_action = True
 
         title_link = None
-        if features.has("organizations:workflow-engine-ui-links", self.group.organization):
+        if features.has("organizations:workflow-engine-ui", self.group.organization):
             title_link = get_title_link_workflow_engine_ui(
                 self.group,
                 self.event,

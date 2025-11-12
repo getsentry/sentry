@@ -69,6 +69,12 @@ pytestmark = requires_snuba
 
 class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
     @cached_property
+    def project(self) -> Project:
+        return self.create_project(
+            name="Bar", slug="bar", teams=[self.team], fire_project_created=True
+        )
+
+    @cached_property
     def adapter(self):
         return mail_adapter
 
@@ -575,7 +581,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     @mock_notify
     @mock.patch("sentry.notifications.notifications.rules.logger")
-    @with_feature("organizations:workflow-engine-ui-links")
+    @with_feature("organizations:workflow-engine-ui")
     def test_notify_users_does_email_workflow_engine_ui_links(self, mock_logger, mock_func) -> None:
         self.create_user_option(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
@@ -1900,12 +1906,15 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
                 type="workflow",
                 value="always",
             )
+        assignee = self.project.teams.first()
+        assert assignee is not None
+
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
             type=ActivityType.ASSIGNED.value,
             user_id=self.create_user("foo@example.com").id,
-            data={"assignee": str(self.project.teams.first().id), "assigneeType": "team"},
+            data={"assignee": str(assignee.id), "assigneeType": "team"},
         )
 
         with self.tasks():
@@ -1937,7 +1946,9 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             data={"text": "sup guise"},
         )
 
-        self.project.teams.first().organization.member_set.create(user_id=user_foo.id)
+        team = self.project.teams.first()
+        assert team is not None
+        team.organization.member_set.create(user_id=user_foo.id)
 
         with self.tasks():
             self.adapter.notify_about_activity(activity)
@@ -1954,7 +1965,9 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
 class MailAdapterHandleSignalTest(BaseMailAdapterTest):
     def create_report(self):
         user_foo = self.create_user("foo@example.com")
-        self.project.teams.first().organization.member_set.create(user_id=user_foo.id)
+        team = self.project.teams.first()
+        assert team is not None
+        team.organization.member_set.create(user_id=user_foo.id)
 
         return UserReport.objects.create(
             project_id=self.project.id,

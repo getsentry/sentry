@@ -42,7 +42,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
             value=self.group.priority,
         )
 
-    def get_url_args(self):
+    def get_url_args(self) -> list[str]:
         return [self.organization.slug]
 
     def test_no_group_link(self) -> None:

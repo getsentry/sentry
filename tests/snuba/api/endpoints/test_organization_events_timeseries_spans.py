@@ -2426,6 +2426,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(timeseries["values"]) == 6
         assert timeseries["yAxis"] == "count()"
 
+        # TODO: Ensure server only extrapolation actually gets applied
         assert timeseries["meta"] == {
             "dataScanned": "full",
             "valueType": "integer",

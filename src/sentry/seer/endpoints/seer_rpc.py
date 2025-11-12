@@ -57,6 +57,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
@@ -278,27 +279,48 @@ def _can_use_prevent_ai_features(org: Organization) -> bool:
     return not hide_ai_features and pr_review_test_generation_enabled
 
 
+class SentryOrganizaionIdsAndSlugs(TypedDict):
+    org_ids: list[int]
+    org_slugs: list[str]
+
+
 def get_sentry_organization_ids(
-    *, full_repo_name: str, external_id: str, provider: str = "integrations:github"
-) -> dict:
+    *, external_id: str, provider: str = "integrations:github", **kwargs
+) -> SentryOrganizaionIdsAndSlugs:
     """
     Get the Sentry organization ID for a given Repository.
 
     Args:
-        full_repo_name: The full name of the repository (e.g. "getsentry/sentry")
         external_id: The id of the repo in the provider's system
         provider: The provider of the repository (e.g. "integrations:github")
     """
 
     # It's possible that multiple orgs will be returned for a given repo.
-    organization_ids = Repository.objects.filter(
-        name=full_repo_name, provider=provider, status=ObjectStatus.ACTIVE, external_id=external_id
-    ).values_list("organization_id", flat=True)
+    repositories = Repository.objects.filter(
+        provider=provider,
+        external_id=external_id,
+        status=ObjectStatus.ACTIVE,
+    )
+    repo_ids = repositories.values_list("id", flat=True)
+
+    # Filter to only repositories that have code mappings.
+    repo_ids_with_config = (
+        RepositoryProjectPathConfig.objects.filter(repository_id__in=repo_ids)
+        .values_list("repository_id", flat=True)
+        .distinct()
+    )
+
+    organization_ids = repositories.filter(id__in=repo_ids_with_config).values_list(
+        "organization_id", flat=True
+    )
     organizations = Organization.objects.filter(id__in=organization_ids)
     # We then filter out all orgs that didn't give us consent to use AI features.
     orgs_with_consent = [org for org in organizations if _can_use_prevent_ai_features(org)]
 
-    return {"org_ids": [organization.id for organization in orgs_with_consent]}
+    return {
+        "org_ids": [organization.id for organization in orgs_with_consent],
+        "org_slugs": [organization.slug for organization in orgs_with_consent],
+    }
 
 
 def get_organization_autofix_consent(*, org_id: int) -> dict:
@@ -1046,34 +1068,48 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
 
     Args:
         repository_integrations: List of dicts, each containing:
-            - organization_id: Organization ID
-            - integration_id: Integration ID
-            - external_id: External repository ID
-            - provider: Provider identifier (e.g., "github", "github_enterprise")
+            - organization_id: Organization ID (required)
+            - external_id: External repository ID (required)
+            - provider: Provider identifier (required, e.g., "github", "github_enterprise")
                        Supports both with and without "integrations:" prefix
 
     Returns:
-        dict: {"statuses": list of booleans indicating if each repository exists and is active}
-              e.g., {"statuses": [True, False, True]}
-              Only repositories with supported SCM providers will return True.
+        dict: {
+            "integration_ids": list of integration IDs (as integers) from the database,
+                              or None if repository doesn't exist/isn't active/doesn't have an integration id
+        }
+        e.g., {"integration_ids": [123, None, 456]}
+        None indicates repository not found, inactive, or has unsupported SCM provider.
+        The integration_ids are returned so Seer can store them for future reference.
+
+    Note:
+        - Repositories are matched by (organization_id, provider, external_id) which has a unique constraint
+        - integration_id is NOT required in the request and NOT used in matching
+        - integration_id from the database is returned as an integer so Seer can store it for future reference
     """
 
     if not repository_integrations:
-        return {"statuses": []}
+        return {"integration_ids": []}
+
+    logger.info(
+        "seer_rpc.check_repository_integrations_status.called",
+        extra={
+            "repository_integrations_count": len(repository_integrations),
+            "repository_integrations_sample": repository_integrations[:10],
+        },
+    )
 
     q_objects = Q()
 
     for item in repository_integrations:
-        # Support both "integrations:{provider}" and just "{provider}"
+        # Match only by organization_id, provider, and external_id
         q_objects |= Q(
             organization_id=item["organization_id"],
             provider=f"integrations:{item['provider']}",
-            integration_id=item["integration_id"],
             external_id=item["external_id"],
         ) | Q(
             organization_id=item["organization_id"],
             provider=item["provider"],
-            integration_id=item["integration_id"],
             external_id=item["external_id"],
         )
 
@@ -1081,28 +1117,40 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
         q_objects, status=ObjectStatus.ACTIVE, provider__in=SEER_SUPPORTED_SCM_PROVIDERS
     ).values_list("organization_id", "provider", "integration_id", "external_id")
 
-    existing_set = set(existing_repos)
+    existing_map: dict[tuple, int | None] = {}
 
-    statuses = []
+    for org_id, provider, integration_id, external_id in existing_repos:
+        key = (org_id, provider, external_id)
+        # If multiple repos match (shouldn't happen), keep the first one
+        if key not in existing_map:
+            existing_map[key] = integration_id
+
+    integration_ids = []
+
     for item in repository_integrations:
-        # Check both with and without "integrations:" prefix
         repo_tuple_with_prefix = (
             item["organization_id"],
             f"integrations:{item['provider']}",
-            item["integration_id"],
             item["external_id"],
         )
         repo_tuple_without_prefix = (
             item["organization_id"],
             item["provider"],
-            item["integration_id"],
             item["external_id"],
         )
-        statuses.append(
-            repo_tuple_with_prefix in existing_set or repo_tuple_without_prefix in existing_set
+
+        found_integration_id = existing_map.get(repo_tuple_with_prefix) or existing_map.get(
+            repo_tuple_without_prefix
         )
 
-    return {"statuses": statuses}
+        integration_ids.append(found_integration_id)
+
+    logger.info(
+        "seer_rpc.check_repository_integrations_status.completed",
+        extra={"integration_ids": integration_ids},
+    )
+
+    return {"integration_ids": integration_ids}
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized

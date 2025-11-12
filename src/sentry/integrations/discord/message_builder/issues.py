@@ -62,7 +62,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         rule_environment_id = None
         if self.rules:
             rule_environment_id = self.rules[0].environment_id
-            if features.has("organizations:workflow-engine-ui-links", self.group.organization):
+            if features.has("organizations:workflow-engine-ui", self.group.organization):
                 rule_id = int(get_key_from_rule_data(self.rules[0], "workflow_id"))
             elif should_fire_workflow_actions(self.group.organization, self.group.type):
                 rule_id = int(get_key_from_rule_data(self.rules[0], "legacy_rule_id"))
@@ -71,7 +71,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
 
         url = None
 
-        if features.has("organizations:workflow-engine-ui-links", self.group.organization):
+        if features.has("organizations:workflow-engine-ui", self.group.organization):
             url = get_title_link_workflow_engine_ui(
                 self.group,
                 self.event,

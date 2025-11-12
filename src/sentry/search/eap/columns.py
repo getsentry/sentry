@@ -1,7 +1,7 @@
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Literal, TypeAlias, TypedDict
+from typing import Any, Literal, TypeAlias, TypedDict, cast
 
 from dateutil.tz import tz
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
@@ -23,7 +23,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.extrapolation_mode import resolve_extrapolation_mode
-from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.eap.types import EAPResponse, MetricType, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 
 ResolvedArgument: TypeAlias = AttributeKey | str | int | float
@@ -219,6 +219,13 @@ class ResolvedAggregate(ResolvedFunction):
 
 
 @dataclass(frozen=True, kw_only=True)
+class ResolvedMetricAggregate(ResolvedAggregate):
+    metric_name: str | None
+    metric_type: MetricType | None
+    metric_unit: str | None
+
+
+@dataclass(frozen=True, kw_only=True)
 class ResolvedConditionalAggregate(ResolvedFunction):
     # The internal rpc alias for this column
     internal_name: Function.ValueType
@@ -382,10 +389,18 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
         if self.attribute_resolver is not None:
             resolved_attribute = self.attribute_resolver(resolved_attribute)
 
-        if all(resolved_argument != "" for resolved_argument in resolved_arguments[1:]):
+        metric_name = None
+        metric_type = None
+        metric_unit = None
+
+        if all(
+            isinstance(resolved_argument, str) and resolved_argument != ""
+            for resolved_argument in resolved_arguments[1:]
+        ):
             # a metric was passed
-            # TODO: we need to put it into the top level query conditions
-            pass
+            metric_name = cast(str, resolved_arguments[1])
+            metric_type = cast(MetricType, resolved_arguments[2])
+            metric_unit = None if resolved_arguments[3] == "-" else cast(str, resolved_arguments[3])
         elif all(resolved_argument == "" for resolved_argument in resolved_arguments[1:]):
             # no metrics were specified, assume we query all metrics
             pass
@@ -394,7 +409,7 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
                 f"Trace metric aggregates expect the full metric to be specified, got name:{resolved_arguments[1]} type:{resolved_arguments[2]} unit:{resolved_arguments[3]}"
             )
 
-        return ResolvedAggregate(
+        return ResolvedMetricAggregate(
             public_alias=alias,
             internal_name=self.internal_function,
             search_type=search_type,
@@ -404,6 +419,9 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
                 search_config, self.extrapolation_mode_override
             ),
             argument=resolved_attribute,
+            metric_name=metric_name,
+            metric_type=metric_type,
+            metric_unit=metric_unit,
         )
 
 
