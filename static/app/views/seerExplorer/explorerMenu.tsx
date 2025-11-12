@@ -1,7 +1,8 @@
-import {Activity, useCallback, useEffect, useMemo, useState} from 'react';
+import {Activity, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
-import {DateTime} from 'sentry/components/dateTime';
+import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
@@ -129,11 +130,22 @@ export function useExplorerMenu({
   const isVisible = menuMode !== 'hidden';
 
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const menuItemRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   // Reset selected index when items change
   useEffect(() => {
     setSelectedIndex(0);
   }, [menuItems]);
+
+  // Scroll selected item into view when selection changes
+  useEffect(() => {
+    if (isVisible && menuItemRefs.current[selectedIndex]) {
+      menuItemRefs.current[selectedIndex]?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+    }
+  }, [selectedIndex, isVisible]);
 
   // Handle keyboard navigation with higher priority
   const handleKeyDown = useCallback(
@@ -193,6 +205,9 @@ export function useExplorerMenu({
         {menuItems.map((item, index) => (
           <MenuItem
             key={item.key}
+            ref={el => {
+              menuItemRefs.current[index] = el;
+            }}
             isSelected={index === selectedIndex}
             onClick={() => onSelect(item)}
           >
@@ -310,9 +325,11 @@ function useSessions({
       title: session.title,
       key: session.run_id.toString(),
       description: (
-        <span>
-          Last updated at <DateTime date={session.last_triggered_at} />
-        </span>
+        <TimeSince
+          tooltipPrefix="Last updated"
+          date={moment.utc(session.last_triggered_at).toDate()}
+          suffix="ago"
+        />
       ),
       handler: () => {
         onChangeSession(session.run_id);
@@ -338,7 +355,6 @@ const MenuPanel = styled('div')<{
   width: 300px;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
-  border-bottom: none;
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   max-height: ${p =>
@@ -366,6 +382,9 @@ const ItemName = styled('div')`
   font-weight: 600;
   color: ${p => p.theme.purple400};
   font-size: ${p => p.theme.fontSize.sm};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const ItemDescription = styled('div')`
