@@ -91,8 +91,6 @@ function OrgFooterMessage() {
                 buttonProps={{
                   size: 'sm',
                   priority: 'primary',
-                  buttonText: t('GitHub Organization'),
-                  icon: <IconAdd />,
                 }}
               />
             )}
