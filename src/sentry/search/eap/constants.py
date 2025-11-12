@@ -19,6 +19,8 @@ SUPPORTED_TRACE_ITEM_TYPE_MAP = {
     SupportedTraceItemType.PROFILE_FUNCTIONS: TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
 }
 
+SUPPORTED_STATS_TYPES = {"attributeDistributions"}
+
 OPERATOR_MAP = {
     "=": ComparisonFilter.OP_EQUALS,
     "!=": ComparisonFilter.OP_NOT_EQUALS,
