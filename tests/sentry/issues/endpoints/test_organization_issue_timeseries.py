@@ -523,3 +523,42 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             "valueUnit": None,
             "interval": 3_600_000,
         }
+
+    def test_buckets_not_filling(self) -> None:
+        self.start = datetime(2025, 10, 27, 20, 35, 17, 594908, tzinfo=timezone.utc)
+        self.end = datetime(2025, 11, 10, 20, 35, 17, 594908, tzinfo=timezone.utc)
+        response = self.do_request(
+            {
+                "start": self.start,
+                "end": self.end,
+                "interval": "12h",
+                "category": "issue",
+                "yAxis": "count(new_issues)",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "issue",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
+        assert len(timeseries["values"]) == 2
+        assert timeseries["values"] == [
+            {
+                "incomplete": False,
+                "timestamp": self.start.timestamp() * 1000,
+                "value": 3,
+            },
+            {
+                "incomplete": False,
+                "timestamp": self.just_before_now.timestamp() * 1000,
+                "value": 5,
+            },
+        ]
+        assert timeseries["meta"] == {
+            "valueType": "integer",
+            "valueUnit": None,
+            "interval": 3_600_000,
+        }
