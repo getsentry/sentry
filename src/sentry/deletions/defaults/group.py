@@ -32,7 +32,6 @@ from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
 from sentry.utils import metrics
-from sentry.utils.query import RangeQuerySetWrapper
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 from ..manager import DeletionTaskManager
@@ -228,8 +227,12 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         # delete_children() will delete GroupHash rows and related GroupHashMetadata rows,
         # however, we have added multiple optimizations in this function that would need to
         # be ported to a custom deletion task.
-        delete_group_hashes(instance_list[0].project_id, error_group_ids, seer_deletion=True)
-        delete_group_hashes(instance_list[0].project_id, issue_platform_group_ids)
+        delete_project_group_hashes(
+            instance_list[0].project_id, group_ids_filter=error_group_ids, seer_deletion=True
+        )
+        delete_project_group_hashes(
+            instance_list[0].project_id, group_ids_filter=issue_platform_group_ids
+        )
 
         # If this isn't a retention cleanup also remove event data.
         if not os.environ.get("_SENTRY_CLEANUP"):
@@ -257,21 +260,6 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         Group.objects.filter(id__in=[i.id for i in instance_list]).exclude(
             status=GroupStatus.DELETION_IN_PROGRESS
         ).update(status=GroupStatus.DELETION_IN_PROGRESS, substatus=None)
-
-
-def delete_project_group_hashes(project_id: int) -> None:
-    groups = []
-    for group in RangeQuerySetWrapper(
-        Group.objects.filter(project_id=project_id), step=GROUP_CHUNK_SIZE
-    ):
-        groups.append(group)
-
-    error_groups, issue_platform_groups = separate_by_group_category(groups)
-    error_group_ids = [group.id for group in error_groups]
-    delete_group_hashes(project_id, error_group_ids, seer_deletion=True)
-
-    issue_platform_group_ids = [group.id for group in issue_platform_groups]
-    delete_group_hashes(project_id, issue_platform_group_ids)
 
 
 def update_group_hash_metadata_in_batches(hash_ids: Sequence[int]) -> None:
@@ -323,41 +311,52 @@ def update_group_hash_metadata_in_batches(hash_ids: Sequence[int]) -> None:
         metrics.incr("deletions.group_hash_metadata.max_iterations_reached", sample_rate=1.0)
 
 
-def delete_group_hashes(
+def delete_project_group_hashes(
     project_id: int,
-    group_ids: Sequence[int],
+    group_ids_filter: Sequence[int] | None = None,
     seer_deletion: bool = False,
 ) -> None:
-    # Validate batch size to ensure it's at least 1 to avoid ValueError in range()
+    """
+    Delete GroupHash records for a project.
+
+    This is the main function for deleting GroupHash records. It can delete all hashes for a project
+    (used during project deletion to clean up orphaned records) or delete hashes for specific groups
+    (used during group deletion).
+
+    Args:
+        project_id: The project to delete hashes for
+        group_ids_filter: Optional filter for specific group IDs.
+                         - If None: deletes ALL GroupHash records for the project (including orphans)
+                         - If empty: returns immediately (no-op for safety)
+                         - If non-empty: deletes only hashes for those specific groups
+        seer_deletion: Whether to notify Seer about the deletion
+    """
+    # Safety: empty filter means nothing to delete
+    if group_ids_filter is not None and len(group_ids_filter) == 0:
+        return
+
     hashes_batch_size = max(1, options.get("deletions.group-hashes-batch-size"))
 
-    # Set a reasonable upper bound on iterations to prevent infinite loops.
-    # The loop will naturally terminate when no more hashes are found.
     iterations = 0
     while iterations < GROUP_HASH_ITERATIONS:
-        qs = GroupHash.objects.filter(project_id=project_id, group_id__in=group_ids).values_list(
-            "id", "hash"
-        )[:hashes_batch_size]
-        hashes_chunk = list(qs)
+        # Base query: all hashes for this project
+        qs = GroupHash.objects.filter(project_id=project_id)
+
+        # Apply group filter if provided
+        if group_ids_filter is not None:
+            qs = qs.filter(group_id__in=group_ids_filter)
+
+        hashes_chunk = list(qs.values_list("id", "hash")[:hashes_batch_size])
         if not hashes_chunk:
             break
         try:
             if seer_deletion:
-                # Tell seer to delete grouping records for these groups
-                # It's low priority to delete the hashes from seer, so we don't want
-                # any network errors to block the deletion of the groups
                 hash_values = [gh[1] for gh in hashes_chunk]
                 may_schedule_task_to_delete_hashes_from_seer(project_id, hash_values)
         except Exception:
             logger.warning("Error scheduling task to delete hashes from seer")
         finally:
             hash_ids = [gh[0] for gh in hashes_chunk]
-            # GroupHashMetadata rows can reference GroupHash rows via seer_matched_grouphash_id.
-            # Before deleting these GroupHash rows, we need to either:
-            # 1. Update seer_matched_grouphash to None first (to avoid foreign key constraint errors), OR
-            # 2. Delete the GroupHashMetadata rows entirely (they'll be deleted anyway)
-            # If we update the columns first, the deletion of the grouphash metadata rows will have less work to do,
-            # thus, improving the performance of the deletion.
             update_group_hash_metadata_in_batches(hash_ids)
             GroupHashMetadata.objects.filter(grouphash_id__in=hash_ids).delete()
             GroupHash.objects.filter(id__in=hash_ids).delete()
@@ -367,8 +366,8 @@ def delete_group_hashes(
     if iterations == GROUP_HASH_ITERATIONS:
         metrics.incr("deletions.group_hashes.max_iterations_reached", sample_rate=1.0)
         logger.warning(
-            "Group hashes batch deletion reached the maximum number of iterations. "
-            "Investigate if we need to change the GROUP_HASH_ITERATIONS value."
+            "delete_group_hashes.max_iterations_reached",
+            extra={"project_id": project_id, "filtered": group_ids_filter is not None},
         )
 
 
