@@ -12,7 +12,6 @@ import {
 } from 'sentry/data/platformCategories';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
-import {getPlatformPath} from 'sentry/utils/gettingStartedDocs/getPlatformPath';
 import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 
 type Props = {
@@ -47,14 +46,11 @@ export function useLoadGettingStarted({
 
   const projectKeys = useProjectKeys({orgSlug, projSlug});
 
-  const platformPath = getPlatformPath(platform);
-
   useEffect(() => {
     async function getGettingStartedDoc() {
       if (
         platform.deprecated ||
         platform.id === 'other' ||
-        !platformPath ||
         (productType === 'replay' && !replayPlatforms.includes(platform.id)) ||
         (productType === 'performance' && !withPerformanceOnboarding.has(platform.id)) ||
         (productType === 'logs' && !withLoggingOnboarding.has(platform.id)) ||
@@ -71,7 +67,7 @@ export function useLoadGettingStarted({
       try {
         const mod = await import(
           /* webpackExclude: /.spec/ */
-          `sentry/gettingStartedDocs/${platformPath}`
+          `sentry/gettingStartedDocs/${platform.id}`
         );
         setModule(mod);
       } catch (err) {
@@ -85,7 +81,7 @@ export function useLoadGettingStarted({
     return () => {
       setModule(undefined);
     };
-  }, [platformPath, platform.id, platform.deprecated, productType]);
+  }, [platform.id, platform.deprecated, productType]);
 
   return {
     refetch: projectKeys.refetch,

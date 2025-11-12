@@ -2696,7 +2696,9 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 
-DEFAULT_GROUPING_CONFIG = "newstyle:2023-01-11"
+WINTER_2023_GROUPING_CONFIG = "newstyle:2023-01-11"
+FALL_2025_GROUPING_CONFIG = "newstyle:2025-11-21"
+DEFAULT_GROUPING_CONFIG = WINTER_2023_GROUPING_CONFIG
 BETA_GROUPING_CONFIG = ""
 
 # How long the migration phase for grouping lasts
