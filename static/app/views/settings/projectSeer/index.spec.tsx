@@ -549,4 +549,38 @@ describe('ProjectSeer', () => {
       );
     });
   });
+
+  it('hides Scan Issues toggle when triage-signals-v0 feature flag is enabled', async () => {
+    const projectWithFeatureFlag = ProjectFixture({
+      features: ['triage-signals-v0'],
+    });
+
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project: projectWithFeatureFlag},
+    });
+
+    // Wait for the page to load
+    await screen.findByText(/Automation/i);
+
+    // The Scan Issues toggle should NOT be visible
+    expect(
+      screen.queryByRole('checkbox', {
+        name: /Scan Issues/i,
+      })
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows Scan Issues toggle when triage-signals-v0 feature flag is disabled', async () => {
+    render(<ProjectSeer />, {
+      organization,
+      outletContext: {project},
+    });
+
+    // The Scan Issues toggle should be visible
+    const toggle = await screen.findByRole('checkbox', {
+      name: /Scan Issues/i,
+    });
+    expect(toggle).toBeInTheDocument();
+  });
 });
