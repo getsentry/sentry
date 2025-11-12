@@ -1,23 +1,20 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {
   DataForwarderProviderSlug,
   type DataForwarder,
-} from 'sentry/views/settings/organizationDataForwarding/types';
+} from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 export function getDataForwarderFormGroups({
   provider,
-  organization,
   dataForwarder,
   projects,
 }: {
-  organization: Organization;
   projects: Project[];
-  provider: DataForwarderProviderSlug;
   dataForwarder?: DataForwarder;
+  provider?: DataForwarderProviderSlug;
 }): JsonFormObject[] {
   let providerFormGroups: JsonFormObject[] = [];
   switch (provider) {
@@ -31,25 +28,20 @@ export function getDataForwarderFormGroups({
       providerFormGroups = [SPLUNK_GLOBAL_CONFIGURATION_FORM];
       break;
     default:
-      return [];
+      providerFormGroups = [];
   }
   return [
-    getEnablementForm({organization, dataForwarder}),
+    getEnablementForm({dataForwarder}),
     ...providerFormGroups,
     getProjectConfigurationForm(projects),
   ];
 }
 
 const getEnablementForm = ({
-  organization,
   dataForwarder,
 }: {
-  organization: Organization;
   dataForwarder?: DataForwarder;
 }): JsonFormObject => {
-  const featureSet = new Set(organization.features);
-  const hasAccess =
-    featureSet.has('data-forwarding-revamp-access') && featureSet.has('data-forwarding');
   const hasCompleteSetup = dataForwarder;
 
   return {
@@ -62,10 +54,8 @@ const getEnablementForm = ({
         defaultValue: false,
         help: hasCompleteSetup
           ? t('Will override everything to shut-off data forwarding.')
-          : hasAccess
-            ? t('Will be disabled until the initial setup is complete.')
-            : t('Data forwarding is not available to your organization.'),
-        disabled: !hasAccess || !hasCompleteSetup,
+          : t('Will be disabled until the initial setup is complete.'),
+        disabled: !hasCompleteSetup,
       },
     ],
   };
