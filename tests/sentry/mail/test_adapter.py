@@ -581,7 +581,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     @mock_notify
     @mock.patch("sentry.notifications.notifications.rules.logger")
-    @with_feature("organizations:workflow-engine-ui")
+    @with_feature("organizations:workflow-engine-ui-links")
     def test_notify_users_does_email_workflow_engine_ui_links(self, mock_logger, mock_func) -> None:
         self.create_user_option(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
