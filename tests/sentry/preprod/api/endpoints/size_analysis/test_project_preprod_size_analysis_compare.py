@@ -231,6 +231,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
             identifier="watch",
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=500,
+            max_download_size=250,
         )
 
         response = self.get_success_response(
@@ -395,6 +397,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
             identifier="watch",
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=500,
+            max_download_size=250,
         )
 
         base_watch_metric = PreprodArtifactSizeMetrics.objects.create(
@@ -403,6 +407,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
             identifier="watch",
             state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=500,
+            max_download_size=250,
         )
 
         # Create comparison for watch metrics
