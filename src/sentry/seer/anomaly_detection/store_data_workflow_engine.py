@@ -122,8 +122,14 @@ def update_detector_data(
             SeerMethod.UPDATE,
             event_types,
         )
-    except (TimeoutError, MaxRetryError, ParseError, ValidationError):
-        raise ValidationError("Couldn't send data to Seer, unable to update detector")
+    except TimeoutError:
+        raise ValidationError("Timed out sending data to Seer, unable to update detector")
+    except MaxRetryError:
+        raise ValidationError("Hit max retries sending data to Seer, unable to update detector")
+    except ParseError:
+        raise ValidationError("Couldn't parse response from Seer, unable to update detector")
+    except ValidationError:
+        raise ValidationError("Hit validation error, unable to update detector")
     metrics.incr("anomaly_detection_monitor.updated")
 
 
