@@ -268,8 +268,6 @@ export function CreateProject() {
       }) => {
       const selectedPlatform = selectedFramework ?? platform;
 
-      let projectToRollback: Project | undefined;
-
       try {
         const {project, notificationRule, ruleIds} =
           await createProjectAndRules.mutateAsync({
@@ -279,7 +277,6 @@ export function CreateProject() {
             alertRuleConfig,
             createNotificationAction,
           });
-        projectToRollback = project;
 
         trackAnalytics('project_creation_page.created', {
           organization,
@@ -347,9 +344,9 @@ export function CreateProject() {
           });
         }
 
-        if (projectToRollback) {
+        if (error.createdProject) {
           Sentry.logger.error('Rolling back project', {
-            projectToRollback,
+            projectToRollback: error.createdProject,
           });
           try {
             // Rolling back the project also deletes its associated alert rules
@@ -357,7 +354,7 @@ export function CreateProject() {
             await removeProject({
               api,
               orgSlug: organization.slug,
-              projectSlug: projectToRollback.slug,
+              projectSlug: error.createdProject.slug,
               origin: 'getting_started',
             });
           } catch (err) {

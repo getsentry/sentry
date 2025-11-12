@@ -47,34 +47,42 @@ export function useCreateProjectAndRules() {
         firstTeamSlug: team,
       });
 
-      const customRulePromise = alertRuleConfig?.shouldCreateCustomRule
-        ? createProjectRules.mutateAsync({
-            projectSlug: project.slug,
-            name: project.name,
-            conditions: alertRuleConfig?.conditions,
-            actions: alertRuleConfig?.actions,
-            actionMatch: alertRuleConfig?.actionMatch,
-            frequency: alertRuleConfig?.frequency,
-          })
-        : undefined;
+      try {
+        const customRulePromise = alertRuleConfig?.shouldCreateCustomRule
+          ? createProjectRules.mutateAsync({
+              projectSlug: project.slug,
+              name: project.name,
+              conditions: alertRuleConfig?.conditions,
+              actions: alertRuleConfig?.actions,
+              actionMatch: alertRuleConfig?.actionMatch,
+              frequency: alertRuleConfig?.frequency,
+            })
+          : undefined;
 
-      const notificationRulePromise = createNotificationAction({
-        shouldCreateRule: alertRuleConfig?.shouldCreateRule,
-        name: project.name,
-        projectSlug: project.slug,
-        conditions: alertRuleConfig?.conditions,
-        actionMatch: alertRuleConfig?.actionMatch,
-        frequency: alertRuleConfig?.frequency,
-      });
+        const notificationRulePromise = createNotificationAction({
+          shouldCreateRule: alertRuleConfig?.shouldCreateRule,
+          name: project.name,
+          projectSlug: project.slug,
+          conditions: alertRuleConfig?.conditions,
+          actionMatch: alertRuleConfig?.actionMatch,
+          frequency: alertRuleConfig?.frequency,
+        });
 
-      const [customRule, notificationRule] = await Promise.all([
-        customRulePromise,
-        notificationRulePromise,
-      ]);
+        const [customRule, notificationRule] = await Promise.all([
+          customRulePromise,
+          notificationRulePromise,
+        ]);
 
-      const ruleIds = [customRule, notificationRule].filter(defined).map(rule => rule.id);
+        const ruleIds = [customRule, notificationRule]
+          .filter(defined)
+          .map(rule => rule.id);
 
-      return {project, notificationRule, ruleIds};
+        return {project, notificationRule, ruleIds};
+      } catch (error) {
+        // Attach project for rollback
+        (error as RequestError & {createdProject: Project}).createdProject = project;
+        throw error;
+      }
     },
   });
 }
