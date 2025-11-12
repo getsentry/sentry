@@ -1,11 +1,11 @@
 import {t} from 'sentry/locale';
-import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
+import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {
   getAgentRunsFilter,
   getAITracesFilter,
-} from 'sentry/views/insights/agents/utils/query';
-import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
-import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
+} from 'sentry/views/insights/pages/agents/utils/query';
+import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {BaseTrafficWidget} from 'sentry/views/insights/pages/platform/shared/baseTrafficWidget';
 
 export default function OverviewAgentsRunsChartWidget(

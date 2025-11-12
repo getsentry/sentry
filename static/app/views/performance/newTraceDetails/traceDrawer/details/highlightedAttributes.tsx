@@ -10,16 +10,16 @@ import {StructuredData} from 'sentry/components/structuredEventData';
 import {t, tn} from 'sentry/locale';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
-import {ModelName} from 'sentry/views/insights/agents/components/modelName';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {
   AI_CREATE_AGENT_OPS,
   AI_RUN_OPS,
   getIsAiSpan,
   getToolSpansFilter,
-} from 'sentry/views/insights/agents/utils/query';
-import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+} from 'sentry/views/insights/pages/agents/utils/query';
+import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {SpanFields} from 'sentry/views/insights/types';
 
 type HighlightedAttribute = {
