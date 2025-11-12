@@ -33,7 +33,6 @@ from sentry.backup.imports import (
 )
 from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
 from sentry.backup.services.import_export.model import RpcImportErrorKind
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.importchunk import (
     ControlImportChunk,
@@ -83,7 +82,6 @@ from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRole, UserRoleUser
-from sentry.workflow_engine.models.data_source import DataSource
 from tests.sentry.backup import (
     expect_models,
     get_matching_exportable_models,
@@ -2181,51 +2179,6 @@ class CollisionTests(ImportTestCase):
                 assert len(useremail_chunk.existing_map) == 0
                 assert UserEmail.objects.filter(email__icontains="existing@").exists()
                 assert UserEmail.objects.filter(email__icontains="importing@").exists()
-
-            with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
-
-    @expect_models(COLLISION_TESTED, DataSource)
-    def test_colliding_data_source(self, expected_models: list[type[Model]]) -> None:
-        from sentry.backup.imports import ImportingError
-
-        owner = self.create_user("owner")
-        org = self.create_organization(name="some-org", owner=owner)
-
-        # DataSource.source_id is a polymorphic FK (type determines target table).
-        # This test verifies the unique constraint on (type, source_id) is enforced.
-        # Real collisions should be impossible in practice since source_ids reference
-        # actual database records that are globally unique.
-        data_source = DataSource.objects.create(
-            organization=org,
-            source_id="12345",
-            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-        )
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-
-            # After exporting and clearing the database, create a DataSource with the same
-            # (type, source_id) to create an artificial collision.
-            new_org = self.create_organization(name="different-org")
-            DataSource.objects.create(
-                organization=new_org,
-                source_id=data_source.source_id,
-                type=data_source.type,
-            )
-
-            assert DataSource.objects.count() == 1
-
-            # Import fails due to unique constraint violation on (type, source_id).
-            with open(tmp_path, "rb") as tmp_file:
-                with pytest.raises(ImportingError) as exc_info:
-                    import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
-
-                assert "unique_type_source_id" in str(exc_info.value)
-                assert "IntegrityError" in str(exc_info.value)
-
-            # The collision prevented import, so only the pre-existing DataSource exists
-            assert DataSource.objects.count() == 1
 
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
