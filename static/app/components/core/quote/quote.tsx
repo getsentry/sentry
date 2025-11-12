@@ -8,7 +8,7 @@ interface QuoteProps extends React.HTMLProps<HTMLElementTagNameMap['blockquote']
   source?: {
     href?: string;
     label?: string;
-    person?: string;
+    author?: string;
   };
 }
 export function Quote(props: QuoteProps) {
