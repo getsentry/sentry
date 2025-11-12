@@ -1,5 +1,5 @@
 // Only import and test functions that don't have circular dependencies
-const {logs} = jest.requireActual('sentry/gettingStartedDocs/python/python/logs');
+const {logs} = jest.requireActual('sentry/gettingStartedDocs/python/logs');
 
 describe('logs', () => {
   const mockParams = {
