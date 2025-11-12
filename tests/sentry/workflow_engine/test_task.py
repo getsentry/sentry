@@ -155,11 +155,11 @@ class TestProcessWorkflowActivity(TestCase):
                 "workflow_engine.process_workflows.evaluation.workflows.not_triggered",
                 extra={
                     "group_event": self.activity,
-                    "actions": None,
+                    "action_groups": None,
                     "triggered_actions": None,
                     "workflows": set(),
                     "triggered_workflows": None,
-                    "associated_detectors": [self.detector],
+                    "associated_detector": self.detector,
                 },
             )
 
@@ -199,11 +199,11 @@ class TestProcessWorkflowActivity(TestCase):
             "workflow_engine.process_workflows.evaluation.workflows.triggered",
             extra={
                 "group_event": self.activity,
-                "actions": None,
+                "action_groups": None,
                 "triggered_actions": None,
                 "workflows": {self.workflow},
                 "triggered_workflows": set(),  # from the mock
-                "associated_detectors": [self.detector],
+                "associated_detector": self.detector,
             },
         )
 
@@ -243,11 +243,11 @@ class TestProcessWorkflowActivity(TestCase):
             "workflow_engine.process_workflows.evaluation.actions.triggered",
             extra={
                 "group_event": self.activity,
-                "actions": {self.action_group},
-                "triggered_actions": mock_filter_actions(),  # the result of the mock
+                "action_groups": {self.action_group},
+                "triggered_actions": set(),
                 "workflows": {self.workflow},
                 "triggered_workflows": {self.workflow},
-                "associated_detectors": [self.detector],
+                "associated_detector": self.detector,
             },
         )
 

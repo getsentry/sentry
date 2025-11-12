@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, DefaultDict
+from typing import DefaultDict
 
 import sentry_sdk
 from django.db import router, transaction
@@ -33,7 +33,11 @@ from sentry.workflow_engine.processors.data_condition_group import (
 )
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
-from sentry.workflow_engine.types import WorkflowEvaluation, WorkflowEventData
+from sentry.workflow_engine.types import (
+    WorkflowEvaluation,
+    WorkflowEvaluationData,
+    WorkflowEventData,
+)
 from sentry.workflow_engine.utils import log_context, scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
@@ -478,12 +482,7 @@ def process_workflows(
         fire_actions,
     )
 
-    # This dictionary stores the data for WorkflowEvaluation
-    # and is eventually unpacked to pass into the frozen dataclass
-    # TODO -- should this be a workflow event context data instead?
-    extra_data: dict[str, Any] = {
-        "group_event": event_data.event,
-    }
+    workflow_evaluation_data = WorkflowEvaluationData(group_event=event_data.event)
 
     try:
         if detector is None and isinstance(event_data.event, GroupEvent):
@@ -505,11 +504,11 @@ def process_workflows(
     except Detector.DoesNotExist:
         return WorkflowEvaluation(
             tainted=True,
-            message="No Detectors associated with the issue were found",
-            **extra_data,
+            msg="No Detectors associated with the issue were found",
+            data=workflow_evaluation_data,
         )
 
-    extra_data["associated_detectors"] = [detector]
+    workflow_evaluation_data.associated_detector = detector
 
     try:
         environment = get_environment_by_event(event_data)
@@ -525,34 +524,34 @@ def process_workflows(
     except Environment.DoesNotExist:
         return WorkflowEvaluation(
             tainted=True,
-            message="Environment for event not found",
-            **extra_data,
+            msg="Environment for event not found",
+            data=workflow_evaluation_data,
         )
 
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
     workflows = _get_associated_workflows(detector, environment, event_data)
-    extra_data["workflows"] = workflows
+    workflow_evaluation_data.workflows = workflows
 
     if not workflows:
         return WorkflowEvaluation(
             tainted=True,
-            message="No workflows are associated with the detector in the event",
-            **extra_data,
+            msg="No workflows are associated with the detector in the event",
+            data=workflow_evaluation_data,
         )
 
     triggered_workflows, queue_items_by_workflow_id = evaluate_workflow_triggers(
         workflows, event_data, event_start_time
     )
 
-    extra_data["triggered_workflows"] = triggered_workflows
+    workflow_evaluation_data.triggered_workflows = triggered_workflows
 
     if not triggered_workflows and not queue_items_by_workflow_id:
         return WorkflowEvaluation(
             tainted=True,
-            message="No items were triggered or queued for slow evaluation",
-            **extra_data,
+            msg="No items were triggered or queued for slow evaluation",
+            data=workflow_evaluation_data,
         )
 
     # TODO - we should probably return here and have the rest from here be
@@ -566,17 +565,14 @@ def process_workflows(
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
     sentry_sdk.set_tag("workflow_engine.triggered_actions", len(actions))
 
-    extra_data = {
-        **extra_data,
-        "actions": actions_to_trigger,  # All the actions we found to trigger
-        "triggered_actions": actions,  # All the actions we intend to trigger
-    }
+    workflow_evaluation_data.action_groups = actions_to_trigger
+    workflow_evaluation_data.triggered_actions = set(actions)
 
     if not actions:
         return WorkflowEvaluation(
             tainted=True,
-            message="No actions to evaluate; filtered or not triggered",
-            **extra_data,
+            msg="No actions to evaluate; filtered or not triggered",
+            data=workflow_evaluation_data,
         )
 
     should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
@@ -590,4 +586,4 @@ def process_workflows(
     )
 
     fire_actions(actions, detector, event_data)
-    return WorkflowEvaluation(tainted=False, **extra_data)
+    return WorkflowEvaluation(tainted=False, msg=None, data=workflow_evaluation_data)
