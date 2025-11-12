@@ -276,12 +276,13 @@ def insta_snapshot(request: pytest.FixtureRequest) -> Generator[InstaSnapshotter
         if _snapshot_writeback is not None and is_unequal:
             os.makedirs(os.path.dirname(reference_file), exist_ok=True)
             test_file = os.path.realpath(str(request.node.fspath))
+            test_name = request.node.originalname
             if test_file.startswith(repo_abs_path + os.path.sep):
                 test_file = test_file.replace(repo_abs_path + os.path.sep, "")
             if _snapshot_writeback == "new":
                 reference_file += ".new"
             with open(reference_file, "w") as f:
-                header = f"---\nsource: {test_file}\n---"
+                header = f"---\nsource: {test_file}::{test_name}\n---"
                 f.write(f"{header}\n{output}\n")
         elif is_unequal:
             __tracebackhide__ = True
