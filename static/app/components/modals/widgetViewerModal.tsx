@@ -88,7 +88,10 @@ import {
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
-import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {
+  getWidgetExploreUrl,
+  getWidgetTableRowExploreUrlFunction,
+} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -395,7 +398,10 @@ function WidgetViewerModal(props: Props) {
   const queryOptions = sortedQueries.map((query, index) => {
     const {name, conditions} = query;
     // Creates the highlighted query elements to be used in the Query Select
-    const dashboardFiltersString = dashboardFiltersToString(dashboardFilters);
+    const dashboardFiltersString = dashboardFiltersToString(
+      dashboardFilters,
+      widget.widgetType
+    );
     const parsedQuery =
       !name && !!conditions
         ? parseSearch(
@@ -463,6 +469,8 @@ function WidgetViewerModal(props: Props) {
       fields,
       widget,
       tableWidget,
+      dashboardFilters,
+      modalSelection,
       setChartUnmodified,
       widths,
       location,
@@ -471,6 +479,7 @@ function WidgetViewerModal(props: Props) {
       eventView,
       theme,
       projects,
+      selectedQueryIndex,
     });
   }
 
@@ -490,6 +499,8 @@ function WidgetViewerModal(props: Props) {
       fields,
       widget,
       tableWidget,
+      dashboardFilters,
+      modalSelection,
       setChartUnmodified,
       widths,
       location,
@@ -498,6 +509,7 @@ function WidgetViewerModal(props: Props) {
       eventView,
       theme,
       projects,
+      selectedQueryIndex,
     });
   };
 
@@ -968,13 +980,16 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
 }
 
 interface ViewerTableV2Props {
+  dashboardFilters: DashboardFilters | undefined;
   eventView: EventView;
   fields: string[];
   loading: boolean;
   location: Location;
+  modalSelection: PageFilters;
   navigate: ReactRouter3Navigate;
   organization: Organization;
   projects: Project[];
+  selectedQueryIndex: number;
   setChartUnmodified: React.Dispatch<React.SetStateAction<boolean>>;
   tableWidget: Widget;
   theme: Theme;
@@ -999,6 +1014,9 @@ function ViewerTableV2({
   eventView,
   theme,
   projects,
+  dashboardFilters,
+  modalSelection,
+  selectedQueryIndex,
 }: ViewerTableV2Props) {
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const links = parseLinkHeader(pageLinks ?? null);
@@ -1029,7 +1047,7 @@ function ViewerTableV2({
   const datasetConfig = getDatasetConfig(widget.widgetType);
   const aliases = decodeColumnAliases(
     tableColumns,
-    tableWidget.queries[0]?.fieldAliases ?? [],
+    tableWidget.queries[selectedQueryIndex]?.fieldAliases ?? [],
     tableWidget.widgetType === WidgetType.ISSUE
       ? datasetConfig?.getFieldHeaderMap?.()
       : {}
@@ -1141,6 +1159,18 @@ function ViewerTableV2({
           } satisfies RenderFunctionBaggage;
         }}
         allowedCellActions={cellActions}
+        onTriggerCellAction={(action, _value, dataRow) => {
+          if (action === Actions.OPEN_ROW_IN_EXPLORE) {
+            const getExploreUrl = getWidgetTableRowExploreUrlFunction(
+              modalSelection,
+              widget,
+              organization,
+              dashboardFilters,
+              selectedQueryIndex
+            );
+            navigate(getExploreUrl(dataRow));
+          }
+        }}
       />
       {!(
         tableWidget.queries[0]!.orderby.match(/^-?release$/) &&

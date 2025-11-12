@@ -10,6 +10,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects,
     boost_low_volume_projects_of_org_with_query,
     fetch_projects_with_total_root_transaction_count_and_rates,
+    partition_by_measure,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
@@ -281,3 +282,81 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert len(org_2_results) == 2
         assert (p2_1.id, 11, 5, 6) in org_2_results
         assert (p2_2.id, 15, 7, 8) in org_2_results
+
+
+class TestPartitionByMeasure(TestCase):
+    def test_partition_by_measure_with_spans_feature(self) -> None:
+        org = self.create_organization("test-org1")
+        with self.options(
+            {
+                "dynamic-sampling.check_span_feature_flag": True,
+                "dynamic-sampling.measure.spans": [org.id],
+            }
+        ):
+            result = partition_by_measure([org.id])
+            assert SamplingMeasure.SPANS in result
+            assert SamplingMeasure.TRANSACTIONS in result
+            assert result[SamplingMeasure.SPANS] == [org.id]
+            assert result[SamplingMeasure.TRANSACTIONS] == []
+
+    def test_partition_by_measure_without_spans_feature(self) -> None:
+        org = self.create_organization("test-org1")
+        with self.options(
+            {
+                "dynamic-sampling.check_span_feature_flag": True,
+                "dynamic-sampling.measure.spans": [],
+            }
+        ):
+            result = partition_by_measure([org.id])
+            assert SamplingMeasure.SPANS in result
+            assert SamplingMeasure.TRANSACTIONS in result
+            assert result[SamplingMeasure.SPANS] == []
+            assert result[SamplingMeasure.TRANSACTIONS] == [org.id]
+
+    def test_partition_by_measure_with_span_feature_flag_disabled(self) -> None:
+        org = self.create_organization("test-org1")
+        with self.options(
+            {
+                "dynamic-sampling.check_span_feature_flag": False,
+                "dynamic-sampling.measure.spans": [org.id],
+            }
+        ):
+            result = partition_by_measure([org.id])
+            assert SamplingMeasure.TRANSACTIONS in result
+            assert SamplingMeasure.SPANS not in result
+            assert result[SamplingMeasure.TRANSACTIONS] == [org.id]
+
+    def test_partition_by_measure_returns_sorted_output_multiple_orgs(self) -> None:
+        orgs = [self.create_organization(f"test-org{i}") for i in range(10)]
+        org_ids = [org.id for org in reversed(orgs)]
+
+        with self.options(
+            {
+                "dynamic-sampling.check_span_feature_flag": True,
+                "dynamic-sampling.measure.spans": [orgs[2].id, orgs[7].id, orgs[5].id],
+            }
+        ):
+            result = partition_by_measure(org_ids)
+
+            assert result[SamplingMeasure.SPANS] == sorted([orgs[2].id, orgs[7].id, orgs[5].id])
+            expected_transaction_orgs = sorted(
+                [org.id for org in orgs if org.id not in [orgs[2].id, orgs[7].id, orgs[5].id]]
+            )
+            assert result[SamplingMeasure.TRANSACTIONS] == expected_transaction_orgs
+
+    def test_partition_by_measure_returns_sorted_when_feature_disabled(self) -> None:
+        org1 = self.create_organization("test-org1")
+        org2 = self.create_organization("test-org2")
+        org3 = self.create_organization("test-org3")
+
+        org_ids = [org3.id, org1.id, org2.id]
+
+        with self.options(
+            {
+                "dynamic-sampling.check_span_feature_flag": False,
+            }
+        ):
+            result = partition_by_measure(org_ids)
+
+            assert result[SamplingMeasure.TRANSACTIONS] == sorted(org_ids)
+            assert SamplingMeasure.SPANS not in result

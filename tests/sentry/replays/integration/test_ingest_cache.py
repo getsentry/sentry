@@ -41,14 +41,14 @@ def test_options_cache(default_project: Project) -> None:
     options_cache = make_options_cache()
 
     ProjectOption.objects.set_value(
-        project=default_project, key="sentry:replay_hydration_error_issues", value=True
+        project=default_project, key="sentry:replay_hydration_error_issues", value=False
     )
     ProjectOption.objects.set_value(
-        project=default_project, key="sentry:replay_rage_click_issues", value=True
+        project=default_project, key="sentry:replay_rage_click_issues", value=False
     )
 
-    assert options_cache[default_project.id][0] is True
-    assert options_cache[default_project.id][1] is True
+    assert options_cache[default_project.id][0] is False
+    assert options_cache[default_project.id][1] is False
 
 
 @django_db_all
@@ -56,19 +56,7 @@ def test_options_cache_hydration(default_project: Project) -> None:
     options_cache = make_options_cache()
 
     ProjectOption.objects.set_value(
-        project=default_project, key="sentry:replay_hydration_error_issues", value=True
-    )
-
-    assert options_cache[default_project.id][0] is True
-    assert options_cache[default_project.id][1] is False
-
-
-@django_db_all
-def test_options_cache_rage(default_project: Project) -> None:
-    options_cache = make_options_cache()
-
-    ProjectOption.objects.set_value(
-        project=default_project, key="sentry:replay_rage_click_issues", value=True
+        project=default_project, key="sentry:replay_hydration_error_issues", value=False
     )
 
     assert options_cache[default_project.id][0] is False
@@ -76,11 +64,23 @@ def test_options_cache_rage(default_project: Project) -> None:
 
 
 @django_db_all
+def test_options_cache_rage(default_project: Project) -> None:
+    options_cache = make_options_cache()
+
+    ProjectOption.objects.set_value(
+        project=default_project, key="sentry:replay_rage_click_issues", value=False
+    )
+
+    assert options_cache[default_project.id][0] is True
+    assert options_cache[default_project.id][1] is False
+
+
+@django_db_all
 def test_options_cache_missing(default_project: Project) -> None:
     options_cache = make_options_cache()
 
-    assert options_cache[default_project.id][0] is False
-    assert options_cache[default_project.id][1] is False
+    assert options_cache[default_project.id][0] is True
+    assert options_cache[default_project.id][1] is True
 
-    assert options_cache[2346326722][0] is False
-    assert options_cache[2346326722][1] is False
+    assert options_cache[2346326722][0] is True
+    assert options_cache[2346326722][1] is True

@@ -13,12 +13,14 @@ def _get_valid_data(project_id, environment_name, **overrides):
         "projectId": project_id,
         "name": "Test Uptime Detector",
         "type": UptimeDomainCheckFailure.slug,
-        "dataSource": {
-            "timeout_ms": 30000,
-            "name": "Test Uptime Detector",
-            "url": "https://www.google.com",
-            "interval_seconds": UptimeSubscription.IntervalSeconds.ONE_MINUTE,
-        },
+        "dataSources": [
+            {
+                "timeout_ms": 30000,
+                "name": "Test Uptime Detector",
+                "url": "https://www.google.com",
+                "interval_seconds": UptimeSubscription.IntervalSeconds.ONE_MINUTE,
+            }
+        ],
         "conditionGroup": {
             "logicType": "any",
             "conditions": [
@@ -76,8 +78,53 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
             "request": self.make_request(),
         }
 
+    def test_update_non_superuser_cannot_change_mode_via_endpoint(self) -> None:
+        """Integration test: non-superuser cannot change mode via API endpoint."""
+        # Create a detector with MANUAL mode specifically for this test
+        manual_detector = self.create_uptime_detector(
+            project=self.project,
+            env=self.environment,
+            uptime_subscription=self.uptime_subscription,
+            name="Manual Test Detector",
+            mode=UptimeMonitorMode.MANUAL,
+        )
+
+        assert manual_detector.workflow_condition_group is not None
+        invalid_data = {
+            "id": manual_detector.id,
+            "projectId": self.project.id,
+            "name": "Manual Test Detector",
+            "type": UptimeDomainCheckFailure.slug,
+            "dateCreated": manual_detector.date_added,
+            "dateUpdated": timezone.now(),
+            "conditionGroup": {
+                "id": manual_detector.workflow_condition_group.id,
+                "organizationId": self.organization.id,
+            },
+            "config": {
+                "environment": self.environment.name,
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
+                "recovery_threshold": 1,
+                "downtime_threshold": 1,
+            },
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            manual_detector.id,
+            **invalid_data,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            method="PUT",
+        )
+
+        assert response.data["config"] == ["Only superusers can modify `mode`"]
+
+        # Verify that mode was NOT changed
+        manual_detector.refresh_from_db()
+        assert manual_detector.config["mode"] == UptimeMonitorMode.MANUAL.value
+
     def test_update(self) -> None:
-        assert self.detector.workflow_condition_group
+        assert self.detector.workflow_condition_group is not None
         valid_data = {
             "id": self.detector.id,
             "projectId": self.project.id,
@@ -85,9 +132,11 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
             "type": UptimeDomainCheckFailure.slug,
             "dateCreated": self.detector.date_added,
             "dateUpdated": timezone.now(),
-            "dataSource": {
-                "timeout_ms": 15000,
-            },
+            "dataSources": [
+                {
+                    "timeout_ms": 15000,
+                }
+            ],
             "conditionGroup": {
                 "id": self.detector.workflow_condition_group.id,
                 "organizationId": self.organization.id,
@@ -109,8 +158,7 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
         assert updated_sub.timeout_ms == 15000
 
     def test_update_invalid(self) -> None:
-        assert self.detector.workflow_condition_group
-
+        assert self.detector.workflow_condition_group is not None
         valid_data = {
             "id": self.detector.id,
             "projectId": self.project.id,
@@ -118,9 +166,11 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
             "type": UptimeDomainCheckFailure.slug,
             "dateCreated": self.detector.date_added,
             "dateUpdated": timezone.now(),
-            "dataSource": {
-                "timeout_ms": 80000,
-            },
+            "dataSources": [
+                {
+                    "timeout_ms": 80000,
+                }
+            ],
             "conditionGroup": {
                 "id": self.detector.workflow_condition_group.id,
                 "organizationId": self.organization.id,
@@ -136,9 +186,9 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
             method="PUT",
         )
 
-        assert "dataSource" in response.data
+        assert "dataSources" in response.data
         assert "Ensure this value is less than or equal to 60000." in str(
-            response.data["dataSource"]
+            response.data["dataSources"]
         )
 
 
@@ -152,7 +202,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
 
     def test_create_detector_validation_error(self):
         invalid_data = _get_valid_data(
-            self.project.id, self.environment.name, dataSource={"timeout_ms": 80000}
+            self.project.id, self.environment.name, dataSources=[{"timeout_ms": 80000}]
         )
 
         response = self.get_error_response(
@@ -161,9 +211,9 @@ class OrganizationDetectorIndexPostTest(APITestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-        assert "dataSource" in response.data
+        assert "dataSources" in response.data
         assert "Ensure this value is less than or equal to 60000" in str(
-            response.data["dataSource"]
+            response.data["dataSources"]
         )
 
     def test_create_detector(self):
@@ -193,16 +243,18 @@ class OrganizationDetectorIndexPostTest(APITestCase):
         valid_data = _get_valid_data(
             self.project.id,
             self.environment.name,
-            dataSource={
-                "timeout_ms": 30000,
-                "name": "Test Uptime Detector",
-                "url": "https://www.google.com",
-                "interval_seconds": UptimeSubscription.IntervalSeconds.ONE_MINUTE,
-                "method": "PUT",
-                "headers": [["key", "value"]],
-                "body": "<html/>",
-                "trace_sampling": True,
-            },
+            dataSources=[
+                {
+                    "timeout_ms": 30000,
+                    "name": "Test Uptime Detector",
+                    "url": "https://www.google.com",
+                    "interval_seconds": UptimeSubscription.IntervalSeconds.ONE_MINUTE,
+                    "method": "PUT",
+                    "headers": [["key", "value"]],
+                    "body": "<html/>",
+                    "trace_sampling": True,
+                }
+            ],
         )
 
         response = self.get_success_response(
@@ -244,3 +296,24 @@ class OrganizationDetectorIndexPostTest(APITestCase):
 
         assert "config" in response.data
         assert "downtime_threshold" in str(response.data["config"])
+
+    def test_create_detector_non_superuser_cannot_set_auto_detected_mode(self):
+        """Integration test: non-superuser cannot create with AUTO_DETECTED mode via API."""
+        invalid_data = _get_valid_data(
+            self.project.id,
+            self.environment.name,
+            config={
+                "environment": self.environment.name,
+                "mode": UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
+                "recovery_threshold": 1,
+                "downtime_threshold": 1,
+            },
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            **invalid_data,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert response.data["config"] == ["Only superusers can modify `mode`"]

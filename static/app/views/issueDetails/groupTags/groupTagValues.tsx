@@ -205,6 +205,7 @@ export function GroupTagValues() {
         range: '90d',
       });
       const issuesPath = `/organizations/${orgId}/issues/`;
+      const tagName = tagValue.name === '' ? t('(empty)') : tagValue.name;
 
       return (
         <Fragment key={tagValueIdx}>
@@ -223,7 +224,7 @@ export function GroupTagValues() {
                     hideEmail
                   />
                 ) : (
-                  <DeviceName value={tagValue.name} />
+                  <DeviceName value={tagName} />
                 )}
               </GlobalSelectionLink>
             </NameWrapper>
@@ -291,7 +292,7 @@ export function GroupTagValues() {
 
   return (
     <Layout.Body>
-      <Layout.Main fullWidth>
+      <Layout.Main width="full">
         <TitleWrapper>
           <Title>{t('Tag Details')}</Title>
           <ButtonBar>

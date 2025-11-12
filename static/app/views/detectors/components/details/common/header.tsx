@@ -24,7 +24,10 @@ export function DetectorDetailsHeader({detector, project}: DetectorDetailsHeader
       <DetailLayout.HeaderContent>
         <Breadcrumbs
           crumbs={[
-            {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
+            {
+              label: t('Monitors'),
+              to: makeMonitorBasePathname(organization.slug),
+            },
             {label: detector.name},
           ]}
         />

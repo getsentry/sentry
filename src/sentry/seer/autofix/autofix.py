@@ -13,7 +13,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import eventstore, features, quotas, tagstore
+from sentry import features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import DataCategory, ObjectStatus
@@ -31,6 +31,7 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
@@ -552,7 +553,7 @@ def trigger_autofix(
     if group.organization.get_option("sentry:hide_ai_features"):
         return _respond_with_error("AI features are disabled for this organization.", 403)
 
-    if not get_seer_org_acknowledgement(org_id=group.organization.id):
+    if not get_seer_org_acknowledgement(group.organization):
         return _respond_with_error(
             "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer.",
             403,

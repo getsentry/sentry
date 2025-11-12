@@ -44,7 +44,7 @@ import {
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
-import {WidgetType} from './types';
+import {DashboardFilterKeys, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
@@ -87,6 +87,7 @@ type Props = {
   onEditWidget?: (widget: Widget) => void;
   onNewWidgetScrollComplete?: () => void;
   onSetNewWidget?: () => void;
+  useTimeseriesVisualization?: boolean;
 };
 
 interface LayoutState extends Record<string, Layout[]> {
@@ -109,6 +110,7 @@ function Dashboard({
   onEditWidget,
   onNewWidgetScrollComplete,
   onSetNewWidget,
+  useTimeseriesVisualization,
 }: Props) {
   const theme = useTheme();
   const location = useLocation();
@@ -153,18 +155,25 @@ function Dashboard({
     );
   }, [api, organization.slug, selection.projects]);
 
+  useEffect(() => {
+    // Always load organization tags on dashboards
+    loadOrganizationTags(api, organization.slug, selection);
+  }, [api, organization.slug, selection]);
+
   // The operations in this effect should only run on mount/unmount
   useEffect(() => {
     window.addEventListener('resize', debouncedHandleResize);
-
-    // Always load organization tags on dashboards
-    loadOrganizationTags(api, organization.slug, selection);
 
     // Get member list data for issue widgets
     fetchMemberList();
 
     connectDashboardCharts(DASHBOARD_CHART_GROUP);
-    trackEngagementAnalytics(dashboard.widgets, organization, dashboard.title);
+    trackEngagementAnalytics(
+      dashboard.widgets,
+      organization,
+      dashboard.title,
+      dashboard.filters?.[DashboardFilterKeys.GLOBAL_FILTER]?.length ?? 0
+    );
 
     return () => {
       window.removeEventListener('resize', debouncedHandleResize);
@@ -420,6 +429,7 @@ function Dashboard({
             index={String(index)}
             newlyAddedWidget={newlyAddedWidget}
             onNewWidgetScrollComplete={onNewWidgetScrollComplete}
+            useTimeseriesVisualization={useTimeseriesVisualization}
           />
         </div>
       ))}

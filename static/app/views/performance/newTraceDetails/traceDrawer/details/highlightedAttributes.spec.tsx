@@ -8,7 +8,7 @@ jest.mock('@sentry/react', () => ({
 }));
 
 // Mock the query utility
-jest.mock('sentry/views/insights/agents/utils/query', () => ({
+jest.mock('sentry/views/insights/pages/agents/utils/query', () => ({
   getIsAiSpan: jest.fn(({op}) => op?.startsWith('gen_ai.')),
 }));
 

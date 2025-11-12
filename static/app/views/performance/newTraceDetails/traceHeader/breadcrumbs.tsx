@@ -52,6 +52,7 @@ export enum TraceViewSources {
   FEEDBACK_DETAILS = 'feedback_details',
   LOGS = 'logs',
   AGENT_MONITORING = 'agent_monitoring',
+  TRACE_METRICS = 'trace_metrics',
 }
 
 // Ideally every new entry to ModuleName, would require a new source to be added here so we don't miss any.
@@ -81,6 +82,7 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
   feedback_details: 'issues/feedback',
   dashboards: 'dashboards',
   logs: 'explore/logs',
+  trace_metrics: 'explore/metrics',
 };
 
 function getBreadCrumbTarget(pathname: string, query: Location['query']) {
@@ -138,31 +140,6 @@ function getPerformanceBreadCrumbs(
         ),
       });
       break;
-    case Tab.SPANS: {
-      crumbs.push({
-        label: t('Spans'),
-        to: getBreadCrumbTarget(
-          normalizeUrl(
-            `/organizations/${organization.slug}/${transactionSummaryUrl}/spans`
-          ),
-          location.query
-        ),
-      });
-
-      const {spanSlug} = location.query;
-      if (spanSlug) {
-        crumbs.push({
-          label: t('Span Summary'),
-          to: getBreadCrumbTarget(
-            normalizeUrl(
-              `/organizations/${organization.slug}/${transactionSummaryUrl}/spans/${spanSlug}`
-            ),
-            location.query
-          ),
-        });
-      }
-      break;
-    }
     default:
       crumbs.push({
         label: t('Transaction Summary'),
@@ -416,6 +393,7 @@ function LeafBreadCrumbLabel({
       )}
       <span>{formatVersion(traceSlug)}</span>
       <CopyToClipboardButton
+        aria-label={t('Copy trace ID to clipboard')}
         className="trace-id-copy-button"
         text={traceSlug}
         size="zero"
@@ -535,6 +513,17 @@ export function getTraceViewBreadcrumbs({
           label: t('Logs'),
           to: getBreadCrumbTarget(
             normalizeUrl(`/organizations/${organization.slug}/explore/logs/`),
+            location.query
+          ),
+        },
+        leafBreadcrumb,
+      ];
+    case TraceViewSources.TRACE_METRICS:
+      return [
+        {
+          label: t('Metrics'),
+          to: getBreadCrumbTarget(
+            normalizeUrl(`/organizations/${organization.slug}/explore/metrics/`),
             location.query
           ),
         },

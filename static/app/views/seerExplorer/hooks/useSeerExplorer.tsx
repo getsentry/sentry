@@ -79,12 +79,9 @@ const isPolling = (sessionData: SeerExplorerResponse['session'], runStarted: boo
     return false;
   }
 
-  if (!sessionData) {
-    return true;
-  }
-
-  // Poll if status is processing or if any message is loading
   return (
+    !sessionData ||
+    runStarted ||
     sessionData.status === 'processing' ||
     sessionData.blocks.some(message => message.loading)
   );
@@ -100,6 +97,7 @@ export const useSeerExplorer = () => {
   const [currentRunId, setCurrentRunId] = useState<number | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
+  const [interruptRequested, setInterruptRequested] = useState<boolean>(false);
   const [optimistic, setOptimistic] = useState<{
     assistantBlockId: string;
     assistantContent: string;
@@ -140,9 +138,6 @@ export const useSeerExplorer = () => {
         deletedFromIndex ?? (apiData?.session?.blocks.length || 0);
       const calculatedInsertIndex = insertIndex ?? effectiveMessageLength;
 
-      // Generate timestamp in seconds to match backend format
-      const timestamp = Date.now() / 1000;
-
       // Record current real blocks signature to know when to clear optimistic UI
       const baselineSignature = JSON.stringify(
         (apiData?.session?.blocks || []).map(b => [
@@ -153,8 +148,15 @@ export const useSeerExplorer = () => {
         ])
       );
 
+      // Generate deterministic block IDs matching backend logic
+      // Backend generates: `{prefix}-{index}-{content[:16].replace(' ', '-')}`
+      const generateBlockId = (prefix: string, content: string, index: number) => {
+        const contentPrefix = content.slice(0, 16).replace(/ /g, '-');
+        return `${prefix}-${index}-${contentPrefix}`;
+      };
+
       // Set optimistic UI: show user's message and a thinking placeholder,
-      // and hide all real blocks after the insert point. IDs mimic real pattern.
+      // and hide all real blocks after the insert point.
       const assistantContent =
         OPTIMISTIC_ASSISTANT_TEXTS[
           Math.floor(Math.random() * OPTIMISTIC_ASSISTANT_TEXTS.length)
@@ -163,8 +165,12 @@ export const useSeerExplorer = () => {
         insertIndex: calculatedInsertIndex,
         userQuery: query,
         baselineSignature,
-        userBlockId: `user-${timestamp}`,
-        assistantBlockId: `assistant-${timestamp}`,
+        userBlockId: generateBlockId('user', query, calculatedInsertIndex),
+        assistantBlockId: generateBlockId(
+          'loading',
+          assistantContent || '',
+          calculatedInsertIndex + 1
+        ),
         assistantContent: assistantContent || 'Thinking...',
       });
 
@@ -176,7 +182,6 @@ export const useSeerExplorer = () => {
             data: {
               query,
               insert_index: calculatedInsertIndex,
-              message_timestamp: timestamp,
               on_page_context: screenshot,
             },
           }
@@ -217,6 +222,7 @@ export const useSeerExplorer = () => {
     setWaitingForResponse(false);
     setDeletedFromIndex(null);
     setOptimistic(null);
+    setInterruptRequested(false);
     if (orgSlug) {
       setApiQueryData<SeerExplorerResponse>(
         queryClient,
@@ -229,6 +235,31 @@ export const useSeerExplorer = () => {
   const deleteFromIndex = useCallback((index: number) => {
     setDeletedFromIndex(index);
   }, []);
+
+  const interruptRun = useCallback(async () => {
+    if (!orgSlug || !currentRunId) {
+      return;
+    }
+
+    setInterruptRequested(true);
+
+    try {
+      await api.requestPromise(
+        `/organizations/${orgSlug}/seer/explorer-update/${currentRunId}/`,
+        {
+          method: 'POST',
+          data: {
+            payload: {
+              type: 'interrupt',
+            },
+          },
+        }
+      );
+    } catch (e: any) {
+      // If the request fails, reset the interrupt state
+      setInterruptRequested(false);
+    }
+  }, [api, orgSlug, currentRunId]);
 
   // Always filter messages based on optimistic state and deletedFromIndex before any other processing
   const sessionData = apiData?.session ?? null;
@@ -316,6 +347,7 @@ export const useSeerExplorer = () => {
 
     if (!hasLoadingMessage && filteredSessionData.status !== 'processing') {
       setWaitingForResponse(false);
+      setInterruptRequested(false);
       // Clear deleted index once response is complete
       setDeletedFromIndex(null);
     }
@@ -330,5 +362,7 @@ export const useSeerExplorer = () => {
     runId: currentRunId,
     deleteFromIndex,
     deletedFromIndex,
+    interruptRun,
+    interruptRequested,
   };
 };

@@ -135,6 +135,7 @@ type Props = RouteComponentProps<RouteParams> & {
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   onSetNewWidget?: () => void;
+  useTimeseriesVisualization?: boolean;
 };
 
 type State = {
@@ -225,8 +226,13 @@ class DashboardDetail extends Component<Props, State> {
 
     if (
       prevProps.organization !== this.props.organization ||
-      prevProps.location !== this.props.location ||
-      prevProps.router !== this.props.router ||
+      // The only part of `location` used by `WidgetLegendSelectionState` is
+      // `unselectedSeries`. Don't bother comparing anything else. Once this
+      // component is a functional component, we'll move the selection state
+      // into a hook, and make sure it doesn't re-render too much.
+      prevProps.location.query.unselectedSeries !==
+        this.props.location.query.unselectedSeries ||
+      prevProps.navigate !== this.props.navigate ||
       prevProps.dashboard !== this.props.dashboard
     ) {
       this.setState({
@@ -342,6 +348,11 @@ class DashboardDetail extends Component<Props, State> {
         return null;
       }
     }
+  }
+
+  get isEmbedded() {
+    const {dashboardState} = this.state;
+    return DashboardState.EMBEDDED === dashboardState;
   }
 
   get isPreview() {
@@ -489,17 +500,6 @@ class DashboardDetail extends Component<Props, State> {
 
   handleChangeFilter = (activeFilters: DashboardFilters) => {
     const {dashboard, location} = this.props;
-    const {modifiedDashboard} = this.state;
-    const newModifiedDashboard = modifiedDashboard || dashboard;
-
-    if (
-      Object.keys(activeFilters).every(
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        key => !newModifiedDashboard.filters?.[key] && activeFilters[key].length === 0
-      )
-    ) {
-      return;
-    }
 
     const filterParams: Record<string, string[]> = {};
     filterParams[DashboardFilterKeys.RELEASE] = activeFilters[DashboardFilterKeys.RELEASE]
@@ -959,6 +959,7 @@ class DashboardDetail extends Component<Props, State> {
                   filters={{}} // Default Dashboards don't have filters set
                   location={location}
                   hasUnsavedChanges={false}
+                  hasTemporaryFilters={false}
                   isEditingDashboard={false}
                   isPreview={false}
                   onDashboardFilterChange={this.handleChangeFilter}
@@ -1023,6 +1024,7 @@ class DashboardDetail extends Component<Props, State> {
       onSetNewWidget,
       onDashboardUpdate,
       projects,
+      useTimeseriesVisualization,
     } = this.props;
     const {
       modifiedDashboard,
@@ -1038,6 +1040,10 @@ class DashboardDetail extends Component<Props, State> {
       dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
+
+    const hasTemporaryFilters = defined(
+      location.query?.[DashboardFilterKeys.TEMPORARY_FILTERS]
+    );
 
     const eventView = generatePerformanceEventView(location, projects, {}, organization);
 
@@ -1097,47 +1103,49 @@ class DashboardDetail extends Component<Props, State> {
             <OnDemandControlProvider location={location}>
               <MetricsResultsMetaProvider>
                 <NoProjectMessage organization={organization}>
-                  <Layout.Header>
-                    <Layout.HeaderContent>
-                      <Breadcrumbs
-                        crumbs={[
-                          {
-                            label: t('Dashboards'),
-                            to: `/organizations/${organization.slug}/dashboards/`,
-                          },
-                          {
-                            label: this.getBreadcrumbLabel(),
-                          },
-                        ]}
-                      />
-                      <Layout.Title>
-                        <DashboardTitle
-                          dashboard={modifiedDashboard ?? dashboard}
-                          onUpdate={this.setModifiedDashboard}
-                          isEditingDashboard={this.isEditingDashboard}
+                  {this.isEmbedded ? null : (
+                    <Layout.Header>
+                      <Layout.HeaderContent>
+                        <Breadcrumbs
+                          crumbs={[
+                            {
+                              label: t('Dashboards'),
+                              to: `/organizations/${organization.slug}/dashboards/`,
+                            },
+                            {
+                              label: this.getBreadcrumbLabel(),
+                            },
+                          ]}
                         />
-                      </Layout.Title>
-                    </Layout.HeaderContent>
-                    <Layout.HeaderActions>
-                      <Controls
-                        organization={organization}
-                        dashboards={dashboards}
-                        dashboard={dashboard}
-                        hasUnsavedFilters={hasUnsavedFilters}
-                        onEdit={this.onEdit}
-                        onCancel={this.onCancel}
-                        onCommit={this.onCommit}
-                        onAddWidget={this.onAddWidget}
-                        onDelete={this.onDelete(dashboard)}
-                        onChangeEditAccess={this.onChangeEditAccess}
-                        dashboardState={dashboardState}
-                        widgetLimitReached={widgetLimitReached}
-                        isSaving={isCommittingChanges}
-                      />
-                    </Layout.HeaderActions>
-                  </Layout.Header>
+                        <Layout.Title>
+                          <DashboardTitle
+                            dashboard={modifiedDashboard ?? dashboard}
+                            onUpdate={this.setModifiedDashboard}
+                            isEditingDashboard={this.isEditingDashboard}
+                          />
+                        </Layout.Title>
+                      </Layout.HeaderContent>
+                      <Layout.HeaderActions>
+                        <Controls
+                          organization={organization}
+                          dashboards={dashboards}
+                          dashboard={dashboard}
+                          hasUnsavedFilters={hasUnsavedFilters}
+                          onEdit={this.onEdit}
+                          onCancel={this.onCancel}
+                          onCommit={this.onCommit}
+                          onAddWidget={this.onAddWidget}
+                          onDelete={this.onDelete(dashboard)}
+                          onChangeEditAccess={this.onChangeEditAccess}
+                          dashboardState={dashboardState}
+                          widgetLimitReached={widgetLimitReached}
+                          isSaving={isCommittingChanges}
+                        />
+                      </Layout.HeaderActions>
+                    </Layout.Header>
+                  )}
                   <Layout.Body>
-                    <Layout.Main fullWidth>
+                    <Layout.Main width="full">
                       <MetricsCardinalityProvider
                         organization={organization}
                         location={location}
@@ -1168,7 +1176,8 @@ class DashboardDetail extends Component<Props, State> {
                                 dashboardPermissions={dashboard.permissions}
                                 dashboardCreator={dashboard.createdBy}
                                 location={location}
-                                hasUnsavedChanges={hasUnsavedFilters}
+                                hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
+                                hasTemporaryFilters={hasTemporaryFilters}
                                 isEditingDashboard={
                                   dashboardState !== DashboardState.CREATE &&
                                   this.isEditingDashboard
@@ -1264,6 +1273,9 @@ class DashboardDetail extends Component<Props, State> {
                                     newlyAddedWidget={newlyAddedWidget}
                                     onNewWidgetScrollComplete={
                                       this.handleScrollToNewWidgetComplete
+                                    }
+                                    useTimeseriesVisualization={
+                                      useTimeseriesVisualization
                                     }
                                   />
 

@@ -2,6 +2,7 @@ import {isValidElement, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
@@ -23,6 +24,7 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
@@ -159,6 +161,10 @@ export function GroupSummary({
     organization.slug,
   ]);
 
+  useRouteAnalyticsParams({
+    has_summary: Boolean(data && !isPending && !isError),
+  });
+
   if (preview) {
     return <GroupSummaryPreview data={data} isPending={isPending} isError={isError} />;
   }
@@ -209,7 +215,9 @@ function GroupSummaryPreview({
               <InsightCard key={card.id}>
                 <CardTitle>
                   <CardTitleIcon>{card.icon}</CardTitleIcon>
-                  <CardTitleText>{card.title}</CardTitleText>
+                  <AiPrivacyTooltip showUnderline isHoverable>
+                    <CardTitleText>{card.title}</CardTitleText>
+                  </AiPrivacyTooltip>
                 </CardTitle>
                 <CardContentContainer>
                   <CardLineDecorationWrapper>

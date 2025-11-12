@@ -35,9 +35,7 @@ export function EditAutomationActions({automation}: EditAutomationActionsProps) 
       },
       {
         onSuccess: data => {
-          addSuccessMessage(
-            data.enabled ? t('Automation enabled') : t('Automation disabled')
-          );
+          addSuccessMessage(data.enabled ? t('Alert enabled') : t('Alert disabled'));
         },
       }
     );
@@ -45,7 +43,7 @@ export function EditAutomationActions({automation}: EditAutomationActionsProps) 
 
   const handleDelete = useCallback(() => {
     openConfirmModal({
-      message: t('Are you sure you want to delete this automation?'),
+      message: t('Are you sure you want to delete this alert?'),
       confirmText: t('Delete'),
       priority: 'danger',
       onConfirm: async () => {

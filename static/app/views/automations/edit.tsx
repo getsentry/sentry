@@ -24,7 +24,6 @@ import {useParams} from 'sentry/utils/useParams';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {
   AutomationBuilderContext,
-  initialAutomationBuilderState,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
@@ -38,6 +37,7 @@ import {
 } from 'sentry/views/automations/components/automationFormData';
 import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
 import {EditAutomationActions} from 'sentry/views/automations/components/editAutomationActions';
+import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {
   makeAutomationBasePathname,
@@ -46,7 +46,7 @@ import {
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
-  return <SentryDocumentTitle title={title ?? t('Edit Automation')} />;
+  return <SentryDocumentTitle title={title ?? t('Edit Alert')} />;
 }
 
 function AutomationBreadcrumbs({automationId}: {automationId: string}) {
@@ -55,7 +55,10 @@ function AutomationBreadcrumbs({automationId}: {automationId: string}) {
   return (
     <Breadcrumbs
       crumbs={[
-        {label: t('Automation'), to: makeAutomationBasePathname(organization.slug)},
+        {
+          label: t('Alerts'),
+          to: makeAutomationBasePathname(organization.slug),
+        },
         {
           label: title,
           to: makeAutomationDetailsPathname(organization.slug, automationId),
@@ -110,7 +113,11 @@ function AutomationEditForm({automation}: {automation: Automation}) {
     return {
       triggers: automation.triggers
         ? automation.triggers
-        : initialAutomationBuilderState.triggers,
+        : {
+            id: 'when',
+            logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+            conditions: [],
+          },
       actionFilters: automation.actionFilters,
     };
   }, [automation]);
@@ -159,50 +166,52 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       initialData={initialData}
       onSubmit={handleFormSubmit}
     >
-      <AutomationDocumentTitle />
-      <Layout.Page>
-        <StyledLayoutHeader>
-          <HeaderInner maxWidth={maxWidth}>
-            <Layout.HeaderContent>
-              <AutomationBreadcrumbs automationId={params.automationId} />
-              <Layout.Title>
-                <EditableAutomationName />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <div>
-              <AutomationFeedbackButton />
-            </div>
-          </HeaderInner>
-        </StyledLayoutHeader>
-        <StyledBody maxWidth={maxWidth}>
-          <Layout.Main fullWidth>
-            <AutomationBuilderErrorContext.Provider
-              value={{
-                errors: automationBuilderErrors,
-                setErrors: setAutomationBuilderErrors,
-                removeError,
-                mutationErrors: error?.responseJSON,
-              }}
-            >
-              <AutomationBuilderContext.Provider
+      <AutomationFormProvider automation={automation}>
+        <AutomationDocumentTitle />
+        <Layout.Page>
+          <StyledLayoutHeader>
+            <HeaderInner maxWidth={maxWidth}>
+              <Layout.HeaderContent>
+                <AutomationBreadcrumbs automationId={params.automationId} />
+                <Layout.Title>
+                  <EditableAutomationName />
+                </Layout.Title>
+              </Layout.HeaderContent>
+              <div>
+                <AutomationFeedbackButton />
+              </div>
+            </HeaderInner>
+          </StyledLayoutHeader>
+          <StyledBody maxWidth={maxWidth}>
+            <Layout.Main width="full">
+              <AutomationBuilderErrorContext.Provider
                 value={{
-                  state,
-                  actions,
-                  showTriggerLogicTypeSelector:
-                    state.triggers.logicType === DataConditionGroupLogicType.ALL,
+                  errors: automationBuilderErrors,
+                  setErrors: setAutomationBuilderErrors,
+                  removeError,
+                  mutationErrors: error?.responseJSON,
                 }}
               >
-                <AutomationForm model={model} />
-              </AutomationBuilderContext.Provider>
-            </AutomationBuilderErrorContext.Provider>
-          </Layout.Main>
-        </StyledBody>
-      </Layout.Page>
-      <StickyFooter>
-        <Flex style={{maxWidth}} align="center" gap="md" justify="end">
-          <EditAutomationActions automation={automation} />
-        </Flex>
-      </StickyFooter>
+                <AutomationBuilderContext.Provider
+                  value={{
+                    state,
+                    actions,
+                    showTriggerLogicTypeSelector:
+                      state.triggers.logicType === DataConditionGroupLogicType.ALL,
+                  }}
+                >
+                  <AutomationForm model={model} />
+                </AutomationBuilderContext.Provider>
+              </AutomationBuilderErrorContext.Provider>
+            </Layout.Main>
+          </StyledBody>
+        </Layout.Page>
+        <StickyFooter>
+          <Flex style={{maxWidth}} align="center" gap="md" justify="end">
+            <EditAutomationActions automation={automation} />
+          </Flex>
+        </StickyFooter>
+      </AutomationFormProvider>
     </FullHeightForm>
   );
 }

@@ -567,6 +567,16 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
             }
           })
           .filter(filter => filter !== null);
+      } else if (key === DashboardFilterKeys.TEMPORARY_FILTERS) {
+        dashboardFilters[key] = queryFilters
+          .map(filter => {
+            try {
+              return JSON.parse(filter);
+            } catch (error) {
+              return null;
+            }
+          })
+          .filter(filter => filter !== null);
       } else {
         dashboardFilters[key] = queryFilters;
       }
@@ -576,12 +586,17 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
 }
 
 export function dashboardFiltersToString(
-  dashboardFilters: DashboardFilters | null | undefined
+  dashboardFilters: DashboardFilters | null | undefined,
+  widgetType?: WidgetType
 ): string {
   let dashboardFilterConditions = '';
-  const supportedFilters = omit(dashboardFilters, DashboardFilterKeys.GLOBAL_FILTER);
-  if (supportedFilters) {
-    for (const [key, activeFilters] of Object.entries(supportedFilters)) {
+
+  const pinnedFilters = omit(dashboardFilters, [
+    DashboardFilterKeys.GLOBAL_FILTER,
+    DashboardFilterKeys.TEMPORARY_FILTERS,
+  ]);
+  if (pinnedFilters) {
+    for (const [key, activeFilters] of Object.entries(pinnedFilters)) {
       if (activeFilters.length === 1) {
         dashboardFilterConditions += `${key}:"${activeFilters[0]}" `;
       } else if (activeFilters.length > 1) {
@@ -591,6 +606,17 @@ export function dashboardFiltersToString(
       }
     }
   }
+
+  const globalFilters = dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER];
+  // If widgetType is provided, concatenate global filters that apply
+  if (widgetType && globalFilters) {
+    dashboardFilterConditions +=
+      globalFilters
+        .filter(globalFilter => globalFilter.dataset === widgetType)
+        .map(globalFilter => globalFilter.value)
+        .join(' ') ?? '';
+  }
+
   return dashboardFilterConditions;
 }
 

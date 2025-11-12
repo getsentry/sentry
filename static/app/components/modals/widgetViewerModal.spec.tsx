@@ -1418,6 +1418,12 @@ describe('Modals -> WidgetViewerModal', () => {
         url: '/organizations/org-slug/events-stats/',
         body: {},
       });
+      initialData = initializeOrg({
+        organization: {
+          features: ['discover-cell-actions-v2'],
+        },
+        projects: [ProjectFixture()],
+      });
     });
 
     it('renders the Open in Explore button', async () => {
@@ -1469,6 +1475,51 @@ describe('Modals -> WidgetViewerModal', () => {
             // The orderby should appear in the field array
             field: ['span.description', 'p90(span.duration)', 'count(span.duration)'],
           }),
+        })
+      );
+    });
+
+    it('links to the spans page when "View span samples" is clicked in the context menu', async () => {
+      const mockSpanWidget = WidgetFixture({
+        widgetType: WidgetType.SPANS,
+        title: 'Span Transactions Widget',
+        displayType: DisplayType.TABLE,
+        queries: [
+          {
+            fields: ['transaction', 'count()'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
+            name: '',
+            conditions: '',
+            orderby: '',
+          },
+        ],
+      });
+
+      await renderModal({
+        initialData,
+        widget: mockSpanWidget,
+        tableData: [
+          {
+            title: 'Span Transactions Widget',
+            data: [{transaction: 'test-transaction', count: 10, id: 'test-id'}],
+          },
+        ],
+      });
+
+      const transactionCell = await screen.findByText('test-transaction');
+      expect(transactionCell).toBeInTheDocument();
+
+      await userEvent.click(transactionCell);
+
+      const menuOption = await screen.findByText('View span samples');
+      expect(menuOption).toBeInTheDocument();
+
+      await userEvent.click(menuOption);
+
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: expect.stringContaining('/organizations/org-slug/explore/traces/'),
         })
       );
     });

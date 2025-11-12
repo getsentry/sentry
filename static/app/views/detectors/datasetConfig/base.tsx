@@ -24,6 +24,7 @@ export interface DetectorSearchBarProps {
   onSearch: (query: string) => void;
   projectIds: number[];
   dataset?: DiscoverDatasets;
+  disabled?: boolean;
 }
 
 interface DetectorSeriesQueryOptions {
@@ -48,18 +49,18 @@ interface DetectorSeriesQueryOptions {
    * The filter query. eg: `span.op:http`
    */
   query: string;
-  end?: string;
+  end?: string | null;
   /**
    * Extra query parameters to pass
    */
   extra?: {
     useOnDemandMetrics: 'true';
   };
-  start?: string;
+  start?: string | null;
   /**
    * Relative time period for the query. Example: '7d'.
    */
-  statsPeriod?: string;
+  statsPeriod?: string | null;
 }
 
 /**
@@ -138,4 +139,12 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     data: SeriesResponse | undefined,
     aggregate: string
   ) => Series[];
+
+  /**
+   * When automatically generating a detector name, this function will be called to format the aggregate function.
+   * If this function is not provided, the aggregate function will be used as is.
+   *
+   * e.g. For the errors dataset, count() will be formatted as 'Number of errors'
+   */
+  formatAggregateForTitle?: (aggregate: string) => string;
 }

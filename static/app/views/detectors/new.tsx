@@ -29,7 +29,10 @@ function NewDetectorBreadcrumbs() {
   return (
     <Breadcrumbs
       crumbs={[
-        {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
+        {
+          label: t('Monitors'),
+          to: makeMonitorBasePathname(organization.slug),
+        },
         {label: newMonitorName},
       ]}
     />

@@ -38,6 +38,7 @@ from sentry.incidents.logic import (
     delete_alert_rule,
     get_slack_actions_with_async_lookups,
 )
+from sentry.incidents.metric_issue_detector import is_invalid_extrapolation_mode
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
@@ -49,9 +50,12 @@ from sentry.models.organization import Organization
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import ExtrapolationMode
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +125,17 @@ def update_alert_rule(
         partial=True,
     )
     if validator.is_valid():
+        if data.get("dataset") == Dataset.EventsAnalyticsPlatform.value:
+            if data.get("extrapolation_mode"):
+                old_extrapolation_mode = ExtrapolationMode(
+                    alert_rule.snuba_query.extrapolation_mode
+                ).name.lower()
+                new_extrapolation_mode = data.get("extrapolation_mode", old_extrapolation_mode)
+                if is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode):
+                    raise serializers.ValidationError(
+                        "Invalid extrapolation mode for this alert type."
+                    )
+
         try:
             trigger_sentry_app_action_creators_for_incidents(validator.validated_data)
         except SentryAppBaseError as e:
@@ -339,6 +354,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         },
         examples=MetricAlertExamples.GET_METRIC_ALERT_RULE,
     )
+    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rule-details")
     @_check_project_access
     def get(self, request: Request, organization: Organization, alert_rule: AlertRule) -> Response:
         """
@@ -365,6 +381,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         },
         examples=MetricAlertExamples.UPDATE_METRIC_ALERT_RULE,
     )
+    @track_alert_endpoint_execution("PUT", "sentry-api-0-organization-alert-rule-details")
     @_check_project_access
     def put(self, request: Request, organization: Organization, alert_rule: AlertRule) -> Response:
         """
@@ -394,6 +411,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
+    @track_alert_endpoint_execution("DELETE", "sentry-api-0-organization-alert-rule-details")
     @_check_project_access
     def delete(
         self, request: Request, organization: Organization, alert_rule: AlertRule

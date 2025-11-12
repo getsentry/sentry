@@ -29,13 +29,14 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
-import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
+import {getDetectorSystemCreatedNotice} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 type DetectorLinkProps = {
   detector: Detector;
   className?: string;
+  openInNewTab?: boolean;
 };
 
 function formatConditionType(condition: MetricCondition) {
@@ -203,7 +204,7 @@ function Details({detector}: {detector: Detector}) {
   }
 }
 
-export function DetectorLink({detector, className}: DetectorLinkProps) {
+export function DetectorLink({detector, className, openInNewTab}: DetectorLinkProps) {
   const org = useOrganization();
   const project = useProjectFromId({project_id: detector.projectId});
 
@@ -212,8 +213,9 @@ export function DetectorLink({detector, className}: DetectorLinkProps) {
       className={className}
       name={detector.name}
       link={makeMonitorDetailsPathname(org.slug, detector.id)}
-      systemCreated={!detectorTypeIsUserCreateable(detector.type)}
+      systemCreated={getDetectorSystemCreatedNotice(detector)}
       disabled={!detector.enabled}
+      openInNewTab={openInNewTab}
       details={
         <Fragment>
           {project && (

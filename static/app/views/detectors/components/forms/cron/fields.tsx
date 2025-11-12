@@ -24,11 +24,11 @@ export const CRON_DEFAULT_MAX_RUNTIME = 30;
 
 interface CronDetectorFormData {
   checkinMargin: number | null;
+  description: string | null;
   failureIssueThreshold: number;
   maxRuntime: number | null;
   name: string;
   owner: string;
-
   projectId: string;
   recoveryThreshold: number;
   scheduleCrontab: string;
@@ -78,13 +78,16 @@ export function cronFormDataToEndpointPayload(
   return {
     type: 'monitor_check_in_failure',
     name: data.name,
+    description: data.description || null,
     owner: data.owner,
     projectId: data.projectId,
     workflowIds: data.workflowIds,
-    dataSource: {
-      name: data.name,
-      config,
-    },
+    dataSources: [
+      {
+        name: data.name,
+        config,
+      },
+    ],
   };
 }
 
@@ -117,5 +120,6 @@ export function cronSavedDetectorToFormData(
     scheduleType: config.schedule_type ?? CRON_DEFAULT_SCHEDULE_TYPE,
     timezone: config.timezone ?? CRON_DEFAULT_TIMEZONE,
     workflowIds: detector.workflowIds,
+    description: detector.description || null,
   };
 }

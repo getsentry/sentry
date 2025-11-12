@@ -24,9 +24,11 @@ import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 /**
- * Leading/trailing items to be rendered alongside the main text label.
+ * A renderable item. Either a React node, or a function that accepts properties
+ * of the item, and returns a React node. The function version is useful for
+ * lazily rendering supplementary content like training items and tooltips.
  */
-type EdgeItems =
+type ExtraContent =
   | React.ReactNode
   | ((state: {
       disabled: boolean;
@@ -53,7 +55,7 @@ export type MenuListItemProps = {
   /**
    * Items to be added to the left of the label
    */
-  leadingItems?: EdgeItems;
+  leadingItems?: ExtraContent;
   /**
    * Accented text and background (on hover) colors.
    */
@@ -71,7 +73,7 @@ export type MenuListItemProps = {
    * not very visible - if possible, add additional text via the `details`
    * prop instead.
    */
-  tooltip?: React.ReactNode;
+  tooltip?: ExtraContent;
   /**
    * Additional props to be passed into <Tooltip />.
    */
@@ -79,7 +81,7 @@ export type MenuListItemProps = {
   /**
    * Items to be added to the right of the label.
    */
-  trailingItems?: EdgeItems;
+  trailingItems?: ExtraContent;
 };
 
 interface OtherProps {
@@ -130,7 +132,15 @@ function BaseMenuListItem({
       ref={mergeRefs(ref, itemRef)}
       {...props}
     >
-      <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
+      <Tooltip
+        skipWrapper
+        title={
+          typeof tooltip === 'function'
+            ? tooltip({disabled, isFocused, isSelected})
+            : tooltip
+        }
+        {...tooltipOptions}
+      >
         <InnerWrap
           isFocused={isFocused}
           disabled={disabled}

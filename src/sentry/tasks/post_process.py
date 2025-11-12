@@ -1046,13 +1046,6 @@ def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    org = job["event"].project.organization
-    if not (
-        features.has("organizations:workflow-engine-process-metric-issue-workflows", org)
-        or features.has("organizations:workflow-engine-single-process-metric-issues", org)
-    ):
-        return
-
     process_workflow_engine(job)
 
 
@@ -1263,6 +1256,9 @@ def process_service_hooks(job: PostProcessJob) -> None:
 
 
 def process_resource_change_bounds(job: PostProcessJob) -> None:
+    if not should_process_resource_change_bounds(job):
+        return
+
     if job["is_reprocessed"]:
         return
 
@@ -1282,6 +1278,64 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
         process_resource_change_bound.delay(
             action="created", sender="Group", instance_id=event.group_id
         )
+
+
+def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
+    # Feature flag check for expanded sentry apps webhooks
+    has_expanded_sentry_apps_webhooks = features.has(
+        "organizations:expanded-sentry-apps-webhooks", job["event"].project.organization
+    )
+    group_category = job["event"].group.issue_category
+
+    if group_category != GroupCategory.ERROR and not has_expanded_sentry_apps_webhooks:
+        return False
+
+    supported_group_categories = [
+        GroupCategory(category)
+        for category in options.get("sentry-apps.expanded-webhook-categories")
+    ]
+    if group_category not in supported_group_categories:
+        return False
+
+    return True
+
+
+def process_data_forwarding(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    event = job["event"]
+
+    if not features.has("organizations:data-forwarding-revamp-access", event.project.organization):
+        return
+
+    from sentry.integrations.data_forwarding import FORWARDER_REGISTRY
+    from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+
+    data_forwarder_projects = DataForwarderProject.objects.filter(
+        project_id=event.project_id,
+        is_enabled=True,
+        data_forwarder__is_enabled=True,
+    ).select_related("data_forwarder")
+
+    for data_forwarder_project in data_forwarder_projects:
+        provider = data_forwarder_project.data_forwarder.provider
+        try:
+            # GroupEvent is compatible with Event for all operations forwarders need
+            FORWARDER_REGISTRY[provider].forward_event(event, data_forwarder_project)  # type: ignore[arg-type]
+            metrics.incr(
+                "data_forwarding.forward_event",
+                tags={"provider": provider},
+            )
+        except Exception:
+            metrics.incr(
+                "data_forwarding.forward_event.error",
+                tags={"provider": provider},
+            )
+            logger.exception(
+                "data_forwarding.forward_event.error",
+                extra={"provider": provider, "project_id": event.project_id},
+            )
 
 
 def process_plugins(job: PostProcessJob) -> None:
@@ -1574,7 +1628,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
 
-    # Only run on issues with no existing scan
+    # Only run on issues with no existing scan - TODO: Update condition for triage signals V0
     if group.seer_fixability_score is not None:
         return
 
@@ -1606,13 +1660,20 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     ):
         return
 
+    # Check if automation has already been queued or completed for this group
+    # seer_autofix_last_triggered is set when trigger_autofix is successfully started.
+    # Use cache with short TTL to hold lock for a short since it takes a few minutes to set seer_autofix_last_triggeredes
+    cache_key = f"seer_automation_queued:{group.id}"
+    if cache.get(cache_key) or group.seer_autofix_last_triggered is not None:
+        return
+
     # Don't run if there's already a task in progress for this issue
     lock_key, lock_name = get_issue_summary_lock_key(group.id)
     lock = locks.get(lock_key, duration=1, name=lock_name)
     if lock.locked():
         return
 
-    seer_enabled = get_seer_org_acknowledgement(group.organization.id)
+    seer_enabled = get_seer_org_acknowledgement(group.organization)
     if not seer_enabled:
         return
 
@@ -1628,6 +1689,11 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     from sentry.seer.autofix.utils import is_seer_scanner_rate_limited
 
     if is_seer_scanner_rate_limited(project, group.organization):
+        return
+
+    # cache.add uses Redis SETNX which atomically sets the key only if it doesn't exist
+    # Returns False if another process already set the key, ensuring only one process proceeds
+    if not cache.add(cache_key, True, timeout=600):  # 10 minute
         return
 
     start_seer_automation.delay(group.id)
@@ -1647,6 +1713,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_workflow_engine_issue_alerts,
         process_service_hooks,
         process_resource_change_bounds,
+        process_data_forwarding,
         process_plugins,
         process_code_mappings,
         process_similarity,
@@ -1662,6 +1729,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         feedback_filter_decorator(process_snoozes),
         feedback_filter_decorator(process_inbox_adds),
         feedback_filter_decorator(process_rules),
+        feedback_filter_decorator(process_resource_change_bounds),
     ],
     GroupCategory.METRIC_ALERT: [
         process_workflow_engine_metric_issues,
@@ -1673,4 +1741,6 @@ GENERIC_POST_PROCESS_PIPELINE = [
     process_inbox_adds,
     kick_off_seer_automation,
     process_rules,
+    process_resource_change_bounds,
+    process_data_forwarding,
 ]

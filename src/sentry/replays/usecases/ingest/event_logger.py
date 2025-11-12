@@ -395,9 +395,48 @@ def report_rage_click(
         )
 
 
+def _largest_attr(ti: TraceItem) -> tuple[str, int]:
+    if not ti.attributes:
+        return ("", 0)
+    name, anyv = max(ti.attributes.items(), key=lambda kv: kv[1].ByteSize())
+    return name, anyv.ByteSize()
+
+
+def _attr_stats(ti: TraceItem) -> tuple[int, int]:
+    if not ti.attributes:
+        return (0, 0)
+    count = len(ti.attributes)
+    total_size = sum(v.ByteSize() for v in ti.attributes.values())
+    return (count, total_size)
+
+
 @sentry_sdk.trace
 def emit_trace_items_to_eap(trace_items: list[TraceItem]) -> None:
-    write_trace_items(trace_items)
+    # Get largest attribute across trace items
+    largest_attribute = max(
+        ((ti, *_largest_attr(ti)) for ti in trace_items),
+        key=lambda t: t[2],
+        default=None,
+    )
+
+    # Get total attribute count and size
+    total_attr_count = 0
+    total_attr_size_bytes = 0
+    for ti in trace_items:
+        c, s = _attr_stats(ti)
+        total_attr_count += c
+        total_attr_size_bytes += s
+
+    with sentry_sdk.start_span(op="process", name="write_trace_items") as span:
+        span.set_data("attribute_count_total", total_attr_count)
+        span.set_data("attribute_size_total_bytes", total_attr_size_bytes)
+
+        if largest_attribute:
+            ti, name, size = largest_attribute
+            span.set_data("largest_attr_trace_id", ti.trace_id)
+            span.set_data("largest_attr_name", name)
+            span.set_data("largest_attr_size_bytes", size)
+        write_trace_items(trace_items)
 
 
 @sentry_sdk.trace
@@ -411,7 +450,7 @@ def _should_report_hydration_error_issue(project_id: int, context: ProcessorCont
         return ProjectOption.objects.get_value(
             project_id,
             "sentry:replay_hydration_error_issues",
-            default=False,
+            default=True,
         )
 
 
@@ -426,7 +465,7 @@ def _should_report_rage_click_issue(project_id: int, context: ProcessorContext) 
         return ProjectOption.objects.get_value(
             project_id,
             "sentry:replay_rage_click_issues",
-            default=False,
+            default=True,
         )
 
 

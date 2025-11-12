@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
 import EditConnectedMonitors from 'sentry/views/automations/components/editConnectedMonitors';
+import {useSetAutomaticAutomationName} from 'sentry/views/automations/components/forms/useSetAutomaticAutomationName';
 
 const FREQUENCY_OPTIONS = [
   {value: 5, label: t('5 minutes')},
@@ -40,6 +41,8 @@ export default function AutomationForm({model}: {model: FormModel}) {
     model.setValue('environment', env || null);
   };
 
+  useSetAutomaticAutomationName();
+
   return (
     <Flex direction="column" gap="lg">
       <EditConnectedMonitors
@@ -61,7 +64,7 @@ export default function AutomationForm({model}: {model: FormModel}) {
       </Card>
       <Card>
         <Heading as="h2" size="lg">
-          {t('Automation Builder')}
+          {t('Alert Builder')}
         </Heading>
         <AutomationBuilder />
       </Card>

@@ -11,7 +11,12 @@ from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flag
 from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import (
+    ExtrapolationMode,
+    QuerySubscription,
+    SnubaQuery,
+    SnubaQueryEventType,
+)
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.snuba.subscriptions import update_snuba_query
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -52,7 +57,14 @@ def schedule_update_project_config(detector: Detector) -> None:
     """
     enabled_features = on_demand_metrics_feature_flags(detector.project.organization)
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-    if "organizations:on-demand-metrics-extraction" not in enabled_features and not prefilling:
+    prefilling_for_deprecation = (
+        "organizations:on-demand-gen-metrics-deprecation-prefill" in enabled_features
+    )
+    if (
+        "organizations:on-demand-metrics-extraction" not in enabled_features
+        and not prefilling
+        and not prefilling_for_deprecation
+    ):
         return
 
     snuba_query = fetch_snuba_query(detector)
@@ -65,6 +77,7 @@ def schedule_update_project_config(detector: Detector) -> None:
         snuba_query.query,
         None,
         prefilling,
+        prefilling_for_deprecation=prefilling_for_deprecation,
     )
     if should_use_on_demand:
         schedule_invalidate_project_config(
@@ -74,7 +87,13 @@ def schedule_update_project_config(detector: Detector) -> None:
 
 class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
     supported_conditions = frozenset(
-        (Condition.GREATER, Condition.LESS, Condition.ANOMALY_DETECTION)
+        (
+            Condition.GREATER,
+            Condition.LESS,
+            Condition.GREATER_OR_EQUAL,
+            Condition.LESS_OR_EQUAL,
+            Condition.ANOMALY_DETECTION,
+        )
     )
     supported_condition_results = frozenset(
         (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM, DetectorPriorityLevel.OK)
@@ -124,11 +143,29 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
         MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
             raise_exception=True
         )
+        if not any(
+            condition["condition_result"] == DetectorPriorityLevel.OK for condition in value
+        ) and not any(condition["type"] == Condition.ANOMALY_DETECTION for condition in value):
+            raise serializers.ValidationError(
+                "Resolution condition required for metric issue detector."
+            )
         return value
 
 
+def is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode) -> bool:
+    if type(new_extrapolation_mode) is int:
+        new_extrapolation_mode = ExtrapolationMode(new_extrapolation_mode).name.lower()
+    if type(old_extrapolation_mode) is int:
+        old_extrapolation_mode = ExtrapolationMode(old_extrapolation_mode).name.lower()
+    if (
+        new_extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.name.lower()
+        and old_extrapolation_mode != ExtrapolationMode.SERVER_WEIGHTED.name.lower()
+    ):
+        return True
+    return False
+
+
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
-    data_source = SnubaQueryValidator(required=False, timeWindowSeconds=True)
     data_sources = serializers.ListField(
         child=SnubaQueryValidator(timeWindowSeconds=True), required=False
     )
@@ -139,7 +176,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         if "condition_group" in attrs:
             conditions = attrs.get("condition_group", {}).get("conditions")
-            if len(conditions) > 2:
+            if len(conditions) > 3:
                 raise serializers.ValidationError("Too many conditions")
 
         return attrs
@@ -154,6 +191,12 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 raise serializers.ValidationError(
                     "Creation of transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
                 )
+
+    def _validate_extrapolation_mode(self, extrapolation_mode: str) -> None:
+        if extrapolation_mode == ExtrapolationMode.SERVER_WEIGHTED.value:
+            raise serializers.ValidationError(
+                "server_weighted extrapolation mode is not supported for new detectors."
+            )
 
     def get_quota(self) -> DetectorQuota:
         organization = self.context.get("organization")
@@ -217,6 +260,16 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 "Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
             )
 
+        old_extrapolation_mode = snuba_query.extrapolation_mode
+        new_extrapolation_mode = data_source.get(
+            "extrapolation_mode", snuba_query.extrapolation_mode
+        )
+        if data_source.get("dataset") == Dataset.EventsAnalyticsPlatform:
+            if is_invalid_extrapolation_mode(old_extrapolation_mode, new_extrapolation_mode):
+                raise serializers.ValidationError(
+                    "Invalid extrapolation mode for this detector type."
+                )
+
         update_snuba_query(
             snuba_query=snuba_query,
             query_type=data_source.get("query_type", snuba_query.type),
@@ -227,6 +280,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             resolution=timedelta(seconds=data_source.get("resolution", snuba_query.resolution)),
             environment=data_source.get("environment", snuba_query.environment),
             event_types=data_source.get("event_types", [event_type for event_type in event_types]),
+            extrapolation_mode=data_source.get(
+                "extrapolation_mode", snuba_query.extrapolation_mode
+            ),
         )
 
     def update(self, instance: Detector, validated_data: dict[str, Any]):
@@ -245,9 +301,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         data_source: SnubaQueryDataSourceType | None = None
 
-        if "data_source" in validated_data:
-            data_source = validated_data.pop("data_source")
-        elif "data_sources" in validated_data:
+        if "data_sources" in validated_data:
             data_source = validated_data.pop("data_sources")[0]
 
         if data_source is not None:
@@ -259,14 +313,10 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return instance
 
     def create(self, validated_data: dict[str, Any]):
-        if "data_source" in validated_data:
-            self._validate_transaction_dataset_deprecation(
-                validated_data["data_source"].get("dataset")
-            )
-
         if "data_sources" in validated_data:
             for validated_data_source in validated_data["data_sources"]:
                 self._validate_transaction_dataset_deprecation(validated_data_source.get("dataset"))
+                self._validate_extrapolation_mode(validated_data_source.get("extrapolation_mode"))
 
         detector = super().create(validated_data)
 

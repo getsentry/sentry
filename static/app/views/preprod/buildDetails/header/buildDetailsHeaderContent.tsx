@@ -1,16 +1,26 @@
 import React from 'react';
 import {Link} from 'react-router-dom';
 
+import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import ConfirmDelete from 'sentry/components/confirmDelete';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Version from 'sentry/components/version';
-import {IconEllipsis, IconTelescope} from 'sentry/icons';
+import {
+  IconDelete,
+  IconDownload,
+  IconEllipsis,
+  IconRefresh,
+  IconTelescope,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -19,7 +29,6 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
-import {createActionMenuItems} from './buildDetailsActionItems';
 import {useBuildDetailsActions} from './useBuildDetailsActions';
 
 function makeReleasesUrl(
@@ -58,11 +67,15 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
   const {buildDetailsQuery, projectId, artifactId} = props;
-  const {isDeletingArtifact, handleDeleteAction, handleDownloadAction} =
-    useBuildDetailsActions({
-      projectId,
-      artifactId,
-    });
+  const {
+    isDeletingArtifact,
+    handleDeleteArtifact,
+    handleRerunAction,
+    handleDownloadAction,
+  } = useBuildDetailsActions({
+    projectId,
+    artifactId,
+  });
 
   const {
     data: buildDetailsData,
@@ -113,18 +126,15 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     label: 'Build Details',
   });
 
-  const actionMenuItems = createActionMenuItems({
-    handleDeleteAction,
-    handleDownloadAction,
-    isSentryEmployee,
-  });
-
   const version = `v${buildDetailsData.app_info.version ?? 'Unknown'} (${buildDetailsData.app_info.build_number ?? 'Unknown'})`;
 
   return (
     <React.Fragment>
       <Layout.HeaderContent>
-        <Breadcrumbs crumbs={breadcrumbs} />
+        <Flex align="center" gap="sm">
+          <Breadcrumbs crumbs={breadcrumbs} />
+          <FeatureBadge type="beta" />
+        </Flex>
         <Layout.Title>
           {project && <IdBadge project={project} avatarSize={28} hideName />}
           <Version version={version} anchor={false} truncate />
@@ -147,20 +157,77 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               {t('Compare Build')}
             </Button>
           </Link>
-          <DropdownMenu
-            items={actionMenuItems}
-            trigger={(triggerProps, _isOpen) => (
-              <DropdownButton
-                {...triggerProps}
-                size="sm"
-                aria-label="More actions"
-                showChevron={false}
-                disabled={isDeletingArtifact || !artifactId}
-              >
-                <IconEllipsis />
-              </DropdownButton>
+          <ConfirmDelete
+            message={t(
+              'Are you sure you want to delete this build? This action cannot be undone and will permanently remove all associated files and data.'
             )}
-          />
+            confirmInput={artifactId}
+            onConfirm={handleDeleteArtifact}
+          >
+            {({open: openDeleteModal}) => {
+              const menuItems: MenuItemProps[] = [
+                {
+                  key: 'delete',
+                  label: (
+                    <Flex align="center" gap="sm">
+                      <IconDelete size="sm" color="danger" />
+                      <Text variant="danger">{t('Delete Build')}</Text>
+                    </Flex>
+                  ),
+                  onAction: openDeleteModal,
+                  textValue: t('Delete Build'),
+                },
+              ];
+
+              if (isSentryEmployee) {
+                menuItems.push({
+                  key: 'admin-section',
+                  label: t('Admin (Sentry Employees only)'),
+                  children: [
+                    {
+                      key: 'rerun',
+                      label: (
+                        <Flex align="center" gap="sm">
+                          <IconRefresh size="sm" />
+                          {t('Rerun Analysis')}
+                        </Flex>
+                      ),
+                      onAction: handleRerunAction,
+                      textValue: t('Rerun Analysis'),
+                    },
+                    {
+                      key: 'download',
+                      label: (
+                        <Flex align="center" gap="sm">
+                          <IconDownload size="sm" />
+                          {t('Download Build')}
+                        </Flex>
+                      ),
+                      onAction: handleDownloadAction,
+                      textValue: t('Download Build'),
+                    },
+                  ],
+                });
+              }
+
+              return (
+                <DropdownMenu
+                  items={menuItems}
+                  trigger={(triggerProps, _isOpen) => (
+                    <DropdownButton
+                      {...triggerProps}
+                      size="sm"
+                      aria-label="More actions"
+                      showChevron={false}
+                      disabled={isDeletingArtifact || !artifactId}
+                    >
+                      <IconEllipsis />
+                    </DropdownButton>
+                  )}
+                />
+              );
+            }}
+          </ConfirmDelete>
         </Flex>
       </Layout.HeaderActions>
     </React.Fragment>

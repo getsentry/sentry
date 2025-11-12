@@ -26,6 +26,7 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
+    ExtrapolationMode,
     QuerySubscription,
     QuerySubscriptionDataSourceHandler,
     SnubaQuery,
@@ -139,15 +140,17 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         self.valid_data = {
             "name": "Test Detector",
             "type": MetricIssue.slug,
-            "dataSource": {
-                "queryType": SnubaQuery.Type.ERROR.value,
-                "dataset": Dataset.Events.value,
-                "query": "test query",
-                "aggregate": "count()",
-                "timeWindow": 3600,
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
-            },
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.ERROR.value,
+                    "dataset": Dataset.Events.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
+                }
+            ],
             "conditionGroup": {
                 "id": self.data_condition_group.id,
                 "organizationId": self.organization.id,
@@ -157,6 +160,12 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                         "type": Condition.GREATER,
                         "comparison": 100,
                         "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                    {
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.OK,
                         "conditionGroupId": self.data_condition_group.id,
                     },
                 ],
@@ -242,7 +251,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 
         # Verify conditions in DB
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
-        assert len(conditions) == 1
+        assert len(conditions) == 2
         condition = conditions[0]
         assert condition.type == Condition.GREATER
         assert condition.comparison == 100
@@ -397,6 +406,31 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
             )
         ]
 
+    def test_no_resolution_condition(self) -> None:
+        data = {
+            **self.valid_data,
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.GREATER,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                ],
+            },
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("conditionGroup", {}).get("conditions") == [
+            ErrorDetail(
+                string="Resolution condition required for metric issue detector.", code="invalid"
+            )
+        ]
+
     def test_too_many_conditions(self) -> None:
         data = {
             **self.valid_data,
@@ -421,6 +455,12 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                         "type": Condition.GREATER,
                         "comparison": 300,
                         "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                    {
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": 100,
+                        "conditionResult": DetectorPriorityLevel.OK,
                         "conditionGroupId": self.data_condition_group.id,
                     },
                 ],
@@ -481,15 +521,17 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
     def test_transaction_dataset_deprecation_transactions(self) -> None:
         data = {
             **self.valid_data,
-            "dataSource": {
-                "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                "dataset": Dataset.Transactions.value,
-                "query": "test query",
-                "aggregate": "count()",
-                "timeWindow": 3600,
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-            },
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.Transactions.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                }
+            ],
         }
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert validator.is_valid(), validator.errors
@@ -504,15 +546,17 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
     def test_transaction_dataset_deprecation_generic_metrics(self) -> None:
         data = {
             **self.valid_data,
-            "dataSource": {
-                "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                "dataset": Dataset.PerformanceMetrics.value,
-                "query": "test query",
-                "aggregate": "count()",
-                "timeWindow": 3600,
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-            },
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.PerformanceMetrics.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                }
+            ],
         }
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert validator.is_valid(), validator.errors
@@ -538,7 +582,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 },
             ],
         }
-        data.pop("dataSource", None)
+
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert validator.is_valid(), validator.errors
         with self.assertRaisesMessage(
@@ -582,21 +626,22 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                 },
             ],
         }
-        data.pop("dataSource", None)
         validator = MetricIssueDetectorValidator(data=data, context=self.context)
         assert validator.is_valid(), validator.errors
         detector = validator.save()
 
         update_data = {
-            "dataSource": {
-                "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                "dataset": Dataset.PerformanceMetrics.value,
-                "query": "updated query",
-                "aggregate": "count()",
-                "timeWindow": 3600,
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-            },
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.PerformanceMetrics.value,
+                    "query": "updated query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+                }
+            ],
         }
         update_validator = MetricIssueDetectorValidator(
             instance=detector, data=update_data, context=self.context, partial=True
@@ -611,18 +656,73 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         ):
             update_validator.save()
 
+    def test_invalid_extrapolation_mode_create(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+                    "extrapolation_mode": ExtrapolationMode.SERVER_WEIGHTED.value,
+                },
+            ],
+        }
 
-class TestMetricAlertDetectorDataSourcesValidator(TestMetricAlertsDetectorValidator):
-    def setUp(self) -> None:
-        """
-        These are a temporary suite of tests that run the same ones as `TestMetricAlertsDetectorValidator`
-        but changes the dataSource attribute to dataSources.
-        """
-        super().setUp()
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        with self.assertRaisesMessage(
+            ValidationError,
+            expected_message="server_weighted extrapolation mode is not supported for new detectors.",
+        ):
+            validator.save()
 
-        data_source = self.valid_data["dataSource"]
+    def test_invalid_extrapolation_mode_update(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "query": "test query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+                    "extrapolation_mode": ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED.value,
+                },
+            ],
+        }
 
-        # This is a temporary line of code; works fine when inlining the [] which
-        # is the longer term solution.
-        self.valid_data["dataSources"] = [data_source]  # type: ignore[list-item]
-        del self.valid_data["dataSource"]
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+
+        detector = validator.save()
+
+        update_data = {
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "query": "updated query",
+                    "aggregate": "count()",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+                    "extrapolation_mode": ExtrapolationMode.SERVER_WEIGHTED.value,
+                }
+            ],
+        }
+        update_validator = MetricIssueDetectorValidator(
+            instance=detector, data=update_data, context=self.context, partial=True
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        with self.assertRaisesMessage(
+            ValidationError,
+            expected_message="Invalid extrapolation mode for this detector type.",
+        ):
+            update_validator.save()

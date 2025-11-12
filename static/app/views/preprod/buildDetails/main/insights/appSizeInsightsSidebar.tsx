@@ -1,27 +1,42 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text/heading';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text/heading';
+
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {AppSizeInsightsSidebarRow} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface AppSizeInsightsSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   processedInsights: ProcessedInsight[];
+  platform?: Platform;
+}
+
+function getInsightsDocsUrl(platform?: Platform): string {
+  if (platform === 'macos' || platform === 'ios') {
+    return 'https://docs.sentry.io/platforms/apple/guides/ios/size-analysis/insights/';
+  }
+  if (platform === 'android') {
+    return 'https://docs.sentry.io/platforms/android/size-analysis/insights/';
+  }
+  return 'https://docs.sentry.io/product/size-analysis/#build-details';
 }
 
 export function AppSizeInsightsSidebar({
   processedInsights,
   isOpen,
   onClose,
+  platform,
 }: AppSizeInsightsSidebarProps) {
   const [expandedInsights, setExpandedInsights] = useState<Set<string>>(new Set());
 
@@ -32,24 +47,36 @@ export function AppSizeInsightsSidebar({
     size: width,
   } = useResizableDrawer({
     direction: 'right',
-    initialSize: 502,
-    min: 502,
+    initialSize: 700,
+    min: 700,
     onResize: () => {},
     sizeStorageKey: 'app-size-insights-sidebar-width',
   });
 
-  const toggleExpanded = (insightName: string) => {
+  const toggleExpanded = (insightKey: string) => {
     const newExpanded = new Set(expandedInsights);
-    if (newExpanded.has(insightName)) {
-      newExpanded.delete(insightName);
+    if (newExpanded.has(insightKey)) {
+      newExpanded.delete(insightKey);
     } else {
-      newExpanded.add(insightName);
+      newExpanded.add(insightKey);
     }
     setExpandedInsights(newExpanded);
   };
 
   // Constrain width to viewport (leave 50px margin from screen edge)
   const constrainedWidth = Math.min(width, window.innerWidth - 50);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, false);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, false);
+    };
+  }, [onClose]);
 
   return (
     <Fragment>
@@ -73,9 +100,17 @@ export function AppSizeInsightsSidebar({
       >
         <Flex height="100%" direction="column">
           <Header padding="xl" align="center" justify="between">
-            <Heading as="h2" size="xl">
-              {t('Insights')}
-            </Heading>
+            <Flex align="center" gap="sm">
+              <Heading as="h2" size="xl">
+                {t('Insights')}
+              </Heading>
+              <PageHeadingQuestionTooltip
+                docsUrl={getInsightsDocsUrl(platform)}
+                title={t(
+                  'Insights help you identify opportunities to reduce your app size.'
+                )}
+              />
+            </Flex>
             <Button
               size="sm"
               icon={<IconClose />}
@@ -96,14 +131,20 @@ export function AppSizeInsightsSidebar({
 
             <Flex flex={1} overflowY="auto" padding="xl">
               <Flex direction="column" gap="xl" width="100%">
-                {processedInsights.map(insight => (
-                  <AppSizeInsightsSidebarRow
-                    key={insight.name}
-                    insight={insight}
-                    isExpanded={expandedInsights.has(insight.name)}
-                    onToggleExpanded={() => toggleExpanded(insight.name)}
-                  />
-                ))}
+                {processedInsights.map(insight => {
+                  const isGroupedInsight =
+                    insight.key === 'duplicate_files' || insight.key === 'loose_images';
+                  return (
+                    <AppSizeInsightsSidebarRow
+                      key={insight.key}
+                      insight={insight}
+                      isExpanded={expandedInsights.has(insight.key)}
+                      onToggleExpanded={() => toggleExpanded(insight.key)}
+                      platform={platform}
+                      itemsPerPage={isGroupedInsight ? 10 : undefined}
+                    />
+                  );
+                })}
               </Flex>
             </Flex>
           </Flex>

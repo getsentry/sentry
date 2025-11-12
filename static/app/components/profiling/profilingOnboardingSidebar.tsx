@@ -327,6 +327,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     project: props.project,
     isLogsSelected: false,
     isFeedbackSelected: false,
+    isMetricsSelected: false,
     isPerformanceSelected: true,
     isProfilingSelected: true,
     isReplaySelected: false,

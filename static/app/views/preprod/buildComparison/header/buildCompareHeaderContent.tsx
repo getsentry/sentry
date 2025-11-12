@@ -2,11 +2,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text/heading';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {Heading} from 'sentry/components/core/text/heading';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {IconCode, IconDownload, IconJson, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,6 +20,7 @@ import {
 import {
   formattedDownloadSize,
   formattedInstallSize,
+  getLabels,
   getPlatformIconFromPlatform,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
@@ -31,7 +34,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   const {buildDetails, projectId} = props;
   const organization = useOrganization();
   const theme = useTheme();
-
+  const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
       to: '#',
@@ -49,7 +52,10 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   return (
     <Flex justify="between" align="center" gap="lg">
       <Stack gap="lg" style={{padding: `0 0 ${theme.space.lg} 0`}}>
-        <Breadcrumbs crumbs={breadcrumbs} />
+        <Flex align="center" gap="sm">
+          <Breadcrumbs crumbs={breadcrumbs} />
+          <FeatureBadge type="beta" />
+        </Flex>
         <Heading as="h1">Build comparison</Heading>
         <Flex gap="lg" wrap="wrap" align="center">
           <Flex gap="sm" align="center">
@@ -91,18 +97,18 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
             </Tooltip>
           )}
           {isSizeInfoCompleted(buildDetails.size_info) && (
-            <Tooltip title={t('Install size')}>
+            <Tooltip title={labels.installSizeDescription}>
               <Flex gap="sm" align="center">
                 <IconCode size="sm" color="gray300" />
-                <Text>{formattedInstallSize(buildDetails)}</Text>
+                <Text underline="dotted">{formattedInstallSize(buildDetails)}</Text>
               </Flex>
             </Tooltip>
           )}
           {isSizeInfoCompleted(buildDetails.size_info) && (
-            <Tooltip title={t('Download size')}>
+            <Tooltip title={labels.downloadSizeDescription}>
               <Flex gap="sm" align="center">
                 <IconDownload size="sm" color="gray300" />
-                <Text>{formattedDownloadSize(buildDetails)}</Text>
+                <Text underline="dotted">{formattedDownloadSize(buildDetails)}</Text>
               </Flex>
             </Tooltip>
           )}

@@ -24,6 +24,7 @@ from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     IntegrationConfigurationError,
     IntegrationFormError,
+    IntegrationProviderError,
     IntegrationResourceNotFoundError,
 )
 from sentry.silo.base import region_silo_function
@@ -142,7 +143,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             installation, IssueBasicIntegration
         ), "Installation must be an IssueBasicIntegration to create a ticket"
         data["title"] = installation.get_group_title(event.group, event)
-        if features.has("organizations:workflow-engine-ui-links", organization):
+        if features.has("organizations:workflow-engine-ui", organization):
             workflow_id = data.get("workflow_id")
             assert workflow_id is not None
             data["description"] = build_description_workflow_engine_ui(
@@ -185,6 +186,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 InvalidIdentity,
                 ApiUnauthorized,
                 IntegrationResourceNotFoundError,
+                IntegrationProviderError,
             ) as e:
                 # Most of the time, these aren't explicit failures, they're
                 # some misconfiguration of an issue field - typically Jira.

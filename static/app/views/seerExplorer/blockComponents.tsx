@@ -11,6 +11,7 @@ import {space} from 'sentry/styles/space';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 import type {Block} from './types';
 import {buildToolLinkUrl, getToolsStringFromBlock} from './utils';
@@ -20,8 +21,11 @@ interface BlockProps {
   blockIndex: number;
   isFocused?: boolean;
   isLast?: boolean;
+  isPolling?: boolean;
   onClick?: () => void;
   onDelete?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   onNavigate?: () => void;
   onRegisterEnterHandler?: (
     handler: (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean
@@ -47,35 +51,42 @@ function getToolStatus(
     return 'loading';
   }
 
+  // Check tool_links for empty_results metadata
+  const toolLinks = block.tool_links || [];
+  const hasTools = (block.message.tool_calls?.length || 0) > 0;
+
+  if (hasTools) {
+    if (toolLinks.length === 0) {
+      // No metadata available, assume success
+      return 'success';
+    }
+
+    let hasSuccess = false;
+    let hasFailure = false;
+
+    toolLinks.forEach(link => {
+      if (link?.params?.empty_results === true) {
+        hasFailure = true;
+      } else if (link !== null) {
+        hasSuccess = true;
+      }
+    });
+
+    if (hasFailure && hasSuccess) {
+      return 'mixed';
+    }
+    if (hasFailure) {
+      return 'failure';
+    }
+    return 'success';
+  }
+
+  // No tools, check if there's content
   const hasContent = hasValidContent(block.message.content);
   if (hasContent) {
     return 'content';
   }
 
-  // Check tool_links for empty_results metadata
-  const toolLinks = block.tool_links || [];
-  if (toolLinks.length === 0) {
-    // No metadata available, assume success
-    return 'success';
-  }
-
-  let hasSuccess = false;
-  let hasFailure = false;
-
-  toolLinks.forEach(link => {
-    if (link?.params?.empty_results === true) {
-      hasFailure = true;
-    } else if (link !== null) {
-      hasSuccess = true;
-    }
-  });
-
-  if (hasFailure && hasSuccess) {
-    return 'mixed';
-  }
-  if (hasFailure) {
-    return 'failure';
-  }
   return 'success';
 }
 
@@ -84,19 +95,21 @@ function BlockComponent({
   blockIndex: _blockIndex,
   isLast,
   isFocused,
+  isPolling,
   onClick,
   onDelete,
+  onMouseEnter,
+  onMouseLeave,
   onNavigate,
   onRegisterEnterHandler,
   ref,
 }: BlockProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const {projects} = useProjects();
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
   const hasContent = hasValidContent(block.message.content);
-
-  const [isHovered, setIsHovered] = useState(false);
 
   // State to track selected tool link (for navigation)
   const [selectedLinkIndex, setSelectedLinkIndex] = useState(0);
@@ -113,7 +126,8 @@ function BlockComponent({
       const toolCallIndex = block.message.tool_calls?.findIndex(
         call => link && call.function === link.kind
       );
-      const canBuildUrl = link && buildToolLinkUrl(link, organization.slug) !== null;
+      const canBuildUrl =
+        link && buildToolLinkUrl(link, organization.slug, projects) !== null;
 
       if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
         return {link, toolCallIndex};
@@ -177,7 +191,7 @@ function BlockComponent({
         const currentIndex = selectedLinkIndexRef.current;
         const selectedLink = validToolLinks[currentIndex];
         if (selectedLink) {
-          const url = buildToolLinkUrl(selectedLink, organization.slug);
+          const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
           if (url) {
             navigate(url);
           }
@@ -192,6 +206,7 @@ function BlockComponent({
     hasValidLinks,
     validToolLinks,
     organization.slug,
+    projects,
     navigate,
     onRegisterEnterHandler,
   ]);
@@ -210,7 +225,7 @@ function BlockComponent({
     // Navigate to the clicked link
     const selectedLink = validToolLinks[linkIndex];
     if (selectedLink) {
-      const url = buildToolLinkUrl(selectedLink, organization.slug);
+      const url = buildToolLinkUrl(selectedLink, organization.slug, projects);
       if (url) {
         navigate(url);
         onNavigate?.();
@@ -218,15 +233,15 @@ function BlockComponent({
     }
   };
 
-  const showActions = (isFocused || isHovered) && !block.loading;
+  const showActions = isFocused && !block.loading;
 
   return (
     <Block
       ref={ref}
       isLast={isLast}
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <AnimatePresence>
         <motion.div
@@ -248,21 +263,21 @@ function BlockComponent({
               <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
                 {hasContent && <BlockContent text={block.message.content} />}
                 {hasTools && (
-                  <Stack gap="md">
+                  <ToolCallStack gap="md">
                     {block.message.tool_calls?.map((toolCall, idx) => {
                       const toolString = toolsUsed[idx];
                       return (
-                        <Text
+                        <ToolCallText
                           key={`${toolCall.function}-${idx}`}
                           size="xs"
                           variant="muted"
                           monospace
                         >
                           {toolString}
-                        </Text>
+                        </ToolCallText>
                       );
                     })}
-                  </Stack>
+                  </ToolCallStack>
                 )}
               </BlockContentWrapper>
             </BlockRow>
@@ -277,9 +292,11 @@ function BlockComponent({
                 transition={{duration: 0.1}}
               >
                 <ActionButtonBar gap="sm">
-                  <Button size="xs" priority="default" onClick={handleDeleteClick}>
-                    Rethink from here ⌫
-                  </Button>
+                  {!isPolling && (
+                    <Button size="xs" priority="default" onClick={handleDeleteClick}>
+                      Rethink from here ⌫
+                    </Button>
+                  )}
                   {hasValidLinks && (
                     <ButtonBar merged gap="0">
                       {validToolLinks.map((_, idx) => (
@@ -377,6 +394,9 @@ const ResponseDot = styled('div')<{
 const BlockContentWrapper = styled('div')<{hasOnlyTools?: boolean}>`
   padding: ${p =>
     p.hasOnlyTools ? `${p.theme.space.md} ${p.theme.space.xl}` : p.theme.space.xl};
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const BlockContent = styled(MarkedText)`
@@ -431,6 +451,20 @@ const FocusIndicator = styled('div')`
   bottom: 0;
   width: 3px;
   background: ${p => p.theme.purple400};
+`;
+
+const ToolCallStack = styled(Stack)`
+  width: 100%;
+  min-width: 0;
+  padding-right: ${p => p.theme.space.lg};
+`;
+
+const ToolCallText = styled(Text)`
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  max-width: 100%;
 `;
 
 const ActionButtonBar = styled(ButtonBar)`
