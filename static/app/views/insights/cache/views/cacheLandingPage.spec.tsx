@@ -110,6 +110,7 @@ describe('CacheLandingPage', () => {
           referrer: 'api.insights.cache.landing-cache-throughput-chart',
           statsPeriod: '10d',
           yAxis: ['epm()'],
+          caseInsensitive: 0,
         },
       })
     );

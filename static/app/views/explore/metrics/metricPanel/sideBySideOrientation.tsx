@@ -27,8 +27,10 @@ export function SideBySideOrientation({
   setOrientation,
   infoContentHidden,
   setInfoContentHidden,
+  isMetricOptionsEmpty,
 }: {
   infoContentHidden: boolean;
+  isMetricOptionsEmpty: boolean;
   orientation: TableOrientation;
   queryIndex: number;
   setInfoContentHidden: (hidden: boolean) => void;
@@ -71,6 +73,7 @@ export function SideBySideOrientation({
           orientation={orientation}
           additionalActions={additionalActions}
           infoContentHidden={infoContentHidden}
+          isMetricOptionsEmpty={isMetricOptionsEmpty}
         />
       </div>
     );
@@ -87,6 +90,7 @@ export function SideBySideOrientation({
                 timeseriesResult={timeseriesResult}
                 queryIndex={queryIndex}
                 orientation={orientation}
+                isMetricOptionsEmpty={isMetricOptionsEmpty}
               />
             ),
             default: defaultSplit,
@@ -98,6 +102,7 @@ export function SideBySideOrientation({
               traceMetric={traceMetric}
               additionalActions={additionalActions}
               orientation={orientation}
+              isMetricOptionsEmpty={isMetricOptionsEmpty}
             />
           }
         />

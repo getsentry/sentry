@@ -32,9 +32,10 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   telemetry_live_search: (args, isLoading) => {
     const question = args.question || 'data';
     const dataset = args.dataset || 'spans';
-    const projectSlug = args.project_slug;
+    const projectSlugs = args.project_slugs;
 
-    const projectInfo = projectSlug ? ` in ${projectSlug}` : '';
+    const projectInfo =
+      projectSlugs && projectSlugs.length > 0 ? ` in ${projectSlugs.join(', ')}` : '';
 
     if (dataset === 'issues') {
       return isLoading
@@ -152,6 +153,14 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? `Excavating commit history${dateRangeStr} in ${repoName}...`
       : `Excavated commit history${dateRangeStr} in ${repoName}`;
   },
+
+  get_replay_details: (args, isLoading) => {
+    const replayId = args.replay_id || '';
+    const shortReplayId = replayId.slice(0, 8);
+    return isLoading
+      ? `Watching replay ${shortReplayId}...`
+      : `Watched replay ${shortReplayId}`;
+  },
 };
 
 /**
@@ -200,7 +209,7 @@ export function buildToolLinkUrl(
 ): LocationDescriptor | null {
   switch (toolLink.kind) {
     case 'telemetry_live_search': {
-      const {dataset, query, stats_period, project_slug} = toolLink.params;
+      const {dataset, query, stats_period, project_slugs, sort} = toolLink.params;
 
       if (dataset === 'issues') {
         // Build URL for issues search
@@ -208,16 +217,22 @@ export function buildToolLinkUrl(
           query: query || '',
         };
 
-        // If project_slug is provided, look up the project ID
-        if (project_slug && projects) {
-          const project = projects.find(p => p.slug === project_slug);
-          if (project) {
-            queryParams.project = project.id;
+        // If project_slugs is provided, look up the project IDs
+        if (project_slugs && project_slugs.length > 0 && projects) {
+          const projectIds = project_slugs
+            .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+            .filter((id: string | undefined) => id !== undefined);
+          if (projectIds.length > 0) {
+            queryParams.project = projectIds;
           }
         }
 
         if (stats_period) {
           queryParams.statsPeriod = stats_period;
+        }
+
+        if (sort) {
+          queryParams.sort = sort;
         }
 
         return {
@@ -227,18 +242,20 @@ export function buildToolLinkUrl(
       }
 
       // Default to spans (traces) search
-      const {y_axes, group_by, sort, mode} = toolLink.params;
+      const {y_axes, group_by, mode} = toolLink.params;
 
       const queryParams: Record<string, any> = {
         query: query || '',
         project: null,
       };
 
-      // If project_slug is provided, look up the project ID
-      if (project_slug && projects) {
-        const project = projects.find(p => p.slug === project_slug);
-        if (project) {
-          queryParams.project = project.id;
+      // If project_slugs is provided, look up the project IDs
+      if (project_slugs && project_slugs.length > 0 && projects) {
+        const projectIds = project_slugs
+          .map((slug: string) => projects.find(p => p.slug === slug)?.id)
+          .filter((id: string | undefined) => id !== undefined);
+        if (projectIds.length > 0) {
+          queryParams.project = projectIds;
         }
       }
 
@@ -300,6 +317,16 @@ export function buildToolLinkUrl(
       const {event_id, issue_id} = toolLink.params;
 
       return {pathname: `/issues/${issue_id}/events/${event_id}/`};
+    }
+    case 'get_replay_details': {
+      const {replay_id} = toolLink.params;
+      if (!replay_id) {
+        return null;
+      }
+
+      return {
+        pathname: `/organizations/${orgSlug}/replays/${replay_id}/`,
+      };
     }
     default:
       return null;

@@ -9,22 +9,20 @@ import {fields} from 'sentry/data/forms/projectIssueGrouping';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {EventGroupingConfig} from 'sentry/types/event';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
+import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-type Props = RouteComponentProps<{projectId: string}> & {
-  organization: Organization;
-  project: Project;
-};
+export default function ProjectIssueGrouping() {
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
 
-export default function ProjectIssueGrouping({organization, project, params}: Props) {
   const queryKey = `/projects/${organization.slug}/${project.slug}/grouping-configs/`;
   const {
     data: groupingConfigs,
@@ -65,9 +63,7 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
   };
 
   return (
-    <SentryDocumentTitle
-      title={routeTitleGen(t('Issue Grouping'), params.projectId, false)}
-    >
+    <SentryDocumentTitle title={routeTitleGen(t('Issue Grouping'), project.slug, false)}>
       <SettingsPageHeader title={t('Issue Grouping')} />
 
       <TextBlock>

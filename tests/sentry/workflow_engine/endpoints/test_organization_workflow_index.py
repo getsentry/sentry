@@ -8,6 +8,7 @@ from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricIssue
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
@@ -125,7 +126,9 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
     def test_sort_by_connected_detectors(self) -> None:
         detector = self.create_detector(project=self.project, name="A Test Detector")
-        detector_two = self.create_detector(project=self.project, name="B Test Detector 2")
+        detector_two = self.create_detector(
+            project=self.project, name="B Test Detector 2", type=MetricIssue.slug
+        )
 
         self.create_detector_workflow(
             workflow=self.workflow,

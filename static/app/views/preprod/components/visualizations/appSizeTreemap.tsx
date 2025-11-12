@@ -3,13 +3,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {ECharts, TreemapSeriesOption, VisualMapComponentOption} from 'echarts';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text';
 import {IconClose, IconContract, IconExpand, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -203,6 +204,12 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
       height: `calc(100% - 22px)`,
       width: '100%',
       top: '22px',
+      // Very mysteriously this controls the initial breadcrumbs:
+      // https://github.com/apache/echarts/blob/6f305b497adc47fa2987a450d892d09741342c56/src/chart/treemap/TreemapView.ts#L665
+      // If truthy the root is selected else the 'middle' node is selected.
+      // It has to be set to large number to avoid problems caused by
+      // leafDepth's main use - controlling how many layers to render.
+      leafDepth: 100000,
       breadcrumb: {
         show: true,
         left: '0',

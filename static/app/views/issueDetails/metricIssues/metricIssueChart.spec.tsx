@@ -1,134 +1,100 @@
+import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
-import {IncidentFixture} from 'sentry-fixture/incident';
-import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory, IssueType} from 'sentry/types/group';
-import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
 import {MetricIssueChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
+import {IssueDetailsContext} from 'sentry/views/issueDetails/streamline/context';
+import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 
 describe('MetricIssueChart', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({organization});
-  const rule = MetricRuleFixture({projects: [project.slug]});
-  const incident = IncidentFixture({alertRule: rule});
   const group = GroupFixture({
     project,
     issueCategory: IssueCategory.METRIC,
     issueType: IssueType.METRIC_ISSUE,
   });
-  const event = EventFixture({
-    contexts: {
-      metric_alert: {
-        alert_rule_id: rule.id,
-      },
-    },
-  });
-  let mockIncidents: jest.Mock;
+
+  const baseIssueDetailsContext = {
+    sectionData: {},
+    detectorDetails: {},
+    isSidebarOpen: true,
+    navScrollMargin: 0,
+    eventCount: 0,
+    dispatch: jest.fn(),
+  };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    // Open periods are used to render incident markers; return empty for simplicity
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
-      body: event,
-    });
-    mockIncidents = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/incidents/`,
-      body: [incident],
+      url: `/organizations/${organization.slug}/open-periods/`,
+      body: [],
     });
   });
 
-  it('renders the metric issue chart', async () => {
-    const mockRule = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
-      body: rule,
-      query: {
-        expand: 'latestIncident',
+  const detector = MetricDetectorFixture({
+    projectId: project.id,
+  });
+  const event = EventFixture({
+    occurrence: {
+      evidenceData: {
+        detectorId: detector.id,
       },
+      type: 8001,
+    },
+  });
+
+  it('renders the metric issue chart', async () => {
+    const detectorDetails = getDetectorDetails({event, organization, project});
+
+    const mockDetector = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/${detector.id}/`,
+      body: detector,
     });
     const mockStats = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: EventsStatsFixture(),
     });
-    render(<MetricIssueChart group={group} project={project} />, {organization});
-    await screen.findByTestId('metric-issue-chart-loading');
-    expect(await screen.findByRole('figure')).toBeInTheDocument();
-    expect(mockRule).toHaveBeenCalled();
-    expect(mockIncidents).toHaveBeenCalled();
-    expect(mockStats).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [parseInt(project.id, 10)],
-          query: 'event.type:error',
-          referrer: 'metric-issue-chart',
-          yAxis: rule.aggregate,
-        }),
-      })
-    );
-  });
 
-  it('displays error messages from bad queries', async () => {
-    const mockRule = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
-      body: rule,
-      query: {
-        expand: 'latestIncident',
-      },
-    });
-    const mockStats = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
-      body: {detail: 'timeout'},
-      statusCode: 500,
-    });
-    render(<MetricIssueChart group={group} project={project} />, {organization});
-    await screen.findByTestId('metric-issue-chart-error');
-    expect(mockRule).toHaveBeenCalled();
-    expect(mockIncidents).toHaveBeenCalled();
+    render(
+      <IssueDetailsContext value={{...baseIssueDetailsContext, detectorDetails}}>
+        <MetricIssueChart group={group} project={project} />
+      </IssueDetailsContext>,
+      {organization}
+    );
+
+    expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
+    expect(mockDetector).toHaveBeenCalled();
     expect(mockStats).toHaveBeenCalled();
-    expect(screen.getByText('Unable to load the metric history')).toBeInTheDocument();
-    expect(screen.queryByRole('figure')).not.toBeInTheDocument();
   });
 
-  it('renders the metric issue chart with session data', async () => {
-    const mockRule = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
-      body: {
-        ...rule,
-        dataset: Dataset.SESSIONS,
-        aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
-        query: 'event.type:error',
-      },
-      query: {
-        expand: 'latestIncident',
-      },
+  it('shows detector load error message when detector request fails', async () => {
+    const detectorDetails = getDetectorDetails({event, organization, project});
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/${detector.id}/`,
+      statusCode: 404,
     });
 
-    const mockSessionStats = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/sessions/`,
-      body: SessionsFieldFixture('sum(session)'),
-    });
-
-    render(<MetricIssueChart group={group} project={project} />, {organization});
-    await screen.findByTestId('metric-issue-chart-loading');
-    expect(await screen.findByRole('figure')).toBeInTheDocument();
-    expect(mockRule).toHaveBeenCalled();
-    expect(mockIncidents).toHaveBeenCalled();
-    expect(mockSessionStats).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [parseInt(project.id, 10)],
-          field: 'sum(session)',
-          groupBy: ['session.status'],
-        }),
-      })
+    render(
+      <IssueDetailsContext value={{...baseIssueDetailsContext, detectorDetails}}>
+        <MetricIssueChart group={group} project={project} />
+      </IssueDetailsContext>,
+      {organization}
     );
+
+    expect(
+      await screen.findByText(
+        /The metric monitor which created this issue no longer exists./i
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('area-chart')).not.toBeInTheDocument();
   });
 });

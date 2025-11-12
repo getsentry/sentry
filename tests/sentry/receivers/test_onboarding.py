@@ -55,7 +55,6 @@ from sentry.testutils.helpers.analytics import (
     get_event_count,
 )
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.event import has_event_minified_stack_trace
@@ -165,17 +164,8 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_project_created__default_rule(self) -> None:
-        project = self.create_project()
-        project_created.send(project=project, user=self.user, sender=None)
-
-        assert Rule.objects.filter(project=project).exists()
-        assert not Workflow.objects.filter(organization=project.organization).exists()
-
-    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_project_created__default_workflow(self) -> None:
-        project = self.create_project()
-        project_created.send(project=project, user=self.user, sender=None)
+        project = self.create_project(fire_project_created=True)
 
         assert Rule.objects.filter(project=project).exists()
         workflow = Workflow.objects.get(organization=project.organization, name=DEFAULT_RULE_LABEL)

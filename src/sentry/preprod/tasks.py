@@ -164,6 +164,7 @@ def assemble_preprod_artifact(
             "preprod_artifact_id": artifact_id,
             "project_id": project_id,
             "organization_id": org_id,
+            "organization_slug": organization.slug,
             "checksum": checksum,
         },
     )

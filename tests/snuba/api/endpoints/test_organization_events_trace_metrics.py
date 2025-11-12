@@ -1,6 +1,7 @@
 from unittest import mock
 
 import pytest
+from rest_framework.exceptions import ErrorDetail
 
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -8,7 +9,7 @@ from tests.snuba.api.endpoints.test_organization_events import OrganizationEvent
 class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     dataset = "tracemetrics"
 
-    def test_simple_deprecated(self) -> None:
+    def test_simple_with_explicit_filter(self) -> None:
         trace_metrics = [
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("bar", 2, "counter"),
@@ -33,7 +34,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             },
         ]
 
-    def test_simple_aggregation_deprecated(self) -> None:
+    def test_simple_aggregation_with_explicit_filter(self) -> None:
         trace_metrics = [
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("bar", 2, "counter"),
@@ -106,16 +107,16 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             },
         ]
 
-    def test_per_minute_formula(self) -> None:
-        # Store 6 trace metrics over a 10 minute period
-        for _ in range(6):
-            self.store_trace_metrics([self.create_trace_metric("test_metric", 1.0, "counter")])
+    def test_sum(self):
+        self.store_trace_metrics(
+            [self.create_trace_metric("test_metric", i + 1, "counter") for i in range(6)]
+        )
 
         response = self.do_request(
             {
                 "metricName": "test_metric",
                 "metricType": "counter",
-                "field": ["per_minute(test_metric)"],
+                "field": ["sum(value)"],
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "statsPeriod": "10m",
@@ -125,20 +126,95 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["per_minute(test_metric)"] == 0.6
-        assert meta["fields"]["per_minute(test_metric)"] == "rate"
+        assert data[0]["sum(value)"] == 21
+        assert meta["fields"]["sum(value)"] == "number"
         assert meta["dataset"] == "tracemetrics"
 
-    def test_per_second_formula(self) -> None:
+    def test_sum_with_counter_metric_type(self):
+        counter_metrics = [
+            self.create_trace_metric("request_count", 5.0, "counter"),
+            self.create_trace_metric("request_count", 3.0, "counter"),
+        ]
+        self.store_trace_metrics(counter_metrics)
+
+        response = self.do_request(
+            {
+                "metricName": "request_count",
+                "metricType": "counter",
+                "field": ["sum(value,request_count,counter,-)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["sum(value,request_count,counter,-)"] == 8
+        assert meta["fields"]["sum(value,request_count,counter,-)"] == "number"
+        assert meta["dataset"] == "tracemetrics"
+
+    def test_sum_with_distribution_metric_type(self):
+        gauge_metrics = [
+            self.create_trace_metric("request_duration", 75.0, "distribution"),
+            self.create_trace_metric("request_duration", 80.0, "distribution"),
+        ]
+        self.store_trace_metrics(gauge_metrics)
+
+        response = self.do_request(
+            {
+                "metricName": "request_duration",
+                "metricType": "distribution",
+                "field": [
+                    "sum(value, request_duration, distribution, -)"
+                ],  # Trying space in the formula here to make sure it works.
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data[0] == {
+            "sum(value, request_duration, distribution, -)": 155,
+        }
+
+    def test_per_minute_formula(self) -> None:
         # Store 6 trace metrics over a 10 minute period
-        for _ in range(6):
-            self.store_trace_metrics([self.create_trace_metric("test_metric", 1.0, "counter")])
+        self.store_trace_metrics(
+            [self.create_trace_metric("test_metric", 1.0, "counter") for _ in range(6)]
+        )
 
         response = self.do_request(
             {
                 "metricName": "test_metric",
                 "metricType": "counter",
-                "field": ["per_second(test_metric, counter)"],
+                "field": ["per_minute(value)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["per_minute(value)"] == 0.6
+        assert meta["fields"]["per_minute(value)"] == "rate"
+        assert meta["dataset"] == "tracemetrics"
+
+    def test_per_second_formula(self) -> None:
+        # Store 6 trace metrics over a 10 minute period
+        self.store_trace_metrics(
+            [self.create_trace_metric("test_metric", 1.0, "counter") for _ in range(6)]
+        )
+
+        response = self.do_request(
+            {
+                "metricName": "test_metric",
+                "metricType": "counter",
+                "field": ["per_second(value)"],
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "statsPeriod": "10m",
@@ -149,9 +225,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         meta = response.data["meta"]
         assert len(data) == 1
         assert (
-            data[0]["per_second(test_metric, counter)"] == 0.01
+            data[0]["per_second(value)"] == 0.01
         )  # Over ten minute period, 6 events / 600 seconds = 0.01 events per second
-        assert meta["fields"]["per_second(test_metric, counter)"] == "rate"
+        assert meta["fields"]["per_second(value)"] == "rate"
         assert meta["dataset"] == "tracemetrics"
 
     def test_per_second_formula_with_counter_metric_type(self) -> None:
@@ -165,7 +241,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             {
                 "metricName": "request_count",
                 "metricType": "counter",
-                "field": ["per_second(request_count,counter)"],
+                "field": ["per_second(value,request_count,counter,-)"],
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "statsPeriod": "10m",
@@ -173,7 +249,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert data[0] == {"per_second(request_count,counter)": pytest.approx(8 / 600, abs=0.001)}
+        assert data[0] == {
+            "per_second(value,request_count,counter,-)": pytest.approx(8 / 600, abs=0.001)
+        }
 
     def test_per_second_formula_with_gauge_metric_type(self) -> None:
         gauge_metrics = [
@@ -187,7 +265,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                 "metricName": "cpu_usage",
                 "metricType": "gauge",
                 "field": [
-                    "per_second(cpu_usage, gauge)"
+                    "per_second(value, cpu_usage, gauge, -)"
                 ],  # Trying space in the formula here to make sure it works.
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -196,7 +274,9 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert data[0] == {"per_second(cpu_usage, gauge)": pytest.approx(2 / 600, abs=0.001)}
+        assert data[0] == {
+            "per_second(value, cpu_usage, gauge, -)": pytest.approx(2 / 600, abs=0.001)
+        }
 
     def test_per_second_formula_with_gauge_metric_type_without_top_level_metric_type(self) -> None:
         gauge_metrics = [
@@ -208,7 +288,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         response = self.do_request(
             {
                 "field": [
-                    "per_second(cpu_usage, gauge)"
+                    "per_second(value, cpu_usage, gauge, -)"
                 ],  # Trying space in the formula here to make sure it works.
                 "query": "metric.name:cpu_usage",
                 "project": self.project.id,
@@ -218,4 +298,113 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert data[0] == {"per_second(cpu_usage, gauge)": pytest.approx(2 / 600, abs=0.001)}
+        assert data[0] == {
+            "per_second(value, cpu_usage, gauge, -)": pytest.approx(2 / 600, abs=0.001)
+        }
+
+    def test_list_metrics(self):
+        trace_metrics = [
+            *[self.create_trace_metric("foo", 1, "counter") for _ in range(1)],
+            *[self.create_trace_metric("bar", 1, "gauge") for _ in range(2)],
+            *[self.create_trace_metric("baz", 1, "distribution") for _ in range(3)],
+            *[self.create_trace_metric("qux", 1, "distribution", "millisecond") for _ in range(4)],
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        # this query does not filter on any metrics, so scan all metrics
+        response = self.do_request(
+            {
+                "field": ["metric.name", "metric.type", "metric.unit", "count(metric.name)"],
+                "orderby": "metric.name",
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "metric.name": "bar",
+                "metric.type": "gauge",
+                "metric.unit": None,
+                "count(metric.name)": 2,
+            },
+            {
+                "metric.name": "baz",
+                "metric.type": "distribution",
+                "metric.unit": None,
+                "count(metric.name)": 3,
+            },
+            {
+                "metric.name": "foo",
+                "metric.type": "counter",
+                "metric.unit": None,
+                "count(metric.name)": 1,
+            },
+            {
+                "metric.name": "qux",
+                "metric.type": "distribution",
+                "metric.unit": "millisecond",
+                "count(metric.name)": 4,
+            },
+        ]
+
+    def test_aggregation_embedded_metric_name(self):
+        trace_metrics = [
+            self.create_trace_metric("foo", 1, "counter"),
+            self.create_trace_metric("foo", 1, "counter"),
+            self.create_trace_metric("bar", 2, "counter"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["count(value,foo,counter,-)"],
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"count(value,foo,counter,-)": 2},
+        ]
+
+    def test_aggregation_multiple_embedded_same_metric_name(self):
+        trace_metrics = [
+            self.create_trace_metric("foo", 1, "distribution"),
+            self.create_trace_metric("foo", 2, "distribution"),
+            self.create_trace_metric("bar", 2, "counter"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "min(value,foo,distribution,-)",
+                    "max(value,foo,distribution,-)",
+                ],
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "min(value,foo,distribution,-)": 1,
+                "max(value,foo,distribution,-)": 2,
+            },
+        ]
+
+    def test_aggregation_multiple_embedded_different_metric_name(self):
+        response = self.do_request(
+            {
+                "field": [
+                    "count(value,foo,counter,-)",
+                    "count(value,bar,counter,-)",
+                ],
+                "dataset": self.dataset,
+                "project": self.project.id,
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": ErrorDetail(
+                "Cannot aggregate multiple metrics in 1 query.", code="parse_error"
+            )
+        }
