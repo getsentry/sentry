@@ -15,11 +15,13 @@ import {openInstallModal} from 'sentry/views/preprod/components/installModal';
 import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   BuildDetailsSizeAnalysisState,
-  getPrimarySizeMetric,
+  getMainArtifactSizeMetric,
   type BuildDetailsAppInfo,
   type BuildDetailsSizeInfo,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
+  formattedPrimaryMetricDownloadSize,
+  formattedPrimaryMetricInstallSize,
   getLabels,
   getPlatformIconFromPlatform,
   getReadableArtifactTypeLabel,
@@ -47,20 +49,16 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
     props.sizeInfo &&
     props.sizeInfo.state === BuildDetailsSizeAnalysisState.COMPLETED
   ) {
-    const primarySizeMetric = getPrimarySizeMetric(props.sizeInfo);
+    const primarySizeMetric = getMainArtifactSizeMetric(props.sizeInfo);
     const watchAppMetrics = props.sizeInfo.size_metrics.find(
       metric => metric.metrics_artifact_type === MetricsArtifactType.WATCH_ARTIFACT
     );
 
     let installSizeContent = (
-      <Text size="md">
-        {formatBytesBase10(primarySizeMetric?.install_size_bytes ?? 0)}
-      </Text>
+      <Text size="md">{formattedPrimaryMetricInstallSize(props.sizeInfo)}</Text>
     );
     let downloadSizeContent = (
-      <Text size="md">
-        {formatBytesBase10(primarySizeMetric?.download_size_bytes ?? 0)}
-      </Text>
+      <Text size="md">{formattedPrimaryMetricDownloadSize(props.sizeInfo)}</Text>
     );
     if (watchAppMetrics) {
       installSizeContent = (
@@ -88,7 +86,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
           position="left"
         >
           <Text size="md" underline="dotted">
-            {formatBytesBase10(primarySizeMetric?.install_size_bytes ?? 0)}
+            {formattedPrimaryMetricInstallSize(props.sizeInfo)}
           </Text>
         </Tooltip>
       );
@@ -117,7 +115,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
           position="left"
         >
           <Text size="md" underline="dotted">
-            {formatBytesBase10(primarySizeMetric?.download_size_bytes ?? 0)}
+            {formattedPrimaryMetricDownloadSize(props.sizeInfo)}
           </Text>
         </Tooltip>
       );

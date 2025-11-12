@@ -91,7 +91,7 @@ export function isSizeInfoProcessing(
   );
 }
 
-export function getPrimarySizeMetric(
+export function getMainArtifactSizeMetric(
   sizeInfo: BuildDetailsSizeInfoCompleted
 ): BuildDetailsSizeInfoSizeMetric | undefined {
   return sizeInfo.size_metrics.find(
