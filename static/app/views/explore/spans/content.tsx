@@ -32,14 +32,14 @@ import {
 } from 'sentry/views/explore/spans/tour';
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
+import {useLimitMaxPickableDays} from 'sentry/views/explore/utils';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
 export function ExploreContent() {
   Sentry.setTag('explore.visited', 'yes');
 
   const organization = useOrganization();
-  const datePageFilterProps = limitMaxPickableDays(organization);
+  const datePageFilterProps = useLimitMaxPickableDays(organization);
 
   const onboardingProject = useOnboardingProject();
 

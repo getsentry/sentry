@@ -8,6 +8,7 @@ import type {ProductSelectionProps} from 'sentry/components/onboarding/productSe
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
+import type {DataCategory} from 'sentry/types/core';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
@@ -335,6 +336,9 @@ type ReactHooks = {
     isError: boolean;
     isLoading: boolean;
   };
+  'react-hook:use-plan-retention': () =>
+    | Partial<Record<DataCategory, {downsampled: number | null; standard: number}>>
+    | undefined;
 };
 
 /**

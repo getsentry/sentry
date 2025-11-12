@@ -67,6 +67,7 @@ import SuperuserAccessCategory from 'getsentry/hooks/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
 import {useDashboardDatasetRetentionLimit} from 'getsentry/hooks/useDashboardDatasetRetentionLimit';
 import {useMetricDetectorLimit} from 'getsentry/hooks/useMetricDetectorLimit';
+import usePlanRetention from 'getsentry/hooks/usePlanRetention';
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import trackMetric from 'getsentry/utils/trackMetric';
 
@@ -238,6 +239,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'react-hook:use-metric-detector-limit': useMetricDetectorLimit,
   'react-hook:use-dashboard-dataset-retention-limit': useDashboardDatasetRetentionLimit,
+  'react-hook:use-plan-retention': usePlanRetention,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />
   ),

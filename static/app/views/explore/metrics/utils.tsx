@@ -2,8 +2,8 @@ import type {ReactNode} from 'react';
 import qs from 'query-string';
 
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import {t, tct} from 'sentry/locale';
+import {DataCategory, type PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {RateUnit} from 'sentry/utils/discover/fields';
@@ -14,6 +14,7 @@ import type {
   SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import useMaxCustomRetentionDays from 'sentry/views/explore/hooks/useMaxCustomRetentionDays';
 import {TraceSamplesTableStatColumns} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
@@ -30,6 +31,8 @@ import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy'
 import type {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import type {PickableDays} from 'sentry/views/explore/utils';
+
+const MAX_PICKABLE_DAYS = 30;
 
 export function makeMetricsPathname({
   organizationSlug,
@@ -55,18 +58,27 @@ export function createTraceMetricFilter(traceMetric: TraceMetric): string | unde
     : undefined;
 }
 
-export function metricsPickableDays(): PickableDays {
+export function useMetricsPickableDays(): PickableDays {
+  const metricsRetentionDays = useMaxCustomRetentionDays(
+    DataCategory.TRACE_METRICS,
+    MAX_PICKABLE_DAYS
+  );
+
   const relativeOptions: Array<[string, ReactNode]> = [
     ['1h', t('Last hour')],
     ['24h', t('Last 24 hours')],
     ['7d', t('Last 7 days')],
     ['14d', t('Last 14 days')],
     ['30d', t('Last 30 days')],
+
+    // TODO: This should probably be converted to a higher magnitude unit so the number is not so large.
+    // Or, do we even show this max option at all?
+    [`${metricsRetentionDays}d`, tct(`Last [days] days`, {days: metricsRetentionDays})],
   ];
 
   return {
     defaultPeriod: '24h',
-    maxPickableDays: 30, // May change with downsampled multi month support.
+    maxPickableDays: metricsRetentionDays,
     relativeOptions: ({
       arbitraryOptions,
     }: {

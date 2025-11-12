@@ -12,8 +12,8 @@ import {Flex} from 'sentry/components/core/layout';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconBusiness} from 'sentry/icons/iconBusiness';
-import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import {t, tct} from 'sentry/locale';
+import {DataCategory, type PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -44,6 +44,7 @@ import {
   getSavedQueryTraceItemDataset,
   isRawVisualize,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
+import useMaxCustomRetentionDays from 'sentry/views/explore/hooks/useMaxCustomRetentionDays';
 import type {
   TraceItemAttributeMeta,
   TraceItemDetailsMeta,
@@ -402,8 +403,8 @@ export function viewSamplesTarget({
   });
 }
 
-type MaxPickableDays = 7 | 14 | 30 | 90;
-type DefaultPeriod = '24h' | '7d' | '14d' | '30d' | '90d';
+type MaxPickableDays = 7 | 14 | 30 | 90 | number;
+type DefaultPeriod = '24h' | '7d' | '14d' | '30d' | '90d' | `${number}d`;
 
 export interface PickableDays {
   defaultPeriod: DefaultPeriod;
@@ -417,12 +418,22 @@ export interface PickableDays {
   menuFooter?: ReactNode;
 }
 
-export function limitMaxPickableDays(organization: Organization): PickableDays {
+export function useLimitMaxPickableDays(organization: Organization): PickableDays {
+  const maxPickableDays: MaxPickableDays = organization.features.includes(
+    'visibility-explore-range-high'
+  )
+    ? 90
+    : 30;
+  const maxCustomRetentionDays = useMaxCustomRetentionDays(
+    DataCategory.SPANS,
+    maxPickableDays
+  );
   const defaultPeriods: Record<MaxPickableDays, DefaultPeriod> = {
     7: '7d',
     14: '14d',
     30: '30d',
     90: '90d',
+    [maxCustomRetentionDays]: `${maxCustomRetentionDays}d`,
   };
 
   const relativeOptions: Array<[DefaultPeriod, ReactNode]> = [
@@ -430,14 +441,13 @@ export function limitMaxPickableDays(organization: Organization): PickableDays {
     ['14d', t('Last 14 days')],
     ['30d', t('Last 30 days')],
     ['90d', t('Last 90 days')],
+    [
+      `${maxCustomRetentionDays}d`,
+      tct(`Last [days] days`, {days: maxCustomRetentionDays}),
+    ],
   ];
 
-  const maxPickableDays: MaxPickableDays = organization.features.includes(
-    'visibility-explore-range-high'
-  )
-    ? 90
-    : 30;
-  const defaultPeriod: DefaultPeriod = defaultPeriods[maxPickableDays];
+  const defaultPeriod: DefaultPeriod = defaultPeriods[maxPickableDays] ?? '30d';
 
   const index = relativeOptions.findIndex(([period, _]) => period === defaultPeriod) + 1;
   const enabledOptions = Object.fromEntries(relativeOptions.slice(0, index));

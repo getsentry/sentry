@@ -13,7 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
-import {metricsPickableDays} from 'sentry/views/explore/metrics/utils';
+import {useMetricsPickableDays} from 'sentry/views/explore/metrics/utils';
 import {
   getIdFromLocation,
   getTitleFromLocation,
@@ -52,7 +52,7 @@ function FeedbackButton() {
 export default function MetricsContent() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject({property: 'hasTraceMetrics'});
-  const {defaultPeriod, maxPickableDays, relativeOptions} = metricsPickableDays();
+  const {defaultPeriod, maxPickableDays, relativeOptions} = useMetricsPickableDays();
   return (
     <SentryDocumentTitle title={t('Metrics')} orgSlug={organization?.slug}>
       <PageFiltersContainer
