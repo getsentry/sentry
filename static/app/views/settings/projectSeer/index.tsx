@@ -89,7 +89,7 @@ export const autofixAutomationToggleField = {
   label: t('Auto-Trigger Fixes'),
   help: () =>
     t(
-      'When enabled, Seer will automatically analyze actionable issues in the background based on fixability analysis.'
+      'When enabled, Seer will automatically analyze actionable issues in the background.'
     ),
   type: 'boolean',
   saveOnBlur: true,
@@ -259,6 +259,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         allowUndo
         initialData={{
           seerScannerAutomation: project.seerScannerAutomation ?? false,
+          // Same DB field, different UI: toggle (boolean) vs dropdown (string)
           autofixAutomationTuning: isTriageSignalsFeatureOn
             ? (project.autofixAutomationTuning ?? 'off') !== 'off'
             : (project.autofixAutomationTuning ?? 'off'),
