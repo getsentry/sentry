@@ -2551,7 +2551,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/preprod/index')),
     withOrgPath: true,
     children: preprodChildren,
-    deprecatedRouteProps: true,
   };
 
   const pullRequestChildren: SentryRouteObject[] = [
