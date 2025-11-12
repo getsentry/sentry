@@ -292,7 +292,7 @@ def build_footer(
 ) -> str:
     footer = f"{group.qualified_short_id}"
     if rules:
-        if features.has("organizations:workflow-engine-ui", group.organization):
+        if features.has("organizations:workflow-engine-ui-links", group.organization):
             rule_url = absolute_uri(
                 create_link_to_workflow(
                     group.organization.id, get_key_from_rule_data(rules[0], "workflow_id")

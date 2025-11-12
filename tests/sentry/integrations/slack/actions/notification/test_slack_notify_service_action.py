@@ -370,7 +370,7 @@ class TestInit(RuleTestCase):
         assert thread_ts_success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @with_feature("organizations:workflow-engine-trigger-actions")
-    @with_feature("organizations:workflow-engine-ui")
+    @with_feature("organizations:workflow-engine-ui-links")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
