@@ -162,11 +162,11 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
               value: 'cursor_handoff',
               label: (
                 <SeerSelectLabel>
-                  {t('Hand off to Cursor Background Agent')}
+                  {t('Hand off to Cursor Cloud Agent')}
                 </SeerSelectLabel>
               ),
               details: t(
-                "Seer will identify the root cause and hand off the fix to Cursor's background agent."
+                "Seer will identify the root cause and hand off the fix to Cursor's cloud agent."
               ),
             },
           ]

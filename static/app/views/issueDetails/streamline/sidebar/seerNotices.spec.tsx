@@ -153,7 +153,7 @@ describe('SeerNotices', () => {
     });
     await waitFor(() => {
       expect(
-        screen.getByText('Hand Off to Cursor Background Agents')
+        screen.getByText('Hand Off to Cursor Cloud Agents')
       ).toBeInTheDocument();
     });
   });
@@ -200,7 +200,7 @@ describe('SeerNotices', () => {
 
     // Should not show the cursor step since it was skipped
     expect(
-      screen.queryByText('Hand Off to Cursor Background Agents')
+      screen.queryByText('Hand Off to Cursor Cloud Agents')
     ).not.toBeInTheDocument();
 
     // Clean up localStorage
@@ -261,7 +261,7 @@ describe('SeerNotices', () => {
 
     // Should not show the cursor step since handoff is already configured
     expect(
-      screen.queryByText('Hand Off to Cursor Background Agents')
+      screen.queryByText('Hand Off to Cursor Cloud Agents')
     ).not.toBeInTheDocument();
   });
 
@@ -294,7 +294,7 @@ describe('SeerNotices', () => {
     expect(screen.queryByText('Unleash Automation')).not.toBeInTheDocument();
     expect(screen.queryByText('Get Some Quick Wins')).not.toBeInTheDocument();
     expect(
-      screen.queryByText('Hand Off to Cursor Background Agents')
+      screen.queryByText('Hand Off to Cursor Cloud Agents')
     ).not.toBeInTheDocument();
   });
 });
