@@ -18,7 +18,7 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -328,7 +328,7 @@ class MonitorValidator(CamelSnakeSerializer):
         #      context. It is the caller's responsibility to ensure that a
         #      monitor is provided in context for this to be validated.
         if status == ObjectStatus.ACTIVE and monitor:
-            result = quotas.backend.check_assign_monitor_seat(monitor)
+            result = quotas.backend.check_assign_seat(DataCategory.MONITOR, monitor)
             if not result.assignable:
                 raise ValidationError(result.reason)
 
@@ -374,7 +374,7 @@ class MonitorValidator(CamelSnakeSerializer):
         )
 
         # Attempt to assign a seat for this monitor
-        seat_outcome = quotas.backend.assign_monitor_seat(monitor)
+        seat_outcome = quotas.backend.assign_seat(DataCategory.MONITOR, monitor)
         if seat_outcome != Outcome.ACCEPTED:
             monitor.update(status=ObjectStatus.DISABLED)
 
@@ -441,7 +441,7 @@ class MonitorValidator(CamelSnakeSerializer):
         if "status" in params:
             # Attempt to assign a monitor seat
             if params["status"] == ObjectStatus.ACTIVE and instance.status != ObjectStatus.ACTIVE:
-                outcome = quotas.backend.assign_monitor_seat(instance)
+                outcome = quotas.backend.assign_seat(DataCategory.MONITOR, instance)
                 # The MonitorValidator checks if a seat assignment is available.
                 # This protects against a race condition
                 if outcome != Outcome.ACCEPTED:
@@ -454,7 +454,7 @@ class MonitorValidator(CamelSnakeSerializer):
                 params["status"] == ObjectStatus.DISABLED
                 and instance.status != ObjectStatus.DISABLED
             ):
-                quotas.backend.disable_monitor_seat(instance)
+                quotas.backend.disable_seat(DataCategory.MONITOR, instance)
 
         if params:
             instance.update(**params)

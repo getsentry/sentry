@@ -73,3 +73,6 @@ class SizeMetricDiffItem(BaseModel):
 class ComparisonResults(BaseModel):
     diff_items: list[DiffItem]
     size_metric_diff_item: SizeMetricDiffItem
+    skipped_diff_item_comparison: bool
+    head_analysis_version: str | None
+    base_analysis_version: str | None

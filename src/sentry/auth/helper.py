@@ -21,7 +21,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry import audit_log, features, options
+from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
@@ -451,11 +451,7 @@ class AuthIdentityHandler:
     @property
     def _logged_in_user(self) -> User | None:
         """The user, if they have authenticated on this session."""
-        if (
-            options.get("demo-user.auth.pipelines.always.unauthenticated.enabled")
-            and is_demo_mode_enabled()
-            and is_demo_user(self.request.user)
-        ):
+        if is_demo_mode_enabled() and is_demo_user(self.request.user):
             return None
 
         return self.request.user if self.request.user.is_authenticated else None

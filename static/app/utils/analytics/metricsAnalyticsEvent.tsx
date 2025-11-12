@@ -34,10 +34,15 @@ export type MetricsAnalyticsEventParameters = {
     platform: PlatformKey | 'unknown';
     supports_onboarding_checklist: boolean;
   };
+  'metrics.issue_details.drawer_opened': {
+    organization: Organization;
+  };
   'metrics.nav.rendered': {
+    has_feature_flag: boolean;
+    has_metrics_supported_platform: boolean;
+    metrics_supported_platform_name: string | undefined;
     metrics_tab_visible: boolean;
     organization: Organization;
-    platforms: Array<PlatformKey | 'unknown'>;
   };
   'metrics.onboarding': {
     organization: Organization;
@@ -66,6 +71,7 @@ type MetricsAnalyticsEventKey = keyof MetricsAnalyticsEventParameters;
 export const metricsAnalyticsEventMap: Record<MetricsAnalyticsEventKey, string | null> = {
   'metrics.explorer.metadata': 'Metric Explorer Pageload Metadata',
   'metrics.explorer.panel.metadata': 'Metric Explorer Panel Metadata',
+  'metrics.issue_details.drawer_opened': 'Metrics Issue Details Drawer Opened',
   'metrics.explorer.setup_button_clicked': 'Metrics Setup Button Clicked',
   'metrics.nav.rendered': 'Metrics Nav Rendered',
   'metrics.onboarding': 'Metrics Explore Empty State (Onboarding)',
