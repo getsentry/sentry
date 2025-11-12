@@ -21,7 +21,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.types.actor import Actor
 from sentry.users.models.user import User
 
 
@@ -751,7 +750,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "actions": payload.get("actions", []),
             "frequency": payload.get("frequency"),
             "user_id": self.user.id,
-            "owner": Actor.from_id(user_id=self.user.id),
+            "owner": f"user:{self.user.id}",
             "uuid": "abc123",
         }
         call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]

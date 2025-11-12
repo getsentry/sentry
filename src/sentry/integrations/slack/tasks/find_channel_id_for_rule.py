@@ -19,6 +19,7 @@ from sentry.shared_integrations.exceptions import ApiRateLimitedError, Duplicate
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
+from sentry.types.actor import Actor
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
 
@@ -108,6 +109,11 @@ def find_channel_id_for_rule(
 
         kwargs["actions"] = actions
         kwargs["project"] = project
+
+        # Deserialize owner string identifier back to Actor object
+        owner = kwargs.get("owner")
+        if owner and isinstance(owner, str):
+            kwargs["owner"] = Actor.from_identifier(owner)
 
         if rule_id:
             rule = Rule.objects.get(id=rule_id)
