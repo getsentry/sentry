@@ -101,8 +101,3 @@ Sentry.metrics.distribution('test_distribution', 150);
     },
   ],
 });
-
-export const metrics = getNodeMetricsOnboarding({
-  docsPlatform: 'node',
-  packageName: '@sentry/node',
-});

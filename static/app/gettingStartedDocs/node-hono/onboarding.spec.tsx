@@ -8,7 +8,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from '.';
 
-describe('hapi onboarding docs', () => {
+describe('hono onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
@@ -32,8 +32,9 @@ describe('hapi onboarding docs', () => {
   it('includes error handler', () => {
     renderWithOnboardingLayout(docs);
 
+    expect(screen.getByText(textWithMarkupMatcher(/\.onError/))).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry\.setupHapiErrorHandler\(server\)/))
+      screen.getByText(textWithMarkupMatcher(/Sentry\.captureException\(err\)/))
     ).toBeInTheDocument();
   });
 
