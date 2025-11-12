@@ -234,19 +234,6 @@ describe('IntegrationDetailedView', () => {
     });
 
     await userEvent.click(
-      screen.getByRole('checkbox', {name: /Enable Comments on Open Pull Requests/})
-    );
-
-    await waitFor(() => {
-      expect(mock).toHaveBeenCalledWith(
-        ENDPOINT,
-        expect.objectContaining({
-          data: {githubOpenPRBot: true},
-        })
-      );
-    });
-
-    await userEvent.click(
       screen.getByRole('checkbox', {name: /Enable Missing Member Detection/})
     );
 
