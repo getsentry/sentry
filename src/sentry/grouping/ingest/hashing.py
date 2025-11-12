@@ -55,15 +55,15 @@ def _calculate_event_grouping(
     with metrics.timer("save_event._calculate_event_grouping", tags=metric_tags):
         loaded_grouping_config = load_grouping_config(grouping_config)
 
-        with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
-            with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
-                event.normalize_stacktraces_for_grouping(loaded_grouping_config)
-
         with metrics.timer("event_manager.apply_server_fingerprinting", tags=metric_tags):
             event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
             apply_server_side_fingerprinting(
                 event.data.data, get_fingerprinting_config_for_project(project)
             )
+
+        with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
+            with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
+                event.normalize_stacktraces_for_grouping(loaded_grouping_config)
 
         with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
             hashes, variants = event.get_hashes_and_variants(loaded_grouping_config)
