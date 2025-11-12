@@ -55,9 +55,7 @@ export function MetricsSamplesTable({
     error,
     isFetching,
   } = useMetricSamplesTable({
-    disabled: embedded
-      ? false
-      : !traceMetric?.name || isMetricOptionsEmpty || !!overrideTableData,
+    disabled: embedded ? !!overrideTableData : !traceMetric?.name || isMetricOptionsEmpty,
     limit: embedded ? EMBEDDED_RESULT_LIMIT : RESULT_LIMIT,
     traceMetric,
     fields,
