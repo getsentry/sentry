@@ -15,6 +15,17 @@ SENTRY_DSN="${params.dsn.public}"
 ${params.isPerformanceSelected ? 'SENTRY_TRACES_SAMPLE_RATE=1.0' : ''}
 `;
 
+const getVerifySnippet = (params: Params) => `
+${
+  params.isMetricsSelected
+    ? `
+// Send a test metric before throwing the error
+Sentry.metrics.count('test_counter', 1);
+`
+    : ''
+}
+throw new Error("This should show up in Sentry!");`;
+
 const commonOnboarding = {
   configure: params => [
     {
@@ -46,7 +57,7 @@ const commonOnboarding = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: params => [
     {
       type: StepType.VERIFY,
       content: [
@@ -59,7 +70,7 @@ const commonOnboarding = {
         {
           type: 'code',
           language: 'javascript',
-          code: `throw new Error("This should show up in Sentry!");`,
+          code: getVerifySnippet(params),
         },
       ],
     },

@@ -47,6 +47,12 @@ server.route({
       action: 'test_error_endpoint',
     });`
       : ''
+  }${
+    params.isMetricsSelected
+      ? `
+    // Send a test metric before throwing the error
+    Sentry.metrics.count('test_counter', 1);`
+      : ''
   }
     throw new Error('My first Sentry error!');
   }

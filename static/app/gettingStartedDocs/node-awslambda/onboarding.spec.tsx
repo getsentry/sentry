@@ -121,4 +121,28 @@ describe('awslambda onboarding docs', () => {
       ).toBeInTheDocument();
     });
   });
+
+  it('displays metrics code in verify section when metrics are selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.METRICS],
+    });
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/Sentry\.metrics\.count\('test_counter', 1\)/)
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not display metrics code in verify section when metrics are not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(
+      screen.queryByText(
+        textWithMarkupMatcher(/Sentry\.metrics\.count\('test_counter', 1\)/)
+      )
+    ).not.toBeInTheDocument();
+  });
 });
