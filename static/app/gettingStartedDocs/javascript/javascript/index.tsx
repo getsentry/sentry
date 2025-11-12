@@ -24,9 +24,16 @@ const docs: Docs<PlatformOptions> = {
   performanceOnboarding: performance,
   crashReportOnboarding: crashReport,
   platformOptions,
-  profilingOnboarding: profiling,
+  profilingOnboarding: profiling({
+    installSnippetBlock,
+    docsLink: 'https://docs.sentry.io/platforms/javascript/profiling/browser-profiling/',
+  }),
   featureFlagOnboarding: featureFlag,
-  logsOnboarding: logs,
+  logsOnboarding: logs({
+    installSnippetBlock,
+    docsPlatform: 'javascript',
+    packageName: '@sentry/browser',
+  }),
   metricsOnboarding: metrics({
     installSnippetBlock,
     docsPlatform: 'javascript',

@@ -1,13 +1,13 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/javascript/featureFlag';
+import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/metrics';
+import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/profiling';
 
 import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
-import {logs} from './logs';
 import {onboarding} from './onboarding';
-import {profiling} from './profiling';
 import {replay} from './replay';
 
 const docs: Docs = {
@@ -16,9 +16,18 @@ const docs: Docs = {
   replayOnboarding: replay,
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
-  profilingOnboarding: profiling,
+  profilingOnboarding: profilingFullStack({
+    packageName: '@sentry/sveltekit',
+    browserProfilingLink:
+      'https://docs.sentry.io/platforms/javascript/guides/sveltekit/profiling/browser-profiling/',
+    nodeProfilingLink:
+      'https://docs.sentry.io/platforms/javascript/guides/sveltekit/profiling/node-profiling/',
+  }),
   agentMonitoringOnboarding: agentMonitoring,
-  logsOnboarding: logs,
+  logsOnboarding: logsFullStack({
+    docsPlatform: 'sveltekit',
+    packageName: '@sentry/sveltekit',
+  }),
   metricsOnboarding: metricsFullStack({
     docsPlatform: 'sveltekit',
     packageName: '@sentry/sveltekit',

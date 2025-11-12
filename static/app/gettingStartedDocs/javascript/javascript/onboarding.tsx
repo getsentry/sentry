@@ -1,4 +1,4 @@
-import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {type OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 import {
   isAutoInstall,

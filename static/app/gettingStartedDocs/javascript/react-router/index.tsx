@@ -1,13 +1,13 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/metrics';
+import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/javascript/profiling';
 
 import {agentMonitoring} from './agentMonitoring';
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
-import {logs} from './logs';
 import {onboarding} from './onboarding';
 import {performance} from './performance';
-import {profiling} from './profiling';
 import {replay} from './replay';
 
 const docs: Docs = {
@@ -16,9 +16,18 @@ const docs: Docs = {
   feedbackOnboardingNpm: feedback,
   crashReportOnboarding: crashReport,
   performanceOnboarding: performance,
-  profilingOnboarding: profiling,
+  profilingOnboarding: profilingFullStack({
+    packageName: '@sentry/react-router',
+    browserProfilingLink:
+      'https://docs.sentry.io/platforms/javascript/guides/react-router/profiling/browser-profiling/',
+    nodeProfilingLink:
+      'https://docs.sentry.io/platforms/javascript/guides/react-router/profiling/node-profiling/',
+  }),
   agentMonitoringOnboarding: agentMonitoring,
-  logsOnboarding: logs,
+  logsOnboarding: logsFullStack({
+    docsPlatform: 'react-router',
+    packageName: '@sentry/react-router',
+  }),
   metricsOnboarding: metricsFullStack({
     docsPlatform: 'react-router',
     packageName: '@sentry/react-router',
