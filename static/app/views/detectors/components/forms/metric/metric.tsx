@@ -228,7 +228,7 @@ function PriorityRow({
 
   const thresholdAriaLabel = isHigh ? t('High threshold') : t('Medium threshold');
 
-  const directionField = (
+  const directionField = isHigh ? (
     <DirectionField
       aria-label={t('Threshold direction')}
       name={METRIC_DETECTOR_FORM_FIELDS.conditionType}
@@ -236,16 +236,26 @@ function PriorityRow({
       inline
       flexibleControlStateSize
       choices={conditionChoices}
-      required={isHigh}
-      disabled={!isHigh}
-      defaultValue={conditionType}
+      required
       preserveOnUnmount
+    />
+  ) : (
+    <DirectionField
+      aria-label={t('Threshold direction')}
+      name="conditionTypeDisplay"
+      hideLabel
+      inline
+      flexibleControlStateSize
+      choices={conditionChoices}
+      value={conditionType}
+      defaultValue={conditionType}
+      disabled
     />
   );
 
   return (
     <PriorityRowContainer>
-      <PriorityDot $priority={priority} />
+      <PriorityDot priority={priority} />
       <PriorityLabel>
         {isHigh ? t('High priority') : t('Medium priority')}
         {isHigh && <RequiredAsterisk>*</RequiredAsterisk>}
@@ -677,11 +687,11 @@ const PriorityRowContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const PriorityDot = styled('div')<{$priority: 'high' | 'medium'}>`
+const PriorityDot = styled('div')<{priority: 'high' | 'medium'}>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: ${p => (p.$priority === 'high' ? p.theme.red300 : p.theme.yellow400)};
+  background-color: ${p => (p.priority === 'high' ? p.theme.red300 : p.theme.yellow400)};
   flex-shrink: 0;
 `;
 
