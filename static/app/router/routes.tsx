@@ -2698,6 +2698,11 @@ function buildRoutes(): RouteObject[] {
       ),
     },
     {
+      path: 'dynamic-groups/',
+      component: make(() => import('sentry/views/issueList/pages/dynamicGrouping')),
+      deprecatedRouteProps: true,
+    },
+    {
       path: 'views/:viewId/',
       component: errorHandler(OverviewWrapper),
     },
