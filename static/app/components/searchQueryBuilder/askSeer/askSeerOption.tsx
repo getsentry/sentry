@@ -23,7 +23,7 @@ export function AskSeerOption<T>({state}: {state: ComboBoxState<T>}) {
 
   const organization = useOrganization();
   const hasAskSeerConsentFlowChanges = organization.features.includes(
-    'ask-seer-consent-flow-update'
+    'gen-ai-consent-flow-removal'
   );
 
   const [optionDisableOverride, setOptionDisableOverride] = useState(false);

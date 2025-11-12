@@ -183,7 +183,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
 
   const organization = useOrganization();
   const hasAskSeerConsentFlowChanges = organization.features.includes(
-    'ask-seer-consent-flow-update'
+    'gen-ai-consent-flow-removal'
   );
 
   const filterKeyMenuItems = useMemo(() => {
