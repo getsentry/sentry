@@ -1,4 +1,4 @@
-import {getNodeMetricsOnboarding} from 'sentry/gettingStartedDocs/node/node/utils';
+import {getNodeMetricsOnboarding} from 'sentry/gettingStartedDocs/node/node/metrics';
 
 export const metrics = getNodeMetricsOnboarding({
   docsPlatform: 'nestjs',
