@@ -94,7 +94,7 @@ const autofixAutomationToggleField = {
   type: 'boolean',
   saveOnBlur: true,
   saveMessage: t('Automatic Seer settings updated'),
-  getData: (data: Record<string, boolean>) => ({
+  getData: (data: Record<PropertyKey, unknown>) => ({
     autofixAutomationTuning: data.autofixAutomationTuning ? 'always' : 'off',
   }),
 } satisfies FieldObject;
