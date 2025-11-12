@@ -42,6 +42,7 @@ class GroupTagsEndpoint(GroupEndpoint):
         if request.GET.get("useFlagsBackend") == "1":
             backend = tagstore.flag_backend
         else:
+            # Hm!
             backend = tagstore.backend
 
         # optional queryparam `key` can be used to get results
@@ -68,6 +69,7 @@ class GroupTagsEndpoint(GroupEndpoint):
             actor=request.user,
         )
 
+        # This is the call.
         tag_keys = backend.get_group_tag_keys_and_top_values(
             group,
             environment_ids,

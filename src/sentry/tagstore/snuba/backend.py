@@ -26,6 +26,7 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.replays.query import query_replays_dataset_tagkey_values
+from sentry.search.eap.columns import SearchResolverConfig
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
     RELEASE_ALIAS,
@@ -37,7 +38,9 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.fields import FIELD_ALIASES
 from sentry.search.events.filter import _flip_field_sort
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrencesRPC
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagKeyStatus, TagStorage
 from sentry.tagstore.exceptions import GroupTagKeyNotFound, TagKeyNotFound
@@ -344,6 +347,9 @@ class SnubaTagStorage(TagStorage):
                 else:
                     span.set_data("cache.hit", False)
                     metrics.incr("testing.tagstore.cache_tag_key.miss")
+
+        if result is None and True:  # TODO Change True to option
+            pass
 
         if result is None:
             result = snuba.query(
@@ -654,6 +660,7 @@ class SnubaTagStorage(TagStorage):
         }
 
     def apply_group_filters(self, group: Group | None, filters):
+        # TODO this is a place
         dataset = Dataset.Events
         if group:
             filters["group_id"] = [group.id]
@@ -718,6 +725,8 @@ class SnubaTagStorage(TagStorage):
         include_empty_values=False,
         **kwargs,
     ):
+        # This is the call.
+
         # Similar to __get_tag_key_and_top_values except we get the top values
         # for all the keys provided. value_limit in this case means the number
         # of top values for each key, so the total rows returned should be
@@ -744,19 +753,55 @@ class SnubaTagStorage(TagStorage):
             ["max", SEEN_COLUMN, "last_seen"],
         ]
 
-        values_by_key = snuba.query(
-            dataset=dataset,
-            start=kwargs.get("start"),
-            end=kwargs.get("end"),
-            groupby=[self.key_column, self.value_column],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            orderby="-count",
-            limitby=[value_limit, self.key_column],
-            referrer="tagstore._get_tag_keys_and_top_values",
-            tenant_ids=tenant_ids,
-        )
+        if True:  # TODO option
+            eap_vals = OccurrencesRPC.run_table_query(
+                params=SnubaParams(
+                    start=kwargs.get("start") or datetime.now() - timedelta(days=30),
+                    end=kwargs.get("end") or datetime.now(),
+                    projects=[group.project],
+                    organization=group.project.organization,
+                ),
+                query_string=f"group_id:{group.id}",
+                selected_columns=["id", "group_id"],
+                orderby=None,
+                offset=0,
+                limit=3,
+                referrer="tagstore._get_tag_keys_and_top_values",
+                config=SearchResolverConfig(auto_fields=True),
+                sampling_mode="NORMAL",
+            )
+
+            raise Exception(str(eap_vals))
+
+            values_by_key = snuba.query(
+                dataset=dataset,
+                start=kwargs.get("start"),
+                end=kwargs.get("end"),
+                groupby=[self.key_column, self.value_column],
+                conditions=conditions,
+                filter_keys=filters,
+                aggregations=aggregations,
+                orderby="-count",
+                limitby=[value_limit, self.key_column],
+                referrer="tagstore._get_tag_keys_and_top_values",
+                tenant_ids=tenant_ids,
+            )
+
+        else:
+            values_by_key = snuba.query(
+                dataset=dataset,
+                start=kwargs.get("start"),
+                end=kwargs.get("end"),
+                groupby=[self.key_column, self.value_column],
+                conditions=conditions,
+                filter_keys=filters,
+                aggregations=aggregations,
+                orderby="-count",
+                limitby=[value_limit, self.key_column],
+                referrer="tagstore._get_tag_keys_and_top_values",
+                tenant_ids=tenant_ids,
+            )
+            raise Exception(str(values_by_key))
 
         if include_empty_values:
             keys_to_check = list(values_by_key.keys()) or [k.key for k in keys_with_counts]
