@@ -342,4 +342,71 @@ describe('CronDetectorDetails - check-ins', () => {
       expect(screen.getByRole('button', {name: 'Enable'})).toBeInTheDocument();
     });
   });
+
+  describe('environment muting', () => {
+    it('refetches detector when environment is muted', async () => {
+      const detectorWithMultipleEnvs = CronDetectorFixture({
+        id: '1',
+        projectId: project.id,
+        dataSources: [
+          CronMonitorDataSourceFixture({
+            queryObj: {
+              ...CronMonitorDataSourceFixture().queryObj,
+              environments: [
+                CronMonitorEnvironmentFixture({
+                  name: 'production',
+                  lastCheckIn: '2025-01-01T00:00:00Z',
+                  isMuted: false,
+                }),
+                CronMonitorEnvironmentFixture({
+                  name: 'staging',
+                  lastCheckIn: '2025-01-01T00:00:00Z',
+                  isMuted: false,
+                }),
+              ],
+            },
+          }),
+        ],
+      });
+
+      const muteRequest = MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${project.slug}/monitors/${detectorWithMultipleEnvs.dataSources[0].queryObj.slug}/environments/production/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      const detectorRefetchRequest = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/detectors/1/`,
+        body: detectorWithMultipleEnvs,
+      });
+
+      render(
+        <CronDetectorDetails detector={detectorWithMultipleEnvs} project={project} />
+      );
+
+      await screen.findByText('Recent Check-Ins');
+
+      expect(detectorRefetchRequest).toHaveBeenCalledTimes(1);
+
+      const envButtons = screen.getAllByRole('button', {
+        name: 'Monitor environment actions',
+      });
+      await userEvent.click(envButtons[0]!);
+
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Mute Environment'})
+      );
+
+      expect(muteRequest).toHaveBeenCalledTimes(1);
+      expect(muteRequest).toHaveBeenCalledWith(
+        expect.stringContaining('/environments/production'),
+        expect.objectContaining({
+          method: 'PUT',
+          data: {isMuted: true},
+        })
+      );
+
+      expect(detectorRefetchRequest).toHaveBeenCalledTimes(2);
+    });
+  });
 });

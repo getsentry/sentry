@@ -22,6 +22,7 @@ import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import toArray from 'sentry/utils/array/toArray';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -35,7 +36,10 @@ import {DisabledAlert} from 'sentry/views/detectors/components/details/common/di
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
-import {useDetectorQuery} from 'sentry/views/detectors/hooks';
+import {
+  makeDetectorDetailsQueryKey,
+  useDetectorQuery,
+} from 'sentry/views/detectors/hooks';
 import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {DetailsTimelineLegend} from 'sentry/views/insights/crons/components/detailsTimelineLegend';
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
@@ -69,6 +73,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const userTimezone = useTimezone();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
   const openDocsPanel = useDocsPanel(dataSource.queryObj.slug, project);
+  const queryClient = useQueryClient();
 
   useDetectorQuery<CronDetector>(detector.id, {
     staleTime: 0,
@@ -82,6 +87,14 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
       return getMonitorRefetchInterval(monitor, new Date());
     },
   });
+
+  const handleEnvironmentUpdated = useCallback(() => {
+    const queryKey = makeDetectorDetailsQueryKey({
+      orgSlug: organization.slug,
+      detectorId: detector.id,
+    });
+    queryClient.invalidateQueries({queryKey});
+  }, [queryClient, organization.slug, detector.id]);
 
   const {checkinErrors, handleDismissError} = useMonitorProcessingErrors({
     organization,
@@ -174,6 +187,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 <DetailsTimeline
                   monitor={filteredMonitor}
                   onStatsLoaded={checkHasUnknown}
+                  onEnvironmentUpdated={handleEnvironmentUpdated}
                 />
                 <ErrorBoundary mini>
                   <DetectorDetailsOpenPeriodIssues
