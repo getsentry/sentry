@@ -6,6 +6,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
+import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
@@ -228,11 +229,11 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   return (
     <Fragment>
       <Form
-        key={
+        key={`${project.seerScannerAutomation}-${project.autofixAutomationTuning}-${
           preference?.automation_handoff
             ? 'cursor_handoff'
             : (preference?.automated_run_stopping_point ?? 'root_cause')
-        }
+        }`}
         saveOnBlur
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
@@ -324,6 +325,7 @@ function ProjectSeer({
         })}
       />
       <ProjectSeerGeneralForm project={project} />
+      <CursorIntegrationCta project={project} />
       <AutofixRepositories project={project} />
       <Center>
         <LinkButton
