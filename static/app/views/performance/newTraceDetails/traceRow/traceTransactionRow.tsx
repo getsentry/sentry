@@ -92,7 +92,6 @@ export function TraceTransactionRow(props: TraceRowProps<TransactionNode>) {
           node_space={props.node.space}
           errors={props.node.errors}
           occurrences={props.node.occurrences}
-          profiles={props.node.profiles}
           // Since transactions have ms precision, we show 2 decimal places only if the duration is greater than 1 second.
           durationPrecision={props.node.space[1] >= 1000 ? 2 : 0}
         />

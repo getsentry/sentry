@@ -23,7 +23,7 @@ export function useSpanAncestryAndGroupingItems({
   onParentClick: (node: BaseNode) => void;
   organization: Organization;
 }): SectionCardKeyValueList {
-  const parentTransaction = useMemo(() => node.findParentTransaction(), [node]);
+  const parentTransaction = useMemo(() => node.findClosestParentTransaction(), [node]);
   const childTransactions = useMemo(() => {
     const transactions: TransactionNode[] = [];
     node.forEachChild(c => {

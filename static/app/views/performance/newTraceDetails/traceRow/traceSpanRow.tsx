@@ -23,8 +23,6 @@ import {
   type TraceRowProps,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
-const NO_PROFILES: any = [];
-
 export function TraceSpanRow(
   props: TraceRowProps<SpanNode | EapSpanNode | UptimeCheckNode | UptimeCheckTimingNode>
 ) {
@@ -117,7 +115,6 @@ export function TraceSpanRow(
           node_space={props.node.space}
           errors={props.node.errors}
           occurrences={props.node.occurrences}
-          profiles={NO_PROFILES}
         />
         <button
           ref={props.registerSpanArrowRef}

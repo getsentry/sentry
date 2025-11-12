@@ -92,11 +92,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   occurrences = new Set<TraceTree.TraceOccurrence>();
 
   /**
-   * The profiles associated with the node.
-   */
-  profiles = new Set<TraceTree.Profile>();
-
-  /**
    * The space associated with the node. The first value is the start timestamp in milliseconds,
    * the second value is the duration in milliseconds.
    */
@@ -174,21 +169,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       if ('occurrences' in value && Array.isArray(value.occurrences)) {
         value.occurrences.forEach(occurence => this.occurrences.add(occurence));
       }
-
-      if (
-        'profile_id' in value &&
-        typeof value.profile_id === 'string' &&
-        value.profile_id.trim() !== ''
-      ) {
-        this.profiles.add({profile_id: value.profile_id});
-      }
-      if (
-        'profiler_id' in value &&
-        typeof value.profiler_id === 'string' &&
-        value.profiler_id.trim() !== ''
-      ) {
-        this.profiles.add({profiler_id: value.profiler_id});
-      }
     }
   }
 
@@ -199,6 +179,18 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   get projectSlug(): string | undefined {
     return this.value && 'project_slug' in this.value
       ? this.value.project_slug
+      : undefined;
+  }
+
+  get profileId(): string | undefined {
+    return this.value && 'profile_id' in this.value
+      ? this.value.profile_id?.trim() || undefined
+      : undefined;
+  }
+
+  get profilerId(): string | undefined {
+    return this.value && 'profiler_id' in this.value
+      ? this.value.profiler_id?.trim() || undefined
       : undefined;
   }
 
@@ -264,6 +256,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return this.errors.size > 0;
   }
 
+  get hasProfiles(): boolean {
+    return !!(this.profileId || this.profilerId);
+  }
+
   get hasOccurrences(): boolean {
     return this.occurrences.size > 0;
   }
@@ -324,20 +320,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return `${this.type}-${this.id}`;
   }
 
-  get transactionId(): string | null {
-    const parentTransaction = this.findParentTransaction();
-
-    if (parentTransaction) {
-      return parentTransaction.transactionId;
-    }
-
-    const parentEapTransaction = this.findParentEapTransaction();
-
-    if (parentEapTransaction) {
-      return parentEapTransaction.transactionId;
-    }
-
-    return null;
+  get transactionId(): string | undefined {
+    return this.value && 'transaction_id' in this.value
+      ? this.value.transaction_id
+      : undefined;
   }
 
   isRootNodeChild(): boolean {
@@ -453,7 +439,21 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return null;
   }
 
-  findParentTransaction(): TransactionNode | null {
+  findClosestParentTransaction(): TransactionNode | EapSpanNode | null {
+    const nodeStoreTransaction = this.findParentNodeStoreTransaction();
+    if (nodeStoreTransaction) {
+      return nodeStoreTransaction;
+    }
+
+    const eapTransaction = this.findParentEapTransaction();
+    if (eapTransaction) {
+      return eapTransaction;
+    }
+
+    return null;
+  }
+
+  findParentNodeStoreTransaction(): TransactionNode | null {
     return this.findParent<TransactionNode>(p => isTransactionNode(p));
   }
 

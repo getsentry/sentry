@@ -108,7 +108,6 @@ describe('BaseNode', () => {
       expect(node.children).toEqual([]);
       expect(node.errors).toBeInstanceOf(Set);
       expect(node.occurrences).toBeInstanceOf(Set);
-      expect(node.profiles).toBeInstanceOf(Set);
       expect(node.isEAPEvent).toBe(false);
       expect(node.canShowDetails).toBe(true);
       expect(node.searchPriority).toBe(0);
@@ -518,8 +517,7 @@ describe('BaseNode', () => {
 
       const node = new TestNode(null, value, extra);
 
-      expect(node.profiles.size).toBe(1);
-      expect(Array.from(node.profiles)).toEqual([{profile_id: 'profile-123'}]);
+      expect(node.profileId).toBe('profile-123');
     });
 
     it('should collect profile from profiler_id during construction', () => {
@@ -530,9 +528,7 @@ describe('BaseNode', () => {
       });
 
       const node = new TestNode(null, value, extra);
-
-      expect(node.profiles.size).toBe(1);
-      expect(Array.from(node.profiles)).toEqual([{profiler_id: 'profiler-456'}]);
+      expect(node.profilerId).toBe('profiler-456');
     });
 
     it('should ignore empty profile IDs', () => {
@@ -540,12 +536,11 @@ describe('BaseNode', () => {
       const value = createMockValue({
         event_id: 'test-id',
         profile_id: '',
-        profiler_id: '   ',
       });
 
       const node = new TestNode(null, value, extra);
 
-      expect(node.profiles.size).toBe(0);
+      expect(node.profileId).toBeUndefined();
     });
 
     it('should collect both profile_id and profiler_id', () => {
@@ -558,10 +553,8 @@ describe('BaseNode', () => {
 
       const node = new TestNode(null, value, extra);
 
-      expect(node.profiles.size).toBe(2);
-      const profilesArray = Array.from(node.profiles);
-      expect(profilesArray).toContainEqual({profile_id: 'profile-123'});
-      expect(profilesArray).toContainEqual({profiler_id: 'profiler-456'});
+      expect(node.profileId).toBe('profile-123');
+      expect(node.profilerId).toBe('profiler-456');
     });
   });
 
@@ -1568,7 +1561,7 @@ describe('BaseNode', () => {
       const extra = createMockExtra();
       const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
 
-      expect(node.findParentTransaction()).toBeNull();
+      expect(node.findParentNodeStoreTransaction()).toBeNull();
     });
 
     it('should find parent transaction node', () => {
@@ -1581,7 +1574,7 @@ describe('BaseNode', () => {
       const child = new TestNode(null, createMockValue({event_id: 'child'}), extra);
       jest.spyOn(child, 'findParent').mockReturnValue(mockTransactionParent as any);
 
-      const result = child.findParentTransaction();
+      const result = child.findParentNodeStoreTransaction();
       expect(result).toBe(mockTransactionParent);
       expect(child.findParent).toHaveBeenCalledWith(expect.any(Function));
     });
@@ -1655,38 +1648,6 @@ describe('BaseNode', () => {
       );
 
       expect(node.hasOccurrences).toBe(true);
-    });
-  });
-
-  describe('transactionId getter', () => {
-    it('should return null when no parent transaction or EAP transaction exists', () => {
-      const extra = createMockExtra();
-      const node = new TestNode(null, createMockValue({event_id: 'test'}), extra);
-
-      expect(node.transactionId).toBeNull();
-    });
-
-    it('should return transaction ID from parent transaction node', () => {
-      const extra = createMockExtra();
-      const child = new TestNode(null, createMockValue({event_id: 'child'}), extra);
-
-      jest.spyOn(child, 'findParentTransaction').mockReturnValue({
-        transactionId: 'txn-123',
-      } as any);
-
-      expect(child.transactionId).toBe('txn-123');
-    });
-
-    it('should return transaction ID from parent EAP transaction when no regular transaction parent exists', () => {
-      const extra = createMockExtra();
-      const child = new TestNode(null, createMockValue({event_id: 'child'}), extra);
-
-      jest.spyOn(child, 'findParentTransaction').mockReturnValue(null);
-      jest.spyOn(child, 'findParentEapTransaction').mockReturnValue({
-        transactionId: 'eap-txn-456',
-      } as any);
-
-      expect(child.transactionId).toBe('eap-txn-456');
     });
   });
 });

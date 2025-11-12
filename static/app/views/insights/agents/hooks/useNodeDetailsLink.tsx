@@ -20,7 +20,7 @@ export function useNodeDetailsLink({
   const location = useLocation();
 
   const spanId: string | undefined = node?.id;
-  const targetId: string | undefined = node?.transactionId ?? undefined;
+  const targetId: string | undefined = node?.transactionId;
   const timestamp: number | undefined = node?.startTimestamp;
 
   return getTraceDetailsUrl({

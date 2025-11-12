@@ -63,6 +63,33 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     return this.event?.sdk?.name ?? undefined;
   }
 
+  get profileId(): string | undefined {
+    const profileId = super.profileId;
+    if (profileId) {
+      return profileId;
+    }
+
+    return this.findClosestParentTransaction()?.profileId;
+  }
+
+  get profilerId(): string | undefined {
+    const profilerId = super.profilerId;
+    if (profilerId) {
+      return profilerId;
+    }
+
+    return this.findClosestParentTransaction()?.profilerId;
+  }
+
+  get transactionId(): string | undefined {
+    const transactionId = super.transactionId;
+    if (transactionId) {
+      return transactionId;
+    }
+
+    return this.findClosestParentTransaction()?.transactionId;
+  }
+
   get projectSlug(): string {
     // The span value does not have a project slug, so we need to find a parent that has one.
     // If we don't find one, we return the default project slug.

@@ -461,7 +461,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         tree.eap_spans_count++;
 
         // We only want to add transactions as profiled events.
-        if ((node as EapSpanNode).value.is_transaction && node.profiles.size > 0) {
+        if ((node as EapSpanNode).value.is_transaction && node.hasProfiles) {
           tree.profiled_events.add(node);
         }
       } else if (isUptimeCheck(value)) {
@@ -482,7 +482,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         });
 
         // We only want to add transactions as profiled events.
-        if (node.profiles.size > 0) {
+        if (node.hasProfiles) {
           tree.profiled_events.add(node);
         }
       }
@@ -515,10 +515,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       for (const occurrence of c.occurrences) {
         traceNode.occurrences.add(occurrence);
-      }
-
-      if (c.profiles.size > 0) {
-        tree.profiled_events.add(c);
       }
 
       if (c.value && 'measurements' in c.value) {
@@ -662,8 +658,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       baseTraceNode.occurrences.add(occurrence);
     }
 
-    for (const profile of additionalTraceNode.profiles) {
-      baseTraceNode.profiles.add(profile);
+    for (const profiledEvent of tree.profiled_events) {
+      this.profiled_events.add(profiledEvent);
     }
 
     for (const [node, vitals] of tree.vitals) {

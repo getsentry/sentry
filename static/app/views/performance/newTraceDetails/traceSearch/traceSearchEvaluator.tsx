@@ -527,7 +527,7 @@ function resolveValueFromKey(node: BaseNode, token: ProcessedTokenResult): any |
             return node.errors.size > 0 || node.occurrences.size > 0;
           case 'profile':
           case 'profiles':
-            return node.profiles.size > 0;
+            return !!(node.profileId || node.profilerId);
           default: {
             break;
           }
