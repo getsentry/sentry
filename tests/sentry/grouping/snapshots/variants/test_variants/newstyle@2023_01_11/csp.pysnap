@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:46.789176+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 default:
   hash: "666766514295bb52812324097cdaf53e"

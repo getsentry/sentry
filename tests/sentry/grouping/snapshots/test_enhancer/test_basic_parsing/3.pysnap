@@ -1,7 +1,5 @@
 ---
-created: '2025-04-27T03:05:59.368654+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_enhancer.py
+source: tests/sentry/grouping/test_enhancer.py::test_basic_parsing
 ---
 bases:
 - common:v1
