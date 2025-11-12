@@ -24,6 +24,8 @@ import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySumm
 import {NO_REPLAY_SUMMARY_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 
+const MAX_SEGMENTS_TO_SUMMARIZE = 150;
+
 export default function Ai() {
   const organization = useOrganization();
   const {
@@ -223,7 +225,9 @@ export default function Ai() {
       <StyledTabItemContainer>
         <OverflowBody>
           <ChapterList timeRanges={summaryData.data.time_ranges} />
-          {segmentCount > 100 && <Subtext>{replayTooLongMessage}</Subtext>}
+          {segmentCount > MAX_SEGMENTS_TO_SUMMARIZE && (
+            <Subtext>{replayTooLongMessage}</Subtext>
+          )}
         </OverflowBody>
       </StyledTabItemContainer>
     </Wrapper>
