@@ -35,8 +35,16 @@ def create_workflow_fire_histories(
     Record that the workflows associated with these actions were fired for this
     event.
 
+    Only records canonical entries (is_single_written=True). During migration from
+    dual-write to single-write, entries with is_single_written=False were created
+    for tracking purposes but are not the canonical record and should not be created
+    going forward.
+
     If we're reporting a fire due to delayed processing, is_delayed should be True.
     """
+    # Only write canonical fire history records
+    if not is_single_processing:
+        return []
     # Create WorkflowFireHistory objects for workflows we fire actions for
     workflow_ids = set(
         WorkflowDataConditionGroup.objects.filter(

@@ -1,7 +1,5 @@
 ---
-created: '2025-10-07T20:41:48.370798+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -51,12 +49,12 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by built-in stack trace rule (family:native function:std::* -app))
             filename*
               "xtree"
             function*
               "std::_Tree<T>::insert<T>"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by built-in stack trace rule (family:native function:std::* -app))
             filename*
               "xtree"
             function*
@@ -138,16 +136,16 @@ system:
     system*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "RtlUserThreadStart"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "BaseThreadInitThunk"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "TppWorkerThread"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "RtlpTpWorkCallback"
           frame*
@@ -159,7 +157,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -170,7 +168,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -178,12 +176,12 @@ system:
           frame*
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "xtree"
             function*
               "std::_Tree<T>::insert<T>"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "xtree"
             function*
@@ -200,7 +198,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -244,10 +242,10 @@ system:
           frame*
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by built-in stack trace rule (category:throw ^-group))
             function*
               "raise"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by built-in stack trace rule (category:throw ^-group))
             filename*
               "crashpad_client_win.cc"
             function*

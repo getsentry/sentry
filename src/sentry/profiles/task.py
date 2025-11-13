@@ -491,7 +491,10 @@ def _normalize_profile(profile: Profile, organization: Organization, project: Pr
 
 @metrics.wraps("process_profile.normalize")
 def _normalize(profile: Profile, organization: Organization) -> None:
-    profile["retention_days"] = quotas.backend.get_event_retention(organization=organization) or 90
+    profile["retention_days"] = quotas.backend.get_event_retention(
+        organization=organization,
+        category=_get_duration_category(profile),
+    )
     platform = profile["platform"]
     version = profile.get("version")
 
@@ -1155,13 +1158,15 @@ def _track_duration_outcome(
         key_id=None,
         outcome=Outcome.ACCEPTED,
         timestamp=datetime.now(timezone.utc),
-        category=(
-            DataCategory.PROFILE_DURATION_UI
-            if profile["platform"] in UI_PROFILE_PLATFORMS
-            else DataCategory.PROFILE_DURATION
-        ),
+        category=_get_duration_category(profile),
         quantity=duration_ms,
     )
+
+
+def _get_duration_category(profile: Profile) -> DataCategory:
+    if profile["platform"] in UI_PROFILE_PLATFORMS:
+        return DataCategory.PROFILE_DURATION_UI
+    return DataCategory.PROFILE_DURATION
 
 
 def _calculate_profile_duration_ms(profile: Profile) -> int:

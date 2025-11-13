@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Any
 
 from sentry.constants import ObjectStatus
@@ -42,9 +43,18 @@ logger = logging.getLogger(__name__)
 )
 def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     try:
-        preprod_artifact = PreprodArtifact.objects.get(id=preprod_artifact_id)
+        preprod_artifact: PreprodArtifact | None = PreprodArtifact.objects.get(
+            id=preprod_artifact_id
+        )
     except PreprodArtifact.DoesNotExist:
         logger.exception(
+            "preprod.status_checks.create.artifact_not_found",
+            extra={"artifact_id": preprod_artifact_id},
+        )
+        return
+
+    if not preprod_artifact or not isinstance(preprod_artifact, PreprodArtifact):
+        logger.error(
             "preprod.status_checks.create.artifact_not_found",
             extra={"artifact_id": preprod_artifact_id},
         )
@@ -87,6 +97,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         client,
         commit_comparison.provider,
         preprod_artifact.project.organization_id,
+        preprod_artifact.project.organization.slug,
         repository.integration_id,
     )
     if not provider:
@@ -114,6 +125,10 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
 
     target_url = get_preprod_artifact_url(preprod_artifact)
 
+    completed_at: datetime | None = None
+    if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
+        completed_at = preprod_artifact.date_updated
+
     check_id = provider.create_status_check(
         repo=commit_comparison.head_repo_name,
         sha=commit_comparison.head_sha,
@@ -124,6 +139,8 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         summary=summary,
         external_id=str(preprod_artifact.id),
         target_url=target_url,
+        started_at=preprod_artifact.date_added,
+        completed_at=completed_at,
     )
     if check_id is None:
         logger.error(
@@ -247,10 +264,16 @@ def _get_status_check_client(
 
 
 def _get_status_check_provider(
-    client: StatusCheckClient, provider: str | None, organization_id: int, integration_id: int
+    client: StatusCheckClient,
+    provider: str | None,
+    organization_id: int,
+    organization_slug: str,
+    integration_id: int,
 ) -> _StatusCheckProvider | None:
     if provider == IntegrationProviderSlug.GITHUB:
-        return _GitHubStatusCheckProvider(client, provider, organization_id, integration_id)
+        return _GitHubStatusCheckProvider(
+            client, provider, organization_id, organization_slug, integration_id
+        )
     else:
         return None
 
@@ -266,11 +289,13 @@ class _StatusCheckProvider(ABC):
         client: StatusCheckClient,
         provider_key: str,
         organization_id: int,
+        organization_slug: str,
         integration_id: int,
     ):
         self.client = client
         self.provider_key = provider_key
         self.organization_id = organization_id
+        self.organization_slug = organization_slug
         self.integration_id = integration_id
 
     def _create_scm_interaction_event(self) -> SCMIntegrationInteractionEvent:
@@ -292,6 +317,8 @@ class _StatusCheckProvider(ABC):
         text: str | None,
         summary: str,
         external_id: str,
+        started_at: datetime,
+        completed_at: datetime | None = None,
         target_url: str | None = None,
     ) -> str | None:
         """Create a status check using provider-specific format."""
@@ -309,6 +336,8 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         text: str | None,
         summary: str,
         external_id: str,
+        started_at: datetime,
+        completed_at: datetime | None = None,
         target_url: str | None = None,
     ) -> str | None:
         with self._create_scm_interaction_event().capture() as lifecycle:
@@ -322,22 +351,53 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 )
                 return None
 
+            truncated_text = _truncate_to_byte_limit(text, GITHUB_MAX_TEXT_FIELD_LENGTH)
+            truncated_summary = _truncate_to_byte_limit(summary, GITHUB_MAX_SUMMARY_FIELD_LENGTH)
+
+            if text and truncated_text and len(truncated_text) != len(text):
+                logger.warning(
+                    "preprod.status_checks.create.text_truncated",
+                    extra={
+                        "original_bytes": len(text.encode("utf-8")),
+                        "truncated_bytes": len(truncated_text.encode("utf-8")),
+                        "organization_id": self.organization_id,
+                        "organization_slug": self.organization_slug,
+                    },
+                )
+
+            if summary and truncated_summary and len(truncated_summary) != len(summary):
+                logger.warning(
+                    "preprod.status_checks.create.summary_truncated",
+                    extra={
+                        "original_bytes": len(summary.encode("utf-8")),
+                        "truncated_bytes": len(truncated_summary.encode("utf-8")),
+                        "organization_id": self.organization_id,
+                        "organization_slug": self.organization_slug,
+                    },
+                )
+
             check_data: dict[str, Any] = {
                 "name": title,
                 "head_sha": sha,
                 "external_id": external_id,
                 "output": {
                     "title": subtitle,
-                    "summary": summary,
+                    "summary": truncated_summary,
                 },
                 "status": mapped_status.value,
             }
 
-            if text:
-                check_data["output"]["text"] = text
+            if truncated_text:
+                check_data["output"]["text"] = truncated_text
 
             if mapped_conclusion:
                 check_data["conclusion"] = mapped_conclusion.value
+
+            if started_at:
+                check_data["started_at"] = started_at.isoformat()
+
+            if completed_at:
+                check_data["completed_at"] = completed_at.isoformat()
 
             if target_url:
                 if target_url.startswith("http"):
@@ -393,6 +453,35 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
 
                 # For non-permission 403s, 429s, 5xx, and other error
                 raise
+
+
+# See: https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#create-a-check-run
+GITHUB_MAX_SUMMARY_FIELD_LENGTH = 65535
+GITHUB_MAX_TEXT_FIELD_LENGTH = 65535
+
+
+def _truncate_to_byte_limit(text: str | None, byte_limit: int) -> str | None:
+    """Truncate text to fit within byte limit while ensuring valid UTF-8."""
+    if not text:
+        return text
+
+    TRUNCATE_AMOUNT = 10
+
+    encoded = text.encode("utf-8")
+    if len(encoded) <= byte_limit:
+        return text
+
+    if byte_limit <= TRUNCATE_AMOUNT:
+        # This shouldn't happen, but just in case.
+        truncated = encoded[:byte_limit].decode("utf-8", errors="ignore")
+        return truncated
+
+    # Truncate to byte_limit - 10 (a bit of wiggle room) to make room for "..."
+    # Note: this can break formatting you have and is more of a catch-all,
+    # broken formatting is better than silently erroring for the user.
+    # Templating logic itself should try to more contextually trim the content if possible.
+    truncated = encoded[: byte_limit - TRUNCATE_AMOUNT].decode("utf-8", errors="ignore")
+    return truncated + "..."
 
 
 GITHUB_STATUS_CHECK_STATUS_MAPPING: dict[StatusCheckStatus, GitHubCheckStatus] = {

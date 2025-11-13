@@ -13,7 +13,7 @@ class DetectorGroup(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     detector = FlexibleForeignKey("workflow_engine.Detector", on_delete=models.CASCADE)
-    group = FlexibleForeignKey("sentry.Group", on_delete=models.CASCADE, unique=True)
+    group = FlexibleForeignKey("sentry.Group", on_delete=models.CASCADE)
 
     class Meta:
         db_table = "workflow_engine_detectorgroup"
@@ -21,3 +21,4 @@ class DetectorGroup(DefaultFieldsModel):
         indexes = [
             models.Index(fields=["detector", "-date_added"], name="detectorgroup_det_date_idx"),
         ]
+        unique_together = ("group",)

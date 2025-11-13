@@ -6,7 +6,11 @@ from typing import Any
 
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.webhook_types import GITHUB_WEBHOOK_TYPE_HEADER, GithubWebhookType
+from sentry.integrations.github.webhook_types import (
+    GITHUB_INSTALLATION_TARGET_ID_HEADER,
+    GITHUB_WEBHOOK_TYPE_HEADER_KEY,
+    GithubWebhookType,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organizationmapping import OrganizationMapping
@@ -26,10 +30,6 @@ GITHUB_EVENTS_TO_FORWARD_OVERWATCH = {
 }
 
 
-GITHUB_INSTALLATION_TARGET_ID_HEADER = "X-GitHub-Hook-Installation-Target-ID"
-DJANGO_HTTP_GITHUB_INSTALLATION_TARGET_ID_HEADER = "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID"
-
-
 @dataclass(frozen=True)
 class OverwatchOrganizationContext:
     organization_integration: OrganizationIntegration
@@ -39,6 +39,11 @@ class OverwatchOrganizationContext:
 logger = logging.getLogger("sentry.overwatch_webhook_forwarder")
 
 
+def verbose_log(msg: str, *, extra: dict | None = None) -> None:
+    if bool(options.get("overwatch.forward-webhooks.verbose", False)):
+        logger.info(msg, extra=extra)
+
+
 class OverwatchGithubWebhookForwarder:
     integration: Integration
 
@@ -46,7 +51,15 @@ class OverwatchGithubWebhookForwarder:
         self.integration = integration
 
     def should_forward_to_overwatch(self, headers: Mapping[str, str]) -> bool:
-        return headers.get(GITHUB_WEBHOOK_TYPE_HEADER) in GITHUB_EVENTS_TO_FORWARD_OVERWATCH
+        event_type = headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY)
+        verbose_log(
+            "overwatch.debug.should_forward_to_overwatch.checked",
+            extra={
+                "event_type": event_type,
+                "should_forward": event_type in GITHUB_EVENTS_TO_FORWARD_OVERWATCH,
+            },
+        )
+        return event_type in GITHUB_EVENTS_TO_FORWARD_OVERWATCH
 
     def _get_org_summaries_by_region_for_integration(
         self, integration: Integration
@@ -54,7 +67,7 @@ class OverwatchGithubWebhookForwarder:
         org_integrations = OrganizationIntegration.objects.filter(
             integration=integration, status=ObjectStatus.ACTIVE
         )
-        logger.info(
+        verbose_log(
             "overwatch.debug.org_integrations.fetched",
             extra={
                 "integration_id": integration.id,
@@ -64,7 +77,7 @@ class OverwatchGithubWebhookForwarder:
         )
         organization_ids = [org_integration.organization_id for org_integration in org_integrations]
         org_mappings = OrganizationMapping.objects.filter(organization_id__in=organization_ids)
-        logger.info(
+        verbose_log(
             "overwatch.debug.org_mappings.fetched",
             extra={
                 "org_mapping_ids": [om.organization_id for om in org_mappings],
@@ -87,7 +100,7 @@ class OverwatchGithubWebhookForwarder:
                     organization_mapping=org_mapping,
                 )
             )
-            logger.info(
+            verbose_log(
                 "overwatch.debug.organizations.grouped_by_region",
                 extra={
                     "region_name": region_name,
@@ -95,7 +108,7 @@ class OverwatchGithubWebhookForwarder:
                 },
             )
 
-        logger.info(
+        verbose_log(
             "overwatch.debug.org_contexts_by_region.final",
             extra={
                 "regions": list(org_contexts_by_region.keys()),
@@ -116,7 +129,7 @@ class OverwatchGithubWebhookForwarder:
             orgs_by_region = self._get_org_summaries_by_region_for_integration(
                 integration=self.integration
             )
-            logger.info(
+            verbose_log(
                 "overwatch.debug.orgs_by_region",
                 extra={
                     "regions": list(orgs_by_region.keys()),
@@ -125,7 +138,7 @@ class OverwatchGithubWebhookForwarder:
             )
 
             if not orgs_by_region or not self.should_forward_to_overwatch(headers):
-                logger.info(
+                verbose_log(
                     "overwatch.debug.skipped_forwarding",
                     extra={
                         "orgs_by_region_empty": not orgs_by_region,
@@ -137,7 +150,7 @@ class OverwatchGithubWebhookForwarder:
             # We can conditionally opt into forwarding on a per-region basis,
             # similar to codecov's current implementation.
             for region_name, org_summaries in orgs_by_region.items():
-                logger.info(
+                verbose_log(
                     "overwatch.debug.check_region",
                     extra={
                         "region_name": region_name,
@@ -150,8 +163,8 @@ class OverwatchGithubWebhookForwarder:
 
                 raw_app_id = headers.get(
                     GITHUB_INSTALLATION_TARGET_ID_HEADER,
-                ) or headers.get(DJANGO_HTTP_GITHUB_INSTALLATION_TARGET_ID_HEADER)
-                logger.info(
+                )
+                verbose_log(
                     "overwatch.debug.raw_app_id",
                     extra={"region_name": region_name, "raw_app_id": raw_app_id},
                 )
@@ -160,16 +173,18 @@ class OverwatchGithubWebhookForwarder:
                     try:
                         app_id = int(raw_app_id)
                     except (TypeError, ValueError):
-                        logger.info(
+                        verbose_log(
                             "overwatch.debug.app_id_parse_error",
                             extra={"region_name": region_name, "raw_app_id": raw_app_id},
                         )
                         app_id = None
 
+                formatted_headers = {k: v for k, v in headers.items()}
+
                 webhook_detail = WebhookDetails(
                     organizations=org_summaries,
                     webhook_body=dict(event),
-                    webhook_headers=headers,
+                    webhook_headers=formatted_headers,
                     integration_provider=self.integration.provider,
                     region=region_name,
                     app_id=app_id,
@@ -179,7 +194,7 @@ class OverwatchGithubWebhookForwarder:
                     integration_provider=self.integration.provider,
                     region=get_region_by_name(region_name),
                 )
-                logger.info("overwatch.debug.enqueue_webhook", extra={"region_name": region_name})
+                verbose_log("overwatch.debug.enqueue_webhook", extra={"region_name": region_name})
                 publisher.enqueue_webhook(webhook_detail)
                 metrics.incr(
                     "overwatch.forward-webhooks.success",
