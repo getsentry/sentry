@@ -174,7 +174,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
           props.tree.shape
         );
         browserHistory.push({
-          pathname: `/checkout/?referrer=trace-view`,
+          pathname: `/settings/billing/checkout/?referrer=trace-view`,
           query: {
             skipBundles: true,
           },

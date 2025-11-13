@@ -79,9 +79,6 @@ describe('normalizeUrl', () => {
       ['/onboarding/acme/', '/onboarding/'],
       ['/onboarding/acme/project/', '/onboarding/project/'],
 
-      ['/checkout/', '/checkout/'],
-      ['/checkout/acme/', '/checkout/'],
-
       ['/organizations/new/', '/organizations/new/'],
       ['/organizations/albertos-organizations/issues/', '/issues/'],
       [

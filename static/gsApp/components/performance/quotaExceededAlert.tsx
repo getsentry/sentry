@@ -79,7 +79,7 @@ function useQuotaExceededAlertMessage(
   const billingPageLink = (
     <Link
       to={{
-        pathname: `/checkout/?referrer=${referrer}`,
+        pathname: `/settings/billing/checkout/?referrer=${referrer}`,
         query: {
           skipBundles: true,
         },

@@ -80,7 +80,7 @@ function ActionButtons({
       });
     } catch (err) {
       Sentry.captureException(err);
-      redirectToManage();
+      redirectToManage(organization);
     }
   }, [
     api,
@@ -114,7 +114,7 @@ function ActionButtons({
         });
       },
       onError: () => {
-        redirectToManage();
+        redirectToManage(organization);
       },
     });
   }, [api, organization, subscription, surface, onComplete]);
@@ -142,7 +142,7 @@ function ActionButtons({
         {t('Update Now')}
       </Button>
       <LinkButton
-        to="/checkout/?referrer=replay_onboard_modal-owner-modal"
+        to={`/settings/${organization.slug}/billing/checkout/?referrer=replay_onboard_modal-owner-modal`}
         onClick={onClickManageSubscription}
       >
         {t('Manage Subscription')}
