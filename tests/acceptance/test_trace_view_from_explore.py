@@ -1,6 +1,7 @@
-import pytest
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from fixtures.page_objects.explore_spans import ExploreSpansPage
 from fixtures.page_objects.trace_view import TraceViewWaterfallPage
