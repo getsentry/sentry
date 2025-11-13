@@ -327,11 +327,11 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
     window_days = 14
     max_days = 90
 
-    full_profile_id = None
-    full_profiler_id = None
-    project_id = None
-    min_start_ts = None
-    max_end_ts = None
+    full_profile_id: str | None = None
+    full_profiler_id: str | None = None
+    project_id: int | None = None
+    min_start_ts: float | None = None
+    max_end_ts: float | None = None
 
     # Slide back in time in 14-day windows
     for days_back in range(0, max_days, window_days):
@@ -376,16 +376,22 @@ def rpc_get_profile_flamegraph(profile_id: str, organization_id: int) -> dict[st
             max_end_ts = row.get("max(precise.finish_ts)")
             break
 
-    if not full_profile_id and not full_profiler_id:
+    # Determine profile type and actual ID to use
+    is_continuous = bool(full_profiler_id and not full_profile_id)
+    actual_profile_id = full_profiler_id or full_profile_id
+
+    if not actual_profile_id:
         logger.info(
             "rpc_get_profile_flamegraph: Profile not found",
             extra={"profile_id": profile_id, "organization_id": organization_id},
         )
         return {"error": "Profile not found in the last 90 days"}
-
-    # Determine profile type and actual ID to use
-    is_continuous = bool(full_profiler_id and not full_profile_id)
-    actual_profile_id = full_profiler_id or full_profile_id
+    if not project_id:
+        logger.warning(
+            "rpc_get_profile_flamegraph: Could not find project id for profile",
+            extra={"profile_id": profile_id, "organization_id": organization_id},
+        )
+        return {"error": "Project not found"}
 
     logger.info(
         "rpc_get_profile_flamegraph: Found profile",
