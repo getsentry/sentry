@@ -155,7 +155,7 @@ export interface ErrorDetector extends BaseDetector {
 }
 
 interface IssueStreamDetector extends BaseDetector {
-  // TODO: Add error detector type fields
+  // TODO: Add issue stream detector type fields
   readonly type: 'issue_stream';
 }
 
