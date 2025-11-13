@@ -94,7 +94,7 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
     def get_client(self) -> PerforceClient:
         """Get the Perforce client instance."""
-        pass
+        raise NotImplementedError
 
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
         """
@@ -253,7 +253,7 @@ class PerforceIntegrationProvider(IntegrationProvider):
         Returns:
             Integration data dictionary
         """
-        return {}
+        return {"external_id": ""}
 
     def post_install(
         self,
