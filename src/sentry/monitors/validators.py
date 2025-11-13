@@ -35,6 +35,7 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     ScheduleType,
     check_organization_monitor_limit,
+    get_cron_monitor,
 )
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule, slugify_monitor_slug
@@ -52,7 +53,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
     BaseDetectorTypeValidator,
 )
-from sentry.workflow_engine.models import DataSource, Detector
+from sentry.workflow_engine.models import Detector
 
 MONITOR_STATUSES = {
     "active": ObjectStatus.ACTIVE,
@@ -373,10 +374,12 @@ class MonitorValidator(CamelSnakeSerializer):
             config=validated_data["config"],
         )
 
-        # Attempt to assign a seat for this monitor
-        seat_outcome = quotas.backend.assign_seat(DataCategory.MONITOR, monitor)
-        if seat_outcome != Outcome.ACCEPTED:
-            monitor.update(status=ObjectStatus.DISABLED)
+        # Skip quota operations if requested by context (e.g., detector flow handles this)
+        if not self.context.get("skip_quota", False):
+            # Attempt to assign a seat for this monitor
+            seat_outcome = quotas.backend.assign_seat(DataCategory.MONITOR, monitor)
+            if seat_outcome != Outcome.ACCEPTED:
+                monitor.update(status=ObjectStatus.DISABLED)
 
         request = self.context["request"]
         signal_monitor_created(project, request.user, False, monitor, request)
@@ -636,9 +639,12 @@ class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
         if self.instance:
             monitor_instance = self.instance
 
+        # Skip quota operations - the detector validator handles seat assignment
+        context = {**self.context, "skip_quota": True}
+
         monitor_validator = MonitorValidator(
             data=monitor_data,
-            context=self.context,
+            context=context,
             instance=monitor_instance,
             partial=self.partial,
         )
@@ -686,7 +692,52 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
 
     data_sources = serializers.ListField(child=MonitorDataSourceValidator(), required=False)
 
+    def validate_enabled(self, value: bool) -> bool:
+        """
+        Validate that enabling a detector is allowed based on seat availability.
+        """
+        detector = self.instance
+        if detector and value and not detector.enabled:
+            monitor = get_cron_monitor(detector)
+            result = quotas.backend.check_assign_seat(DataCategory.MONITOR, monitor)
+            if not result.assignable:
+                raise serializers.ValidationError(result.reason)
+        return value
+
+    def create(self, validated_data):
+        detector = super().create(validated_data)
+
+        with in_test_hide_transaction_boundary():
+            monitor = get_cron_monitor(detector)
+
+        # Try to assign a seat for the monitor
+        seat_outcome = quotas.backend.assign_seat(DataCategory.MONITOR, monitor)
+        if seat_outcome != Outcome.ACCEPTED:
+            detector.update(enabled=False)
+            monitor.update(status=ObjectStatus.DISABLED)
+
+        return detector
+
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        was_enabled = instance.enabled
+        enabled = validated_data.get("enabled", was_enabled)
+
+        # Handle enable/disable seat operations
+        if was_enabled != enabled:
+            monitor = get_cron_monitor(instance)
+
+            if enabled:
+                seat_outcome = quotas.backend.assign_seat(DataCategory.MONITOR, monitor)
+                # We should have already validated that a seat was available in
+                # validate_enabled, avoid races by failing here if we can't
+                # accept the seat
+                if seat_outcome != Outcome.ACCEPTED:
+                    raise serializers.ValidationError("Failed to update monitor")
+                monitor.update(status=ObjectStatus.ACTIVE)
+            else:
+                quotas.backend.disable_seat(DataCategory.MONITOR, monitor)
+                monitor.update(status=ObjectStatus.DISABLED)
+
         super().update(instance, validated_data)
 
         data_source_data = None
@@ -694,8 +745,7 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
             data_source_data = validated_data.pop("data_sources")[0]
 
         if data_source_data is not None:
-            data_source = DataSource.objects.get(detectors=instance)
-            monitor = Monitor.objects.get(id=data_source.source_id)
+            monitor = get_cron_monitor(instance)
 
             monitor_validator = MonitorDataSourceValidator(
                 instance=monitor,
@@ -709,3 +759,12 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
                     monitor_validator.save()
 
         return instance
+
+    def delete(self) -> None:
+        assert self.instance is not None
+        monitor = get_cron_monitor(self.instance)
+
+        # Remove the seat immediately
+        quotas.backend.remove_seat(DataCategory.MONITOR, monitor)
+
+        super().delete()

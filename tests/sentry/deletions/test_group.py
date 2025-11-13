@@ -9,7 +9,10 @@ from uuid import uuid4
 from snuba_sdk import Column, Condition, DeleteQuery, Entity, Function, Op, Query, Request
 
 from sentry import deletions, nodestore
-from sentry.deletions.defaults.group import update_group_hash_metadata_in_batches
+from sentry.deletions.defaults.group import (
+    delete_project_group_hashes,
+    update_group_hash_metadata_in_batches,
+)
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -388,6 +391,68 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
                 assert grouphash.metadata.seer_matched_grouphash is None
             else:
                 raise AssertionError("GroupHashMetadata is None for grouphash id=%s" % grouphash.id)
+
+    def test_delete_project_group_hashes_specific_groups(self) -> None:
+        """Test deleting grouphashes for specific group IDs (including metadata) and empty list safety."""
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        event_1 = self.store_event(
+            data={"platform": "python", "stacktrace": {"frames": [{"filename": "error_1.py"}]}},
+            project_id=self.project.id,
+        )
+        event_2 = self.store_event(
+            data={"platform": "python", "stacktrace": {"frames": [{"filename": "error_2.py"}]}},
+            project_id=self.project.id,
+        )
+
+        grouphash_1 = GroupHash.objects.get(group=event_1.group)
+        grouphash_2 = GroupHash.objects.get(group=event_2.group)
+        assert grouphash_1.metadata is not None
+        assert grouphash_2.metadata is not None
+        metadata_1_id = grouphash_1.metadata.id
+        metadata_2_id = grouphash_2.metadata.id
+
+        assert GroupHash.objects.filter(project=self.project).count() == 2
+
+        delete_project_group_hashes(
+            project_id=self.project.id,
+            group_ids_filter=[event_1.group.id],
+        )
+
+        assert not GroupHash.objects.filter(id=grouphash_1.id).exists()
+        assert not GroupHashMetadata.objects.filter(id=metadata_1_id).exists()
+        assert GroupHash.objects.filter(id=grouphash_2.id).exists()
+        assert GroupHashMetadata.objects.filter(id=metadata_2_id).exists()
+
+        # Empty list should be a no-op
+        delete_project_group_hashes(project_id=self.project.id, group_ids_filter=[])
+        assert GroupHash.objects.filter(id=grouphash_2.id).exists()
+
+    def test_delete_project_group_hashes_all_including_orphans(self) -> None:
+        """Test deleting all grouphashes including orphans when group_ids_filter=None."""
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        event = self.store_event(
+            data={"platform": "python", "stacktrace": {"frames": [{"filename": "error.py"}]}},
+            project_id=self.project.id,
+        )
+        grouphash = GroupHash.objects.get(group=event.group)
+        assert grouphash.metadata is not None
+        metadata_id = grouphash.metadata.id
+
+        orphan_1 = GroupHash.objects.create(project=self.project, hash="a" * 32, group=None)
+        orphan_2 = GroupHash.objects.create(project=self.project, hash="b" * 32, group=None)
+
+        assert GroupHash.objects.filter(project=self.project).count() == 3
+        assert GroupHash.objects.filter(project=self.project, group__isnull=True).count() == 2
+
+        delete_project_group_hashes(project_id=self.project.id, group_ids_filter=None)
+
+        assert not GroupHash.objects.filter(id=grouphash.id).exists()
+        assert not GroupHash.objects.filter(id=orphan_1.id).exists()
+        assert not GroupHash.objects.filter(id=orphan_2.id).exists()
+        assert not GroupHashMetadata.objects.filter(id=metadata_id).exists()
+        assert GroupHash.objects.filter(project=self.project).count() == 0
 
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):

@@ -220,9 +220,14 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         with mock.patch("sentry.utils.metrics.incr") as mock_incr:
             process_detectors(data_packet, [detector])
 
-            mock_incr.assert_called_once_with(
+            mock_incr.assert_any_call(
                 "workflow_engine.process_detector",
                 tags={"detector_type": detector.type},
+            )
+            mock_incr.assert_any_call(
+                "workflow_engine_detector.evaluation",
+                tags={"detector_type": detector.type, "result": "success"},
+                sample_rate=1.0,
             )
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")

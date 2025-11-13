@@ -1340,7 +1340,6 @@ function buildRoutes(): RouteObject[] {
   const traceView: SentryRouteObject = {
     path: 'trace/:traceSlug/',
     component: make(() => import('sentry/views/performance/newTraceDetails/index')),
-    deprecatedRouteProps: true,
   };
 
   const dashboardChildren: SentryRouteObject[] = [
@@ -2269,7 +2268,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/traces')),
     withOrgPath: true,
     children: tracesChildren,
-    deprecatedRouteProps: true,
   };
 
   const logsChildren: SentryRouteObject[] = [
@@ -2566,7 +2564,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/pullRequest/index')),
     withOrgPath: true,
     children: pullRequestChildren,
-    deprecatedRouteProps: true,
   };
 
   const feedbackV2Children: SentryRouteObject[] = [
