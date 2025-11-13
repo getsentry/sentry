@@ -11,9 +11,9 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
-    FormulaDefinition,
     ResolvedArguments,
     ResolverSettings,
+    TraceMetricFormulaDefinition,
     ValueArgumentDefinition,
 )
 from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
@@ -88,7 +88,7 @@ def per_minute(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bi
 
 
 TRACE_METRICS_FORMULA_DEFINITIONS = {
-    "per_second": FormulaDefinition(
+    "per_second": TraceMetricFormulaDefinition(
         default_search_type="rate",
         arguments=[
             AttributeArgumentDefinition(
@@ -117,7 +117,7 @@ TRACE_METRICS_FORMULA_DEFINITIONS = {
         is_aggregate=True,
         infer_search_type_from_arguments=False,
     ),
-    "per_minute": FormulaDefinition(
+    "per_minute": TraceMetricFormulaDefinition(
         default_search_type="rate",
         arguments=[
             AttributeArgumentDefinition(
