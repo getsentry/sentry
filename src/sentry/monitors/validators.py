@@ -469,6 +469,12 @@ class MonitorValidator(CamelSnakeSerializer):
                 data=instance.get_audit_log_data(),
             )
 
+        # Dual-write is_muted to all monitor environments when changed
+        if "is_muted" in params:
+            MonitorEnvironment.objects.filter(monitor_id=instance.id).update(
+                is_muted=params["is_muted"]
+            )
+
         # Update monitor slug in billing
         if "slug" in params:
             quotas.backend.update_monitor_slug(existing_slug, params["slug"], instance.project_id)
