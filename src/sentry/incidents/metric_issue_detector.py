@@ -303,6 +303,32 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             ),
         )
 
+    def update_anomaly_detection(self, instance: Detector, validated_data: dict[str, Any]) -> None:
+        """
+        When data changes on a detector we may need to tell Seer to update or remove their data for the detector
+        """
+        if (
+            not instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC
+            and validated_data.get("config", {}).get("detection_type")
+            == AlertRuleDetectionType.DYNAMIC
+        ):
+            # Detector has been changed to become a dynamic detector
+            try:
+                update_detector_data(instance, validated_data)
+            except Exception:
+                # Don't update if we failed to send data to Seer
+                raise serializers.ValidationError(
+                    "Failed to send data to Seer, cannot update detector"
+                )
+
+        elif (
+            instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC
+            and validated_data.get("config", {}).get("detection_type")
+            != AlertRuleDetectionType.DYNAMIC
+        ):
+            # Detector has been changed from a dynamic detector to another type
+            delete_data_in_seer_for_detector(instance)
+        
     def update(self, instance: Detector, validated_data: dict[str, Any]):
         seer_updated = False
         # Handle anomaly detection changes first in case we need to exit before saving
