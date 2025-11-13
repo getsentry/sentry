@@ -327,10 +327,10 @@ family:native stack.function:USentrySubsystem::CaptureEventWithScope*      v+app
 family:native stack.function:USentrySubsystem::*execCapture*               v+app -app ^-app
 
 # known well locations for unix paths
-family:native package:/lib/**                                        -app
-family:native package:/usr/lib/**                                    -app
-family:native path:/usr/local/lib/**                                 -app
-family:native path:/usr/local/Cellar/**                              -app
+package:/lib/**                                                   -app
+package:/usr/lib/**                                               -app
+path:/usr/local/lib/**                                            -app
+path:/usr/local/Cellar/**                                         -app
 
 # rust common modules/functions
 family:native function:std::*                                     -app
