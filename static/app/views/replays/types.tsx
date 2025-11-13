@@ -203,7 +203,8 @@ export type ReplayListLocationQuery = {
 export type ReplayListQueryReferrer =
   | 'replayList'
   | 'issueReplays'
-  | 'transactionReplays';
+  | 'transactionReplays'
+  | 'replaysPlayList';
 
 // Sync with ReplayListRecord below
 // Skip some fields because the backend doesn't support them in the field list:
