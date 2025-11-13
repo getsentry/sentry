@@ -61,15 +61,13 @@ export function DataForwarderRow({dataForwarder}: {dataForwarder: DataForwarder}
 }
 
 function getDataForwarderProjectText(dataForwarder: DataForwarder) {
-  let projectText = '';
-  if (dataForwarder.enrolledProjects.length === 0) {
-    projectText = t('Not connected to any projects');
-  }
   const action = dataForwarder.isEnabled ? t('Enabled') : t('Configured');
   const count = dataForwarder.enrolledProjects.length;
-  projectText = t('%s for %s projects', action, count);
-  if (dataForwarder.enrollNewProjects) {
-    projectText += t(', will auto-enroll new projects');
-  }
-  return projectText;
+  const projectText =
+    count > 0
+      ? t('%s for %s projects', action, count)
+      : t('Not connected to any projects');
+  return dataForwarder.enrollNewProjects
+    ? projectText.concat(t(', will auto-enroll new projects'))
+    : projectText;
 }

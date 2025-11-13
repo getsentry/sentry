@@ -77,6 +77,15 @@ export type EcosystemEventParameters = {
 type EcosystemEventKeys = keyof EcosystemEventParameters;
 
 export const ecosystemEventMap: Record<EcosystemEventKeys, string | null> = {
+  'data_forwarding.add_forwarder_clicked': 'Data Forwarding: Add Forwarder Clicked',
+  'data_forwarding.back_button_clicked': 'Data Forwarding: Back Button Clicked',
+  'data_forwarding.delete_cancelled': 'Data Forwarding: Deletion Cancelled',
+  'data_forwarding.delete_confirmed': 'Data Forwarding: Deletion Confirmed',
+  'data_forwarding.docs_link_clicked': 'Data Forwarding: Docs Link Clicked',
+  'data_forwarding.edit_clicked': 'Data Forwarding: Edit Clicked',
+  'data_forwarding.edit_complete': 'Data Forwarding: Edit Complete',
+  'data_forwarding.onboarding_cta_clicked': 'Data Forwarding: Onboarding CTA Clicked',
+  'data_forwarding.setup_complete': 'Data Forwarding: Setup Complete',
   'integrations.stacktrace_complete_setup': 'Integrations: Stacktrace Complete Setup',
   'integrations.stacktrace_docs_clicked': 'Integrations: Stacktrace Docs Clicked',
   'integrations.stacktrace_link_clicked': 'Integrations: Stacktrace Link Clicked',
