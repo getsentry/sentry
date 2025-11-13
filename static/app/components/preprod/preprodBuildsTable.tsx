@@ -15,8 +15,8 @@ import {IconCheckmark, IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
-  formattedPrimaryMetricDownloadSize,
-  formattedPrimaryMetricInstallSize,
+  formattedDownloadSize,
+  formattedInstallSize,
   getLabels,
   getPlatformIconFromPlatform,
 } from 'sentry/views/preprod/utils/labelUtils';
@@ -137,11 +137,11 @@ export function PreprodBuildsTable({
           </SimpleTable.RowCell>
 
           <SimpleTable.RowCell>
-            <Text>{formattedPrimaryMetricInstallSize(build.size_info)}</Text>
+            <Text>{formattedInstallSize(build)}</Text>
           </SimpleTable.RowCell>
 
           <SimpleTable.RowCell>
-            <Text>{formattedPrimaryMetricDownloadSize(build.size_info)}</Text>
+            <Text>{formattedDownloadSize(build)}</Text>
           </SimpleTable.RowCell>
 
           <SimpleTable.RowCell>

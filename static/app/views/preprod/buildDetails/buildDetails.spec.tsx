@@ -6,7 +6,6 @@ import {
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 import {BuildDetailsSizeAnalysisState} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 import BuildDetails from './buildDetails';
@@ -99,13 +98,8 @@ describe('BuildDetails', () => {
       body: PreprodBuildDetailsWithSizeInfoFixture(
         {
           state: BuildDetailsSizeAnalysisState.COMPLETED,
-          size_metrics: [
-            {
-              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
-              install_size_bytes: 1024000,
-              download_size_bytes: 512000,
-            },
-          ],
+          install_size_bytes: 1024000,
+          download_size_bytes: 512000,
         },
         {
           vcs_info: PreprodVcsInfoFullFixture(),
@@ -174,13 +168,8 @@ describe('BuildDetails', () => {
         }
         return PreprodBuildDetailsWithSizeInfoFixture({
           state: BuildDetailsSizeAnalysisState.COMPLETED,
-          size_metrics: [
-            {
-              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
-              install_size_bytes: 1024000,
-              download_size_bytes: 512000,
-            },
-          ],
+          install_size_bytes: 1024000,
+          download_size_bytes: 512000,
         });
       },
     });
@@ -226,13 +215,8 @@ describe('BuildDetails', () => {
       method: 'GET',
       body: PreprodBuildDetailsWithSizeInfoFixture({
         state: BuildDetailsSizeAnalysisState.COMPLETED,
-        size_metrics: [
-          {
-            metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
-            install_size_bytes: 1024000,
-            download_size_bytes: 512000,
-          },
-        ],
+        install_size_bytes: 1024000,
+        download_size_bytes: 512000,
       }),
     });
 

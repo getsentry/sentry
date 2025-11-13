@@ -18,8 +18,8 @@ import {
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
-  formattedPrimaryMetricDownloadSize,
-  formattedPrimaryMetricInstallSize,
+  formattedDownloadSize,
+  formattedInstallSize,
   getLabels,
   getPlatformIconFromPlatform,
   getReadablePlatformLabel,
@@ -100,9 +100,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
             <Tooltip title={labels.installSizeDescription}>
               <Flex gap="sm" align="center">
                 <IconCode size="sm" color="gray300" />
-                <Text underline="dotted">
-                  {formattedPrimaryMetricInstallSize(buildDetails.size_info)}
-                </Text>
+                <Text underline="dotted">{formattedInstallSize(buildDetails)}</Text>
               </Flex>
             </Tooltip>
           )}
@@ -110,9 +108,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
             <Tooltip title={labels.downloadSizeDescription}>
               <Flex gap="sm" align="center">
                 <IconDownload size="sm" color="gray300" />
-                <Text underline="dotted">
-                  {formattedPrimaryMetricDownloadSize(buildDetails.size_info)}
-                </Text>
+                <Text underline="dotted">{formattedDownloadSize(buildDetails)}</Text>
               </Flex>
             </Tooltip>
           )}
