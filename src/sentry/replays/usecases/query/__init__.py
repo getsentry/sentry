@@ -460,10 +460,13 @@ def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Map
 
 
 def handle_ordering(config: dict[str, Expression], sort: str) -> list[OrderBy]:
-    if sort.startswith("-"):
-        return [OrderBy(_get_sort_column(config, sort[1:]), Direction.DESC)]
-    else:
-        return [OrderBy(_get_sort_column(config, sort), Direction.ASC)]
+    direction = Direction.DESC if sort.startswith("-") else Direction.ASC
+    column_name = sort[1:] if sort.startswith("-") else sort
+
+    return [
+        OrderBy(_get_sort_column(config, column_name), direction),
+        OrderBy(Column("replay_id"), direction),
+    ]
 
 
 def _get_sort_column(config: dict[str, Expression], column_name: str) -> Function:
