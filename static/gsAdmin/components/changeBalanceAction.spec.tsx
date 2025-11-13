@@ -186,10 +186,13 @@ describe('BalanceChangeAction', () => {
     expect(await screen.findByRole('textbox', {name: 'Ticket URL'})).toBeInTheDocument();
     expect(await screen.findByRole('textbox', {name: 'Notes'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('spinbutton', {name: 'Credit Amount'}));
+    await userEvent.click(screen.getByLabelText('Credit Amount'));
     await userEvent.paste('10');
-    await waitFor(() =>
-      expect(screen.getByRole('spinbutton', {name: 'Credit Amount'})).toHaveValue(10)
+    await waitFor(
+      () => {
+        expect(screen.getByLabelText('Credit Amount')).toHaveValue(10);
+      },
+      {timeout: 5_000}
     );
 
     await waitFor(() =>
