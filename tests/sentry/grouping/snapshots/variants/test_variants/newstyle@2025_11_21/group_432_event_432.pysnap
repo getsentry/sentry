@@ -122,7 +122,7 @@ app:
           frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "raise"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
             filename*
               "crashpad_client_win.cc"
             function*

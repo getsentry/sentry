@@ -144,7 +144,7 @@ app:
             function*
               "gpusSubmitDataBuffers"
           frame (non app frame)
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
             function*
               "gpusGenerateCrashLog"
           frame (non app frame)

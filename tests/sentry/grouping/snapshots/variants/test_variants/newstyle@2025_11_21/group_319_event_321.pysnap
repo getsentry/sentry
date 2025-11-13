@@ -106,10 +106,10 @@ app:
           frame (non app frame)
             function*
               "gpusSubmitDataBuffers"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
             function*
               "gpusKillClientExt"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
             function*
               "gpusGenerateCrashLog"
           frame (non app frame)
@@ -178,10 +178,10 @@ app:
           frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
             function*
               "gpusSubmitDataBuffers"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
             function*
               "gpusKillClientExt"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
             function*
               "gpusGenerateCrashLog"
           frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
