@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any
 
 from rest_framework import serializers
 
@@ -279,7 +279,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         # Handle a dynamic detector's snuba query changing
         if instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
             try:
-                validated_data_source = cast(dict[str, Any], data_source)
+                validated_data_source: dict[str, Any] = {"data_sources": [data_source]}
                 if not seer_updated:
                     update_detector_data(instance, validated_data_source)
             except Exception:
