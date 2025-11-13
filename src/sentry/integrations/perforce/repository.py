@@ -48,7 +48,7 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         Returns:
             Repository configuration
         """
-        return {}
+        raise NotImplementedError
 
     def compare_commits(
         self, repo: Repository, start_sha: str | None, end_sha: str
