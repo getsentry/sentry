@@ -1,5 +1,3 @@
-// scaffold basic context provider and hook
-
 import {createContext, useContext, useRef} from 'react';
 import {metrics} from '@sentry/react';
 import {
@@ -13,7 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type GenericWidgetQueries from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 
 type QueueItem<SeriesResponse, TableResponse> = {
-  widget: GenericWidgetQueries<SeriesResponse, TableResponse>;
+  widgetQuery: GenericWidgetQueries<SeriesResponse, TableResponse>;
 };
 
 export type WidgetQueryQueue = ReactAsyncQueuer<QueueItem<any, any>>;
@@ -74,7 +72,7 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
   const addItem = (item: QueueItem<any, any>) => {
     // Never add the same widget to the queue twice
     // even if the date selection has change `fetchData()` in `fetchWidgetItem` will still be called with the latest state.
-    if (queue.peekPendingItems().some(i => i.widget === item.widget)) {
+    if (queue.peekPendingItems().some(i => i.widgetQuery === item.widgetQuery)) {
       return true;
     }
     const queueIsEmpty = queue.peekAllItems().length === 0;
@@ -95,6 +93,6 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
 }
 
 const fetchWidgetItem = async (item: QueueItem<any, any>) => {
-  const result = await item.widget.fetchData();
+  const result = await item.widgetQuery.fetchData();
   return result;
 };
