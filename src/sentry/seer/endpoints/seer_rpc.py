@@ -91,6 +91,7 @@ from sentry.seer.explorer.tools import (
     get_issue_details,
     get_replay_metadata,
     get_repository_definition,
+    rpc_get_profile_flamegraph,
     rpc_get_trace_waterfall,
 )
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
@@ -1194,6 +1195,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_issues_for_transaction": rpc_get_issues_for_transaction,
     "get_trace_waterfall": rpc_get_trace_waterfall,
     "get_issue_details": get_issue_details,
+    "get_profile_flamegraph": rpc_get_profile_flamegraph,
     "execute_trace_query_chart": execute_trace_query_chart,
     "execute_trace_query_table": execute_trace_query_table,
     "get_repository_definition": get_repository_definition,
