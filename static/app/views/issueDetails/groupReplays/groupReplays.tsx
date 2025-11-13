@@ -234,6 +234,7 @@ function GroupReplaysTable({
   });
 
   const replayListData = useReplayList({
+    enabled: true,
     eventView,
     location: useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []),
     organization,

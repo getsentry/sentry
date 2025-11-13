@@ -1,7 +1,5 @@
 ---
-created: '2025-10-06T17:30:32.780185+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_fingerprinting.py
+source: tests/sentry/grouping/test_fingerprinting.py::test_event_hash_variant
 ---
 config:
   rules:

@@ -54,7 +54,9 @@ describe('ProjectPluginDetails', () => {
   });
 
   it('renders', async () => {
-    render(<ProjectPluginDetails organization={organization} project={project} />, {
+    render(<ProjectPluginDetails />, {
+      organization,
+      outletContext: {project},
       initialRouterConfig,
     });
     expect(await screen.findByRole('heading', {name: 'Amazon SQS'})).toBeInTheDocument();
@@ -62,7 +64,9 @@ describe('ProjectPluginDetails', () => {
 
   it('resets plugin', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
-    render(<ProjectPluginDetails organization={organization} project={project} />, {
+    render(<ProjectPluginDetails />, {
+      organization,
+      outletContext: {project},
       initialRouterConfig,
     });
 
@@ -77,7 +81,9 @@ describe('ProjectPluginDetails', () => {
 
   it('enables/disables plugin', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
-    render(<ProjectPluginDetails organization={organization} project={project} />, {
+    render(<ProjectPluginDetails />, {
+      organization,
+      outletContext: {project},
       initialRouterConfig,
     });
 

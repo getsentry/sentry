@@ -33,7 +33,7 @@ NUM_TRANSACTIONS_TO_PROCESS = 10
 
 
 seer_issue_detection_connection_pool = connection_from_url(
-    settings.SEER_DEFAULT_URL,
+    settings.SEER_SUMMARIZATION_URL,
     timeout=SEER_TIMEOUT_S,
     retries=SEER_RETRIES,
     maxsize=10,
@@ -81,14 +81,17 @@ def create_issue_occurrence_from_detection(
     event_id = uuid4().hex
     occurrence_id = uuid4().hex
     detection_time = datetime.now(UTC)
-
-    fingerprint = [f"llm-detected-{detected_issue.title}-{transaction_name}"]
+    project = Project.objects.get_from_cache(id=project_id)
+    title = detected_issue.title.lower().replace(" ", "-")
+    fingerprint = [f"llm-detected-{title}-{transaction_name}"]
 
     evidence_data = {
         "trace_id": trace.trace_id,
         "transaction": transaction_name,
         "explanation": detected_issue.explanation,
         "impact": detected_issue.impact,
+        "evidence": detected_issue.evidence,
+        "missing_telemetry": detected_issue.missing_telemetry,
     }
 
     evidence_display = [
@@ -96,15 +99,6 @@ def create_issue_occurrence_from_detection(
         IssueEvidence(name="Impact", value=detected_issue.impact, important=False),
         IssueEvidence(name="Evidence", value=detected_issue.evidence, important=False),
     ]
-
-    if detected_issue.missing_telemetry:
-        evidence_display.append(
-            IssueEvidence(
-                name="Missing Telemetry",
-                value=detected_issue.missing_telemetry,
-                important=False,
-            )
-        )
 
     occurrence = IssueOccurrence(
         id=occurrence_id,
@@ -125,13 +119,15 @@ def create_issue_occurrence_from_detection(
     event_data = {
         "event_id": event_id,
         "project_id": project_id,
-        "platform": "other",
+        "platform": project.platform or "other",
         "received": detection_time.isoformat(),
         "timestamp": detection_time.isoformat(),
-        "tags": {
-            "trace_id": trace.trace_id,
-            "transaction": transaction_name,
-            "llm_detected": "true",
+        "transaction": transaction_name,
+        "contexts": {
+            "trace": {
+                "trace_id": trace.trace_id,
+                "type": "trace",
+            }
         },
     }
 
@@ -205,6 +201,8 @@ def detect_llm_issues_for_project(project_id: int) -> None:
                 extra={
                     "trace_id": trace.trace_id,
                     "project_id": project_id,
+                    "total_spans": trace.total_spans,
+                    "transaction_name": trace.transaction_name,
                 },
             )
 
