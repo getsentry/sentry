@@ -168,7 +168,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
                 end=filter_params["end"],
                 organization_id=organization.id,
                 request_user_id=request.user.id,
-            )
+            )["data"]
         else:
             snuba_response = query_replay_instance(
                 project_id=project_ids,
