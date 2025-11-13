@@ -17,6 +17,7 @@ from sentry.issues import grouptype
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.locks import locks
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
@@ -154,6 +155,15 @@ def get_detector_by_group(group: Group) -> Detector:
     except Detector.DoesNotExist:
         # return issue stream detector
         return Detector.objects.get(project_id=group.project_id, type=IssueStreamGroupType.slug)
+
+
+def get_detector_from_event_data(event_data: WorkflowEventData) -> Detector:
+    if isinstance(event_data.event, GroupEvent):
+        return get_detector_by_event(event_data)
+    elif isinstance(event_data.event, Activity):
+        return get_detector_by_group(event_data.group)
+    else:
+        raise TypeError(f"Cannot determine the detector from {type(event_data.event)}.")
 
 
 class _SplitEvents(NamedTuple):
