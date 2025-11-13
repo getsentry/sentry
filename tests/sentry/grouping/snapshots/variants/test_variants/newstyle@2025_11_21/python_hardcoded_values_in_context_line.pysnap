@@ -13,7 +13,7 @@ app:
         value*
           "timed out"
         stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             module*
               "__main__"
             filename (ignored because module takes precedence)
@@ -204,7 +204,7 @@ default:
         "Failed to process pipeline step %s"
 --------------------------------------------------------------------------
 system:
-  hash: "6791947bdfd6cf2ca7024f026df974ae"
+  hash: "1bc764ab44acfab9a38f23ae670038bd"
   contributing component: exception
   hint: None
   root_component:
@@ -215,7 +215,7 @@ system:
         value (ignored because stacktrace takes precedence)
           "timed out"
         stacktrace*
-          frame*
+          frame (ignored by built-in stack trace rule (category:internals -group))
             module*
               "__main__"
             filename (ignored because module takes precedence)
