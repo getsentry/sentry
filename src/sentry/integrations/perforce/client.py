@@ -487,7 +487,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                                     timestamp = 0
 
                                 commit = CommitInfo(
-                                    commitId=changelist,
+                                    commitId=str(changelist),  # Ensure string type
                                     committedDate=datetime.fromtimestamp(
                                         timestamp, tz=timezone.utc
                                     ),
