@@ -432,7 +432,7 @@ category:handler ^-group -group
 category:telemetry -group
 
 category:indirection -group
-category:internals -group
+category:internals -app -group
 category:threadbase v-group -group
 
 # SDK specific rules
