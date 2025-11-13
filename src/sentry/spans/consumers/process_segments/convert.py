@@ -15,7 +15,6 @@ FIELD_TO_ATTRIBUTE = {
     "end_timestamp": "sentry.end_timestamp_precise",
     "event_id": "sentry.event_id",
     "hash": "sentry.hash",
-    "kind": "sentry.kind",
     "name": "sentry.name",
     "parent_span_id": "sentry.parent_span_id",
     "received": "sentry.received",
