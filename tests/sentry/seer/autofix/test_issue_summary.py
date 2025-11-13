@@ -608,10 +608,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         assert status_code == 200
         mock_record_seer_run.assert_not_called()
-        mock_trigger_autofix_task.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
-    @patch("sentry.seer.autofix.issue_summary._run_automation")
     @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
@@ -620,10 +618,9 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_event,
         mock_call_seer,
         mock_get_trace_tree,
-        mock_run_automation,
         mock_get_acknowledgement,
     ):
-        """Test that issue summary is still returned when _run_automation throws an exception."""
+        """Test that issue summary is returned successfully."""
         mock_get_acknowledgement.return_value = True
 
         # Set up event and seer response
@@ -641,10 +638,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         )
         mock_call_seer.return_value = mock_summary
 
-        # Make _run_automation raise an exception
-        mock_run_automation.side_effect = Exception("Automation failed")
-
-        # Call get_issue_summary and verify it still returns successfully
+        # Call get_issue_summary and verify it returns successfully
         summary_data, status_code = get_issue_summary(self.group, self.user)
 
         assert status_code == 200
@@ -652,8 +646,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         expected_response["event_id"] = event.event_id
         assert summary_data == convert_dict_key_case(expected_response, snake_to_camel_case)
 
-        # Verify _run_automation was called and failed
-        mock_run_automation.assert_called_once()
+        # Verify summary was generated
         mock_call_seer.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
@@ -681,7 +674,6 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                     possible_cause="cause",
                 ),
             ) as mock_call_seer,
-            patch("sentry.seer.autofix.issue_summary._run_automation"),
             patch(
                 "sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement",
                 return_value=True,

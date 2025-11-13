@@ -31,13 +31,34 @@ def check_autofix_status(run_id: int, organization_id: int) -> None:
 
 
 @instrumented_task(
+    name="sentry.tasks.autofix.generate_issue_summary",
+    namespace=ingest_errors_tasks,
+    processing_deadline_duration=35,
+    retry=Retry(times=1),
+)
+def generate_issue_summary(group_id: int) -> None:
+    """Generate issue summary and fixability score for a group."""
+    from sentry.seer.autofix.issue_summary import get_issue_summary
+
+    group = Group.objects.get(id=group_id)
+    get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
+
+
+@instrumented_task(
     name="sentry.tasks.autofix.start_seer_automation",
     namespace=ingest_errors_tasks,
     processing_deadline_duration=35,
     retry=Retry(times=1),
 )
 def start_seer_automation(group_id: int) -> None:
-    from sentry.seer.autofix.issue_summary import get_issue_summary
+    """Run automation checks and trigger autofix if conditions are met."""
+    from sentry.seer.autofix.issue_summary import _run_automation
 
     group = Group.objects.get(id=group_id)
-    get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
+    event = group.get_latest_event()
+
+    if event:
+        try:
+            _run_automation(group, user=None, event=event, source=SeerAutomationSource.POST_PROCESS)
+        except Exception:
+            logger.exception("Error auto-triggering autofix", extra={"group_id": group_id})

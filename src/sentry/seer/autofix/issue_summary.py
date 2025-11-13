@@ -389,13 +389,6 @@ def _generate_summary(
         trace_tree,
     )
 
-    try:
-        _run_automation(group, user, event, source)
-    except Exception:
-        logger.exception(
-            "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
-        )
-
     summary_dict = issue_summary.dict()
     summary_dict["event_id"] = event.event_id
 

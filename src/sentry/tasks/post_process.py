@@ -1623,7 +1623,7 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 def kick_off_seer_automation(job: PostProcessJob) -> None:
     from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
     from sentry.seer.seer_setup import get_seer_org_acknowledgement
-    from sentry.tasks.autofix import start_seer_automation
+    from sentry.tasks.autofix import generate_issue_summary, start_seer_automation
 
     event = job["event"]
     group = event.group
@@ -1696,6 +1696,8 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not cache.add(cache_key, True, timeout=600):  # 10 minute
         return
 
+    # Only runs once per issue (first event before seer_autofix_last_triggered is set)
+    generate_issue_summary.delay(group.id)
     start_seer_automation.delay(group.id)
 
 
