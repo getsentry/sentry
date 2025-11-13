@@ -534,7 +534,11 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     };
 
     if (typeof statsPeriod === 'string') {
-      const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(statsPeriod);
+      const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(
+        statsPeriod,
+        undefined,
+        true
+      );
       detailsTabQuery.playlistStart = playlistStart;
       detailsTabQuery.playlistEnd = playlistEnd;
     } else if (start && end) {
