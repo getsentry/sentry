@@ -3778,9 +3778,7 @@ describe('SearchQueryBuilder', () => {
       expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
 
       await waitFor(() =>
-        expect(
-          screen.queryByRole('button', {name: 'Conditionals'})
-        ).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', {name: 'Logic'})).not.toBeInTheDocument()
       );
     });
   });
