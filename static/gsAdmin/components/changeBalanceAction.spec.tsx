@@ -8,6 +8,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import ModalStore from 'sentry/stores/modalStore';
+
 import triggerChangeBalanceModal from 'admin/components/changeBalanceAction';
 
 describe('BalanceChangeAction', () => {
@@ -22,6 +24,7 @@ describe('BalanceChangeAction', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    ModalStore.reset();
   });
 
   it('renders no balance', async () => {
@@ -169,7 +172,7 @@ describe('BalanceChangeAction', () => {
   });
 
   it('re-enables form after error', async () => {
-    MockApiClient.addMockResponse({
+    const updateMock = MockApiClient.addMockResponse({
       url: `/_admin/customers/${organization.slug}/balance-changes/`,
       method: 'POST',
       statusCode: 400,
@@ -186,15 +189,7 @@ describe('BalanceChangeAction', () => {
     expect(await screen.findByRole('textbox', {name: 'Ticket URL'})).toBeInTheDocument();
     expect(await screen.findByRole('textbox', {name: 'Notes'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByLabelText('Credit Amount'));
-    await userEvent.paste('10');
-    await waitFor(
-      () => {
-        expect(screen.getByLabelText('Credit Amount')).toHaveValue(10);
-      },
-      {timeout: 5_000}
-    );
-
+    await userEvent.type(screen.getByLabelText('Credit Amount'), '10');
     await waitFor(() =>
       expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled()
     );
@@ -204,6 +199,15 @@ describe('BalanceChangeAction', () => {
     await userEvent.click(screen.getByRole('button', {name: /submit/i}), {
       pointerEventsCheck: 0,
     });
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        `/_admin/customers/${organization.slug}/balance-changes/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {creditAmount: 1000, notes: '', ticketUrl: ''},
+        })
+      );
+    });
 
     await waitFor(
       () => {
@@ -211,7 +215,6 @@ describe('BalanceChangeAction', () => {
       },
       {timeout: 5_000}
     );
-
     expect(screen.getByRole('textbox', {name: 'Ticket URL'})).toBeEnabled();
     expect(screen.getByRole('textbox', {name: 'Notes'})).toBeEnabled();
     expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled();
