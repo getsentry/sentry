@@ -13,7 +13,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import type {Block, ToolCall, ToolLink} from './types';
+import type {Block} from './types';
 import {buildToolLinkUrl, getToolsStringFromBlock, postProcessLLMMarkdown} from './utils';
 
 interface BlockProps {
@@ -90,26 +90,6 @@ function getToolStatus(
   return 'success';
 }
 
-function toolCallMatchesLink(toolCall: ToolCall, link: ToolLink): boolean {
-  if (toolCall.function !== link.kind) {
-    return false;
-  }
-
-  let toolCallArgs: Record<string, any>;
-  try {
-    toolCallArgs = JSON.parse(toolCall.args);
-  } catch {
-    toolCallArgs = {};
-  }
-
-  // If link params has dataset, tool call args must contain the same dataset.
-  if (link.params.dataset && toolCallArgs.dataset !== link.params.dataset) {
-    return false;
-  }
-
-  return true;
-}
-
 function BlockComponent({
   block,
   blockIndex: _blockIndex,
@@ -149,12 +129,18 @@ function BlockComponent({
   const sortedToolLinks = useMemo(
     () =>
       (block.tool_links || [])
-        .map(link => {
+        .map((link, idx) => {
+          if (!link) {
+            return null;
+          }
+
+          // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
+          const toolCallId = block.tool_results?.[idx]?.tool_call_id;
           const toolCallIndex = block.message.tool_calls?.findIndex(
-            call => link && toolCallMatchesLink(call, link)
+            call => call.id === toolCallId
           );
           const canBuildUrl =
-            link && buildToolLinkUrl(link, organization.slug, projects) !== null;
+            buildToolLinkUrl(link, organization.slug, projects) !== null;
 
           if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
             return {link, toolCallIndex};
@@ -171,7 +157,13 @@ function BlockComponent({
         )
         .sort((a, b) => a.toolCallIndex - b.toolCallIndex)
         .map(item => item.link),
-    [block.tool_links, block.message.tool_calls, organization.slug, projects]
+    [
+      block.tool_links,
+      block.tool_results,
+      block.message.tool_calls,
+      organization.slug,
+      projects,
+    ]
   );
 
   const hasValidLinks = sortedToolLinks.length > 0;
