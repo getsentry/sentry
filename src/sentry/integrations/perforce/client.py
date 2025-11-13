@@ -366,7 +366,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
                     changelist = None
                     if filelog and len(filelog) > 0:
-                        # The 'change' field contains the changelist numbers (as a list of strings)
+                        # The 'change' field contains the changelist numbers (as a list)
                         changelists = filelog[0].get("change", [])
                         if changelists and len(changelists) > 0:
                             # Get the first (most recent) changelist number
