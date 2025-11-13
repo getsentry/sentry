@@ -326,6 +326,12 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       : undefined;
   }
 
+  get attributes(): Record<string, string | number | boolean> | undefined {
+    return this.value && 'additional_attributes' in this.value
+      ? this.value.additional_attributes
+      : undefined;
+  }
+
   isRootNodeChild(): boolean {
     return this.parent?.value === null;
   }
@@ -561,4 +567,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   ): React.ReactNode;
 
   abstract matchWithFreeText(key: string): boolean;
+
+  abstract resolveValueFromSearchKey(key: string): any | null;
 }

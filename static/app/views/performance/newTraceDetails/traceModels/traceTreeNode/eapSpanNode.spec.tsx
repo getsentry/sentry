@@ -898,4 +898,49 @@ describe('EapSpanNode', () => {
       expect(node.visibleChildren).toEqual([]);
     });
   });
+
+  describe('resolveValueFromSearchKey', () => {
+    it('should resolve duration aliases to span duration', () => {
+      const extra = createMockExtra();
+      const value = makeEAPSpan({
+        event_id: 'test-span',
+        is_transaction: false,
+        start_timestamp: 1000,
+        end_timestamp: 1500,
+      });
+      const node = new EapSpanNode(null, value, extra);
+
+      expect(node.resolveValueFromSearchKey('duration')).toBe(500 * 1e3);
+      expect(node.resolveValueFromSearchKey('span.duration')).toBe(500 * 1e3);
+      expect(node.resolveValueFromSearchKey('span.total_time')).toBe(500 * 1e3);
+    });
+
+    it('should resolve span-prefixed keys to value properties', () => {
+      const extra = createMockExtra();
+      const value = makeEAPSpan({
+        event_id: 'test-span',
+        is_transaction: false,
+        op: 'db.query',
+        description: 'SELECT * FROM users',
+      });
+      const node = new EapSpanNode(null, value, extra);
+
+      expect(node.resolveValueFromSearchKey('span.op')).toBe('db.query');
+      expect(node.resolveValueFromSearchKey('span.description')).toBe(
+        'SELECT * FROM users'
+      );
+    });
+
+    it('should return null for unrecognized keys', () => {
+      const extra = createMockExtra();
+      const value = makeEAPSpan({
+        event_id: 'test-span',
+        is_transaction: false,
+      });
+      const node = new EapSpanNode(null, value, extra);
+
+      expect(node.resolveValueFromSearchKey('unknown.key')).toBeNull();
+      expect(node.resolveValueFromSearchKey('transaction.duration')).toBeNull();
+    });
+  });
 });
