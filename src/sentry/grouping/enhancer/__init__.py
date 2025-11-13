@@ -193,6 +193,7 @@ def _get_hint_for_frame(
     frame_component: FrameGroupingComponent,
     rust_frame: RustFrame,
     desired_hint_type: Literal["in-app", "contributes"],
+    custom_rules: set[str],
 ) -> str | None:
     """
     Determine a hint to use for the frame, handling special-casing and precedence.
@@ -227,7 +228,10 @@ def _get_hint_for_frame(
     if variant_name == "app" and rust_hint_type == "in-app" and rust_in_app == client_in_app:
         can_use_rust_hint = False
 
-    return rust_hint if can_use_rust_hint else incoming_hint if can_use_incoming_hint else None
+    raw_hint = rust_hint if can_use_rust_hint else incoming_hint if can_use_incoming_hint else None
+
+    # Add 'custom' or 'built-in' to any stacktrace rule description as appropriate
+    return _add_rule_source_to_hint(raw_hint, custom_rules)
 
 
 def _split_rules(
@@ -488,13 +492,23 @@ class EnhancementsConfig:
 
             in_app_hint = (
                 _get_hint_for_frame(
-                    variant_name, frame, frame_component, in_app_rust_frame, "in-app"
+                    variant_name,
+                    frame,
+                    frame_component,
+                    in_app_rust_frame,
+                    "in-app",
+                    self.custom_rule_strings,
                 )
                 if variant_name == "app"
                 else None  # In-app hints don't apply to the system stacktrace
             )
             contributes_hint = _get_hint_for_frame(
-                variant_name, frame, frame_component, contributes_rust_frame, "contributes"
+                variant_name,
+                frame,
+                frame_component,
+                contributes_rust_frame,
+                "contributes",
+                self.custom_rule_strings,
             )
             hint = _combine_hints(variant_name, frame_component, in_app_hint, contributes_hint)
 
