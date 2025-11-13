@@ -373,6 +373,9 @@ function useAsciiSnapshot() {
       /* noop: chart detection should not break snapshot */
     }
 
+    // Get event ID mappings for inline replacement
+    const idMappings = getEventIdMappings();
+
     // Text-node based placement for better accuracy and wrapping
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     let node: Node | null = walker.nextNode();
@@ -570,9 +573,10 @@ function useAsciiSnapshot() {
     const url = window.location.href;
     let result = url + '\n' + grid.map(row => row.join('')).join('\n');
 
-    // Append global event ID mapping for IDs shortened with `getShortEventId`
-    const mapping = getEventIdMappings();
-    const entries = Object.entries(mapping);
+    // Append event ID mapping at the end - only for IDs that appear in the snapshot
+    const entries = Object.entries(idMappings).filter(([shortId]) =>
+      result.includes(shortId)
+    );
     if (entries.length > 0) {
       result += '\n\n--- Event ID Mapping ---\n';
       entries.forEach(([shortId, fullId]) => {
