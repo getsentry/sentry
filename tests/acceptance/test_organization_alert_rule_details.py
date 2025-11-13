@@ -17,7 +17,7 @@ class OrganizationAlertRuleDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.login_as(self.user)
         self.project = self.create_project(fire_project_created=True)
         self.rule = Rule.objects.get(project=self.project)
-        self.path = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rule.id}/details/"
+        self.path = f"/organizations/{self.organization.slug}/issues/alerts/rules/{self.project.slug}/{self.rule.id}/details/"
 
     def test_empty_alert_rule_details(self) -> None:
         self.browser.get(self.path)
