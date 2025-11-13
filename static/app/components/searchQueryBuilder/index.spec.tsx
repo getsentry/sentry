@@ -716,8 +716,8 @@ describe('SearchQueryBuilder', () => {
       });
     });
 
-    describe('conditionals category', () => {
-      it('does not render conditionals category when on first input', async () => {
+    describe('logic category', () => {
+      it('does not render logic category when on first input', async () => {
         render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
           organization: {features: ['search-query-builder-conditionals-combobox-menus']},
         });
@@ -725,21 +725,17 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(getLastInput());
         expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
 
-        expect(
-          screen.queryByRole('button', {name: 'Conditionals'})
-        ).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: 'Logic'})).not.toBeInTheDocument();
       });
 
-      it('renders conditionals category when not on first input', async () => {
+      it('renders logic category when not on first input', async () => {
         render(<SearchQueryBuilder {...defaultProps} initialQuery="span.op:test" />, {
           organization: {features: ['search-query-builder-conditionals-combobox-menus']},
         });
 
         await userEvent.click(getLastInput());
         // Should show conditionals button
-        expect(
-          await screen.findByRole('button', {name: 'Conditionals'})
-        ).toBeInTheDocument();
+        expect(await screen.findByRole('button', {name: 'Logic'})).toBeInTheDocument();
       });
     });
   });

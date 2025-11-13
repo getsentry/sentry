@@ -91,6 +91,8 @@ function FilterDelete({token, state, item}: SearchQueryBuilderBooleanProps) {
 const LOGIC_OPERATOR_OPTIONS = [
   {value: 'AND', label: 'AND'},
   {value: 'OR', label: 'OR'},
+  {value: '(', label: '('},
+  {value: ')', label: ')'},
 ];
 
 function SearchQueryBuilderBooleanSelect({

@@ -204,7 +204,7 @@ type UpdateAggregateArgsAction = {
 };
 
 type UpdateLogicOperatorAction = {
-  token: TokenResult<Token.LOGIC_BOOLEAN>;
+  token: TokenResult<Token.LOGIC_BOOLEAN | Token.L_PAREN | Token.R_PAREN>;
   type: 'UPDATE_LOGIC_OPERATOR';
   value: string;
 };

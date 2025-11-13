@@ -203,6 +203,8 @@ function useFilterKeySections({
 const conditionalFilterItems = [
   createLogicFilterItem({value: 'AND'}),
   createLogicFilterItem({value: 'OR'}),
+  createLogicFilterItem({value: '('}),
+  createLogicFilterItem({value: ')'}),
 ];
 
 interface UseFilterKeyListBoxArgs {
