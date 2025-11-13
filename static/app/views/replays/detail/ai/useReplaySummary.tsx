@@ -20,9 +20,7 @@ const START_TIMEOUT_MS = 15_000; // Max time to wait for processing to start aft
 const TOTAL_TIMEOUT_MS = 100_000; // Max time to wait for results after a start request. Task timeout in Seer (90s) + 10s buffer.
 
 function logReplaySummaryTimeout({extra}: {extra: Record<string, string>}) {
-  Sentry.logger.info('Replay summary poll timed out', {
-    extra,
-  });
+  Sentry.logger.info('Replay summary poll timed out', extra);
 }
 export interface UseReplaySummaryResult {
   /**
