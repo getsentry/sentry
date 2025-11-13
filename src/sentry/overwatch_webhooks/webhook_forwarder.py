@@ -6,7 +6,11 @@ from typing import Any
 
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.webhook_types import GITHUB_WEBHOOK_TYPE_HEADER, GithubWebhookType
+from sentry.integrations.github.webhook_types import (
+    GITHUB_INSTALLATION_TARGET_ID_HEADER,
+    GITHUB_WEBHOOK_TYPE_HEADER_KEY,
+    GithubWebhookType,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organizationmapping import OrganizationMapping
@@ -24,10 +28,6 @@ GITHUB_EVENTS_TO_FORWARD_OVERWATCH = {
     GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT,
     GithubWebhookType.PULL_REQUEST_REVIEW,
 }
-
-
-GITHUB_INSTALLATION_TARGET_ID_HEADER = "X-GitHub-Hook-Installation-Target-ID"
-DJANGO_HTTP_GITHUB_INSTALLATION_TARGET_ID_HEADER = "HTTP_X_GITHUB_HOOK_INSTALLATION_TARGET_ID"
 
 
 @dataclass(frozen=True)
@@ -51,7 +51,7 @@ class OverwatchGithubWebhookForwarder:
         self.integration = integration
 
     def should_forward_to_overwatch(self, headers: Mapping[str, str]) -> bool:
-        event_type = headers.get(GITHUB_WEBHOOK_TYPE_HEADER)
+        event_type = headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY)
         verbose_log(
             "overwatch.debug.should_forward_to_overwatch.checked",
             extra={
@@ -163,7 +163,7 @@ class OverwatchGithubWebhookForwarder:
 
                 raw_app_id = headers.get(
                     GITHUB_INSTALLATION_TARGET_ID_HEADER,
-                ) or headers.get(DJANGO_HTTP_GITHUB_INSTALLATION_TARGET_ID_HEADER)
+                )
                 verbose_log(
                     "overwatch.debug.raw_app_id",
                     extra={"region_name": region_name, "raw_app_id": raw_app_id},
@@ -179,10 +179,12 @@ class OverwatchGithubWebhookForwarder:
                         )
                         app_id = None
 
+                formatted_headers = {k: v for k, v in headers.items()}
+
                 webhook_detail = WebhookDetails(
                     organizations=org_summaries,
                     webhook_body=dict(event),
-                    webhook_headers=headers,
+                    webhook_headers=formatted_headers,
                     integration_provider=self.integration.provider,
                     region=region_name,
                     app_id=app_id,
