@@ -2,6 +2,8 @@ from collections import defaultdict
 from typing import DefaultDict, TypedDict
 
 from sentry.api.serializers import Serializer, register
+from sentry.api.serializers.base import serialize
+from sentry.api.serializers.models.exploresavedquery import ExploreSavedQueryResponse
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -27,6 +29,7 @@ class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
     display: str
     topEvents: int
     interval: str
+    exploreQuery: ExploreSavedQueryResponse
 
 
 class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
@@ -113,5 +116,12 @@ class DiscoverSavedQueryModelSerializer(Serializer):
 
         if obj.query.get("all_projects"):
             data["projects"] = list(ALL_ACCESS_PROJECTS)
+
+        if (
+            obj.dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
+            and obj.explore_query_id is not None
+        ):
+            explore_query = obj.explore_query
+            data["exploreQuery"] = serialize(explore_query, user)
 
         return data
