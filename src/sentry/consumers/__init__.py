@@ -672,7 +672,7 @@ class MinPartitionMetricTagWrapper(ProcessingStrategyFactory):
         # Update the min_partition global tag based on current partition assignment
         if partitions:
             min_partition = min(p.index for p in partitions)
-            add_global_tags(min_partition=str(min_partition))
+            add_global_tags(tags={"min_partition": str(min_partition)})
 
         return self.inner.create_with_partitions(commit, partitions)
 
