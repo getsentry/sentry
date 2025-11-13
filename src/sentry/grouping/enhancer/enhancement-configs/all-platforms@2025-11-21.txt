@@ -432,7 +432,7 @@ category:handler ^-group -group
 
 # Crash reporting tools are noise that can occur outside of signal handlers
 # too, apparently (Apple's GPUSupport module)
-category:telemetry -group
+category:telemetry -app -group
 
 category:indirection -group
 category:internals -app -group
