@@ -27,6 +27,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 
+import {useWidgetQueryQueue} from './utils/widgetQueryQueue';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import type {Position} from './layoutUtils';
 import {
@@ -47,7 +48,6 @@ import type {DashboardDetails, Widget} from './types';
 import {DashboardFilterKeys, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
-import {useWidgetQueryQueue} from './widgetQueryQueue';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';

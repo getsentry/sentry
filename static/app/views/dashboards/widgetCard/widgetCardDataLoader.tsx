@@ -10,8 +10,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
+import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
-import {useWidgetQueryQueue} from 'sentry/views/dashboards/widgetQueryQueue';
 
 import IssueWidgetQueries from './issueWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
