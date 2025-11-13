@@ -60,7 +60,7 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
     },
   });
 
-  const queue = useAsyncQueuer<QueueItem<any, any>>(fetchWidgetItem, queueOptions);
+  const queue = useAsyncQueuer(fetchWidgetItem, queueOptions);
 
   const addItem = useCallback(
     (item: QueueItem<any, any>) => {
