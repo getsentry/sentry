@@ -71,14 +71,17 @@ function WorkflowEngineRedirectWithData({
     }
   );
 
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
-
-  if (shouldRedirect && alertRuleWorkflow) {
-    return (
-      <Redirect to={makeRedirectPath(alertRuleWorkflow.workflowId, organization.slug)} />
-    );
+  if (shouldRedirect) {
+    if (isPending) {
+      return <LoadingIndicator />;
+    }
+    if (alertRuleWorkflow) {
+      return (
+        <Redirect
+          to={makeRedirectPath(alertRuleWorkflow.workflowId, organization.slug)}
+        />
+      );
+    }
   }
 
   return children;
