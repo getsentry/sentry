@@ -398,6 +398,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
   }
 
   async fetchData() {
+    throw new Error('test');
     const {widget, onDataFetchStart} = this.props;
 
     const queryFetchID = Symbol('queryFetchID');

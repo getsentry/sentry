@@ -1,6 +1,6 @@
 // scaffold basic context provider and hook
 
-import {createContext, useCallback, useContext, useRef} from 'react';
+import {createContext, useContext, useRef} from 'react';
 import {metrics} from '@sentry/react';
 import {
   asyncQueuerOptions,
@@ -35,21 +35,31 @@ export function useWidgetQueryQueue() {
   return hasQueueFeature && queueContext ? queueContext : {queue: undefined};
 }
 
+const MAX_CONCURRENCY = 15;
+const MAX_RETRIES = 10;
+
 export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}) {
-  const startTime = useRef<number | undefined>(undefined);
+  const startTimeRef = useRef<number | undefined>(undefined);
   const location = useLocation();
 
   const queueOptions = asyncQueuerOptions({
-    concurrency: 10,
+    concurrency: MAX_CONCURRENCY,
     wait: 5,
     started: true,
     key: 'widget-query-queue',
+    asyncRetryerOptions: {
+      backoff: 'exponential',
+      maxAttempts: MAX_RETRIES,
+      onRetry: (_attempt, _error, _asyncRetryer) => {
+        // TODO: Dynamically reduce concurrency
+      },
+    },
     onSettled: () => {
       const queueIsEmpty = queue.peekAllItems().length === 0;
-      if (queueIsEmpty && startTime.current) {
+      if (queueIsEmpty && startTimeRef.current) {
         const endTime = performance.now();
-        const totalTime = endTime - startTime.current;
-        startTime.current = undefined;
+        const totalTime = endTime - startTimeRef.current;
+        startTimeRef.current = undefined;
         metrics.distribution('dashboards.widget_query_queue.time_to_empty', totalTime, {
           attributes: {
             url: location.pathname,
@@ -62,23 +72,20 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
 
   const queue = useAsyncQueuer(fetchWidgetItem, queueOptions);
 
-  const addItem = useCallback(
-    (item: QueueItem<any, any>) => {
-      // Never add the same widget to the queue twice
-      // even if the date selection has change fetchData() will still be called with the latest state.
-      if (queue.peekPendingItems().some(i => i.widget === item.widget)) {
-        return true;
-      }
-      const queueIsEmpty = queue.peekAllItems().length === 0;
+  const addItem = (item: QueueItem<any, any>) => {
+    // Never add the same widget to the queue twice
+    // even if the date selection has change `fetchData()` in `fetchWidgetItem` will still be called with the latest state.
+    if (queue.peekPendingItems().some(i => i.widget === item.widget)) {
+      return true;
+    }
+    const queueIsEmpty = queue.peekAllItems().length === 0;
 
-      if (queueIsEmpty) {
-        startTime.current = performance.now();
-      }
+    if (queueIsEmpty) {
+      startTimeRef.current = performance.now();
+    }
 
-      return queue.addItem(item);
-    },
-    [queue]
-  );
+    return queue.addItem(item);
+  };
 
   const context = {
     queue: {...queue, addItem},
