@@ -158,4 +158,8 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   makeBarColor(theme: Theme): string {
     return pickBarColor(this.op, theme);
   }
+
+  resolveValueFromSearchKey(_key: string): any | null {
+    return null;
+  }
 }

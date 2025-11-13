@@ -8,11 +8,6 @@ import {
   getIsExecuteToolSpan,
 } from 'sentry/views/insights/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
-import {
-  isEAPSpanNode,
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
 // TODO(aknaus): Remove the special handling for tags once the endpoint returns the correct type
@@ -40,7 +35,7 @@ export function ensureAttributeObject(
   event?: EventTransaction,
   attributes?: TraceItemResponseAttribute[]
 ) {
-  if (isEAPSpanNode(node) && attributes) {
+  if (attributes) {
     return attributes.reduce(
       (acc, attribute) => {
         // Some attribute keys include prefixes and metadata (e.g. "tags[ai.prompt_tokens.used,number]")
@@ -52,15 +47,11 @@ export function ensureAttributeObject(
     );
   }
 
-  if (isTransactionNode(node) && event) {
+  if (event) {
     return event.contexts.trace?.data;
   }
 
-  if (isSpanNode(node)) {
-    return node.value.data;
-  }
-
-  return undefined;
+  return node.attributes;
 }
 
 export function getTraceNodeAttribute(

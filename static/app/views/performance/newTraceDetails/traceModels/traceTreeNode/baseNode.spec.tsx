@@ -67,6 +67,10 @@ class TestNode extends BaseNode {
   matchWithFreeText(key: string): boolean {
     return this.description?.includes(key) || this.op?.includes(key) || false;
   }
+
+  resolveValueFromSearchKey(_key: string): any | null {
+    return null;
+  }
 }
 
 const createMockExtra = (

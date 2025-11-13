@@ -90,6 +90,10 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     return this.findClosestParentTransaction()?.transactionId;
   }
 
+  get attributes(): Record<string, string | number | boolean> | undefined {
+    return this.value.data;
+  }
+
   get projectSlug(): string {
     // The span value does not have a project slug, so we need to find a parent that has one.
     // If we don't find one, we return the default project slug.
@@ -131,5 +135,27 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
     return (
       this.op?.includes(query) || this.description?.includes(query) || this.id === query
     );
+  }
+
+  resolveValueFromSearchKey(key: string): any | null {
+    if (key === 'span.self_time' || key === 'span.exclusive_time') {
+      return this.value.exclusive_time;
+    }
+
+    if (['duration', 'span.duration', 'span.total_time'].includes(key)) {
+      return this.space[1];
+    }
+
+    // @TODO perf optimization opportunity
+    // Entity check should be preprocessed per token, not once per token per node we are evaluating, however since
+    // we are searching <10k nodes in p99 percent of the time and the search is non blocking, we are likely fine
+    // and can be optimized later.
+    const [maybeEntity, ...rest] = key.split('.');
+    if (maybeEntity === 'span') {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      return this.value[rest.join('.')];
+    }
+
+    return null;
   }
 }

@@ -378,4 +378,37 @@ describe('TransactionNode', () => {
       expect(node.printNode()).toBe('GET /api/users - unknown op');
     });
   });
+
+  describe('resolveValueFromSearchKey', () => {
+    it('should resolve duration aliases to transaction duration', () => {
+      const transaction = makeTransaction({
+        start_timestamp: 1000,
+        timestamp: 2500,
+      });
+      const node = new TransactionNode(null, transaction, createMockExtra());
+
+      expect(node.resolveValueFromSearchKey('duration')).toBe(1500 * 1e3);
+      expect(node.resolveValueFromSearchKey('transaction.total_time')).toBe(1500 * 1e3);
+    });
+
+    it('should resolve transaction-prefixed keys to value properties', () => {
+      const transaction = makeTransaction({
+        transaction: 'GET /api/users',
+        project_slug: 'my-project',
+      });
+      const node = new TransactionNode(null, transaction, createMockExtra());
+
+      expect(node.resolveValueFromSearchKey('transaction.project_slug')).toBe(
+        'my-project'
+      );
+    });
+
+    it('should return null for unrecognized keys', () => {
+      const transaction = makeTransaction({});
+      const node = new TransactionNode(null, transaction, createMockExtra());
+
+      expect(node.resolveValueFromSearchKey('unknown.key')).toBeNull();
+      expect(node.resolveValueFromSearchKey('span.duration')).toBeNull();
+    });
+  });
 });

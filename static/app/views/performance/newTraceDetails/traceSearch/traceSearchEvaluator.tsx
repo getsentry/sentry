@@ -10,11 +10,6 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {
-  isEAPSpanNode,
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
@@ -452,14 +447,6 @@ function evaluateValueNumber<T extends Token.VALUE_DURATION | Token.VALUE_NUMBER
   }
 }
 
-const TRANSACTION_DURATION_ALIASES = new Set([
-  'duration',
-  // 'transaction.duration', <-- this is an actual key
-  'transaction.total_time',
-]);
-const SPAN_DURATION_ALIASES = new Set(['duration', 'span.duration', 'span.total_time']);
-const SPAN_SELF_TIME_ALIASES = new Set(['span.self_time', 'span.exclusive_time']);
-
 // Pulls the value from the node based on the key in the token
 function resolveValueFromKey(node: BaseNode, token: ProcessedTokenResult): any | null {
   const value = node.value;
@@ -472,29 +459,9 @@ function resolveValueFromKey(node: BaseNode, token: ProcessedTokenResult): any |
     let key: string | null = null;
     switch (token.key.type) {
       case Token.KEY_SIMPLE: {
-        if (
-          TRANSACTION_DURATION_ALIASES.has(token.key.value) &&
-          isTransactionNode(node) &&
-          node.space
-        ) {
-          return node.space[1];
-        }
-
-        if (
-          SPAN_DURATION_ALIASES.has(token.key.value) &&
-          (isSpanNode(node) || isEAPSpanNode(node)) &&
-          node.space
-        ) {
-          return node.space[1];
-        }
-
-        // TODO Abdullah Khan: Add EAPSpanNode support for exclusive_time
-        if (
-          SPAN_SELF_TIME_ALIASES.has(token.key.value) &&
-          isSpanNode(node) &&
-          node.space
-        ) {
-          return node.value.exclusive_time;
+        const customValue = node.resolveValueFromSearchKey(token.key.value);
+        if (customValue) {
+          return customValue;
         }
 
         key = token.key.value;
@@ -546,28 +513,6 @@ function resolveValueFromKey(node: BaseNode, token: ProcessedTokenResult): any |
       if (value[key] !== undefined) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return value[key];
-      }
-
-      // @TODO perf optimization opportunity
-      // Entity check should be preprocessed per token, not once per token per node we are evaluating, however since
-      // we are searching <10k nodes in p99 percent of the time and the search is non blocking, we are likely fine
-      // and can be optimized later.
-      const [maybeEntity, ...rest] = key.split('.');
-      switch (maybeEntity) {
-        case 'span':
-          if (isSpanNode(node) || isEAPSpanNode(node)) {
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            return value[rest.join('.')];
-          }
-          break;
-        case 'transaction':
-          if (isTransactionNode(node)) {
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            return value[rest.join('.')];
-          }
-          break;
-        default:
-          break;
       }
     }
 
