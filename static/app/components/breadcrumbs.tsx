@@ -39,11 +39,6 @@ export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
     return null;
   }
 
-  if (crumbs[crumbs.length - 1]?.to) {
-    // We should not be mutating the crumbs
-    crumbs[crumbs.length - 1]!.to = null;
-  }
-
   return (
     <Flex
       as="nav"
@@ -57,7 +52,7 @@ export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
         return (
           <Fragment key={index}>
             <BreadCrumbItem
-              crumb={crumb}
+              crumb={{...crumb, to: index === crumbs.length - 1 ? undefined : crumb.to}}
               variant={index === crumbs.length - 1 ? 'primary' : 'muted'}
             />
             {index < crumbs.length - 1 ? (
