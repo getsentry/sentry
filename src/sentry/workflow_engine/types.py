@@ -89,7 +89,7 @@ class WorkflowEventData:
 
 @dataclass
 class WorkflowEvaluationData:
-    group_event: GroupEvent | Activity
+    event: GroupEvent | Activity
     action_groups: set[DataConditionGroup] | None = None
     workflows: set[Workflow] | None = None
     triggered_actions: set[Action] | None = None
@@ -134,7 +134,15 @@ class WorkflowEvaluation:
         else:
             log_str = f"{log_str}.actions.triggered"
 
-        logger.info(log_str, extra={**asdict(self.data), "debug_msg": self.msg})
+        logger.info(
+            log_str,
+            extra={
+                **asdict(self.data),
+                "debug_msg": self.msg,
+                "group": self.data.event.group,
+                "data": self.data.event.data,
+            },
+        )
 
 
 class ConfigTransformer(ABC):

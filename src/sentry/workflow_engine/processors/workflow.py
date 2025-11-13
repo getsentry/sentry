@@ -482,7 +482,7 @@ def process_workflows(
         fire_actions,
     )
 
-    workflow_evaluation_data = WorkflowEvaluationData(group_event=event_data.event)
+    workflow_evaluation_data = WorkflowEvaluationData(event=event_data.event)
 
     try:
         if detector is None and isinstance(event_data.event, GroupEvent):
