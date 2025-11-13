@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
+
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -9,7 +11,6 @@ import {Switch} from 'sentry/components/core/switch';
 import {Heading, Text} from 'sentry/components/core/text';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';

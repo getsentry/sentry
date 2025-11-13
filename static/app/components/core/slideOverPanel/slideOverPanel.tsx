@@ -24,20 +24,27 @@ const COLLAPSED_STYLES = {
 
 type SlideOverPanelProps = {
   children: React.ReactNode;
+  /**
+   * Whether the panel is visible. In most cases it's better to conditionally render this component rather than use this prop, since it'll defer rendering the panel contents until they're needed.
+   */
   collapsed: boolean;
   ariaLabel?: string;
   className?: string;
   'data-test-id'?: string;
+  /**
+   * Callback that fires every time the panel opens.
+   */
   onOpen?: () => void;
   panelWidth?: string;
   ref?: React.Ref<HTMLDivElement>;
   slidePosition?: 'right' | 'bottom' | 'left';
+  /**
+   * A Framer Motion `Transition` object that specifies the transition properties that apply when the panel opens and closes.
+   */
   transitionProps?: Transition;
 };
 
-export default SlideOverPanel;
-
-function SlideOverPanel({
+export function SlideOverPanel({
   'data-test-id': testId,
   ariaLabel,
   collapsed,
