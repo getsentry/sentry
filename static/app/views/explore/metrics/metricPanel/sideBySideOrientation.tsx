@@ -45,7 +45,7 @@ export function SideBySideOrientation({
   // Default split is 65% of the available width, but not less than MIN_LEFT_WIDTH
   // and at most the maximum size allowed for the left panel (i.e. width - MIN_RIGHT_WIDTH)
   const defaultSplit = Math.min(
-    Math.max(width * 0.65, MIN_LEFT_WIDTH),
+    Math.max(width * 0.6, MIN_LEFT_WIDTH),
     width - MIN_RIGHT_WIDTH
   );
 
