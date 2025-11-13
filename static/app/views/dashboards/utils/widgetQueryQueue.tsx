@@ -52,8 +52,8 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
         // TODO: Dynamically reduce concurrency
       },
     },
-    onSettled: () => {
-      const queueIsEmpty = queue.peekAllItems().length === 0;
+    onSettled: (_item, queuer) => {
+      const queueIsEmpty = queuer.peekAllItems().length === 0;
       if (queueIsEmpty && startTimeRef.current) {
         const endTime = performance.now();
         const totalTime = endTime - startTimeRef.current;
