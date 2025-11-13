@@ -220,8 +220,10 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         assert isinstance(result["source_url"], str)
         assert "https://p4web.example.com//depot/app/services/processor.py" in result["source_url"]
 
-    def test_get_stacktrace_config_abs_path_fallback(self):
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_get_stacktrace_config_abs_path_fallback(self, mock_check_file):
         """Test stacktrace link uses abs_path when filename is just basename"""
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.py"}
         ctx: StacktraceLinkContext = {
             "file": "processor.py",
             "filename": "processor.py",
@@ -242,8 +244,10 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         assert "//depot/app/services/processor.py" in result["source_url"]
         assert result["src_path"] == "app/services/processor.py"
 
-    def test_get_stacktrace_config_iteration_count(self):
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_get_stacktrace_config_iteration_count(self, mock_check_file):
         """Test that iteration_count is incremented only for matching mappings"""
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.py"}
         # Add a non-matching mapping
         other_repo = Repository.objects.create(
             name="//other",
@@ -282,8 +286,10 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         assert result["iteration_count"] == 1
         assert result["source_url"] is not None
 
-    def test_get_stacktrace_config_stops_on_first_match(self):
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_get_stacktrace_config_stops_on_first_match(self, mock_check_file):
         """Test that iteration stops after first successful match"""
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.py"}
         # Add another depot mapping (shouldn't be checked if first matches)
         # Use different project to avoid unique constraint
         project2 = self.create_project(organization=self.organization)
