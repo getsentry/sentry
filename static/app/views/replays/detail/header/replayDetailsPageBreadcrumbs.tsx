@@ -104,7 +104,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
           onMouseLeave={() => setIsHovered(false)}
         >
           {organization.features.includes('replay-playlist-view') && (
-            <StyledFlex>
+            <Flex>
               <ButtonBar merged gap="0">
                 <LinkButton
                   size="xs"
@@ -132,9 +132,9 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                   }}
                 />
               </ButtonBar>
-            </StyledFlex>
+            </Flex>
           )}
-          <div
+          <StyledDiv
             onClick={() =>
               copy(replayUrlWithTimestamp, {
                 successMessage: t('Copied replay link to clipboard'),
@@ -142,7 +142,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             }
           >
             {getShortEventId(replayRecord?.id)}
-          </div>
+          </StyledDiv>
           <Tooltip title={t('Copy link to replay at current timestamp')}>
             <Button
               aria-label={t('Copy link to replay at current timestamp')}
@@ -173,10 +173,10 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   return <StyledBreadcrumbs crumbs={crumbs} />;
 }
 
-const StyledFlex = styled(Flex)`
-  margin-right: ${p => p.theme.space.md};
-`;
-
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
+`;
+
+const StyledDiv = styled('div')`
+  margin-left: 10px;
 `;
