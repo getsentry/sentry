@@ -158,93 +158,6 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
         return full_path
 
-    def get_blame(
-        self, repo: Repository, path: str, ref: str | None = None, lineno: int | None = None
-    ) -> list[dict[str, Any]]:
-        """
-        Get blame/annotate information for a file (like git blame).
-
-        Uses 'p4 filelog' + 'p4 describe' which is much faster than 'p4 annotate'.
-        Returns the most recent changelist that modified the file and its author.
-        This is used for CODEOWNERS-style ownership detection.
-
-        Args:
-            repo: Repository object (depot_path includes stream if specified)
-            path: File path relative to depot (may include @revision like "file.cpp@42")
-            ref: Optional revision/changelist number (appended as @ref if not in path)
-            lineno: Specific line number to blame (optional, currently ignored)
-
-        Returns:
-            List with a single entry containing:
-            - changelist: changelist number
-            - user: username who made the change
-            - date: date of change
-            - description: changelist description
-        """
-        p4 = self._connect()
-        try:
-            depot_path = self._build_depot_path(repo, path, ref)
-
-            # Use 'p4 filelog' to get the most recent changelist for this file
-            # This is much faster than 'p4 annotate'
-            # If depot_path includes @revision, filelog will show history up to that revision
-            filelog = p4.run("filelog", "-m1", depot_path)
-
-            if not filelog or len(filelog) == 0:
-                return []
-
-            # Get the most recent changelist number
-            # filelog returns a list of revisions, we want the first one
-            revisions = filelog[0].get("rev", [])
-            if not revisions or len(revisions) == 0:
-                return []
-
-            # Get the changelist number from the first revision
-            changelist = revisions[0].get("change")
-            if not changelist:
-                return []
-
-            # Get detailed changelist information using 'p4 describe'
-            # -s flag means "short" - don't include diffs, just metadata
-            change_info = p4.run("describe", "-s", changelist)
-
-            if not change_info:
-                return []
-
-            change_data = change_info[0]
-            return [
-                {
-                    "changelist": str(changelist),
-                    "user": change_data.get("user", "unknown"),
-                    "date": change_data.get("time", ""),
-                    "description": change_data.get("desc", ""),
-                }
-            ]
-
-        except self.P4Exception:
-            return []
-        finally:
-            self._disconnect(p4)
-
-    def get_depot_info(self) -> dict[str, Any]:
-        """
-        Get server info for testing connection.
-
-        Returns:
-            Server info dictionary
-        """
-        p4 = self._connect()
-        try:
-            info = p4.run("info")[0]
-            return {
-                "server_address": info.get("serverAddress"),
-                "server_version": info.get("serverVersion"),
-                "user": info.get("userName"),
-                "client": info.get("clientName"),
-            }
-        finally:
-            self._disconnect(p4)
-
     def get_depots(self) -> list[dict[str, Any]]:
         """
         List all depots accessible to the user.
@@ -337,7 +250,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
 
                     changelist = None
                     if filelog and len(filelog) > 0:
-                        # The 'change' field contains the changelist numbers (as a list of strings)
+                        # The 'change' field contains the changelist numbers (as a list)
                         changelists = filelog[0].get("change", [])
                         if changelists and len(changelists) > 0:
                             # Get the first (most recent) changelist number
