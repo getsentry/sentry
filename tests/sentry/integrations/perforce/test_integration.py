@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.integrations.perforce.integration import (
     PerforceIntegration,
     PerforceIntegrationProvider,
@@ -58,9 +60,12 @@ class PerforceIntegrationTest(IntegrationTestCase):
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-web",
-            metadata={
-                "web_url": "https://p4web.example.com",
-                "web_viewer_type": "p4web",
+            metadata={},
+            oi_params={
+                "config": {
+                    "web_url": "https://p4web.example.com",
+                    "web_viewer_type": "p4web",
+                }
             },
         )
         installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
@@ -77,9 +82,12 @@ class PerforceIntegrationTest(IntegrationTestCase):
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-web2",
-            metadata={
-                "web_url": "https://p4web.example.com",
-                "web_viewer_type": "p4web",
+            metadata={},
+            oi_params={
+                "config": {
+                    "web_url": "https://p4web.example.com",
+                    "web_viewer_type": "p4web",
+                }
             },
         )
         installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
@@ -96,9 +104,12 @@ class PerforceIntegrationTest(IntegrationTestCase):
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-swarm",
-            metadata={
-                "web_url": "https://swarm.example.com",
-                "web_viewer_type": "swarm",
+            metadata={},
+            oi_params={
+                "config": {
+                    "web_url": "https://swarm.example.com",
+                    "web_viewer_type": "swarm",
+                }
             },
         )
         installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
@@ -115,9 +126,12 @@ class PerforceIntegrationTest(IntegrationTestCase):
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-swarm2",
-            metadata={
-                "web_url": "https://swarm.example.com",
-                "web_viewer_type": "swarm",
+            metadata={},
+            oi_params={
+                "config": {
+                    "web_url": "https://swarm.example.com",
+                    "web_viewer_type": "swarm",
+                }
             },
         )
         installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
@@ -148,20 +162,28 @@ class PerforceIntegrationTest(IntegrationTestCase):
         )
         assert url == "p4://myproject/app/services/processor.cpp"
 
-    def test_check_file_absolute_depot_path(self):
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_check_file_absolute_depot_path(self, mock_check_file):
         """Test check_file with absolute depot path"""
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
         assert self.installation.check_file(self.repo, "//depot/app/services/processor.cpp")
 
-    def test_check_file_relative_path(self):
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_check_file_relative_path(self, mock_check_file):
         """Test check_file with relative path"""
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
         assert self.installation.check_file(self.repo, "app/services/processor.cpp")
 
-    def test_check_file_with_revision_syntax(self):
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_check_file_with_revision_syntax(self, mock_check_file):
         """Test check_file with @revision syntax"""
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
         assert self.installation.check_file(self.repo, "app/services/processor.cpp@42")
 
-    def test_get_stacktrace_link(self):
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_get_stacktrace_link(self, mock_check_file):
         """Test get_stacktrace_link returns format_source_url result"""
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
         filepath = "app/services/processor.cpp@42"
         default_branch = ""  # Perforce doesn't require default_branch (used for streams)
         version = None
@@ -343,9 +365,12 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-p4web",
-            metadata={
-                "web_url": "https://p4web.example.com",
-                "web_viewer_type": "p4web",
+            metadata={},
+            oi_params={
+                "config": {
+                    "web_url": "https://p4web.example.com",
+                    "web_viewer_type": "p4web",
+                }
             },
         )
         installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
@@ -365,9 +390,12 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-swarm3",
-            metadata={
-                "web_url": "https://swarm.example.com",
-                "web_viewer_type": "swarm",
+            metadata={},
+            oi_params={
+                "config": {
+                    "web_url": "https://swarm.example.com",
+                    "web_viewer_type": "swarm",
+                }
             },
         )
         installation: PerforceIntegration = integration_with_swarm.get_installation(self.organization.id)  # type: ignore[assignment]
@@ -387,9 +415,12 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-p4web2",
-            metadata={
-                "web_url": "https://p4web.example.com",
-                "web_viewer_type": "p4web",
+            metadata={},
+            oi_params={
+                "config": {
+                    "web_url": "https://p4web.example.com",
+                    "web_viewer_type": "p4web",
+                }
             },
         )
         installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]
