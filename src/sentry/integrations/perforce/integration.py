@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from django.utils.translation import gettext_lazy as _
@@ -97,26 +97,27 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         if self._client is not None:
             return self._client
 
-        if not self.model:
-            raise IntegrationError("Integration model not found")
+        if not self.org_integration:
+            raise IntegrationError("Organization Integration not found")
 
-        metadata = self.model.metadata
-        auth_mode = metadata.get("auth_mode", "password")
+        # Credentials are stored in org_integration.config (per-organization)
+        config = self.org_integration.config
+        auth_mode = config.get("auth_mode", "password")
 
         if auth_mode == "ticket":
             # Ticket authentication mode
             self._client = PerforceClient(
-                ticket=metadata.get("ticket"),
-                client=metadata.get("client"),
+                ticket=config.get("ticket"),
+                client=config.get("client"),
             )
         else:
             # Password authentication mode
             self._client = PerforceClient(
-                host=metadata.get("host", "localhost"),
-                port=metadata.get("port", 1666),
-                user=metadata.get("user", ""),
-                password=metadata.get("password"),
-                client=metadata.get("client"),
+                host=config.get("host", "localhost"),
+                port=config.get("port", 1666),
+                user=config.get("user", ""),
+                password=config.get("password"),
+                client=config.get("client"),
             )
         return self._client
 
@@ -132,43 +133,18 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         if url.startswith("p4://"):
             return True
 
-        web_url = self.model.metadata.get("web_url")
-        if web_url and url.startswith(web_url):
-            return True
+        if self.org_integration:
+            web_url = self.org_integration.config.get("web_url")
+            if web_url and url.startswith(web_url):
+                return True
 
         return False
 
-    def matches_repository_depot_path(self, repo: Repository, filepath: str) -> bool:
-        """
-        Check if a file path matches this repository's depot path.
-
-        When SRCSRV transformers remap paths to absolute depot paths (e.g.,
-        //depot/project/src/file.cpp), this method verifies that the depot path
-        matches the repository's configured depot_path.
-
-        Args:
-            repo: Repository object
-            filepath: File path (may be absolute depot path or relative path)
-
-        Returns:
-            True if the filepath matches this repository's depot
-        """
-        depot_path = repo.config.get("depot_path", repo.name)
-
-        # If filepath is absolute depot path, check if it starts with depot_path
-        if filepath.startswith("//"):
-            return filepath.startswith(depot_path)
-
-        # Relative paths always match (will be prepended with depot_path)
-        return True
-
     def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
         """
-        Check if a filepath belongs to this Perforce repository and return the URL.
+        Check if a file exists in the Perforce depot and return the URL.
 
-        Perforce doesn't have a REST API to check file existence, so we just
-        verify the filepath matches the depot_path configuration and return
-        the formatted URL.
+        Uses the client's check_file method to verify file existence on the P4 server.
 
         Args:
             repo: Repository object
@@ -176,17 +152,19 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
             branch: Branch/stream name (optional)
 
         Returns:
-            Formatted URL if the filepath matches this repository, None otherwise
+            Formatted URL if the file exists, None otherwise
         """
-        depot_path = repo.config.get("depot_path", repo.name)
-
-        # If filepath is absolute depot path, check if it starts with depot_path
-        if filepath.startswith("//"):
-            if not filepath.startswith(depot_path):
+        try:
+            client = self.get_client()
+            # Use client's check_file to verify file exists on P4 server
+            result = client.check_file(repo, filepath, branch)
+            if result is None:
                 return None
-
-        # For matching paths, return the formatted URL
-        return self.format_source_url(repo, filepath, branch)
+            # File exists, return formatted URL
+            return self.format_source_url(repo, filepath, branch)
+        except Exception:
+            # If any error occurs (auth, connection, etc), return None
+            return None
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         """
@@ -222,9 +200,13 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 full_path = f"{depot_path}/{filepath}"
 
         # If web viewer is configured, use it
-        web_url = self.model.metadata.get("web_url")
+        web_url = None
+        viewer_type = "swarm"
+        if self.org_integration:
+            web_url = self.org_integration.config.get("web_url")
+            viewer_type = self.org_integration.config.get("web_viewer_type", "swarm")
+
         if web_url:
-            viewer_type = self.model.metadata.get("web_viewer_type", "p4web")
 
             # Extract revision from filepath if present (e.g., "file.cpp@42")
             revision = None
@@ -347,30 +329,6 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         """Get repositories that can't be migrated. Perforce doesn't need migration."""
         return []
 
-    def test_connection(self) -> dict[str, Any]:
-        """
-        Test the Perforce connection with current credentials.
-
-        Returns:
-            Dictionary with connection status and server info
-        """
-        try:
-            client = self.get_client()
-            info = client.get_depot_info()
-
-            return {
-                "status": "success",
-                "message": f"Connected to Perforce server at {info.get('server_address')}",
-                "server_info": info,
-            }
-        except Exception as e:
-            logger.exception("perforce.test_connection.failed")
-            return {
-                "status": "error",
-                "message": f"Failed to connect to Perforce server: {str(e)}",
-                "error": str(e),
-            }
-
     def get_organization_config(self) -> list[dict[str, Any]]:
         """
         Get configuration form fields for organization-level settings.
@@ -465,59 +423,6 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
                 "required": False,
             },
         ]
-
-    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        """
-        Update organization config and optionally validate credentials.
-        Only tests connection when password or ticket is changed to avoid annoying
-        validations on every field blur.
-        """
-        from sentry.integrations.services.integration import integration_service
-
-        # Check if credentials are being updated
-        password_changed = "password" in data
-        ticket_changed = "ticket" in data
-        credentials_changed = password_changed or ticket_changed
-
-        # First update the integration metadata with new credentials
-        if self.model:
-            metadata = dict(self.model.metadata or {})
-
-            # Update metadata with any provided fields
-            for key in [
-                "auth_mode",
-                "host",
-                "port",
-                "user",
-                "password",
-                "ticket",
-                "client",
-                "web_url",
-                "web_viewer_type",
-            ]:
-                if key in data:
-                    metadata[key] = data[key]
-
-            integration_service.update_integration(integration_id=self.model.id, metadata=metadata)
-
-            # Clear cached client when credentials change
-            if credentials_changed:
-                self._client = None
-
-        # Only test connection if password or ticket was changed
-        if credentials_changed:
-            try:
-                result = self.test_connection()
-                if result["status"] != "success":
-                    raise IntegrationError(f"Connection test failed: {result['message']}")
-            except Exception as e:
-                logger.exception("perforce.credentials_validation_failed")
-                raise IntegrationError(
-                    f"Failed to connect to Perforce server with provided credentials: {str(e)}"
-                )
-
-        # Call parent to update org integration config
-        super().update_organization_config(data)
 
 
 class PerforceIntegrationProvider(IntegrationProvider):
