@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TypedDict
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -20,6 +21,18 @@ from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
 from sentry.seer.autofix.utils import AutofixTriggerSource
 
 logger = logging.getLogger(__name__)
+
+
+class LaunchFailure(TypedDict):
+    repo_name: str
+    error_message: str
+
+
+class LaunchResponse(TypedDict, total=False):
+    success: bool
+    launched_count: int
+    failed_count: int
+    failures: list[LaunchFailure]
 
 
 class OrganizationCodingAgentLaunchSerializer(serializers.Serializer[dict[str, object]]):
@@ -80,11 +93,23 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         integration_id = validated["integration_id"]
         trigger_source = validated["trigger_source"]
 
-        launch_coding_agents_for_run(
+        results = launch_coding_agents_for_run(
             organization_id=organization.id,
             integration_id=integration_id,
             run_id=run_id,
             trigger_source=trigger_source,
         )
 
-        return self.respond({"success": True})
+        successes = results["successes"]
+        failures = results["failures"]
+
+        response_data: LaunchResponse = {
+            "success": True,
+            "launched_count": len(successes),
+            "failed_count": len(failures),
+        }
+
+        if failures:
+            response_data["failures"] = failures
+
+        return self.respond(response_data)
