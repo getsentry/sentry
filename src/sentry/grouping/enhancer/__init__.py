@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import logging
 import os
+import re
 import zlib
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -42,6 +43,8 @@ DEFAULT_ENHANCEMENTS_BASE = "all-platforms:2023-01-11"
 # A delimiter to insert between rulesets in the base64 represenation of enhancements (by spec,
 # base64 strings never contain '#')
 BASE64_ENHANCEMENTS_DELIMITER = b"#"
+
+HINT_STACKTRACE_RULE_REGEX = re.compile(r"stack trace rule \((.+)\)$")
 
 VALID_PROFILING_MATCHER_PREFIXES = (
     "stack.abs_path",
@@ -169,6 +172,19 @@ def _can_use_hint(
         return False
 
     return True
+
+
+def _add_rule_source_to_hint(hint: str | None, custom_rules: set[str]) -> str | None:
+    """Add 'custom' or 'built-in' to the rule description in the given hint (if any)."""
+    if not hint:
+        return None
+
+    def _add_type_to_rule(rule_regex_match: re.Match) -> str:
+        rule_str = rule_regex_match.group(1)
+        rule_type = "custom" if rule_str in custom_rules else "built-in"
+        return f"{rule_type} stack trace rule ({rule_str})"
+
+    return HINT_STACKTRACE_RULE_REGEX.sub(_add_type_to_rule, hint)
 
 
 def _get_hint_for_frame(
