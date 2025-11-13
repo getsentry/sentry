@@ -162,6 +162,7 @@ class LLMIssueDetectionTest(TestCase):
 
         mock_trace = Mock()
         mock_trace.trace_id = "trace-abc-123"
+        mock_trace.total_spans = 100
         mock_trace.dict.return_value = {
             "trace_id": "trace-abc-123",
             "spans": [{"op": "db.query", "duration": 1.5}],
