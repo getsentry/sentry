@@ -137,7 +137,16 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
                 # Filter to only changes after start_sha
                 if changes:
                     start_cl_num = int(start_sha) if start_sha.isdigit() else 0
-                    changes = [c for c in changes if int(c["change"]) > start_cl_num]
+                    # Filter out invalid changelist data
+                    filtered_changes = []
+                    for c in changes:
+                        try:
+                            if int(c["change"]) > start_cl_num:
+                                filtered_changes.append(c)
+                        except (TypeError, ValueError, KeyError):
+                            # Skip malformed changelist data
+                            continue
+                    changes = filtered_changes
 
             return self._format_commits(changes, depot_path)
 
@@ -164,20 +173,35 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
         commits = []
 
         for cl in changelists:
-            # Format timestamp (P4 time is Unix timestamp)
-            timestamp = self.format_date(int(cl["time"]))
+            try:
+                # Handle potentially null/invalid time field
+                time_value = cl.get("time") or 0
+                try:
+                    time_int = int(time_value)
+                except (TypeError, ValueError):
+                    time_int = 0
 
-            commits.append(
-                {
-                    "id": str(cl["change"]),  # Changelist number as commit ID
-                    "repository": depot_path,
-                    "author_email": f"{cl['user']}@perforce",  # P4 doesn't store email
-                    "author_name": cl["user"],
-                    "message": cl["desc"],
-                    "timestamp": timestamp,
-                    "patch_set": [],  # Could fetch with 'p4 describe' if needed
-                }
-            )
+                # Format timestamp (P4 time is Unix timestamp)
+                timestamp = self.format_date(time_int)
+
+                commits.append(
+                    {
+                        "id": str(cl["change"]),  # Changelist number as commit ID
+                        "repository": depot_path,
+                        "author_email": f"{cl.get('user', 'unknown')}@perforce",  # P4 doesn't store email
+                        "author_name": cl.get("user", "unknown"),
+                        "message": cl.get("desc", ""),
+                        "timestamp": timestamp,
+                        "patch_set": [],  # Could fetch with 'p4 describe' if needed
+                    }
+                )
+            except (KeyError, TypeError) as e:
+                # Skip malformed changelist data
+                logger.warning(
+                    "perforce.format_commits.invalid_data",
+                    extra={"changelist": cl, "error": str(e)},
+                )
+                continue
 
         return commits
 
