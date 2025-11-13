@@ -391,14 +391,6 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
   fetchDataWithQueueIfAvailable() {
     const {queue} = this.props;
     if (queue) {
-      const itemAlreadyInQueue = queue
-        .peekPendingItems()
-        .some(item => item.widget === this);
-      // Never add the same widget to the queue twice
-      // even if the date selection has change fetchData() will still be called with the latest state.
-      if (itemAlreadyInQueue) {
-        return;
-      }
       queue.addItem({widget: this});
       return;
     }
