@@ -104,7 +104,7 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
     >
       <SecondaryNav.Item
         to={alertsLink}
-        activeTo={alertsLink}
+        {...(!shouldRedirectToWorkflowEngineUI && {activeTo: `${baseUrl}/alerts/`})}
         analyticsItemName="issues_alerts"
       >
         {t('Alerts')}
