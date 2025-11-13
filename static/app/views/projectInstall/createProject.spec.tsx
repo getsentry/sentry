@@ -365,6 +365,116 @@ describe('CreateProject', () => {
     expect(frameWorkModalMockRequests.projectCreationMockRequest).not.toHaveBeenCalled();
   });
 
+  it('should rollback project when rule creation fails', async () => {
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-roles'],
+        allowMemberProjectCreation: true,
+      },
+    });
+
+    const discordIntegration = OrganizationIntegrationsFixture({
+      id: '338731',
+      name: "Moo Deng's Server",
+      provider: {
+        key: 'discord',
+        slug: 'discord',
+        name: 'Discord',
+        canAdd: true,
+        canDisable: false,
+        features: ['alert-rule', 'chat-unfurl'],
+        aspects: {
+          alerts: [],
+        },
+      },
+    });
+
+    TeamStore.loadUserTeams([teamWithAccess]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [TeamFixture({slug: teamWithAccess.slug})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+      body: [discordIntegration],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${discordIntegration.id}/channels/`,
+      body: {
+        results: [
+          {
+            id: '1437461639900303454',
+            name: 'general',
+            display: '#general',
+            type: 'text',
+          },
+        ],
+      },
+    });
+
+    const projectCreationMockRequest = MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+      method: 'POST',
+      body: {id: '1', slug: 'testProj', name: 'Test Project'},
+    });
+
+    const ruleCreationMockRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/testProj/rules/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        actions: ['Discord: Discord channel URL is missing or formatted incorrectly'],
+      },
+    });
+
+    const projectDeletionMockRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/testProj/`,
+      method: 'DELETE',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [
+        {
+          id: '1',
+          slug: 'testProj',
+          name: 'Test Project',
+        },
+      ],
+    });
+
+    render(<CreateProject />, {organization});
+
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
+    await userEvent.click(
+      screen.getByRole('checkbox', {
+        name: /Notify via integration/,
+      })
+    );
+    await selectEvent.select(screen.getByLabelText('channel'), /#general/);
+    await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+    await waitFor(() => {
+      expect(projectCreationMockRequest).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(ruleCreationMockRequest).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(projectDeletionMockRequest).toHaveBeenCalledTimes(1);
+    });
+
+    expect(addErrorMessage).toHaveBeenCalledWith('Failed to create project apple-ios');
+  });
+
   describe('Issue Alerts Options', () => {
     const organization = OrganizationFixture();
     beforeEach(() => {
