@@ -740,7 +740,7 @@ export function useMetricsPanelAnalytics({
       return;
     }
 
-    if (metricSamplesTableResult.result.isFetching || !dataScanned) {
+    if (metricSamplesTableResult.result.isFetching || !metricTimeseriesResult.isPending) {
       return;
     }
 
@@ -800,6 +800,7 @@ export function useMetricsPanelAnalytics({
     resultLengthBox,
     sortBysBox,
     yAxesBox,
+    metricTimeseriesResult.isPending,
   ]);
 
   useEffect(() => {
@@ -807,7 +808,10 @@ export function useMetricsPanelAnalytics({
       return;
     }
 
-    if (metricAggregatesTableResult.result.isPending || !dataScanned) {
+    if (
+      metricAggregatesTableResult.result.isPending ||
+      !metricTimeseriesResult.isPending
+    ) {
       return;
     }
 
@@ -864,6 +868,7 @@ export function useMetricsPanelAnalytics({
     query_status,
     search,
     yAxis,
+    metricTimeseriesResult.isPending,
   ]);
 }
 
