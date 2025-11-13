@@ -10,7 +10,6 @@ from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpoint
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.features import with_feature
 
 
 class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
@@ -127,7 +126,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         assert response.data[0]["value"] == "minidumpC:\\Users\\test"
 
-    def test_excludes_empty_values_by_default(self) -> None:
+    def test_includes_empty_values_by_default(self) -> None:
         project = self.create_project()
 
         self.store_event(
@@ -155,10 +154,12 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         assert response.status_code == 200
         values = {item["value"] for item in response.data}
-        assert values == {"bar"}
+        assert values == {"", "bar"}
+        counts = {item["value"]: item["count"] for item in response.data}
+        assert counts.get("") == 1
+        assert counts.get("bar") == 1
 
-    @with_feature({"organizations:issue-tags-include-empty-values": True})
-    def test_includes_empty_values_with_feature(self) -> None:
+    def test_includes_empty_values_backend_helpers(self) -> None:
         project = self.create_project()
 
         self.store_event(
@@ -188,7 +189,6 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             None,
             "foo",
             tenant_ids={"organization_id": group.project.organization_id},
-            include_empty_values=True,
         )
         top_values = {tv.value for tv in group_tag_key.top_values}
         assert top_values == {"", "bar"}
@@ -198,7 +198,6 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             [],
             "foo",
             tenant_ids={"organization_id": group.project.organization_id},
-            include_empty_values=True,
         )
         assert {tv.value for tv in iter_values} == {"", "bar"}
 

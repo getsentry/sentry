@@ -2,7 +2,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -69,11 +69,6 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         """
         lookup_key = tagstore.backend.prefix_reserved_key(key)
         tenant_ids = {"organization_id": group.project.organization_id}
-        include_empty_values = features.has(
-            "organizations:issue-tags-include-empty-values",
-            group.project.organization,
-            actor=request.user,
-        )
         try:
             environment_id = get_environment_id(request, group.project.organization_id)
         except Environment.DoesNotExist:
@@ -86,7 +81,6 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
                 environment_id,
                 lookup_key,
                 tenant_ids=tenant_ids,
-                include_empty_values=include_empty_values,
             )
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
@@ -97,7 +91,6 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
                 environment_id,
                 lookup_key,
                 tenant_ids=tenant_ids,
-                include_empty_values=include_empty_values,
             )
 
         if group_tag_key.top_values is None:
@@ -106,7 +99,6 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
                 environment_id,
                 lookup_key,
                 tenant_ids=tenant_ids,
-                include_empty_values=include_empty_values,
             )
 
         return Response(serialize(group_tag_key, request.user, serializer=TagKeySerializer()))
