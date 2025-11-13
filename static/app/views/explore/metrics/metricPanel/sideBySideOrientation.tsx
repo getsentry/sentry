@@ -46,10 +46,10 @@ export function SideBySideOrientation({
   const {width} = useDimensions({elementRef: measureRef});
 
   const hasSize = width > 0;
-  // Default split is 62.5% of the available width but not less than MIN_LEFT_WIDTH
+  // Default split is 65% of the available width but not less than MIN_LEFT_WIDTH
   // while also accommodating the desired right panel width to show all of the telemetry icons.
   const defaultSplit = Math.min(
-    Math.max(width * 0.625, MIN_LEFT_WIDTH),
+    Math.max(width * 0.65, MIN_LEFT_WIDTH),
     width - (WIDTH_WITH_TELEMETRY_ICONS_VISIBLE + PADDING_SIZE + DIVIDER_WIDTH)
   );
 
