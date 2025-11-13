@@ -1,7 +1,7 @@
 name: migrations-drift
 on:
   pull_request:
-#    paths: ['src/sentry/**/migrations/**.py', '.github/workflows/migrations-drift.yml']
+    paths: ['src/sentry/**/migrations/**.py', '.github/workflows/migrations-drift.yml']
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
