@@ -359,7 +359,7 @@ export function buildToolLinkUrl(
         const endDate = new Date(end_ts * 1000).toISOString();
 
         return {
-          pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/`,
+          pathname: `/organizations/${orgSlug}/explore/profiling/profile/${project.slug}/flamegraph/`,
           query: {
             start: startDate,
             end: endDate,
