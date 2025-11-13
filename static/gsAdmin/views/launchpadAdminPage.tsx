@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Input} from 'sentry/components/core/input';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
@@ -380,6 +381,27 @@ function LaunchpadAdminPage() {
         {fetchedArtifactInfo && (
           <Container background="secondary" border="primary" radius="md" padding="lg">
             <Flex direction="column" gap="md">
+              {fetchedArtifactInfo.artifact_info?.project?.organization_slug &&
+                fetchedArtifactInfo.artifact_info?.project?.slug &&
+                fetchedArtifactInfo.artifact_info?.id && (
+                  <Container
+                    background="tertiary"
+                    border="primary"
+                    radius="sm"
+                    padding="md"
+                  >
+                    <Flex direction="column" gap="xs">
+                      <Text bold size="sm">
+                        Artifact URL:
+                      </Text>
+                      <Link
+                        to={`https://${fetchedArtifactInfo.artifact_info.project.organization_slug}.sentry.io/preprod/${fetchedArtifactInfo.artifact_info.project.slug}/${fetchedArtifactInfo.artifact_info.id}/`}
+                      >
+                        {`https://${fetchedArtifactInfo.artifact_info.project.organization_slug}.sentry.io/preprod/${fetchedArtifactInfo.artifact_info.project.slug}/${fetchedArtifactInfo.artifact_info.id}/`}
+                      </Link>
+                    </Flex>
+                  </Container>
+                )}
               <Heading as="h3">Fetched Artifact Information</Heading>
               <InfoDisplay>
                 <pre>{JSON.stringify(fetchedArtifactInfo, null, 2)}</pre>
