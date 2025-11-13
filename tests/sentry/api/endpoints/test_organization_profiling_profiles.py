@@ -237,10 +237,12 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
 
                 assert response.status_code == 200, response.content
 
-                mock_raw_snql_query.assert_called_once()
+                # The new implementation uses exponential time chunking, so it makes multiple calls
+                assert mock_raw_snql_query.call_count > 0
 
-                call_args = mock_raw_snql_query.call_args.args
-                snql_request = call_args[0]
+                # Check the first call to verify it queries transactions correctly
+                first_call_args = mock_raw_snql_query.call_args_list[0][0]
+                snql_request = first_call_args[0]
 
                 assert snql_request.dataset == Dataset.Discover.value
                 assert (
