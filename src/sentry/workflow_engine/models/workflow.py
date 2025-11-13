@@ -83,7 +83,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         "additionalProperties": False,
     }
 
-    __repr__ = sane_repr("name", "organization_id")
+    __repr__ = sane_repr("organization_id")
 
     class Meta:
         app_label = "workflow_engine"
