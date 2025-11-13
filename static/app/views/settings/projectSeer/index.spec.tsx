@@ -521,9 +521,9 @@ describe('ProjectSeer', () => {
       select.focus();
     });
 
-    // Open the menu and select 'Hand off to Cursor Background Agent'
+    // Open the menu and select 'Hand off to Cursor Cloud Agent'
     await userEvent.click(select);
-    const cursorOption = await screen.findByText('Hand off to Cursor Background Agent');
+    const cursorOption = await screen.findByText('Hand off to Cursor Cloud Agent');
     await userEvent.click(cursorOption);
 
     // Form has saveOnBlur=true, so wait for the PUT request

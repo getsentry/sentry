@@ -121,7 +121,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
           </Heading>
           <Text>
             {tct(
-              'Connect Cursor to automatically hand off Seer root cause analysis to Cursor Background Agents for seamless code fixes. [docsLink:Read the docs] to learn more.',
+              'Connect Cursor to automatically hand off Seer root cause analysis to Cursor Cloud Agents for seamless code fixes. [docsLink:Read the docs] to learn more.',
               {
                 docsLink: (
                   <ExternalLink href="https://docs.sentry.io/integrations/cursor/" />
@@ -151,7 +151,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
           </Heading>
           <Text>
             {tct(
-              'You have the Cursor integration installed. Turn on Seer automation and set up hand off to trigger Cursor Background Agents during automation. [seerProjectSettings:Configure in Seer project settings] or [docsLink:read the docs] to learn more.',
+              'You have the Cursor integration installed. Turn on Seer automation and set up hand off to trigger Cursor Cloud Agents during automation. [seerProjectSettings:Configure in Seer project settings] or [docsLink:read the docs] to learn more.',
               {
                 seerProjectSettings: (
                   <Link to={`/settings/projects/${project.slug}/seer/`} />
@@ -183,7 +183,7 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
         </Heading>
         <Text>
           {tct(
-            'Cursor handoff is active. During automation runs, Seer will automatically trigger Cursor Background Agents. [docsLink:Read the docs] to learn more.',
+            'Cursor handoff is active. During automation runs, Seer will automatically trigger Cursor Cloud Agents. [docsLink:Read the docs] to learn more.',
             {
               docsLink: (
                 <ExternalLink href="https://docs.sentry.io/integrations/cursor/" />

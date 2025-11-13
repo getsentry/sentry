@@ -458,7 +458,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                       <CursorPluginIcon>
                         <PluginIcon pluginId="cursor" />
                       </CursorPluginIcon>
-                      {t('Hand Off to Cursor Background Agents')}
+                      {t('Hand Off to Cursor Cloud Agents')}
                     </Flex>
                   }
                   isCompleted={!needsCursorIntegration}
@@ -470,12 +470,12 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                           <Fragment>
                             <span>
                               {t(
-                                'Enable Seer automation and set up handoff to Cursor Background Agents when Seer identifies a root cause.'
+                                'Enable Seer automation and set up handoff to Cursor Cloud Agents when Seer identifies a root cause.'
                               )}
                             </span>
                             <span>
                               {tct(
-                                'During automation, Seer will trigger Cursor Background Agents to generate and submit pull requests directly to your repos. Configure in [seerProjectSettings:Seer project settings] or [docsLink:read the docs] to learn more.',
+                                'During automation, Seer will trigger Cursor Cloud Agents to generate and submit pull requests directly to your repos. Configure in [seerProjectSettings:Seer project settings] or [docsLink:read the docs] to learn more.',
                                 {
                                   seerProjectSettings: (
                                     <Link
@@ -493,7 +493,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                           <Fragment>
                             <span>
                               {t(
-                                'Connect Cursor to automatically hand off Seer root cause analysis to Cursor Background Agents for seamless code fixes.'
+                                'Connect Cursor to automatically hand off Seer root cause analysis to Cursor Cloud Agents for seamless code fixes.'
                               )}
                             </span>
                             <span>
