@@ -134,7 +134,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
               </ButtonBar>
             </Flex>
           )}
-          <StyledDiv
+          <ShortId
             onClick={() =>
               copy(replayUrlWithTimestamp, {
                 successMessage: t('Copied replay link to clipboard'),
@@ -142,7 +142,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             }
           >
             {getShortEventId(replayRecord?.id)}
-          </StyledDiv>
+          </ShortId>
           <Tooltip title={t('Copy link to replay at current timestamp')}>
             <Button
               aria-label={t('Copy link to replay at current timestamp')}
@@ -177,6 +177,6 @@ const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
 `;
 
-const StyledDiv = styled('div')`
+const ShortId = styled('div')`
   margin-left: 10px;
 `;
