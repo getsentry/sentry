@@ -95,7 +95,7 @@ function ReplayOnboardingCTAUpsell({
       if (hasBillingAccess) {
         // Redirect the user to the subscriptions page, where they will find important information.
         // If they wish to update their plan, we ask them to contact our sales/support team.
-        redirectToManage(organization);
+        redirectToManage();
       }
       return;
     }

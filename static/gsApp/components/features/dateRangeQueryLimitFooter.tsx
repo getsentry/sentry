@@ -30,9 +30,7 @@ function DateRangeQueryLimitFooter({
   subscription,
   upsellDefaultSelection,
 }: Props) {
-  const checkoutUrl = normalizeUrl(
-    `/settings/${organization.slug}/billing/checkout/?referrer=checkout-${source}`
-  );
+  const checkoutUrl = normalizeUrl(`/checkout/?referrer=checkout-${source}`);
 
   const canTrial = subscription.canTrial;
 
