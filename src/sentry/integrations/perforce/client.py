@@ -478,10 +478,18 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                                 username = change.get("user", "unknown")
                                 # Perforce doesn't provide email by default, so we generate a fallback
                                 email = change.get("email") or f"{username}@perforce.local"
+
+                                # Handle potentially null/invalid time field
+                                time_value = change.get("time") or 0
+                                try:
+                                    timestamp = int(time_value)
+                                except (TypeError, ValueError):
+                                    timestamp = 0
+
                                 commit = CommitInfo(
                                     commitId=changelist,
                                     committedDate=datetime.fromtimestamp(
-                                        int(change.get("time", 0)), tz=timezone.utc
+                                        timestamp, tz=timezone.utc
                                     ),
                                     commitMessage=change.get("desc", "").strip(),
                                     commitAuthorName=username,
