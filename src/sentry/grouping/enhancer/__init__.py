@@ -532,7 +532,9 @@ class EnhancementsConfig:
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid stack trace rule config: %s" % e)
 
-        return EnhancementsConfigData(rules, rust_enhancements, version, bases)
+        return EnhancementsConfigData(
+            rules, [rule.text for rule in rules], rust_enhancements, version, bases
+        )
 
     @classmethod
     def from_base64_string(
