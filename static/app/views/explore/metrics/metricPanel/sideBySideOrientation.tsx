@@ -12,6 +12,7 @@ import {SAMPLES_PANEL_MIN_WIDTH} from 'sentry/views/explore/metrics/metricInfoTa
 import {HideContentButton} from 'sentry/views/explore/metrics/metricPanel/hideContentButton';
 import {PanelPositionSelector} from 'sentry/views/explore/metrics/metricPanel/panelPositionSelector';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {useNavContext} from 'sentry/views/nav/context';
 
 const MIN_LEFT_WIDTH = 400;
 
@@ -42,10 +43,14 @@ export function SideBySideOrientation({
   const {width} = useDimensions({elementRef: measureRef});
 
   const hasSize = width > 0;
-  // Default split is 65% of the available width, but not less than MIN_LEFT_WIDTH
-  // and at most the maximum size allowed for the left panel (i.e. width - MIN_RIGHT_WIDTH)
+  const {isCollapsed: isNavCollapsed} = useNavContext();
+  // Default split is 62.5% of the available width for collapsed nav, 55% for expanded nav,
+  // but not less than MIN_LEFT_WIDTH while also accommodating the minimum right panel width.
+  // We change the ratio depending on whether the nav is collapsed because if it is collapsed,
+  // there is more space available to show the connected telemetry by default
+  const splitRatio = isNavCollapsed ? 0.625 : 0.55;
   const defaultSplit = Math.min(
-    Math.max(width * 0.6, MIN_LEFT_WIDTH),
+    Math.max(width * splitRatio, MIN_LEFT_WIDTH),
     width - MIN_RIGHT_WIDTH
   );
 
