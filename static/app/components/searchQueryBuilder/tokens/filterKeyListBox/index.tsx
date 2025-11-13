@@ -23,8 +23,8 @@ import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {Section} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
-  BOOLEAN_CATEGORY_VALUE,
   createRecentFilterOptionKey,
+  LOGIC_CATEGORY_VALUE,
   RECENT_SEARCH_CATEGORY_VALUE,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
@@ -154,7 +154,7 @@ function useHighlightFirstOptionOnSectionChange({
   const displayedListItems = useMemo(() => {
     if (
       selectedSection === RECENT_SEARCH_CATEGORY_VALUE ||
-      selectedSection === BOOLEAN_CATEGORY_VALUE
+      selectedSection === LOGIC_CATEGORY_VALUE
     ) {
       return [...state.collection].filter(item => !hiddenOptions.has(item.key));
     }

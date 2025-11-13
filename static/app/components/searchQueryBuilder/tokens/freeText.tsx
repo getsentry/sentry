@@ -441,7 +441,7 @@ function SearchQueryBuilderInputInternal({
             return;
           }
 
-          if (option.type === 'boolean-filter') {
+          if (option.type === 'logic-filter') {
             dispatch({
               type: 'UPDATE_FREE_TEXT_ON_SELECT',
               tokens: [token],
