@@ -141,8 +141,7 @@ class DiscoverSavedQueryModelSerializer(Serializer):
         if obj.query.get("all_projects"):
             data["projects"] = list(ALL_ACCESS_PROJECTS)
 
-        # Use pre-serialized explore query from attrs (fetched in batch in get_attrs)
         if attrs.get("explore_query") is not None:
-            data["exploreQuery"] = attrs["explore_query"]  # type: ignore[typeddict-item]
+            data["exploreQuery"] = attrs.get("explore_query")
 
         return data
