@@ -60,7 +60,7 @@ export interface AskSeerConsentItem extends SelectOptionWithKey<string> {
 
 export interface LogicFilterItem extends SelectOptionWithKey<string> {
   type: 'logic-filter';
-  value: 'AND' | 'OR';
+  value: 'AND' | 'OR' | '(' | ')';
 }
 
 export type SearchKeyItem =

@@ -249,7 +249,11 @@ export function createAskSeerConsentItem(): AskSeerConsentItem {
   };
 }
 
-export function createLogicFilterItem({value}: {value: 'AND' | 'OR'}): LogicFilterItem {
+export function createLogicFilterItem({
+  value,
+}: {
+  value: 'AND' | 'OR' | '(' | ')';
+}): LogicFilterItem {
   return {
     key: getEscapedKey(value),
     type: 'logic-filter' as const,
