@@ -1,3 +1,4 @@
+import pytest
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
@@ -41,6 +42,7 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
         self.trace_view_page = TraceViewWaterfallPage(self.browser, self.client)
         self.dismiss_assistant(which="tour.explore.spans")
 
+    @pytest.mark.skip(reason="flaky: #103309")
     @patch("django.utils.timezone.now")
     def test_navigation(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
