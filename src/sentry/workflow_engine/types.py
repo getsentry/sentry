@@ -50,6 +50,20 @@ DataConditionResult = DetectorPriorityLevel | int | float | bool | None
 
 
 @dataclass(frozen=True)
+class ConditionError:
+    """
+    Represents the failed evaluation of a data condition.
+    Not intended to be detailed or comprehensive; code returning this
+    is assumed to have already reported the error.
+
+    A message is provided for clarity and to aid in debugging; a singleton placeholder
+    value would also work, but would be less clear.
+    """
+
+    msg: str
+
+
+@dataclass(frozen=True)
 class DetectorEvaluationResult:
     # TODO - Should group key live at this level?
     group_key: DetectorGroupKey
@@ -120,7 +134,7 @@ class WorkflowEvaluation:
         else:
             log_str = f"{log_str}.actions.triggered"
 
-        logger.info(log_str, extra={**asdict(self.data), "msg": self.msg})
+        logger.info(log_str, extra={**asdict(self.data), "debug_msg": self.msg})
 
 
 class ConfigTransformer(ABC):
@@ -225,6 +239,11 @@ class DataConditionHandler(Generic[T]):
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:
+        """
+        Evaluate the value of a data condition.
+        Any error that results in a failure to provide a correct result should
+        raise a DataConditionEvaluationException.
+        """
         raise NotImplementedError
 
 

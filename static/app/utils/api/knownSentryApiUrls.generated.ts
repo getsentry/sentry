@@ -553,6 +553,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/ranked/'
+  | '/organizations/$organizationIdOrSlug/trace-items/stats/'
   | '/organizations/$organizationIdOrSlug/trace-logs/'
   | '/organizations/$organizationIdOrSlug/trace-meta/$traceId/'
   | '/organizations/$organizationIdOrSlug/trace-summary/'
