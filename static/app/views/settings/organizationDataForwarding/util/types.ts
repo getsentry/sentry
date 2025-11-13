@@ -7,9 +7,9 @@ export enum DataForwarderProviderSlug {
 }
 
 export const ProviderLabels: Record<DataForwarderProviderSlug, string> = {
+  [DataForwarderProviderSlug.SPLUNK]: 'Splunk',
   [DataForwarderProviderSlug.SEGMENT]: 'Segment',
   [DataForwarderProviderSlug.SQS]: 'Amazon SQS',
-  [DataForwarderProviderSlug.SPLUNK]: 'Splunk',
 };
 
 interface DataForwarderProject {

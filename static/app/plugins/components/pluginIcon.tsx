@@ -23,6 +23,7 @@ import redmine from 'sentry-logos/logo-redmine.svg';
 import segment from 'sentry-logos/logo-segment.svg';
 import sentry from 'sentry-logos/logo-sentry.svg';
 import slack from 'sentry-logos/logo-slack.svg';
+import splunk from 'sentry-logos/logo-splunk.svg';
 import trello from 'sentry-logos/logo-trello.svg';
 import twilio from 'sentry-logos/logo-twilio.svg';
 import vercel from 'sentry-logos/logo-vercel.svg';
@@ -62,6 +63,7 @@ const PLUGIN_ICONS = {
   redmine,
   segment,
   slack,
+  splunk,
   trello,
   twilio,
   visualstudio,
