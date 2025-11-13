@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Input} from 'sentry/components/core/input';
 import {Container, Flex, Grid} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import {Heading, Text} from 'sentry/components/core/text';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
@@ -393,13 +394,11 @@ function LaunchpadAdminPage() {
                       <Text bold size="sm">
                         Artifact URL:
                       </Text>
-                      <StyledLink
-                        href={`https://${fetchedArtifactInfo.artifact_info.project.organization_slug}.sentry.io/preprod/${fetchedArtifactInfo.artifact_info.project.slug}/${fetchedArtifactInfo.artifact_info.id}/`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <Link
+                        to={`https://${fetchedArtifactInfo.artifact_info.project.organization_slug}.sentry.io/preprod/${fetchedArtifactInfo.artifact_info.project.slug}/${fetchedArtifactInfo.artifact_info.id}/`}
                       >
                         {`https://${fetchedArtifactInfo.artifact_info.project.organization_slug}.sentry.io/preprod/${fetchedArtifactInfo.artifact_info.project.slug}/${fetchedArtifactInfo.artifact_info.id}/`}
-                      </StyledLink>
+                      </Link>
                     </Flex>
                   </Container>
                 )}
@@ -421,14 +420,6 @@ function LaunchpadAdminPage() {
 const StyledInput = styled(Input)`
   width: 100%;
   max-width: 300px;
-`;
-
-const StyledLink = styled('a')`
-  color: ${p => p.theme.blue300};
-  text-decoration: none;
-  &:hover {
-    text-decoration: underline;
-  }
 `;
 
 const InfoDisplay = styled('div')`
