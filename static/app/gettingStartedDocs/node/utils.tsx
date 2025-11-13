@@ -509,6 +509,74 @@ Sentry.init({
       },
     ];
 
+    const langchainContent: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct(
+          'Add the [code:langChainIntegration] to your [code:Sentry.init()] call. This integration automatically instruments LangChain to capture spans for AI operations.',
+          {code: <code />}
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(packageName).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // Add the LangChain integration
+    Sentry.langChainIntegration({
+      recordInputs: true,
+      recordOutputs: true,
+    }),
+  ],
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+  sendDefaultPii: true,
+});`,
+          },
+        ],
+      },
+    ];
+
+    const langgraphContent: ContentBlock[] = [
+      {
+        type: 'text',
+        text: tct(
+          'Add the [code:langChainIntegration] to your [code:Sentry.init()] call. This integration automatically instruments LangGraph to capture spans for AI operations.',
+          {code: <code />}
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `${getImport(packageName).join('\n')}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // Add the LangChain integration (also works for LangGraph)
+    Sentry.langChainIntegration({
+      recordInputs: true,
+      recordOutputs: true,
+    }),
+  ],
+  // Tracing must be enabled for agent monitoring to work
+  tracesSampleRate: 1.0,
+  sendDefaultPii: true,
+});`,
+          },
+        ],
+      },
+    ];
+
     const manualContent: ContentBlock[] = [
       {
         type: 'text',
@@ -562,6 +630,12 @@ await Sentry.startSpan({
     }
     if (selected === 'google_genai') {
       content = googleGenAIContent;
+    }
+    if (selected === 'langchain') {
+      content = langchainContent;
+    }
+    if (selected === 'langgraph') {
+      content = langgraphContent;
     }
     return [
       {
@@ -634,6 +708,63 @@ const response = await ai.models.generateContent({
   model: 'gemini-2.0-flash-001',
   contents: 'Why is the sky blue?',
 });`,
+          },
+        ],
+      });
+    }
+    if (selected === 'langchain') {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `
+const { ChatOpenAI } = require("@langchain/openai");
+const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
+
+const chatModel = new ChatOpenAI({
+  modelName: "gpt-4o",
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const messages = [
+  new SystemMessage("You are a helpful assistant."),
+  new HumanMessage("Tell me a joke"),
+];
+
+const response = await chatModel.invoke(messages);
+const text = response.content;`,
+          },
+        ],
+      });
+    }
+    if (selected === 'langgraph') {
+      content.push({
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: `
+const { ChatOpenAI } = require("@langchain/openai");
+const { createReactAgent } = require("@langchain/langgraph/prebuilt");
+const { HumanMessage, SystemMessage } = require("@langchain/core/messages");
+
+const llm = new ChatOpenAI({
+  modelName: "gpt-4o",
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const agent = createReactAgent({ llm, tools: [] });
+
+const result = await agent.invoke({
+  messages: [new SystemMessage("You are a helpful assistant."), new HumanMessage("Tell me a joke")],
+});
+
+const messages = result.messages;
+const lastMessage = messages[messages.length - 1];
+const text = lastMessage.content;`,
           },
         ],
       });
