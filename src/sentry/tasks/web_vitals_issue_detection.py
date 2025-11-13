@@ -173,7 +173,9 @@ def get_highest_opportunity_page_vitals_for_project(
         sampling_mode="NORMAL",
     )
 
-    web_vital_issue_groups: dict[WebVitalIssueDetectionGroupingType, WebVitalIssueGroupData] = {}
+    web_vital_issue_groups: dict[
+        (WebVitalIssueDetectionGroupingType, str), WebVitalIssueGroupData
+    ] = {}
     seen_names = set()
     for row in result.get("data", []):
         name = row.get("transaction")
@@ -197,8 +199,8 @@ def get_highest_opportunity_page_vitals_for_project(
                 and enough_samples
                 and p75_value is not None
             ):
-                if VITAL_GROUPING_MAP[vital] not in web_vital_issue_groups:
-                    web_vital_issue_groups[VITAL_GROUPING_MAP[vital]] = {
+                if (VITAL_GROUPING_MAP[vital], name) not in web_vital_issue_groups:
+                    web_vital_issue_groups[(VITAL_GROUPING_MAP[vital], name)] = {
                         "transaction": name,
                         "project": project,
                         "vital_grouping": VITAL_GROUPING_MAP[vital],
@@ -206,8 +208,12 @@ def get_highest_opportunity_page_vitals_for_project(
                         "values": {vital: p75_value},
                     }
                 else:
-                    web_vital_issue_groups[VITAL_GROUPING_MAP[vital]]["scores"][vital] = score
-                    web_vital_issue_groups[VITAL_GROUPING_MAP[vital]]["values"][vital] = p75_value
+                    web_vital_issue_groups[(VITAL_GROUPING_MAP[vital], name)]["scores"][
+                        vital
+                    ] = score
+                    web_vital_issue_groups[(VITAL_GROUPING_MAP[vital], name)]["values"][
+                        vital
+                    ] = p75_value
 
     return list(web_vital_issue_groups.values())
 

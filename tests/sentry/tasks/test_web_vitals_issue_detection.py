@@ -291,6 +291,21 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                             "ttfb": {"value": 2000},
                         },
                     ),
+                    self.create_span(
+                        project=project,
+                        extra_data={
+                            "sentry_tags": {
+                                "op": "ui.webvitals.lcp",
+                                "transaction": "/settings",
+                            },
+                        },
+                        start_ts=self.ten_mins_ago,
+                        duration=100,
+                        measurements={
+                            "score.ratio.lcp": {"value": 0.5},
+                            "lcp": {"value": 3500},
+                        },
+                    ),
                 ]
             )
 
@@ -310,7 +325,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         ):
             run_web_vitals_issue_detection()
 
-            assert mock_produce_occurrence_to_kafka.call_count == 1
+            assert mock_produce_occurrence_to_kafka.call_count == 2
             call_args_list = mock_produce_occurrence_to_kafka.call_args_list
 
             # Common attributes
@@ -320,15 +335,14 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                 event_data = call_kwargs["event_data"]
                 assert occurrence.type == WebVitalsGroup
                 assert occurrence.project_id == project.id
-                assert occurrence.evidence_data == {"transaction": "/home"}
                 assert len(occurrence.evidence_display) == 1
                 assert occurrence.evidence_display[0].name == "Transaction"
-                assert occurrence.evidence_display[0].value == "/home"
                 assert occurrence.level == "info"
-                assert occurrence.culprit == "/home"
                 assert event_data["project_id"] == project.id
-                assert event_data["tags"]["transaction"] == "/home"
                 assert "trace" in event_data["contexts"]
+
+            assert call_args_list[0].kwargs["event_data"]["tags"]["transaction"] == "/home"
+            assert call_args_list[1].kwargs["event_data"]["tags"]["transaction"] == "/settings"
 
             lcp_call = call_args_list[0]
             lcp_occurrence = lcp_call.kwargs["occurrence"]
