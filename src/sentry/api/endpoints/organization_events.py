@@ -25,11 +25,10 @@ from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPer
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
-from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.search.eap.constants import EXTRAPOLATION_MODE_MAP
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
@@ -518,28 +517,18 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     request.GET.get("disableAggregateExtrapolation", "0") == "1"
                 )
 
-                requested_mode = request.GET.get("extrapolationMode", None)
-                if requested_mode is not None and requested_mode not in EXTRAPOLATION_MODE_MAP:
-                    raise InvalidSearchQuery(f"Unknown extrapolation mode: {requested_mode}")
-
-                extrapolation_mode = (
-                    EXTRAPOLATION_MODE_MAP[requested_mode] if requested_mode else None
-                )
-
                 if scoped_dataset == Spans:
                     return SearchResolverConfig(
                         auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
                         fields_acl=FieldsACL(functions={"time_spent_percentage"}),
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
-                        extrapolation_mode=extrapolation_mode,
                     )
                 elif scoped_dataset == OurLogs:
                     # ourlogs doesn't have use aggregate conditions
                     return SearchResolverConfig(
                         use_aggregate_conditions=False,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
-                        extrapolation_mode=extrapolation_mode,
                     )
                 elif scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
@@ -552,7 +541,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         use_aggregate_conditions=use_aggregate_conditions,
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
-                        extrapolation_mode=extrapolation_mode,
                     )
                 elif scoped_dataset == ProfileFunctions:
                     # profile_functions uses aggregate conditions
@@ -560,20 +548,17 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         use_aggregate_conditions=use_aggregate_conditions,
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
-                        extrapolation_mode=extrapolation_mode,
                     )
                 elif scoped_dataset == uptime_results.UptimeResults:
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         auto_fields=True,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
-                        extrapolation_mode=extrapolation_mode,
                     )
                 else:
                     return SearchResolverConfig(
                         use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
-                        extrapolation_mode=extrapolation_mode,
                     )
 
             if snuba_params.sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":

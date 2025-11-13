@@ -22,7 +22,6 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
-from sentry.search.eap.extrapolation_mode import resolve_extrapolation_mode
 from sentry.search.eap.types import EAPResponse, MetricType, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 
@@ -208,7 +207,8 @@ class ResolvedAggregate(ResolvedFunction):
 
     # The internal rpc alias for this column
     internal_name: Function.ValueType
-    extrapolation_mode: ExtrapolationMode.ValueType
+    # Whether to enable extrapolation
+    extrapolation: bool = True
     is_aggregate: bool = field(default=True, init=False)
     # Only for aggregates, we only support functions with 1 argument right now
     argument: AttributeKey | None = None
@@ -220,7 +220,11 @@ class ResolvedAggregate(ResolvedFunction):
             aggregate=self.internal_name,
             key=self.argument,
             label=self.public_alias,
-            extrapolation_mode=self.extrapolation_mode,
+            extrapolation_mode=(
+                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+                if self.extrapolation
+                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+            ),
         )
 
 
@@ -235,7 +239,8 @@ class ResolvedTraceMetricAggregate(ResolvedAggregate):
 class ResolvedConditionalAggregate(ResolvedFunction):
     # The internal rpc alias for this column
     internal_name: Function.ValueType
-    extrapolation_mode: ExtrapolationMode.ValueType
+    # Whether to enable extrapolation
+    extrapolation: bool = True
     # The condition to filter on
     filter: TraceItemFilter
     # The attribute to conditionally aggregate on
@@ -251,7 +256,11 @@ class ResolvedConditionalAggregate(ResolvedFunction):
             key=self.key,
             filter=self.filter,
             label=self.public_alias,
-            extrapolation_mode=self.extrapolation_mode,
+            extrapolation_mode=(
+                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+                if self.extrapolation
+                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+            ),
         )
 
 
@@ -284,8 +293,8 @@ class FunctionDefinition:
     infer_search_type_from_arguments: bool = True
     # The internal rpc type for this function, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
-    # Extrapolation mode to be used
-    extrapolation_mode_override: ExtrapolationMode.ValueType | None = None
+    # Whether to request extrapolation or not, should be true for all functions except for _sample functions for debugging
+    extrapolation: bool = True
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
     # if a function is private, assume it can't be used unless it's provided in `SearchResolverConfig.functions_acl`
@@ -347,8 +356,8 @@ class AggregateDefinition(FunctionDefinition):
             search_type=search_type,
             internal_type=self.internal_type,
             processor=self.processor,
-            extrapolation_mode=resolve_extrapolation_mode(
-                search_config, self.extrapolation_mode_override
+            extrapolation=(
+                self.extrapolation if not search_config.disable_aggregate_extrapolation else False
             ),
             argument=resolved_attribute,
         )
@@ -387,8 +396,8 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
             search_type=search_type,
             internal_type=self.internal_type,
             processor=self.processor,
-            extrapolation_mode=resolve_extrapolation_mode(
-                search_config, self.extrapolation_mode_override
+            extrapolation=(
+                self.extrapolation if not search_config.disable_aggregate_extrapolation else False
             ),
             argument=resolved_attribute,
             metric_name=metric_name,
@@ -429,8 +438,8 @@ class ConditionalAggregateDefinition(FunctionDefinition):
             filter=aggregate_filter,
             key=key,
             processor=self.processor,
-            extrapolation_mode=resolve_extrapolation_mode(
-                search_config, self.extrapolation_mode_override
+            extrapolation=(
+                self.extrapolation if not search_config.disable_aggregate_extrapolation else False
             ),
         )
 
@@ -457,8 +466,10 @@ class FormulaDefinition(FunctionDefinition):
         search_config: SearchResolverConfig,
     ) -> ResolvedFormula:
         resolver_settings = ResolverSettings(
-            extrapolation_mode=resolve_extrapolation_mode(
-                search_config, self.extrapolation_mode_override
+            extrapolation_mode=(
+                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+                if self.extrapolation and not search_config.disable_aggregate_extrapolation
+                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
             ),
             snuba_params=snuba_params,
             query_result_cache=query_result_cache,
