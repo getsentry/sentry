@@ -23,8 +23,8 @@ from sentry.seer.similarity.utils import (
     ReferrerOptions,
     event_content_has_stacktrace,
     get_stacktrace_string,
-    has_too_many_contributing_frames,
     killswitch_enabled,
+    stacktrace_exceeds_limits,
 )
 from sentry.users.models.user import User
 from sentry.utils.safe import get_path
@@ -89,7 +89,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         if latest_event and event_content_has_stacktrace(latest_event):
             variants = latest_event.get_grouping_variants(normalize_stacktraces=True)
 
-            if not has_too_many_contributing_frames(
+            if not stacktrace_exceeds_limits(
                 latest_event, variants, ReferrerOptions.SIMILAR_ISSUES_TAB
             ):
                 grouping_info = get_grouping_info_from_variants_legacy(variants)

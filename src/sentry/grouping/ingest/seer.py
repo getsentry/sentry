@@ -28,9 +28,9 @@ from sentry.seer.similarity.utils import (
     event_content_has_stacktrace,
     filter_null_from_string,
     get_stacktrace_string,
-    has_too_many_contributing_frames,
     killswitch_enabled,
     record_did_call_seer_metric,
+    stacktrace_exceeds_limits,
 )
 from sentry.services.eventstore.models import Event
 from sentry.utils import metrics
@@ -68,7 +68,7 @@ def should_call_seer_for_grouping(
         # know the other checks have passed.
         or _has_empty_stacktrace_string(event, variants)
         # do this after the empty stacktrace string check because it calculates the stacktrace string
-        or _has_too_many_contributing_frames(event, variants)
+        or _stacktrace_exceeds_limits(event, variants)
         # **Do not add any new checks after this.** The rate limit check MUST remain the last of all
         # the checks.
         #
@@ -158,9 +158,9 @@ def _event_content_is_seer_eligible(event: Event) -> bool:
     return True
 
 
-def _has_too_many_contributing_frames(event: Event, variants: dict[str, BaseVariant]) -> bool:
-    if has_too_many_contributing_frames(event, variants, ReferrerOptions.INGEST):
-        record_did_call_seer_metric(event, call_made=False, blocker="excess-frames")
+def _stacktrace_exceeds_limits(event: Event, variants: dict[str, BaseVariant]) -> bool:
+    if stacktrace_exceeds_limits(event, variants, ReferrerOptions.INGEST):
+        record_did_call_seer_metric(event, call_made=False, blocker="stacktrace-too-long")
         return True
 
     return False
