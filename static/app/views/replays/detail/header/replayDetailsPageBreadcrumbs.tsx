@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -36,6 +36,8 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const {currentTime} = useReplayContext();
 
   const replays = useReplayPlaylist();
+
+  const initialLocation = useRef(location);
 
   const currentReplayIndex = useMemo(
     () => replays?.findIndex(r => r.id === replayRecord?.id) ?? -1,
@@ -115,7 +117,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                           organization,
                         })
                       : undefined,
-                    query: location.query,
+                    query: initialLocation.current.query,
                   }}
                 />
                 <LinkButton
@@ -126,7 +128,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                     pathname: nextReplay
                       ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
                       : undefined,
-                    query: location.query,
+                    query: initialLocation.current.query,
                   }}
                 />
               </ButtonBar>
