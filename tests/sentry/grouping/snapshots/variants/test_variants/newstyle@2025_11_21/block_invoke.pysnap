@@ -12,7 +12,7 @@ app:
           frame* (marked in-app by the client)
             function*
               "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-          frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame* (marked in-app by built-in stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function*
               "__99+[Something else]_block_invoke_2"
           frame (marked out of app by the client)
@@ -42,6 +42,6 @@ system:
           frame*
             function*
               "__99+[Something else]_block_invoke_2"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "__00+[Something else]_block_invoke_2"

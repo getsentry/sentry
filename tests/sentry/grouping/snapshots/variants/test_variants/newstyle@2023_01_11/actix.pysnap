@@ -9,7 +9,7 @@ app:
     app*
       exception*
         stacktrace*
-          frame (marked in-app by the client but ignored by stack trace rule (category:threadbase -group v-group))
+          frame (marked in-app by the client but ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "__pthread_start"
           frame* (marked in-app by the client)
@@ -20,7 +20,7 @@ app:
               "thread.rs"
             function*
               "std::sys::unix::thread::Thread::new::thread_start"
-          frame (marked out of app by stack trace rule (family:native function:alloc::* -app))
+          frame (marked out of app by built-in stack trace rule (family:native function:alloc::* -app))
             filename*
               "boxed.rs"
             function*
@@ -403,7 +403,7 @@ system:
     system*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "__pthread_start"
           frame*
@@ -424,12 +424,12 @@ system:
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "panic.rs"
             function*
               "std::panic::catch_unwind"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "panicking.rs"
             function*
@@ -444,17 +444,17 @@ system:
               "panicking.rs"
             function*
               "std::panicking::try::do_call"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "panic.rs"
             function*
               "std::panic::AssertUnwindSafe<T>::call_once"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "mod.rs"
             function*
               "std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "backtrace.rs"
             function*
@@ -484,7 +484,7 @@ system:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function*
@@ -509,7 +509,7 @@ system:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function*
@@ -534,7 +534,7 @@ system:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function*
@@ -559,7 +559,7 @@ system:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function*
@@ -604,7 +604,7 @@ system:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function*
@@ -769,7 +769,7 @@ system:
               "local.rs"
             function*
               "std::thread::local::LocalKey<T>::with"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             filename*
               "local.rs"
             function*

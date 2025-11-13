@@ -31,7 +31,7 @@ contributing variants:
           type*
             "FailedToFetchError"
           stacktrace*
-            frame* (marked in-app by stack trace rule (function:playFetch +app))
+            frame* (marked in-app by custom stack trace rule (function:playFetch +app))
               filename*
                 "dogpark.js"
               function*

@@ -292,7 +292,7 @@ app:
           value* (stripped event-specific values)
             "Failed to start component [Connector[HTTP/<float><int>]]"
           stacktrace (ignored because it contains no in-app frames)
-            frame (marked out of app by stack trace rule (category:framework -app))
+            frame (marked out of app by built-in stack trace rule (category:framework -app))
               module*
                 "io.sentry.example.Application"
               filename (ignored because module takes precedence)
@@ -413,7 +413,7 @@ system:
           value (ignored because stacktrace takes precedence)
             "Address already in use"
           stacktrace*
-            frame (ignored by stack trace rule (module:io.sentry.* -group))
+            frame (ignored by built-in stack trace rule (module:io.sentry.* -group))
               module*
                 "io.sentry.example.Application"
               filename (ignored because module takes precedence)
@@ -580,7 +580,7 @@ system:
           value (ignored because stacktrace takes precedence)
             "service.getName(): \"Tomcat\";  Protocol handler start failed"
           stacktrace*
-            frame (ignored by stack trace rule (module:io.sentry.* -group))
+            frame (ignored by built-in stack trace rule (module:io.sentry.* -group))
               module*
                 "io.sentry.example.Application"
               filename (ignored because module takes precedence)
@@ -691,7 +691,7 @@ system:
           value (ignored because stacktrace takes precedence)
             "Failed to start component [Connector[HTTP/<float><int>]]"
           stacktrace*
-            frame (ignored by stack trace rule (module:io.sentry.* -group))
+            frame (ignored by built-in stack trace rule (module:io.sentry.* -group))
               module*
                 "io.sentry.example.Application"
               filename (ignored because module takes precedence)

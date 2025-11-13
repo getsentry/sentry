@@ -1447,7 +1447,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     "values": [
                       {
                         "contributes": false,
-                        "hint": "marked out of app by stack trace rule (category:framework -app)",
+                        "hint": "marked out of app by built-in stack trace rule (category:framework -app)",
                         "id": "frame",
                         "name": null,
                         "values": [
@@ -2020,7 +2020,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     "values": [
                       {
                         "contributes": false,
-                        "hint": "ignored by stack trace rule (module:io.sentry.* -group)",
+                        "hint": "ignored by built-in stack trace rule (module:io.sentry.* -group)",
                         "id": "frame",
                         "name": null,
                         "values": [
@@ -2859,7 +2859,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     "values": [
                       {
                         "contributes": false,
-                        "hint": "ignored by stack trace rule (module:io.sentry.* -group)",
+                        "hint": "ignored by built-in stack trace rule (module:io.sentry.* -group)",
                         "id": "frame",
                         "name": null,
                         "values": [
@@ -3418,7 +3418,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     "values": [
                       {
                         "contributes": false,
-                        "hint": "ignored by stack trace rule (module:io.sentry.* -group)",
+                        "hint": "ignored by built-in stack trace rule (module:io.sentry.* -group)",
                         "id": "frame",
                         "name": null,
                         "values": [

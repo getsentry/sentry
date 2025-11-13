@@ -16,9 +16,9 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
           frame (non app frame)
             function*
               "stripped_application_code"
@@ -55,7 +55,7 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
 --------------------------------------------------------------------------
 system:
   hash: "aeed765d29d1a60cb094f66d2cd8efb2"
@@ -69,7 +69,7 @@ system:
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
           frame

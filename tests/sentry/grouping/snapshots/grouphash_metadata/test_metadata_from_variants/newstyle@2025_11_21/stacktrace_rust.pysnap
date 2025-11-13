@@ -31,7 +31,7 @@ contributing variants:
           type*
             "log_demo"
           stacktrace*
-            frame* (marked in-app by stack trace rule (family:native function:log_demo::* +app))
+            frame* (marked in-app by custom stack trace rule (family:native function:log_demo::* +app))
               function*
                 "log_demo::main"
   system*

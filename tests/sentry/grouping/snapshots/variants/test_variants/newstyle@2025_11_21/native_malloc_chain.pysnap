@@ -50,15 +50,15 @@ system:
           frame*
             function*
               "malloc_zone_malloc"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "nanov2_malloc"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "nanov2_allocate"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "nanov2_allocate_from_block"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             function*
               "nanov2_allocate_from_block.cold.1"
