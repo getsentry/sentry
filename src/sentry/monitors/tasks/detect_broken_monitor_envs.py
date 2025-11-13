@@ -243,6 +243,8 @@ def detect_broken_monitor_envs_for_org(org_id: int):
             with transaction.atomic(router.db_for_write(MonitorEnvBrokenDetection)):
                 open_incident.monitor_environment.update(is_muted=True)
                 detection.update(env_muted_timestamp=django_timezone.now())
+                # Dual-write: Sync is_muted back to monitor if all environments are muted
+                open_incident.monitor.ensure_is_muted()
 
             for email in get_user_emails_from_monitor(open_incident.monitor, project):
                 if not email:

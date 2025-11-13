@@ -43,7 +43,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (function:runApp -app)",
+                    "hint": "marked out of app by custom stack trace rule (function:runApp -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -85,7 +85,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (function:handleRequest -app)",
+                    "hint": "marked out of app by custom stack trace rule (function:handleRequest -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -127,7 +127,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked in-app by stack trace rule (function:recordMetrics +app) but ignored by stack trace rule (function:recordMetrics -group)",
+                    "hint": "marked in-app by custom stack trace rule (function:recordMetrics +app) but ignored by custom stack trace rule (function:recordMetrics -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -169,7 +169,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by stack trace rule (function:playFetch +app)",
+                    "hint": "marked in-app by custom stack trace rule (function:playFetch +app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -261,7 +261,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (function:runApp -group)",
+                    "hint": "ignored by custom stack trace rule (function:runApp -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -345,7 +345,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (function:recordMetrics -group)",
+                    "hint": "ignored by custom stack trace rule (function:recordMetrics -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
