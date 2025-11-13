@@ -197,6 +197,7 @@ function Details({detector}: {detector: Detector}) {
     case 'monitor_check_in_failure':
       return <CronDetectorDetails detector={detector} />;
     case 'error':
+    case 'issue_stream':
       return null;
     default:
       unreachable(detectorType);
@@ -208,11 +209,21 @@ export function DetectorLink({detector, className, openInNewTab}: DetectorLinkPr
   const org = useOrganization();
   const project = useProjectFromId({project_id: detector.projectId});
 
+  const detectorName =
+    detector.type === 'issue_stream'
+      ? t('All Issues in %s', project?.name || 'project')
+      : detector.name;
+
+  const detectorLink =
+    detector.type === 'issue_stream'
+      ? null
+      : makeMonitorDetailsPathname(org.slug, detector.id);
+
   return (
     <TitleCell
       className={className}
-      name={detector.name}
-      link={makeMonitorDetailsPathname(org.slug, detector.id)}
+      name={detectorName}
+      link={detectorLink}
       systemCreated={getDetectorSystemCreatedNotice(detector)}
       disabled={!detector.enabled}
       openInNewTab={openInNewTab}

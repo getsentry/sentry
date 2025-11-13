@@ -86,7 +86,13 @@ export default function ConnectedMonitorsList({
     isSuccess,
     getResponseHeader,
   } = useDetectorsQuery(
-    {ids: detectorIds ?? undefined, limit: limit ?? undefined, cursor, query},
+    {
+      ids: detectorIds ?? undefined,
+      limit: limit ?? undefined,
+      cursor,
+      query,
+      includeIssueStreamDetectors: true,
+    },
     {enabled: detectorIds === null || detectorIds.length > 0}
   );
 
@@ -143,6 +149,7 @@ export default function ConnectedMonitorsList({
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
         {isSuccess &&
+          (detectorIds === null || detectorIds.length > 0) &&
           detectors.map(detector => (
             <SimpleTable.Row key={detector.id}>
               <SimpleTable.RowCell>

@@ -110,6 +110,7 @@ function ConnectMonitorsDrawer({
         makeDetectorListQueryKey({
           orgSlug: organization.slug,
           ids: localDetectorIds,
+          includeIssueStreamDetectors: true,
         })
       ) ?? [];
 
@@ -126,6 +127,7 @@ function ConnectMonitorsDrawer({
       makeDetectorListQueryKey({
         orgSlug: organization.slug,
         ids: newDetectorIds,
+        includeIssueStreamDetectors: true,
       }),
       newDetectors
     );

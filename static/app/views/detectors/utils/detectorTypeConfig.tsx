@@ -34,6 +34,7 @@ const DETECTOR_TYPE_CONFIG: Record<DetectorType, DetectorTypeConfig> = {
   issue_stream: {
     userCreateable: false,
     label: t('Issue Stream'),
+    systemCreatedNotice: () => t('This monitor is managed by Sentry'),
   },
 };
 
