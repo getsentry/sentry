@@ -382,9 +382,12 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-web-flow",
-            metadata={
-                "web_url": "https://p4web.example.com",
-                "web_viewer_type": "p4web",
+            metadata={},
+            oi_params={
+                "config": {
+                    "web_url": "https://p4web.example.com",
+                    "web_viewer_type": "p4web",
+                }
             },
         )
         installation: PerforceIntegration = integration_with_web.get_installation(self.organization.id)  # type: ignore[assignment]

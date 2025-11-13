@@ -62,8 +62,11 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider):
                         f"Depot not found or no access: {depot_path}. Available depots: {[d['name'] for d in depots]}"
                     )
 
+        except IntegrationError:
+            # Re-raise validation errors so user sees them
+            raise
         except Exception:
-            # Don't fail - depot might be valid but empty
+            # Catch only connection/P4 errors - depot might be valid but temporarily unreachable
             pass
 
         config["external_id"] = depot_path
