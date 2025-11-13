@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.perforce.integration import PerforceIntegrationProvider
 from sentry.integrations.utils.stacktrace_link import get_stacktrace_config
@@ -41,8 +43,10 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             default_branch=None,
         )
 
-    def test_get_stacktrace_config_python_path(self):
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_get_stacktrace_config_python_path(self, mock_check_file):
         """Test stacktrace link generation for Python SDK path"""
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.py"}
         ctx: StacktraceLinkContext = {
             "file": "depot/app/services/processor.py",
             "filename": "depot/app/services/processor.py",
@@ -64,8 +68,10 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         assert result["error"] is None
         assert result["src_path"] == "app/services/processor.py"
 
-    def test_get_stacktrace_config_cpp_path_with_revision(self):
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_get_stacktrace_config_cpp_path_with_revision(self, mock_check_file):
         """Test stacktrace link generation for C++ path with @revision"""
+        mock_check_file.return_value = {"depotFile": "//depot/game/src/main.cpp"}
         ctx: StacktraceLinkContext = {
             "file": "depot/game/src/main.cpp@42",
             "filename": "depot/game/src/main.cpp@42",
@@ -109,8 +115,10 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         assert result["error"] == "stack_root_mismatch"
         assert result["src_path"] is None
 
-    def test_get_stacktrace_config_multiple_code_mappings(self):
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_get_stacktrace_config_multiple_code_mappings(self, mock_check_file):
         """Test stacktrace link with multiple code mappings"""
+        mock_check_file.return_value = {"depotFile": "//myproject/app/services/handler.py"}
         # Add another depot mapping
         myproject_repo = Repository.objects.create(
             name="//myproject",
@@ -151,16 +159,21 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         assert "//myproject/app/services/handler.py" in result["source_url"]
         assert result["src_path"] == "app/services/handler.py"
 
-    def test_get_stacktrace_config_with_web_viewer(self):
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_get_stacktrace_config_with_web_viewer(self, mock_check_file):
         """Test stacktrace link with P4Web viewer"""
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.py"}
         integration_with_web = self.create_integration(
             organization=self.organization,
             provider="perforce",
             name="Perforce",
             external_id="perforce-test-web-link",
-            metadata={
-                "web_url": "https://p4web.example.com",
-                "web_viewer_type": "p4web",
+            metadata={},
+            oi_params={
+                "config": {
+                    "web_url": "https://p4web.example.com",
+                    "web_viewer_type": "p4web",
+                }
             },
         )
 
@@ -331,8 +344,10 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
         )
         self.project = self.create_project(organization=self.organization)
 
-    def test_stacktrace_link_empty_stack_root(self):
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_stacktrace_link_empty_stack_root(self, mock_check_file):
         """Test stacktrace link with empty stack_root (shouldn't match anything)"""
+        mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.py"}
         repo = Repository.objects.create(
             name="//depot",
             organization_id=self.organization.id,
@@ -369,8 +384,10 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
         # Empty stack_root should match any path
         assert result["source_url"] is not None
 
-    def test_stacktrace_link_with_special_characters_in_path(self):
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_stacktrace_link_with_special_characters_in_path(self, mock_check_file):
         """Test stacktrace link with special characters in file path"""
+        mock_check_file.return_value = {"depotFile": "//depot/app/my services/processor-v2.py"}
         repo = Repository.objects.create(
             name="//depot",
             organization_id=self.organization.id,
@@ -408,8 +425,10 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
         assert result["source_url"] is not None
         assert result["src_path"] == "app/my services/processor-v2.py"
 
-    def test_stacktrace_link_deeply_nested_path(self):
+    @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
+    def test_stacktrace_link_deeply_nested_path(self, mock_check_file):
         """Test stacktrace link with very deeply nested path"""
+        mock_check_file.return_value = {"depotFile": "//depot/file.py"}
         repo = Repository.objects.create(
             name="//depot",
             organization_id=self.organization.id,
