@@ -24,6 +24,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 
@@ -117,6 +118,7 @@ function Dashboard({
   const organization = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
+  const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);
     return {
@@ -176,6 +178,10 @@ function Dashboard({
     );
 
     return () => {
+      if (queue) {
+        queue.abort();
+        queue.clear();
+      }
       window.removeEventListener('resize', debouncedHandleResize);
       window.clearTimeout(forceCheckTimeout.current);
       GroupStore.reset();
