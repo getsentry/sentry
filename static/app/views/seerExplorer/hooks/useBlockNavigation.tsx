@@ -9,6 +9,7 @@ interface UseBlockNavigationProps {
   isOpen: boolean;
   setFocusedBlockIndex: (index: number) => void;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  isMinimized?: boolean;
   onDeleteFromIndex?: (index: number) => void;
   onKeyPress?: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean;
   onNavigate?: () => void;
@@ -21,6 +22,7 @@ export function useBlockNavigation({
   blockRefs,
   textareaRef,
   setFocusedBlockIndex,
+  isMinimized = false,
   onDeleteFromIndex,
   onKeyPress,
   onNavigate,
@@ -74,10 +76,16 @@ export function useBlockNavigation({
       } else if (e.key === 'Tab') {
         e.preventDefault();
         onNavigate?.();
-        // Tab always returns to input and focuses textarea
-        setFocusedBlockIndex(-1);
-        textareaRef.current?.focus();
-        textareaRef.current?.scrollIntoView({block: 'nearest'});
+        // If unminimizing and there was a previously focused block, restore that focus
+        // Otherwise, focus the input
+        if (isMinimized && focusedBlockIndex >= 0 && focusedBlockIndex < blocks.length) {
+          blockRefs.current[focusedBlockIndex]?.scrollIntoView({block: 'nearest'});
+        } else {
+          // Tab always returns to input and focuses textarea when not unminimizing
+          setFocusedBlockIndex(-1);
+          textareaRef.current?.focus();
+          textareaRef.current?.scrollIntoView({block: 'nearest'});
+        }
       } else if (e.key === 'Backspace' && focusedBlockIndex >= 0) {
         e.preventDefault();
         // Delete from this block and all blocks after it
@@ -102,6 +110,7 @@ export function useBlockNavigation({
     blockRefs,
     textareaRef,
     setFocusedBlockIndex,
+    isMinimized,
     onDeleteFromIndex,
     onKeyPress,
     onNavigate,

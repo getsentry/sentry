@@ -28,6 +28,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const hoveredBlockIndex = useRef<number>(-1);
   const userScrolledUpRef = useRef<boolean>(false);
+  const allowHoverFocusChange = useRef<boolean>(true);
 
   // Custom hooks
   const {panelSize, handleMaxSize, handleMedSize} = usePanelSizing();
@@ -52,6 +53,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     blockRefs,
     textareaRef,
     setFocusedBlockIndex,
+    isMinimized,
     onDeleteFromIndex: deleteFromIndex,
     onKeyPress: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => {
       const handler = blockEnterHandlers.current.get(blockIndex);
@@ -76,6 +78,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       setFocusedBlockIndex(-1);
       setIsMinimized(false); // Expand when opening
       userScrolledUpRef.current = false;
+      allowHoverFocusChange.current = false; // Disable hover until mouse moves
       setTimeout(() => {
         // Scroll to bottom when panel opens
         if (scrollContainerRef.current) {
@@ -102,7 +105,7 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isVisible]);
+  }, [isVisible, focusedBlockIndex]);
 
   // Track scroll position to detect if user scrolled up
   useEffect(() => {
@@ -263,9 +266,16 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
       }
     };
 
+    // Re-enable hover focus changes when mouse actually moves
+    const handleMouseMove = () => {
+      allowHoverFocusChange.current = true;
+    };
+
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousemove', handleMouseMove);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousemove', handleMouseMove);
     };
   }, [
     isVisible,
@@ -277,13 +287,31 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
     isMinimized,
   ]);
 
+  const handleUnminimize = useCallback(() => {
+    setIsMinimized(false);
+    // Disable hover focus changes until mouse actually moves
+    allowHoverFocusChange.current = false;
+    // Restore focus to the previously focused block if it exists and is valid
+    if (focusedBlockIndex >= 0 && focusedBlockIndex < blocks.length) {
+      setTimeout(() => {
+        blockRefs.current[focusedBlockIndex]?.scrollIntoView({block: 'nearest'});
+      }, 100);
+    } else {
+      // No valid block focus, focus input
+      setTimeout(() => {
+        setFocusedBlockIndex(-1);
+        textareaRef.current?.focus();
+      }, 100);
+    }
+  }, [focusedBlockIndex, blocks.length]);
+
   const panelContent = (
     <PanelContainers
       ref={panelRef}
       isOpen={isVisible}
       isMinimized={isMinimized}
       panelSize={panelSize}
-      onUnminimize={() => setIsMinimized(false)}
+      onUnminimize={handleUnminimize}
     >
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
         {blocks.length === 0 ? (
@@ -302,8 +330,12 @@ function ExplorerPanel({isVisible = false}: ExplorerPanelProps) {
               isPolling={isPolling}
               onClick={() => handleBlockClick(index)}
               onMouseEnter={() => {
-                // Don't change focus while menu is open or if already on this block
-                if (isMenuOpen || hoveredBlockIndex.current === index) {
+                // Don't change focus while menu is open, if already on this block, or if hover is disabled
+                if (
+                  isMenuOpen ||
+                  hoveredBlockIndex.current === index ||
+                  !allowHoverFocusChange.current
+                ) {
                   return;
                 }
 
