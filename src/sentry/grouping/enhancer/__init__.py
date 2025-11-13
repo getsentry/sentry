@@ -244,15 +244,22 @@ def _split_rules(
         if rule is not None  # mypy appeasment
     ]
 
-    classifier_rules_text = "\n".join(rule.text for rule in classifier_rules)
-    contributes_rules_text = "\n".join(rule.text for rule in contributes_rules)
+    classifier_rule_strings = [rule.text for rule in classifier_rules]
+    contributes_rule_strings = [rule.text for rule in contributes_rules]
+
+    classifier_rules_text = "\n".join(classifier_rule_strings)
+    contributes_rules_text = "\n".join(contributes_rule_strings)
 
     classifier_rust_enhancements = _get_rust_enhancements("config_string", classifier_rules_text)
     contributes_rust_enhancements = _get_rust_enhancements("config_string", contributes_rules_text)
 
     return (
-        EnhancementsConfigData(classifier_rules, classifier_rust_enhancements),
-        EnhancementsConfigData(contributes_rules, contributes_rust_enhancements),
+        EnhancementsConfigData(
+            classifier_rules, classifier_rule_strings, classifier_rust_enhancements
+        ),
+        EnhancementsConfigData(
+            contributes_rules, contributes_rule_strings, contributes_rust_enhancements
+        ),
     )
 
 
