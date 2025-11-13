@@ -6,6 +6,7 @@ from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.exploresavedquery import ExploreSavedQueryResponse
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.explore.models import ExploreSavedQuery
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
@@ -48,7 +49,9 @@ class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
 @register(DiscoverSavedQuery)
 class DiscoverSavedQueryModelSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        result: DefaultDict[str, dict] = defaultdict(lambda: {"created_by": {}})
+        result: DefaultDict[str, dict] = defaultdict(
+            lambda: {"created_by": {}, "explore_query": None}
+        )
 
         service_serialized = user_service.serialize_many(
             filter={
@@ -62,10 +65,31 @@ class DiscoverSavedQueryModelSerializer(Serializer):
         )
         serialized_users = {user["id"]: user for user in service_serialized}
 
+        # Batch fetch and serialize explore queries
+        explore_query_ids = [
+            discover_query.explore_query_id
+            for discover_query in item_list
+            if discover_query.explore_query_id is not None
+            and discover_query.dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
+        ]
+        if explore_query_ids:
+            explore_queries = ExploreSavedQuery.objects.filter(
+                id__in=explore_query_ids
+            ).prefetch_related("projects")
+            serialized_explore_queries = {
+                query.id: serialize(query, user) for query in explore_queries
+            }
+        else:
+            serialized_explore_queries = {}
+
         for discover_saved_query in item_list:
             result[discover_saved_query]["created_by"] = serialized_users.get(
                 str(discover_saved_query.created_by_id)
             )
+            if discover_saved_query.explore_query_id in serialized_explore_queries:
+                result[discover_saved_query]["explore_query"] = serialized_explore_queries.get(
+                    discover_saved_query.explore_query_id
+                )
 
         return result
 
@@ -117,11 +141,8 @@ class DiscoverSavedQueryModelSerializer(Serializer):
         if obj.query.get("all_projects"):
             data["projects"] = list(ALL_ACCESS_PROJECTS)
 
-        if (
-            obj.dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
-            and obj.explore_query_id is not None
-        ):
-            explore_query = obj.explore_query
-            data["exploreQuery"] = serialize(explore_query, user)
+        # Use pre-serialized explore query from attrs (fetched in batch in get_attrs)
+        if attrs.get("explore_query") is not None:
+            data["exploreQuery"] = attrs["explore_query"]  # type: ignore[typeddict-item]
 
         return data
