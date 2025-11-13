@@ -165,7 +165,7 @@ def get_detector_from_event_data(event_data: WorkflowEventData) -> Detector:
             return get_detector_by_group(event_data.group)
     except Detector.DoesNotExist:
         logger.exception(
-            "Detector not found for event",
+            "Detector not found for event data",
             extra={
                 "type": type(event_data.event),
                 "id": (
@@ -176,6 +176,7 @@ def get_detector_from_event_data(event_data: WorkflowEventData) -> Detector:
                 "group_id": event_data.group.id,
             },
         )
+        raise Detector.DoesNotExist("Detector not found for event data")
 
     raise TypeError(f"Cannot determine the detector from {type(event_data.event)}.")
 
