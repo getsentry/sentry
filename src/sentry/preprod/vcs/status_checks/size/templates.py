@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import logging
-
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
@@ -10,7 +8,6 @@ from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
 
 _SIZE_ANALYZER_TITLE_BASE = _("Size Analysis")
-logger = logging.getLogger(__name__)
 
 
 def format_status_check_messages(
@@ -104,7 +101,6 @@ def _format_artifact_summary(
         qualifiers = []
 
         platform_label = artifact.get_platform_label()
-        logger.info("Platform label: %s", platform_label)
         if platform_label:
             qualifiers.append(platform_label)
 
