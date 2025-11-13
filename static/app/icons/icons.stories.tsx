@@ -786,6 +786,13 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'add-isCircled',
+        name: 'Add',
+        defaultProps: {
+          isCircled: true,
+        },
+      },
+      {
         id: 'subtract',
         groups: ['action'],
         keywords: ['minus', 'remove', 'decrease', 'delete', 'math'],
@@ -793,6 +800,13 @@ const SECTIONS: TSection[] = [
         name: 'Subtract',
         defaultProps: {
           isCircled: false,
+        },
+      },
+      {
+        id: 'subtract-isCircled',
+        name: 'Subtract',
+        defaultProps: {
+          isCircled: true,
         },
       },
       {
@@ -806,6 +820,13 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'checkmark-isCircled',
+        name: 'Checkmark',
+        defaultProps: {
+          isCircled: true,
+        },
+      },
+      {
         id: 'close',
         groups: ['action'],
         keywords: ['cross', 'deny', 'terminate', 'x', 'cancel', 'exit'],
@@ -813,6 +834,13 @@ const SECTIONS: TSection[] = [
         name: 'Close',
         defaultProps: {
           isCircled: false,
+        },
+      },
+      {
+        id: 'close-isCircled',
+        name: 'Close',
+        defaultProps: {
+          isCircled: true,
         },
       },
       {
@@ -1168,10 +1196,24 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'sliders-direction-right',
+        name: 'Sliders',
+        defaultProps: {
+          direction: 'right',
+        },
+      },
+      {
         id: 'sliders-direction-up',
         name: 'Sliders',
         defaultProps: {
           direction: 'up',
+        },
+      },
+      {
+        id: 'sliders-direction-down',
+        name: 'Sliders',
+        defaultProps: {
+          direction: 'down',
         },
       },
       {
@@ -1306,19 +1348,36 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'thumb',
-        keywords: ['feedback', 'good'],
-        additionalProps: ['direction'],
-        name: 'Thumb',
-        defaultProps: {},
-      },
-      {
-        id: 'thumb',
-        keywords: ['feedback', 'bad', 'poor'],
+        id: 'thumb-direction-up',
+        keywords: ['feedback', 'good', 'like', 'approve'],
         additionalProps: ['direction'],
         name: 'Thumb',
         defaultProps: {
+          direction: 'up',
+        },
+      },
+      {
+        id: 'thumb-direction-right',
+        keywords: ['feedback', 'direction'],
+        name: 'Thumb',
+        defaultProps: {
+          direction: 'right',
+        },
+      },
+      {
+        id: 'thumb-direction-down',
+        keywords: ['feedback', 'bad', 'poor', 'dislike', 'disapprove'],
+        name: 'Thumb',
+        defaultProps: {
           direction: 'down',
+        },
+      },
+      {
+        id: 'thumb-direction-left',
+        keywords: ['feedback', 'direction'],
+        name: 'Thumb',
+        defaultProps: {
+          direction: 'left',
         },
       },
     ],
