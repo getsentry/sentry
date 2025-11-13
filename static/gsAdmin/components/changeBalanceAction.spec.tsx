@@ -129,7 +129,7 @@ describe('BalanceChangeAction', () => {
 
     triggerChangeBalanceModal({subscription, ...modalProps});
 
-    renderGlobalModal();
+    const {waitForModalToHide} = renderGlobalModal();
     await userEvent.type(screen.getByRole('spinbutton', {name: 'Credit Amount'}), '10');
 
     const submitButton = screen.getByRole('button', {name: 'Submit'});
@@ -143,6 +143,7 @@ describe('BalanceChangeAction', () => {
     await waitFor(() => {
       expect(updateMock).toHaveBeenCalledTimes(1);
     });
+    await waitForModalToHide();
   });
 
   it('disables form fields during submission', async () => {
@@ -156,7 +157,7 @@ describe('BalanceChangeAction', () => {
 
     triggerChangeBalanceModal({subscription, ...modalProps});
 
-    renderGlobalModal();
+    const {waitForModalToHide} = renderGlobalModal();
     const creditInput = await screen.findByRole('spinbutton', {name: 'Credit Amount'});
     await userEvent.type(creditInput, '10');
 
@@ -169,5 +170,56 @@ describe('BalanceChangeAction', () => {
     expect(creditInput).toBeDisabled();
     expect(screen.getByRole('textbox', {name: 'Ticket URL'})).toBeDisabled();
     expect(screen.getByRole('textbox', {name: 'Notes'})).toBeDisabled();
+    await waitForModalToHide();
   });
+
+  it('re-enables form after error', async () => {
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/_admin/customers/${organization.slug}/balance-changes/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'Invalid amount'},
+    });
+
+    triggerChangeBalanceModal({subscription, ...modalProps});
+    renderGlobalModal();
+
+    expect(
+      await screen.findByRole('spinbutton', {name: 'Credit Amount'})
+    ).toBeInTheDocument();
+    expect(await screen.findByRole('textbox', {name: 'Ticket URL'})).toBeInTheDocument();
+    expect(await screen.findByRole('textbox', {name: 'Notes'})).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Credit Amount'), '10');
+
+    expect(await screen.findByRole('button', {name: /submit/i})).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled()
+    );
+
+    // Disable pointer-events check to avoid false positive in CI
+    // where modal overlay may still be settling during initialization
+    await userEvent.click(screen.getByRole('button', {name: /submit/i}), {
+      pointerEventsCheck: 0,
+    });
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        `/_admin/customers/${organization.slug}/balance-changes/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {creditAmount: 1000, notes: '', ticketUrl: ''},
+        })
+      );
+    });
+
+    await waitFor(
+      () => {
+        expect(screen.getByLabelText('Credit Amount')).toBeEnabled();
+      },
+      {timeout: 5_000}
+    );
+    expect(screen.getByRole('textbox', {name: 'Ticket URL'})).toBeEnabled();
+    expect(screen.getByRole('textbox', {name: 'Notes'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled();
+  }, 25_000);
 });
