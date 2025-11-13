@@ -807,7 +807,7 @@ export function useMetricsPanelAnalytics({
       return;
     }
 
-    if (metricAggregatesTableResult.result.isPending) {
+    if (metricAggregatesTableResult.result.isPending || !dataScanned) {
       return;
     }
 
