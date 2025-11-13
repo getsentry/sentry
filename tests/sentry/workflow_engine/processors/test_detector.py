@@ -220,9 +220,14 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         with mock.patch("sentry.utils.metrics.incr") as mock_incr:
             process_detectors(data_packet, [detector])
 
-            mock_incr.assert_called_once_with(
+            mock_incr.assert_any_call(
                 "workflow_engine.process_detector",
                 tags={"detector_type": detector.type},
+            )
+            mock_incr.assert_any_call(
+                "workflow_engine_detector.evaluation",
+                tags={"detector_type": detector.type, "result": "success"},
+                sample_rate=1.0,
             )
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
@@ -830,8 +835,8 @@ class TestGetDetectorByEvent(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
-        self.detector = self.create_detector(project=self.project, type="metric_issue")
-        self.error_detector = self.create_detector(project=self.project, type="error")
+        self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
         self.event = self.store_event(project_id=self.project.id, data={})
         self.occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,

@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
-import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
@@ -190,7 +189,7 @@ function CreditCardPanel({
           />
         ) : subscription.paymentSource ? (
           <Fragment>
-            <Text>{`${toTitleCase(subscription.paymentSource.brand, {allowInnerUpperCase: true})} ****${subscription.paymentSource.last4} ${moment(new Date(subscription.paymentSource.expYear, subscription.paymentSource.expMonth - 1)).format('MM/YY')}`}</Text>
+            <Text>{`${toTitleCase(subscription.paymentSource.brand, {allowInnerUpperCase: true})} ****${subscription.paymentSource.last4} ${String(subscription.paymentSource.expMonth).padStart(2, '0')}/${String(subscription.paymentSource.expYear).slice(-2)}`}</Text>
             <Text>{`${countryName ? `${countryName} ` : ''} ${subscription.paymentSource.zipCode ? subscription.paymentSource.zipCode : ''}`}</Text>
           </Fragment>
         ) : (

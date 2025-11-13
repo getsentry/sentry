@@ -487,7 +487,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 
         # Create a not-metric detector
         self.create_detector(
-            project_id=self.project.id,
+            project=self.project,
             name="Error Detector",
             status=ObjectStatus.ACTIVE,
         )
