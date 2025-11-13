@@ -58,6 +58,8 @@ VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
 
 @dataclass
 class EnhancementsConfigData:
+    # Note: This is not an actual config, just a container to make it easier to pass data between
+    # functions while loading a config.
     rules: list[EnhancementRule]
     rust_enhancements: RustEnhancements
     version: int | None = None
