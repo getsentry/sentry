@@ -21,6 +21,8 @@ module:com.android.* category=system
 family:native package:libdispatch.dylib category=system
 family:native package:WebKit category=system
 family:native package:**/libart.so category=system
+family:native package:linux-gate.so* category=system
+family:native package:linux-vdso.so* category=system
 package:/apex/com.android.*/lib*/** category=system
 
 # (Presumably) preinstalled stuff on Lenovo Android devices
@@ -329,7 +331,6 @@ family:native package:/lib/**                                        -app
 family:native package:/usr/lib/**                                    -app
 family:native path:/usr/local/lib/**                                 -app
 family:native path:/usr/local/Cellar/**                              -app
-family:native package:linux-gate.so*                                 -app
 
 # rust common modules/functions
 family:native function:std::*                                     -app
