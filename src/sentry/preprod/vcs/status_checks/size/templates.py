@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 
@@ -8,6 +10,7 @@ from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
 
 _SIZE_ANALYZER_TITLE_BASE = _("Size Analysis")
+logger = logging.getLogger(__name__)
 
 
 def format_status_check_messages(
@@ -98,14 +101,23 @@ def _format_artifact_summary(
     artifact_metric_rows = _create_sorted_artifact_metric_rows(artifacts, size_metrics_map)
 
     for artifact, size_metrics in artifact_metric_rows:
+        qualifiers = []
+
+        platform_label = artifact.get_platform_label()
+        logger.info("Platform label: %s", platform_label)
+        if platform_label:
+            qualifiers.append(platform_label)
+
         # App name
         metric_type_display = _get_size_metric_type_display_name(
             size_metrics.metrics_artifact_type if size_metrics else None
         )
         if metric_type_display:
-            app_name = f"{artifact.app_name or '--'} ({metric_type_display})"
-        else:
-            app_name = artifact.app_name or "--"
+            qualifiers.append(metric_type_display)
+
+        app_name = (
+            f"{artifact.app_name or '--'}{' (' + ', '.join(qualifiers) + ')' if qualifiers else ''}"
+        )
 
         # App ID
         app_id = artifact.app_id or "--"
