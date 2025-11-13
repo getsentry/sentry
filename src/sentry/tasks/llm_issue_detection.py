@@ -188,9 +188,14 @@ def detect_llm_issues_for_project(project_id: int) -> None:
     if not transactions:
         return
 
-    # Sample a random subset of transactions to process
-    transactions = random.sample(transactions, min(len(transactions), NUM_TRANSACTIONS_TO_PROCESS))
+    # Shuffle transactions to randomize order
+    random.shuffle(transactions)
+
+    processed_count = 0
     for transaction in transactions:
+        if processed_count >= NUM_TRANSACTIONS_TO_PROCESS:
+            break
+
         try:
             trace: TraceData | None = get_trace_for_transaction(
                 transaction.name, transaction.project_id
@@ -202,6 +207,7 @@ def detect_llm_issues_for_project(project_id: int) -> None:
             ):
                 continue
 
+            processed_count += 1
             logger.info(
                 "Found trace for LLM issue detection",
                 extra={
