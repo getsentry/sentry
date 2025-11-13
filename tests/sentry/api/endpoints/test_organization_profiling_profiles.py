@@ -290,32 +290,21 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
             mock_bulk_snuba_queries.assert_called_once()
 
             call_args = mock_bulk_snuba_queries.call_args.args
-            [transactions_snql_request, profiles_snql_request] = call_args[0]
-
-            assert transactions_snql_request.dataset == Dataset.Discover.value
-            assert (
-                Or(
-                    conditions=[
-                        Condition(Column("profile_id"), Op.IS_NOT_NULL),
-                        And(
-                            conditions=[
-                                Condition(Column("profiler_id"), Op.IS_NOT_NULL),
-                                Condition(
-                                    Function(
-                                        "has",
-                                        [Column("contexts.key"), "trace.thread_id"],
-                                    ),
-                                    Op.EQ,
-                                    1,
-                                ),
-                            ],
-                        ),
-                    ],
-                )
-                in transactions_snql_request.query.where
-            )
+            [profiles_snql_request] = call_args[0]
 
             assert profiles_snql_request.dataset == Dataset.Profiles.value
+
+            where_conditions = profiles_snql_request.query.where
+            assert len(where_conditions) == 3
+            assert Condition(Column("project_id"), Op.IN, [self.project.id]) in where_conditions
+            condition_signatures = {
+                (c.lhs.name, c.op) for c in where_conditions if isinstance(c, Condition)
+            }
+            assert condition_signatures == {
+                ("project_id", Op.IN),
+                ("start_timestamp", Op.LT),
+                ("end_timestamp", Op.GTE),
+            }
 
     @patch("sentry.profiles.flamegraph.bulk_snuba_queries", wraps=bulk_snuba_queries)
     @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
