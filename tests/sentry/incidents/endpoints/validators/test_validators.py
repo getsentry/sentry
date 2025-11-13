@@ -643,6 +643,47 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
         updated_detector = update_validator.save()
         assert updated_detector.name == new_name
 
+    @mock.patch("sentry.seer.anomaly_detection.delete_rule.delete_rule_in_seer")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_update_anomaly_detection_to_static(
+        self,
+        mock_audit: mock.MagicMock,
+        mock_seer_store_request: mock.MagicMock,
+        mock_seer_delete_request: mock.MagicMock,
+    ) -> None:
+        """
+        Test that if a dynamic detector is changed to become a static one
+        we tell Seer to delete the data for that detector
+        """
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_store_request.return_value = HTTPResponse(
+            orjson.dumps(seer_return_value), status=200
+        )
+        mock_seer_delete_request.return_value = HTTPResponse(
+            orjson.dumps(seer_return_value), status=200
+        )
+
+        dynamic_detector = self.create_dynamic_detector()
+
+        # Verify detector in DB
+        self.assert_validated(dynamic_detector)
+
+        assert mock_seer_store_request.call_count == 1
+
+        update_validator = MetricIssueDetectorValidator(
+            instance=dynamic_detector,
+            data=self.valid_data,
+            context=self.context,
+            partial=True,
+        )
+        assert update_validator.is_valid(), update_validator.errors
+        update_validator.save()
+
+        assert mock_seer_delete_request.call_count == 1
+
     @mock.patch(
         "sentry.seer.anomaly_detection.store_data_workflow_engine.seer_anomaly_detection_connection_pool.urlopen"
     )
