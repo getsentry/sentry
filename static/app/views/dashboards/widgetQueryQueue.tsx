@@ -35,8 +35,8 @@ export function useWidgetQueryQueue() {
   return hasQueueFeature && queueContext ? queueContext : {queue: undefined};
 }
 
-const MAX_CONCURRENCY = 15;
-const MAX_RETRIES = 10;
+const MAX_CONCURRENCY = 5;
+const MAX_RETRIES = 5;
 
 export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}) {
   const startTimeRef = useRef<number | undefined>(undefined);

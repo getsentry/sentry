@@ -472,7 +472,7 @@ function getEventsRequest(
   url: string,
   api: Client,
   query: WidgetQuery,
-  _organization: Organization,
+  organization: Organization,
   pageFilters: PageFilters,
   limit?: number,
   cursor?: string,

@@ -14,6 +14,7 @@ import {
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
+import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/widgetQueryQueue';
 
 describe('Dashboards > WidgetQueries', () => {
   const initialData = initializeOrg();
@@ -22,7 +23,9 @@ describe('Dashboards > WidgetQueries', () => {
     render(
       <MetricsResultsMetaProvider>
         <DashboardsMEPProvider>
-          <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+          <WidgetQueryQueueProvider>
+            <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+          </WidgetQueryQueueProvider>
         </DashboardsMEPProvider>
       </MetricsResultsMetaProvider>
     );
