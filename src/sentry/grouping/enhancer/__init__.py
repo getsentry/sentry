@@ -371,6 +371,12 @@ class EnhancementsConfig:
             self.bases, contributes_config.rust_enhancements, type="contributes"
         )
 
+        # We store the rule strings individually in a set so it's quick to test if a given rule
+        # mentioned in a hint is custom or built-in
+        self.custom_rule_strings = set(
+            classifier_config.rule_strings + contributes_config.rule_strings
+        )
+
     def apply_category_and_updated_in_app_to_frames(
         self,
         frames: Sequence[dict[str, Any]],
