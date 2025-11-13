@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useRef} from 'react';
 import * as echarts from 'echarts/core';
 
+import {getEventIdMappings} from 'sentry/utils/events';
+
 /**
  * Captures a coarse ASCII representation of the current page by laying out
  * visible elements onto a character grid based on their bounding rectangles.
@@ -566,7 +568,18 @@ function useAsciiSnapshot() {
 
     // Top line: full URL of the current page
     const url = window.location.href;
-    const result = url + '\n' + grid.map(row => row.join('')).join('\n');
+    let result = url + '\n' + grid.map(row => row.join('')).join('\n');
+
+    // Append event ID mapping from global variable
+    const mapping = getEventIdMappings();
+    const entries = Object.entries(mapping);
+    if (entries.length > 0) {
+      result += '\n\n--- Event ID Mapping ---\n';
+      entries.forEach(([shortId, fullId]) => {
+        result += `${shortId} -> ${fullId}\n`;
+      });
+    }
+
     return result;
   }, []);
 

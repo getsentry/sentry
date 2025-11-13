@@ -149,11 +149,29 @@ export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper | Simpl
   }
 }
 
+// Global mapping of short event IDs to full event IDs for Seer Explorer
+const eventIdMapping: Record<string, string> = {};
+
 /**
- * Returns a short eventId with only 8 characters
+ * Returns a short eventId with only 8 characters.
+ * Also stores the mapping of short ID to full ID in a global variable for Seer Explorer.
  */
 export function getShortEventId(eventId: string) {
-  return eventId.substring(0, 8);
+  const shortId = eventId.substring(0, 8);
+
+  // Store mapping in global variable for Seer Explorer
+  if (!eventIdMapping[shortId] || eventIdMapping[shortId] !== eventId) {
+    eventIdMapping[shortId] = eventId;
+  }
+
+  return shortId;
+}
+
+/**
+ * Get all event ID mappings for Seer Explorer
+ */
+export function getEventIdMappings(): Record<string, string> {
+  return {...eventIdMapping};
 }
 
 /**
