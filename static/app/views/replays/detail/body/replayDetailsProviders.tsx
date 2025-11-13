@@ -2,6 +2,7 @@ import {useEffect, useMemo, type ReactNode} from 'react';
 
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {DEFAULT_REPLAY_LIST_SORT} from 'sentry/components/replays/table/useReplayTableSort';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
@@ -67,9 +68,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
     query.start = playlistStart;
     query.end = playlistEnd;
   }
-  if (playlistSort) {
-    query.sort = playlistSort;
-  }
+  query.sort = playlistSort ?? DEFAULT_REPLAY_LIST_SORT;
 
   const queryKey = useReplayListQueryKey({
     options: {query},
@@ -81,7 +80,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
     enabled: boolean;
   }>(queryKey, {
     staleTime: 0,
-    enabled: Boolean(playlistStart && playlistEnd && playlistSort),
+    enabled: Boolean(playlistStart && playlistEnd),
   });
 
   const replays = useMemo(() => data?.data?.map(mapResponseToReplayRecord) ?? [], [data]);
