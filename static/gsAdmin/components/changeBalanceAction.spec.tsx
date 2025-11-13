@@ -93,8 +93,8 @@ describe('BalanceChangeAction', () => {
 
     const {waitForModalToHide} = renderGlobalModal();
     await userEvent.type(screen.getByRole('spinbutton', {name: 'Credit Amount'}), '-10');
-    await userEvent.type(screen.getByTestId('url-field'), url);
-    await userEvent.type(screen.getByTestId('notes-field'), note);
+    await userEvent.type(screen.getByRole('textbox', {name: 'Ticket URL'}), url);
+    await userEvent.type(screen.getByRole('textbox', {name: 'Notes'}), note);
 
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
@@ -158,8 +158,8 @@ describe('BalanceChangeAction', () => {
     expect(submitButton).toHaveTextContent('Submitting...');
     expect(submitButton).toBeDisabled();
     expect(creditInput).toBeDisabled();
-    expect(screen.getByTestId('url-field')).toBeDisabled();
-    expect(screen.getByTestId('notes-field')).toBeDisabled();
+    expect(screen.getByRole('textbox', {name: 'Ticket URL'})).toBeDisabled();
+    expect(screen.getByRole('textbox', {name: 'Notes'})).toBeDisabled();
   });
 
   it('re-enables form after error', async () => {
@@ -176,8 +176,8 @@ describe('BalanceChangeAction', () => {
 
     // Pre-grab stable references to fields using findBy to wait for modal content
     const creditInput = await screen.findByRole('spinbutton', {name: 'Credit Amount'});
-    const urlField = await screen.findByTestId('url-field');
-    const notesField = await screen.findByTestId('notes-field');
+    const urlField = await screen.findByRole('textbox', {name: 'Ticket URL'});
+    const notesField = await screen.findByRole('textbox', {name: 'Notes'});
     const submitButton = screen.getByRole('button', {name: /submit/i});
 
     await userEvent.type(creditInput, '10');
