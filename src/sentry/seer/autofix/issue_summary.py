@@ -379,23 +379,30 @@ def _generate_summary(
     )
 
     # Generate fixability score and run automation
-    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-        fixability_response = _generate_fixability_score(group)
-
-    if not fixability_response.scores:
-        raise ValueError("Issue summary scores is None or empty.")
-    if fixability_response.scores.fixability_score is None:
-        raise ValueError("Issue summary fixability score is None.")
-
-    fixability_score = fixability_response.scores.fixability_score
-    group.update(seer_fixability_score=fixability_score)
-
+    fixability_score = None
     try:
-        _run_automation(group, user, event, source, fixability_score)
+        with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+            fixability_response = _generate_fixability_score(group)
+
+        if not fixability_response.scores:
+            raise ValueError("Issue summary scores is None or empty.")
+        if fixability_response.scores.fixability_score is None:
+            raise ValueError("Issue summary fixability score is None.")
+
+        fixability_score = fixability_response.scores.fixability_score
+        group.update(seer_fixability_score=fixability_score)
     except Exception:
         logger.exception(
-            "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
+            "Error generating fixability score for issue summary", extra={"group_id": group.id}
         )
+
+    if fixability_score is not None:
+        try:
+            _run_automation(group, user, event, source, fixability_score)
+        except Exception:
+            logger.exception(
+                "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
+            )
 
     summary_dict = issue_summary.dict()
     summary_dict["event_id"] = event.event_id
