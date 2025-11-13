@@ -174,31 +174,31 @@ describe('BalanceChangeAction', () => {
     triggerChangeBalanceModal({subscription, ...modalProps});
     renderGlobalModal();
 
-    // Pre-grab stable references to fields using findBy to wait for modal content
-    const creditInput = await screen.findByRole('spinbutton', {name: 'Credit Amount'});
-    const urlField = await screen.findByRole('textbox', {name: 'Ticket URL'});
-    const notesField = await screen.findByRole('textbox', {name: 'Notes'});
-    const submitButton = screen.getByRole('button', {name: /submit/i});
+    await screen.findByRole('spinbutton', {name: 'Credit Amount'});
+    await screen.findByRole('textbox', {name: 'Ticket URL'});
+    await screen.findByRole('textbox', {name: 'Notes'});
 
-    await userEvent.type(creditInput, '10');
-    await waitFor(() => expect(creditInput).toHaveValue(10));
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'Credit Amount'}), '10');
+    await waitFor(() =>
+      expect(screen.getByRole('spinbutton', {name: 'Credit Amount'})).toHaveValue(10)
+    );
 
-    // Wait for button to be enabled before clicking
-    await waitFor(() => expect(submitButton).toBeEnabled());
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled()
+    );
 
     // Disable pointer-events check to avoid false positive in CI
     // where modal overlay may still be settling during initialization
-    await userEvent.click(submitButton, {pointerEventsCheck: 0});
+    await userEvent.click(screen.getByRole('button', {name: /submit/i}), {
+      pointerEventsCheck: 0,
+    });
 
-    // Wait for form to be re-enabled after error
-    // Don't rely on error message text as the Form component shows different messages
-    // depending on error response structure. All fields are controlled by isSubmitting
-    // state, so if one is enabled, all should be enabled.
-    await waitFor(() => expect(creditInput).toBeEnabled());
+    await waitFor(() => {
+      expect(screen.getByRole('spinbutton', {name: 'Credit Amount'})).toBeEnabled();
+    });
 
-    // Verify all fields and submit button are re-enabled
-    expect(urlField).toBeEnabled();
-    expect(notesField).toBeEnabled();
-    expect(submitButton).toBeEnabled();
+    expect(screen.getByRole('textbox', {name: 'Ticket URL'})).toBeEnabled();
+    expect(screen.getByRole('textbox', {name: 'Notes'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled();
   });
 });
