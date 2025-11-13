@@ -547,7 +547,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     }
 
     // Because the sort and cursor field is only generated in EventView conditionally and we
-    // want to avoid dirtying the URL with fields, we manually add the them to the query here.
+    // want to avoid dirtying the URL with fields, we manually add them to the query here.
     if (location.query.sort) {
       detailsTabQuery.playlistSort = location.query.sort;
     }
