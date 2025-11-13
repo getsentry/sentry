@@ -11,7 +11,7 @@ export interface ToolLink {
   params: Record<string, any>;
 }
 
-export interface Message {
+interface Message {
   content: string;
   role: 'user' | 'assistant' | 'tool_use';
   tool_calls?: ToolCall[];
