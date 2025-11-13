@@ -19,6 +19,7 @@ type ParamKeys =
   | 'automationId'
   | 'codeId'
   | 'dashboardId'
+  | 'dataForwarderId'
   | 'dataExportId'
   | 'detectorId'
   | 'detectorId'
