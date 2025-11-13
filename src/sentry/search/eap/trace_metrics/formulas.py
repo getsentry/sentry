@@ -14,6 +14,7 @@ from sentry.search.eap.columns import (
     FormulaDefinition,
     ResolvedArguments,
     ResolverSettings,
+    TraceMetricFormulaDefinition,
     ValueArgumentDefinition,
 )
 from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
@@ -87,8 +88,8 @@ def per_minute(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bi
     return _rate_internal(60, metric_type, settings)
 
 
-TRACE_METRICS_FORMULA_DEFINITIONS = {
-    "per_second": FormulaDefinition(
+TRACE_METRICS_FORMULA_DEFINITIONS: dict[str, FormulaDefinition] = {
+    "per_second": TraceMetricFormulaDefinition(
         default_search_type="rate",
         arguments=[
             AttributeArgumentDefinition(
@@ -117,7 +118,7 @@ TRACE_METRICS_FORMULA_DEFINITIONS = {
         is_aggregate=True,
         infer_search_type_from_arguments=False,
     ),
-    "per_minute": FormulaDefinition(
+    "per_minute": TraceMetricFormulaDefinition(
         default_search_type="rate",
         arguments=[
             AttributeArgumentDefinition(

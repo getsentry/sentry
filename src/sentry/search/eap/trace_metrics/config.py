@@ -10,7 +10,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.columns import ResolvedMetricAggregate
+from sentry.search.eap.columns import ResolvedTraceMetricAggregate, ResolvedTraceMetricFormula
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import MetricType, SearchResolverConfig
 from sentry.search.events import fields
@@ -63,7 +63,10 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
                     continue
 
                 resolved_function, _ = search_resolver.resolve_function(column)
-                if not isinstance(resolved_function, ResolvedMetricAggregate):
+
+                if not isinstance(
+                    resolved_function, ResolvedTraceMetricAggregate
+                ) and not isinstance(resolved_function, ResolvedTraceMetricFormula):
                     continue
 
                 if not resolved_function.metric_name or not resolved_function.metric_type:
