@@ -719,7 +719,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         self.detector.save()
 
         # Update with valid new config
-        updated_config = {"detection_type": "dynamic", "comparison_delta": 3600}
+        updated_config = {"detection_type": "percent", "comparison_delta": 3600}
         data = {
             "config": updated_config,
         }
@@ -737,7 +737,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert self.detector.config == updated_config
         # API returns camelCase
         assert response.data["config"] == {
-            "detectionType": "dynamic",
+            "detectionType": "percent",
             "comparisonDelta": 3600,
         }
 
