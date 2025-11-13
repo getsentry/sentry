@@ -17,8 +17,6 @@ import {useRecentSearchFilters} from 'sentry/components/searchQueryBuilder/token
 import {
   ALL_CATEGORY,
   ALL_CATEGORY_VALUE,
-  BOOLEAN_CATEGORY,
-  BOOLEAN_CATEGORY_VALUE,
   createAskSeerConsentItem,
   createAskSeerItem,
   createBooleanFilterItem,
@@ -26,6 +24,8 @@ import {
   createRecentFilterOptionKey,
   createRecentQueryItem,
   createSection,
+  LOGIC_CATEGORY,
+  LOGIC_CATEGORY_VALUE,
   RECENT_SEARCH_CATEGORY,
   RECENT_SEARCH_CATEGORY_VALUE,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
@@ -164,14 +164,14 @@ function useFilterKeySections({
       ];
 
       if (!disallowLogicalOperators && !isFirstItem && hasConditionalsInCombobox) {
-        recentSearchesSections.push(BOOLEAN_CATEGORY);
+        recentSearchesSections.push(LOGIC_CATEGORY);
       }
       return recentSearchesSections;
     }
 
     const customSections: Section[] = [ALL_CATEGORY, ...definedSections];
     if (!disallowLogicalOperators && !isFirstItem && hasConditionalsInCombobox) {
-      customSections.push(BOOLEAN_CATEGORY);
+      customSections.push(LOGIC_CATEGORY);
     }
 
     return customSections;
@@ -265,7 +265,7 @@ export function useFilterKeyListBox({filterValue, filterItem}: UseFilterKeyListB
 
     if (
       !disallowLogicalOperators &&
-      selectedSection === BOOLEAN_CATEGORY_VALUE &&
+      selectedSection === LOGIC_CATEGORY_VALUE &&
       hasConditionalsInCombobox
     ) {
       return [...askSeerItem, ...conditionalFilterItems];

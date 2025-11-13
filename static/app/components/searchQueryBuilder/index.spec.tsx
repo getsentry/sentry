@@ -839,9 +839,9 @@ describe('SearchQueryBuilder', () => {
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
 
-    describe('boolean ops', () => {
+    describe('logic ops', () => {
       describe('flag disabled', () => {
-        it('can remove boolean ops by clicking the delete button', async () => {
+        it('can remove logic ops by clicking the delete button', async () => {
           render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
 
           expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
@@ -852,20 +852,7 @@ describe('SearchQueryBuilder', () => {
       });
 
       describe('flag enabled', () => {
-        it('can remove boolean selector by clicking the delete button', async () => {
-          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
-            organization: {
-              features: ['search-query-builder-add-boolean-operator-select'],
-            },
-          });
-
-          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
-          await userEvent.click(screen.getByRole('button', {name: 'Remove boolean: OR'}));
-
-          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
-        });
-
-        it('can select a different boolean operator', async () => {
+        it('can remove logic selector by clicking the delete button', async () => {
           render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
             organization: {
               features: ['search-query-builder-add-boolean-operator-select'],
@@ -874,7 +861,22 @@ describe('SearchQueryBuilder', () => {
 
           expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
           await userEvent.click(
-            screen.getByRole('button', {name: 'Edit boolean operator: OR'})
+            screen.getByRole('button', {name: 'Remove logic operator: OR'})
+          );
+
+          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
+        });
+
+        it('can select a different logic operator', async () => {
+          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
+            organization: {
+              features: ['search-query-builder-add-boolean-operator-select'],
+            },
+          });
+
+          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit logic operator: OR'})
           );
           await userEvent.click(screen.getByRole('option', {name: 'AND'}));
 
@@ -1547,7 +1549,7 @@ describe('SearchQueryBuilder', () => {
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
 
-    it('can remove boolean ops with the keyboard', async () => {
+    it('can remove logic ops with the keyboard', async () => {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="and" />);
 
       expect(screen.getByRole('row', {name: 'and'})).toBeInTheDocument();

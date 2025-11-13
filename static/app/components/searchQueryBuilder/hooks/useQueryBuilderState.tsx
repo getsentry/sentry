@@ -203,9 +203,9 @@ type UpdateAggregateArgsAction = {
   focusOverride?: FocusOverride;
 };
 
-type UpdateBooleanOperatorAction = {
+type UpdateLogicOperatorAction = {
   token: TokenResult<Token.LOGIC_BOOLEAN>;
-  type: 'UPDATE_BOOLEAN_OPERATOR';
+  type: 'UPDATE_LOGIC_OPERATOR';
   value: string;
 };
 
@@ -245,7 +245,7 @@ export type QueryBuilderActions =
   | UpdateAggregateArgsAction
   | MultiSelectFilterValueAction
   | ResetClearAskSeerFeedbackAction
-  | UpdateBooleanOperatorAction;
+  | UpdateLogicOperatorAction;
 
 function removeQueryTokensFromQuery(
   query: string,
@@ -798,9 +798,9 @@ function updateFreeTextAndReplaceText(
   };
 }
 
-function updateBooleanOperator(
+function updateLogicOperator(
   state: QueryBuilderState,
-  action: UpdateBooleanOperatorAction
+  action: UpdateLogicOperatorAction
 ): QueryBuilderState {
   const newQuery = replaceQueryToken(state.query, action.token, action.value);
   if (newQuery === state.query) {
@@ -995,8 +995,8 @@ export function useQueryBuilderState({
             ...state,
             query: modifyFilterValue(state.query, action.token, action.value),
           };
-        case 'UPDATE_BOOLEAN_OPERATOR':
-          return updateBooleanOperator(state, action);
+        case 'UPDATE_LOGIC_OPERATOR':
+          return updateLogicOperator(state, action);
         case 'UPDATE_AGGREGATE_ARGS':
           return updateAggregateArgs(state, action, {getFieldDefinition});
         case 'TOGGLE_FILTER_VALUE':
