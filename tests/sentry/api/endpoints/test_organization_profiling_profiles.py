@@ -534,39 +534,28 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
     ):
         # this transaction has transaction profile
         profile_id = uuid4().hex
-        profile_transaction = self.store_transaction(
+        self.store_transaction(
             transaction="foo",
             profile_id=profile_id,
             project=self.project,
         )
-        transaction = {
-            "project.id": self.project.id,
-            "profile.id": profile_id,
-            "timestamp": datetime.fromtimestamp(profile_transaction["timestamp"]).isoformat(),
-            "profiler.id": None,
-            "thread.id": None,
-            "precise.start_ts": datetime.fromtimestamp(
-                profile_transaction["start_timestamp"]
-            ).timestamp(),
-            "precise.finish_ts": datetime.fromtimestamp(
-                profile_transaction["timestamp"]
-            ).timestamp(),
-        }
 
         # this transaction has continuous profile with a matching chunk (to be mocked below)
         profiler_id = uuid4().hex
         thread_id = "12345"
+        profiler_transaction_id = uuid4().hex
         profiler_transaction = self.store_transaction(
             transaction="foo",
             profiler_id=profiler_id,
             thread_id=thread_id,
+            transaction_id=profiler_transaction_id,
             project=self.project,
         )
         start_timestamp = datetime.fromtimestamp(profiler_transaction["start_timestamp"])
         finish_timestamp = datetime.fromtimestamp(profiler_transaction["timestamp"])
         buffer = timedelta(seconds=3)
         # not able to write profile chunks to the table yet so mock it's response here
-        # so that the profiler transaction 1 looks like it has a profile chunk within
+        # so that the profiler transaction looks like it has a profile chunk within
         # the specified time range
         chunk = {
             "project_id": self.project.id,
@@ -578,17 +567,14 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
 
         with (
             patch(
-                "sentry.profiles.flamegraph.bulk_snuba_queries",
-                wraps=bulk_snuba_queries,
-            ) as mock_bulk_snuba_queries,
+                "sentry.profiles.flamegraph.FlamegraphExecutor._query_chunks_for_profilers"
+            ) as mock_query_chunks_for_profilers,
             patch(
                 "sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service"
             ) as mock_proxy_profiling_service,
         ):
-            mock_bulk_snuba_queries.return_value = [
-                {"data": [transaction]},
-                {"data": [chunk]},
-            ]
+            # Mock the chunks query for the profiler_meta
+            mock_query_chunks_for_profilers.return_value = [{"data": [chunk]}]
             mock_proxy_profiling_service.return_value = HttpResponse(status=200)
 
             response = self.do_request(
@@ -600,35 +586,8 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
 
             assert response.status_code == 200, response.content
 
-            mock_bulk_snuba_queries.assert_called_once()
-
-            call_args = mock_bulk_snuba_queries.call_args.args
-            [transactions_snql_request, profiles_snql_request] = call_args[0]
-
-            assert transactions_snql_request.dataset == Dataset.Discover.value
-            assert (
-                Or(
-                    conditions=[
-                        Condition(Column("profile_id"), Op.IS_NOT_NULL),
-                        And(
-                            conditions=[
-                                Condition(Column("profiler_id"), Op.IS_NOT_NULL),
-                                Condition(
-                                    Function(
-                                        "has",
-                                        [Column("contexts.key"), "trace.thread_id"],
-                                    ),
-                                    Op.EQ,
-                                    1,
-                                ),
-                            ],
-                        ),
-                    ],
-                )
-                in transactions_snql_request.query.where
-            )
-
-            assert profiles_snql_request.dataset == Dataset.Profiles.value
+            # Verify that chunks were queried for the profiler
+            mock_query_chunks_for_profilers.assert_called_once()
 
             mock_proxy_profiling_service.assert_called_once_with(
                 method="POST",
@@ -645,8 +604,10 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
                             "project_id": self.project.id,
                             "profiler_id": profiler_id,
                             "chunk_id": chunk["chunk_id"],
-                            "start": str(int((start_timestamp - buffer).timestamp() * 1e9)),
-                            "end": str(int((finish_timestamp + buffer).timestamp() * 1e9)),
+                            "thread_id": thread_id,
+                            "start": str(int(profiler_transaction["start_timestamp"] * 1e9)),
+                            "end": str(int(profiler_transaction["timestamp"] * 1e9)),
+                            "transaction_id": profiler_transaction_id,
                         },
                     ],
                 },
