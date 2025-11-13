@@ -80,11 +80,23 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         integration_id = validated["integration_id"]
         trigger_source = validated["trigger_source"]
 
-        launch_coding_agents_for_run(
+        results = launch_coding_agents_for_run(
             organization_id=organization.id,
             integration_id=integration_id,
             run_id=run_id,
             trigger_source=trigger_source,
         )
 
-        return self.respond({"success": True})
+        successes = results["successes"]
+        failures = results["failures"]
+
+        response_data = {
+            "success": True,
+            "launched_count": len(successes),
+            "failed_count": len(failures),
+        }
+
+        if failures:
+            response_data["failures"] = failures
+
+        return self.respond(response_data)
