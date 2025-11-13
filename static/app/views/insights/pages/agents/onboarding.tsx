@@ -230,6 +230,8 @@ export function Onboarding() {
             {label: 'OpenAI SDK', value: 'openai'},
             {label: 'Anthropic SDK', value: 'anthropic'},
             {label: 'Google Gen AI SDK', value: 'google_genai'},
+            {label: 'LangChain', value: 'langchain'},
+            {label: 'LangGraph', value: 'langgraph'},
             {label: 'Manual', value: 'manual'},
           ],
     },
