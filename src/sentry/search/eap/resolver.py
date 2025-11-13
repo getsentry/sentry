@@ -1214,4 +1214,4 @@ class SearchResolver:
         if context.default_value:
             return context.default_value
 
-        raise InvalidSearchQuery(f"Unknown value {value}")
+        return value
