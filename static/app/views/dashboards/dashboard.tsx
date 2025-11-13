@@ -47,6 +47,7 @@ import type {DashboardDetails, Widget} from './types';
 import {DashboardFilterKeys, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
+import {useWidgetQueryQueue} from './widgetQueryQueue';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -117,6 +118,7 @@ function Dashboard({
   const organization = useOrganization();
   const api = useApi();
   const {selection} = usePageFilters();
+  const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);
     return {
@@ -176,6 +178,10 @@ function Dashboard({
     );
 
     return () => {
+      if (queue) {
+        queue.abort();
+        queue.clear();
+      }
       window.removeEventListener('resize', debouncedHandleResize);
       window.clearTimeout(forceCheckTimeout.current);
       GroupStore.reset();
