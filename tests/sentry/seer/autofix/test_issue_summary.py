@@ -93,11 +93,19 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_acknowledgement.assert_called_once_with(self.group.organization)
 
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
+    @patch("sentry.seer.autofix.issue_summary._run_automation")
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_get_issue_summary_without_existing_summary(
-        self, mock_get_event, mock_call_seer, mock_get_trace_tree, mock_get_acknowledgement
+        self,
+        mock_get_event,
+        mock_call_seer,
+        mock_get_trace_tree,
+        mock_generate_fixability,
+        mock_run_automation,
+        mock_get_acknowledgement,
     ):
         mock_get_acknowledgement.return_value = True
         event = Mock(
@@ -120,6 +128,14 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             ),
         )
         mock_call_seer.return_value = mock_summary
+        mock_generate_fixability.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
+            scores=SummarizeIssueScores(fixability_score=0.5),
+        )
         mock_get_trace_tree.return_value = {"trace": "tree"}
 
         expected_response_summary = mock_summary.dict()
@@ -152,11 +168,16 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             }
             mock_get_acknowledgement.assert_called_once_with(self.group.organization)
 
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     @patch("sentry.seer.autofix.issue_summary.requests.post")
     @patch("sentry.seer.autofix.issue_summary._get_event")
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
     def test_call_seer_integration(
-        self, mock_get_acknowledgement: MagicMock, mock_get_event: MagicMock, mock_post: MagicMock
+        self,
+        mock_get_acknowledgement: MagicMock,
+        mock_get_event: MagicMock,
+        mock_post: MagicMock,
+        mock_generate_fixability: MagicMock,
     ) -> None:
         mock_get_acknowledgement.return_value = True
         event = Mock(
@@ -183,6 +204,14 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             },
         }
         mock_post.return_value = mock_response
+        mock_generate_fixability.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
+            scores=SummarizeIssueScores(fixability_score=0.5),
+        )
 
         expected_response_summary = mock_response.json.return_value
         expected_response_summary["event_id"] = event.event_id
@@ -612,6 +641,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement")
     @patch("sentry.seer.autofix.issue_summary._run_automation")
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     @patch("sentry.seer.autofix.issue_summary._get_trace_tree_for_event")
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
@@ -620,6 +650,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_event,
         mock_call_seer,
         mock_get_trace_tree,
+        mock_generate_fixability,
         mock_run_automation,
         mock_get_acknowledgement,
     ):
@@ -640,6 +671,14 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             possible_cause="Test possible cause",
         )
         mock_call_seer.return_value = mock_summary
+        mock_generate_fixability.return_value = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="h",
+            whats_wrong="w",
+            trace="t",
+            possible_cause="c",
+            scores=SummarizeIssueScores(fixability_score=0.5),
+        )
 
         # Make _run_automation raise an exception
         mock_run_automation.side_effect = Exception("Automation failed")
@@ -681,6 +720,17 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                     possible_cause="cause",
                 ),
             ) as mock_call_seer,
+            patch(
+                "sentry.seer.autofix.issue_summary._generate_fixability_score",
+                return_value=SummarizeIssueResponse(
+                    group_id=str(self.group.id),
+                    headline="h",
+                    whats_wrong="w",
+                    trace="t",
+                    possible_cause="c",
+                    scores=SummarizeIssueScores(fixability_score=0.5),
+                ),
+            ),
             patch("sentry.seer.autofix.issue_summary._run_automation"),
             patch(
                 "sentry.seer.autofix.issue_summary.get_seer_org_acknowledgement",
@@ -737,7 +787,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             possible_cause="c",
             scores=SummarizeIssueScores(fixability_score=0.80),
         )
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT, 0.80)
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES
 
@@ -761,7 +811,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             possible_cause="c",
             scores=SummarizeIssueScores(fixability_score=0.50),
         )
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT, 0.50)
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.SOLUTION
 
@@ -787,7 +837,7 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         with self.feature(
             {"organizations:gen-ai-features": True, "projects:triage-signals-v0": False}
         ):
-            _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+            _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT, 0.80)
 
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args[1]["stopping_point"] is None
@@ -938,7 +988,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         )
         mock_fetch.return_value = "solution"
 
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT, 0.80)
 
         mock_trigger.assert_called_once()
         # Should be limited to SOLUTION by user preference
@@ -968,7 +1018,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         )
         mock_fetch.return_value = "open_pr"
 
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT, 0.50)
 
         mock_trigger.assert_called_once()
         # Should use SOLUTION from fixability, not OPEN_PR from user
@@ -998,7 +1048,7 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         )
         mock_fetch.return_value = None
 
-        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
+        _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT, 0.80)
 
         mock_trigger.assert_called_once()
         # Should use CODE_CHANGES from fixability
