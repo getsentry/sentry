@@ -1,4 +1,4 @@
-import {createContext, useContext, useRef} from 'react';
+import {createContext, useContext, useMemo, useRef} from 'react';
 import {metrics} from '@sentry/react';
 import {
   asyncQueuerOptions,
@@ -40,54 +40,62 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
   const startTimeRef = useRef<number | undefined>(undefined);
   const location = useLocation();
 
-  const queueOptions = asyncQueuerOptions({
-    concurrency: MAX_CONCURRENCY,
-    wait: 5,
-    started: true,
-    key: 'widget-query-queue',
-    asyncRetryerOptions: {
-      backoff: 'exponential',
-      maxAttempts: MAX_RETRIES,
-      onRetry: (_attempt, _error, _asyncRetryer) => {
-        // TODO: Dynamically reduce concurrency
-      },
-    },
-    onSettled: (_item, queuer) => {
-      const queueIsEmpty = queuer.peekAllItems().length === 0;
-      if (queueIsEmpty && startTimeRef.current) {
-        const endTime = performance.now();
-        const totalTime = endTime - startTimeRef.current;
-        startTimeRef.current = undefined;
-        metrics.distribution('dashboards.widget_query_queue.time_to_empty', totalTime, {
-          attributes: {
-            url: location.pathname,
+  const queueOptions = useMemo(
+    () =>
+      asyncQueuerOptions({
+        concurrency: MAX_CONCURRENCY,
+        wait: 5,
+        started: true,
+        key: 'widget-query-queue',
+        asyncRetryerOptions: {
+          backoff: 'exponential',
+          maxAttempts: MAX_RETRIES,
+          onRetry: (_attempt, _error, _asyncRetryer) => {
+            // TODO: Dynamically reduce concurrency
           },
-          unit: 'millisecond',
-        });
-      }
-    },
-  });
+        },
+        onSettled: (_item: QueueItem<any, any>, queuer) => {
+          const queueIsEmpty = queuer.peekAllItems().length === 0;
+          if (queueIsEmpty && startTimeRef.current) {
+            const endTime = performance.now();
+            const totalTime = endTime - startTimeRef.current;
+            startTimeRef.current = undefined;
+            metrics.distribution(
+              'dashboards.widget_query_queue.time_to_empty',
+              totalTime,
+              {
+                attributes: {
+                  url: location.pathname,
+                },
+                unit: 'millisecond',
+              }
+            );
+          }
+        },
+      }),
+    [location.pathname]
+  );
 
   const queue = useAsyncQueuer(fetchWidgetItem, queueOptions);
 
-  const addItem = (item: QueueItem<any, any>) => {
-    // Never add the same widget to the queue twice
-    // even if the date selection has change `fetchData()` in `fetchWidgetItem` will still be called with the latest state.
-    if (queue.peekPendingItems().some(i => i.widgetQuery === item.widgetQuery)) {
-      return true;
-    }
-    const queueIsEmpty = queue.peekAllItems().length === 0;
+  const context = useMemo(() => {
+    const addItem = (item: QueueItem<any, any>) => {
+      // Never add the same widget to the queue twice
+      // even if the date selection has change `fetchData()` in `fetchWidgetItem` will still be called with the latest state.
+      if (queue.peekPendingItems().some(i => i.widgetQuery === item.widgetQuery)) {
+        return true;
+      }
+      const queueIsEmpty = queue.peekAllItems().length === 0;
 
-    if (queueIsEmpty) {
-      startTimeRef.current = performance.now();
-    }
+      if (queueIsEmpty) {
+        startTimeRef.current = performance.now();
+      }
 
-    return queue.addItem(item);
-  };
+      return queue.addItem(item);
+    };
+    return {queue: {...queue, addItem}};
+  }, [queue]);
 
-  const context = {
-    queue: {...queue, addItem},
-  };
   return (
     <WidgetQueueContext.Provider value={context}>{children}</WidgetQueueContext.Provider>
   );
