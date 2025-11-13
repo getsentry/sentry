@@ -584,59 +584,62 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         assert result is None
 
 
+class _Project(BaseModel):
+    id: int
+    slug: str
+
+
+class _Actor(BaseModel):
+    """Output of ActorSerializer."""
+
+    type: Literal["user", "team"]
+    id: str
+    name: str
+    email: str | None = None
+
+
+class _IssueMetadata(BaseModel):
+    """
+    A subset of BaseGroupSerializerResponse fields useful for Seer Explorer. In prod we send the full response.
+    """
+
+    id: int
+    shortId: str
+    title: str
+    culprit: str | None
+    permalink: str
+    level: str
+    status: str
+    substatus: str | None
+    platform: str | None
+    priority: str | None
+    type: str
+    issueType: str
+    issueTypeDescription: str  # Extra field added by get_issue_details.
+    issueCategory: str
+    hasSeen: bool
+    project: _Project
+    assignedTo: _Actor | None = None
+
+    # Optionals
+    isUnhandled: bool | None = None
+    count: str | None = None
+    userCount: int | None = None
+    firstSeen: datetime | None = None
+    lastSeen: datetime | None = None
+
+
+class _SentryEventData(BaseModel):
+    """
+    Required fields for the serialized events used by Seer Explorer.
+    """
+
+    title: str
+    entries: list[dict]
+    tags: list[dict[str, str | None]] | None = None
+
+
 class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestMixin):
-
-    class _Project(BaseModel):
-        id: int
-        slug: str
-
-    class _Actor(BaseModel):
-        """Output of ActorSerializer."""
-
-        type: Literal["user", "team"]
-        id: str
-        name: str
-        email: str | None = None
-
-    class _IssueMetadata(BaseModel):
-        """
-        A subset of BaseGroupSerializerResponse fields useful for Seer Explorer. In prod we send the full response.
-        """
-
-        id: int
-        shortId: str
-        title: str
-        culprit: str | None
-        permalink: str
-        level: str
-        status: str
-        substatus: str | None
-        platform: str | None
-        priority: str | None
-        type: str
-        issueType: str
-        issueTypeDescription: str  # Extra field added by get_issue_details.
-        issueCategory: str
-        hasSeen: bool
-        project: "TestGetIssueDetails._Project"
-        assignedTo: "TestGetIssueDetails._Actor | None" = None
-
-        # Optionals
-        isUnhandled: bool | None = None
-        count: str | None = None
-        userCount: int | None = None
-        firstSeen: datetime | None = None
-        lastSeen: datetime | None = None
-
-    class _SentryEventData(BaseModel):
-        """
-        Required fields for the serialized events used by Seer Explorer.
-        """
-
-        title: str
-        entries: list[dict]
-        tags: list[dict[str, str | None]] | None = None
-
     def _validate_event_timeseries(self, timeseries: dict):
         assert isinstance(timeseries, dict)
         assert "count()" in timeseries
@@ -710,12 +713,12 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
 
             # Validate fields of the main issue payload.
             assert isinstance(result["issue"], dict)
-            self._IssueMetadata.parse_obj(result["issue"])
+            _IssueMetadata.parse_obj(result["issue"])
 
             # Validate fields of the selected event.
             event_dict = result["event"]
             assert isinstance(event_dict, dict)
-            self._SentryEventData.parse_obj(event_dict)
+            _SentryEventData.parse_obj(event_dict)
             assert result["event_id"] == event_dict["id"]
 
             # Check correct event is returned based on selected_event_type.
@@ -822,7 +825,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         assert "event_trace_id" in result
         assert isinstance(result.get("project_id"), int)
         assert isinstance(result.get("issue"), dict)
-        self._IssueMetadata.parse_obj(result.get("issue", {}))
+        _IssueMetadata.parse_obj(result.get("issue", {}))
 
     @patch("sentry.models.group.get_recommended_event")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
@@ -849,7 +852,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         )
 
         assert result is not None
-        md = self._IssueMetadata.parse_obj(result["issue"])
+        md = _IssueMetadata.parse_obj(result["issue"])
         assert md.assignedTo is not None
         assert md.assignedTo.type == "user"
         assert md.assignedTo.id == str(self.user.id)
@@ -877,7 +880,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, OccurrenceTestM
         )
 
         assert result is not None
-        md = self._IssueMetadata.parse_obj(result["issue"])
+        md = _IssueMetadata.parse_obj(result["issue"])
         assert md.assignedTo is not None
         assert md.assignedTo.type == "team"
         assert md.assignedTo.id == str(self.team.id)
