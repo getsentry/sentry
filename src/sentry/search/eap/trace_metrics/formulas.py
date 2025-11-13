@@ -11,6 +11,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
+    FormulaDefinition,
     ResolvedArguments,
     ResolverSettings,
     TraceMetricFormulaDefinition,
@@ -87,7 +88,7 @@ def per_minute(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bi
     return _rate_internal(60, metric_type, settings)
 
 
-TRACE_METRICS_FORMULA_DEFINITIONS = {
+TRACE_METRICS_FORMULA_DEFINITIONS: dict[str, FormulaDefinition] = {
     "per_second": TraceMetricFormulaDefinition(
         default_search_type="rate",
         arguments=[
