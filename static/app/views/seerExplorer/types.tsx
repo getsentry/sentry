@@ -11,13 +11,13 @@ export interface ToolLink {
   params: Record<string, any>;
 }
 
-interface Message {
+export interface Message {
   content: string;
   role: 'user' | 'assistant' | 'tool_use';
   tool_calls?: ToolCall[];
 }
 
-interface ToolCall {
+export interface ToolCall {
   args: string;
   function: string;
 }
