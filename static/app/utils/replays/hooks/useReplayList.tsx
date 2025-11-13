@@ -24,6 +24,10 @@ type State = Awaited<ReturnType<typeof fetchReplayList>> & {isFetching: boolean}
 
 type Result = State;
 
+/**
+ * @deprecated due to its reliance on EventView which is unpleasant to work with
+ * Use useApiQuery instead
+ */
 function useReplayList({
   enabled = true,
   eventView,
@@ -46,7 +50,7 @@ function useReplayList({
     api.clear();
     setData(prev => ({
       ...prev,
-      isFetching: enabled ? true : false,
+      isFetching: true,
     }));
     if (!enabled) {
       setData(prev => ({

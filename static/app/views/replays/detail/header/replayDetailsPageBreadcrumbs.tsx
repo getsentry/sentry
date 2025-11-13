@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -36,6 +36,8 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const {currentTime} = useReplayContext();
 
   const replays = useReplayPlaylist();
+
+  const initialLocation = useRef(location);
 
   const currentReplayIndex = useMemo(
     () => replays?.findIndex(r => r.id === replayRecord?.id) ?? -1,
@@ -102,7 +104,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
           onMouseLeave={() => setIsHovered(false)}
         >
           {organization.features.includes('replay-playlist-view') && (
-            <StyledFlex>
+            <Flex>
               <ButtonBar merged gap="0">
                 <LinkButton
                   size="xs"
@@ -115,7 +117,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                           organization,
                         })
                       : undefined,
-                    query: location.query,
+                    query: initialLocation.current.query,
                   }}
                 />
                 <LinkButton
@@ -126,13 +128,13 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                     pathname: nextReplay
                       ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
                       : undefined,
-                    query: location.query,
+                    query: initialLocation.current.query,
                   }}
                 />
               </ButtonBar>
-            </StyledFlex>
+            </Flex>
           )}
-          <div
+          <StyledDiv
             onClick={() =>
               copy(replayUrlWithTimestamp, {
                 successMessage: t('Copied replay link to clipboard'),
@@ -140,7 +142,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             }
           >
             {getShortEventId(replayRecord?.id)}
-          </div>
+          </StyledDiv>
           <Tooltip title={t('Copy link to replay at current timestamp')}>
             <Button
               aria-label={t('Copy link to replay at current timestamp')}
@@ -171,10 +173,10 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   return <StyledBreadcrumbs crumbs={crumbs} />;
 }
 
-const StyledFlex = styled(Flex)`
-  margin-right: ${p => p.theme.space.md};
-`;
-
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
+`;
+
+const StyledDiv = styled('div')`
+  margin-left: 10px;
 `;
