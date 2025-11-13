@@ -204,7 +204,7 @@ describe('BalanceChangeAction', () => {
 
     await waitFor(
       () => {
-        expect(screen.getByRole('spinbutton', {name: 'Credit Amount'})).toBeEnabled();
+        expect(screen.getByLabelText('Credit Amount')).toBeEnabled();
       },
       {timeout: 5_000}
     );
