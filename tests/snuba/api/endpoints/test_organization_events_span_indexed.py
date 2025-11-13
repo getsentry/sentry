@@ -189,6 +189,44 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["span.description"] == "EXEC *"
         assert meta["dataset"] == "spans"
 
+    def test_device_class_filter(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"device.class": "3"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"device.class": "2"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"device.class": "1"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span({"sentry_tags": {"device.class": ""}}, start_ts=self.ten_mins_ago),
+                self.create_span({}, start_ts=self.ten_mins_ago),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["device.class", "count()"],
+                "query": 'device.class:"high"',
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        meta = response.data["meta"]
+        assert meta["dataset"] == "spans"
+
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["device.class"] == "high"
+        assert data[0]["count()"] == 1
+
     def test_device_class_filter_for_empty(self):
         self.store_spans(
             [

@@ -1209,10 +1209,9 @@ class SearchResolver:
         if isinstance(value, str) and value in context.value_map:
             value = context.value_map[value]
 
-        # now that we've checked all potential allowed values, we should fall back
+        # now that we've checked all potentially allowed values, we should fall back
         # to using the default
         if context.default_value:
             return context.default_value
 
-        # no default, so not much we can do but try it and see what happens
-        return value
+        raise InvalidSearchQuery(f"Unknown value {value}")
