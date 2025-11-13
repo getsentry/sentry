@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 import invariant from 'invariant';
 import {PlatformIcon} from 'platformicons';
 
@@ -524,26 +525,30 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     const referrer = getRouteStringFromRoutes(routes);
     const eventView = EventView.fromLocation(location);
 
-    const {statsPeriod, ...eventViewQuery} = eventView.generateQueryStringObject();
+    const {statsPeriod, start, end, ...eventViewQuery} =
+      eventView.generateQueryStringObject();
 
-    let query = {
+    const detailsTabQuery: Query = {
       referrer,
       ...eventViewQuery,
     };
 
-    if (!eventViewQuery.start && !eventViewQuery.end && typeof statsPeriod === 'string') {
+    if (typeof statsPeriod === 'string') {
       const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(statsPeriod);
-      query = {...query, ...{playlistStart, playlistEnd}};
+      detailsTabQuery.playlistStart = playlistStart;
+      detailsTabQuery.playlistEnd = playlistEnd;
+    } else if (start && end) {
+      detailsTabQuery.playlistStart = start;
+      detailsTabQuery.playlistEnd = end;
     }
 
-    if (location.query.cursor) {
-      query = {...query, ...{cursor: location.query.cursor}};
-    }
-
-    // Because the sort field is only generated if the corresponding fields are also in the URL, but we
-    // want to avoid dirtying the URL with fields, we manually add the sort field to the query here.
+    // Because the sort and cursor field is only generated in EventView conditionally and we
+    // want to avoid dirtying the URL with fields, we manually add the them to the query here.
     if (location.query.sort) {
-      query = {...query, ...{playlistSort: location.query.sort}};
+      detailsTabQuery.playlistSort = location.query.sort;
+    }
+    if (location.query.cursor) {
+      detailsTabQuery.cursor = location.query.cursor;
     }
 
     const replayDetailsPathname = makeReplaysPathname({
@@ -554,7 +559,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     const detailsTab = () => {
       return {
         pathname: replayDetailsPathname,
-        query,
+        query: detailsTabQuery,
       };
     };
     const trackNavigationEvent = () =>

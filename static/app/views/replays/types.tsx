@@ -204,7 +204,7 @@ export type ReplayListQueryReferrer =
   | 'replayList'
   | 'issueReplays'
   | 'transactionReplays'
-  | 'playlist';
+  | 'replaysPlayList';
 
 // Sync with ReplayListRecord below
 // Skip some fields because the backend doesn't support them in the field list:
