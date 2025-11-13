@@ -1160,6 +1160,14 @@ register(
     flags=FLAG_MODIFIABLE_BOOL,
 )
 
+# Maximum token count for stacktraces sent to Seer for similarity analysis
+register(
+    "seer.similarity.max_token_count",
+    type=Int,
+    default=7000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # seer nearest neighbour endpoint timeout
 register(
     "embeddings-grouping.seer.nearest-neighbour-timeout",
@@ -3364,15 +3372,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# option used to enable/disable applying
-# stack trace rules in profiles
-register(
-    "profiling.stack_trace_rules.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "performance.event-tracker.sample-rate.transactions",
     default=0.0,
@@ -3529,13 +3528,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for linking identities for demo users
-register(
-    "identity.prevent-link-identity-for-demo-users.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 register(
     "sentry.send_onboarding_task_metrics",
@@ -3575,14 +3567,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for treating demo user as unauthenticated
-# in our auth pipelines.
-register(
-    "demo-user.auth.pipelines.always.unauthenticated.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Rate at which to forward events to eap_items. 1.0
 # means that 100% of projects will forward events to eap_items.

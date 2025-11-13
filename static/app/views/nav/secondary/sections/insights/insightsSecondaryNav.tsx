@@ -10,7 +10,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {
   AGENTS_LANDING_SUB_PATH,
-  AI_SIDEBAR_LABEL,
+  AGENTS_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/agents/settings';
 import {
   BACKEND_LANDING_SUB_PATH,
@@ -20,6 +20,10 @@ import {
   FRONTEND_LANDING_SUB_PATH,
   FRONTEND_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/frontend/settings';
+import {
+  MCP_LANDING_SUB_PATH,
+  MCP_SIDEBAR_LABEL,
+} from 'sentry/views/insights/pages/mcp/settings';
 import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_SIDEBAR_LABEL,
@@ -74,13 +78,20 @@ export function InsightsSecondaryNav() {
           >
             {MOBILE_SIDEBAR_LABEL}
           </SecondaryNav.Item>
-
+        </SecondaryNav.Section>
+        <SecondaryNav.Section id="insights-ai" title={t('AI')}>
           <SecondaryNav.Item
             to={`${baseUrl}/${AGENTS_LANDING_SUB_PATH}/`}
             analyticsItemName="insights_agents"
             trailingItems={<FeatureBadge type="new" />}
           >
-            {AI_SIDEBAR_LABEL}
+            {AGENTS_SIDEBAR_LABEL}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item
+            to={`${baseUrl}/${MCP_LANDING_SUB_PATH}/`}
+            analyticsItemName="insights_mcp"
+          >
+            {MCP_SIDEBAR_LABEL}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         <SecondaryNav.Section id="insights-monitors">

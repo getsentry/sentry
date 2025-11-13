@@ -26,11 +26,11 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.apitoken import generate_token
 from sentry.shared_integrations.exceptions import IntegrationError
 
-DESCRIPTION = "Connect your Sentry organization with Cursor Background Agents."
+DESCRIPTION = "Connect your Sentry organization with Cursor Cloud Agents."
 
 FEATURES = [
     FeatureDescription(
-        "Launch Cursor Background Agents via Seer to fix issues.",
+        "Launch Cursor Cloud Agents via Seer to fix issues.",
         IntegrationFeatures.CODING_AGENT,
     ),
 ]
@@ -49,7 +49,7 @@ metadata = IntegrationMetadata(
 class CursorAgentConfigForm(forms.Form):
     api_key = forms.CharField(
         label=_("Cursor API Key"),
-        help_text=_("Enter your Cursor API key to call background Cursor Agents with."),
+        help_text=_("Enter your Cursor API key to call Cursor Agents with."),
         widget=forms.PasswordInput(attrs={"placeholder": _("***********************")}),
         max_length=255,
     )
@@ -128,7 +128,7 @@ class CursorAgentIntegration(CodingAgentIntegration):
                 "name": "api_key",
                 "type": "secret",
                 "label": _("Cursor API Key"),
-                "help": _("Update the API key used by Cursor Background Agents."),
+                "help": _("Update the API key used by Cursor Cloud Agents."),
                 "required": True,
                 "placeholder": "***********************",
             }
