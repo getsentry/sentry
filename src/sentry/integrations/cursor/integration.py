@@ -49,7 +49,7 @@ metadata = IntegrationMetadata(
 class CursorAgentConfigForm(forms.Form):
     api_key = forms.CharField(
         label=_("Cursor API Key"),
-        help_text=_("Enter your Cursor API key to call background Cursor Agents with."),
+        help_text=_("Enter your Cursor API key to call Cursor Agents with."),
         widget=forms.PasswordInput(attrs={"placeholder": _("***********************")}),
         max_length=255,
     )
