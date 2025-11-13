@@ -68,7 +68,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
     query.start = playlistStart;
     query.end = playlistEnd;
   }
-  query.sort = playlistSort ?? DEFAULT_REPLAY_LIST_SORT;
+  query.sort = playlistSort === '' ? DEFAULT_REPLAY_LIST_SORT : playlistSort;
 
   const queryKey = useReplayListQueryKey({
     options: {query},
