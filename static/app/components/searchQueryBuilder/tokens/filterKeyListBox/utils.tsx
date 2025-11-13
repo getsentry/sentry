@@ -44,7 +44,7 @@ export const RECENT_SEARCH_CATEGORY = {
   value: RECENT_SEARCH_CATEGORY_VALUE,
   label: t('Recent'),
 };
-export const LOGIC_CATEGORY = {value: LOGIC_CATEGORY_VALUE, label: t('Conditionals')};
+export const LOGIC_CATEGORY = {value: LOGIC_CATEGORY_VALUE, label: t('Logic')};
 
 const RECENT_FILTER_KEY_PREFIX = '__recent_filter_key__';
 const RECENT_QUERY_KEY_PREFIX = '__recent_search__';
@@ -249,7 +249,7 @@ export function createAskSeerConsentItem(): AskSeerConsentItem {
   };
 }
 
-export function createBooleanFilterItem({value}: {value: 'AND' | 'OR'}): LogicFilterItem {
+export function createLogicFilterItem({value}: {value: 'AND' | 'OR'}): LogicFilterItem {
   return {
     key: getEscapedKey(value),
     type: 'logic-filter' as const,

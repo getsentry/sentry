@@ -19,7 +19,7 @@ import {
   ALL_CATEGORY_VALUE,
   createAskSeerConsentItem,
   createAskSeerItem,
-  createBooleanFilterItem,
+  createLogicFilterItem,
   createRecentFilterItem,
   createRecentFilterOptionKey,
   createRecentQueryItem,
@@ -201,8 +201,8 @@ function useFilterKeySections({
 }
 
 const conditionalFilterItems = [
-  createBooleanFilterItem({value: 'AND'}),
-  createBooleanFilterItem({value: 'OR'}),
+  createLogicFilterItem({value: 'AND'}),
+  createLogicFilterItem({value: 'OR'}),
 ];
 
 interface UseFilterKeyListBoxArgs {
