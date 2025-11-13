@@ -1620,62 +1620,12 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
         set_project_flag_and_signal(project, "has_flags", first_flag_received)
 
 
-def seer_automation_permission_and_type_check(group: Group) -> bool:
-    from sentry import quotas
-    from sentry.constants import DataCategory
-    from sentry.seer.seer_setup import get_seer_org_acknowledgement
-
-    # check currently supported issue categories for Seer
-    if group.issue_category not in [
-        GroupCategory.ERROR,
-        GroupCategory.PERFORMANCE,
-        GroupCategory.MOBILE,
-        GroupCategory.FRONTEND,
-        GroupCategory.DB_QUERY,
-        GroupCategory.HTTP_CLIENT,
-    ] or group.issue_category in [
-        GroupCategory.REPLAY,
-        GroupCategory.FEEDBACK,
-    ]:
-        return False
-
-    if not features.has("organizations:gen-ai-features", group.organization):
-        return False
-
-    gen_ai_allowed = not group.organization.get_option("sentry:hide_ai_features")
-    if not gen_ai_allowed:
-        return False
-
-    project = group.project
-    if (
-        not project.get_option("sentry:seer_scanner_automation")
-        and not group.issue_type.always_trigger_seer_automation
-    ):
-        return False
-
-    seer_enabled = get_seer_org_acknowledgement(group.organization)
-    if not seer_enabled:
-        return False
-
-    has_budget: bool = quotas.backend.has_available_reserved_budget(
-        org_id=group.organization.id, data_category=DataCategory.SEER_SCANNER
-    )
-    if not has_budget:
-        return False
-
-    return True
-
-
-def seer_automation_rate_limit_check(group: Group) -> bool:
-    from sentry.seer.autofix.utils import is_seer_scanner_rate_limited
-
-    if is_seer_scanner_rate_limited(group.project, group.organization):
-        return False
-    return True
-
-
 def kick_off_seer_automation(job: PostProcessJob) -> None:
     from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
+    from sentry.seer.autofix.utils import (
+        seer_automation_permission_and_type_check,
+        seer_automation_rate_limit_check,
+    )
     from sentry.tasks.autofix import start_seer_automation
 
     event = job["event"]

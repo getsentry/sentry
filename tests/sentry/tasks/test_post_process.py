@@ -3066,7 +3066,7 @@ class SeerAutomationHelperFunctionsTestMixin(BasePostProgressGroupMixin):
         """Test permission check with various failure conditions."""
         from sentry.constants import DataCategory
         from sentry.issues.grouptype import GroupCategory
-        from sentry.tasks.post_process import seer_automation_permission_and_type_check
+        from sentry.seer.autofix.utils import seer_automation_permission_and_type_check
 
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
@@ -3120,7 +3120,7 @@ class SeerAutomationHelperFunctionsTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
     def test_seer_automation_rate_limit_check(self, mock_is_rate_limited):
         """Test rate limit check returns correct value based on rate limiting status."""
-        from sentry.tasks.post_process import seer_automation_rate_limit_check
+        from sentry.seer.autofix.utils import seer_automation_rate_limit_check
 
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         group = event.group
