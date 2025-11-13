@@ -3,7 +3,7 @@ import pytest
 from sentry.testutils.cases import TestMigrations
 
 
-@pytest.mark.skip
+@pytest.mark.skip(reason="migration test no longer needed")
 class UpdateMetricDetectorConfigFieldsTest(TestMigrations):
     migrate_from = "0079_add_unique_constraint_to_detector_group"
     migrate_to = "0080_update_metric_detector_config_fields"
