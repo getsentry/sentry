@@ -131,6 +131,7 @@ class CursorAgentIntegration(CodingAgentIntegration):
                 "help": _("Update the API key used by Cursor Cloud Agents."),
                 "required": True,
                 "placeholder": "***********************",
+                "formatMessageValue": False,
             }
         ]
 
