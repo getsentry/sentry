@@ -800,11 +800,14 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
     @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    def test_skips_when_event_count_too_low(
+    def test_triage_signals_thresholds(
         self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
     ):
+        """Test event count and fixability thresholds with triage-signals-v0"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
-        self.group.times_seen = 5  # Below minimum of 10
+
+        # Case 1: Event count too low (5 < 10)
+        self.group.times_seen = 5
         self.group.save()
         mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
@@ -814,27 +817,15 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             possible_cause="c",
             scores=SummarizeIssueScores(fixability_score=0.80),
         )
-
         with self.feature(
             {"organizations:gen-ai-features": True, "projects:triage-signals-v0": True}
         ):
             _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
-
         mock_trigger.assert_not_called()
+        mock_trigger.reset_mock()
 
-    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
-    @patch(
-        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
-        return_value=False,
-    )
-    @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
-    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    def test_skips_when_fixability_too_low(
-        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
-    ):
-        self.project.update_option("sentry:autofix_automation_tuning", "always")
-        self.group.times_seen = 15  # Above minimum
+        # Case 2: Fixability too low (0.30 < 0.40)
+        self.group.times_seen = 15
         self.group.save()
         mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
@@ -842,29 +833,17 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             whats_wrong="w",
             trace="t",
             possible_cause="c",
-            scores=SummarizeIssueScores(fixability_score=0.30),  # Below MEDIUM (0.40)
+            scores=SummarizeIssueScores(fixability_score=0.30),
         )
-
         with self.feature(
             {"organizations:gen-ai-features": True, "projects:triage-signals-v0": True}
         ):
             _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
-
         mock_trigger.assert_not_called()
+        mock_trigger.reset_mock()
 
-    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
-    @patch(
-        "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited",
-        return_value=False,
-    )
-    @patch("sentry.seer.autofix.issue_summary.get_autofix_state", return_value=None)
-    @patch("sentry.quotas.backend.has_available_reserved_budget", return_value=True)
-    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    def test_runs_when_event_count_and_fixability_meet_threshold(
-        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger
-    ):
-        self.project.update_option("sentry:autofix_automation_tuning", "always")
-        self.group.times_seen = 15  # Above minimum
+        # Case 3: Both meet threshold
+        self.group.times_seen = 15
         self.group.save()
         mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
@@ -872,14 +851,12 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
             whats_wrong="w",
             trace="t",
             possible_cause="c",
-            scores=SummarizeIssueScores(fixability_score=0.50),  # Above MEDIUM (0.40)
+            scores=SummarizeIssueScores(fixability_score=0.50),
         )
-
         with self.feature(
             {"organizations:gen-ai-features": True, "projects:triage-signals-v0": True}
         ):
             _run_automation(self.group, self.user, self.event, SeerAutomationSource.ALERT)
-
         mock_trigger.assert_called_once()
 
 
