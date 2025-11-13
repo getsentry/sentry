@@ -32,6 +32,7 @@ export function useWidgetQueryQueue() {
   return hasQueueFeature && queueContext ? queueContext : {queue: undefined};
 }
 
+// Lowest known safe values for customers
 const MAX_CONCURRENCY = 5;
 const MAX_RETRIES = 5;
 
