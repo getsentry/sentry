@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 import invariant from 'invariant';
 import {PlatformIcon} from 'platformicons';
 
@@ -17,6 +18,7 @@ import NumericDropdownFilter from 'sentry/components/replays/table/filters/numer
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import ScoreBar from 'sentry/components/scoreBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {IconNot} from 'sentry/icons';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
 import {IconFire} from 'sentry/icons/iconFire';
@@ -522,18 +524,48 @@ export const ReplaySessionColumn: ReplayTableColumn = {
 
     const referrer = getRouteStringFromRoutes(routes);
     const eventView = EventView.fromLocation(location);
+
+    const {statsPeriod, start, end, ...eventViewQuery} =
+      eventView.generateQueryStringObject();
+
+    const detailsTabQuery: Query = {
+      referrer,
+      ...eventViewQuery,
+    };
+
+    if (typeof statsPeriod === 'string') {
+      const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(
+        statsPeriod,
+        undefined,
+        true
+      );
+      detailsTabQuery.playlistStart = playlistStart;
+      detailsTabQuery.playlistEnd = playlistEnd;
+    } else if (start && end) {
+      detailsTabQuery.playlistStart = start;
+      detailsTabQuery.playlistEnd = end;
+    }
+
+    // Because the sort and cursor field is only generated in EventView conditionally and we
+    // want to avoid dirtying the URL with fields, we manually add them to the query here.
+    if (location.query.sort) {
+      detailsTabQuery.playlistSort = location.query.sort;
+    }
+    if (location.query.cursor) {
+      detailsTabQuery.cursor = location.query.cursor;
+    }
+
     const replayDetailsPathname = makeReplaysPathname({
       path: `/${replay.id}/`,
       organization,
     });
 
-    const detailsTab = () => ({
-      pathname: replayDetailsPathname,
-      query: {
-        referrer,
-        ...eventView.generateQueryStringObject(),
-      },
-    });
+    const detailsTab = () => {
+      return {
+        pathname: replayDetailsPathname,
+        query: detailsTabQuery,
+      };
+    };
     const trackNavigationEvent = () =>
       trackAnalytics('replay.list-navigate-to-details', {
         project_id: project?.id,

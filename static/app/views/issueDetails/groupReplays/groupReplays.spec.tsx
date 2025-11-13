@@ -414,7 +414,7 @@ describe('GroupReplays', () => {
       expect(await screen.findAllByText('testDisplayName')).toHaveLength(2);
 
       const expectedQuery =
-        'query=&referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&statsPeriod=14d&yAxis=count%28%29';
+        'playlistEnd=2022-09-28T23%3A29%3A13&playlistStart=2022-09-14T23%3A29%3A13&query=&referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&yAxis=count%28%29';
 
       // Expect the first row to have the correct href
       expect(
