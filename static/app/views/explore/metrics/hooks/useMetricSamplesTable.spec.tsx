@@ -134,6 +134,8 @@ describe('useMetricSamplesTable', () => {
           dataset: 'tracemetrics',
           disableAggregateExtrapolation: undefined,
           environment: ['prod'],
+          start: expect.any(String),
+          end: expect.any(String),
           field: [
             'id',
             'project.id',
@@ -143,6 +145,7 @@ describe('useMetricSamplesTable', () => {
             'metric.type',
             'metric.name',
             'timestamp',
+            'sentry.observed_timestamp_nanos',
           ],
           orderby: ['-timestamp'],
           per_page: 50,
