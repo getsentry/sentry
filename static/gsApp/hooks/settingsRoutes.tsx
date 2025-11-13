@@ -23,18 +23,10 @@ const settingsRoutes = (): SentryRouteObject => ({
           redirectTo: 'overview/',
         },
         {
-          // TODO(checkout v3): This should be removed when checkout v3 is GA'd
+          // NOTE: This route is retained for legacy linking
           path: 'checkout/',
           name: 'Change',
-          component: errorHandler(SubscriptionContext),
-          deprecatedRouteProps: true,
-          children: [
-            {
-              index: true,
-              component: make(() => import('../views/decideCheckout')),
-              deprecatedRouteProps: true,
-            },
-          ],
+          redirectTo: '/checkout/',
         },
         {
           path: 'cancel/',
