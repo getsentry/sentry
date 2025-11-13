@@ -370,6 +370,7 @@ def associate_new_group_with_detector(group: Group, detector_id: int | None = No
                 return False
             detector_id = Detector.get_error_detector_for_project(group.project.id).id
         else:
+            # TODO: associate with issue stream detector
             return False
     DetectorGroup.objects.get_or_create(
         detector_id=detector_id,
