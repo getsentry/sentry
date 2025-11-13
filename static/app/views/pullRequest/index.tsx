@@ -1,3 +1,5 @@
+import {Outlet} from 'react-router-dom';
+
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -6,11 +8,7 @@ import {t} from 'sentry/locale';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {
-  children: NonNullable<React.ReactNode>;
-};
-
-function PullRequestContainer({children}: Props) {
+export default function PullRequestContainer() {
   const organization = useOrganization();
 
   return (
@@ -28,10 +26,10 @@ function PullRequestContainer({children}: Props) {
       )}
     >
       <NoProjectMessage organization={organization}>
-        <UrlParamBatchProvider>{children}</UrlParamBatchProvider>
+        <UrlParamBatchProvider>
+          <Outlet />
+        </UrlParamBatchProvider>
       </NoProjectMessage>
     </Feature>
   );
 }
-
-export default PullRequestContainer;
