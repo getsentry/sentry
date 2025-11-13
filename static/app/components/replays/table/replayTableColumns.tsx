@@ -95,11 +95,11 @@ export interface ReplayTableColumn {
 
 function generateQueryStringObjectWithPlaylist(eventView: EventView) {
   const {statsPeriod, ...eventViewQuery} = eventView.generateQueryStringObject();
-  let queryStringObject = {...eventViewQuery};
+  let queryStringObject: Query = {...eventViewQuery};
 
   if (!eventViewQuery.start && !eventViewQuery.end && typeof statsPeriod === 'string') {
-    const {start, end} = parseStatsPeriod(statsPeriod);
-    queryStringObject = {...queryStringObject, ...{start, end}};
+    const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(statsPeriod);
+    queryStringObject = {...queryStringObject, ...{playlistStart, playlistEnd}};
   }
   return queryStringObject;
 }
@@ -333,11 +333,7 @@ export const ReplayDetailsLinkColumn: ReplayTableColumn = {
     const organization = useOrganization();
 
     const referrer = getRouteStringFromRoutes(routes);
-    let query = {referrer};
-
-    if (eventView) {
-      query = {...query, ...generateQueryStringObjectWithPlaylist(eventView)};
-    }
+    const query = {referrer, ...generateQueryStringObjectWithPlaylist(eventView)};
 
     const replayDetailsPathname = makeReplaysPathname({
       path: `/${replay.id}/`,
@@ -555,18 +551,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
 
     const referrer = getRouteStringFromRoutes(routes);
 
-    const {statsPeriod, ...eventViewQuery} = eventView.generateQueryStringObject();
-
-    let query: Query = {
-      referrer,
-      ...eventViewQuery,
-    };
-
-    if (!eventViewQuery.start && !eventViewQuery.end && typeof statsPeriod === 'string') {
-      const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(statsPeriod);
-      query = {...query, ...{playlistStart, playlistEnd}};
-    }
-
+    const query: Query = {referrer, ...generateQueryStringObjectWithPlaylist(eventView)};
     if (location.query.cursor) {
       query.cursor = location.query.cursor;
     }
@@ -574,7 +559,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     // Because the sort field is only generated if the corresponding fields are also in the URL, but we
     // want to avoid dirtying the URL with fields, we manually add the sort field to the query here.
     if (location.query.sort) {
-      query = {...query, ...{playlistSort: location.query.sort}};
+      query.playlistSort = location.query.sort;
     }
 
     const replayDetailsPathname = makeReplaysPathname({
