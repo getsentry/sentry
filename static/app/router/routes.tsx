@@ -2921,7 +2921,6 @@ function buildRoutes(): RouteObject[] {
       discoverRoutes,
       performanceRoutes,
       domainViewRoutes,
-      tracesRoutes,
       exploreRoutes,
       llmMonitoringRedirects,
       profilingRoutes,
