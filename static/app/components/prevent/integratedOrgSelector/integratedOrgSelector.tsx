@@ -47,7 +47,10 @@ function OrgFooterMessage() {
       }
     );
 
+  const {data: installedIntegrations = []} = useGetActiveIntegratedOrgs({organization});
+
   const provider = integrationInfo?.providers[0];
+  const hasInstalledIntegration = installedIntegrations.length > 0;
 
   return (
     <Flex gap="sm" direction="column" align="start">
@@ -75,10 +78,10 @@ function OrgFooterMessage() {
           value={{
             provider,
             type: 'first_party',
-            installStatus: 'Installed',
+            installStatus: hasInstalledIntegration ? 'Installed' : 'Not Installed',
             analyticsParams: {
               view: 'test_analytics_org_selector',
-              already_installed: true,
+              already_installed: hasInstalledIntegration,
             },
           }}
         >
