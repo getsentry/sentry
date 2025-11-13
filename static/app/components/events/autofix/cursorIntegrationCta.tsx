@@ -130,7 +130,11 @@ export function CursorIntegrationCta({project}: CursorIntegrationCtaProps) {
             )}
           </Text>
           <div>
-            <LinkButton to="/settings/integrations/cursor/" priority="default" size="sm">
+            <LinkButton
+              href="/settings/integrations/cursor/"
+              priority="default"
+              size="sm"
+            >
               {t('Install Cursor Integration')}
             </LinkButton>
           </div>
