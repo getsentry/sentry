@@ -37,6 +37,7 @@ export default function Ai() {
   const segmentCount = replayRecord?.count_segments ?? 0;
   const project = useProjectFromId({project_id: replayRecord?.project_id});
   const analyticsArea = useAnalyticsArea();
+  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
 
   const replayTooLongMessage = t(
     'While in beta phase, we only summarize a small portion of the replay.'
@@ -77,7 +78,8 @@ export default function Ai() {
   }
 
   // check for org seer setup first before attempting to fetch summary
-  if (isOrgSeerSetupPending) {
+  // only do this if consent flow is not skipped
+  if (!skipConsentFlow && isOrgSeerSetupPending) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <LoadingContainer>
@@ -91,7 +93,8 @@ export default function Ai() {
 
   // If our `replay-ai-summaries` ff is enabled and the org has gen AI ff enabled,
   // but the org hasn't acknowledged the gen AI features, then show CTA.
-  if (!setupAcknowledgement.orgHasAcknowledged) {
+  // only do this if consent flow is not skipped
+  if (!skipConsentFlow && !setupAcknowledgement.orgHasAcknowledged) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
         <EndStateContainer>
