@@ -99,10 +99,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         assert mock_send_trigger.call_count == 1
         pagerduty_data = mock_send_trigger.call_args.kwargs.get("data")
         assert pagerduty_data is not None
-        # test notification has its own type, so it will pick up the issue stream detector
-        assert pagerduty_data["payload"]["summary"].startswith(
-            f"[{self.issue_stream_detector.name}]:"
-        )
+        assert pagerduty_data["payload"]["summary"].startswith(f"[{self.detector.name}]:")
 
     @mock.patch.object(NotifyEventAction, "after")
     @mock.patch(
