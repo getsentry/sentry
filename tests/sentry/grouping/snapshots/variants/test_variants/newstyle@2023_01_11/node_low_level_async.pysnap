@@ -9,14 +9,14 @@ app:
     app*
       exception*
         stacktrace (ignored because it contains no in-app frames)
-          frame (marked out of app by stack trace rule (function:processTicksAndRejections -app))
+          frame (marked out of app by built-in stack trace rule (function:processTicksAndRejections -app))
             module*
               "task_queues"
             filename (ignored because module takes precedence)
               "task_queues"
             function*
               "processTicksAndRejections"
-          frame (marked out of app by stack trace rule (function:runMicrotasks -app))
+          frame (marked out of app by built-in stack trace rule (function:runMicrotasks -app))
             filename*
               "axiosinterceptor.js"
             function*
@@ -34,14 +34,14 @@ system:
     system (ignored because app exception takes precedence)
       exception (ignored because hash matches app variant)
         stacktrace (ignored because it contains no contributing frames)
-          frame (ignored by stack trace rule (function:processTicksAndRejections -group))
+          frame (ignored by built-in stack trace rule (function:processTicksAndRejections -group))
             module*
               "task_queues"
             filename (ignored because module takes precedence)
               "task_queues"
             function*
               "processTicksAndRejections"
-          frame (ignored by stack trace rule (function:runMicrotasks -group))
+          frame (ignored by built-in stack trace rule (function:runMicrotasks -group))
             filename*
               "axiosinterceptor.js"
             function*
