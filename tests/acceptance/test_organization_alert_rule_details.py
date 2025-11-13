@@ -5,10 +5,12 @@ from django.utils import timezone
 from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import no_silo_test
 
 
 @no_silo_test
+@with_feature({"organizations:workflow-engine-ui": False})
 class OrganizationAlertRuleDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
