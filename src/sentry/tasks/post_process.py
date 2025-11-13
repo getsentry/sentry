@@ -1628,9 +1628,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
 
-    # Only run on issues with no existing scan
-    if group.seer_fixability_score is not None:
-        return
+    # Only run on issues with no existing scan (unless triage-signals-v0 is enabled)
+    if not features.has("projects:triage-signals-v0", group.project):
+        if group.seer_fixability_score is not None:
+            return
 
     # check currently supported issue categories for Seer
     if group.issue_category not in [
