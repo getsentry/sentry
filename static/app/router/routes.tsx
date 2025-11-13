@@ -2252,6 +2252,24 @@ function buildRoutes(): RouteObject[] {
     children: performanceChildren,
   };
 
+  const tracesChildren: SentryRouteObject[] = [
+    {
+      index: true,
+      component: make(() => import('sentry/views/traces/content')),
+    },
+    traceView,
+    {
+      path: 'compare/',
+      component: make(() => import('sentry/views/explore/multiQueryMode')),
+    },
+  ];
+  const tracesRoutes: SentryRouteObject = {
+    path: '/traces/',
+    component: make(() => import('sentry/views/traces')),
+    withOrgPath: true,
+    children: tracesChildren,
+  };
+
   const logsChildren: SentryRouteObject[] = [
     {
       index: true,
@@ -2325,17 +2343,7 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'traces/',
       component: make(() => import('sentry/views/traces')),
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/traces/content')),
-        },
-        traceView,
-        {
-          path: 'compare/',
-          component: make(() => import('sentry/views/explore/multiQueryMode')),
-        },
-      ],
+      children: tracesChildren,
     },
     {
       path: 'replays/',
@@ -2921,6 +2929,7 @@ function buildRoutes(): RouteObject[] {
       discoverRoutes,
       performanceRoutes,
       domainViewRoutes,
+      tracesRoutes,
       exploreRoutes,
       llmMonitoringRedirects,
       profilingRoutes,
