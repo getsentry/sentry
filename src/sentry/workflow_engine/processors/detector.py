@@ -158,12 +158,26 @@ def get_detector_by_group(group: Group) -> Detector:
 
 
 def get_detector_from_event_data(event_data: WorkflowEventData) -> Detector:
-    if isinstance(event_data.event, GroupEvent):
-        return get_detector_by_event(event_data)
-    elif isinstance(event_data.event, Activity):
-        return get_detector_by_group(event_data.group)
-    else:
-        raise TypeError(f"Cannot determine the detector from {type(event_data.event)}.")
+    try:
+        if isinstance(event_data.event, GroupEvent):
+            return get_detector_by_event(event_data)
+        elif isinstance(event_data.event, Activity):
+            return get_detector_by_group(event_data.group)
+    except Detector.DoesNotExist:
+        logger.exception(
+            "Detector not found for event",
+            extra={
+                "type": type(event_data.event),
+                "id": (
+                    event_data.event.event_id
+                    if isinstance(event_data.event, GroupEvent)
+                    else event_data.event.id
+                ),
+                "group_id": event_data.group.id,
+            },
+        )
+
+    raise TypeError(f"Cannot determine the detector from {type(event_data.event)}.")
 
 
 class _SplitEvents(NamedTuple):
