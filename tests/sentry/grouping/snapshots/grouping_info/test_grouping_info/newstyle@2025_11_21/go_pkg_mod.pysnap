@@ -43,7 +43,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (path:**/go/pkg/mod/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (path:**/go/pkg/mod/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [

@@ -43,7 +43,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (module:@babel/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (module:@babel/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -76,7 +76,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (module:core-js/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (module:core-js/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -109,7 +109,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by stack trace rule (module:tslib/** -app)",
+                    "hint": "marked out of app by built-in stack trace rule (module:tslib/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -192,7 +192,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (module:@babel/** -group)",
+                    "hint": "ignored by built-in stack trace rule (module:@babel/** -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -225,7 +225,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (module:core-js/** -group)",
+                    "hint": "ignored by built-in stack trace rule (module:core-js/** -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -258,7 +258,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (module:tslib/** -group)",
+                    "hint": "ignored by built-in stack trace rule (module:tslib/** -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
