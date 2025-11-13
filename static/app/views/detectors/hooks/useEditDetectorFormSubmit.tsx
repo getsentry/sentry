@@ -6,6 +6,7 @@ import {t} from 'sentry/locale';
 import type {
   BaseDetectorUpdatePayload,
   Detector,
+  SnubaQuery,
 } from 'sentry/types/workflowEngine/detectors';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -53,18 +54,16 @@ export function useEditDetectorFormSubmit<
 
         const resultDetector = await updateDetector(updatedData);
 
-        let dataset: string | undefined;
-        let aggregate: string | undefined;
-        if (resultDetector.type === 'metric_issue') {
-          dataset = resultDetector.dataSources[0]?.queryObj?.snubaQuery?.dataset;
-          aggregate = resultDetector.dataSources[0]?.queryObj?.snubaQuery?.aggregate;
-        }
+        const snubaQuery: SnubaQuery | undefined =
+          resultDetector.type === 'metric_issue'
+            ? resultDetector.dataSources[0]?.queryObj?.snubaQuery
+            : undefined;
 
         trackAnalytics('monitor.updated', {
           organization,
           detector_type: resultDetector.type,
-          dataset,
-          aggregate,
+          dataset: snubaQuery?.dataset,
+          aggregate: snubaQuery?.aggregate,
         });
 
         addSuccessMessage(t('Monitor updated successfully'));

@@ -6,6 +6,7 @@ import {t} from 'sentry/locale';
 import type {
   BaseDetectorUpdatePayload,
   Detector,
+  SnubaQuery,
 } from 'sentry/types/workflowEngine/detectors';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -45,18 +46,16 @@ export function useCreateDetectorFormSubmit<
         const payload = formDataToEndpointPayload(data as TFormData);
         const resultDetector = await createDetector(payload);
 
-        let dataset: string | undefined;
-        let aggregate: string | undefined;
-        if (resultDetector.type === 'metric_issue') {
-          dataset = resultDetector.dataSources[0]?.queryObj?.snubaQuery?.dataset;
-          aggregate = resultDetector.dataSources[0]?.queryObj?.snubaQuery?.aggregate;
-        }
+        const snubaQuery: SnubaQuery | undefined =
+          resultDetector.type === 'metric_issue'
+            ? resultDetector.dataSources[0]?.queryObj?.snubaQuery
+            : undefined;
 
         trackAnalytics('monitor.created', {
           organization,
           detector_type: resultDetector.type,
-          dataset,
-          aggregate,
+          dataset: snubaQuery?.dataset,
+          aggregate: snubaQuery?.aggregate,
         });
 
         addSuccessMessage(t('Monitor created successfully'));
