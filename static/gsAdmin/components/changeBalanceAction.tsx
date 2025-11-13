@@ -1,26 +1,42 @@
-import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import Form from 'sentry/components/deprecatedforms/form';
-import NumberField from 'sentry/components/deprecatedforms/numberField';
+import {Heading, Text} from 'sentry/components/core/text';
 import InputField from 'sentry/components/forms/fields/inputField';
+import NumberField from 'sentry/components/forms/fields/numberField';
 import TextField from 'sentry/components/forms/fields/textField';
-import {space} from 'sentry/styles/space';
-import useApi from 'sentry/utils/useApi';
+import Form, {type FormProps} from 'sentry/components/forms/form';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 import type {Subscription} from 'getsentry/types';
 import {formatBalance} from 'getsentry/utils/billing';
 
-type Props = {
+function coerceValue(value: number) {
+  if (isNaN(value)) {
+    return undefined;
+  }
+  return value * 100;
+}
+
+type OnSubmitArgs = Parameters<NonNullable<FormProps['onSubmit']>>;
+interface MutationVariables {
+  creditAmount: number;
+  notes: string;
+  onSubmitError: OnSubmitArgs[2];
+  onSubmitSuccess: OnSubmitArgs[1];
+  ticketUrl: string;
+}
+
+interface ChangeBalanceModalProps extends ModalRenderProps {
   onSuccess: () => void;
   orgId: string;
   subscription: Subscription;
-};
-
-type ModalProps = Props & ModalRenderProps;
+}
 
 function ChangeBalanceModal({
   orgId,
@@ -29,114 +45,114 @@ function ChangeBalanceModal({
   closeModal,
   Header,
   Body,
-}: ModalProps) {
-  const [ticketUrl, setTicketUrl] = useState('');
-  const [notes, setNotes] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const api = useApi();
-
-  function coerceValue(value: number) {
-    if (isNaN(value)) {
-      return undefined;
-    }
-    return value * 100;
-  }
-
-  async function onSubmit(data: any, _onSubmitSuccess: unknown, onSubmitError: any) {
-    const creditAmount = coerceValue(data.creditAmount);
-    if (!creditAmount) {
-      return;
-    }
-
-    // Prevent concurrent submissions
-    if (isSubmitting) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await api.requestPromise(`/_admin/customers/${orgId}/balance-changes/`, {
+}: ChangeBalanceModalProps) {
+  const {mutate, isPending} = useMutation<
+    Record<string, any>,
+    RequestError,
+    MutationVariables
+  >({
+    mutationFn: ({creditAmount, ticketUrl, notes}) =>
+      fetchMutation({
         method: 'POST',
-        data: {ticketUrl, notes, creditAmount},
-      });
-
+        url: `/_admin/customers/${orgId}/balance-changes/`,
+        data: {
+          ticketUrl,
+          notes,
+          creditAmount,
+        },
+      }),
+    onSuccess: (response, {onSubmitSuccess}) => {
+      onSubmitSuccess?.(response);
       addSuccessMessage('Customer balance updated');
       onSuccess();
       closeModal();
-    } catch (err: any) {
-      onSubmitError({
-        responseJSON: err.responseJSON,
+    },
+    onError: (error, {onSubmitError}) => {
+      onSubmitError?.({
+        responseJSON: error?.responseJSON,
       });
-    } finally {
-      setIsSubmitting(false);
+    },
+  });
+
+  const onSubmit: NonNullable<FormProps['onSubmit']> = (
+    data,
+    onSubmitSuccess,
+    onSubmitError
+  ) => {
+    const creditAmountInput = Number(data.creditAmount);
+    const creditAmount = coerceValue(creditAmountInput);
+    const ticketUrl = typeof data.ticketUrl === 'string' ? data.ticketUrl : '';
+    const notes = typeof data.notes === 'string' ? data.notes : '';
+
+    if (!creditAmount || isPending) {
+      return;
     }
-  }
+
+    mutate({
+      creditAmount,
+      ticketUrl,
+      notes,
+      onSubmitSuccess,
+      onSubmitError,
+    });
+  };
 
   return (
     <Fragment>
-      <Header>Add or Remove Credit</Header>
+      <Header>
+        <Heading as="h2">Add or Remove Credit</Heading>
+      </Header>
       <Body>
         <p data-test-id="balance">
           <span>
-            <CurrentBalance>Current Balance: </CurrentBalance>
+            <Text bold>Current Balance: </Text>
             {formatBalance(subscription.accountBalance)}
           </span>
         </p>
         <Form
           onSubmit={onSubmit}
           onCancel={closeModal}
-          submitLabel={isSubmitting ? 'Submitting...' : 'Submit'}
-          submitDisabled={isSubmitting}
+          submitLabel={isPending ? 'Submitting...' : 'Submit'}
+          submitDisabled={isPending}
           cancelLabel="Cancel"
           footerClass="modal-footer"
         >
-          <NumberField
-            label="Credit Amount"
-            name="creditAmount"
-            help="Add or remove credit, in dollars"
-            disabled={isSubmitting}
-          />
-          <AuditFields>
-            <InputField
-              data-test-id="url-field"
-              name="ticket-url"
-              type="url"
-              label="TicketUrl"
+          <Flex direction="column" gap="md">
+            <NumberField
+              label="Credit Amount"
+              name="creditAmount"
+              help="Add or remove credit, in dollars"
+              disabled={isPending}
               inline={false}
               stacked
-              flexibleControlStateSize
-              disabled={isSubmitting}
-              onChange={(ticketUrlInput: any) => setTicketUrl(ticketUrlInput)}
             />
-            <TextField
-              data-test-id="notes-field"
-              name="notes"
-              label="Notes"
-              inline={false}
-              stacked
-              flexibleControlStateSize
-              maxLength={500}
-              disabled={isSubmitting}
-              onChange={(notesInput: any) => setNotes(notesInput)}
-            />
-          </AuditFields>
+            <div>
+              <InputField
+                name="ticketUrl"
+                type="url"
+                label="Ticket URL"
+                inline={false}
+                stacked
+                disabled={isPending}
+              />
+              <TextField
+                name="notes"
+                label="Notes"
+                inline={false}
+                stacked
+                maxLength={500}
+                disabled={isPending}
+              />
+            </div>
+          </Flex>
         </Form>
       </Body>
     </Fragment>
   );
 }
 
-type Options = Pick<Props, 'orgId' | 'subscription' | 'onSuccess'>;
-
-const triggerChangeBalanceModal = (opts: Options) =>
-  openModal(deps => <ChangeBalanceModal {...deps} {...opts} />);
-
-const CurrentBalance = styled('span')`
-  font-weight: bold;
-`;
-
-const AuditFields = styled('div')`
-  margin-top: ${space(2)};
-`;
+const triggerChangeBalanceModal = (
+  opts: Omit<ChangeBalanceModalProps, keyof ModalRenderProps>
+) => openModal(deps => <ChangeBalanceModal {...deps} {...opts} />);
 
 export default triggerChangeBalanceModal;
