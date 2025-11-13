@@ -87,7 +87,7 @@ function openPerformanceReservedTransactionsDiscountModal({
     onAccept: () => {
       navigate(
         normalizeUrl({
-          pathname: '/checkout/',
+          pathname: `/settings/${organization.slug}/billing/checkout/`,
           query: {
             skipBundles: true,
           },

@@ -168,7 +168,7 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
             priority="primary"
             onClick={() => {
               browserHistory.push(
-                normalizeUrl('/checkout/?referrer=product-trial-alert')
+                normalizeUrl(`/settings/${organization.slug}/billing/checkout/`)
               );
             }}
           >
@@ -212,7 +212,9 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
         <Button
           priority="primary"
           onClick={() => {
-            browserHistory.push(normalizeUrl('/checkout/?referrer=product-trial-alert'));
+            browserHistory.push(
+              normalizeUrl(`/settings/${organization.slug}/billing/checkout/`)
+            );
           }}
         >
           {t('Update Plan')}

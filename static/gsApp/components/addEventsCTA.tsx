@@ -108,7 +108,7 @@ function AddEventsCTA(props: Props) {
     }, 0);
   };
 
-  const checkoutUrl = `/checkout/?referrer=${referrer}`;
+  const checkoutUrl = `/settings/${organization.slug}/billing/checkout/?referrer=${referrer}`;
   const subscriptionUrl = `/settings/${organization.slug}/billing/overview/`;
 
   switch (action) {

@@ -55,7 +55,9 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
       <SecondaryCTAWrapper>{cta}</SecondaryCTAWrapper>
       <LinkButton
         onClick={trackClickUpgrade}
-        href={normalizeUrl(`/checkout/?referrer=upgrade-${source}`)}
+        href={normalizeUrl(
+          `/settings/${organization.slug}/billing/checkout/?referrer=upgrade-${source}`
+        )}
         external
         size="sm"
         icon={<IconBusiness />}

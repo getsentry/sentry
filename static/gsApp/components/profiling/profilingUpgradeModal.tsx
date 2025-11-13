@@ -47,7 +47,7 @@ function UpsellModal(props: Props) {
     if (error && hasBillingAccess) {
       // Redirect the user to the subscriptions page, where they will find important information.
       // If they wish to update their plan, we ask them to contact our sales/support team.
-      redirectToManage();
+      redirectToManage(organization);
     }
   }, [error, hasBillingAccess, organization]);
 
@@ -222,7 +222,7 @@ function ActionButtons({
       });
     } catch (err) {
       Sentry.captureException(err);
-      redirectToManage();
+      redirectToManage(organization);
     }
   }, [api, organization, subscription, plan, reservations, onComplete, hasPriceChange]);
 
@@ -249,7 +249,7 @@ function ActionButtons({
         {t('Update Now')}
       </Button>
       <LinkButton
-        to="/checkout/?referrer=profiling_onboard_modal-owner-modal"
+        to={`/settings/${organization.slug}/billing/checkout/?referrer=profiling_onboard_modal-owner-modal`}
         onClick={onClickManageSubscription}
       >
         {t('Manage Subscription')}

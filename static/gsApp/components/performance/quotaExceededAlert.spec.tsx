@@ -121,7 +121,10 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
 
     expect(
       screen.getByRole('link', {name: /increase your on-demand budget/})
-    ).toHaveAttribute('href', '/checkout/?referrer=trace-view&skipBundles=true');
+    ).toHaveAttribute(
+      'href',
+      '/settings/billing/checkout/?referrer=trace-view&skipBundles=true'
+    );
   });
 
   it('renders alert when quota is exceeded for logs', async () => {
@@ -173,6 +176,9 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
 
     expect(
       screen.getByRole('link', {name: /increase your on-demand budget/})
-    ).toHaveAttribute('href', '/checkout/?referrer=trace-view&skipBundles=true');
+    ).toHaveAttribute(
+      'href',
+      '/settings/billing/checkout/?referrer=trace-view&skipBundles=true'
+    );
   });
 });

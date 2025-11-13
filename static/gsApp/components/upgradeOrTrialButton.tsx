@@ -153,7 +153,7 @@ function UpgradeOrTrialButton({
   if (hasAccess) {
     // send self-serve directly to checkout
     const baseUrl = subscription.canSelfServe
-      ? '/checkout/'
+      ? `/settings/${slug}/billing/checkout/`
       : `/settings/${slug}/billing/overview/`;
 
     return (
