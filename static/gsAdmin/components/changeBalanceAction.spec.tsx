@@ -24,14 +24,14 @@ describe('BalanceChangeAction', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders no balance', () => {
+  it('renders no balance', async () => {
     triggerChangeBalanceModal({subscription, ...modalProps});
 
     renderGlobalModal();
-    expect(screen.getByTestId('balance')).toHaveTextContent('$0.00 owed');
+    expect(await screen.findByTestId('balance')).toHaveTextContent('$0.00 owed');
   });
 
-  it('renders credit', () => {
+  it('renders credit', async () => {
     triggerChangeBalanceModal({
       subscription: {...subscription, accountBalance: -3000},
       orgId: organization.id,
@@ -39,17 +39,17 @@ describe('BalanceChangeAction', () => {
     });
 
     renderGlobalModal();
-    expect(screen.getByTestId('balance')).toHaveTextContent('$30.00 credit');
+    expect(await screen.findByTestId('balance')).toHaveTextContent('$30.00 credit');
   });
 
-  it('renders amount owed', () => {
+  it('renders amount owed', async () => {
     triggerChangeBalanceModal({
       subscription: {...subscription, accountBalance: 3000},
       ...modalProps,
     });
 
     renderGlobalModal();
-    expect(screen.getByTestId('balance')).toHaveTextContent('$30.00 owed');
+    expect(await screen.findByTestId('balance')).toHaveTextContent('$30.00 owed');
   });
 
   it('can submit balance change', async () => {
@@ -67,17 +67,19 @@ describe('BalanceChangeAction', () => {
 
     await waitForModalToHide();
 
-    expect(updateMock).toHaveBeenCalledWith(
-      `/_admin/customers/${organization.slug}/balance-changes/`,
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          creditAmount: 3000,
-          ticketUrl: '',
-          notes: '',
-        },
-      })
-    );
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        `/_admin/customers/${organization.slug}/balance-changes/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            creditAmount: 3000,
+            ticketUrl: '',
+            notes: '',
+          },
+        })
+      );
+    });
   });
 
   it('can submit balance change with zendesk ticket and note', async () => {
@@ -100,17 +102,19 @@ describe('BalanceChangeAction', () => {
 
     await waitForModalToHide();
 
-    expect(updateMock).toHaveBeenCalledWith(
-      `/_admin/customers/${organization.slug}/balance-changes/`,
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          creditAmount: -1000,
-          ticketUrl: url,
-          notes: note,
-        },
-      })
-    );
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        `/_admin/customers/${organization.slug}/balance-changes/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            creditAmount: -1000,
+            ticketUrl: url,
+            notes: note,
+          },
+        })
+      );
+    });
   });
 
   it('prevents double submission', async () => {
@@ -133,7 +137,9 @@ describe('BalanceChangeAction', () => {
     await userEvent.click(submitButton);
 
     // Should only call API once (double-clicks prevented)
-    expect(updateMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('disables form fields during submission', async () => {
@@ -148,7 +154,7 @@ describe('BalanceChangeAction', () => {
     triggerChangeBalanceModal({subscription, ...modalProps});
 
     renderGlobalModal();
-    const creditInput = screen.getByRole('spinbutton', {name: 'Credit Amount'});
+    const creditInput = await screen.findByRole('spinbutton', {name: 'Credit Amount'});
     await userEvent.type(creditInput, '10');
 
     const submitButton = screen.getByRole('button', {name: 'Submit'});
@@ -174,9 +180,11 @@ describe('BalanceChangeAction', () => {
     triggerChangeBalanceModal({subscription, ...modalProps});
     renderGlobalModal();
 
-    await screen.findByRole('spinbutton', {name: 'Credit Amount'});
-    await screen.findByRole('textbox', {name: 'Ticket URL'});
-    await screen.findByRole('textbox', {name: 'Notes'});
+    expect(
+      await screen.findByRole('spinbutton', {name: 'Credit Amount'})
+    ).toBeInTheDocument();
+    expect(await screen.findByRole('textbox', {name: 'Ticket URL'})).toBeInTheDocument();
+    expect(await screen.findByRole('textbox', {name: 'Notes'})).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('spinbutton', {name: 'Credit Amount'}));
     await userEvent.paste('10');
