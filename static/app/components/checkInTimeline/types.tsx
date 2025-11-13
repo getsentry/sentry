@@ -94,6 +94,10 @@ export interface TimeWindowConfig {
    * underscan. See the RollupConfig for more details.
    */
   timelineWidth: number;
+  /**
+   * The timezone to use for grid line calculations and date formatting
+   */
+  timezone: string;
 }
 
 interface StatusStyle {

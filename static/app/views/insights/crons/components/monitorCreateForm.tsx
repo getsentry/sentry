@@ -222,10 +222,10 @@ export default function MonitorCreateForm() {
 
             const schedule = {
               scheduleType,
-              timezone,
               cronSchedule,
               intervalFrequency,
               intervalUnit,
+              timezone: typeof timezone === 'string' ? timezone : undefined,
             };
 
             return <MockTimelineVisualization schedule={schedule} />;

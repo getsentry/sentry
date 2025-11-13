@@ -12,6 +12,7 @@ import FormContext from 'sentry/components/forms/formContext';
 import type {FieldValue} from 'sentry/components/forms/model';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
+import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -28,7 +29,7 @@ interface ScheduleConfig {
   intervalFrequency?: FieldValue;
   intervalUnit?: FieldValue;
   scheduleType?: FieldValue;
-  timezone?: FieldValue;
+  timezone?: string;
 }
 
 const NUM_SAMPLE_TICKS = 9;
@@ -91,11 +92,16 @@ export function MockTimelineVisualization({schedule}: Props) {
     }
   }, [errorMessage, form, scheduleType]);
 
+  const userTimezone = useTimezone();
+  const selectedTimezone = timezone ?? userTimezone;
+
   const mockTimestamps = data?.map(ts => new Date(ts * 1000));
   const start = mockTimestamps?.[0];
   const end = mockTimestamps?.[mockTimestamps.length - 1];
   const timeWindowConfig =
-    start && end ? getConfigFromTimeRange(start, end, timelineWidth) : undefined;
+    start && end
+      ? getConfigFromTimeRange(start, end, timelineWidth, selectedTimezone)
+      : undefined;
 
   return (
     <TimelineContainer>
