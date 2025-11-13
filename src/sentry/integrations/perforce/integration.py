@@ -252,9 +252,15 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         if "?" in url:
             url = url.split("?")[0]
 
+        # Normalize both paths by stripping leading slashes for comparison
+        # depot_path is typically "//depot" from config
+        # url after stripping prefix is "depot/path/file.cpp"
+        normalized_depot = depot_path.lstrip("/")
+        normalized_url = url.lstrip("/")
+
         # Remove depot prefix to get relative path
-        if url.startswith(depot_path):
-            return url[len(depot_path) :].lstrip("/")
+        if normalized_url.startswith(normalized_depot):
+            return normalized_url[len(normalized_depot) :].lstrip("/")
 
         return url
 
