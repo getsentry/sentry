@@ -61,6 +61,7 @@ class EnhancementsConfigData:
     # Note: This is not an actual config, just a container to make it easier to pass data between
     # functions while loading a config.
     rules: list[EnhancementRule]
+    rule_strings: list[str]
     rust_enhancements: RustEnhancements
     version: int | None = None
     bases: list[str] | None = None
