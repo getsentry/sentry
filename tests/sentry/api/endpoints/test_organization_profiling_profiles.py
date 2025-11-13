@@ -412,14 +412,14 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
             },
         )
 
-    @patch("sentry.profiles.flamegraph.bulk_snuba_queries")
+    @patch("sentry.profiles.flamegraph.FlamegraphExecutor._query_chunks_for_profilers")
     @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
     @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
     def test_queries_profile_candidates_from_transactions_with_data(
         self,
         mock_proxy_profiling_service,
         mock_raw_snql_query,
-        mock_bulk_snuba_queries,
+        mock_query_chunks_for_profilers,
     ):
         # this transaction has no transaction profile or continuous profile
         self.store_transaction(transaction="foo", project=self.project)
@@ -457,7 +457,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
         )
 
         # not able to write profile chunks to the table yet so mock it's response here
-        # so that the profiler transaction 1 looks like it has a profile chunk within
+        # so that the profiler transaction looks like it has a profile chunk within
         # the specified time range
         chunk = {  # single chunk aligned to the transaction
             "project_id": self.project.id,
@@ -466,7 +466,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
             "start_timestamp": (start_timestamp - buffer).isoformat(),
             "end_timestamp": (finish_timestamp + buffer).isoformat(),
         }
-        mock_bulk_snuba_queries.return_value = [{"data": [chunk]}]
+        mock_query_chunks_for_profilers.return_value = [{"data": [chunk]}]
 
         mock_proxy_profiling_service.return_value = HttpResponse(status=200)
 
@@ -478,13 +478,12 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
         )
         assert response.status_code == 200, response.content
 
-        # In practice, this should be called twice. But the second call is
-        # mocked in this test due to the inability to write to the profile
-        # chunks table.
-        mock_raw_snql_query.assert_called_once()
+        # The new implementation uses exponential time chunking, so it makes multiple calls
+        assert mock_raw_snql_query.call_count > 0
 
-        call_args = mock_raw_snql_query.call_args.args
-        snql_request = call_args[0]
+        # Check the first call to verify it queries transactions correctly
+        first_call_args = mock_raw_snql_query.call_args_list[0][0]
+        snql_request = first_call_args[0]
 
         assert snql_request.dataset == Dataset.Discover.value
         assert (
