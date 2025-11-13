@@ -40,20 +40,22 @@ from sentry.workflow_engine.models import Detector
 def get_detector_validator(
     request: Request, project: Project, detector_type_slug: str, instance=None, partial=False
 ):
-    type = grouptype.registry.get_by_slug(detector_type_slug)
-    if type is None:
+    group_type = grouptype.registry.get_by_slug(detector_type_slug)
+    if group_type is None:
         error_message = get_unknown_detector_type_error(detector_type_slug, project.organization)
         raise ValidationError({"type": [error_message]})
 
-    if type.detector_settings is None or type.detector_settings.validator is None:
+    if group_type.detector_settings is None or group_type.detector_settings.validator is None:
         raise ValidationError({"type": ["Detector type not compatible with detectors"]})
 
     # Resolve validator if it's a callable factory function
-    validator = type.detector_settings.validator
-    if callable(validator) and not isinstance(validator, type):
-        validator = validator()
+    validator_class = group_type.detector_settings.validator
+    if callable(validator_class) and not isinstance(validator_class, type):
+        # If it's a factory function, call it to get the validator class
+        validator_class = validator_class()
 
-    return validator(
+    # Instantiate the validator class with the provided parameters
+    return validator_class(
         instance=instance,
         context={
             "project": project,
