@@ -291,7 +291,6 @@ class OrganizationExamples:
                 "codecovAccess": False,
                 "hideAiFeatures": False,
                 "githubPRBot": True,
-                "githubOpenPRBot": True,
                 "githubNudgeInvite": True,
                 "gitlabPRBot": True,
                 "gitlabOpenPRBot": True,

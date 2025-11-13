@@ -1088,7 +1088,6 @@ function buildRoutes(): RouteObject[] {
                 'sentry/views/settings/organizationIntegrations/configureIntegration'
               )
           ),
-          deprecatedRouteProps: true,
         },
       ],
     },
@@ -1238,7 +1237,26 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'data-forwarding/',
       name: t('Data Forwarding'),
-      component: make(() => import('sentry/views/settings/organizationDataForwarding')),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/settings/organizationDataForwarding')
+          ),
+        },
+        {
+          path: 'setup/',
+          component: make(
+            () => import('sentry/views/settings/organizationDataForwarding/setup')
+          ),
+        },
+        {
+          path: ':dataForwarderId/edit/',
+          component: make(
+            () => import('sentry/views/settings/organizationDataForwarding/edit')
+          ),
+        },
+      ],
     },
   ];
   const orgSettingsRoutes: SentryRouteObject = {
@@ -1341,7 +1359,6 @@ function buildRoutes(): RouteObject[] {
   const traceView: SentryRouteObject = {
     path: 'trace/:traceSlug/',
     component: make(() => import('sentry/views/performance/newTraceDetails/index')),
-    deprecatedRouteProps: true,
   };
 
   const dashboardChildren: SentryRouteObject[] = [
@@ -2270,7 +2287,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/traces')),
     withOrgPath: true,
     children: tracesChildren,
-    deprecatedRouteProps: true,
   };
 
   const logsChildren: SentryRouteObject[] = [
@@ -2567,7 +2583,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/pullRequest/index')),
     withOrgPath: true,
     children: pullRequestChildren,
-    deprecatedRouteProps: true,
   };
 
   const feedbackV2Children: SentryRouteObject[] = [

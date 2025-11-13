@@ -869,6 +869,19 @@ class RPCBase:
     ) -> list[dict[str, Any]]:
         raise NotImplementedError()
 
+    @classmethod
+    def run_stats_query(
+        cls,
+        *,
+        params: SnubaParams,
+        stats_types: set[str],
+        query_string: str,
+        referrer: str,
+        config: SearchResolverConfig,
+        search_resolver: SearchResolver | None = None,
+    ) -> list[dict[str, Any]]:
+        raise NotImplementedError()
+
 
 def can_force_highest_accuracy(meta: RequestMeta) -> bool:
     # when using MODE_HIGHEST_ACCURACY_FLEXTIME, we cannot force highest accuracy

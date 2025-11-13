@@ -26,7 +26,7 @@ from sentry.utils import json
 logger = logging.getLogger(__name__)
 
 
-MAX_SEGMENTS_TO_SUMMARIZE = 100
+MAX_SEGMENTS_TO_SUMMARIZE = 150
 SEER_REQUEST_SIZE_LOG_THRESHOLD = 1e5  # Threshold for logging large Seer requests.
 
 SEER_START_TASK_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/start"
@@ -174,6 +174,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                         "project_id": project.id,
                         "organization_id": project.organization.id,
                         "segment_limit": MAX_SEGMENTS_TO_SUMMARIZE,
+                        "num_segments": num_segments,
                     },
                 )
                 num_segments = MAX_SEGMENTS_TO_SUMMARIZE

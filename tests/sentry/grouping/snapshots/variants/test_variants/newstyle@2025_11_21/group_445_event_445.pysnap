@@ -1,7 +1,5 @@
 ---
-created: '2025-11-05T19:32:39.457336+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null

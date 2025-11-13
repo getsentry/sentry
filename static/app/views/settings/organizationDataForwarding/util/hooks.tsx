@@ -12,13 +12,13 @@ import useApi from 'sentry/utils/useApi';
 import {
   ProviderLabels,
   type DataForwarder,
-} from 'sentry/views/settings/organizationDataForwarding/types';
+} from 'sentry/views/settings/organizationDataForwarding/util/types';
 
 const makeDataForwarderQueryKey = (params: {orgSlug: string}): ApiQueryKey => [
   `/organizations/${params.orgSlug}/forwarding/`,
 ];
 
-function useDataForwarders({
+export function useDataForwarders({
   params,
   options,
 }: {
@@ -29,18 +29,6 @@ function useDataForwarders({
     staleTime: 30000,
     ...options,
   });
-}
-
-/**
- * Simplified hook to get the primary data forwarder for an organization.
- */
-export function useDataForwarder({
-  orgSlug,
-}: {
-  orgSlug: string;
-}): DataForwarder | undefined {
-  const {data: dataForwarders = []} = useDataForwarders({params: {orgSlug}});
-  return dataForwarders[0];
 }
 
 const makeDataForwarderMutationQueryKey = (params: {
@@ -55,8 +43,10 @@ const makeDataForwarderMutationQueryKey = (params: {
  */
 export function useMutateDataForwarder({
   params: {orgSlug, dataForwarderId},
+  onSuccess,
 }: {
   params: {orgSlug: string; dataForwarderId?: string};
+  onSuccess?: (dataForwarder: DataForwarder) => void;
 }) {
   const api = useApi({persistInFlight: false});
   const queryClient = useQueryClient();
@@ -76,6 +66,7 @@ export function useMutateDataForwarder({
       );
       queryClient.invalidateQueries({queryKey: [endpoint]});
       queryClient.invalidateQueries({queryKey: listQueryKey});
+      onSuccess?.(dataForwarder);
     },
     onError: error => {
       const displayError =

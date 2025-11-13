@@ -32,6 +32,8 @@ const TWO_MINUTE_DELAY = 120;
 const MAX_TELEMETRY_WIDTH = 40;
 
 export const SAMPLES_PANEL_MIN_WIDTH = 350;
+export const WIDTH_WITH_TELEMETRY_ICONS_VISIBLE =
+  SAMPLES_PANEL_MIN_WIDTH + MAX_TELEMETRY_WIDTH * 3;
 
 interface MetricsSamplesTableProps {
   embedded?: boolean;

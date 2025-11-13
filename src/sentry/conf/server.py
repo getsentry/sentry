@@ -845,7 +845,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.incidents.tasks",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.github.tasks.link_all_repos",
-    "sentry.integrations.github.tasks.open_pr_comment",
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
