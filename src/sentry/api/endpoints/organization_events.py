@@ -25,11 +25,10 @@ from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPer
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
-from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.search.eap.constants import EXTRAPOLATION_MODE_MAP
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
@@ -518,14 +517,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     request.GET.get("disableAggregateExtrapolation", "0") == "1"
                 )
                 extrapolation_mode = self.get_extrapolation_mode(request)
-
-                requested_mode = request.GET.get("extrapolationMode", None)
-                if requested_mode is not None and requested_mode not in EXTRAPOLATION_MODE_MAP:
-                    raise InvalidSearchQuery(f"Unknown extrapolation mode: {requested_mode}")
-
-                extrapolation_mode = (
-                    EXTRAPOLATION_MODE_MAP[requested_mode] if requested_mode else None
-                )
 
                 if scoped_dataset == Spans:
                     return SearchResolverConfig(
