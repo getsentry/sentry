@@ -204,35 +204,12 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
         if url.startswith("p4://"):
             return True
 
-        web_url = self.model.metadata.get("web_url")
-        if web_url and url.startswith(web_url):
-            return True
+        if self.org_integration:
+            web_url = self.org_integration.config.get("web_url")
+            if web_url and url.startswith(web_url):
+                return True
 
         return False
-
-    def matches_repository_depot_path(self, repo: Repository, filepath: str) -> bool:
-        """
-        Check if a file path matches this repository's depot path.
-
-        When SRCSRV transformers remap paths to absolute depot paths (e.g.,
-        //depot/project/src/file.cpp), this method verifies that the depot path
-        matches the repository's configured depot_path.
-
-        Args:
-            repo: Repository object
-            filepath: File path (may be absolute depot path or relative path)
-
-        Returns:
-            True if the filepath matches this repository's depot
-        """
-        depot_path = repo.config.get("depot_path", repo.name)
-
-        # If filepath is absolute depot path, check if it starts with depot_path
-        if filepath.startswith("//"):
-            return filepath.startswith(depot_path)
-
-        # Relative paths always match (will be prepended with depot_path)
-        return True
 
     def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
         """
@@ -432,30 +409,6 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
     def get_unmigratable_repositories(self) -> list[RpcRepository]:
         """Get repositories that can't be migrated. Perforce doesn't need migration."""
         return []
-
-    def test_connection(self) -> dict[str, Any]:
-        """
-        Test the Perforce connection with current credentials.
-
-        Returns:
-            Dictionary with connection status and server info
-        """
-        try:
-            client = self.get_client()
-            info = client.get_depot_info()
-
-            return {
-                "status": "success",
-                "message": f"Connected to Perforce server at {info.get('server_address')}",
-                "server_info": info,
-            }
-        except Exception as e:
-            logger.exception("perforce.test_connection.failed")
-            return {
-                "status": "error",
-                "message": f"Failed to connect to Perforce server: {str(e)}",
-                "error": str(e),
-            }
 
     def get_organization_config(self) -> list[dict[str, Any]]:
         """
