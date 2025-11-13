@@ -1252,6 +1252,54 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0]
 
+    def test_device_class_filter_empty(self):
+        event_counts = [
+            ("low", 1),
+            ("", 2),
+            ("low", 3),
+            ("", 4),
+            ("low", 5),
+            ("", 6),
+        ]
+        spans = []
+        for hour, [device_class, count] in enumerate(event_counts):
+            spans.extend(
+                [
+                    self.create_span(
+                        {
+                            "description": "foo",
+                            "sentry_tags": {
+                                "status": "success",
+                                **(
+                                    {"device.class": list(DEVICE_CLASS["low"])[0]}
+                                    if device_class == "low"
+                                    else {}
+                                ),
+                            },
+                        },
+                        start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
+                    )
+                    for minute in range(count)
+                ],
+            )
+        self.store_spans(spans, is_eap=True)
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
+                "interval": "1h",
+                "yAxis": "count()",
+                "query": 'device.class:""',
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+        )
+        assert response.status_code == 200, response.content
+        for (device_class, count), row in zip(event_counts, response.data["data"]):
+            test_count = count if device_class == "" else 0
+            assert row[1][0]["count"] == test_count
+
     def test_device_class_top_events(self) -> None:
         event_counts = [
             ("low", 6),

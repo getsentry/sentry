@@ -1905,6 +1905,31 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
         assert response.status_code == 200
         assert response.data == []
 
+    def test_autocomplete_device_class(self) -> None:
+        self.store_spans(
+            [
+                self.create_span({"sentry_tags": {"device.class": "3"}}),
+                self.create_span({"sentry_tags": {"device.class": "2"}}),
+                self.create_span({"sentry_tags": {"device.class": "1"}}),
+                self.create_span({"sentry_tags": {"device.class": ""}}),
+                self.create_span({}),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(key="device.class")
+        assert response.data == [
+            {
+                "count": mock.ANY,
+                "key": "device.class",
+                "value": device_class,
+                "name": device_class,
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
+            }
+            for device_class in sorted(["low", "medium", "high", "Unknown"])
+        ]
+
 
 class OrganizationTraceItemAttributeValuesEndpointTraceMetricsTest(
     OrganizationTraceItemAttributeValuesEndpointBaseTest, TraceMetricsTestCase
