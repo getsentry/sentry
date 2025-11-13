@@ -30,7 +30,7 @@ def query_replay_instance_eap(
     start: datetime,
     end: datetime,
     organization_id: int,
-    request_user_id: int,
+    request_user_id: int | None,
     referrer: str = "replays.query.details_query",
 ):
     select = [
