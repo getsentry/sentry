@@ -190,6 +190,8 @@ describe('BalanceChangeAction', () => {
     expect(await screen.findByRole('textbox', {name: 'Notes'})).toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText('Credit Amount'), '10');
+
+    expect(await screen.findByRole('button', {name: /submit/i})).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByRole('button', {name: /submit/i})).toBeEnabled()
     );
