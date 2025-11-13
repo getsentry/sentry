@@ -331,6 +331,7 @@ package:/lib/**                                                   -app
 package:/usr/lib/**                                               -app
 path:/usr/local/lib/**                                            -app
 path:/usr/local/Cellar/**                                         -app
+path:**/.local/share/**                                           -app
 
 # rust common modules/functions
 family:native function:std::*                                     -app
