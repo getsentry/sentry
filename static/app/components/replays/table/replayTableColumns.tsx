@@ -551,15 +551,34 @@ export const ReplaySessionColumn: ReplayTableColumn = {
 
     const referrer = getRouteStringFromRoutes(routes);
 
-    const query: Query = {referrer, ...generateQueryStringObjectWithPlaylist(eventView)};
-    if (location.query.cursor) {
-      query.cursor = location.query.cursor;
+    const {statsPeriod, start, end, ...eventViewQuery} =
+      eventView.generateQueryStringObject();
+
+    const detailsTabQuery: Query = {
+      referrer,
+      ...eventViewQuery,
+    };
+
+    if (typeof statsPeriod === 'string') {
+      const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(
+        statsPeriod,
+        undefined,
+        true
+      );
+      detailsTabQuery.playlistStart = playlistStart;
+      detailsTabQuery.playlistEnd = playlistEnd;
+    } else if (start && end) {
+      detailsTabQuery.playlistStart = start;
+      detailsTabQuery.playlistEnd = end;
     }
 
-    // Because the sort field is only generated if the corresponding fields are also in the URL, but we
-    // want to avoid dirtying the URL with fields, we manually add the sort field to the query here.
+    // Because the sort and cursor field is only generated in EventView conditionally and we
+    // want to avoid dirtying the URL with fields, we manually add them to the query here.
     if (location.query.sort) {
-      query.playlistSort = location.query.sort;
+      detailsTabQuery.playlistSort = location.query.sort;
+    }
+    if (location.query.cursor) {
+      detailsTabQuery.cursor = location.query.cursor;
     }
 
     const replayDetailsPathname = makeReplaysPathname({
@@ -567,10 +586,12 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       organization,
     });
 
-    const detailsTab = () => ({
-      pathname: replayDetailsPathname,
-      query,
-    });
+    const detailsTab = () => {
+      return {
+        pathname: replayDetailsPathname,
+        query: detailsTabQuery,
+      };
+    };
     const trackNavigationEvent = () =>
       trackAnalytics('replay.list-navigate-to-details', {
         project_id: project?.id,

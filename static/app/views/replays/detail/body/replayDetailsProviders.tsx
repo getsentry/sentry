@@ -2,6 +2,7 @@ import {useEffect, useMemo, type ReactNode} from 'react';
 
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import {DEFAULT_REPLAY_LIST_SORT} from 'sentry/components/replays/table/useReplayTableSort';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
@@ -45,7 +46,7 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
     }
   }, [markAsViewed, organization, projectSlug, replayRecord]);
 
-  const query = useLocationQuery({
+  const {playlistStart, playlistEnd, playlistSort, ...query} = useLocationQuery({
     fields: {
       cursor: decodeScalar,
       end: decodeScalar,
@@ -61,25 +62,27 @@ export default function ReplayDetailsProviders({children, replay, projectSlug}: 
     },
   });
 
-  const {playlistStart, playlistEnd, playlistSort, ...newQuery} = query;
-
+  // We use the playlist prefix to make it clear that these URL params are used
+  // for the playlist navigation, and to avoid confusion with the regular start and end params.
   if (playlistStart && playlistEnd) {
-    newQuery.start = playlistStart;
-    newQuery.end = playlistEnd;
+    query.start = playlistStart;
+    query.end = playlistEnd;
   }
-  if (playlistSort) {
-    newQuery.sort = playlistSort;
-  }
+  query.sort =
+    !playlistSort || playlistSort === '' ? DEFAULT_REPLAY_LIST_SORT : playlistSort;
 
   const queryKey = useReplayListQueryKey({
-    options: {query: newQuery},
+    options: {query},
     organization,
-    queryReferrer: 'playlist',
+    queryReferrer: 'replaysPlayList',
   });
   const {data} = useApiQuery<{
     data: ReplayListRecord[];
-    enabled: true;
-  }>(queryKey, {staleTime: 0});
+    enabled: boolean;
+  }>(queryKey, {
+    staleTime: 0,
+    enabled: Boolean(playlistStart && playlistEnd),
+  });
 
   const replays = useMemo(() => data?.data?.map(mapResponseToReplayRecord) ?? [], [data]);
 

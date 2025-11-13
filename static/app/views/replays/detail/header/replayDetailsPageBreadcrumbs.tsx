@@ -37,6 +37,8 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
 
   const replays = useReplayPlaylist();
 
+  // We use a ref to store the initial location so that we can use it to navigate to the previous and next replays
+  // without dirtying the URL with the URL params from the tabs navigation.
   const initialLocation = useRef(location);
 
   const currentReplayIndex = useMemo(
@@ -134,7 +136,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
               </ButtonBar>
             </Flex>
           )}
-          <StyledDiv
+          <ShortId
             onClick={() =>
               copy(replayUrlWithTimestamp, {
                 successMessage: t('Copied replay link to clipboard'),
@@ -142,7 +144,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             }
           >
             {getShortEventId(replayRecord?.id)}
-          </StyledDiv>
+          </ShortId>
           <Tooltip title={t('Copy link to replay at current timestamp')}>
             <Button
               aria-label={t('Copy link to replay at current timestamp')}
@@ -177,6 +179,6 @@ const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
 `;
 
-const StyledDiv = styled('div')`
+const ShortId = styled('div')`
   margin-left: 10px;
 `;
