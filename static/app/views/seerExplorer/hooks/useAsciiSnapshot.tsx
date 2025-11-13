@@ -570,7 +570,7 @@ function useAsciiSnapshot() {
     const url = window.location.href;
     let result = url + '\n' + grid.map(row => row.join('')).join('\n');
 
-    // Append event ID mapping from global variable
+    // Append global event ID mapping for IDs shortened with `getShortEventId`
     const mapping = getEventIdMappings();
     const entries = Object.entries(mapping);
     if (entries.length > 0) {
