@@ -208,6 +208,9 @@ category:driver | [ category:driver ] category=internals
 # Only group by top-level malloc op, not any helper function it may have called.
 [ category:malloc ] | category:malloc category=internals
 
+# Python multi-processing creates a fake module to call `spawn_main` and spawn a new process
+function:<module> | [ function:spawn_main ] category=internals
+
 # On Windows, _purecall internally aborts when the function pointer is invalid.
 # We want to treat this the same as a segfault happening before calling
 # _purecall.
