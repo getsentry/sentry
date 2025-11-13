@@ -12,7 +12,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -71,7 +70,6 @@ export default function AutomationNewSettings() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  useWorkflowEngineFeatureGate({redirect: true});
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
   const theme = useTheme();

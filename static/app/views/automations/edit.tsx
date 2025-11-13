@@ -14,7 +14,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
 import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
@@ -71,8 +70,6 @@ function AutomationBreadcrumbs({automationId}: {automationId: string}) {
 
 export default function AutomationEdit() {
   const params = useParams<{automationId: string}>();
-
-  useWorkflowEngineFeatureGate({redirect: true});
 
   const {
     data: automation,
