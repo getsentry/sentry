@@ -411,6 +411,7 @@ def _assemble_preprod_artifact_size_analysis(
 
         if size_analysis_results.analysis_duration is not None:
             with transaction.atomic(router.db_for_write(PreprodArtifact)):
+                preprod_artifact.refresh_from_db()
                 if preprod_artifact.extras is None:
                     preprod_artifact.extras = {}
                 preprod_artifact.extras.update(
