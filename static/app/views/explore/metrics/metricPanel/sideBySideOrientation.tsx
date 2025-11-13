@@ -8,16 +8,19 @@ import type {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMe
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
 import MetricInfoTabs from 'sentry/views/explore/metrics/metricInfoTabs';
-import {SAMPLES_PANEL_MIN_WIDTH} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
+import {
+  SAMPLES_PANEL_MIN_WIDTH,
+  WIDTH_WITH_TELEMETRY_ICONS_VISIBLE,
+} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {HideContentButton} from 'sentry/views/explore/metrics/metricPanel/hideContentButton';
 import {PanelPositionSelector} from 'sentry/views/explore/metrics/metricPanel/panelPositionSelector';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {useNavContext} from 'sentry/views/nav/context';
 
 const MIN_LEFT_WIDTH = 400;
 
 // Defined by the size of the expected samples tab component
-const PADDING_SIZE = 16;
+const PADDING_SIZE = 20;
+const DIVIDER_WIDTH = 16;
 const MIN_RIGHT_WIDTH = SAMPLES_PANEL_MIN_WIDTH + PADDING_SIZE;
 
 export function SideBySideOrientation({
@@ -43,15 +46,12 @@ export function SideBySideOrientation({
   const {width} = useDimensions({elementRef: measureRef});
 
   const hasSize = width > 0;
-  const {isCollapsed: isNavCollapsed} = useNavContext();
   // Default split is 62.5% of the available width for collapsed nav, 55% for expanded nav,
-  // but not less than MIN_LEFT_WIDTH while also accommodating the minimum right panel width.
-  // We change the ratio depending on whether the nav is collapsed because if it is collapsed,
-  // there is more space available to show the connected telemetry by default
-  const splitRatio = isNavCollapsed ? 0.625 : 0.55;
+  // but not less than MIN_LEFT_WIDTH while also accommodating the desired right panel width
+  // that allows us to show all of the telemetry icons.
   const defaultSplit = Math.min(
-    Math.max(width * splitRatio, MIN_LEFT_WIDTH),
-    width - MIN_RIGHT_WIDTH
+    Math.max(width * 0.625, MIN_LEFT_WIDTH),
+    width - (WIDTH_WITH_TELEMETRY_ICONS_VISIBLE + PADDING_SIZE + DIVIDER_WIDTH)
   );
 
   const additionalActions = (
