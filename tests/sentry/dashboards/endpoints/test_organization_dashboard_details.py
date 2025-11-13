@@ -1573,7 +1573,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert translated_widget.widget_type == DashboardWidgetTypes.SPANS
         assert (
             translated_widget.dataset_source
-            == DashboardWidgetDatasetSourcesTypes.SPAN_MIGRATION_VERSION_1.value
+            == DashboardWidgetDatasetSourcesTypes.SPAN_MIGRATION_VERSION_5.value
         )
         assert translated_widget.display_type == DashboardWidgetDisplayTypes.LINE_CHART
         assert translated_widget.interval == "5m"

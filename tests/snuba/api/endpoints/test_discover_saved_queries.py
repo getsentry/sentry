@@ -503,7 +503,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                 "chartType": 2,
             }
         ]
-        assert explore_query["query"][0]["orderby"] is None
+        assert explore_query["query"][0]["orderby"] == ""
         assert explore_query["query"][0]["aggregateOrderby"] is None
         assert explore_query["end"] is None
         assert explore_query["environment"] == []
