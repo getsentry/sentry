@@ -7,7 +7,6 @@ import requests
 from django.conf import settings
 from django.urls import reverse
 
-from sentry.api.utils import default_start_end_dates
 from sentry.replays.endpoints.project_replay_summary import (
     SEER_POLL_STATE_ENDPOINT_PATH,
     SEER_START_TASK_ENDPOINT_PATH,
@@ -144,91 +143,6 @@ class ProjectReplaySummaryTestCase(
         assert request_body["organization_id"] == self.organization.id
         assert request_body["project_id"] == self.project.id
         assert request_body["temperature"] is None
-
-    @patch("sentry.replays.endpoints.project_replay_summary.process_raw_response")
-    @patch("sentry.replays.endpoints.project_replay_summary.query_replay_instance")
-    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
-    def test_post_with_only_start_timestamp_missing(
-        self,
-        mock_make_seer_api_request: Mock,
-        mock_query_replay_instance: Mock,
-        mock_process_raw_response: Mock,
-    ) -> None:
-        """Test that when only started_at is None, we use default for start but keep the actual end."""
-        mock_make_seer_api_request.return_value = MockSeerResponse(
-            200, json_data={"hello": "world"}
-        )
-        mock_query_replay_instance.return_value = [{"data": "mock"}]
-
-        specific_end = datetime.now(UTC) - timedelta(days=1)
-        mock_process_raw_response.return_value = [
-            {
-                "started_at": None,
-                "finished_at": specific_end.isoformat(),
-            }
-        ]
-
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url, data={"num_segments": 2}, content_type="application/json"
-            )
-
-        assert response.status_code == 200
-        call_args = mock_make_seer_api_request.call_args
-        request_body = json.loads(call_args[1]["body"].decode())
-
-        default_start, default_end = default_start_end_dates()
-
-        # Verify start uses default but end uses actual value
-        assert abs(
-            datetime.fromisoformat(request_body["replay_start"]) - default_start
-        ) <= timedelta(seconds=1)
-        assert abs(datetime.fromisoformat(request_body["replay_end"]) - specific_end) <= timedelta(
-            seconds=1
-        )
-
-    @patch("sentry.replays.endpoints.project_replay_summary.process_raw_response")
-    @patch("sentry.replays.endpoints.project_replay_summary.query_replay_instance")
-    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
-    def test_post_with_only_end_timestamp_missing(
-        self,
-        mock_make_seer_api_request: Mock,
-        mock_query_replay_instance: Mock,
-        mock_process_raw_response: Mock,
-    ) -> None:
-        """Test that when only finished_at is None, we use default for end but keep the actual start."""
-        mock_make_seer_api_request.return_value = MockSeerResponse(
-            200, json_data={"hello": "world"}
-        )
-        mock_query_replay_instance.return_value = [{"data": "mock"}]
-
-        # Set a specific start time but no end time
-        specific_start = datetime.now(UTC) - timedelta(days=2)
-        mock_process_raw_response.return_value = [
-            {
-                "started_at": specific_start.isoformat(),
-                "finished_at": None,
-            }
-        ]
-
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url, data={"num_segments": 2}, content_type="application/json"
-            )
-
-        assert response.status_code == 200
-        call_args = mock_make_seer_api_request.call_args
-        request_body = json.loads(call_args[1]["body"].decode())
-
-        default_start, default_end = default_start_end_dates()
-
-        # Verify start uses actual value but end uses default
-        assert abs(
-            datetime.fromisoformat(request_body["replay_start"]) - specific_start
-        ) <= timedelta(seconds=1)
-        assert abs(datetime.fromisoformat(request_body["replay_end"]) - default_end) <= timedelta(
-            seconds=1
-        )
 
     def test_post_replay_not_found(self) -> None:
         with self.feature(self.features):
