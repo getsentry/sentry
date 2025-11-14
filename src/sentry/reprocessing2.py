@@ -1,3 +1,4 @@
+# TODO: this documentation could probably use an update
 """
 Reprocessing allows a user to re-enqueue all events of a group at the start of
 preprocess-event, for example to reattempt symbolication of stacktraces or
@@ -23,6 +24,7 @@ How reprocessing works
 3. `mark_event_reprocessed` will decrement the pending event counter in Redis
    to see if reprocessing is done.
 
+   TODO: The models are (mostly) migrated in the `start_group_reprocessing` step
    When the counter reaches zero, it will trigger the `finish_reprocessing` task,
    which will move all associated models like assignee and activity into the new group.
 
@@ -243,6 +245,9 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     )
     event_processing_store.store(data)
 
+    # TODO (3): starting from preprocess, run the event through the pipeline.
+    #   - will eventually insert the event with the same event ID but updated data into Snuba
+    #   - the EventManager save documentation (src/sentry/event_manager.py) specifies that Snuba will deduplicate events with the same event ID - the latest event will win
     preprocess_event_from_reprocessing(
         cache_key=cache_key,
         start_time=start_time,
@@ -612,6 +617,7 @@ def start_group_reprocessing(
 
     # Get event counts of issue (for all environments etc). This was copypasted
     # and simplified from groupserializer.
+    # TODO (1): querying Snuba here to get the group's event count
     event_count = sync_count = snuba.aliased_query(
         aggregations=[["count()", "", "times_seen"]],  # select
         dataset=Dataset.Events,  # from
@@ -629,7 +635,7 @@ def start_group_reprocessing(
     #
     # Later the activity is migrated to the new group where it is used to serve
     # the success message.
-    new_activity = models.Activity.objects.create(
+    reprocessing_activity = models.Activity.objects.create(
         type=ActivityType.REPROCESS.value,
         project=new_group.project,
         ident=str(group_id),
@@ -637,9 +643,7 @@ def start_group_reprocessing(
         user_id=acting_user_id,
         data={"eventCount": event_count, "oldGroupId": group_id, "newGroupId": new_group.id},
     )
-
-    # New Activity Timestamp
-    date_created = new_activity.datetime
+    date_created = reprocessing_activity.datetime
 
     reprocessing_store.start_reprocessing(group_id, date_created, sync_count, event_count)
 
