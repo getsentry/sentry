@@ -223,7 +223,7 @@ export function Onboarding() {
             {label: 'LangGraph', value: 'langgraph'},
             {label: 'LiteLLM', value: 'litellm'},
             {label: 'Pydantic AI', value: 'pydantic_ai'},
-            {label: 'Manual', value: 'manual'},
+            {label: 'Other', value: 'manual'},
           ]
         : [
             {label: 'Vercel AI SDK', value: 'vercel_ai'},
@@ -232,7 +232,7 @@ export function Onboarding() {
             {label: 'Google Gen AI SDK', value: 'google_genai'},
             {label: 'LangChain', value: 'langchain'},
             {label: 'LangGraph', value: 'langgraph'},
-            {label: 'Manual', value: 'manual'},
+            {label: 'Other', value: 'manual'},
           ],
     },
   };

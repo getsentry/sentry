@@ -92,7 +92,7 @@ app:
               "anytableviewcontroller.swift"
             function*
               "AnyTableViewController.tableView"
-          frame (marked in-app by the client but ignored by built-in stack trace rule (category:internals -group))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*
@@ -117,7 +117,7 @@ app:
               "<compiler-generated>"
             function*
               "Sequence.compactMap<T>"
-          frame (marked in-app by the client but ignored by built-in stack trace rule (category:internals -group))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "<compiler-generated>"
             function*

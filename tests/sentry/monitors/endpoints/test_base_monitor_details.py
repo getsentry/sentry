@@ -923,7 +923,7 @@ class BaseDeleteMonitorTest(MonitorTestCase):
             object_id=monitor.id, model_name="Monitor"
         ).exists()
         mock_update_monitor_slug.assert_called_once()
-        mock_disable_seat.assert_called_once_with(DataCategory.MONITOR, monitor)
+        mock_disable_seat.assert_called_once_with(DataCategory.MONITOR_SEAT, monitor)
 
     def test_mismatched_org_slugs(self) -> None:
         monitor = self._create_monitor()

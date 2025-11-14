@@ -37,17 +37,17 @@ app:
               "xstring"
             function*
               "std::basic_string<T>::{ctor}"
-          frame (marked out of app by built-in stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "xstring"
             function*
               "std::basic_string<T>::assign"
-          frame (marked out of app by built-in stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "xstring"
             function*
               "std::basic_string<T>::assign"
-          frame (marked out of app by built-in stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "xstring"
             function*
@@ -81,7 +81,7 @@ app:
           frame (marked out of app by built-in stack trace rule (category:system -app))
             function*
               "DispatchMessageWorker"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "UserCallWinProcCheckWow"
           frame (non app frame)
@@ -137,13 +137,13 @@ app:
               "purevirt.cpp"
             function*
               "_purecall"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "abort"
           frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
             function*
               "raise"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
             filename*
               "crashpad_client_win.cc"
             function*

@@ -18,10 +18,10 @@ app:
               "thread.cpp"
             function*
               "boost::thread::start_thread_noexcept"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
             function*
               "thread_start"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
             function*
               "_pthread_start"
           frame (non app frame)
@@ -60,25 +60,25 @@ app:
           frame (non app frame)
             function*
               "glDeleteTextures_Exec"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "gleUnbindDeleteHashNamesAndObjects"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "gleUnbindTextureObject"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "gldUpdateDispatch"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "gldUpdateDispatch"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "gpusSubmitDataBuffers"
           frame (non app frame)
             function*
               "gldCreateDevice"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
             function*
               "gpusGenerateCrashLog"
           frame (non app frame)
@@ -87,10 +87,10 @@ app:
           frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
             function*
               "abort"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "__abort"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "__pthread_kill"
 --------------------------------------------------------------------------

@@ -13,7 +13,7 @@ app:
         value* (stripped event-specific values)
           "Fatal Error: <hex> / <hex>"
         stacktrace (ignored because it contains no in-app frames)
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
             function*
               "start"
           frame (non app frame)
@@ -72,12 +72,12 @@ app:
               "functional"
             function*
               "std::__1::__function::__alloc_func<T>::operator()"
-          frame (marked out of app by built-in stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "__functional_base"
             function*
               "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
-          frame (marked out of app by built-in stack trace rule (family:native function:std::* -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             filename*
               "type_traits"
             function*
@@ -123,19 +123,19 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "_objc_msgSend_uncached"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "lookUpImpOrForward"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "initializeAndMaybeRelock"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "initializeNonMetaClass"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "CALLING_SOME_+initialize_METHOD"
           frame (non app frame)
@@ -159,40 +159,40 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (package:/usr/lib/** -app))
             function*
               "dlopen"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "dlopen_internal"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "dyld::runInitializers"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "ImageLoader::runInitializers"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "ImageLoader::processInitializers"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "ImageLoader::recursiveInitialization"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "ImageLoaderMachO::doInitialization"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "ImageLoaderMachO::doModInitFunctions"
-          frame (marked out of app by built-in stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "__report_load"
           frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
             function*
               "abort"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "__abort"
-          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "__pthread_kill"
 --------------------------------------------------------------------------
