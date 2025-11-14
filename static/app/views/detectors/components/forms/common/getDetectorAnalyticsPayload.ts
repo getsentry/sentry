@@ -27,7 +27,7 @@ type ErrorDetectorAnalytics = {
   detector_type: Extract<Detector['type'], 'error' | 'issue_stream'>;
 };
 
-export type DetectorAnalyticsPayload =
+type DetectorAnalyticsPayload =
   | MetricDetectorAnalytics
   | UptimeDetectorAnalytics
   | MonitorDetectorAnalytics
