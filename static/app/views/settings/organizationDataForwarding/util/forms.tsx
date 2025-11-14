@@ -5,7 +5,7 @@ import {Tag} from '@sentry/scraps/badge/tag';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import type {JsonFormObject} from 'sentry/components/forms/types';
+import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {AvatarProject, Project} from 'sentry/types/project';
@@ -108,7 +108,14 @@ export function getProjectOverrideForm({
   project: AvatarProject;
 }): JsonFormObject {
   const [providerForm] = getProviderForm({provider: dataForwarder.provider});
-  const providerFields = providerForm?.fields;
+  const providerFields = providerForm?.fields.map(
+    field =>
+      ({
+        ...field,
+        defaultValue: undefined,
+        required: false,
+      }) as FieldObject
+  );
   const projectConfig = dataForwarder.projectConfigs.find(
     config => config.project.id === project.id
   );
