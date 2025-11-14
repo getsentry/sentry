@@ -60,7 +60,7 @@ export const metrics = ({
   configure: () => [],
   verify: (params: DocsParams) => [
     {
-      type: StepType.CONFIGURE,
+      type: StepType.VERIFY,
       content: [
         {
           type: 'text',

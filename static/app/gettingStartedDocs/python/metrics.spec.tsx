@@ -21,13 +21,12 @@ describe('metrics', () => {
     const verifySteps = result.verify(mockParams);
     expect(verifySteps).toHaveLength(1);
     expect(verifySteps[0].type).toBe('verify');
-    expect(verifySteps[0].content).toHaveLength(1);
-    expect(verifySteps[0].content[0].type).toBe('conditional');
-    const conditionalContent = verifySteps[0].content[0].content;
+    expect(verifySteps[0].content).toHaveLength(3);
+    const codeSnippet = verifySteps[0].content[1].code;
 
-    expect(conditionalContent[1].code).toContain('sentry_sdk.init');
-    expect(conditionalContent[1].code).toContain(mockParams.dsn.public);
-    expect(conditionalContent[1].code).toContain('metrics.count');
+    expect(codeSnippet).toContain('sentry_sdk.init');
+    expect(codeSnippet).toContain(mockParams.dsn.public);
+    expect(codeSnippet).toContain('metrics.count');
   });
 
   it('generates metrics onboarding config with custom parameters', () => {
