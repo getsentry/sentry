@@ -525,7 +525,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if retention and comparison_start < timezone.now() - timedelta(days=retention):
                 raise ValidationError("Comparison period is outside your retention window")
 
-    def get_extrapolation_mode(self, request: Request) -> ExtrapolationMode | None:
+    def get_extrapolation_mode(self, request: Request) -> ExtrapolationMode.ValueType | None:
         requested_mode = request.GET.get("extrapolationMode", None)
         if requested_mode is not None and requested_mode not in EXTRAPOLATION_MODE_MAP:
             raise InvalidSearchQuery(f"Unknown extrapolation mode: {requested_mode}")
