@@ -248,9 +248,8 @@ function getPrimaryFieldOptions(
   });
 
   const spanTags = Object.values(tags ?? {}).reduce(
-    (acc, tag) => ({
-      ...acc,
-      [`${tag.kind}:${tag.key}`]: {
+    function combineTag(acc, tag) {
+      acc[`${tag.kind}:${tag.key}`] = {
         label: tag.name,
         value: {
           kind: FieldValueKind.TAG,
@@ -260,9 +259,11 @@ function getPrimaryFieldOptions(
           // is used for grouping.
           meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
         },
-      },
-    }),
-    {}
+      };
+
+      return acc;
+    },
+    {} as Record<string, FieldValueOption>
   );
 
   return {...baseFieldOptions, ...spanTags};
