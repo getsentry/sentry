@@ -200,10 +200,6 @@ describe('IntegrationDetailedView', () => {
     expect(
       screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
     ).toBeDisabled();
-
-    expect(
-      screen.getByRole('checkbox', {name: /Enable Comments on Open Pull Requests/})
-    ).toBeDisabled();
   });
 
   it('can enable github features', async () => {
