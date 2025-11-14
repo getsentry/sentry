@@ -117,7 +117,7 @@ def enqueue_workflows(
     for queue_item in items_by_workflow.values():
         if not queue_item.delayed_if_group_ids and not queue_item.passing_if_group_ids:
             # Skip because there are no IF groups we could possibly fire actions for if
-            # the WHEN/IF delayed condtions are met
+            # the WHEN/IF delayed conditions are met
             continue
         project_id = queue_item.event.project_id
         items_by_project_id[project_id].append(queue_item)
@@ -482,7 +482,7 @@ def process_workflows(
         fire_actions,
     )
 
-    workflow_evaluation_data = WorkflowEvaluationData(group_event=event_data.event)
+    workflow_evaluation_data = WorkflowEvaluationData(event=event_data.event)
 
     try:
         if detector is None and isinstance(event_data.event, GroupEvent):

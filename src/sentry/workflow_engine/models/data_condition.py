@@ -3,7 +3,7 @@ import operator
 import time
 from datetime import timedelta
 from enum import StrEnum
-from typing import Any, TypeVar, cast
+from typing import Any, TypedDict, TypeVar, cast
 
 from django.db import models
 from django.db.models.signals import pre_save
@@ -111,6 +111,13 @@ T = TypeVar("T")
 FAST_CONDITION_TOO_SLOW_THRESHOLD = timedelta(milliseconds=500)
 
 
+class DataConditionSnapshot(TypedDict):
+    id: int
+    type: str
+    comparison: str
+    condition_result: DataConditionResult
+
+
 @region_silo_model
 class DataCondition(DefaultFieldsModel):
     """
@@ -137,7 +144,7 @@ class DataCondition(DefaultFieldsModel):
         on_delete=models.CASCADE,
     )
 
-    def get_snapshot(self) -> dict[str, Any]:
+    def get_snapshot(self) -> DataConditionSnapshot:
         return {
             "id": self.id,
             "type": self.type,

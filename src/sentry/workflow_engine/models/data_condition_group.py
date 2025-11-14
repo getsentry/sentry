@@ -1,11 +1,21 @@
+from __future__ import annotations
+
 from enum import StrEnum
-from typing import ClassVar, Self
+from typing import ClassVar, Self, TypedDict
 
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.utils import is_model_attr_cached
+from sentry.workflow_engine.models.data_condition import DataConditionSnapshot
+
+
+class DataConditionGroupSnapshot(TypedDict):
+    id: int
+    logic_type: DataConditionGroup.Type
+    conditions: list[DataConditionSnapshot]
 
 
 @region_silo_model
@@ -36,3 +46,14 @@ class DataConditionGroup(DefaultFieldsModel):
         max_length=200, choices=[(t.value, t.value) for t in Type], default=Type.ANY
     )
     organization = models.ForeignKey("sentry.Organization", on_delete=models.CASCADE)
+
+    def get_snapshot(self) -> DataConditionGroupSnapshot:
+        conditions = []
+        if is_model_attr_cached(self, "conditions"):
+            conditions = [cond.get_snapshot() for cond in self.conditions.all()]
+
+        return {
+            "id": self.id,
+            "logic_type": DataConditionGroup.Type(self.logic_type),
+            "conditions": conditions,
+        }
