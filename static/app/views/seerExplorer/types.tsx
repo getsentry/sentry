@@ -4,6 +4,7 @@ export interface Block {
   timestamp: string;
   loading?: boolean;
   tool_links?: Array<ToolLink | null>;
+  tool_results?: Array<ToolResult | null>;
 }
 
 export interface ToolLink {
@@ -11,15 +12,21 @@ export interface ToolLink {
   params: Record<string, any>;
 }
 
-interface Message {
-  content: string;
-  role: 'user' | 'assistant' | 'tool_use';
-  tool_calls?: ToolCall[];
+interface ToolResult {
+  tool_call_id: string;
+  // other fields are unused for now.
 }
 
 interface ToolCall {
   args: string;
   function: string;
+  id: string;
+}
+
+interface Message {
+  content: string;
+  role: 'user' | 'assistant' | 'tool_use';
+  tool_calls?: ToolCall[];
 }
 
 export type PanelSize = 'max' | 'med';
