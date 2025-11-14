@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {BarChart} from 'sentry/components/charts/barChart';
-import ChartZoom from 'sentry/components/charts/chartZoom';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
@@ -28,6 +28,7 @@ export function AutomationStatsChart({
   utc,
 }: IssueAlertDetailsProps) {
   const organization = useOrganization();
+  const chartZoomProps = useChartZoom({saveOnZoom: true});
   const {
     data: fireHistory,
     isPending,
@@ -59,37 +60,32 @@ export function AutomationStatsChart({
         {isPending && <Placeholder height="200px" />}
         {isError && <LoadingError />}
         {fireHistory && (
-          <ChartZoom period={period} start={start} end={end} utc={utc} usePageDate>
-            {zoomRenderProps => (
-              <BarChart
-                {...zoomRenderProps}
-                isGroupedByDate
-                showTimeInTooltip
-                grid={{
-                  left: space(0.25),
-                  right: space(2),
-                  top: space(3),
-                  bottom: 0,
-                }}
-                yAxis={{
-                  minInterval: 1,
-                }}
-                series={[
-                  {
-                    seriesName: t('Alerts Triggered'),
-                    data:
-                      fireHistory?.map(automation => ({
-                        name: automation.date,
-                        value: automation.count,
-                      })) ?? [],
-                    emphasis: {
-                      disabled: true,
-                    },
-                  },
-                ]}
-              />
-            )}
-          </ChartZoom>
+          <BarChart
+            {...chartZoomProps}
+            showTimeInTooltip
+            grid={{
+              left: space(0.25),
+              right: space(2),
+              top: space(3),
+              bottom: 0,
+            }}
+            yAxis={{
+              minInterval: 1,
+            }}
+            series={[
+              {
+                seriesName: t('Alerts Triggered'),
+                data: fireHistory.map(automation => ({
+                  name: automation.date,
+                  value: automation.count,
+                })),
+                emphasis: {
+                  disabled: true,
+                },
+                animation: false,
+              },
+            ]}
+          />
         )}
       </StyledPanelBody>
       <ChartFooter>
