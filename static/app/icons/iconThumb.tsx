@@ -5,7 +5,7 @@ import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 interface Props extends SVGIconProps {
-  direction?: 'up' | 'right' | 'down' | 'left';
+  direction?: 'up' | 'down';
 }
 
 export function IconThumb({direction = 'up', ...props}: Props) {
@@ -15,7 +15,7 @@ export function IconThumb({direction = 'up', ...props}: Props) {
     <SvgIcon
       {...props}
       css={
-        direction
+        direction === 'down'
           ? css`
               transition: transform 120ms ease-in-out;
               transform: rotate(${theme.iconDirections[direction]}deg);

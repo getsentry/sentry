@@ -1357,27 +1357,11 @@ const SECTIONS: TSection[] = [
         },
       },
       {
-        id: 'thumb-direction-right',
-        keywords: ['feedback', 'direction'],
-        name: 'Thumb',
-        defaultProps: {
-          direction: 'right',
-        },
-      },
-      {
         id: 'thumb-direction-down',
         keywords: ['feedback', 'bad', 'poor', 'dislike', 'disapprove'],
         name: 'Thumb',
         defaultProps: {
           direction: 'down',
-        },
-      },
-      {
-        id: 'thumb-direction-left',
-        keywords: ['feedback', 'direction'],
-        name: 'Thumb',
-        defaultProps: {
-          direction: 'left',
         },
       },
     ],
