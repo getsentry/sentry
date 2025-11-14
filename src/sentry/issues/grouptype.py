@@ -27,6 +27,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _get_performance_detector_validator():
+    """Lazy import to avoid circular dependency"""
+    from sentry.workflow_engine.endpoints.validators.performance_detector import (
+        PerformanceDetectorValidator,
+    )
+
+    return PerformanceDetectorValidator
+
+
 class GroupCategory(IntEnum):
     ERROR = 1
     """
@@ -318,6 +327,30 @@ class PerformanceSlowDBQueryGroupType(GroupType):
     noise_config = NoiseConfig(ignore_limit=100)
     default_priority = PriorityLevel.LOW
     released = True
+    detector_settings = DetectorSettings(
+        validator=_get_performance_detector_validator,
+        config_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "description": "Detects slow database queries exceeding duration threshold",
+            "type": "object",
+            "properties": {
+                "duration_threshold": {
+                    "type": "integer",
+                    "description": "Duration threshold in milliseconds for detecting slow queries",
+                    "minimum": 100,
+                    "maximum": 10000,
+                    "default": 1000,
+                },
+                "allowed_span_ops": {
+                    "type": "array",
+                    "description": "List of span operation types to monitor (e.g., 'db', 'db.query')",
+                    "items": {"type": "string"},
+                    "default": ["db"],
+                },
+            },
+            "required": ["duration_threshold", "allowed_span_ops"],
+        },
+    )
 
 
 @dataclass(frozen=True)

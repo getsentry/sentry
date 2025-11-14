@@ -36,6 +36,10 @@ const DETECTOR_TYPE_CONFIG: Record<DetectorType, DetectorTypeConfig> = {
     label: t('Issue Stream'),
     systemCreatedNotice: () => t('This monitor is managed by Sentry'),
   },
+  performance_slow_db_query: {
+    label: t('Slow DB Query'),
+    userCreateable: false,
+  },
 };
 
 export function isValidDetectorType(detectorType: DetectorType) {

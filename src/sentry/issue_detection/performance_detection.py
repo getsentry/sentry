@@ -24,6 +24,7 @@ from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
+from sentry.workflow_engine.models import Detector
 
 from .base import DetectorType, PerformanceDetector
 from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
@@ -139,16 +140,71 @@ def detect_performance_problems(
     return []
 
 
+# Mapping of GroupType slugs to their corresponding settings keys in get_merged_settings
+DETECTOR_TYPE_TO_SETTINGS_KEYS = {
+    "performance_slow_db_query": {
+        "duration_threshold": "slow_db_query_duration_threshold",
+        "detection_enabled": "slow_db_queries_detection_enabled",
+    },
+    # Add more detector types here as they get migrated
+}
+
+
+def _get_detector_based_settings(project_id: int) -> dict[str, Any]:
+    """
+    Fetch settings from Detector models for all performance detectors that have been migrated
+    to the Detector framework. Returns a dict with settings that will override project options.
+
+    This function fetches all detectors at once to optimize for hot path performance.
+    """
+    settings = {}
+
+    # Fetch all performance detectors for this project in a single query
+    detector_types = list(DETECTOR_TYPE_TO_SETTINGS_KEYS.keys())
+    detectors = Detector.objects.filter(
+        project_id=project_id,
+        type__in=detector_types,
+    ).all()
+
+    # Process each detector and map to settings
+    for detector in detectors:
+        mapping = DETECTOR_TYPE_TO_SETTINGS_KEYS.get(detector.type)
+        if not mapping:
+            continue
+
+        config = detector.config or {}
+
+        # Map detector config fields to settings keys
+        if "duration_threshold" in mapping:
+            duration_key = mapping["duration_threshold"]
+            settings[duration_key] = config.get("duration_threshold", 1000)
+
+        if "detection_enabled" in mapping:
+            enabled_key = mapping["detection_enabled"]
+            settings[enabled_key] = detector.enabled
+
+    return settings
+
+
 # Merges system defaults, with default project settings and saved project settings.
+# For detectors that have been migrated to the Detector model, fetches from there first.
 def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
+    # Try to fetch detector-based settings for migrated detector types
+    # This fetches all performance detectors at once to optimize for hot path
+    detector_settings = {}
+    if project_id:
+        detector_settings = _get_detector_based_settings(project_id)
+
+    # Only hit options if we don't have the setting already
     system_settings = {
         "n_plus_one_db_count": options.get("performance.issues.n_plus_one_db.count_threshold"),
         "n_plus_one_db_duration_threshold": options.get(
             "performance.issues.n_plus_one_db.duration_threshold"
         ),
-        "slow_db_query_duration_threshold": options.get(
-            "performance.issues.slow_db_query.duration_threshold"
-        ),
+        "slow_db_query_duration_threshold": detector_settings.get(
+            "slow_db_query_duration_threshold", None
+        )
+        or options.get("performance.issues.slow_db_query.duration_threshold"),
         "render_blocking_fcp_min": options.get(
             "performance.issues.render_blocking_assets.fcp_minimum_threshold"
         ),
@@ -228,7 +284,8 @@ def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
         **project_option_settings,
     }  # Merge saved project settings into default so updating the default to add new settings works in the future.
 
-    return {**system_settings, **project_settings}
+    # Overlay detector-based settings which take precedence
+    return {**system_settings, **project_settings, **detector_settings}
 
 
 # Gets the thresholds to perform performance detection.

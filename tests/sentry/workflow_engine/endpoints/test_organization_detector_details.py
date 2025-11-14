@@ -12,6 +12,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -843,3 +844,58 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         mock_seer_request.assert_called_once_with(
             source_id=int(self.data_source.source_id), organization=self.organization
         )
+
+
+@region_silo_test
+class PerformanceSlowDBQueryDetectorPutTest(APITestCase):
+    endpoint = "sentry-api-0-organization-detector-details"
+    method = "PUT"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+        # Create a performance slow DB query detector
+        self.detector = self.create_detector(
+            project_id=self.project.id,
+            name="Slow DB Query Detection",
+            type=PerformanceSlowDBQueryGroupType.slug,
+            config={
+                "duration_threshold": 3000,
+                "allowed_span_ops": ["db"],
+            },
+        )
+
+    def test_update_performance_detector_config(self) -> None:
+        """Test that we can update the config of a performance slow DB query detector via PUT"""
+        data = {
+            "detectorId": str(self.detector.id),
+            "name": "Slow DB Query Detection",
+            "type": PerformanceSlowDBQueryGroupType.slug,
+            "owner": None,
+            "description": "Detects slow database queries exceeding duration threshold",
+            "enabled": True,
+            "projectId": self.project.id,
+            "workflowIds": [],
+            "config": {
+                "allowedSpanOps": ["db"],
+                "durationThreshold": 1000,
+            },
+            "dataSources": [],
+        }
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=200,
+        )
+
+        # Verify the detector was updated
+        detector = Detector.objects.get(id=response.data["id"])
+        assert detector.name == "Slow DB Query Detection"
+        assert detector.type == PerformanceSlowDBQueryGroupType.slug
+        # Config keys are stored in snake_case
+        assert detector.config["duration_threshold"] == 1000
+        assert detector.config["allowed_span_ops"] == ["db"]
+        assert detector.description == "Detects slow database queries exceeding duration threshold"

@@ -78,7 +78,8 @@ export type DetectorType =
   | 'metric_issue'
   | 'monitor_check_in_failure'
   | 'uptime_domain_failure'
-  | 'issue_stream';
+  | 'issue_stream'
+  | 'performance_slow_db_query';
 
 /**
  * Configuration for static/threshold-based detection
@@ -154,6 +155,18 @@ export interface ErrorDetector extends BaseDetector {
   readonly type: 'error';
 }
 
+export interface PerformanceSlowDBQueryConfig {
+  allowedSpanOps: string[];
+  durationThreshold: number;
+}
+
+export interface JsonSchemaDetector extends BaseDetector {
+  readonly alertRuleId: number | null;
+  readonly config: PerformanceSlowDBQueryConfig;
+  readonly dataSources: never[];
+  readonly type: 'performance_slow_db_query';
+}
+
 interface IssueStreamDetector extends BaseDetector {
   // TODO: Add issue stream detector type fields
   readonly type: 'issue_stream';
@@ -164,6 +177,7 @@ export type Detector =
   | UptimeDetector
   | CronDetector
   | ErrorDetector
+  | JsonSchemaDetector
   | IssueStreamDetector;
 
 interface UpdateConditionGroupPayload {
