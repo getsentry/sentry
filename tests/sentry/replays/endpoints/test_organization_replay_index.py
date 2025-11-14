@@ -2444,7 +2444,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     )
 
     def test_get_replays_sort_with_duplicate_timestamps(self) -> None:
-        """Test that replays with identical timestamps have deterministic sort order."""
+        """Test that replays with identical timestamps have deterministic order when ordering by started_at."""
         project = self.create_project(teams=[self.team])
 
         base_timestamp = datetime.datetime.now(datetime.UTC) - datetime.timedelta(minutes=5)
