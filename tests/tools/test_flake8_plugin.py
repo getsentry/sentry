@@ -240,3 +240,96 @@ def test(monkeypatch) -> None: pass
 """
     expected = ["t.py:1:9: S014 Use `unittest.mock` instead"]
     assert _run(src) == expected
+
+
+def test_S015_if_statement() -> None:
+    src = """\
+def test_example() -> None:
+    result = get_result()
+    if result:
+        assert result.value == 5
+"""
+    errors = _run(src, filename="tests/test_example.py")
+    assert errors == ["t.py:4:8: S015 Tests should not use branching logic around asserts."]
+
+
+def test_S015_only_in_test_files() -> None:
+    src = """\
+def test_example() -> None:
+    result = get_result()
+    if result:
+        assert result.value == 5
+"""
+    # Should not error in non-test files
+    assert _run(src, filename="src/sentry/example.py") == []
+
+
+def test_S015_elif_else() -> None:
+    src = """\
+def test_example() -> None:
+    result = get_result()
+    if result == 1:
+        assert result == 1
+    elif result == 2:
+        assert result == 2
+    else:
+        assert result == 3
+"""
+    errors = _run(src, filename="tests/test_example.py")
+    assert errors == [
+        "t.py:4:8: S015 Tests should not use branching logic around asserts.",
+        "t.py:6:8: S015 Tests should not use branching logic around asserts.",
+        "t.py:8:8: S015 Tests should not use branching logic around asserts.",
+    ]
+
+
+def test_S015_nested_branching() -> None:
+    src = """\
+def test_example() -> None:
+    if condition1:
+        if condition2:
+            assert something
+"""
+    errors = _run(src, filename="tests/test_example.py")
+    assert errors == ["t.py:4:12: S015 Tests should not use branching logic around asserts."]
+
+
+def test_S015_ok_for_loop() -> None:
+    src = """\
+def test_example() -> None:
+    for item in items:
+        assert item.valid
+"""
+    # Should not error - for loops are not branching logic
+    assert _run(src, filename="tests/test_example.py") == []
+
+
+def test_S015_ok_while_loop() -> None:
+    src = """\
+def test_example() -> None:
+    while condition:
+        assert something
+"""
+    # Should not error - while loops are not branching logic
+    assert _run(src, filename="tests/test_example.py") == []
+
+
+def test_S015_ok_no_branching() -> None:
+    src = """\
+def test_example() -> None:
+    result = get_result()
+    assert result == 5
+    assert result.valid
+"""
+    # Should not error - assert is not inside branching
+    assert _run(src, filename="tests/test_example.py") == []
+
+
+def test_S015_ok_with_statement() -> None:
+    src = """\
+def test_example() -> None:
+    with pytest.raises(ValueError):
+        assert something
+"""
+    # Should not error - with statements are ok
+    assert _run(src, filename="tests/test_example.py") == []
