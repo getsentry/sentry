@@ -539,12 +539,6 @@ def taskbroker_send_tasks(
     help="Quantized rebalancing means that during deploys, rebalancing is triggered across all pods within a consumer group at the same time. The value is used by the pods to align their group join/leave activity to some multiple of the delay",
 )
 @click.option(
-    "--shutdown-strategy-before-consumer",
-    is_flag=True,
-    default=False,
-    help="A potential workaround for Broker Handle Destroyed during shutdown (see arroyo option).",
-)
-@click.option(
     "--profile-consumer-join",
     is_flag=True,
     default=False,
@@ -586,8 +580,14 @@ def basic_consumer(
         logging.getLogger("arroyo").setLevel(log_level.upper())
 
     add_global_tags(
-        kafka_topic=topic, consumer_group=options["group_id"], kafka_slice_id=kafka_slice_id
+        set_sentry_tags=True,
+        tags={
+            "kafka_topic": topic,
+            "consumer_group": options["group_id"],
+            "kafka_slice_id": kafka_slice_id,
+        },
     )
+
     processor = get_stream_processor(
         consumer_name,
         consumer_args,

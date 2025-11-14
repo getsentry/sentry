@@ -1,3 +1,4 @@
+import base64
 from unittest.mock import MagicMock, patch
 
 from django.test.utils import override_settings
@@ -6,6 +7,8 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.utils.test_jwt import RS256_KEY
+
+RS256_KEY_B64 = base64.b64encode(RS256_KEY.encode()).decode()
 
 
 @region_silo_test
@@ -17,7 +20,7 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
         self.login_as(user=self.user)
 
     @override_settings(
-        CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY,
+        CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY_B64,
         CONDUIT_GATEWAY_JWT_ISSUER="sentry",
         CONDUIT_GATEWAY_JWT_AUDIENCE="conduit",
         CONDUIT_GATEWAY_URL="https://conduit.example.com",
@@ -61,7 +64,7 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
         assert response.data == {"error": "Conduit is not configured properly"}
 
     @override_settings(
-        CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY,
+        CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY_B64,
         CONDUIT_GATEWAY_JWT_ISSUER="sentry",
         CONDUIT_GATEWAY_JWT_AUDIENCE="conduit",
         CONDUIT_GATEWAY_URL="https://conduit.example.com",
@@ -85,7 +88,7 @@ class OrganizationConduitDemoEndpointTest(APITestCase):
         assert response1.data["conduit"]["channel_id"] != response2.data["conduit"]["channel_id"]
 
     @override_settings(
-        CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY,
+        CONDUIT_GATEWAY_PRIVATE_KEY=RS256_KEY_B64,
         CONDUIT_GATEWAY_JWT_ISSUER="sentry",
         CONDUIT_GATEWAY_JWT_AUDIENCE="conduit",
         CONDUIT_GATEWAY_URL="https://conduit.example.com",

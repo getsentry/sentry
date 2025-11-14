@@ -14,9 +14,11 @@ from sentry.search.eap.columns import (
     FormulaDefinition,
     ResolvedArguments,
     ResolverSettings,
+    TraceMetricFormulaDefinition,
     ValueArgumentDefinition,
 )
 from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
+from sentry.search.eap.validator import literal_validator
 
 
 def _rate_internal(
@@ -41,15 +43,25 @@ def _rate_internal(
     metric_type = search_config.metric_type if search_config.metric_type else metric_type
 
     if metric_type == "counter":
-        aggregate_func = Function.FUNCTION_SUM
-    else:
-        aggregate_func = Function.FUNCTION_COUNT
+        return Column.BinaryFormula(
+            left=Column(
+                aggregation=AttributeAggregation(
+                    aggregate=Function.FUNCTION_SUM,
+                    key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.value"),
+                    extrapolation_mode=extrapolation_mode,
+                ),
+            ),
+            op=Column.BinaryFormula.OP_DIVIDE,
+            right=Column(
+                literal=LiteralValue(val_double=time_interval / divisor),
+            ),
+        )
 
     return Column.BinaryFormula(
         left=Column(
             aggregation=AttributeAggregation(
-                aggregate=aggregate_func,
-                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.value"),
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT),
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -64,7 +76,7 @@ def per_second(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bi
     """
     Calculate rate per second for trace metrics using the value attribute.
     """
-    metric_type = cast(str, args[1]) if len(args) > 1 else "counter"
+    metric_type = cast(str, args[2]) if len(args) >= 3 and args[2] else "counter"
     return _rate_internal(1, metric_type, settings)
 
 
@@ -72,13 +84,12 @@ def per_minute(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bi
     """
     Calculate rate per minute for trace metrics using the value attribute.
     """
-
-    metric_type = cast(str, args[1]) if len(args) > 1 else "counter"
+    metric_type = cast(str, args[2]) if len(args) >= 3 and args[2] else "counter"
     return _rate_internal(60, metric_type, settings)
 
 
-TRACE_METRICS_FORMULA_DEFINITIONS = {
-    "per_second": FormulaDefinition(
+TRACE_METRICS_FORMULA_DEFINITIONS: dict[str, FormulaDefinition] = {
+    "per_second": TraceMetricFormulaDefinition(
         default_search_type="rate",
         arguments=[
             AttributeArgumentDefinition(
@@ -87,18 +98,27 @@ TRACE_METRICS_FORMULA_DEFINITIONS = {
                     "number",
                     "integer",
                 },
-                default_arg="value",
             ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
-                default_arg="counter",
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
             ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
         formula_resolver=per_second,
         is_aggregate=True,
         infer_search_type_from_arguments=False,
     ),
-    "per_minute": FormulaDefinition(
+    "per_minute": TraceMetricFormulaDefinition(
         default_search_type="rate",
         arguments=[
             AttributeArgumentDefinition(
@@ -107,12 +127,21 @@ TRACE_METRICS_FORMULA_DEFINITIONS = {
                     "number",
                     "integer",
                 },
-                default_arg="value",
             ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
             ValueArgumentDefinition(
                 argument_types={"string"},
-                default_arg="counter",
+                validator=literal_validator(
+                    [
+                        "",
+                        "counter",
+                        "gauge",
+                        "distribution",
+                    ]
+                ),
+                default_arg="",
             ),
+            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
         ],
         formula_resolver=per_minute,
         is_aggregate=True,

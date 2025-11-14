@@ -1,15 +1,17 @@
 ---
-created: '2025-10-29T21:18:53.637894+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "4665d486184740231357ab63f4543a8d"
+  hash: "04604148d9d04bfb7b3b3c19810a995c"
   contributing component: exception
   hint: None
   root_component:
     app*
       exception*
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
         stacktrace*
           frame* (marked in-app by the client)
             filename*
@@ -359,18 +361,18 @@ app:
               "Illuminate\\Routing\\RouteFileRegistrar::{closure}"
             context_line*
               "throw new Exception('LARAVEL TEST');"
-        type*
-          "Exception"
-        value (ignored because stacktrace takes precedence)
-          "LARAVEL TEST"
 --------------------------------------------------------------------------
 system:
-  hash: "107ed03036d901157372f260bc3df446"
+  hash: "f3b018db683f7190f410fec0fbc1a9b3"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
         stacktrace*
           frame*
             filename*
@@ -720,7 +722,3 @@ system:
               "Illuminate\\Routing\\RouteFileRegistrar::{closure}"
             context_line*
               "throw new Exception('LARAVEL TEST');"
-        type*
-          "Exception"
-        value (ignored because stacktrace takes precedence)
-          "LARAVEL TEST"

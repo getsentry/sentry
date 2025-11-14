@@ -4861,7 +4861,7 @@ describe('SearchQueryBuilder', () => {
                 'gen-ai-features',
                 'gen-ai-explore-traces',
                 'gen-ai-explore-traces-consent-ui',
-                'ask-seer-consent-flow-update',
+                'gen-ai-consent-flow-removal',
               ],
             },
           }
@@ -4875,18 +4875,16 @@ describe('SearchQueryBuilder', () => {
 
         await userEvent.hover(askSeerText);
 
-        const tooltipTitle = await screen.findByText(
-          /The assistant requires Generative AI/
-        );
+        const tooltipTitle = await screen.findByText(/Powered by genAI/);
         expect(tooltipTitle).toBeInTheDocument();
         expect(tooltipTitle).toBeVisible();
 
-        const tooltipLink = screen.getByText(/data processing policy/);
+        const tooltipLink = screen.getByText(/Learn more/);
         expect(tooltipLink).toBeInTheDocument();
         expect(tooltipLink).toBeVisible();
         expect(tooltipLink).toHaveAttribute(
           'href',
-          'https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features'
+          'https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/'
         );
       });
     });

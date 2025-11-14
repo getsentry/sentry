@@ -1,33 +1,38 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Container, Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text/text';
 import {coverageText as COVERAGE_TEXT} from 'sentry/components/events/interfaces/frame/contextLineNumber';
 import {Coverage} from 'sentry/types/integrations';
 
 export function LineCoverageLegend() {
   return (
-    <Flex gap="2xl" align="center" direction="row" paddingBottom="md">
-      <CoveredLine>{COVERAGE_TEXT[Coverage.COVERED]}</CoveredLine>
-      <UncoveredLine>{COVERAGE_TEXT[Coverage.NOT_COVERED]}</UncoveredLine>
-      <PartiallyCoveredLine>{COVERAGE_TEXT[Coverage.PARTIAL]}</PartiallyCoveredLine>
+    <Flex gap="2xl" align="center" direction="row" wrap="wrap">
+      <SolidLegendEntry paddingRight="md" borderRight="success">
+        <Text size="sm" wrap="nowrap">
+          {COVERAGE_TEXT[Coverage.COVERED]}
+        </Text>
+      </SolidLegendEntry>
+      <SolidLegendEntry paddingRight="md" borderRight="danger">
+        <Text size="sm" wrap="nowrap">
+          {COVERAGE_TEXT[Coverage.NOT_COVERED]}
+        </Text>
+      </SolidLegendEntry>
+      <DashedLegendEntry paddingRight="md" borderRight="warning">
+        <Text size="sm" wrap="nowrap">
+          {COVERAGE_TEXT[Coverage.PARTIAL]}
+        </Text>
+      </DashedLegendEntry>
     </Flex>
   );
 }
 
-const CoveredLine = styled('div')`
-  padding-right: ${p => p.theme.space.md};
-  border-right: 3px solid ${p => p.theme.tokens.content.success};
-  white-space: nowrap;
+const SolidLegendEntry = styled(Container)`
+  border-right-width: 3px;
+  border-right-style: solid;
 `;
 
-const UncoveredLine = styled('div')`
-  padding-right: ${p => p.theme.space.md};
-  border-right: 3px solid ${p => p.theme.tokens.content.danger};
-  white-space: nowrap;
-`;
-
-const PartiallyCoveredLine = styled('div')`
-  padding-right: ${p => p.theme.space.md};
-  border-right: 3px dashed ${p => p.theme.tokens.content.warning};
-  white-space: nowrap;
+const DashedLegendEntry = styled(Container)`
+  border-right-width: 3px;
+  border-right-style: dashed;
 `;

@@ -115,7 +115,7 @@ describe('useMetricDetectorLimit', () => {
       '/organizations/org-slug/detectors/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: 'type:metric',
+          query: '!type:issue_stream type:metric',
           per_page: 1,
         }),
       })

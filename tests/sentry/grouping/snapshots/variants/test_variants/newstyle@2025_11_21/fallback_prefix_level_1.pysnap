@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:51.967515+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,8 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "EXC_BAD_ACCESS"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             function*
@@ -29,34 +29,32 @@ app:
           frame (marked out of app by the client)
             function*
               "objc_release"
-        type*
-          "EXC_BAD_ACCESS"
 --------------------------------------------------------------------------
 system:
-  hash: "87497299851e09febfecf4e84e0d45ba"
+  hash: "c670c5a80a2775994bd2d63b408abd6c"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "EXC_BAD_ACCESS"
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "start"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
           frame*
             function*
               "-[UIApplication _run]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by built-in stack trace rule (category:internals -group))
             function*
               "GSEventRunModal"
           frame*
             function*
               "objc_release"
-        type*
-          "EXC_BAD_ACCESS"

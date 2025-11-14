@@ -1,8 +1,9 @@
 import logging
+import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.api import client
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer, IssueEventSerializerResponse
@@ -14,6 +15,8 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.replays.post_process import process_raw_response
+from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.autofix import get_all_tags_overview
@@ -197,6 +200,9 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
 
     # Get full trace id if a short id is provided. Queries EAP for a single span.
     # Use sliding 14-day windows starting from most recent, up to 90 days in the past, to avoid timeouts.
+    # TODO: This query ignores the trace_id column index and can do large scans, and is a good candidate for optimization.
+    # This can be done with a materialized string column for the first 8 chars and a secondary index.
+    # Alternatively we can try more consistent ways of passing the full ID to Explorer.
     if len(trace_id) < 32:
         full_trace_id = None
         now = datetime.now(timezone.utc)
@@ -507,3 +513,108 @@ def get_issue_details(
         "project_id": int(serialized_group["project"]["id"]),
         "project_slug": serialized_group["project"]["slug"],
     }
+
+
+def get_replay_metadata(
+    *,
+    replay_id: str,
+    organization_id: int,
+    project_slug: str | None = None,
+) -> dict[str, Any] | None:
+    """
+    Get the metadata for a replay through an aggregate replay event query.
+
+    Args:
+        replay_id: The ID of the replay. Either a valid UUID or a 8-character hex string prefix. If known, the full ID is recommended for performance.
+        organization_id: The ID of the organization the replay belongs to.
+        project_slug: The slug of the project to query. If not provided, all projects in the organization will be queried.
+
+    Returns:
+        A dict containing the metadata for the replay, or None if it's not found.
+        The return type should conform to ReplayDetailsResponse (may have extra fields).
+    """
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "Organization does not exist",
+            extra={"organization_id": organization_id, "replay_id": replay_id},
+        )
+        return None
+
+    if not features.has("organizations:session-replay", organization):
+        return None
+
+    p_ids_and_slugs = list(
+        Project.objects.filter(
+            organization_id=organization.id,
+            status=ObjectStatus.ACTIVE,
+            **({"slug": project_slug} if project_slug else {}),
+        ).values_list("id", "slug")
+    )
+
+    if not p_ids_and_slugs:
+        logger.warning(
+            "No projects found for given organization and project slug",
+            extra={"organization_id": organization_id, "project_slug": project_slug},
+        )
+        return None
+
+    start, end = default_start_end_dates()
+
+    if len(replay_id) < 32:
+        # Subquery for the full replay ID.
+        full_replay_id = query_replay_id_by_prefix(
+            project_ids=[id for id, _ in p_ids_and_slugs],
+            replay_id_prefix=replay_id,
+            start=start,
+            end=end,
+            organization=organization,
+        )
+        if not full_replay_id:
+            logger.warning(
+                "Replay short ID lookup failed",
+                extra={"replay_id": replay_id, "organization_id": organization_id},
+            )
+            return None
+
+        replay_id = full_replay_id
+
+    try:
+        replay_id = str(
+            uuid.UUID(replay_id)
+        )  # Normalizing with dashes is recommended for the query.
+    except ValueError:
+        logger.warning(
+            "Invalid replay ID", extra={"replay_id": replay_id, "organization_id": organization_id}
+        )
+        return None
+
+    snuba_response = query_replay_instance(
+        project_id=[id for id, _ in p_ids_and_slugs],
+        replay_id=replay_id,
+        start=start,
+        end=end,
+        organization=organization,
+        request_user_id=None,
+    )
+    response = process_raw_response(
+        snuba_response,
+        fields=[],
+    )
+    if not response:
+        logger.warning(
+            "Replay instance not found - no data returned from query",
+            extra={
+                "replay_id": replay_id,
+                "organization_id": organization_id,
+            },
+        )
+        return None
+
+    # Add project_slug field.
+    result = cast(dict[str, Any], response[0])
+    result["project_slug"] = next(
+        filter(lambda x: x[0] == int(result["project_id"]), p_ids_and_slugs)
+    )[1]
+    return result

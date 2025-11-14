@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:51.365591+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,10 @@ app:
   root_component:
     app (ignored because custom server fingerprint takes precedence)
       exception*
+        type*
+          "SoftTimeLimitExceeded"
+        value (ignored because stacktrace takes precedence)
+          "SoftTimeLimitExceeded()"
         stacktrace*
           frame* (marked in-app by the client)
             module*
@@ -164,10 +166,6 @@ app:
               "soft_timeout_sighandler"
             context_line*
               "raise SoftTimeLimitExceeded()"
-        type*
-          "SoftTimeLimitExceeded"
-        value (ignored because stacktrace takes precedence)
-          "SoftTimeLimitExceeded()"
 --------------------------------------------------------------------------
 custom_fingerprint:
   hash: "554e214208f0372603dc9fa6c1c0965f"
@@ -181,6 +179,10 @@ system:
   root_component:
     system (ignored because custom server fingerprint takes precedence)
       exception*
+        type*
+          "SoftTimeLimitExceeded"
+        value (ignored because stacktrace takes precedence)
+          "SoftTimeLimitExceeded()"
         stacktrace*
           frame*
             module*
@@ -335,7 +337,3 @@ system:
               "soft_timeout_sighandler"
             context_line*
               "raise SoftTimeLimitExceeded()"
-        type*
-          "SoftTimeLimitExceeded"
-        value (ignored because stacktrace takes precedence)
-          "SoftTimeLimitExceeded()"

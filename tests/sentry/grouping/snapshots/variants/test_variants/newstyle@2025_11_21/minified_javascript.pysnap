@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.819123+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,8 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type*
+          "NS_ERROR_NOT_INITIALIZED"
         stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by the client)
             module*
@@ -209,16 +209,16 @@ app:
               "wrapTimeFunction/<"
             context_line (ignored because line is too long)
               "{snip} ism:{data:{function:Dt(t)},handled:!0,type:\"instrument\"}}),t.apply(this,e)}},t.prototype.wrapRAF=function(t){return function(e){return t(Et( {snip}"
-        type*
-          "NS_ERROR_NOT_INITIALIZED"
 --------------------------------------------------------------------------
 system:
-  hash: "dcfcd48a02c100bbe4023cbc783054f0"
+  hash: "e1b3abdef8ab7e7c723645e9f52a44c6"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type*
+          "NS_ERROR_NOT_INITIALIZED"
         stacktrace*
           frame*
             module*
@@ -418,5 +418,3 @@ system:
               "wrapTimeFunction/<"
             context_line (ignored because line is too long)
               "{snip} ism:{data:{function:Dt(t)},handled:!0,type:\"instrument\"}}),t.apply(this,e)}},t.prototype.wrapRAF=function(t){return function(e){return t(Et( {snip}"
-        type*
-          "NS_ERROR_NOT_INITIALIZED"

@@ -15,7 +15,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {DetectorTypeForm} from 'sentry/views/detectors/components/detectorTypeForm';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
-import {useMonitorViewContext} from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 interface NewDetectorFormData {
@@ -25,7 +24,6 @@ interface NewDetectorFormData {
 
 function NewDetectorBreadcrumbs() {
   const organization = useOrganization();
-  const {monitorsLinkPrefix} = useMonitorViewContext();
   const newMonitorName = t('New Monitor');
 
   return (
@@ -33,7 +31,7 @@ function NewDetectorBreadcrumbs() {
       crumbs={[
         {
           label: t('Monitors'),
-          to: makeMonitorBasePathname(organization.slug, monitorsLinkPrefix),
+          to: makeMonitorBasePathname(organization.slug),
         },
         {label: newMonitorName},
       ]}
@@ -44,7 +42,6 @@ function NewDetectorBreadcrumbs() {
 export default function DetectorNew() {
   const navigate = useNavigate();
   const organization = useOrganization();
-  const {monitorsLinkPrefix} = useMonitorViewContext();
   useWorkflowEngineFeatureGate({redirect: true});
   const location = useLocation();
   const {projects} = useProjects();
@@ -63,7 +60,7 @@ export default function DetectorNew() {
       // Form doesn't allow type to be defined, cast to the expected shape
       const data = formData as NewDetectorFormData;
       navigate({
-        pathname: `${makeMonitorBasePathname(organization.slug, monitorsLinkPrefix)}new/settings/`,
+        pathname: `${makeMonitorBasePathname(organization.slug)}new/settings/`,
         query: {
           detectorType: location.query.detectorType as DetectorType,
           project: data.project,
@@ -95,10 +92,7 @@ export default function DetectorNew() {
       </EditLayout.Body>
 
       <EditLayout.Footer label={t('Step 1 of 2')} maxWidth={maxWidth}>
-        <LinkButton
-          priority="default"
-          to={makeMonitorBasePathname(organization.slug, monitorsLinkPrefix)}
-        >
+        <LinkButton priority="default" to={makeMonitorBasePathname(organization.slug)}>
           {t('Cancel')}
         </LinkButton>
         <Tooltip

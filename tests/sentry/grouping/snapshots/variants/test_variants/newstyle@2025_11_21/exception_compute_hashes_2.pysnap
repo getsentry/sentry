@@ -1,23 +1,21 @@
 ---
-created: '2025-10-29T21:18:51.438210+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "9509e122c6175606d52862fa4f64853c"
+  hash: "ebcb7aa3baed0b2447fed7b265db777c"
   contributing component: exception
   hint: None
   root_component:
     app*
       exception*
-        stacktrace*
-          frame* (marked in-app by the client)
-            filename*
-              "baz.py"
         type*
           "ValueError"
         value (ignored because stacktrace takes precedence)
           "hello world"
+        stacktrace*
+          frame* (marked in-app by the client)
+            filename*
+              "baz.py"
 --------------------------------------------------------------------------
 system:
   hash: null
@@ -26,11 +24,11 @@ system:
   root_component:
     system (ignored because app exception takes precedence)
       exception (ignored because hash matches app variant)
-        stacktrace*
-          frame*
-            filename*
-              "baz.py"
         type*
           "ValueError"
         value (ignored because stacktrace takes precedence)
           "hello world"
+        stacktrace*
+          frame*
+            filename*
+              "baz.py"

@@ -212,7 +212,7 @@ interface Props extends Omit<BaseChartProps, 'css' | 'colors' | 'series' | 'heig
   utc?: boolean;
 }
 
-export function getYAxisMaxFn(height: number) {
+function getYAxisMaxFn(height: number) {
   return (value: {max: number; min: number}) => {
     // This keeps small datasets from looking 'scary'
     // by having full bars for < 10 values.

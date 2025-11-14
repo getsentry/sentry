@@ -4,7 +4,7 @@ __all__ = [
     "attachment_cache",
     "store_attachments_for_event",
     "get_attachments_for_event",
-    "delete_ratelimited_attachments",
+    "delete_cached_and_ratelimited_attachments",
     "CachedAttachment",
     "MissingAttachmentChunks",
 ]
@@ -70,21 +70,30 @@ def get_attachments_for_event(event: Any) -> Generator[CachedAttachment]:
     return attachment_cache.get(cache_key)
 
 
-def delete_ratelimited_attachments(
+@sentry_sdk.trace
+def delete_cached_and_ratelimited_attachments(
     project: Project, event: Any, attachments: list[CachedAttachment]
 ):
     """
-    This deletes all the attachments that are `rate_limited` from `objectstore` in case they are stored,
-    and it will also remove all the attachments from the attachments cache as well.
+    This deletes all attachment payloads and metadata from the attachment cache
+    (if those are stored there), as well as delete all the `rate_limited`
+    attachments from the `objectstore`.
+    Non-ratelimited attachments which are already stored in `objectstore` will
+    be retained there for long-term storage.
     """
     client: ObjectstoreClient | None = None
     for attachment in attachments:
+        # deletes from objectstore if no long-term storage is desired
         if attachment.rate_limited and attachment.stored_id:
             if client is None:
                 client = get_attachments_client().for_project(project.organization_id, project.id)
             client.delete(attachment.stored_id)
 
-    # all other attachments which only exist in the cache but are not stored will
-    # be cleaned up here:
+        # unconditionally deletes any payloads from the attachment cache
+        attachment.delete()
+
+    # this cleans up the metadata from the attachments cache:
+    # any payloads living in the attachments cache have been cleared by the
+    # `attachment.delete()` call above.
     cache_key = cache_key_for_event(event)
     attachment_cache.delete(cache_key)

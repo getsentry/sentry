@@ -1,7 +1,5 @@
 ---
-created: '2025-10-29T21:18:53.041211+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_variants.py
+source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
   hash: null
@@ -10,6 +8,10 @@ app:
   root_component:
     app (ignored because system exception takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value* (stripped event-specific values)
+          "Fatal Error: <hex> / <hex>"
         stacktrace (ignored because it contains no in-app frames)
           frame (non app frame)
             function*
@@ -114,40 +116,40 @@ app:
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:throw ^-app -app))
             function*
               "abort"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:internals -app))
             function*
               "raise"
-          frame (non app frame)
+          frame (marked out of app by built-in stack trace rule (category:telemetry -app))
             filename*
               "crashpad_client_win.cc"
             function*
               "crashpad::`anonymous namespace'::HandleAbortSignal"
-        type (ignored because exception is synthetic)
-          "0x40000015 / 0x00000001"
-        value* (stripped event-specific values)
-          "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "6148c73af04344a8597354711f5951ea"
+  hash: "4ab7102beb2132ba98606306a88fcdb8"
   contributing component: exception
   hint: None
   root_component:
     system*
       exception*
+        type (ignored because exception is synthetic)
+          "0x40000015 / 0x00000001"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: <hex> / <hex>"
         stacktrace*
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "RtlUserThreadStart"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "BaseThreadInitThunk"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "TppWorkerThread"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by built-in stack trace rule (category:threadbase -group v-group))
             function*
               "RtlpTpWorkCallback"
           frame*
@@ -159,7 +161,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -170,7 +172,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -181,7 +183,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -192,7 +194,7 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -200,7 +202,7 @@ system:
           frame*
             function*
               "stripped_application_code"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by built-in stack trace rule (category:indirection -group))
             filename*
               "function_template.hpp"
             function*
@@ -241,18 +243,14 @@ system:
           frame (ignored due to recursion)
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
             function*
               "abort"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
             function*
               "raise"
-          frame (ignored by stack trace rule (category:throw ^-group))
+          frame (ignored by built-in stack trace rule (category:throw ^-group -group))
             filename*
               "crashpad_client_win.cc"
             function*
               "crashpad::`anonymous namespace'::HandleAbortSignal"
-        type (ignored because exception is synthetic)
-          "0x40000015 / 0x00000001"
-        value (ignored because stacktrace takes precedence)
-          "Fatal Error: <hex> / <hex>"
