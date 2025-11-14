@@ -10,7 +10,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  ProductSolution,
+  StepType,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -92,9 +95,10 @@ function OnboardingPanel({
   );
 }
 
-const STEP_TITLES: Record<'install' | 'verify', string> = {
-  ['install']: t('Install Sentry'),
-  ['verify']: t('Send Metrics and Verify'),
+const STEP_TITLES: Record<StepType, string> = {
+  [StepType.INSTALL]: t('Install Sentry'),
+  [StepType.CONFIGURE]: t('Configure Sentry'),
+  [StepType.VERIFY]: t('Send Metrics and Verify'),
 };
 
 function Onboarding({organization, project}: OnboardingProps) {
