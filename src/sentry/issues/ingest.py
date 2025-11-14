@@ -256,7 +256,7 @@ def save_issue_from_occurrence(
             if is_new:
                 detector_id = None
                 if occurrence.evidence_data:
-                    detector_id = occurrence.evidence_data["detector_id"]
+                    detector_id = occurrence.evidence_data.get("detector_id")
                 associate_new_group_with_detector(group, detector_id)
 
             open_period = get_latest_open_period(group)
