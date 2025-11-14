@@ -190,6 +190,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/access-requests/'
   | '/organizations/$organizationIdOrSlug/access-requests/$requestId/'
   | '/organizations/$organizationIdOrSlug/ai-conversations/'
+  | '/organizations/$organizationIdOrSlug/alert-rule-detector/'
   | '/organizations/$organizationIdOrSlug/alert-rule-workflow/'
   | '/organizations/$organizationIdOrSlug/alert-rules/'
   | '/organizations/$organizationIdOrSlug/alert-rules/$alertRuleId/'
