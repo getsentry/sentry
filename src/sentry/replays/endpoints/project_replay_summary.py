@@ -194,10 +194,15 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                     status=404,
                 )
 
-            # We expect the start and end times to be present, and error + respond 500 if they're not.
+            # Extract start and end times from the replay, falling back to 90-day defaults if missing.
             replay = process_raw_response(snuba_response, fields=[])[0]
-            replay_start = datetime.fromisoformat(replay.get("started_at") or "")
-            replay_end = datetime.fromisoformat(replay.get("finished_at") or "")
+            default_start, default_end = default_start_end_dates()
+
+            started_at = replay.get("started_at")
+            replay_start = datetime.fromisoformat(started_at) if started_at else default_start
+
+            finished_at = replay.get("finished_at")
+            replay_end = datetime.fromisoformat(finished_at) if finished_at else default_end
 
             return self.make_seer_request(
                 SEER_START_TASK_ENDPOINT_PATH,
