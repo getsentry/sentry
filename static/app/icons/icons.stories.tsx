@@ -721,13 +721,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'dead',
-        groups: ['status'],
-        keywords: ['dead', 'face', 'x', 'eyes', 'emotion'],
-        name: 'Dead',
-        defaultProps: {},
-      },
-      {
         id: 'diamond',
         groups: ['status'],
         keywords: ['shape', 'alert', 'diamond', 'gem', 'precious'],

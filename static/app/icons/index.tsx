@@ -28,7 +28,6 @@ export {IconContract} from './iconContract';
 export {IconCopy} from './iconCopy';
 export {IconCursorArrow} from './iconCursorArrow';
 export {IconDashboard} from './iconDashboard';
-export {IconDead} from './iconDead';
 export {IconDelete} from './iconDelete';
 export {IconDiamond} from './iconDiamond';
 export {IconDiscord} from './iconDiscord';
