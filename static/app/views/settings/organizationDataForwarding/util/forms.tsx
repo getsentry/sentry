@@ -109,7 +109,6 @@ export function getProjectOverrideForm({
 }): JsonFormObject {
   const [providerForm] = getProviderForm({provider: dataForwarder.provider});
   const providerFields = providerForm?.fields;
-
   const projectConfig = dataForwarder.projectConfigs.find(
     config => config.project.id === project.id
   );

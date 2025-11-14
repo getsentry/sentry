@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button/linkButton';
@@ -55,6 +56,7 @@ export default function OrganizationDataForwardingEditWrapper() {
 
 function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataForwarder}) {
   const {provider} = dataForwarder;
+  const theme = useTheme();
   const navigate = useNavigate();
   const organization = useOrganization();
   const {projects} = useProjects({orgId: organization.slug});
@@ -185,6 +187,12 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
             </DataForwarderDeleteConfirm>
           }
           submitLabel={t('Update Forwarder')}
+          footerStyle={{
+            borderTop: 0,
+            borderBottom: `1px solid ${theme.border}`,
+            marginTop: `-${theme.space.lg}`,
+            paddingBottom: theme.space['3xl'],
+          }}
         >
           <JsonForm
             forms={getDataForwarderFormGroups({
@@ -194,6 +202,21 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
             })}
           />
         </Form>
+        <Flex align="center" justify="between" gap="2xl">
+          <Flex direction="column" gap="sm">
+            <Flex align="center" gap="lg">
+              <Heading as="h2" size="2xl">
+                {t('Manage your overrides')}
+              </Heading>
+            </Flex>
+            <Text variant="muted">
+              {t(
+                'These configurations apply to individual projects under your %s forwarder.',
+                ProviderLabels[provider]
+              )}
+            </Text>
+          </Flex>
+        </Flex>
         <Stack gap="xl">
           {dataForwarder.enrolledProjects.map(project => (
             <ProjectOverrideForm
