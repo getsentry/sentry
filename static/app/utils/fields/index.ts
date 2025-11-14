@@ -2979,6 +2979,7 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     desc: t('Error instance'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayFieldKey.IS_ARCHIVED]: {
     desc: t('Whether the replay has been archived'),
@@ -3095,6 +3096,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayClickFieldKey.DEAD_SELECTOR]: {
     desc: t(
@@ -3102,6 +3104,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayClickFieldKey.RAGE_SELECTOR]: {
     desc: t(
@@ -3109,6 +3112,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
   [ReplayClickFieldKey.CLICK_TAG]: {
     desc: t('`tag` of an element that was clicked'),
