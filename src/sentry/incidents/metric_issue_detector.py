@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any
 
 from rest_framework import serializers
 
@@ -241,7 +241,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             return True
         return False
 
-    def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
+    def update_data_source(
+        self, instance: Detector, data_source: SnubaQueryDataSourceType, seer_updated: bool = False
+    ):
         try:
             source_instance = DataSource.objects.get(detector=instance)
         except DataSource.DoesNotExist:
@@ -276,17 +278,15 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         # Handle a dynamic detector's snuba query changing
         if instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
-            if snuba_query.query != data_source.get(
-                "query"
-            ) or snuba_query.aggregate != data_source.get("aggregate"):
-                try:
-                    validated_data_source = cast(dict[str, Any], data_source)
+            try:
+                validated_data_source: dict[str, Any] = {"data_sources": [data_source]}
+                if not seer_updated:
                     update_detector_data(instance, validated_data_source)
-                except Exception:
-                    # don't update the snuba query if we failed to send data to Seer
-                    raise serializers.ValidationError(
-                        "Failed to send data to Seer, cannot update detector"
-                    )
+            except Exception:
+                # don't update the snuba query if we failed to send data to Seer
+                raise serializers.ValidationError(
+                    "Failed to send data to Seer, cannot update detector"
+                )
 
         update_snuba_query(
             snuba_query=snuba_query,
@@ -304,6 +304,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         )
 
     def update(self, instance: Detector, validated_data: dict[str, Any]):
+        seer_updated = False
         # Handle anomaly detection changes first in case we need to exit before saving
         if (
             not instance.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC
@@ -313,6 +314,8 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             # Detector has been changed to become a dynamic detector
             try:
                 update_detector_data(instance, validated_data)
+                seer_updated = True
+
             except Exception:
                 # Don't update if we failed to send data to Seer
                 raise serializers.ValidationError(
@@ -339,7 +342,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             data_source = validated_data.pop("data_sources")[0]
 
         if data_source is not None:
-            self.update_data_source(instance, data_source)
+            self.update_data_source(instance, data_source, seer_updated)
 
         instance.save()
 
