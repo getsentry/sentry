@@ -254,6 +254,51 @@ class TestProcessWorkflowActivity(TestCase):
             },
         )
 
+    @mock.patch("sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers")
+    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
+    def test_process_workflow_activity__success_logs(
+        self, mock_logger, mock_evaluate_workflow_triggers
+    ) -> None:
+        self.workflow = self.create_workflow(organization=self.organization)
+        self.workflow.when_condition_group = self.create_data_condition_group()
+        self.create_data_condition(condition_group=self.workflow.when_condition_group)
+        self.workflow.save()
+
+        self.action_group = self.create_data_condition_group(logic_type="any-short")
+        self.action = self.create_action()
+        self.create_data_condition_group_action(
+            condition_group=self.action_group,
+            action=self.action,
+        )
+        self.create_workflow_data_condition_group(self.workflow, self.action_group)
+
+        self.create_detector_workflow(
+            detector=self.detector,
+            workflow=self.workflow,
+        )
+
+        mock_evaluate_workflow_triggers.return_value = ({self.workflow}, {})
+        process_workflow_activity(
+            activity_id=self.activity.id,
+            group_id=self.group.id,
+            detector_id=self.detector.id,
+        )
+
+        mock_logger.info.assert_called_once_with(
+            "workflow_engine.process_workflows.evaluation.actions.triggered",
+            extra={
+                "workflow_ids": [self.workflow.id],
+                "associated_detector": self.detector.get_snapshot(),
+                "event": self.activity,
+                "group": self.activity.group,
+                "event_data": self.activity.data,
+                "action_filter_conditions": [self.action_group.get_snapshot()],
+                "triggered_actions": [self.action.get_snapshot()],
+                "triggered_workflows": [self.workflow.get_snapshot()],
+                "debug_msg": None,
+            },
+        )
+
     @mock.patch(
         "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
     )  # rollout code that is independently tested

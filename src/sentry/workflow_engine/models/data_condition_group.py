@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import ClassVar, Self
+from typing import Any, ClassVar, Self
 
 from django.db import models
 
@@ -36,3 +36,14 @@ class DataConditionGroup(DefaultFieldsModel):
         max_length=200, choices=[(t.value, t.value) for t in Type], default=Type.ANY
     )
     organization = models.ForeignKey("sentry.Organization", on_delete=models.CASCADE)
+
+    def get_snapshot(self) -> dict[str, Any]:
+        conditions = []
+        if hasattr(self, "conditions"):
+            conditions = [cond.get_snapshot() for cond in self.conditions.all()]
+
+        return {
+            "id": self.id,
+            "logic_type": self.logic_type,
+            "conditions": conditions,
+        }

@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 import logging
 from enum import StrEnum
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
 from django.db.models import Q
@@ -111,6 +111,12 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 name="action_sentry_app_lookup",
             ),
         ]
+
+    def get_snapshot(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "type": self.type,
+        }
 
     def get_handler(self) -> builtins.type[ActionHandler]:
         action_type = Action.Type(self.type)

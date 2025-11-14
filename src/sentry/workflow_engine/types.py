@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from logging import Logger
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
@@ -96,6 +96,43 @@ class WorkflowEvaluationData:
     triggered_workflows: set[Workflow] | None = None
     associated_detector: Detector | None = None
 
+    def get_snapshot(self) -> dict[str, Any]:
+        """
+        This method will take the complex data structures, like models / list of models,
+        and turn them into the critical attributes of a model or lists of IDs.
+        """
+
+        associated_detector = None
+        if self.associated_detector:
+            associated_detector = self.associated_detector.get_snapshot()
+
+        workflow_ids = []
+        if self.workflows:
+            workflow_ids = [workflow.id for workflow in self.workflows]
+
+        triggered_workflows = []
+        if self.triggered_workflows:
+            triggered_workflows = [workflow.get_snapshot() for workflow in self.triggered_workflows]
+
+        action_filter_conditions = []
+        if self.action_groups:
+            action_filter_conditions = [group.get_snapshot() for group in self.action_groups]
+
+        triggered_actions = []
+        if self.triggered_actions:
+            triggered_actions = [action.get_snapshot() for action in self.triggered_actions]
+
+        return {
+            "workflow_ids": workflow_ids,
+            "associated_detector": associated_detector,
+            "event": self.event,
+            "group": self.event.group,
+            "event_data": self.event.data,
+            "action_filter_conditions": action_filter_conditions,
+            "triggered_actions": triggered_actions,
+            "triggered_workflows": triggered_workflows,
+        }
+
 
 @dataclass(frozen=True)
 class WorkflowEvaluation:
@@ -134,15 +171,7 @@ class WorkflowEvaluation:
         else:
             log_str = f"{log_str}.actions.triggered"
 
-        logger.info(
-            log_str,
-            extra={
-                **asdict(self.data),
-                "debug_msg": self.msg,
-                "group": self.data.event.group,
-                "data": self.data.event.data,
-            },
-        )
+        logger.info(log_str, extra={**self.data.get_snapshot(), "debug_msg": self.msg})
 
 
 class ConfigTransformer(ABC):

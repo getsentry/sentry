@@ -141,6 +141,18 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         return settings
 
+    def get_snapshot(self) -> dict[str, Any]:
+        trigger_conditions = None
+        if self.workflow_condition_group:
+            trigger_conditions = self.workflow_condition_group.get_snapshot()
+
+        return {
+            "id": self.id,
+            "enabled": self.enabled,
+            "status": self.status,
+            "trigger_conditions": trigger_conditions,
+        }
+
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}
 

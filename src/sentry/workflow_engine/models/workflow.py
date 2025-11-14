@@ -92,6 +92,23 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}
 
+    def get_snapshot(self) -> dict[str, Any]:
+        when_condition_group = None
+        if self.when_condition_group:
+            when_condition_group = self.when_condition_group.get_snapshot()
+
+        environment_id = None
+        if self.environment:
+            environment_id = self.environment.id
+
+        return {
+            "id": self.id,
+            "enabled": self.enabled,
+            "environment_id": environment_id,
+            "status": self.status,
+            "triggers": when_condition_group,
+        }
+
     def evaluate_trigger_conditions(
         self, event_data: WorkflowEventData, when_data_conditions: list[DataCondition] | None = None
     ) -> tuple[TriggerResult, list[DataCondition]]:
