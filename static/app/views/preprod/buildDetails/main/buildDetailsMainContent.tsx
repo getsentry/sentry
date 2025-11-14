@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -365,89 +365,88 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   }
 
   return (
-    <Flex direction="column" gap="sm" minHeight="700px" width="100%">
+    <Stack gap="xl" minHeight="700px" width="100%">
       <Flex gap="lg" wrap="wrap">
         {metricsCards.map(card => (
-          <Container
+          <Stack
             key={card.key}
             background="primary"
             radius="lg"
             padding="xl"
+            gap="xs"
             border="primary"
             flex="1"
             style={{minWidth: '220px'}}
           >
-            <Flex direction="column" gap="md">
-              <Flex align="center" justify="between" gap="sm">
-                <Flex gap="sm" align="center">
-                  {card.icon}
-                  {card.labelTooltip ? (
-                    <Tooltip title={card.labelTooltip}>
-                      <Text variant="muted" size="sm">
-                        {card.title}
-                      </Text>
-                    </Tooltip>
-                  ) : (
-                    <Text variant="muted" size="sm">
+            <Flex align="center" justify="between" gap="sm">
+              <Flex gap="sm" align="center">
+                {card.icon}
+                {card.labelTooltip ? (
+                  <Tooltip title={card.labelTooltip}>
+                    <Text variant="muted" size="sm" bold uppercase>
                       {card.title}
                     </Text>
-                  )}
-                </Flex>
-                {card.showInsightsButton && (
-                  <Tooltip title={t('View insight details')}>
-                    <IconButton
-                      type="button"
-                      aria-label={t('View insight details')}
-                      onClick={openInsightsSidebar}
-                    >
-                      <IconSettings size="sm" color="white" />
-                    </IconButton>
                   </Tooltip>
+                ) : (
+                  <Text variant="muted" size="sm" bold uppercase>
+                    {card.title}
+                  </Text>
                 )}
               </Flex>
-              <Heading as="h3">
-                {card.valueLabel}
-                {card.percentageText ?? ''}
-              </Heading>
+              {card.showInsightsButton && (
+                <Tooltip title={t('View insight details')}>
+                  <IconButton
+                    type="button"
+                    aria-label={t('View insight details')}
+                    onClick={openInsightsSidebar}
+                  >
+                    <IconSettings size="sm" color="white" />
+                  </IconButton>
+                </Tooltip>
+              )}
             </Flex>
-          </Container>
+            <Heading as="h3">
+              {card.valueLabel}
+              {card.percentageText ?? ''}
+            </Heading>
+          </Stack>
         ))}
       </Flex>
-      <Flex align="center" gap="md">
-        {categoriesEnabled && (
-          <SegmentedControl value={selectedContent} onChange={handleContentChange}>
-            <SegmentedControl.Item key="treemap" icon={<IconGrid />} />
-            <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
-          </SegmentedControl>
-        )}
-        {selectedContent === 'treemap' && (
-          <InputGroup style={{flexGrow: 1}}>
-            <InputGroup.LeadingItems>
-              <IconSearch />
-            </InputGroup.LeadingItems>
-            <InputGroup.Input
-              placeholder="Search files"
-              value={searchQuery || ''}
-              onChange={e => setSearchQuery(e.target.value || undefined)}
-            />
-            {searchQuery && (
-              <InputGroup.TrailingItems>
-                <Button
-                  onClick={() => setSearchQuery(undefined)}
-                  aria-label="Clear search"
-                  borderless
-                  size="zero"
-                >
-                  <IconClose size="sm" />
-                </Button>
-              </InputGroup.TrailingItems>
-            )}
-          </InputGroup>
-        )}
-      </Flex>
-      <ChartContainer>{visualizationContent}</ChartContainer>
 
-      <Stack gap="xl">
+      <Stack gap="sm">
+        <Flex align="center" gap="md">
+          {categoriesEnabled && (
+            <SegmentedControl value={selectedContent} onChange={handleContentChange}>
+              <SegmentedControl.Item key="treemap" icon={<IconGrid />} />
+              <SegmentedControl.Item key="categories" icon={<IconGraphCircle />} />
+            </SegmentedControl>
+          )}
+          {selectedContent === 'treemap' && (
+            <InputGroup style={{flexGrow: 1}}>
+              <InputGroup.LeadingItems>
+                <IconSearch />
+              </InputGroup.LeadingItems>
+              <InputGroup.Input
+                placeholder="Search files"
+                value={searchQuery || ''}
+                onChange={e => setSearchQuery(e.target.value || undefined)}
+              />
+              {searchQuery && (
+                <InputGroup.TrailingItems>
+                  <Button
+                    onClick={() => setSearchQuery(undefined)}
+                    aria-label="Clear search"
+                    borderless
+                    size="zero"
+                  >
+                    <IconClose size="sm" />
+                  </Button>
+                </InputGroup.TrailingItems>
+              )}
+            </InputGroup>
+          )}
+        </Flex>
+        <ChartContainer>{visualizationContent}</ChartContainer>
         {selectedContent === 'treemap' && appSizeData && (
           <AppSizeLegend
             root={appSizeData.treemap.root}
@@ -455,12 +454,13 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             onToggleCategory={handleToggleCategory}
           />
         )}
-        <AppSizeInsights
-          processedInsights={processedInsights}
-          platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
-        />
       </Stack>
-    </Flex>
+
+      <AppSizeInsights
+        processedInsights={processedInsights}
+        platform={validatedPlatform(buildDetailsData?.app_info?.platform)}
+      />
+    </Stack>
   );
 }
 
