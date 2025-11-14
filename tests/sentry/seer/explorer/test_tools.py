@@ -22,7 +22,7 @@ from sentry.seer.explorer.tools import (
     rpc_get_profile_flamegraph,
 )
 from sentry.seer.sentry_data_models import EAPTrace
-from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
+from sentry.testutils.cases import APITestCase, APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.samples import load_data
@@ -1147,8 +1147,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert result["external_id"] == "12345678"
 
 
-@pytest.mark.django_db(databases=["default", "control"])
-class TestRpcGetProfileFlamegraph(APITransactionTestCase, SpanTestCase, SnubaTestCase):
+class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
