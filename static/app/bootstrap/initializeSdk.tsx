@@ -43,7 +43,11 @@ const IGNORED_BREADCRUMB_FETCH_HOSTS = [
 ];
 
 // Ignore analytics in spans as well
-const IGNORED_SPANS_BY_DESCRIPTION = ['amplitude.com', 'pendo.io', 'reload.getsentry.net'];
+const IGNORED_SPANS_BY_DESCRIPTION = [
+  'amplitude.com',
+  'pendo.io',
+  'reload.getsentry.net',
+];
 
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in
