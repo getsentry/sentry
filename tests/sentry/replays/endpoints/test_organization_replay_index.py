@@ -2442,3 +2442,38 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                         response.json()["detail"]["message"]
                         == "Viewed by search has been disabled for your project due to a data irregularity."
                     )
+
+    def test_get_replays_sort_with_duplicate_timestamps(self) -> None:
+        """Test that replays with identical timestamps have deterministic sort order."""
+        project = self.create_project(teams=[self.team])
+
+        base_timestamp = datetime.datetime.now(datetime.UTC) - datetime.timedelta(minutes=5)
+
+        replay_ids = [
+            "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+            "f9e8d7c6-b5a4-4938-8271-6a5b4c3d2e1f",
+            "12345678-90ab-4cde-8f12-345678901234",
+            "deadbeef-cafe-4bab-8e00-decafbad0000",
+            "87654321-0fed-4cba-8987-654321fedcba",
+        ]
+
+        for replay_id in replay_ids:
+            self.store_replays(mock_replay(base_timestamp, project.id, replay_id, segment_id=0))
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {"project": project.id, "sort": "started_at", "statsPeriod": "1h"},
+            )
+            assert response.status_code == 200
+            asc_order = [r["id"] for r in response.json()["data"]]
+
+            response = self.client.get(
+                self.url,
+                {"project": project.id, "sort": "-started_at", "statsPeriod": "1h"},
+            )
+            assert response.status_code == 200
+            desc_order = [r["id"] for r in response.json()["data"]]
+
+            assert desc_order == list(reversed(asc_order))
+            assert set(asc_order) == {rid.replace("-", "") for rid in replay_ids}
