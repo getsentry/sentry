@@ -130,6 +130,7 @@ def make_snql_request(
     on_demand_metrics_enabled: bool,
     snuba_params: SnubaParams,
     organization: Organization,
+    dataset: Dataset,
 ) -> TSResultForComparison:
     query = apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, query, None)
 
@@ -152,7 +153,7 @@ def make_snql_request(
         query=query,
         project=snuba_params.project_ids[0],
         yAxis=aggregate,
-        dataset="metricsEnhanced",
+        dataset=dataset,
         interval=snuba_params.granularity_secs,
         start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
@@ -424,6 +425,7 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
             on_demand_metrics_enabled=on_demand_metrics_enabled,
             snuba_params=snuba_params,
             organization=organization,
+            dataset=snuba_query.dataset,
         )
     except IncompatibleMetricsQuery:
         with sentry_sdk.isolation_scope() as scope:
