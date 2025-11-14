@@ -347,7 +347,7 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.RESOURCE_FETCH:
                 payload = event["data"]["payload"]
                 method = payload["data"]["method"]
-                status_code = payload["data"]["statusCode"]
+                status_code = payload["data"].get("statusCode")
                 description = payload["description"]
 
                 # Format URL
@@ -372,7 +372,7 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.RESOURCE_XHR:
                 payload = event["data"]["payload"]
                 method = payload["data"]["method"]
-                status_code = payload["data"]["statusCode"]
+                status_code = payload["data"].get("statusCode")
                 description = payload["description"]
 
                 # Format URL
