@@ -53,7 +53,6 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
                 workflow=workflow,
                 group=self.group,
                 event_id=self.event.event_id,
-                is_single_written=True,
             )
 
     def test_simple(self) -> None:
@@ -211,13 +210,6 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         ][0]
 
     def test_sort_by_last_triggered(self) -> None:
-        # Fresh fire for self.workflow that would impact sorting if not ignored.
-        WorkflowFireHistory.objects.create(
-            workflow=self.workflow,
-            group=self.group,
-            event_id=self.event.event_id,
-            is_single_written=False,
-        )
         response = self.get_success_response(
             self.organization.slug, qs_params={"sortBy": "lastTriggered"}
         )
@@ -358,14 +350,13 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             organization_id=self.organization.id, name="Never Fired"
         )
 
-        workflow_non_single_written_only = self.create_workflow(
-            organization_id=self.organization.id, name="Non Single Written Only"
+        workflow_with_history = self.create_workflow(
+            organization_id=self.organization.id, name="With History"
         )
         WorkflowFireHistory.objects.create(
-            workflow=workflow_non_single_written_only,
+            workflow=workflow_with_history,
             group=self.group,
             event_id=self.event.event_id,
-            is_single_written=False,
         )
 
         # Test ascending order (lastTriggered)
@@ -373,13 +364,13 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.organization.slug, qs_params={"sortBy": "lastTriggered"}
         )
 
-        # Workflows without single-written history should come first, then those with it
+        # Workflows without history should come first, then those with it
         expected_ascending_order = [
             self.workflow_three.name,
             workflow_never_fired.name,
-            workflow_non_single_written_only.name,
             self.workflow.name,
             self.workflow_two.name,
+            workflow_with_history.name,
         ]
 
         assert [w["name"] for w in response.data] == expected_ascending_order
@@ -389,11 +380,11 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.organization.slug, qs_params={"sortBy": "-lastTriggered"}
         )
 
-        # In descending order, workflows with single-written history should come first
+        # In descending order, workflows with history should come first
         expected_descending_order = [
+            workflow_with_history.name,
             self.workflow_two.name,
             self.workflow.name,
-            workflow_non_single_written_only.name,
             workflow_never_fired.name,
             self.workflow_three.name,
         ]
