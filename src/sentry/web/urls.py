@@ -42,6 +42,7 @@ from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
+from sentry.web.frontend.org_redirect import OrgRedirect
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
 from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
 from sentry.web.frontend.out import OutView
@@ -297,6 +298,11 @@ urlpatterns += [
                 ),
             ]
         ),
+    ),
+    re_path(
+        r"^orgredirect/",
+        OrgRedirect.as_view(),
+        name="sentry-org-redirect",
     ),
     re_path(
         r"^login-redirect/$",
