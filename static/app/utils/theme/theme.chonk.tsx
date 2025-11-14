@@ -18,6 +18,7 @@ import commonTheme, {
   generateThemeUtils,
   lightTheme,
 } from './theme';
+import {tokens} from './tokens';
 
 const CHART_PALETTE_LIGHT = [
   ['#7553FF'],
@@ -469,7 +470,8 @@ const formTheme: FormTheme = {
 };
 
 // @TODO(jonasbadalic): eventually, we should port component usage to these values
-function generateChonkTokens(colorScheme: typeof lightColors) {
+// @deprecated prefer using the `tokens.tsx` file
+function generateDeprecatedChonkTokens(colorScheme: typeof lightColors) {
   return {
     content: {
       primary: colorScheme.gray800,
@@ -555,11 +557,11 @@ const lightColors = {
   black: '#181423',
   white: '#FFFFFF',
 
-  surface500: '#FFFFFF', // background.primary
-  surface400: '#F7F6FB', // background.secondary
-  surface300: '#F1EEF9', // background.tertiary
-  surface200: '#EAE7F6', // border.muted
-  surface100: '#DFDBEF', // border.primary
+  surface500: tokens.color.background.primary.light, // background.primary
+  surface400: tokens.color.background.secondary.light, // background.secondary
+  surface300: tokens.color.background.tertiary.light, // background.tertiary
+  surface200: tokens.color.border.secondary.light, // border.muted
+  surface100: tokens.color.border.primary.light, // border.primary
 
   gray800: '#181423', // content.primary
   gray700: '#3B434E', // ⚠ link.muted.active only
@@ -751,96 +753,96 @@ const darkShadows = {
 };
 
 const generateAliases = (
-  tokens: ReturnType<typeof generateChonkTokens>,
+  deprecatedTokens: ReturnType<typeof generateDeprecatedChonkTokens>,
   colors: typeof lightColors
 ) => ({
   /**
    * Heading text color
    */
-  headingColor: tokens.content.primary,
+  headingColor: deprecatedTokens.content.primary,
 
   /**
    * Primary text color
    */
-  textColor: tokens.content.primary,
+  textColor: deprecatedTokens.content.primary,
 
   /**
    * Text that should not have as much emphasis
    */
-  subText: tokens.content.muted,
+  subText: deprecatedTokens.content.muted,
 
   /**
    * Background for the main content area of a page?
    */
-  bodyBackground: tokens.background.secondary,
+  bodyBackground: deprecatedTokens.background.secondary,
 
   /**
    * Primary background color
    */
-  background: tokens.background.primary,
+  background: deprecatedTokens.background.primary,
 
   /**
    * Elevated background color
    */
-  backgroundElevated: tokens.background.primary,
+  backgroundElevated: deprecatedTokens.background.primary,
 
   /**
    * Secondary background color used as a slight contrast against primary background
    */
-  backgroundSecondary: tokens.background.secondary,
+  backgroundSecondary: deprecatedTokens.background.secondary,
 
   /**
    * Tertiary background color used as a stronger contrast against primary background
    */
-  backgroundTertiary: tokens.background.tertiary,
+  backgroundTertiary: deprecatedTokens.background.tertiary,
 
   /**
    * Background for the header of a page
    */
-  headerBackground: tokens.background.primary,
+  headerBackground: deprecatedTokens.background.primary,
 
   /**
    * Primary border color
    */
-  border: tokens.border.primary,
-  translucentBorder: tokens.border.primary,
+  border: deprecatedTokens.border.primary,
+  translucentBorder: deprecatedTokens.border.primary,
 
   /**
    * Inner borders, e.g. borders inside of a grid
    */
-  innerBorder: tokens.border.muted,
-  translucentInnerBorder: tokens.border.muted,
+  innerBorder: deprecatedTokens.border.muted,
+  translucentInnerBorder: deprecatedTokens.border.muted,
 
   /**
    * A color that denotes a "success", or something good
    */
-  success: tokens.content.success,
-  successText: tokens.content.success,
+  success: deprecatedTokens.content.success,
+  successText: deprecatedTokens.content.success,
   // @TODO(jonasbadalic): should this reference a chonk color?
-  successFocus: tokens.border.success, // Not being used
+  successFocus: deprecatedTokens.border.success, // Not being used
 
   /**
    * A color that denotes an error, or something that is wrong
    */
-  error: tokens.content.danger,
-  errorText: tokens.content.danger,
-  errorFocus: tokens.border.danger,
+  error: deprecatedTokens.content.danger,
+  errorText: deprecatedTokens.content.danger,
+  errorFocus: deprecatedTokens.border.danger,
 
   /**
    * A color that denotes danger, for dangerous actions like deletion
    */
-  danger: tokens.content.danger,
-  dangerText: tokens.content.danger,
+  danger: deprecatedTokens.content.danger,
+  dangerText: deprecatedTokens.content.danger,
   // @TODO(jonasbadalic): should this reference a chonk color?
-  dangerFocus: tokens.border.danger, // Not being used
+  dangerFocus: deprecatedTokens.border.danger, // Not being used
 
   /**
    * A color that denotes a warning
    */
-  warning: tokens.content.warning,
-  warningText: tokens.content.warning,
+  warning: deprecatedTokens.content.warning,
+  warningText: deprecatedTokens.content.warning,
   // @TODO(jonasbadalic): should this reference a chonk color?
-  warningFocus: tokens.border.warning, // Not being used
+  warningFocus: deprecatedTokens.border.warning, // Not being used
 
   /**
    * A color that indicates something is disabled where user can not interact or use
@@ -861,24 +863,24 @@ const generateAliases = (
    * Indicates that something is "active" or "selected"
    * NOTE: These are largely used for form elements, which I haven't mocked in ChonkUI
    */
-  active: tokens.component.link.accent.active,
-  activeHover: tokens.component.link.accent.hover,
-  activeText: tokens.component.link.accent.default,
+  active: deprecatedTokens.component.link.accent.active,
+  activeHover: deprecatedTokens.component.link.accent.hover,
+  activeText: deprecatedTokens.component.link.accent.default,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
    * and should be a bit subtler than active
    */
-  focus: tokens.border.accent,
-  focusBorder: tokens.border.accent,
+  focus: deprecatedTokens.border.accent,
+  focusBorder: deprecatedTokens.border.accent,
 
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: tokens.component.link.accent.default,
-  linkHoverColor: tokens.component.link.accent.hover,
-  linkUnderline: tokens.component.link.accent.default,
-  linkFocus: tokens.border.accent,
+  linkColor: deprecatedTokens.component.link.accent.default,
+  linkHoverColor: deprecatedTokens.component.link.accent.hover,
+  linkUnderline: deprecatedTokens.component.link.accent.default,
+  linkFocus: deprecatedTokens.border.accent,
 
   /**
    * Form placeholder text color
@@ -888,7 +890,7 @@ const generateAliases = (
   /**
    *
    */
-  rowBackground: tokens.background.primary,
+  rowBackground: deprecatedTokens.background.primary,
 
   /**
    * Color of lines that flow across the background of the chart to indicate axes levels
@@ -899,12 +901,12 @@ const generateAliases = (
   /**
    * Color for chart label text
    */
-  chartLabel: tokens.content.muted,
+  chartLabel: deprecatedTokens.content.muted,
 
   /**
    * Color for the 'others' series in topEvent charts
    */
-  chartOther: tokens.content.muted,
+  chartOther: deprecatedTokens.content.muted,
 
   /**
    * Hover color of the drag handle used in the content slider diff view.
@@ -1074,11 +1076,14 @@ const chonkDarkColorMapping: ColorMapping = {
   red100: darkColors.red100,
 };
 
-const lightTokens = generateChonkTokens(lightColors);
-const darkTokens = generateChonkTokens(darkColors);
+const lightTokens = generateDeprecatedChonkTokens(lightColors);
+const darkTokens = generateDeprecatedChonkTokens(darkColors);
 
 const lightAliases = generateAliases(lightTokens, lightColors);
-const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
+const darkAliases = generateAliases(
+  generateDeprecatedChonkTokens(darkColors),
+  darkColors
+);
 
 interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
   chart: {
@@ -1087,9 +1092,9 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
     neutral: string;
   };
   colors: typeof lightColors & {
-    background: ReturnType<typeof generateChonkTokens>['background'];
-    border: ReturnType<typeof generateChonkTokens>['border'];
-    content: ReturnType<typeof generateChonkTokens>['content'];
+    background: ReturnType<typeof generateDeprecatedChonkTokens>['background'];
+    border: ReturnType<typeof generateDeprecatedChonkTokens>['border'];
+    content: ReturnType<typeof generateDeprecatedChonkTokens>['content'];
   };
   focusRing: (existingShadow?: React.CSSProperties['boxShadow']) => {
     boxShadow: React.CSSProperties['boxShadow'];
@@ -1153,9 +1158,9 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
 
   colors: {
     ...lightColors,
-    content: generateChonkTokens(lightColors).content,
-    background: generateChonkTokens(lightColors).background,
-    border: generateChonkTokens(lightColors).border,
+    content: generateDeprecatedChonkTokens(lightColors).content,
+    background: generateDeprecatedChonkTokens(lightColors).background,
+    border: generateDeprecatedChonkTokens(lightColors).border,
   },
 
   sidebar: {
@@ -1218,9 +1223,9 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
 
   colors: {
     ...darkColors,
-    content: generateChonkTokens(darkColors).content,
-    background: generateChonkTokens(darkColors).background,
-    border: generateChonkTokens(darkColors).border,
+    content: generateDeprecatedChonkTokens(darkColors).content,
+    background: generateDeprecatedChonkTokens(darkColors).background,
+    border: generateDeprecatedChonkTokens(darkColors).border,
   },
 
   sidebar: {
