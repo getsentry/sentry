@@ -76,7 +76,9 @@ def backfill_metric_issue_detectorgroup(
     DetectorGroup = apps.get_model("workflow_engine", "DetectorGroup")
     Detector = apps.get_model("workflow_engine", "Detector")
 
-    for group in Group.objects.filter(type=8001, detectorgroup__isnull=True):  # metric issues
+    for group in Group.objects.filter(type=8001, detectorgroup__isnull=True).select_related(
+        "project"
+    ):  # metric issues
         # figure out the detector
         latest_event = get_oldest_or_latest_event(group, EventOrdering.LATEST)
         if not latest_event:
