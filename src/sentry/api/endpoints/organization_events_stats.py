@@ -17,10 +17,8 @@ from sentry.api.helpers.error_upsampling import (
     transform_query_columns_for_error_upsampling,
 )
 from sentry.constants import MAX_TOP_EVENTS
-from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
-from sentry.search.eap.constants import EXTRAPOLATION_MODE_MAP
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
@@ -245,13 +243,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 if scoped_dataset not in RPC_DATASETS:
                     raise NotImplementedError
 
-                requested_mode = request.GET.get("extrapolationMode", None)
-                if requested_mode is not None and requested_mode not in EXTRAPOLATION_MODE_MAP:
-                    raise InvalidSearchQuery(f"Unknown extrapolation mode: {requested_mode}")
-
-                extrapolation_mode = (
-                    EXTRAPOLATION_MODE_MAP[requested_mode] if requested_mode else None
-                )
+                extrapolation_mode = self.get_extrapolation_mode(request)
 
                 if scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
