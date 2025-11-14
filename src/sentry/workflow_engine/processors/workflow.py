@@ -228,7 +228,7 @@ def evaluate_workflow_triggers(
                     },
                 )
         else:
-            if evaluation:
+            if evaluation.triggered:
                 triggered_workflows.add(workflow)
                 if dual_processing_logs_enabled:
                     try:
@@ -361,7 +361,7 @@ def evaluate_workflows_action_filters(
                     },
                 )
         else:
-            if group_evaluation.logic_result:
+            if group_evaluation.logic_result.triggered:
                 if delayed_workflow_item := queue_items_by_workflow.get(workflow):
                     if delayed_workflow_item.delayed_when_group_id:
                         # If there are already delayed when conditions,

@@ -126,6 +126,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
 
         # Create size analysis data
         head_analysis_data = {
+            "analysis_duration": 0.5,
             "download_size": 1000,
             "install_size": 2000,
             "treemap": {
@@ -150,6 +151,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
             },
         }
         base_analysis_data = {
+            "analysis_duration": 0.4,
             "download_size": 800,
             "install_size": 1500,
             "treemap": {
@@ -254,6 +256,7 @@ class ComparePreprodArtifactSizeAnalysisTest(TestCase):
 
         # Create size analysis data
         analysis_data = {
+            "analysis_duration": 0.5,
             "download_size": 1000,
             "install_size": 2000,
             "treemap": {
@@ -683,6 +686,7 @@ class RunSizeAnalysisComparisonTest(TestCase):
         """Test _run_size_analysis_comparison with successful comparison."""
         # Create analysis data
         head_analysis_data = {
+            "analysis_duration": 0.5,
             "download_size": 1000,
             "install_size": 2000,
             "treemap": {
@@ -707,6 +711,7 @@ class RunSizeAnalysisComparisonTest(TestCase):
             },
         }
         base_analysis_data = {
+            "analysis_duration": 0.4,
             "download_size": 800,
             "install_size": 1500,
             "treemap": {
@@ -775,10 +780,10 @@ class RunSizeAnalysisComparisonTest(TestCase):
         """Test _run_size_analysis_comparison with existing processing comparison."""
         # Create size metrics
         head_size_metrics = self._create_size_metrics_with_analysis_file(
-            {"download_size": 1000, "install_size": 2000}
+            {"analysis_duration": 0.5, "download_size": 1000, "install_size": 2000}
         )
         base_size_metrics = self._create_size_metrics_with_analysis_file(
-            {"download_size": 800, "install_size": 1500}
+            {"analysis_duration": 0.4, "download_size": 800, "install_size": 1500}
         )
 
         # Create existing comparison in processing state
@@ -813,10 +818,10 @@ class RunSizeAnalysisComparisonTest(TestCase):
         """Test _run_size_analysis_comparison with existing successful comparison."""
         # Create size metrics
         head_size_metrics = self._create_size_metrics_with_analysis_file(
-            {"download_size": 1000, "install_size": 2000}
+            {"analysis_duration": 0.5, "download_size": 1000, "install_size": 2000}
         )
         base_size_metrics = self._create_size_metrics_with_analysis_file(
-            {"download_size": 800, "install_size": 1500}
+            {"analysis_duration": 0.4, "download_size": 800, "install_size": 1500}
         )
 
         # Create existing comparison in success state
@@ -863,7 +868,7 @@ class RunSizeAnalysisComparisonTest(TestCase):
         )
 
         base_size_metrics = self._create_size_metrics_with_analysis_file(
-            {"download_size": 800, "install_size": 1500}
+            {"analysis_duration": 0.4, "download_size": 800, "install_size": 1500}
         )
 
         _run_size_analysis_comparison(
@@ -883,7 +888,7 @@ class RunSizeAnalysisComparisonTest(TestCase):
     def test_run_size_analysis_comparison_missing_base_analysis_file(self):
         """Test _run_size_analysis_comparison with missing base analysis file."""
         head_size_metrics = self._create_size_metrics_with_analysis_file(
-            {"download_size": 1000, "install_size": 2000}
+            {"analysis_duration": 0.5, "download_size": 1000, "install_size": 2000}
         )
 
         # Create size metrics without analysis file

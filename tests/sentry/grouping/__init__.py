@@ -166,7 +166,7 @@ def with_grouping_configs(config_ids: Iterable[str]) -> pytest.MarkDecorator:
         return pytest.mark.skip("no configs to test")
 
     return pytest.mark.parametrize(
-        "config_name", config_ids, ids=lambda config_name: config_name.replace("-", "_")
+        "config_name", sorted(config_ids), ids=lambda config_name: config_name.replace("-", "_")
     )
 
 

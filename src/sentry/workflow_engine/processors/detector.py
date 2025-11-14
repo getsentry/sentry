@@ -322,9 +322,6 @@ def process_detectors[T](
         ):
             detector_results = handler.evaluate(data_packet)
 
-        if detector_results is None:
-            return results
-
         for result in detector_results.values():
             logger_extra = {
                 "detector": detector.id,
@@ -373,9 +370,24 @@ def associate_new_group_with_detector(group: Group, detector_id: int | None = No
                 return False
             detector_id = Detector.get_error_detector_for_project(group.project.id).id
         else:
+            metrics.incr(
+                "workflow_engine.associate_new_group_with_detector",
+                tags={"group_type": group.type, "result": "failure"},
+            )
+            logger.warning(
+                "associate_new_group_with_detector_failed",
+                extra={
+                    "group_id": group.id,
+                    "group_type": group.type,
+                },
+            )
             return False
     DetectorGroup.objects.get_or_create(
         detector_id=detector_id,
         group_id=group.id,
+    )
+    metrics.incr(
+        "workflow_engine.associate_new_group_with_detector",
+        tags={"group_type": group.type, "result": "success"},
     )
     return True

@@ -1,6 +1,10 @@
 from django.urls import reverse
 
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
+from sentry.explore.translation.discover_translation import (
+    translate_discover_query_to_explore_query,
+)
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
@@ -438,6 +442,79 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
             )
         assert response.status_code == 201, response.content
         assert response.data["projects"] == [-1]
+
+    def test_post_e2e_test_with_translation(self) -> None:
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Query to translate",
+                    "projects": self.project_ids,
+                    "fields": [
+                        "title",
+                        "count()",
+                        "count_web_vitals(measurements.lcp,good)",
+                        "any(span.duration)",
+                    ],
+                    "range": "7d",
+                    "query": "event.type:transaction browser.name:Firefox",
+                    "yAxis": ["count()"],
+                    "version": 2,
+                    "queryDataset": "transaction-like",
+                },
+            )
+        assert response.status_code == 201, response.content
+
+        assert DiscoverSavedQuery.objects.filter(name="Query to translate").exists()
+        saved_query = DiscoverSavedQuery.objects.filter(name="Query to translate").first()
+        assert saved_query is not None
+        assert saved_query.dataset == DiscoverSavedQueryTypes.TRANSACTION_LIKE
+        assert saved_query.query == {
+            "fields": [
+                "title",
+                "count()",
+                "count_web_vitals(measurements.lcp,good)",
+                "any(span.duration)",
+            ],
+            "range": "7d",
+            "query": "event.type:transaction browser.name:Firefox",
+            "yAxis": ["count()"],
+        }
+
+        translated_query = translate_discover_query_to_explore_query(saved_query)
+        saved_query.refresh_from_db()
+        assert saved_query.explore_query is not None
+        assert saved_query.explore_query.id == translated_query.id
+
+        assert ExploreSavedQuery.objects.filter(id=translated_query.id).exists()
+
+        assert translated_query.dataset == ExploreSavedQueryDataset.SEGMENT_SPANS
+        explore_query = translated_query.query
+        assert explore_query["query"][0]["fields"] == ["id", "transaction"]
+        assert explore_query["range"] == "7d"
+        assert (
+            explore_query["query"][0]["query"]
+            == "(is_transaction:1 browser.name:Firefox) AND is_transaction:1"
+        )
+        assert explore_query["query"][0]["mode"] == "samples"
+        assert explore_query["query"][0]["aggregateField"] == [
+            {
+                "yAxes": ["count(span.duration)"],
+                "chartType": 2,
+            }
+        ]
+        assert explore_query["query"][0]["orderby"] == ""
+        assert explore_query["query"][0]["aggregateOrderby"] is None
+        assert explore_query["end"] is None
+        assert explore_query["environment"] == []
+        assert explore_query["interval"] is None
+        assert explore_query["start"] is None
+
+        assert translated_query.changed_reason == {
+            "columns": ["count_web_vitals(measurements.lcp,good)", "any(span.duration)"],
+            "equations": [],
+            "orderby": [],
+        }
 
     def test_save_with_project(self) -> None:
         with self.feature(self.feature_name):

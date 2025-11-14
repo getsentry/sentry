@@ -523,6 +523,81 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         updated_monitor = validator.save()
         assert updated_monitor.is_muted is True
 
+    def test_update_is_muted_propagates_to_environments(self):
+        """Test that muting a monitor propagates to all its environments."""
+        # Create two monitor environments
+        env1 = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=self.environment.id,
+            is_muted=False,
+        )
+        env2_env = self.create_environment(name="production", project=self.project)
+        env2 = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=env2_env.id,
+            is_muted=False,
+        )
+
+        # Mute the monitor
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"is_muted": True},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+        updated_monitor = validator.save()
+        assert updated_monitor.is_muted is True
+
+        # Verify both environments are now muted
+        env1.refresh_from_db()
+        env2.refresh_from_db()
+        assert env1.is_muted is True
+        assert env2.is_muted is True
+
+    def test_update_is_muted_false_propagates_to_environments(self):
+        """Test that unmuting a monitor propagates to all its environments."""
+        # Start with a muted monitor
+        self.monitor.update(is_muted=True)
+
+        # Create two muted monitor environments
+        env1 = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=self.environment.id,
+            is_muted=True,
+        )
+        env2_env = self.create_environment(name="production", project=self.project)
+        env2 = self.create_monitor_environment(
+            monitor=self.monitor,
+            environment_id=env2_env.id,
+            is_muted=True,
+        )
+
+        # Unmute the monitor
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"is_muted": False},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+        updated_monitor = validator.save()
+        assert updated_monitor.is_muted is False
+
+        # Verify both environments are now unmuted
+        env1.refresh_from_db()
+        env2.refresh_from_db()
+        assert env1.is_muted is False
+        assert env2.is_muted is False
+
     def test_update_status_to_disabled(self):
         """Test updating monitor status to disabled."""
         validator = MonitorValidator(
