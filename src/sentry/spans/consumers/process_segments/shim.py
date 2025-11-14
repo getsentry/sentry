@@ -108,9 +108,6 @@ def build_shim_event_data(
                 else:
                     event_span["data"][key] = value
 
-        if description := attribute_value(span, "sentry.description"):
-            event_span["description"] = description
-
         event["spans"].append(event_span)
 
     return event
