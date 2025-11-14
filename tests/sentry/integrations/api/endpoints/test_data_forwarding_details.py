@@ -547,6 +547,8 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
             user=user,
             organization=self.organization,
             role="manager",  # Has org:write
+            teams=[self.team],
+            teamRole="admin",
         )
         self.login_as(user=user)
 
