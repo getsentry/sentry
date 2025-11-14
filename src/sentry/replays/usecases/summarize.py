@@ -277,6 +277,10 @@ def generate_summary_logs(
     seen_feedback_ids = {error["id"] for error in error_events if error["category"] == "feedback"}
     replay_start_ms = _parse_iso_timestamp_to_ms(replay_start) if replay_start else 0.0
 
+    # Skip errors that occurred before replay start
+    while error_idx < len(error_events) and error_events[error_idx]["timestamp"] < replay_start_ms:
+        error_idx += 1
+
     # Process segments
     for _, segment in segment_data:
         events = json.loads(segment.tobytes().decode("utf-8"))
@@ -291,13 +295,10 @@ def generate_summary_logs(
                 error_idx < len(error_events) and error_events[error_idx]["timestamp"] < timestamp
             ):
                 error = error_events[error_idx]
-
-                # Only yield errors that occurred after replay start
-                if error["timestamp"] >= replay_start_ms:
-                    if error["category"] == "error":
-                        yield generate_error_log_message(error)
-                    elif error["category"] == "feedback":
-                        yield generate_feedback_log_message(error)
+                if error["category"] == "error":
+                    yield generate_error_log_message(error)
+                elif error["category"] == "feedback":
+                    yield generate_feedback_log_message(error)
 
                 error_idx += 1
 
@@ -317,13 +318,10 @@ def generate_summary_logs(
     # Yield any remaining error messages
     while error_idx < len(error_events):
         error = error_events[error_idx]
-
-        # Only yield errors that occurred after replay start
-        if error["timestamp"] >= replay_start_ms:
-            if error["category"] == "error":
-                yield generate_error_log_message(error)
-            elif error["category"] == "feedback":
-                yield generate_feedback_log_message(error)
+        if error["category"] == "error":
+            yield generate_error_log_message(error)
+        elif error["category"] == "feedback":
+            yield generate_feedback_log_message(error)
 
         error_idx += 1
 
