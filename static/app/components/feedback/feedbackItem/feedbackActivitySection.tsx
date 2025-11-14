@@ -102,9 +102,9 @@ function FeedbackActivitySection(props: Props) {
     [updateOptions, feedbackItem.activity, mutators]
   );
 
-  const filteredActivity = feedbackItem.activity.filter(
-    a => a.type !== GroupActivityType.FIRST_SEEN
-  );
+  const filteredActivity = feedbackItem.activity
+    .filter(a => a.type !== GroupActivityType.FIRST_SEEN)
+    .reverse();
 
   return (
     <ActivitySection

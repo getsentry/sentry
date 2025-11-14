@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {ActivityItem} from 'sentry/components/activity/item';
@@ -28,6 +28,8 @@ function ActivitySection(props: Props) {
   const organization = useOrganization();
 
   const [inputId, setInputId] = useState(uniqueId());
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const previousActivityCount = useRef(group.activity.length);
 
   const me = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
@@ -37,6 +39,18 @@ function ActivitySection(props: Props) {
     projectSlugs,
     placeholder: placeholderText,
   };
+
+  useEffect(() => {
+    const prevCount = previousActivityCount.current;
+    if (group.activity.length > prevCount) {
+      const newItems = group.activity.slice(prevCount);
+      const hasNewNote = newItems.some(item => item.type === GroupActivityType.NOTE);
+      if (hasNewNote) {
+        bottomRef.current?.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+      }
+    }
+    previousActivityCount.current = group.activity.length;
+  }, [group.activity.length, group.activity]);
 
   return (
     <Fragment>
@@ -116,6 +130,7 @@ function ActivitySection(props: Props) {
           </ErrorBoundary>
         );
       })}
+      <div ref={bottomRef} />
     </Fragment>
   );
 }
