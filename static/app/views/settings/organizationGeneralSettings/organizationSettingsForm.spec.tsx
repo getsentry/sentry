@@ -178,7 +178,10 @@ describe('OrganizationSettingsForm', () => {
 
   it('can toggle "Show Generative AI Features"', async () => {
     // Default org fixture has hideAiFeatures: false, so Seer is enabled by default
-    const hiddenAiOrg = OrganizationFixture({hideAiFeatures: true});
+    const hiddenAiOrg = OrganizationFixture({
+      hideAiFeatures: true,
+      features: ['organizations:gen-ai-features'],
+    });
     render(
       <OrganizationSettingsForm
         {...routerProps}
@@ -241,13 +244,36 @@ describe('OrganizationSettingsForm', () => {
       {
         organization: {
           ...organization,
-          features: ['autofix'],
+          features: ['autofix', 'organizations:gen-ai-features'],
         },
       }
     );
 
     const toggle = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
     expect(toggle).toBeEnabled();
+  });
+
+  it('disables "Show Generative AI Features" toggle when feature flag is off', () => {
+    render(
+      <OrganizationSettingsForm
+        {...routerProps}
+        initialData={OrganizationFixture()}
+        onSave={onSave}
+      />,
+      {
+        organization: {
+          ...organization,
+          features: [], // No gen-ai-features flag
+        },
+      }
+    );
+
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Show Generative AI Features',
+    });
+
+    expect(checkbox).toBeDisabled();
+    expect(checkbox).not.toBeChecked();
   });
 
   it('renders AI Code Review field', () => {
@@ -314,7 +340,13 @@ describe('OrganizationSettingsForm', () => {
         {...routerProps}
         initialData={OrganizationFixture({hideAiFeatures: false})}
         onSave={onSave}
-      />
+      />,
+      {
+        organization: {
+          ...organization,
+          features: ['organizations:gen-ai-features'],
+        },
+      }
     );
 
     MockApiClient.addMockResponse({
@@ -350,7 +382,13 @@ describe('OrganizationSettingsForm', () => {
           {...routerProps}
           initialData={OrganizationFixture({hideAiFeatures: true})}
           onSave={onSave}
-        />
+        />,
+        {
+          organization: {
+            ...organization,
+            features: ['organizations:gen-ai-features'],
+          },
+        }
       );
 
       const preventAiField = screen.getByRole('checkbox', {
@@ -359,6 +397,41 @@ describe('OrganizationSettingsForm', () => {
       expect(preventAiField).toBeInTheDocument();
       expect(preventAiField).toBeEnabled();
       expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
+    });
+
+    it('is disabled when feature flag is off', async () => {
+      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockReturnValue({
+        name: 'us',
+        displayName: 'United States of America (US)',
+        url: 'https://sentry.example.com',
+      });
+
+      render(
+        <OrganizationSettingsForm
+          {...routerProps}
+          initialData={OrganizationFixture({hideAiFeatures: true})}
+          onSave={onSave}
+        />,
+        {
+          organization: {
+            ...organization,
+            features: [], // No gen-ai-features flag
+          },
+        }
+      );
+
+      const preventAiField = screen.getByRole('checkbox', {
+        name: /Enable AI Code Review/i,
+      });
+      expect(preventAiField).toBeInTheDocument();
+      expect(preventAiField).toBeDisabled();
+
+      const disabledTag = screen.getByTestId('prevent-ai-disabled-tag');
+      expect(disabledTag).toBeInTheDocument();
+      await userEvent.hover(disabledTag);
+      expect(
+        await screen.findByText('This feature is not available')
+      ).toBeInTheDocument();
     });
 
     it('is disabled when non US region', async () => {
@@ -373,7 +446,13 @@ describe('OrganizationSettingsForm', () => {
           {...routerProps}
           initialData={OrganizationFixture({hideAiFeatures: true})}
           onSave={onSave}
-        />
+        />,
+        {
+          organization: {
+            ...organization,
+            features: ['organizations:gen-ai-features'],
+          },
+        }
       );
 
       const preventAiField = screen.getByRole('checkbox', {
@@ -410,6 +489,7 @@ describe('OrganizationSettingsForm', () => {
           organization: {
             ...organization,
             access: ['org:write'],
+            features: ['organizations:gen-ai-features'],
           },
         }
       );
@@ -439,7 +519,9 @@ describe('OrganizationSettingsForm', () => {
         />,
         {
           organization: {
+            ...organization,
             access: ['org:read'],
+            features: ['organizations:gen-ai-features'],
           },
         }
       );
@@ -465,7 +547,9 @@ describe('OrganizationSettingsForm', () => {
         />,
         {
           organization: {
+            ...organization,
             access: ['org:write'],
+            features: ['organizations:gen-ai-features'],
           },
         }
       );
