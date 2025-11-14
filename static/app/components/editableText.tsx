@@ -14,6 +14,11 @@ import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 type Props = {
   onChange: (value: string) => void;
   value: string;
+  /**
+   * When true, clearing the input and blurring cancels the edit and restores
+   * the previous value instead of showing an error toast.
+   */
+  allowEmpty?: boolean;
   'aria-label'?: string;
   autoSelect?: boolean;
   className?: string;
@@ -40,6 +45,7 @@ function EditableText({
   className,
   'aria-label': ariaLabel,
   placeholder,
+  allowEmpty = false,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(value);
@@ -70,7 +76,11 @@ function EditableText({
     }
 
     if (isEmpty) {
-      displayStatusMessage('error');
+      if (allowEmpty) {
+        revertValueAndCloseEditor();
+      } else {
+        displayStatusMessage('error');
+      }
       return;
     }
 
