@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from typing import Any
 
 import sentry_sdk
@@ -194,21 +193,15 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                     status=404,
                 )
 
-            # Extract start and end times from the replay, falling back to 90-day defaults if missing.
+            # Extract start and end times from the replay (pass None if missing).
             replay = process_raw_response(snuba_response, fields=[])[0]
-
-            started_at = replay.get("started_at")
-            replay_start = datetime.fromisoformat(started_at) if started_at else None
-
-            finished_at = replay.get("finished_at")
-            replay_end = datetime.fromisoformat(finished_at) if finished_at else None
 
             return self.make_seer_request(
                 SEER_START_TASK_ENDPOINT_PATH,
                 {
                     "replay_id": replay_id,
-                    "replay_start": replay_start.isoformat(),
-                    "replay_end": replay_end.isoformat(),
+                    "replay_start": replay.get("started_at"),
+                    "replay_end": replay.get("finished_at"),
                     "num_segments": num_segments,
                     "organization_id": project.organization.id,
                     "project_id": project.id,
