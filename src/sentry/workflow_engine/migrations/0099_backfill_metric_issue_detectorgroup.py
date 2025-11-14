@@ -13,7 +13,6 @@ from snuba_sdk import Column, Condition, Op
 from sentry import eventstore
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.snuba.dataset import Dataset
-from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +76,7 @@ def backfill_metric_issue_detectorgroup(
     DetectorGroup = apps.get_model("workflow_engine", "DetectorGroup")
     Detector = apps.get_model("workflow_engine", "Detector")
 
-    for group in RangeQuerySetWrapper(
-        Group.objects.filter(type=8001, detectorgroup__isnull=True)
-    ):  # metric issues
+    for group in Group.objects.filter(type=8001, detectorgroup__isnull=True):  # metric issues
         # figure out the detector
         latest_event = get_oldest_or_latest_event(group, EventOrdering.LATEST)
         if not latest_event:
@@ -139,7 +136,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1003_group_history_prev_history_safe_removal"),
+        # ("sentry", "1003_group_history_prev_history_safe_removal"),
         ("workflow_engine", "0098_detectorgroup_detector_set_null"),
     ]
 
@@ -150,7 +147,7 @@ class Migration(CheckedMigration):
             hints={
                 "tables": [
                     "workflow_engine_detectorgroup",
-                    "sentry_group",
+                    "sentry_groupedmessage",
                 ]
             },
         ),
