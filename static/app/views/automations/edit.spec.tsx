@@ -10,10 +10,12 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useParams} from 'sentry/utils/useParams';
 import AutomationEdit from 'sentry/views/automations/edit';
 
 jest.mock('sentry/utils/useParams');
+jest.mock('sentry/utils/analytics');
 
 describe('EditAutomation', () => {
   const automation = AutomationFixture();
@@ -131,5 +133,71 @@ describe('EditAutomation', () => {
 
     // Verify the button text has changed to "Enable"
     expect(await screen.findByRole('button', {name: 'Enable'})).toBeInTheDocument();
+  });
+
+  it('updates automation via form submission', async () => {
+    const updated = AutomationFixture({
+      ...automation,
+      detectorIds: ['detector-1'],
+      config: {frequency: 720},
+      environment: 'staging',
+      triggers: {
+        id: 'when',
+        logicType: 'any-short',
+        conditions: [
+          {id: 'cond-1', type: 'first_seen_event', comparison: true},
+          {id: 'cond-2', type: 'reappeared_event', comparison: true},
+        ],
+      },
+      actionFilters: [
+        {
+          id: 'filter-1',
+          logicType: 'any-short',
+          conditions: [],
+          actions: [
+            {id: 'action-1', type: 'slack', config: {}, data: {}, status: 'active'},
+          ],
+        },
+      ],
+    });
+    const mockUpdateAutomation = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
+      method: 'PUT',
+      body: updated,
+    });
+
+    const {router} = render(<AutomationEdit />, {
+      organization,
+    });
+
+    // Wait for the component to fully load
+    expect(await screen.findByRole('button', {name: 'Save'})).toBeInTheDocument();
+
+    // Submit the form
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    // Wait for the update to complete
+    await waitFor(() => {
+      expect(mockUpdateAutomation).toHaveBeenCalled();
+    });
+
+    // Verify analytics was called with correct event and payload structure
+    await waitFor(() => {
+      expect(trackAnalytics).toHaveBeenCalledWith('automation.updated', {
+        organization,
+        frequency_minutes: expect.any(Number),
+        environment: expect.anything(),
+        detectors_count: expect.any(Number),
+        trigger_conditions_count: expect.any(Number),
+        actions_count: expect.any(Number),
+      });
+    });
+
+    // Verify navigation occurred
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/monitors/alerts/${automation.id}/`
+      )
+    );
   });
 });
