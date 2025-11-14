@@ -16,7 +16,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry.objectstore import Client as ObjectstoreClient
-from sentry.objectstore import get_attachments_client
+from sentry.objectstore import get_attachments_session
 from sentry.options.rollout import in_random_rollout
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.imports import import_string
@@ -86,7 +86,7 @@ def delete_cached_and_ratelimited_attachments(
         # deletes from objectstore if no long-term storage is desired
         if attachment.rate_limited and attachment.stored_id:
             if client is None:
-                client = get_attachments_client().for_project(project.organization_id, project.id)
+                client = get_attachments_session(project.organization_id, project.id)
             client.delete(attachment.stored_id)
 
         # unconditionally deletes any payloads from the attachment cache

@@ -26,7 +26,7 @@ from sentry.lang.native.sources import (
 from sentry.lang.native.utils import Backoff
 from sentry.models.project import Project
 from sentry.net.http import Session
-from sentry.objectstore import get_attachments_client
+from sentry.objectstore import get_attachments_session
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 
@@ -180,15 +180,11 @@ class Symbolicator:
             "objectstore.force-stored-symbolication"
         )
         if force_stored_attachment:
-            client = get_attachments_client().for_project(
-                self.project.organization_id, self.project.id
-            )
+            client = get_attachments_session(self.project.organization_id, self.project.id)
             minidump.stored_id = client.put(minidump.data)
 
         if minidump.stored_id:
-            client = get_attachments_client().for_project(
-                self.project.organization_id, self.project.id
-            )
+            client = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = client.object_url(minidump.stored_id)
             json: dict[str, Any] = {
                 "platform": platform,
@@ -229,15 +225,11 @@ class Symbolicator:
             "objectstore.force-stored-symbolication"
         )
         if force_stored_attachment:
-            client = get_attachments_client().for_project(
-                self.project.organization_id, self.project.id
-            )
+            client = get_attachments_session(self.project.organization_id, self.project.id)
             report.stored_id = client.put(report.data)
 
         if report.stored_id:
-            client = get_attachments_client().for_project(
-                self.project.organization_id, self.project.id
-            )
+            client = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = client.object_url(report.stored_id)
             json: dict[str, Any] = {
                 "platform": platform,
