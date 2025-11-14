@@ -443,18 +443,6 @@ export default function IntegrationDetailedView() {
             ),
           },
           {
-            name: 'githubOpenPRBot',
-            type: 'boolean',
-            label: t('Enable Comments on Open Pull Requests'),
-            help: t(
-              'Allow Sentry to comment on open pull requests to show recent error issues for the code being changed.'
-            ),
-            disabled: !hasIntegration,
-            disabledReason: t(
-              'You must have a GitHub integration to enable this feature.'
-            ),
-          },
-          {
             name: 'githubNudgeInvite',
             type: 'boolean',
             label: t('Enable Missing Member Detection'),
@@ -472,7 +460,6 @@ export default function IntegrationDetailedView() {
 
     const initialData = {
       githubPRBot: organization.githubPRBot,
-      githubOpenPRBot: organization.githubOpenPRBot,
       githubNudgeInvite: organization.githubNudgeInvite,
     };
 

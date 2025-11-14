@@ -200,10 +200,6 @@ describe('IntegrationDetailedView', () => {
     expect(
       screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
     ).toBeDisabled();
-
-    expect(
-      screen.getByRole('checkbox', {name: /Enable Comments on Open Pull Requests/})
-    ).toBeDisabled();
   });
 
   it('can enable github features', async () => {
@@ -229,19 +225,6 @@ describe('IntegrationDetailedView', () => {
         ENDPOINT,
         expect.objectContaining({
           data: {githubPRBot: true},
-        })
-      );
-    });
-
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: /Enable Comments on Open Pull Requests/})
-    );
-
-    await waitFor(() => {
-      expect(mock).toHaveBeenCalledWith(
-        ENDPOINT,
-        expect.objectContaining({
-          data: {githubOpenPRBot: true},
         })
       );
     });
