@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 import logging
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar, TypedDict
 
 from django.db import models
 from django.db.models import Q
@@ -28,6 +28,11 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+class ActionSnapshot(TypedDict):
+    id: int
+    type: Action.Type
 
 
 class ActionManager(BaseManager["Action"]):
@@ -112,10 +117,10 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             ),
         ]
 
-    def get_snapshot(self) -> dict[str, Any]:
+    def get_snapshot(self) -> ActionSnapshot:
         return {
             "id": self.id,
-            "type": self.type,
+            "type": Action.Type(self.type),
         }
 
     def get_handler(self) -> builtins.type[ActionHandler]:
