@@ -372,7 +372,7 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
         if (data.launched_count > 0) {
           const successRepoText =
             data.launched_count === 1
-              ? t('%s launched for repository', params.agentName)
+              ? t('%s launched for 1 repository', params.agentName)
               : t(
                   '%s launched for %s repositories',
                   params.agentName,
