@@ -99,8 +99,15 @@ def build_shim_event_data(
     # topological sorting on the span tree.
     for span in spans:
         event_span = cast(dict[str, Any], deepcopy(span))
-        event_span["start_timestamp"] = span["start_timestamp"]
         event_span["timestamp"] = span["end_timestamp"]
+        event_span["data"] = {
+            key: value
+            for (key, attribute) in (span.get("attributes") or {}).items()
+            if (value := (attribute or {}).get("value")) is not None
+        }
+        if description := attribute_value(span, "sentry.description"):
+            event_span["description"] = description
+
         event["spans"].append(event_span)
 
     return event
