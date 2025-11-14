@@ -1582,7 +1582,7 @@ class RpcGetReplaySummaryLogsTestCase(
             project_id=self.project.id,
         )
 
-        self.store_replay(dt=replay_start, segment_id=0, trace_ids=[trace_id])
+        self.store_replay(dt=replay_start, segment_id=0, error_ids=[early_error_id, late_error_id])
 
         data = [
             {
