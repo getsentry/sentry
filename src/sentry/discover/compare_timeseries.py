@@ -22,7 +22,7 @@ from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
-from sentry.seer.anomaly_detection.utils import get_dataset_from_label_and_event_types
+from sentry.seer.anomaly_detection.utils import get_dataset_name_from_label_and_event_types
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.metrics import parse_mri_field
@@ -150,7 +150,7 @@ def make_snql_request(
     assert snuba_params.start is not None
     assert snuba_params.end is not None
 
-    api_call_dataset = get_dataset_from_label_and_event_types(dataset)
+    api_call_dataset = get_dataset_name_from_label_and_event_types(dataset)
 
     api_call = format_api_call(
         organization.slug,
