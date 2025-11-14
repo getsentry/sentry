@@ -45,7 +45,12 @@ export const mcp: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: t('Configure Sentry for MCP low-level monitoring:'),
+          text: tct(
+            'Add the [code:MCPIntegration] to your [code:sentry_sdk.init] call:',
+            {
+              code: <code />,
+            }
+          ),
         },
         {
           type: 'code',
