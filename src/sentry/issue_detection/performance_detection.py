@@ -25,6 +25,7 @@ from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models.data_condition import Condition
 
 from .base import DetectorType, PerformanceDetector
 from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
@@ -141,10 +142,23 @@ def detect_performance_problems(
 
 
 # Mapping of GroupType slugs to their corresponding settings keys in get_merged_settings
+# Each config field can optionally specify:
+# - settings_key: The legacy project options key used in get_merged_settings (used for mappings).
+#                 this can be removed once we've migrated all detectors to the Detector model.
+# - is_detector_data_condition: If True, this config value should be synced to a DataCondition
+# - condition_type: The Condition enum value to use (e.g., Condition.GREATER_OR_EQUAL)
+# - condition_comparison_field: Optional field name/path for the comparison (for complex conditions)
 DETECTOR_TYPE_TO_SETTINGS_KEYS = {
     "performance_slow_db_query": {
-        "duration_threshold": "slow_db_query_duration_threshold",
-        "detection_enabled": "slow_db_queries_detection_enabled",
+        "duration_threshold": {
+            "settings_key": "slow_db_query_duration_threshold",
+            "is_detector_data_condition": True,
+            "condition_type": Condition.GREATER_OR_EQUAL,  # Use enum for GREATER_OR_EQUAL
+        },
+        "detection_enabled": {
+            "settings_key": "slow_db_queries_detection_enabled",
+            "is_detector_data_condition": False,
+        },
     },
     # Add more detector types here as they get migrated
 }
@@ -175,15 +189,107 @@ def _get_detector_based_settings(project_id: int) -> dict[str, Any]:
         config = detector.config or {}
 
         # Map detector config fields to settings keys
-        if "duration_threshold" in mapping:
-            duration_key = mapping["duration_threshold"]
-            settings[duration_key] = config.get("duration_threshold", 1000)
-
-        if "detection_enabled" in mapping:
-            enabled_key = mapping["detection_enabled"]
-            settings[enabled_key] = detector.enabled
+        # Handle both old format (string) and new format (dict)
+        for config_key, config_mapping in mapping.items():
+            settings_key = config_mapping.get("settings_key")
+            if settings_key:
+                if config_key == "detection_enabled":
+                    settings[settings_key] = detector.enabled
+                else:
+                    settings[settings_key] = config.get(config_key)
 
     return settings
+
+
+def _sync_detector_config_to_data_conditions(detector: Detector) -> None:
+    """
+    Sync detector config values to data conditions based on DETECTOR_TYPE_TO_SETTINGS_KEYS configuration.
+    Creates or updates data conditions for config fields marked with is_detector_data_condition=True.
+    """
+    from sentry.workflow_engine.models import DataCondition, DataConditionGroup
+    from sentry.workflow_engine.models.data_condition import Condition
+
+    mapping = DETECTOR_TYPE_TO_SETTINGS_KEYS.get(detector.type)
+    if not mapping:
+        return
+
+    # Ensure detector has a condition group
+    if not detector.workflow_condition_group:
+        condition_group = DataConditionGroup.objects.create(
+            logic_type=DataConditionGroup.Type.ANY,
+            organization_id=detector.project.organization_id,
+        )
+        detector.workflow_condition_group = condition_group
+        detector.save(update_fields=["workflow_condition_group"])
+    else:
+        condition_group = detector.workflow_condition_group
+
+    config = detector.config or {}
+
+    # Process each config field
+    for config_key, config_mapping in mapping.items():
+        if not isinstance(config_mapping, dict):
+            continue
+
+        if not config_mapping.get("is_detector_data_condition"):
+            continue
+
+        condition_type_value = config_mapping.get("condition_type")
+        if not condition_type_value:
+            continue
+
+        # Handle both enum and string values
+        if isinstance(condition_type_value, Condition):
+            condition_type = condition_type_value
+        else:
+            try:
+                condition_type = Condition(condition_type_value)
+            except ValueError:
+                logging.warning(
+                    "Invalid condition type for detector",
+                    extra={
+                        "condition_type": condition_type_value,
+                        "detector_id": detector.id,
+                        "config_key": config_key,
+                    },
+                )
+                continue
+
+        config_value = config.get(config_key)
+        if config_value is None:
+            # Remove condition if config value is None
+            DataCondition.objects.filter(
+                condition_group=condition_group,
+                type=condition_type,
+                comparison__has_key=config_key,
+            ).delete()
+            continue
+
+        # Find or create the condition
+        # Use comparison field to store metadata about which config key this condition represents
+        comparison_value = {config_key: config_value}
+        condition_result = True  # Condition passes when threshold is met
+
+        # Look for existing condition with this config key
+        existing_condition = DataCondition.objects.filter(
+            condition_group=condition_group,
+            type=condition_type,
+            comparison__has_key=config_key,
+        ).first()
+
+        if existing_condition:
+            # Update existing condition
+            existing_condition.comparison = comparison_value
+            existing_condition.condition_result = condition_result
+            existing_condition.save(update_fields=["comparison", "condition_result"])
+        else:
+            # Create new condition
+            DataCondition.objects.create(
+                condition_group=condition_group,
+                type=condition_type,
+                comparison=comparison_value,
+                condition_result=condition_result,
+            )
 
 
 # Merges system defaults, with default project settings and saved project settings.

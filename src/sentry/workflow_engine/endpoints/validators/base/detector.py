@@ -135,9 +135,14 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
 
             # Handle config field update
             if "config" in validated_data:
+                from sentry.issue_detection.performance_detection import (
+                    _sync_detector_config_to_data_conditions,
+                )
+
                 instance.config = validated_data.get("config", instance.config)
                 try:
                     enforce_config_schema(instance)
+                    _sync_detector_config_to_data_conditions(instance)
                 except JSONSchemaValidationError as error:
                     raise serializers.ValidationError({"config": [str(error)]})
 
@@ -224,6 +229,13 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 raise serializers.ValidationError({"config": [str(error)]})
 
             detector.save()
+
+            # Sync config values to data conditions for detectors that support it
+            from sentry.issue_detection.performance_detection import (
+                _sync_detector_config_to_data_conditions,
+            )
+
+            _sync_detector_config_to_data_conditions(detector)
 
             if "data_sources" in validated_data:
                 for validated_data_source in validated_data["data_sources"]:

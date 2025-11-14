@@ -137,8 +137,10 @@ def _get_settings_key_to_detector_config() -> dict[str, tuple[str, str]]:
     """
     reverse_mapping = {}
     for detector_type_slug, field_mapping in DETECTOR_TYPE_TO_SETTINGS_KEYS.items():
-        for config_field, settings_key in field_mapping.items():
-            reverse_mapping[settings_key] = (detector_type_slug, config_field)
+        for config_field, config_mapping in field_mapping.items():
+            settings_key = config_mapping.get("settings_key")
+            if settings_key:
+                reverse_mapping[settings_key] = (detector_type_slug, config_field)
     return reverse_mapping
 
 
@@ -146,9 +148,12 @@ def _update_detector_settings(project_id: int, data: dict) -> None:
     """
     Update Detector model settings for performance detectors that have been migrated
     to the Detector framework. Uses dynamically generated mapping to update any
-    migrated detector type.
+    migrated detector type. Also syncs config values to data conditions.
     """
     try:
+        from sentry.issue_detection.performance_detection import (
+            _sync_detector_config_to_data_conditions,
+        )
         from sentry.workflow_engine.models import Detector
 
         settings_key_to_detector_config = _get_settings_key_to_detector_config()
@@ -194,6 +199,8 @@ def _update_detector_settings(project_id: int, data: dict) -> None:
 
             if update_fields:
                 detector.save(update_fields=update_fields)
+                # Sync config values to data conditions
+                _sync_detector_config_to_data_conditions(detector)
 
     except Exception:
         # If Detector model doesn't exist yet, settings will only be in project options
