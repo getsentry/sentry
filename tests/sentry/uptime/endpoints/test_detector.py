@@ -81,10 +81,15 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
     def test_update_non_superuser_cannot_change_mode_via_endpoint(self) -> None:
         """Integration test: non-superuser cannot change mode via API endpoint."""
         # Create a detector with MANUAL mode specifically for this test
+        manual_uptime_subscription = self.create_uptime_subscription(
+            url="https://manual-test-site.com",
+            interval_seconds=UptimeSubscription.IntervalSeconds.ONE_MINUTE,
+            timeout_ms=30000,
+        )
         manual_detector = self.create_uptime_detector(
             project=self.project,
             env=self.environment,
-            uptime_subscription=self.uptime_subscription,
+            uptime_subscription=manual_uptime_subscription,
             name="Manual Test Detector",
             mode=UptimeMonitorMode.MANUAL,
         )
@@ -160,10 +165,15 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
     def test_update_auto_detected_switches_to_manual(self) -> None:
         """Test that when a user modifies an AUTO_DETECTED detector, it automatically switches to MANUAL mode."""
         # Create an AUTO_DETECTED detector
+        auto_uptime_subscription = self.create_uptime_subscription(
+            url="https://auto-detected-site.com",
+            interval_seconds=UptimeSubscription.IntervalSeconds.ONE_MINUTE,
+            timeout_ms=30000,
+        )
         auto_detector = self.create_uptime_detector(
             project=self.project,
             env=self.environment,
-            uptime_subscription=self.uptime_subscription,
+            uptime_subscription=auto_uptime_subscription,
             name="Auto Detected Monitor",
             mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         )

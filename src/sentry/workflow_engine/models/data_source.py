@@ -50,8 +50,10 @@ class DataSource(DefaultFieldsModel):
 
     class Meta:
         indexes = [
-            models.Index(fields=("type", "source_id")),
             models.Index(fields=("organization", "type", "source_id")),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=["type", "source_id"], name="unique_type_source_id"),
         ]
 
     @property
