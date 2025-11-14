@@ -485,6 +485,33 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["id"] == replay2_id
             assert response_data["data"][1]["id"] == replay1_id
 
+    def test_get_replays_duration_sorted_tiebreaker(self) -> None:
+        """Test that replays with identical durations have deterministic order when ordering by started_at."""
+        project = self.create_project(teams=[self.team])
+        replay_ids = [uuid.uuid4().hex for _ in range(5)]
+        base_timestamp = datetime.datetime.now(datetime.UTC) - datetime.timedelta(minutes=5)
+
+        for replay_id in replay_ids:
+            self.store_replays(mock_replay(base_timestamp, project.id, replay_id, segment_id=0))
+
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                project=project.id,
+                sort="started_at",
+            )
+            asc_order = [r["id"] for r in response.data["data"]]
+
+            response = self.get_success_response(
+                self.organization.slug,
+                project=project.id,
+                sort="-started_at",
+            )
+            desc_order = [r["id"] for r in response.data["data"]]
+
+            assert desc_order == list(reversed(asc_order))
+            assert set(asc_order) == {rid.replace("-", "") for rid in replay_ids}
+
     def test_get_replays_pagination(self) -> None:
         """Test replays can be paginated."""
         project = self.create_project(teams=[self.team])
@@ -2442,38 +2469,3 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                         response.json()["detail"]["message"]
                         == "Viewed by search has been disabled for your project due to a data irregularity."
                     )
-
-    def test_get_replays_sort_with_duplicate_timestamps(self) -> None:
-        """Test that replays with identical timestamps have deterministic order when ordering by started_at."""
-        project = self.create_project(teams=[self.team])
-
-        base_timestamp = datetime.datetime.now(datetime.UTC) - datetime.timedelta(minutes=5)
-
-        replay_ids = [
-            "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
-            "f9e8d7c6-b5a4-4938-8271-6a5b4c3d2e1f",
-            "12345678-90ab-4cde-8f12-345678901234",
-            "deadbeef-cafe-4bab-8e00-decafbad0000",
-            "87654321-0fed-4cba-8987-654321fedcba",
-        ]
-
-        for replay_id in replay_ids:
-            self.store_replays(mock_replay(base_timestamp, project.id, replay_id, segment_id=0))
-
-        with self.feature(self.features):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=project.id,
-                sort="started_at",
-            )
-            asc_order = [r["id"] for r in response.data["data"]]
-
-            response = self.get_success_response(
-                self.organization.slug,
-                project=project.id,
-                sort="-started_at",
-            )
-            desc_order = [r["id"] for r in response.data["data"]]
-
-            assert desc_order == list(reversed(asc_order))
-            assert set(asc_order) == {rid.replace("-", "") for rid in replay_ids}
