@@ -294,6 +294,13 @@ class PreprodArtifact(DefaultFieldsModel):
     def is_ios(self) -> bool:
         return self.artifact_type == self.ArtifactType.XCARCHIVE
 
+    def get_platform_label(self) -> str | None:
+        if self.is_android():
+            return "Android"
+        elif self.is_ios():
+            return "iOS"
+        return None
+
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifact"

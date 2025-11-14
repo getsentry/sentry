@@ -30,6 +30,7 @@ COMMIT_SHA = "db2b4ae626b458b4be651019f1a7c112406c003e"
 # Build configurations - set to None to disable a build
 BUILD_1 = {
     "app_id": "com.emerge.hackernews.android",
+    "artifact_type": PreprodArtifact.ArtifactType.AAB,
     "app_name": "HackerNews",
     "platform": "Android",
     "build_version": "1.0.3",
@@ -42,8 +43,10 @@ BUILD_1 = {
     "error_message": None,  # Only used if state is "failed"
 }
 
+# Set to None to disable BUILD_2 for single-build testing:
 BUILD_2 = {
     "app_id": "com.emerge.hackernews.ios",
+    "artifact_type": PreprodArtifact.ArtifactType.XCARCHIVE,
     "app_name": "HackerNews",
     "platform": "iOS",
     "build_version": "1.0.3",
@@ -55,9 +58,6 @@ BUILD_2 = {
     "create_multiple_metrics": True,  # Create watch/dynamic feature metrics in addition to main
     "error_message": None,  # Only used if state is "failed"
 }
-
-# Set to None to disable BUILD_2 for single-build testing:
-# BUILD_2 = None
 
 # Available states:
 # - "uploading": Artifact is still uploading (no metrics)
@@ -476,6 +476,7 @@ def main() -> None:
             # Create artifact data
             artifact_data = {
                 "project": project,
+                "artifact_type": build_config["artifact_type"],
                 "app_id": build_config["app_id"],
                 "app_name": build_config["app_name"],
                 "commit_comparison": commit_comparison,
