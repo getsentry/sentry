@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import snakeCase from 'lodash/snakeCase';
 
 import {Text} from 'sentry/components/core/text';
 import RangeField from 'sentry/components/forms/fields/rangeField';
@@ -61,6 +60,10 @@ function useDetectorTypeSchema(detectorType: DetectorType) {
   return {schema, isLoading};
 }
 
+function snakeToCamelCase(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
 function JsonSchemaFormField({
   fieldName,
   property,
@@ -70,7 +73,9 @@ function JsonSchemaFormField({
   isRequired: boolean;
   property: JsonSchemaProperty;
 }) {
-  const fieldKey = `config.${fieldName}`;
+  // Backend returns config in camelCase, so use camelCase for form field keys
+  const camelFieldName = snakeToCamelCase(fieldName);
+  const fieldKey = `config.${camelFieldName}`;
   const label = fieldName
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -193,17 +198,19 @@ export function NewJsonSchemaDetectorForm({
   const {schema} = useDetectorTypeSchema(detectorType);
 
   // Build default initial form data from schema defaults
-  const defaultConfig = useMemo(() => {
+  // Flatten config keys to match form field names (e.g., config.durationThreshold)
+  const defaultFormData = useMemo(() => {
     if (!schema?.properties) {
       return {};
     }
-    const config: Record<string, any> = {};
+    const formData: Record<string, any> = {};
     Object.entries(schema.properties).forEach(([key, prop]) => {
       if (prop.default !== undefined) {
-        config[key] = prop.default;
+        const camelKey = snakeToCamelCase(key);
+        formData[`config.${camelKey}`] = prop.default;
       }
     });
-    return config;
+    return formData;
   }, [schema]);
 
   const defaultInitialFormData = initialFormData || {
@@ -211,7 +218,7 @@ export function NewJsonSchemaDetectorForm({
     owner: null,
     description: '',
     enabled: true,
-    config: defaultConfig,
+    ...defaultFormData,
   };
 
   return (
@@ -232,26 +239,29 @@ function jsonSchemaDetectorFormDataToEndpointPayload(
   detectorType: DetectorType,
   schema: JsonSchema | null
 ) {
-  // Convert form data to endpoint payload
+  // Form data has flattened config keys (e.g., config.durationThreshold)
+  // Reconstruct nested config object for backend
   const config: Record<string, any> = {};
 
-  if (formData.config) {
-    Object.entries(formData.config).forEach(([key, value]) => {
-      // Check if this field should be an array according to the schema
-      const snakeKey = snakeCase(key);
+  // Extract all config.* keys from form data
+  Object.entries(formData).forEach(([key, value]) => {
+    if (key.startsWith('config.')) {
+      const configKey = key.replace('config.', '');
+      // Find the schema property by converting camelCase back to snake_case for lookup
+      const snakeKey = configKey.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
       const propertySchema = schema?.properties?.[snakeKey];
 
       if (propertySchema?.type === 'array' && typeof value === 'string') {
         // Convert comma-separated string to array
-        config[snakeKey] = value
+        config[configKey] = value
           .split(',')
           .map((s: string) => s.trim())
           .filter(Boolean);
       } else {
-        config[snakeKey] = value;
+        config[configKey] = value;
       }
-    });
-  }
+    }
+  });
 
   return {
     name: formData.name,
@@ -267,21 +277,10 @@ function jsonSchemaDetectorFormDataToEndpointPayload(
 }
 
 function jsonSchemaSavedDetectorToFormData(detector: any) {
-  // Convert saved detector to form data
-  // For array fields, convert to comma-separated strings
-  const config: Record<string, any> = {};
-
-  if (detector.config) {
-    Object.entries(detector.config).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        config[key] = value.join(', ');
-      } else {
-        config[key] = value;
-      }
-    });
-  }
-
-  return {
+  // Use backend data directly - it's already in camelCase
+  // Flatten config into form field keys (e.g., config.durationThreshold)
+  // For array fields, convert to comma-separated strings for form display
+  const formData: Record<string, any> = {
     name: detector.name,
     type: detector.type,
     owner: detector.owner,
@@ -289,8 +288,20 @@ function jsonSchemaSavedDetectorToFormData(detector: any) {
     enabled: detector.enabled,
     projectId: detector.projectId,
     workflowIds: detector.workflowIds || [],
-    config,
   };
+
+  if (detector.config) {
+    Object.entries(detector.config).forEach(([key, value]) => {
+      const fieldKey = `config.${key}`;
+      if (Array.isArray(value)) {
+        formData[fieldKey] = value.join(', ');
+      } else {
+        formData[fieldKey] = value;
+      }
+    });
+  }
+
+  return formData;
 }
 
 const FormStack = styled('div')`

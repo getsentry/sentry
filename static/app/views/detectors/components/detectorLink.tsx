@@ -198,6 +198,7 @@ function Details({detector}: {detector: Detector}) {
       return <CronDetectorDetails detector={detector} />;
     case 'error':
     case 'issue_stream':
+    case 'performance_slow_db_query':
       return null;
     default:
       unreachable(detectorType);

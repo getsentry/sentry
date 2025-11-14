@@ -7,6 +7,7 @@ import {unreachable} from 'sentry/utils/unreachable';
 import {CronDetectorDetails} from 'sentry/views/detectors/components/details/cron';
 import {ErrorDetectorDetails} from 'sentry/views/detectors/components/details/error';
 import {FallbackDetectorDetails} from 'sentry/views/detectors/components/details/fallback';
+import {JsonSchemaDetectorDetails} from 'sentry/views/detectors/components/details/json';
 import {MetricDetectorDetails} from 'sentry/views/detectors/components/details/metric';
 import {UptimeDetectorDetails} from 'sentry/views/detectors/components/details/uptime';
 
@@ -46,6 +47,12 @@ export function DetectorDetailsContent({detector, project}: DetectorDetailsConte
             {t('Issue stream monitors do not support detail views.')}
           </Alert>
         </Alert.Container>
+      );
+    case 'performance_slow_db_query':
+      return (
+        <PageFiltersContainer>
+          <JsonSchemaDetectorDetails detector={detector} project={project} />
+        </PageFiltersContainer>
       );
     default:
       unreachable(detectorType);

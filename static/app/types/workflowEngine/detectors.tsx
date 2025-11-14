@@ -160,7 +160,7 @@ export interface PerformanceSlowDBQueryConfig {
   durationThreshold: number;
 }
 
-export interface PerformanceSlowDBQueryDetector extends BaseDetector {
+export interface JsonSchemaDetector extends BaseDetector {
   readonly alertRuleId: number | null;
   readonly config: PerformanceSlowDBQueryConfig;
   readonly dataSources: never[];
@@ -177,7 +177,7 @@ export type Detector =
   | UptimeDetector
   | CronDetector
   | ErrorDetector
-  | PerformanceSlowDBQueryDetector
+  | JsonSchemaDetector
   | IssueStreamDetector;
 
 interface UpdateConditionGroupPayload {

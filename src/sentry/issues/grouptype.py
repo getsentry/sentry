@@ -331,7 +331,7 @@ class PerformanceSlowDBQueryGroupType(GroupType):
         validator=_get_performance_detector_validator,
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "Configuration for detecting slow database queries",
+            "description": "Detects slow database queries exceeding duration threshold",
             "type": "object",
             "properties": {
                 "duration_threshold": {
