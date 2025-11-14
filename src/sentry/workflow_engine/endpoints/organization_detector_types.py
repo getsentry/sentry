@@ -29,7 +29,7 @@ class OrganizationDetectorTypeIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
         ],
         responses={
-            201: inline_sentry_response_serializer("ListDetectorTypes", list[str]),
+            200: inline_sentry_response_serializer("DetectorTypesResponse", dict[str, dict]),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -38,12 +38,12 @@ class OrganizationDetectorTypeIndexEndpoint(OrganizationEndpoint):
     )
     def get(self, request, organization):
         """
-        Returns a list of detector types for a given org
+        Returns a dictionary mapping detector type slugs to their config schemas
         """
         detector_types = {
             gt.slug: gt.detector_settings.config_schema
             for gt in grouptype.registry.get_visible(organization)
-            if gt.detector_settings is not None and gt.detector_settings is not None
+            if gt.detector_settings is not None and gt.detector_settings.config_schema
         }
 
         return Response(

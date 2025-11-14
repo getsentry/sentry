@@ -9,7 +9,7 @@ from sentry.workflow_engine.models import DataConditionGroup, Detector
 
 
 class DetectorIntegrationTest(TestCase):
-    def test_slow_db_query_detector_settings_from_model(self):
+    def test_slow_db_query_detector_settings_from_model(self) -> None:
         """Test that slow DB query settings are fetched from Detector model when it exists."""
         project = self.create_project()
 
@@ -39,7 +39,7 @@ class DetectorIntegrationTest(TestCase):
         assert settings["slow_db_query_duration_threshold"] == 2500
         assert settings["slow_db_queries_detection_enabled"] is False
 
-    def test_slow_db_query_detector_fallback_to_project_options(self):
+    def test_slow_db_query_detector_fallback_to_project_options(self) -> None:
         """Test that settings fall back to project options when Detector doesn't exist."""
         project = self.create_project()
 
@@ -50,7 +50,7 @@ class DetectorIntegrationTest(TestCase):
         assert "slow_db_query_duration_threshold" in settings
         assert "slow_db_queries_detection_enabled" in settings
 
-    def test_slow_db_query_detector_update_via_api(self):
+    def test_slow_db_query_detector_update_via_api(self) -> None:
         """Test that updating settings via API updates the Detector model."""
         from sentry.issues.endpoints.project_performance_issue_settings import (
             _update_detector_settings,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from enum import IntEnum, StrEnum
 from logging import Logger
@@ -270,5 +271,7 @@ class SnubaQueryDataSourceType(TypedDict):
 @dataclass(frozen=True)
 class DetectorSettings:
     handler: type[DetectorHandler] | None = None
-    validator: type[BaseDetectorTypeValidator] | None = None
+    validator: (
+        type[BaseDetectorTypeValidator] | Callable[[], type[BaseDetectorTypeValidator]] | None
+    ) = None
     config_schema: dict[str, Any] = field(default_factory=dict)

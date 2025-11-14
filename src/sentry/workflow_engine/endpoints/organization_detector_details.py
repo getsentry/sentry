@@ -50,7 +50,11 @@ def get_detector_validator(
 
     # Resolve validator if it's a callable factory function
     validator_class = group_type.detector_settings.validator
-    if callable(validator_class) and not isinstance(validator_class, type):
+    if (
+        validator_class is not None
+        and callable(validator_class)
+        and not isinstance(validator_class, type)
+    ):
         # If it's a factory function, call it to get the validator class
         validator_class = validator_class()
 
@@ -130,7 +134,12 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         request=PolymorphicProxySerializer(
             "GenericDetectorSerializer",
             serializers=[
-                gt.detector_settings.validator
+                (
+                    gt.detector_settings.validator()
+                    if callable(gt.detector_settings.validator)
+                    and not isinstance(gt.detector_settings.validator, type)
+                    else gt.detector_settings.validator
+                )
                 for gt in grouptype.registry.all()
                 if gt.detector_settings and gt.detector_settings.validator
             ],

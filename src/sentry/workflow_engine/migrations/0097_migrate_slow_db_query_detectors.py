@@ -145,7 +145,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("workflow_engine", "0095_unique_detectorgroup_group"),
+        ("workflow_engine", "0096_delete_non_single_written_fire_history"),
     ]
 
     operations = [

@@ -87,7 +87,10 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             description = "Metric alert"
             category = GroupCategory.METRIC_ALERT.value
             category_v2 = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
+            detector_settings = DetectorSettings(
+                handler=MockDetectorHandler,
+                config_schema={"type": "object", "properties": {}},
+            )
             released = True
 
         @dataclass(frozen=True)
@@ -97,7 +100,10 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             description = "Crons"
             category = GroupCategory.CRON.value
             category_v2 = GroupCategory.OUTAGE.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
+            detector_settings = DetectorSettings(
+                handler=MockDetectorHandler,
+                config_schema={"type": "object", "properties": {}},
+            )
             released = True
 
         @dataclass(frozen=True)
@@ -107,7 +113,10 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             description = "Uptime"
             category = GroupCategory.UPTIME.value
             category_v2 = GroupCategory.OUTAGE.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
+            detector_settings = DetectorSettings(
+                handler=MockDetectorHandler,
+                config_schema={"type": "object", "properties": {}},
+            )
             released = True
 
         # Should not be included in the response
@@ -118,6 +127,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             description = "Performance"
             category = GroupCategory.PERFORMANCE.value
             category_v2 = GroupCategory.DB_QUERY.value
+            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
     def tearDown(self) -> None:
@@ -126,8 +136,12 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, status_code=200)
-        assert response.data == [
+        # Response should be a dictionary mapping detector type slugs to their config schemas
+        assert isinstance(response.data, dict)
+        assert set(response.data.keys()) == {
             MetricIssue.slug,
             MonitorIncidentType.slug,
             UptimeDomainCheckFailure.slug,
-        ]
+        }
+        # PerformanceSlowDBQueryGroupType should not be included because it doesn't have config_schema
+        assert PerformanceSlowDBQueryGroupType.slug not in response.data
