@@ -19,9 +19,9 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
   const isDisabled = isSelfHosted || !isUSOrg || !hasFeatureFlag;
   const disabledReason = isSelfHosted
     ? t('This feature is not available for self-hosted instances')
-    : hasFeatureFlag
-      ? t('This feature is only available in the US region')
-      : t('This feature is not available');
+    : isUSOrg
+      ? null
+      : t('This feature is only available in the US region');
 
   return {
     name: 'enablePrReviewTestGeneration',
@@ -33,7 +33,7 @@ export const makePreventAiField = (organization: Organization): FieldObject => {
           type="beta"
           {...(isDisabled ? {tooltipProps: {position: 'top'}} : {})}
         />
-        {isDisabled && (
+        {isDisabled && disabledReason && (
           <Tooltip title={disabledReason} position="top">
             <Tag
               role="status"

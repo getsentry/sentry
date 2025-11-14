@@ -426,12 +426,8 @@ describe('OrganizationSettingsForm', () => {
       expect(preventAiField).toBeInTheDocument();
       expect(preventAiField).toBeDisabled();
 
-      const disabledTag = screen.getByTestId('prevent-ai-disabled-tag');
-      expect(disabledTag).toBeInTheDocument();
-      await userEvent.hover(disabledTag);
-      expect(
-        await screen.findByText('This feature is not available')
-      ).toBeInTheDocument();
+      // No disabled tag shown when feature flag is off
+      expect(screen.queryByTestId('prevent-ai-disabled-tag')).not.toBeInTheDocument();
     });
 
     it('is disabled when non US region', async () => {
