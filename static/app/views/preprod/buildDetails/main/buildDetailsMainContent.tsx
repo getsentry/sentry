@@ -318,8 +318,6 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     return undefined;
   };
 
-  const alertMessage = getAlertMessage();
-
   // Filter data based on search query and categories
   const filteredRoot = filterTreemapElement(
     appSizeData.treemap.root,
@@ -343,6 +341,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             root={filteredTreemapData.root}
             searchQuery={searchQuery || ''}
             unfilteredRoot={appSizeData.treemap.root}
+            alertMessage={getAlertMessage()}
             onSearchChange={value => setSearchQuery(value || undefined)}
           />
         ) : (
@@ -357,6 +356,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
         root={filteredTreemapData.root}
         searchQuery={searchQuery || ''}
         unfilteredRoot={appSizeData.treemap.root}
+        alertMessage={getAlertMessage()}
         onSearchChange={value => setSearchQuery(value || undefined)}
       />
     ) : (
@@ -366,7 +366,6 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
 
   return (
     <Flex direction="column" gap="sm" minHeight="700px" width="100%">
-      {alertMessage && <Alert type="warning">{alertMessage}</Alert>}
       <Flex gap="lg" wrap="wrap">
         {metricsCards.map(card => (
           <Container
