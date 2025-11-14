@@ -93,19 +93,23 @@ export interface ReplayTableColumn {
   width?: string;
 }
 
-function generateQueryStringObjectWithPlaylist(eventView: EventView) {
-  const {statsPeriod, ...eventViewQuery} = eventView.generateQueryStringObject();
-  let queryStringObject: Query = {...eventViewQuery};
+function generateQueryStringObjectWithPlaylist(eventView: EventView): Query {
+  const {statsPeriod, start, end, ...eventViewQuery} =
+    eventView.generateQueryStringObject();
 
-  if (!eventViewQuery.start && !eventViewQuery.end && typeof statsPeriod === 'string') {
+  if (typeof statsPeriod === 'string') {
     const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(
       statsPeriod,
       undefined,
       true
     );
-    queryStringObject = {...queryStringObject, ...{playlistStart, playlistEnd}};
+    eventViewQuery.playlistStart = playlistStart;
+    eventViewQuery.playlistEnd = playlistEnd;
+  } else if (start && end) {
+    eventViewQuery.playlistStart = start;
+    eventViewQuery.playlistEnd = end;
   }
-  return queryStringObject;
+  return eventViewQuery;
 }
 
 export const ReplayActivityColumn: ReplayTableColumn = {
@@ -554,27 +558,10 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     );
 
     const referrer = getRouteStringFromRoutes(routes);
-
-    const {statsPeriod, start, end, ...eventViewQuery} =
-      eventView.generateQueryStringObject();
-
     const detailsTabQuery: Query = {
       referrer,
-      ...eventViewQuery,
+      ...generateQueryStringObjectWithPlaylist(eventView),
     };
-
-    if (typeof statsPeriod === 'string') {
-      const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(
-        statsPeriod,
-        undefined,
-        true
-      );
-      detailsTabQuery.playlistStart = playlistStart;
-      detailsTabQuery.playlistEnd = playlistEnd;
-    } else if (start && end) {
-      detailsTabQuery.playlistStart = start;
-      detailsTabQuery.playlistEnd = end;
-    }
 
     // Because the sort and cursor field is only generated in EventView conditionally and we
     // want to avoid dirtying the URL with fields, we manually add them to the query here.
