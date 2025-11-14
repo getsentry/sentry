@@ -50,9 +50,10 @@ export const metrics = <
       ],
     },
   ],
-  configure: (params: DocsParams) => [
+  configure: () => [],
+  verify: (params: DocsParams) => [
     {
-      type: StepType.CONFIGURE,
+      type: StepType.VERIFY,
       content: [
         {
           type: 'text',
@@ -71,7 +72,6 @@ Sentry.init({
   dsn: "${params.dsn.public}",
 });
 
-// Emit custom metrics
 Sentry.metrics.count('button_click', 1);
 Sentry.metrics.gauge('page_load_time', 150);
 Sentry.metrics.distribution('response_time', 200);
@@ -89,30 +89,6 @@ Sentry.metrics.distribution('response_time', 200);
               ),
             }
           ),
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      content: [
-        {
-          type: 'text',
-          text: t(
-            'Send a test metric from your app to verify metrics are arriving in Sentry.'
-          ),
-        },
-        {
-          type: 'code',
-          language: 'jsx',
-          code: `import * as Sentry from "${packageName}";
-
-// Emit a test metric
-Sentry.metrics.count('test_counter', 1);
-Sentry.metrics.gauge('test_gauge', 100);
-Sentry.metrics.distribution('test_distribution', 150);
-`,
         },
       ],
     },
