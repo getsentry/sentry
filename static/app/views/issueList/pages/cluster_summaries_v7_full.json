@@ -1,0 +1,2649 @@
+[
+  {
+    "cluster_id": 2,
+    "project_ids": [],
+    "group_ids": [4747145998, 6623701710, 6676253511, 6876025854],
+    "issue_titles": [
+      "ReadTimeoutError: HTTPConnectionPool(host='192.168.208.181', port=8080): Read timed out. (read timeout=5)",
+      "ReadTimeoutError: HTTPConnectionPool(host='192.168.208.181', port=8080): Read timed out."
+    ],
+    "title": "HTTP read timeout streaming files from filestore",
+    "description": "Large file operations (debug files, artifact bundles) are timing out after 5 seconds when streaming data from the filestore service, with no retry mechanism for timeout errors.",
+    "tags": ["Networking", "External System", "HTTP", "Timeout", "Filestore"],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9440837395093721,
+    "cluster_avg_similarity": 0.9611021541981697
+  },
+  {
+    "cluster_id": 8,
+    "project_ids": [],
+    "group_ids": [5456263989, 6783746433, 6889217196],
+    "issue_titles": [
+      "ApiInvalidRequestError",
+      "ApiUnauthorized: {\"message\":\"401 Unauthorized\"}",
+      "IntegrationError: Error Communicating with Azure DevOps (HTTP 400): unknown error"
+    ],
+    "title": "GitLab integration token refresh failing in control silo",
+    "description": "OAuth token refresh attempts are failing with IdentityNotValid errors when the control silo processes integration proxy requests, causing the proxy to return 400 Bad Request responses that appear as unknown errors in the region silo.",
+    "tags": [
+      "External System",
+      "Authentication",
+      "API",
+      "GitLab",
+      "Token Refresh",
+      "Integration Proxy",
+      "IdentityNotValid"
+    ],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9448029406333202,
+    "cluster_avg_similarity": 0.9508321308848643
+  },
+  {
+    "cluster_id": 9,
+    "project_ids": [],
+    "group_ids": [5539974675, 6659813316, 6719756970],
+    "issue_titles": [
+      "SlackApiError: The request to the Slack API failed. (url: https://www.slack.com/api/chat.scheduleMessage)"
+    ],
+    "title": "Slack channel validation fails with channel_not_found",
+    "description": "Sentry's Slack integration fails to validate channel access when creating alert rules, typically because the bot lacks permissions or membership to schedule messages in private channels.",
+    "tags": ["External System", "API", "Authorization", "Slack", "Channel Not Found"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9525795922022235,
+    "cluster_avg_similarity": 0.9653042694723158
+  },
+  {
+    "cluster_id": 10,
+    "project_ids": [],
+    "group_ids": [5589731605, 6962588483],
+    "issue_titles": [
+      "SlackApiError: The request to the Slack API failed. (url: https://www.slack.com/api/conversations.info)",
+      "SlackApiError: The request to the Slack API failed. (url: https://www.slack.com/api/chat.scheduleMessage)"
+    ],
+    "title": "Slack channel validation fails with bare channel names",
+    "description": "The check_for_channel function uses chat.scheduleMessage with bare channel names like 'lady', but Slack API expects channel IDs or prefixed names like '#lady', causing channel_not_found errors that get logged to Sentry despite being handled.",
+    "tags": ["External System", "Input Validation", "API", "Slack", "Channel Not Found"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9692123582679683,
+    "cluster_avg_similarity": 0.9692123582679683
+  },
+  {
+    "cluster_id": 14,
+    "project_ids": [],
+    "group_ids": [6194067510, 6617779764, 6655391595, 6909613563],
+    "issue_titles": [
+      "QueryExecutionError: DB::Exception: Unknown function isHandled: While processing (isHandled() = 1) AND ((finish_ts AS _snuba_finish_ts) >= toDateTime('2025-11-10T15:40:24', 'Universal')) AND (_snuba_finish_ts < toDateTime('2025-11-11T15:41:24', 'Universal')) AND ((project_i...",
+      "QueryExecutionError: DB::Exception: Unknown function isHandled: While processing (isHandled() = 1) AND ((finish_ts AS _snuba_finish_ts) >= toDateTime('2025-11-05T18:34:25', 'Universal')) AND (_snuba_finish_ts < toDateTime('2025-11-06T18:35:25', 'Universal')) AND ((project_i...",
+      "QueryExecutionError: DB::Exception: Unknown function notHandled: While processing (notHandled() = 1) AND ((finish_ts AS _snuba_finish_ts) >= toDateTime('2025-11-04T12:50:46', 'Universal')) AND (_snuba_finish_ts < toDateTime('2025-11-05T12:51:46', 'Universal')) AND ((project...",
+      "QueryExecutionError: DB::Exception: Unknown function notHandled: While processing (notHandled() = 1) AND ((finish_ts AS _snuba_finish_ts) >= toDateTime('2025-11-10T15:40:24', 'Universal')) AND (_snuba_finish_ts < toDateTime('2025-11-11T15:41:24', 'Universal')) AND ((project..."
+    ],
+    "title": "ClickHouse query fails with unknown isHandled function",
+    "description": "Query filters using error.handled field generate isHandled() function calls that are not supported in the transactions dataset, causing ClickHouse execution errors.",
+    "tags": ["Database", "API", "ClickHouse", "Query Execution Error"],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9431625223226935,
+    "cluster_avg_similarity": 0.9535977119971184
+  },
+  {
+    "cluster_id": 16,
+    "project_ids": [],
+    "group_ids": [6291262905, 6304574025, 6929873784],
+    "issue_titles": ["AssertionError"],
+    "title": "MessageRejected race condition during partition rebalance",
+    "description": "Backpressure from MessageRejected exceptions collides with Kafka partition rebalancing, causing paused partition state to be lost and breaking consumer polling assertions.",
+    "tags": ["Messaging", "Concurrency", "Kafka", "MessageRejected", "Race Condition"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9655461070023317,
+    "cluster_avg_similarity": 0.9694875052354704
+  },
+  {
+    "cluster_id": 18,
+    "project_ids": [],
+    "group_ids": [6457005475, 6613139051],
+    "issue_titles": [
+      "UnqualifiedQueryError: Validation failed for entity search_issues: missing required conditions for project_id",
+      "UnqualifiedQueryError: Validation failed for entity events: missing required conditions for project_id"
+    ],
+    "title": "Snuba query missing required project_id conditions",
+    "description": "The infer_project_ids_from_related_models function returns empty results when group lookups fail, causing queries to be sent to Snuba without required project_id conditions.",
+    "tags": ["Database", "Input Validation", "Snuba", "Missing Conditions"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.964419042550915,
+    "cluster_avg_similarity": 0.964419042550915
+  },
+  {
+    "cluster_id": 20,
+    "project_ids": [],
+    "group_ids": [6536481522, 6921207226, 7007152009],
+    "issue_titles": [
+      "KafkaException: KafkaError{code=_DESTROY,val=-197,str=\"Failed to get committed offsets: Local: Broker handle destroyed\"}",
+      "KafkaException: KafkaError{code=_DESTROY,val=-197,str=\"Commit failed: Local: Broker handle destroyed\"}",
+      "RetryException"
+    ],
+    "title": "Kafka commit fails on StreamProcessor shutdown",
+    "description": "Partition revocation crashes during rebalancing, leaving broker handle in destroyed state when attempting to commit offsets during graceful shutdown.",
+    "tags": [
+      "Queueing",
+      "Concurrency",
+      "Apache Kafka",
+      "Broker Handle Destroyed",
+      "Retries Exhausted"
+    ],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9465500589303301,
+    "cluster_avg_similarity": 0.9614040551632081
+  },
+  {
+    "cluster_id": 21,
+    "project_ids": [],
+    "group_ids": [
+      6587578534, 6684310791, 6707919991, 6710958153, 6837752393, 6837754302, 6837759595,
+      6870110084, 6870132866, 6870261730, 6870304852, 6945973028, 6948933763, 7004545656,
+      7015879866
+    ],
+    "issue_titles": [
+      "DecodeError: Error parsing message",
+      "RetryException: Could not successfully execute <function query_trace.<locals>.<lambda> at 0x7d325d324540> within 273.113 seconds (7 attempts.)"
+    ],
+    "title": "Snuba RPC error parsing failures from HTTP timeouts",
+    "description": "RPC calls to Snuba fail when infrastructure returns non-protobuf error responses (like HTML error pages) for HTTP 503/504 timeouts, causing protobuf parsing errors instead of proper timeout handling.",
+    "tags": ["External System", "API", "Snuba", "Timeout", "Serialization"],
+    "cluster_size": 15,
+    "cluster_min_similarity": 0.9212948662455013,
+    "cluster_avg_similarity": 0.957845138220196
+  },
+  {
+    "cluster_id": 22,
+    "project_ids": [],
+    "group_ids": [
+      6591547772, 6712676758, 6712677141, 6715902423, 6729521164, 6741849495, 6775572003,
+      6794932421, 6805021304, 6867007127, 6995214673, 6995215168, 6999513150, 6999514210
+    ],
+    "issue_titles": [
+      "InvalidSearchQuery: Invalid value '['HW-ADMIN-JS-ANX']' for 'issue:' filter",
+      "InvalidSearchQuery: Invalid value '['AWAY-RESORTS-WEBSITE-QJ']' for 'issue:' filter",
+      "SubscriptionError: Invalid value '['NODE-UI-2KF']' for 'issue:' filter",
+      "InvalidSearchQuery: Invalid value '['PD-WEB-DXXD', 'PD-WEB-E407']' for 'issue:' filter",
+      "InvalidSearchQuery: Invalid value '['SAFE365-77']' for 'issue:' filter",
+      "InvalidSearchQuery: Invalid value '['SENTRY-14ZS']' for 'issue:' filter",
+      "InvalidSearchQuery: Invalid value '['ORCA-HZ', 'ORCA-HN', 'ORCA-M6', 'ORCA-2QG', 'ORCA-6N1', 'ORCA-43D', 'ORCA-831']' for 'issue:' filter",
+      "SubscriptionError: Invalid value '['S6GAME-26S']' for 'issue:' filter",
+      "InvalidSearchQuery: Invalid value '['CHRONICLER-10J']' for 'issue:' filter"
+    ],
+    "title": "Alert subscription fails on invalid group reference",
+    "description": "Query subscription processing fails when alert rules contain issue filters referencing groups that no longer exist in the database, causing comparison queries to throw InvalidSearchQuery exceptions.",
+    "tags": [
+      "Database",
+      "Data Integrity",
+      "Query Subscription",
+      "Group Reference",
+      "Alert Processing"
+    ],
+    "cluster_size": 14,
+    "cluster_min_similarity": 0.9149107175896888,
+    "cluster_avg_similarity": 0.9551065602525035
+  },
+  {
+    "cluster_id": 23,
+    "project_ids": [],
+    "group_ids": [6591559046, 6989208923, 7004807773],
+    "issue_titles": [
+      "SlackApiError: The request to the Slack API failed. (url: https://www.slack.com/api/chat.postMessage)"
+    ],
+    "title": "Slack API rejects malformed message requests with 503",
+    "description": "Slack notifications are failing because message parameters like blocks and attachments are being passed as JSON strings instead of Python objects to the Slack SDK, causing the API to return HTML error pages that can't be parsed.",
+    "tags": [
+      "External System",
+      "API",
+      "Serialization",
+      "Slack",
+      "Parameter Type Mismatch"
+    ],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.934274422028206,
+    "cluster_avg_similarity": 0.9551510890861065
+  },
+  {
+    "cluster_id": 24,
+    "project_ids": [],
+    "group_ids": [6592963812, 6886076510],
+    "issue_titles": ["ApiUnauthorized: {\"message\":\"401 Unauthorized\"}", "ApiError"],
+    "title": "GitLab OAuth token refresh fails missing credentials",
+    "description": "Token refresh attempts fail because client_id and client_secret are lost from identity data after the first refresh, causing subsequent OAuth requests to fail with 401/500 errors.",
+    "tags": [
+      "External System",
+      "Authentication",
+      "OAuth",
+      "GitLab",
+      "Token Refresh",
+      "Data Integrity"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9580071635820323,
+    "cluster_avg_similarity": 0.9580071635820323
+  },
+  {
+    "cluster_id": 26,
+    "project_ids": [],
+    "group_ids": [6603110796, 6671600770],
+    "issue_titles": ["KeyError: 'HTTP_X_GITLAB_TOKEN'", "KeyError: 'HTTP_X_EVENT_KEY'"],
+    "title": "Webhook provider mismatch causing header KeyErrors",
+    "description": "GitHub and other webhook providers are being misconfigured to send to wrong Sentry endpoints (e.g., GitHub webhooks to GitLab/Bitbucket endpoints), causing KeyErrors when expected provider-specific headers are missing.",
+    "tags": [
+      "API",
+      "Configuration",
+      "Input Validation",
+      "GitHub",
+      "GitLab",
+      "Bitbucket",
+      "Webhooks"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.958157811481013,
+    "cluster_avg_similarity": 0.958157811481013
+  },
+  {
+    "cluster_id": 28,
+    "project_ids": [],
+    "group_ids": [6603118689, 6623441649],
+    "issue_titles": [
+      "QueryExecutionError: DB::Exception: Unknown function failure_rate: While processing release AS `_snuba_tags[sentry:release]`, failure_rate() AS _snuba_failure_rate, `_snuba_tags[sentry:release]`, ifNull(uniq(nullIf(user, '') AS `_snuba_tags[sentry:user]`), 0) AS _snuba_coun...",
+      "QueryExecutionError: DB::Exception: Unknown function failure_rate: While processing `tags.value`[indexOf(`tags.key`, 'product')] AS `_snuba_tags[product]`, `_snuba_tags[product]`, failure_rate() AS _snuba_failure_rate. Stack trace:"
+    ],
+    "title": "ClickHouse ORDER BY column missing from GROUP BY clause",
+    "description": "Query builder fails to add orderby columns generated by converters to GROUP BY when aggregations are present, causing ClickHouse to reject queries with auto-generated column aliases like '_snuba_gen_1' that aren't properly grouped.",
+    "tags": [
+      "Database",
+      "ClickHouse",
+      "Query Builder",
+      "Aggregation",
+      "Order By Resolution"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.963046068228722,
+    "cluster_avg_similarity": 0.963046068228722
+  },
+  {
+    "cluster_id": 29,
+    "project_ids": [],
+    "group_ids": [6603120581, 6613705158],
+    "issue_titles": ["ValueError: too many values to unpack (expected 3)"],
+    "title": "GitLab webhook token parsing fails with custom ports",
+    "description": "GitLab webhook integration fails when parsing tokens from self-hosted instances using custom ports, as the hostname contains colons that break the expected token format during unpacking.",
+    "tags": ["External System", "Input Validation", "GitLab", "Token Parsing"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9775408183101152,
+    "cluster_avg_similarity": 0.9775408183101152
+  },
+  {
+    "cluster_id": 30,
+    "project_ids": [],
+    "group_ids": [6603213168, 6876203029],
+    "issue_titles": [
+      "SentryAppSentryError: Something went wrong while preparing to get Select FormField options"
+    ],
+    "title": "Sentry App select field JSON parsing failure",
+    "description": "External service (n8n) is returning HTML content instead of expected JSON for select field options, causing JSON decode errors when preparing Sentry App components.",
+    "tags": [
+      "External System",
+      "API",
+      "Serialization",
+      "JSON Decode Error",
+      "Content Type Mismatch"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9648158354973352,
+    "cluster_avg_similarity": 0.9648158354973352
+  },
+  {
+    "cluster_id": 35,
+    "project_ids": [],
+    "group_ids": [
+      6612962710, 6616115926, 6724877345, 6793268617, 6795155168, 7005450537, 7010399757
+    ],
+    "issue_titles": [
+      "Project.DoesNotExist: Project matching query does not exist.",
+      "Subscription.DoesNotExist: Subscription matching query does not exist.",
+      "Organization.DoesNotExist: Organization matching query does not exist."
+    ],
+    "title": "Database lookup failures for deleted records in cache",
+    "description": "Tasks and API endpoints are attempting to fetch database records via cache that have been deleted, causing DoesNotExist exceptions due to replication lag and stale cache entries.",
+    "tags": ["Database", "Caching", "Data Integrity", "Django", "DoesNotExist"],
+    "cluster_size": 7,
+    "cluster_min_similarity": 0.9275963015275547,
+    "cluster_avg_similarity": 0.9542119554500139
+  },
+  {
+    "cluster_id": 37,
+    "project_ids": [],
+    "group_ids": [6613380217, 6615866385],
+    "issue_titles": [
+      "QueryExecutionError: DB::Exception: Cannot convert string 2025-11-07T00:00:00+00:00 to type DateTime: While processing ((environment AS _snuba_environment) IS NOT NULL) AND ((deleted = 0) AND ((type AS _snuba_type) = 'error') AND ((timestamp AS _snuba_timestamp) >= toDateTi...",
+      "QueryExecutionError: DB::Exception: Cannot convert string '2025-11-10T00:00:00+00:00' to type DateTime: While processing ((project_id AS _snuba_project_id) IN [4508602000474192, 4508602000539728, 4508602000539733, 4508602000605271, 4508602000605279, 4508602000670811, 450860..."
+    ],
+    "title": "ClickHouse type mismatch in event stats timestamp filtering",
+    "description": "ISO timestamp strings with timezone info from top events queries cannot be converted to DateTime type when used in subsequent ClickHouse filter conditions, causing type conversion errors in the organization events stats endpoint.",
+    "tags": ["Database", "API", "Serialization", "ClickHouse", "Type Conversion"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9713335052793592,
+    "cluster_avg_similarity": 0.9713335052793592
+  },
+  {
+    "cluster_id": 38,
+    "project_ids": [],
+    "group_ids": [
+      6613478263, 6623877582, 6632499142, 6635924641, 6643954095, 6643954097, 6644183937,
+      6659351110, 6666638254, 6677148219, 6683783925, 6705191185, 6712727430, 6718939887,
+      6726293844, 6727142113, 6734120739, 6734120945, 6745748294, 6750567715, 6781452721,
+      6792404555, 6792416414, 6792444893, 6792468106, 6793495579, 6793982063, 6803845693,
+      6804300361, 6837753300, 6852720532, 6905210369, 6913434304, 6915894504, 6920188494,
+      6921690153, 6921691201, 7003404799, 7016793655
+    ],
+    "issue_titles": [
+      "SnubaRPCError: HTTPConnectionPool(host='snuba-api', port=80): Read timed out. (read timeout=30)",
+      "SnubaError: HTTPConnectionPool(host='snuba-api', port=80): Read timed out. (read timeout=30)"
+    ],
+    "title": "HTTP read timeout on Snuba queries",
+    "description": "Multiple Sentry API endpoints are experiencing 30-second read timeouts when making expensive queries to Snuba, particularly for metrics aggregation, tag value queries, and stats calculations over large datasets or time ranges.",
+    "tags": [
+      "Networking",
+      "External System",
+      "API",
+      "Timeout",
+      "Snuba",
+      "Query Performance"
+    ],
+    "cluster_size": 39,
+    "cluster_min_similarity": 0.9062764375750455,
+    "cluster_avg_similarity": 0.9383434558119835
+  },
+  {
+    "cluster_id": 40,
+    "project_ids": [],
+    "group_ids": [6613950202, 6802477486],
+    "issue_titles": ["File.DoesNotExist: File matching query does not exist."],
+    "title": "Django cascade deletes File before post_delete signal handler",
+    "description": "ArtifactBundle deletion triggers Django's cascade delete of the related File, but the post_delete signal handler then tries to access and delete the already-deleted File object, causing a DoesNotExist exception.",
+    "tags": [
+      "Database",
+      "Django ORM",
+      "Concurrency",
+      "Signal Handler",
+      "Cascade Delete",
+      "File DoesNotExist"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9832771848408677,
+    "cluster_avg_similarity": 0.9832771848408677
+  },
+  {
+    "cluster_id": 42,
+    "project_ids": [],
+    "group_ids": [6614447366, 6615279706, 6696880291, 6734430244, 6996788301, 6996788311],
+    "issue_titles": [
+      "CommitComparison.MultipleObjectsReturned: get() returned more than one CommitComparison -- it returned 2!",
+      "Repository.MultipleObjectsReturned: get() returned more than one Repository -- it returned 2!"
+    ],
+    "title": "Repository queries returning multiple objects",
+    "description": "Django ORM queries using Repository.objects.get() are finding multiple repositories with the same name or external_id within an organization, causing MultipleObjectsReturned exceptions across various endpoints including Heroku webhooks, file changes, and group validations.",
+    "tags": [
+      "Database",
+      "Data Integrity",
+      "Django",
+      "Constraint Violation",
+      "Repository Management"
+    ],
+    "cluster_size": 6,
+    "cluster_min_similarity": 0.9483895892417695,
+    "cluster_avg_similarity": 0.9605899197568472
+  },
+  {
+    "cluster_id": 3,
+    "project_ids": [],
+    "group_ids": [
+      6614888006, 6621958996, 6662361418, 6673116275, 6705259139, 6794201570, 6794396371,
+      6794586191, 6798243190, 6818156825, 6819785886, 6825470371, 6830486238, 6834638487,
+      6841165038, 6851769528, 6862482415, 6871496142, 6876832922, 6878014820, 7002493880,
+      7015017604
+    ],
+    "issue_titles": [
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ConcurrentRateLimitAllocationPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 20 exceeds limit of 18', 'overrides': {}, 'storage_key': 'e...",
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ReferrerGuardRailPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 52 exceeds limit of 50', 'policy': 'referrer_guard_rail_policy', 'refer...",
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ConcurrentRateLimitAllocationPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 21 exceeds limit of 18', 'overrides': {}, 'storage_key': 'e...",
+      "SnubaError: HTTPConnectionPool(host='snuba-api', port=80): Read timed out. (read timeout=30)",
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ReferrerGuardRailPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 51 exceeds limit of 50', 'policy': 'referrer_guard_rail_policy', 'refer...",
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ConcurrentRateLimitAllocationPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 19 exceeds limit of 18', 'overrides': {}, 'storage_key': 'e...",
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ConcurrentRateLimitAllocationPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 32 exceeds limit of 30', 'overrides': {}, 'storage_key': 's...",
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ReferrerGuardRailPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 54 exceeds limit of 50', 'policy': 'referrer_guard_rail_policy', 'refer...",
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ConcurrentRateLimitAllocationPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 2 exceeds limit of 1', 'overrides': {'organization_id__3741...",
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ReferrerGuardRailPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 101 exceeds limit of 100', 'policy': 'referrer_guard_rail_policy', 'ref...",
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ReferrerGuardRailPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 102 exceeds limit of 100', 'policy': 'referrer_guard_rail_policy', 'ref...",
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ConcurrentRateLimitAllocationPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 40 exceeds limit of 22', 'overrides': {}, 'storage_key': 'p...",
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ConcurrentRateLimitAllocationPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 24 exceeds limit of 22', 'overrides': {}, 'storage_key': 'p..."
+    ],
+    "title": "Snuba concurrent query rate limit exceeded",
+    "description": "Multiple Snuba queries executing simultaneously via ThreadPoolExecutor exceed the concurrent rate limit policy, causing query rejection.",
+    "tags": [
+      "Rate Limiting",
+      "Concurrency",
+      "External System",
+      "Snuba",
+      "ThreadPool Executor"
+    ],
+    "cluster_size": 22,
+    "cluster_min_similarity": 0.9257183608842686,
+    "cluster_avg_similarity": 0.9462283092968604
+  },
+  {
+    "cluster_id": 56,
+    "project_ids": [],
+    "group_ids": [6618594859, 6701639376],
+    "issue_titles": ["AssertionError"],
+    "title": "SAML/OAuth login assertion failure on invite acceptance",
+    "description": "Race condition during SSO authentication where invite acceptance returns None when user membership already exists, causing assertion failure in auth pipeline.",
+    "tags": [
+      "Authentication",
+      "Concurrency",
+      "SAML",
+      "OAuth",
+      "Django",
+      "Assertion Error"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9674538909586995,
+    "cluster_avg_similarity": 0.9674538909586995
+  },
+  {
+    "cluster_id": 57,
+    "project_ids": [],
+    "group_ids": [6618827706, 6708941920, 7017527232],
+    "issue_titles": ["ValueError: not enough values to unpack (expected 2, got 1)"],
+    "title": "GitHub integration fails parsing malformed issue key",
+    "description": "A legacy ExternalIssue record with key '3778' violates the expected 'repo#issue_id' format, causing GitHub integration serialization to fail when splitting the key.",
+    "tags": [
+      "External System",
+      "Data Integrity",
+      "GitHub",
+      "Serialization",
+      "Input Validation"
+    ],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9669542145569945,
+    "cluster_avg_similarity": 0.9678543002676885
+  },
+  {
+    "cluster_id": 58,
+    "project_ids": [],
+    "group_ids": [6618877476, 6724510724, 6867384936],
+    "issue_titles": ["SnubaRPCError: code: 400", "SnubaRPCError: code: 408"],
+    "title": "Snuba RPC timeout in highest accuracy spans queries",
+    "description": "Timeseries queries on spans dataset with HIGHEST_ACCURACY sampling mode are timing out in Snuba when scanning large date ranges (30-90 days), as the unsampled data volume exceeds query timeout limits.",
+    "tags": ["External System", "API", "Snuba", "Timeout", "Resource Limits"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9595628199210353,
+    "cluster_avg_similarity": 0.9702108500298058
+  },
+  {
+    "cluster_id": 63,
+    "project_ids": [],
+    "group_ids": [6625805906, 6988846251],
+    "issue_titles": [
+      "OrganizationMapping.DoesNotExist: OrganizationMapping matching query does not exist."
+    ],
+    "title": "OrganizationMapping missing during webhook processing",
+    "description": "Webhook handlers are failing to find OrganizationMapping records due to race conditions between async replication and webhook processing in the hybrid cloud architecture.",
+    "tags": [
+      "Database",
+      "Concurrency",
+      "External System",
+      "Django",
+      "Hybrid Cloud",
+      "DoesNotExist"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9594533257990662,
+    "cluster_avg_similarity": 0.9594533257990662
+  },
+  {
+    "cluster_id": 64,
+    "project_ids": [],
+    "group_ids": [
+      6626382005, 6703117189, 6736513829, 6765064624, 6781511608, 6866171483, 6946881879
+    ],
+    "issue_titles": [
+      "NotImplementedError: Haven't handled all the search expressions yet"
+    ],
+    "title": "EAP search resolver fails on invalid query expressions",
+    "description": "The EAP (Events API) search query resolver cannot handle malformed search expressions containing bare boolean operators like '( OR )' or standalone operators, causing API endpoints to crash with unhandled exceptions.",
+    "tags": ["API", "Input Validation", "EAP", "Search Query", "NotImplementedError"],
+    "cluster_size": 7,
+    "cluster_min_similarity": 0.9265559238185378,
+    "cluster_avg_similarity": 0.9519764602245935
+  },
+  {
+    "cluster_id": 72,
+    "project_ids": [],
+    "group_ids": [6646412722, 6919309723],
+    "issue_titles": [
+      "InvalidZipCodeSyntaxException: 6473918",
+      "InvalidZipCodeSyntaxException: 058682"
+    ],
+    "title": "Invalid postal code format in billing tax calculation",
+    "description": "Billing system is attempting to process invoices with corrupted postal codes (names instead of ZIP codes) stored in Stripe payment methods, causing tax location validation to fail during invoice creation.",
+    "tags": [
+      "Input Validation",
+      "Data Integrity",
+      "External System",
+      "Stripe",
+      "Tax Calculation",
+      "Invalid Postal Code"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9588473166103677,
+    "cluster_avg_similarity": 0.9588473166103677
+  },
+  {
+    "cluster_id": 87,
+    "project_ids": [],
+    "group_ids": [6660813184, 6806325040, 6969215984, 7003566558],
+    "issue_titles": ["TypeError: Recursion limit reached"],
+    "title": "Seer API autofix fails on recursive event serialization",
+    "description": "Event serialization for Seer autofix requests fails when orjson.dumps encounters deeply nested or circular references in exception stacktrace data, particularly in frame variables that should be filtered for external APIs.",
+    "tags": [
+      "External System",
+      "Serialization",
+      "API",
+      "Seer",
+      "JSON Recursion",
+      "Event Processing"
+    ],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.958551025401078,
+    "cluster_avg_similarity": 0.9652561603966316
+  },
+  {
+    "cluster_id": 91,
+    "project_ids": [],
+    "group_ids": [
+      6667014357, 6672210447, 6741533525, 6741533662, 6746194384, 6808644708, 7013950941,
+      7016472393
+    ],
+    "issue_titles": ["Group.DoesNotExist: Group matching query does not exist."],
+    "title": "Group.DoesNotExist during trace serialization",
+    "description": "Trace data contains references to Groups (issues) that no longer exist in the database, causing serialization to fail when attempting to fetch deleted or moved groups.",
+    "tags": [
+      "Database",
+      "Data Integrity",
+      "API",
+      "Serialization",
+      "Django",
+      "Group DoesNotExist"
+    ],
+    "cluster_size": 8,
+    "cluster_min_similarity": 0.9217392693988664,
+    "cluster_avg_similarity": 0.9479148107764112
+  },
+  {
+    "cluster_id": 92,
+    "project_ids": [],
+    "group_ids": [6668503039, 6871341515, 6985404975],
+    "issue_titles": [
+      "SnubaError: HTTPConnectionPool(host='snuba-api', port=80): Max retries exceeded with url: /discover/snql (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7a2ebbb68290>: Failed to establish a new connection: [Errno 111] Connection refuse...",
+      "SnubaError: HTTPConnectionPool(host='snuba-api', port=80): Max retries exceeded with url: /events/snql (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7bc8520156d0>: Failed to establish a new connection: [Errno 111] Connection refused'))",
+      "SnubaError: HTTPConnectionPool(host='snuba-api', port=80): Max retries exceeded with url: /functions/snql (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x78f564199a30>: Failed to establish a new connection: [Errno 111] Connection refus..."
+    ],
+    "title": "Snuba API connection refused on port 80",
+    "description": "Multiple Sentry components unable to connect to Snuba service on port 80, likely due to misconfigured SNUBA environment variable or service not listening on expected port.",
+    "tags": [
+      "External System",
+      "Configuration",
+      "Networking",
+      "Connection Refused",
+      "Snuba",
+      "HTTP"
+    ],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9558339072849676,
+    "cluster_avg_similarity": 0.9669935587983155
+  },
+  {
+    "cluster_id": 96,
+    "project_ids": [],
+    "group_ids": [6671785683, 6995633550],
+    "issue_titles": [
+      "SlackApiError: The request to the Slack API failed. (url: https://www.slack.com/api/chat.postEphemeral)"
+    ],
+    "title": "Slack ephemeral message fails on shared channels",
+    "description": "Sentry's Slack integration attempts to post ephemeral messages to shared/external channels where the bot lacks proper permissions, resulting in channel_not_found errors from the Slack API.",
+    "tags": ["External System", "API", "Authorization", "Slack", "Channel Not Found"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.969887352721907,
+    "cluster_avg_similarity": 0.969887352721907
+  },
+  {
+    "cluster_id": 105,
+    "project_ids": [],
+    "group_ids": [6672510506, 7006667210],
+    "issue_titles": [
+      "ValueError: Field 'user_id' expected a number but got 'me'.",
+      "ValueError: invalid literal for int() with base 10: 'Permissions'"
+    ],
+    "title": "Django integer field conversion fails on invalid input",
+    "description": "String values like ']' and 'me' are being passed directly to integer database fields without input validation, causing type conversion failures in Django's ORM preparation layer.",
+    "tags": ["Database", "Input Validation", "Django", "Serialization"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9581323010867613,
+    "cluster_avg_similarity": 0.9581323010867613
+  },
+  {
+    "cluster_id": 108,
+    "project_ids": [],
+    "group_ids": [6673339111, 6977994202],
+    "issue_titles": ["JSONDecodeError: Expecting value: line 1 column 1 (char 0)"],
+    "title": "Feedback categories fails to validate HTTP status before JSON parse",
+    "description": "The organization feedback categories endpoint attempts to parse Seer service responses as JSON before checking HTTP status codes, causing JSONDecodeError when upstream returns non-JSON error responses (503 with plain text from Envoy proxy).",
+    "tags": [
+      "API",
+      "External System",
+      "Input Validation",
+      "Upstream Unavailable",
+      "Seer"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9756884131336474,
+    "cluster_avg_similarity": 0.9756884131336474
+  },
+  {
+    "cluster_id": 111,
+    "project_ids": [],
+    "group_ids": [6675539406, 6702482376],
+    "issue_titles": [
+      "SnubaError: HTTPConnectionPool(host='snuba-api', port=80): Read timed out. (read timeout=30)"
+    ],
+    "title": "Snuba timeout from unregistered referrer pattern",
+    "description": "Dynamic referrer construction creates unregistered referrers like 'api.group-attachments.error' that aren't defined in the Referrer enum, causing Snuba queries to timeout due to improper routing and configuration.",
+    "tags": ["External System", "Configuration", "Snuba", "Timeout", "Invalid Referrer"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.963001708715319,
+    "cluster_avg_similarity": 0.963001708715319
+  },
+  {
+    "cluster_id": 112,
+    "project_ids": [],
+    "group_ids": [6675804049, 6812650467, 6890227549, 6965989772],
+    "issue_titles": [
+      "ReadTimeout: HTTPSConnectionPool(host='api.codecov.io', port=443): Read timed out. (read timeout=10)",
+      "ReadTimeoutError: HTTPConnectionPool(host='seer-web-summarization', port=80): Read timed out. (read timeout=15)"
+    ],
+    "title": "External API timeout in spam detection service",
+    "description": "Spam detection requests are timing out after 15 seconds while waiting for responses from the Seer service, which in turn is experiencing delays from the Google Gemini API taking up to 18.5 seconds to respond.",
+    "tags": ["External System", "API", "Timeout", "Seer", "Gemini"],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9396622648937668,
+    "cluster_avg_similarity": 0.9575408063258474
+  },
+  {
+    "cluster_id": 117,
+    "project_ids": [],
+    "group_ids": [6678511610, 6725560157, 6791455908, 6791455952, 6807932871],
+    "issue_titles": ["SentryAppSentryError: event_not_in_servicehook"],
+    "title": "SentryApp webhook fails event validation check",
+    "description": "Webhook tasks are queued for SentryApp installations that don't have the required event subscriptions, causing validation failures when attempting to send webhooks due to mismatched filtering logic between installation selection and event validation.",
+    "tags": ["External System", "Configuration", "SentryApp", "Event Not In Servicehook"],
+    "cluster_size": 5,
+    "cluster_min_similarity": 0.9314553647442932,
+    "cluster_avg_similarity": 0.9526063319809623
+  },
+  {
+    "cluster_id": 122,
+    "project_ids": [],
+    "group_ids": [6682279922, 6999790740],
+    "issue_titles": ["AssertionError"],
+    "title": "Identity pipeline state assertion fails on unknown_identity",
+    "description": "The identity pipeline's Redis session state is silently failing to save the next_step value, causing UnknownIdentityView to assert against None instead of the expected 'unknown_identity' state.",
+    "tags": ["Authentication", "Caching", "Data Integrity", "Redis", "Silent Failure"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9814753518400885,
+    "cluster_avg_similarity": 0.9814753518400885
+  },
+  {
+    "cluster_id": 125,
+    "project_ids": [],
+    "group_ids": [6684066154, 6792744042, 6796378313, 6977020312],
+    "issue_titles": [
+      "RetryException: Could not successfully execute <bound method Lock.acquire of <Lock: 'spend_allocations.record_consumption:4507059213565952.1'>> within 5.000 seconds (50 attempts.)",
+      "RetryException: Could not successfully execute <bound method Lock.acquire of <Lock: 'usagebuffer.usage_flush_lock:4508059366457424'>> within 4.972 seconds (49 attempts.)",
+      "RetryException: Could not successfully execute <bound method Lock.acquire of <Lock: 'subscription:uptime_monitor:fe63a31670f04c37a0a972f53d977071'>> within 9.881 seconds (68 attempts.)",
+      "UnableToAcquireLock: Unable to acquire <Lock: 'd:t:mail:p:4509276312961104:IssueOwners::ActiveMembers'> due to error: Could not set key: 'l:d:t:mail:p:4509276312961104:IssueOwners::ActiveMembers'"
+    ],
+    "title": "Redis lock acquisition failures in task workers",
+    "description": "Multiple task worker processes are failing to acquire Redis locks due to contention, with locks not being properly released or having insufficient timeout windows for concurrent processing.",
+    "tags": ["Caching", "Concurrency", "Redis", "Lock Contention", "Task Worker"],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9453899978638368,
+    "cluster_avg_similarity": 0.9569098392085308
+  },
+  {
+    "cluster_id": 126,
+    "project_ids": [],
+    "group_ids": [
+      6684093720, 6731215162, 6792300053, 6793548070, 6869524816, 6879888174, 6879888386,
+      6880968478, 6975814027, 7000387473, 7001690646
+    ],
+    "issue_titles": [
+      "ProcessingDeadlineExceeded: execution deadline of 60 seconds exceeded by sentry.rules.processing.delayed_processing",
+      "ProcessingDeadlineExceeded: execution deadline of 60 seconds exceeded by sentry.tasks.code_owners_auto_sync",
+      "ProcessingDeadlineExceeded: execution deadline of 30 seconds exceeded by sentry.integrations.slack.tasks.post_message",
+      "ProcessingDeadlineExceeded: execution deadline of 30 seconds exceeded by sentry.integrations.slack.tasks.send_activity_notifications_to_slack_threads",
+      "ProcessingDeadlineExceeded: execution deadline of 30 seconds exceeded by getsentry.tasks.quotas.deactivate_db_spike",
+      "HTTPError: 408 Client Error: Request Timeout for url: https://openrouter.ai/api/v1/models",
+      "ProcessingDeadlineExceeded: execution deadline of 30 seconds exceeded by sentry.workflow_engine.tasks.trigger_action"
+    ],
+    "title": "Task worker timeouts on external API calls",
+    "description": "Multiple Sentry tasks are exceeding their processing deadlines due to slow or failed external API calls to services like Slack and GitHub, causing ProcessingDeadlineExceeded exceptions.",
+    "tags": ["External System", "Resource Limits", "Timeout", "API", "Task Processing"],
+    "cluster_size": 11,
+    "cluster_min_similarity": 0.921552663540591,
+    "cluster_avg_similarity": 0.9438846295887953
+  },
+  {
+    "cluster_id": 128,
+    "project_ids": [],
+    "group_ids": [
+      6685373553, 6724877767, 6812647562, 6992132515, 6992287932, 6992643012, 7000080366,
+      7017257930
+    ],
+    "issue_titles": [
+      "Subscription.DoesNotExist: Subscription matching query does not exist."
+    ],
+    "title": "Subscription lookup fails for uptime detector activation",
+    "description": "Auto-detected uptime detectors fail when graduating from onboarding to active mode because the detector's project organization lacks a corresponding Subscription record in the billing system.",
+    "tags": ["Database", "Data Integrity", "Uptime Monitoring", "Django", "DoesNotExist"],
+    "cluster_size": 8,
+    "cluster_min_similarity": 0.9423410874499693,
+    "cluster_avg_similarity": 0.9588358579598749
+  },
+  {
+    "cluster_id": 129,
+    "project_ids": [],
+    "group_ids": [6686967912, 6925768396],
+    "issue_titles": [
+      "QueryMissingColumn: DB::Exception: There's no column 'events._snuba_gen_4' in table 'events': While processing events._snuba_gen_4 AS _snuba_gen_4: While processing SELECT count() AS _snuba_count FROM (SELECT match(message AS `_snuba_events.message`, '(?i).*Timeout\\\\ error...",
+      "QueryMissingColumn: DB::Exception: There's no column 'events._snuba_gen_2' in table 'events': While processing events._snuba_gen_2 AS _snuba_gen_2: While processing SELECT events.`_snuba_issue.id` AS `_snuba_issue.id`, count() AS _snuba_count, uniq(events.`_snuba_events.ta..."
+    ],
+    "title": "ClickHouse query fails with missing generated column",
+    "description": "Snuba query generator creates column aliases like '_snuba_gen_3' for OR conditions spanning multiple subqueries but fails to add them to the SELECT clause, causing ClickHouse to fail with missing column errors.",
+    "tags": ["Database", "API", "ClickHouse", "Query Generation"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9737783951790452,
+    "cluster_avg_similarity": 0.9737783951790452
+  },
+  {
+    "cluster_id": 130,
+    "project_ids": [],
+    "group_ids": [
+      6689961415, 6689961447, 6748982357, 6778300806, 6827450100, 6828916841, 6844920353,
+      6910783995
+    ],
+    "issue_titles": [
+      "IncompatibleMetricsQuery: http.url is not a tag in the metrics dataset",
+      "IncompatibleMetricsQuery: SITE_DOMAIN is not a tag in the metrics dataset",
+      "SubscriptionError: user.display is not a tag in the metrics dataset",
+      "SubscriptionError: connectionType is not a tag in the metrics dataset",
+      "SubscriptionError: se is not a tag in the metrics dataset",
+      "SubscriptionError: transaction.duration is not a tag in the metrics dataset"
+    ],
+    "title": "Metrics query validation rejects valid tags",
+    "description": "The use_default_tags feature flag enforces a strict whitelist validation that rejects many valid custom tags from the metrics dataset, causing subscription creation and updates to fail systematically.",
+    "tags": [
+      "API",
+      "Configuration",
+      "Input Validation",
+      "Tag Resolution",
+      "Feature Flag"
+    ],
+    "cluster_size": 8,
+    "cluster_min_similarity": 0.926471877166601,
+    "cluster_avg_similarity": 0.9504746503075466
+  },
+  {
+    "cluster_id": 132,
+    "project_ids": [],
+    "group_ids": [
+      6691810510, 6713208911, 6760579464, 6789105010, 6808353372, 6852262053, 6959753024,
+      6998894728
+    ],
+    "issue_titles": [
+      "ConnectionError: Error -5 connecting to redis-buffer-3.sentry.:6379. No address associated with hostname.",
+      "RedisClusterException: Redis Cluster cannot be connected. Please provide at least one reachable node.",
+      "ConnectionError: Error -3 connecting to redis-buffer-6.sentry.:6379. Temporary failure in name resolution.",
+      "UnableToAcquireLock: Unable to acquire <Lock: 'd:t:mail:p:4504933048320000:Team:1903043:ActiveMembers'> due to error: Error -5 connecting to redis-default-0.sentry.:6379. No address associated with hostname.",
+      "Retriable: Redis Cluster cannot be connected. Please provide at least one reachable node."
+    ],
+    "title": "Redis cluster connection failure due to malformed hostnames",
+    "description": "Multiple Redis cluster nodes have malformed hostnames ending with '.sentry.' (missing proper domain suffix), causing DNS resolution failures during lazy client initialization.",
+    "tags": [
+      "Networking",
+      "Caching",
+      "Configuration",
+      "Redis",
+      "DNS Resolution Failure",
+      "Connection Reset"
+    ],
+    "cluster_size": 8,
+    "cluster_min_similarity": 0.9158459928427781,
+    "cluster_avg_similarity": 0.9460241257656634
+  },
+  {
+    "cluster_id": 133,
+    "project_ids": [],
+    "group_ids": [6692092357, 6797692325, 6843213166, 6979579961],
+    "issue_titles": [
+      "AvataxException: StringLengthError: \"Field 'postalCode' has an invalid length.\"",
+      "AvataxException: GetTaxError: 'Invalid or missing state/province code ().'",
+      "AvataxException: GetTaxError: 'Tax calculation cannot be determined. Zip is not valid for the state.'"
+    ],
+    "title": "Avalara tax API failures from incomplete addresses",
+    "description": "Invoice processing and billing preview operations are failing when Avalara cannot geocode customer addresses that are missing required components like state/region or complete street addresses.",
+    "tags": [
+      "External System",
+      "API",
+      "Input Validation",
+      "Avalara",
+      "Address Validation"
+    ],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9386620812231893,
+    "cluster_avg_similarity": 0.9510053701160596
+  },
+  {
+    "cluster_id": 136,
+    "project_ids": [],
+    "group_ids": [6694640273, 6709058648, 6735072868, 6757146742, 6855409643, 6960976910],
+    "issue_titles": [
+      "ProcessingDeadlineExceeded: execution deadline of 90 seconds exceeded by getsentry.tasks.run_spike_projection",
+      "ProcessingDeadlineExceeded: execution deadline of 5 seconds exceeded by sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
+      "ProcessingDeadlineExceeded: execution deadline of 10 seconds exceeded by sentry.tasks.options.sync_options_control",
+      "ProcessingDeadlineExceeded: execution deadline of 32 seconds exceeded by sentry.ingest.transaction_clusterer.tasks.cluster_projects",
+      "ProcessingDeadlineExceeded: execution deadline of 60 seconds exceeded by sentry.profiles.task.process_profile",
+      "ProcessingDeadlineExceeded: execution deadline of 65 seconds exceeded by sentry.tasks.store.save_event_transaction"
+    ],
+    "title": "Task worker deadlines exceeded during memcache operations",
+    "description": "Multiple task worker processes are timing out while attempting to connect to or communicate with memcache servers, causing tasks to exceed their processing deadlines before completing cache operations.",
+    "tags": [
+      "Caching",
+      "Networking",
+      "Resource Limits",
+      "Memcached",
+      "Timeout",
+      "Processing Deadline Exceeded"
+    ],
+    "cluster_size": 6,
+    "cluster_min_similarity": 0.9460961057013757,
+    "cluster_avg_similarity": 0.9588283399662492
+  },
+  {
+    "cluster_id": 140,
+    "project_ids": [],
+    "group_ids": [6702977417, 6796200493, 6823668879],
+    "issue_titles": [
+      "OutboxDatabaseError: Failed to process Outbox, USER_UPDATE due to database error",
+      "OutboxDatabaseError: Failed to process Outbox, SENTRY_APP_INSTALLATION_UPDATE due to database error",
+      "OutboxDatabaseError: Failed to process Outbox, SENTRY_APP_UPDATE due to database error"
+    ],
+    "title": "Outbox draining fails on connection loss during commit hook",
+    "description": "Database connection closes unexpectedly during outbox processing triggered by transaction.on_commit() callbacks, causing drain_shard() to fail when querying control outbox outside transaction boundary.",
+    "tags": [
+      "Database",
+      "Queueing",
+      "PostgreSQL",
+      "Connection Reset",
+      "Transaction Hooks"
+    ],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9464607703271625,
+    "cluster_avg_similarity": 0.9512885884843733
+  },
+  {
+    "cluster_id": 148,
+    "project_ids": [],
+    "group_ids": [
+      6705077758, 6725840749, 6806749607, 6824532158, 6829795894, 6834481033, 7004758163
+    ],
+    "issue_titles": [
+      "ProcessingDeadlineExceeded: execution deadline of 65 seconds exceeded by sentry.dynamic_sampling.tasks.recalibrate_orgs",
+      "ProcessingDeadlineExceeded: execution deadline of 10 seconds exceeded by sentry.sentry_apps.tasks.sentry_apps.workflow_notification"
+    ],
+    "title": "Workflow notification task timeout during serialization",
+    "description": "The workflow_notification task uses default 10-second deadline but performs expensive Group serialization with multiple database queries and joins, causing ProcessingDeadlineExceeded timeouts.",
+    "tags": [
+      "Resource Limits",
+      "Serialization",
+      "Database",
+      "PostgreSQL",
+      "Processing Deadline Exceeded"
+    ],
+    "cluster_size": 7,
+    "cluster_min_similarity": 0.9265737519851359,
+    "cluster_avg_similarity": 0.9534873875979455
+  },
+  {
+    "cluster_id": 149,
+    "project_ids": [],
+    "group_ids": [6705342006, 6736162416, 6760254313, 6795623703, 6959131688, 7013648445],
+    "issue_titles": [
+      "ProcessingDeadlineExceeded: execution deadline of 10 seconds exceeded by sentry.sentry_apps.tasks.sentry_apps.workflow_notification",
+      "ProcessingDeadlineExceeded: execution deadline of 5 seconds exceeded by sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2"
+    ],
+    "title": "Webhook processing deadline exceeded for SentryApp",
+    "description": "The workflow_notification task lacks an explicit processing deadline (defaulting to 10 seconds) but performs multiple database queries, serialization, and external HTTP requests to webhook endpoints, causing it to exceed the deadline when endpoints are slow or unresponsive.",
+    "tags": [
+      "External System",
+      "Networking",
+      "Rate Limiting",
+      "SentryApp Webhooks",
+      "Processing Deadline Exceeded",
+      "TLS Handshake Failure"
+    ],
+    "cluster_size": 6,
+    "cluster_min_similarity": 0.9575322295878436,
+    "cluster_avg_similarity": 0.9648399151621198
+  },
+  {
+    "cluster_id": 155,
+    "project_ids": [],
+    "group_ids": [6711283984, 6889458880, 6889470540, 6921313902],
+    "issue_titles": ["IntegrationConfigurationError: Identity not found."],
+    "title": "GitLab integration missing Identity record for stacktrace linking",
+    "description": "GitLab integration's default_auth_id references a deleted Identity record, preventing commit context processing and stacktrace linking from functioning properly.",
+    "tags": [
+      "External System",
+      "Authentication",
+      "Data Integrity",
+      "GitLab",
+      "Identity DoesNotExist"
+    ],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.950031689435586,
+    "cluster_avg_similarity": 0.9654643324342195
+  },
+  {
+    "cluster_id": 159,
+    "project_ids": [],
+    "group_ids": [6712157294, 6988042707, 6996271476],
+    "issue_titles": [
+      "OperationalError: connection to server at \"127.0.0.1\", port 6432 failed: Connection refused"
+    ],
+    "title": "PostgreSQL connection failures during batch operations",
+    "description": "Multiple database operations are failing to connect to PostgreSQL via PgBouncer on port 6432, affecting dashboard migrations, group deletions, and relay registrations. Connection failures appear to be related to PgBouncer unavailability during batch processing.",
+    "tags": ["Database", "Networking", "PostgreSQL", "Connection Reset", "PgBouncer"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.948700021862992,
+    "cluster_avg_similarity": 0.9527801387774678
+  },
+  {
+    "cluster_id": 160,
+    "project_ids": [],
+    "group_ids": [6712227035, 6745616372, 6784479206, 6800297377, 6856077790],
+    "issue_titles": [
+      "ApiInvalidRequestError: {\"message\": \"Invalid Form Body\", \"code\": 50035, \"errors\": {\"embeds\": {\"0\": {\"description\": {\"_errors\": [{\"code\": \"BASE_TYPE_MAX_LENGTH\", \"message\": \"Must be 4096 or fewer in length.\"}]}}}}}",
+      "ApiInvalidRequestError: {\"message\": \"Invalid Form Body\", \"code\": 50035, \"errors\": {\"embeds\": {\"_errors\": [{\"code\": \"MAX_EMBED_SIZE_EXCEEDED\", \"message\": \"Embed size exceeds maximum size of 6000\"}]}}}"
+    ],
+    "title": "Discord notifications fail with oversized SQL embeds",
+    "description": "Discord API rejects notifications when performance issue evidence contains lengthy SQL queries that exceed the 6000 character embed size limit, due to missing truncation validation in the message builder.",
+    "tags": [
+      "External System",
+      "API",
+      "Input Validation",
+      "Discord",
+      "Embed Size Exceeded"
+    ],
+    "cluster_size": 5,
+    "cluster_min_similarity": 0.9597103175260765,
+    "cluster_avg_similarity": 0.9725682768848426
+  },
+  {
+    "cluster_id": 170,
+    "project_ids": [],
+    "group_ids": [6718509196, 6718526070, 6798079249, 6798092831, 6977220303],
+    "issue_titles": [
+      "NoRetriesRemainingError",
+      "Commit.DoesNotExist: Commit matching query does not exist.",
+      "RetryError"
+    ],
+    "title": "SentryApp resource change task fails on missing model",
+    "description": "Task worker trying to process resource change notifications encounters DoesNotExist exceptions when querying for database models that haven't been committed yet due to race conditions between event processing and task execution.",
+    "tags": ["Database", "Concurrency", "Queueing", "Django", "DoesNotExist"],
+    "cluster_size": 5,
+    "cluster_min_similarity": 0.9265129559126868,
+    "cluster_avg_similarity": 0.9495684496191952
+  },
+  {
+    "cluster_id": 171,
+    "project_ids": [],
+    "group_ids": [6719866258, 6792141135],
+    "issue_titles": [
+      "ReadTimeoutError: HTTPConnectionPool(host='192.168.208.181', port=8080): Read timed out. (read timeout=5)"
+    ],
+    "title": "Filestore HTTP read timeout with no retry mechanism",
+    "description": "Delete file tasks are failing permanently when filestore service takes longer than 5 seconds to respond. The HTTP client layer intentionally skips retries on read timeouts, but the task retry policy doesn't include timeout errors, leaving no retry mechanism at all.",
+    "tags": ["Networking", "External System", "HTTP", "Timeout", "Filestore"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9646993006794711,
+    "cluster_avg_similarity": 0.9646993006794711
+  },
+  {
+    "cluster_id": 176,
+    "project_ids": [],
+    "group_ids": [6723347604, 6736623029, 6794697352, 6979564718, 7014965062],
+    "issue_titles": [
+      "UnknownOption: 'feature.projects:triage-signals-v0'",
+      "UnknownOption: 'overwatch.forward-webhooks.verbose'"
+    ],
+    "title": "Options sync fails on orphaned feature flag keys",
+    "description": "The sync_options task encounters database records for feature flags that no longer exist in the current code registry, causing lookup failures when the feature scope was changed from organizations to projects.",
+    "tags": [
+      "Configuration",
+      "Data Integrity",
+      "Options Sync",
+      "Feature Flags",
+      "Stale Data"
+    ],
+    "cluster_size": 5,
+    "cluster_min_similarity": 0.9432775276296425,
+    "cluster_avg_similarity": 0.9597275485773243
+  },
+  {
+    "cluster_id": 177,
+    "project_ids": [],
+    "group_ids": [6724067689, 6760531806, 6826006142, 6834066914],
+    "issue_titles": [
+      "RedisClusterException: Redis Cluster cannot be connected. Please provide at least one reachable node."
+    ],
+    "title": "Redis Cluster connection fails in multiprocessing child",
+    "description": "Taskworker child processes fail to connect to Redis Cluster during lazy initialization due to incomplete hostname configuration captured in the cluster factory closure before forking.",
+    "tags": [
+      "Networking",
+      "Caching",
+      "Configuration",
+      "Concurrency",
+      "Redis",
+      "Connection Failed",
+      "Multiprocessing",
+      "DNS Resolution Failure"
+    ],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9555187287563502,
+    "cluster_avg_similarity": 0.9655262450625234
+  },
+  {
+    "cluster_id": 179,
+    "project_ids": [],
+    "group_ids": [6724696307, 6725473881],
+    "issue_titles": ["AttributeError: 'list' object has no attribute 'endswith'"],
+    "title": "Snuba query parsing fails on complex negated searches",
+    "description": "Complex search queries with negated wildcards generate nested condition structures that the legacy SnQL converter cannot handle, causing parsing failures when processing legitimate user search queries.",
+    "tags": ["API", "Serialization", "Snuba", "Query Parsing", "Input Validation"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9629706334516206,
+    "cluster_avg_similarity": 0.9629706334516206
+  },
+  {
+    "cluster_id": 183,
+    "project_ids": [],
+    "group_ids": [
+      6726098209, 6815806036, 6815838947, 6883729373, 6959753217, 7000729724, 7001664563,
+      7017657981
+    ],
+    "issue_titles": [
+      "ProcessingDeadlineExceeded: execution deadline of 5 seconds exceeded by sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook",
+      "ProcessingDeadlineExceeded: execution deadline of 10 seconds exceeded by sentry.sentry_apps.tasks.sentry_apps.build_comment_webhook",
+      "ProcessingDeadlineExceeded: execution deadline of 5 seconds exceeded by sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2"
+    ],
+    "title": "Webhook tasks timeout from slow DNS/connection setup",
+    "description": "Sentry app webhook tasks are exceeding their 30-second processing deadline due to slow DNS resolution and connection establishment to external endpoints, compounded by retry attempts that consume the available time window.",
+    "tags": [
+      "Networking",
+      "External System",
+      "Timeout",
+      "DNS Resolution Failure",
+      "Processing Deadline Exceeded"
+    ],
+    "cluster_size": 8,
+    "cluster_min_similarity": 0.9318881845413834,
+    "cluster_avg_similarity": 0.9545797388639018
+  },
+  {
+    "cluster_id": 186,
+    "project_ids": [],
+    "group_ids": [6726781123, 6770882747, 6770882764, 6803878240],
+    "issue_titles": ["SentryAppSentryError: missing_servicehook"],
+    "title": "Sentry App webhook failures due to missing ServiceHook",
+    "description": "Sentry App installations are missing ServiceHook records needed for webhook delivery, likely due to race conditions during app updates or cache invalidation issues between CONTROL and REGION silos.",
+    "tags": [
+      "Queueing",
+      "Configuration",
+      "Caching",
+      "Missing Servicehook",
+      "Sentry Apps",
+      "Webhook Delivery"
+    ],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9494623661484034,
+    "cluster_avg_similarity": 0.9587032874294974
+  },
+  {
+    "cluster_id": 187,
+    "project_ids": [],
+    "group_ids": [6727293374, 6829650300, 6878201777],
+    "issue_titles": [
+      "SentryAppSentryError: workflow_notification.missing_installation",
+      "Group.DoesNotExist: Group matching query does not exist."
+    ],
+    "title": "Workflow tasks failing due to deleted group race condition",
+    "description": "Workflow notification and action tasks fail when attempting to process groups that were deleted during task queue delay, creating a race condition between async task execution and group lifecycle operations like merging or deletion.",
+    "tags": [
+      "Queueing",
+      "Concurrency",
+      "Data Integrity",
+      "Workflow Engine",
+      "Race Condition",
+      "Object Not Found"
+    ],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.952338480851187,
+    "cluster_avg_similarity": 0.9633635775510232
+  },
+  {
+    "cluster_id": 189,
+    "project_ids": [],
+    "group_ids": [6727719216, 6792702711],
+    "issue_titles": ["TimeoutException"],
+    "title": "Relay config build timeout from N+1 environment queries",
+    "description": "Project configuration generation is timing out due to N+1 database queries when accessing alert rule environments. The AlertRule query uses select_related for snuba_query but not snuba_query__environment, causing individual queries for each environment lookup.",
+    "tags": ["Database", "Configuration", "N+1 Query", "Timeout", "Relay"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9852348384885303,
+    "cluster_avg_similarity": 0.9852348384885303
+  },
+  {
+    "cluster_id": 195,
+    "project_ids": [],
+    "group_ids": [6734072355, 6910195059],
+    "issue_titles": [
+      "ApiInvalidRequestError: {\"error\":{\"code\":\"BadSyntax\",\"message\":\"Bad format of conversation ID\"}}"
+    ],
+    "title": "MS Teams API Bad Conversation ID format error",
+    "description": "Microsoft Teams integration is using the wrong Bot Framework API endpoint for channel listing, passing team IDs to an endpoint expecting conversation IDs.",
+    "tags": ["External System", "API", "Microsoft Teams", "Input Validation"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9604133291897344,
+    "cluster_avg_similarity": 0.9604133291897344
+  },
+  {
+    "cluster_id": 198,
+    "project_ids": [],
+    "group_ids": [6735138068, 6808813115, 6977602427, 7017777330],
+    "issue_titles": [
+      "TypeError: Interface.__init__() got multiple values for argument 'self'"
+    ],
+    "title": "Context deserialization fails with reserved keyword",
+    "description": "Event context data contains a 'self' key which conflicts with Python's reserved parameter name when unpacking as keyword arguments during interface deserialization.",
+    "tags": ["Serialization", "Input Validation", "Sentry", "Reserved Keyword Collision"],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.956514208687364,
+    "cluster_avg_similarity": 0.9667603150000038
+  },
+  {
+    "cluster_id": 199,
+    "project_ids": [],
+    "group_ids": [6735466651, 6822476809, 6962667051],
+    "issue_titles": [
+      "SlackApiError: The request to the Slack API failed. (url: https://www.slack.com/api/users.list)"
+    ],
+    "title": "Slack API rate limiting during user list pagination",
+    "description": "Multiple concurrent Slack user list requests with invalid parameters trigger rate limiting. The check_user_with_timeout function passes channel-specific parameters to users.list API, causing rapid pagination requests that exceed Slack's rate limits.",
+    "tags": ["External System", "API", "Rate Limiting", "Slack", "Pagination"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9499369145244667,
+    "cluster_avg_similarity": 0.9590996816188785
+  },
+  {
+    "cluster_id": 201,
+    "project_ids": [],
+    "group_ids": [6735587400, 6736085739],
+    "issue_titles": [
+      "TypeError: '<' not supported between instances of 'str' and 'float'",
+      "TypeError: '<' not supported between instances of 'float' and 'str'"
+    ],
+    "title": "Trace endpoint sorting fails on mixed data types",
+    "description": "The child_sort_key function returns incompatible types (floats vs strings) when sorting trace events, causing comparison failures during trace serialization in the organization events trace endpoint.",
+    "tags": ["API", "Serialization", "Data Integrity", "Type Error"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9716417782712709,
+    "cluster_avg_similarity": 0.9716417782712709
+  },
+  {
+    "cluster_id": 208,
+    "project_ids": [],
+    "group_ids": [6746445819, 6821164146],
+    "issue_titles": [
+      "InvalidQueryError: query must have at least one expression in select"
+    ],
+    "title": "SnQL query validation fails with empty select clause",
+    "description": "Cardinality check for on-demand metrics filters out all function columns, resulting in empty select clauses that fail Snuba SDK validation during widget processing.",
+    "tags": [
+      "Input Validation",
+      "API",
+      "Snuba SDK",
+      "Invalid Query",
+      "On Demand Metrics"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9773675283484587,
+    "cluster_avg_similarity": 0.9773675283484587
+  },
+  {
+    "cluster_id": 219,
+    "project_ids": [],
+    "group_ids": [6751424943, 6794331610],
+    "issue_titles": [
+      "ApiError: {\"message\":\"Request body is not processable. Please check the errors.\",\"errors\":{\"message\":\"Message can not be empty.\"},\"took\":0.0,\"requestId\":\"d05f1c43-ca96-4bd6-97d1-e80c183d7a67\"}",
+      "ApiError: {\"message\":\"Request body is not processable. Please check the errors.\",\"errors\":{\"message\":\"Message can not be empty.\"},\"took\":0.001,\"requestId\":\"b1d67713-333f-4f2a-8cea-504d6552e69d\"}"
+    ],
+    "title": "OpsGenie spike protection deactivation fails with 422",
+    "description": "The spike protection deactivation logic attempts to close OpsGenie alerts using the create endpoint instead of the proper close endpoint, causing API rejection due to missing required message field.",
+    "tags": [
+      "External System",
+      "API",
+      "Configuration",
+      "OpsGenie",
+      "Spike Protection",
+      "HTTP 422"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9736232006893433,
+    "cluster_avg_similarity": 0.9736232006893433
+  },
+  {
+    "cluster_id": 224,
+    "project_ids": [],
+    "group_ids": [6755588583, 6802532470],
+    "issue_titles": ["ObjectErrorUnknown: invalid MachO file"],
+    "title": "DIF assembly fails on large files due to offset overflow",
+    "description": "Files larger than 2GB fail assembly due to integer overflow in WrappingU32IntegerField, causing file chunks to be written to wrong offsets and corrupting the assembled debug file.",
+    "tags": [
+      "Data Integrity",
+      "Serialization",
+      "Debug Files",
+      "Integer Overflow",
+      "File Assembly"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9651980298140873,
+    "cluster_avg_similarity": 0.9651980298140873
+  },
+  {
+    "cluster_id": 228,
+    "project_ids": [],
+    "group_ids": [6760235161, 6767363302, 6883514139, 6902485333],
+    "issue_titles": [
+      "MissingSchema: Invalid URL '/sentry/issues?installationId=22974884-2be4-4c8b-a640-cc2826dd2205': No scheme supplied. Perhaps you meant https:///sentry/issues?installationId=22974884-2be4-4c8b-a640-cc2826dd2205?",
+      "InvalidSchema: No connection adapters were found for \"b''://b''/\"",
+      "MissingSchema: Invalid URL '': No scheme supplied. Perhaps you meant https://?"
+    ],
+    "title": "Sentry App requests fail due to missing webhook URL",
+    "description": "Internal Sentry Apps with dynamic form fields are attempting HTTP requests without configured webhook URLs, causing URL parsing to fail when building external API endpoints.",
+    "tags": [
+      "API",
+      "External System",
+      "Configuration",
+      "Sentry Apps",
+      "Missing Schema",
+      "URL Validation"
+    ],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9458966069700866,
+    "cluster_avg_similarity": 0.9588371000576155
+  },
+  {
+    "cluster_id": 233,
+    "project_ids": [],
+    "group_ids": [6761349855, 6909721758, 6925947524],
+    "issue_titles": [
+      "ValueError: AlertRuleWorkflow not found when querying for AlertRuleWorkflow",
+      "IncidentGroupOpenPeriod.DoesNotExist: IncidentGroupOpenPeriod matching query does not exist."
+    ],
+    "title": "Workflow engine actions failing on missing database records",
+    "description": "Notification actions are failing when trying to look up IncidentGroupOpenPeriod and AlertRuleWorkflow records that don't exist in the database, likely due to field name mismatches and timing issues between workflow creation and execution.",
+    "tags": [
+      "Database",
+      "Workflow Engine",
+      "Data Integrity",
+      "Record Not Found",
+      "Django ORM"
+    ],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9525487520694654,
+    "cluster_avg_similarity": 0.9634130296523223
+  },
+  {
+    "cluster_id": 234,
+    "project_ids": [],
+    "group_ids": [6761355450, 6792433167, 7005214134],
+    "issue_titles": [
+      "ValueError: IncidentGroupOpenPeriod does not exist",
+      "IncidentGroupOpenPeriod.DoesNotExist: IncidentGroupOpenPeriod matching query does not exist."
+    ],
+    "title": "Missing IncidentGroupOpenPeriod mapping for workflow alerts",
+    "description": "Workflow engine metric alert notifications fail when attempting to lookup IncidentGroupOpenPeriod relationships that were not created during metric issue ingestion, typically due to missing AlertRuleDetector mappings or other dual-write failures.",
+    "tags": ["Database", "Workflow Engine", "Data Integrity", "Django", "Missing Record"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9523842891983684,
+    "cluster_avg_similarity": 0.9610398159504147
+  },
+  {
+    "cluster_id": 242,
+    "project_ids": [],
+    "group_ids": [6776664595, 6794134248, 7013444713],
+    "issue_titles": [
+      "IntegrityError: insert or update on table \"sentry_groupemailthread\" violates foreign key constraint \"sentry_groupemailthr_group_id_4b988db2_fk_sentry_gr\""
+    ],
+    "title": "Foreign key violation creating email thread for deleted group",
+    "description": "Activity notifications are attempting to create GroupEmailThread records for groups that have already been deleted, creating a race condition between group deletion and async notification tasks.",
+    "tags": ["Database", "Concurrency", "Django", "Constraint Violation", "Async Tasks"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9711690190955822,
+    "cluster_avg_similarity": 0.9764801533432242
+  },
+  {
+    "cluster_id": 246,
+    "project_ids": [],
+    "group_ids": [6779047596, 6793990277],
+    "issue_titles": [
+      "RefreshError: ('Unable to acquire impersonated credentials', '{\\n  \"error\": {\\n    \"code\": 503,\\n    \"message\": \"The service is currently unavailable.\",\\n    \"status\": \"UNAVAILABLE\"\\n  }\\n}\\n')"
+    ],
+    "title": "GCP IAM token refresh fails during profile symbolication",
+    "description": "Profile symbolication fails when Google Cloud IAM credentials service returns 503 errors during token refresh for GCS symbol sources. The get_gcp_token() function lacks error handling for transient GCP service failures.",
+    "tags": [
+      "External System",
+      "Authentication",
+      "Google Cloud Platform",
+      "Profile Symbolication",
+      "Refresh Error"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9840597514264127,
+    "cluster_avg_similarity": 0.9840597514264127
+  },
+  {
+    "cluster_id": 249,
+    "project_ids": [],
+    "group_ids": [6784499232, 6784699410],
+    "issue_titles": ["OperationalError: canceling statement due to user request"],
+    "title": "PostgreSQL query cancellation in Django API endpoints",
+    "description": "Complex database queries with multiple joins and DISTINCT clauses are timing out and being cancelled by PostgreSQL, particularly in artifact bundles and releases endpoints when processing large datasets.",
+    "tags": ["Database", "API", "PostgreSQL", "Django", "Query Timeout"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9617046441761766,
+    "cluster_avg_similarity": 0.9617046441761766
+  },
+  {
+    "cluster_id": 251,
+    "project_ids": [],
+    "group_ids": [6784655200, 6985072459],
+    "issue_titles": ["OperationalError: canceling statement due to user request"],
+    "title": "Database query timeout in Django API endpoints",
+    "description": "PostgreSQL queries are being canceled due to statement timeouts, likely from expensive database operations that exceed configured timeout limits during high load conditions.",
+    "tags": ["Database", "API", "PostgreSQL", "Timeout", "Django"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.958843928841493,
+    "cluster_avg_similarity": 0.958843928841493
+  },
+  {
+    "cluster_id": 252,
+    "project_ids": [],
+    "group_ids": [
+      6784663532, 6785929252, 6788870342, 6794486651, 6804434396, 6981207149, 7006655649,
+      7006713356
+    ],
+    "issue_titles": [
+      "OperationalError: canceling statement due to user request",
+      "OperationalError: canceling statement due to statement timeout"
+    ],
+    "title": "Django API request timeout during database operations",
+    "description": "Multiple Django API endpoints are experiencing database query cancellations due to missing or inefficient database indexes, causing statement timeouts during request processing.",
+    "tags": ["Database", "API", "Django", "PostgreSQL", "Statement Timeout"],
+    "cluster_size": 8,
+    "cluster_min_similarity": 0.9278679361590415,
+    "cluster_avg_similarity": 0.9503418201691028
+  },
+  {
+    "cluster_id": 257,
+    "project_ids": [],
+    "group_ids": [6785082756, 6796801422, 6817439707, 6952385461, 6995480460, 7001013083],
+    "issue_titles": [
+      "IntegrityError: duplicate key value violates unique constraint \"auth_user_username_key\"",
+      "IntegrityError: duplicate key value violates unique constraint \"sentry_preprodartifactsi_organization_id_head_siz_ee2086a2_uniq\"",
+      "IncidentGroupOpenPeriod.DoesNotExist: IncidentGroupOpenPeriod matching query does not exist.",
+      "IntegrityError: duplicate key value violates unique constraint \"sentry_commit_repository_id_key_7f948336_uniq\"",
+      "IntegrityError: duplicate key value violates unique constraint \"unique_alert_rule_user\""
+    ],
+    "title": "Django model DoesNotExist exceptions across multiple handlers",
+    "description": "Multiple Django model queries are failing to find expected records, triggering DoesNotExist exceptions in different parts of the system including commit context processing, rule snooze operations, and incident group open period management.",
+    "tags": ["Database", "Concurrency", "Django", "Record Not Found"],
+    "cluster_size": 6,
+    "cluster_min_similarity": 0.9300150689835716,
+    "cluster_avg_similarity": 0.9510998063281358
+  },
+  {
+    "cluster_id": 260,
+    "project_ids": [],
+    "group_ids": [6785481558, 6840017482],
+    "issue_titles": ["OperationalError: canceling statement due to statement timeout"],
+    "title": "PostgreSQL timeout during project counter upsert",
+    "description": "UPSERT operations on sentry_projectcounter are timing out during index maintenance due to high concurrency and an overly aggressive 500-1000ms statement timeout.",
+    "tags": ["Database", "Concurrency", "PostgreSQL", "Timeout", "Index Maintenance"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9876814953970539,
+    "cluster_avg_similarity": 0.9876814953970539
+  },
+  {
+    "cluster_id": 263,
+    "project_ids": [],
+    "group_ids": [6785953293, 6981421015],
+    "issue_titles": ["OperationalError: canceling statement due to user request"],
+    "title": "SIGALRM deadline interrupting PostgreSQL UPDATE queries",
+    "description": "Task processing deadline enforcement using SIGALRM signals is interrupting active database UPDATE operations mid-execution, causing PostgreSQL to report 'canceling statement due to user request' when the signal interrupts the system call during tuple rechecking.",
+    "tags": [
+      "Database",
+      "Concurrency",
+      "PostgreSQL",
+      "Signal Handling",
+      "Processing Timeout"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9577293215450483,
+    "cluster_avg_similarity": 0.9577293215450483
+  },
+  {
+    "cluster_id": 264,
+    "project_ids": [],
+    "group_ids": [
+      6788281975, 6802471392, 6802471399, 6802471409, 6820659301, 6878624669, 7015573042
+    ],
+    "issue_titles": ["OperationalError: canceling statement due to statement timeout"],
+    "title": "PostgreSQL timeout in organization events API",
+    "description": "The organization events API is experiencing PostgreSQL statement timeouts when resolving release:\"latest\" filters. The query executes expensive window functions over large joined result sets from the sentry_release and sentry_release_project tables.",
+    "tags": ["Database", "API", "PostgreSQL", "Timeout"],
+    "cluster_size": 7,
+    "cluster_min_similarity": 0.9451413973830023,
+    "cluster_avg_similarity": 0.9654769095131102
+  },
+  {
+    "cluster_id": 269,
+    "project_ids": [],
+    "group_ids": [6790978785, 6993631144, 6998456211, 7006590963, 7006591206, 7013410795],
+    "issue_titles": [
+      "OperationalError: canceling statement due to user request",
+      "RetryError"
+    ],
+    "title": "Task processing deadline timeout during deletion",
+    "description": "Database operations are being cancelled when long-running deletion tasks exceed their 10-minute processing deadline. The SIGALRM signal handler interrupts queries mid-execution, causing PostgreSQL to cancel statements.",
+    "tags": [
+      "Database",
+      "Queueing",
+      "Resource Limits",
+      "PostgreSQL",
+      "Timeout",
+      "Query Cancellation"
+    ],
+    "cluster_size": 6,
+    "cluster_min_similarity": 0.9493003576575375,
+    "cluster_avg_similarity": 0.9611226912238849
+  },
+  {
+    "cluster_id": 273,
+    "project_ids": [],
+    "group_ids": [6792293637, 7017568711],
+    "issue_titles": [
+      "ProcessingDeadlineExceeded: execution deadline of 905 seconds exceeded by sentry.tasks.commits.fetch_commits"
+    ],
+    "title": "Git commit fetch task deadline exceeded from API calls",
+    "description": "The fetch_commits task exceeded its 905-second deadline due to sequential API calls to GitLab and Bitbucket to fetch individual commit diffs, creating an N+1 problem that accumulates time with large commit histories.",
+    "tags": [
+      "External System",
+      "API",
+      "Timeout",
+      "GitLab",
+      "Bitbucket",
+      "Processing Deadline Exceeded"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9705168580946701,
+    "cluster_avg_similarity": 0.9705168580946701
+  },
+  {
+    "cluster_id": 296,
+    "project_ids": [],
+    "group_ids": [6792379115, 6794440815, 6794593956, 6807139069],
+    "issue_titles": [
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ConcurrentRateLimitAllocationPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 19 exceeds limit of 18', 'overrides': {}, 'storage_key': 'e...",
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ConcurrentRateLimitAllocationPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 23 exceeds limit of 22', 'overrides': {}, 'storage_key': 'e..."
+    ],
+    "title": "Snuba rate limit exceeded during Group serialization",
+    "description": "Group serialization for Sentry App webhooks triggers expensive Snuba queries for user stats unnecessarily. Multiple concurrent webhook tasks exceed the 22 concurrent query limit when serializing Groups without stats collapse optimization.",
+    "tags": ["Rate Limiting", "Database", "API", "Serialization", "Snuba", "Concurrency"],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9664072552259338,
+    "cluster_avg_similarity": 0.9736871128565799
+  },
+  {
+    "cluster_id": 275,
+    "project_ids": [],
+    "group_ids": [6792433102, 6921408379, 7016144644],
+    "issue_titles": [
+      "IncidentGroupOpenPeriod.DoesNotExist: IncidentGroupOpenPeriod matching query does not exist."
+    ],
+    "title": "IncidentGroupOpenPeriod missing during metric alert",
+    "description": "Metric alert notifications fail when serializing incident data because the expected IncidentGroupOpenPeriod relationship was never created during issue ingestion, causing a DoesNotExist exception in the workflow engine serializer.",
+    "tags": [
+      "Database",
+      "Workflow Engine",
+      "Serialization",
+      "Data Integrity",
+      "Django",
+      "Object Not Found"
+    ],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9628085046354609,
+    "cluster_avg_similarity": 0.9719167384167191
+  },
+  {
+    "cluster_id": 278,
+    "project_ids": [],
+    "group_ids": [6792744388, 6794669443],
+    "issue_titles": [
+      "UnableToAcquireLock: Unable to acquire <Lock: 'queue_comment_task:195257599'> due to error: Could not set key: 'l:queue_comment_task:195257599'",
+      "RetryException: Could not successfully execute <bound method Lock.acquire of <Lock: 'deploy-notify:94226451'>> within 9.937 seconds (98 attempts.)"
+    ],
+    "title": "Redis lock acquisition fails on success due to type check",
+    "description": "Redis SET command returns 'OK' string on success, but the lock backend checks for boolean True identity, causing successful lock acquisitions to fail and preventing proper lock release.",
+    "tags": ["Caching", "Concurrency", "Redis", "Type Mismatch"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9693083348225214,
+    "cluster_avg_similarity": 0.9693083348225214
+  },
+  {
+    "cluster_id": 279,
+    "project_ids": [],
+    "group_ids": [6792831416, 6953959701, 6954258870, 6978590335, 7008868960],
+    "issue_titles": [
+      "BadGateway: POST https://storage.googleapis.com/upload/storage/v1/b/sentryio-profiles/o?uploadType=multipart: <!DOCTYPE html>",
+      "InternalServerError: POST https://storage.googleapis.com/upload/storage/v1/b/sentry-replays/o?uploadType=multipart: {",
+      "BadGateway: POST https://storage.googleapis.com/upload/storage/v1/b/sentry-replays/o?uploadType=multipart: <!DOCTYPE html>",
+      "TooManyRequests: POST https://storage.googleapis.com/upload/storage/v1/b/sentryio-profiles/o?uploadType=multipart: {"
+    ],
+    "title": "GCS upload failures from invalid response errors",
+    "description": "Profile and replay processing tasks are failing to upload to Google Cloud Storage due to BadGateway and other HTTP errors that are not included in the retryable errors list, causing immediate failure instead of retry with backoff.",
+    "tags": ["External System", "Storage", "Google Cloud Storage", "Invalid Response"],
+    "cluster_size": 5,
+    "cluster_min_similarity": 0.9409114871430401,
+    "cluster_avg_similarity": 0.9565908784993411
+  },
+  {
+    "cluster_id": 282,
+    "project_ids": [],
+    "group_ids": [6792981820, 6793448323, 6808030692],
+    "issue_titles": [
+      "ValueError: Not a valid response type: <!DOCTYPE html>",
+      "UnsupportedResponseType: text/html; charset=utf-8"
+    ],
+    "title": "GitLab API returns HTML instead of JSON for blame requests",
+    "description": "GitLab API is returning HTML pages with HTTP 200 status instead of expected JSON responses when fetching file blame data, particularly for static assets like minified JavaScript files.",
+    "tags": ["External System", "API", "GitLab", "Content Negotiation", "Serialization"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9470747399217447,
+    "cluster_avg_similarity": 0.9561532228357431
+  },
+  {
+    "cluster_id": 295,
+    "project_ids": [],
+    "group_ids": [6794396340, 6840907073, 6919117994, 6919117996],
+    "issue_titles": [
+      "RetryError",
+      "ApiError: {\"errorMessages\":[\"Issue does not exist or you do not have permission to see it.\"],\"errors\":{}}"
+    ],
+    "title": "Jira integration fails fetching newly created ticket",
+    "description": "Issue creation succeeds with 201 status, but immediate retrieval fails with 404 due to Jira Cloud's eventual consistency - the ticket hasn't been indexed yet when Sentry tries to fetch it.",
+    "tags": ["External System", "API", "Jira", "Eventual Consistency", "Race Condition"],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9630939194490388,
+    "cluster_avg_similarity": 0.9726809644574642
+  },
+  {
+    "cluster_id": 298,
+    "project_ids": [],
+    "group_ids": [
+      6794677726, 6794677909, 6812355657, 6871496144, 6926399632, 7002396288, 7016735138
+    ],
+    "issue_titles": [
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ConcurrentRateLimitAllocationPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 19 exceeds limit of 18', 'overrides': {}, 'storage_key': 'e...",
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ReferrerGuardRailPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 101 exceeds limit of 100', 'policy': 'referrer_guard_rail_policy', 'ref...",
+      "RateLimitExceeded: Query on could not be run due to allocation policies, info: {'details': {'ReferrerGuardRailPolicy': {'can_run': False, 'max_threads': 0, 'explanation': {'reason': 'concurrent policy 51 exceeds limit of 50', 'policy': 'referrer_guard_rail_policy', 'refer..."
+    ],
+    "title": "Snuba rate limit exceeded during Slack notifications",
+    "description": "Multiple concurrent workflow engine actions are triggering individual Snuba queries when building Slack notification messages, specifically when checking for replays in the message footer, causing the concurrent query limit to be exceeded.",
+    "tags": ["Rate Limiting", "External System", "Concurrency", "Snuba", "Slack"],
+    "cluster_size": 7,
+    "cluster_min_similarity": 0.9428889068199953,
+    "cluster_avg_similarity": 0.9605934469715367
+  },
+  {
+    "cluster_id": 300,
+    "project_ids": [],
+    "group_ids": [6794694732, 7001687475, 7003153053],
+    "issue_titles": [
+      "ProcessingDeadlineExceeded: execution deadline of 5 seconds exceeded by sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook"
+    ],
+    "title": "Webhook task timeout from insufficient processing deadline",
+    "description": "The send_resource_change_webhook task has a 5-second processing deadline but requires RPC calls with 10-second timeouts plus database cache lookups, causing inevitable timeouts when cache misses occur.",
+    "tags": [
+      "Resource Limits",
+      "Configuration",
+      "RPC",
+      "Database",
+      "Caching",
+      "Processing Deadline Exceeded"
+    ],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9457946019339236,
+    "cluster_avg_similarity": 0.9584949727248301
+  },
+  {
+    "cluster_id": 301,
+    "project_ids": [],
+    "group_ids": [6794696235, 6805650979, 6812555129, 6812555527, 6963187972],
+    "issue_titles": ["OperationalError: server closed the connection unexpectedly"],
+    "title": "Database connection failures in taskworker processes",
+    "description": "PostgreSQL connections are unexpectedly closed during task execution in multiprocessing worker processes, affecting both main queries and prefetch operations. Connection retry logic fails under heavy load or persistent connectivity issues.",
+    "tags": [
+      "Database",
+      "Concurrency",
+      "PostgreSQL",
+      "Connection Reset",
+      "Multiprocessing"
+    ],
+    "cluster_size": 5,
+    "cluster_min_similarity": 0.9341607291513119,
+    "cluster_avg_similarity": 0.950066071829705
+  },
+  {
+    "cluster_id": 305,
+    "project_ids": [],
+    "group_ids": [6796277129, 6813041841, 6959752599],
+    "issue_titles": [
+      "OSError: Project was not passed and could not be determined from the environment."
+    ],
+    "title": "BigtableKVStorage missing project ID in worker process",
+    "description": "BigtableKVStorage initialization fails in taskworker child processes because the project parameter is None and cannot be determined from the environment when the Compute Engine Metadata server is unavailable.",
+    "tags": [
+      "External System",
+      "Configuration",
+      "Concurrency",
+      "Google Cloud Bigtable",
+      "Multiprocessing",
+      "Missing Project ID"
+    ],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9597013409205517,
+    "cluster_avg_similarity": 0.9653090780600841
+  },
+  {
+    "cluster_id": 323,
+    "project_ids": [],
+    "group_ids": [6799839824, 6799839828],
+    "issue_titles": [
+      "OutboxDatabaseError: Failed to process Outbox, PROJECT_UPDATE due to database error",
+      "OutboxDatabaseError: Failed to process Outbox, TEAM_UPDATE due to database error"
+    ],
+    "title": "Task deadline timeout during outbox drain commit hook",
+    "description": "The run_deletion task's 20-minute processing deadline expires while executing the outbox drain_shard() method in Django's on_commit hook, causing PostgreSQL to cancel the SELECT FOR UPDATE query mid-execution.",
+    "tags": ["Database", "Concurrency", "PostgreSQL", "Timeout", "Query Canceled"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9656936660014659,
+    "cluster_avg_similarity": 0.9656936660014659
+  },
+  {
+    "cluster_id": 324,
+    "project_ids": [],
+    "group_ids": [6800481587, 6830730446],
+    "issue_titles": [
+      "ProcessingDeadlineExceeded: execution deadline of 600 seconds exceeded by sentry.tasks.summaries.weekly_reports.prepare_organization_report"
+    ],
+    "title": "Weekly report task timeout on silo RPC calls",
+    "description": "Weekly report preparation exceeds 600-second deadline due to expensive Snuba queries followed by per-user RPC calls to fetch timezone data. Task spends most of its deadline on context creation, leaving insufficient time for report delivery.",
+    "tags": ["External System", "Resource Limits", "API", "Silo RPC", "Timeout"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9636787715470109,
+    "cluster_avg_similarity": 0.9636787715470109
+  },
+  {
+    "cluster_id": 332,
+    "project_ids": [],
+    "group_ids": [6802436605, 6806371192],
+    "issue_titles": [
+      "ProcessingDeadlineExceeded: execution deadline of 10 seconds exceeded by sentry.sentry_apps.tasks.sentry_apps.workflow_notification"
+    ],
+    "title": "Workflow notification task timeout during cache access",
+    "description": "The workflow_notification task is timing out after 10 seconds because it lacks an explicit processing_deadline_duration and defaults to 10 seconds, which is insufficient for serialization and RPC operations that include cache access.",
+    "tags": ["Caching", "Configuration", "Resource Limits", "Memcached", "Timeout"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9588482937188549,
+    "cluster_avg_similarity": 0.9588482937188549
+  },
+  {
+    "cluster_id": 333,
+    "project_ids": [],
+    "group_ids": [6802448656, 7004754177],
+    "issue_titles": [
+      "OutboxDatabaseError: Failed to process Outbox, ORGANIZATION_MEMBER_UPDATE due to database error",
+      "OutboxDatabaseError: Failed to process Outbox, TEAM_UPDATE due to database error"
+    ],
+    "title": "Sentry outbox processing fails on query cancellation",
+    "description": "The outbox drain process is not handling QueryCanceled exceptions during SELECT...FOR UPDATE operations, causing OutboxDatabaseError when statement timeouts occur during team creation.",
+    "tags": [
+      "Database",
+      "Concurrency",
+      "Django",
+      "PostgreSQL",
+      "Query Canceled",
+      "Outbox Processing"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9634562366029644,
+    "cluster_avg_similarity": 0.9634562366029644
+  },
+  {
+    "cluster_id": 339,
+    "project_ids": [],
+    "group_ids": [6804142086, 6804142087, 6804142097, 6804142103, 6804142109],
+    "issue_titles": ["OperationalError: canceling statement due to lock timeout"],
+    "title": "PostgreSQL lock timeout on webhook payload replica reads",
+    "description": "Task workers reading from replica database are experiencing lock timeouts due to replication lag and lock contention from concurrent write operations on the primary database.",
+    "tags": ["Database", "Concurrency", "PostgreSQL", "Lock Timeout", "Replica Lag"],
+    "cluster_size": 5,
+    "cluster_min_similarity": 0.9524137957840089,
+    "cluster_avg_similarity": 0.9651868403492928
+  },
+  {
+    "cluster_id": 344,
+    "project_ids": [],
+    "group_ids": [6805787930, 6843049813],
+    "issue_titles": [
+      "SentryAppSentryError: missing_installation",
+      "SentryAppSentryError: workflow_notification.missing_installation"
+    ],
+    "title": "Webhook task fails on deleted Sentry App installation",
+    "description": "Queued webhook tasks are failing because Sentry App installations are deleted between task enqueue and execution, causing installation lookup to return None when the task tries to send the webhook.",
+    "tags": [
+      "External System",
+      "Concurrency",
+      "Queueing",
+      "Cache Invalidation",
+      "Race Condition"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9657959157233039,
+    "cluster_avg_similarity": 0.9657959157233039
+  },
+  {
+    "cluster_id": 346,
+    "project_ids": [],
+    "group_ids": [6805924070, 6810188157, 6949465777],
+    "issue_titles": [
+      "ApiError: {\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/issues/comments#create-an-issue-comment\",\"status\":\"404\"}",
+      "ApiError: {\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/issues/comments#update-an-issue-comment\",\"status\":\"404\"}",
+      "IntegrationError: There was an error creating a comment on the Jira issue."
+    ],
+    "title": "GitHub/Jira integration HTTP 404 from stale external refs",
+    "description": "External integration tasks are failing with 404 errors when attempting to sync comments to GitHub PRs or Jira issues that no longer exist or are inaccessible due to stale database references.",
+    "tags": ["External System", "API", "Data Integrity", "GitHub", "Jira", "HTTP 404"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9498488556933244,
+    "cluster_avg_similarity": 0.95513339142513
+  },
+  {
+    "cluster_id": 348,
+    "project_ids": [],
+    "group_ids": [6808438570, 6808438637, 6899646185, 6899646239, 6921817834, 6998468433],
+    "issue_titles": ["OperationalError: server closed the connection unexpectedly"],
+    "title": "PostgreSQL connection drops during region resolution",
+    "description": "Database connections are being closed unexpectedly during organization region resolution queries, causing RPC calls from control silo to fail even after reconnection attempts.",
+    "tags": [
+      "Database",
+      "Networking",
+      "External System",
+      "PostgreSQL",
+      "Connection Reset",
+      "Retries Exhausted"
+    ],
+    "cluster_size": 6,
+    "cluster_min_similarity": 0.9489991371621228,
+    "cluster_avg_similarity": 0.9656401190592067
+  },
+  {
+    "cluster_id": 349,
+    "project_ids": [],
+    "group_ids": [6808438571, 6808438597],
+    "issue_titles": ["OperationalError: server closed the connection unexpectedly"],
+    "title": "Django database connection failures during PostgreSQL query execution",
+    "description": "PostgreSQL connections are being unexpectedly closed during query execution, with automatic retry mechanisms also failing, indicating persistent database infrastructure instability affecting both initial and retry connections.",
+    "tags": ["Database", "Networking", "PostgreSQL", "Connection Reset", "Django"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9696842070719036,
+    "cluster_avg_similarity": 0.9696842070719036
+  },
+  {
+    "cluster_id": 352,
+    "project_ids": [],
+    "group_ids": [6809113966, 7013115455],
+    "issue_titles": ["TypeError: 'NoneType' object is not iterable"],
+    "title": "Email notification fails on null HTTP query string",
+    "description": "The safe_urlencode utility function crashes when processing email notifications for events with null query strings, as it doesn't handle None input despite its defensive programming purpose.",
+    "tags": [
+      "Serialization",
+      "Input Validation",
+      "Email Notification",
+      "HTTP Interface",
+      "Null Handling"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9762093031210511,
+    "cluster_avg_similarity": 0.9762093031210511
+  },
+  {
+    "cluster_id": 354,
+    "project_ids": [],
+    "group_ids": [6810382376, 6815823965],
+    "issue_titles": ["MarketoError: Max rate limit '100' exceeded with in '20' secs"],
+    "title": "Marketo API rate limit exceeded due to token caching issue",
+    "description": "MarketoClient retrieves a new OAuth token for every lead submission instead of caching tokens, causing 2 API calls per lead and exceeding the 100 requests per 20 seconds rate limit.",
+    "tags": ["External System", "Rate Limiting", "API", "Marketo", "Caching"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9782749682249097,
+    "cluster_avg_similarity": 0.9782749682249097
+  },
+  {
+    "cluster_id": 356,
+    "project_ids": [],
+    "group_ids": [6811805905, 6819072135],
+    "issue_titles": [
+      "TypeError: '>=' not supported between instances of 'datetime.datetime' and 'str'",
+      "TypeError: '>' not supported between instances of 'datetime.datetime' and 'str'"
+    ],
+    "title": "Type mismatch in GroupResolution date comparison",
+    "description": "The GroupResolution.has_resolution() method is attempting to compare a datetime object with a string value when checking release dates. This occurs because Django's values_list() returns raw database values as strings rather than deserialized datetime objects.",
+    "tags": ["Database", "Data Integrity", "Serialization", "Django ORM", "Type Error"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9580938228510805,
+    "cluster_avg_similarity": 0.9580938228510805
+  },
+  {
+    "cluster_id": 359,
+    "project_ids": [],
+    "group_ids": [6814735066, 6816419490, 6999379183, 7010064041],
+    "issue_titles": ["OperationalError: deadlock detected"],
+    "title": "PostgreSQL deadlock in task worker child processes",
+    "description": "Multiple concurrent task worker processes are executing database operations that acquire locks in different orders, causing circular wait conditions and deadlock detection in PostgreSQL.",
+    "tags": ["Database", "Concurrency", "PostgreSQL", "Multiprocessing", "Deadlock"],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9359171390257366,
+    "cluster_avg_similarity": 0.9559339627177795
+  },
+  {
+    "cluster_id": 376,
+    "project_ids": [],
+    "group_ids": [6835170630, 6901424352, 6901427818, 6901443207],
+    "issue_titles": [
+      "SnubaError: HTTPConnectionPool(host='snuba-api', port=80): Max retries exceeded with url: /events/snql (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f18d4466d50>: Failed to establish a new connection: [Errno 111] Connection refused'))",
+      "SnubaError: HTTPConnectionPool(host='snuba-api', port=80): Max retries exceeded with url: /events/snql (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x783f445071d0>: Failed to establish a new connection: [Errno 111] Connection refused'))",
+      "SnubaError: HTTPConnectionPool(host='snuba-api', port=80): Max retries exceeded with url: /events/snql (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7c37b4518b90>: Failed to establish a new connection: [Errno 111] Connection refused'))",
+      "SnubaError: HTTPConnectionPool(host='snuba-api', port=80): Max retries exceeded with url: /events/snql (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7df964289d90>: Failed to establish a new connection: [Errno 111] Connection refused'))"
+    ],
+    "title": "Snuba connection failure during snooze validation",
+    "description": "Post-processing pipeline fails when validating frequency-based snooze conditions due to Snuba API being unreachable. The process_snoozes step unconditionally queries Snuba during event processing with no fallback mechanism.",
+    "tags": [
+      "Networking",
+      "External System",
+      "Connection Reset",
+      "Snuba",
+      "Post Processing"
+    ],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9432444370081174,
+    "cluster_avg_similarity": 0.9537696020659195
+  },
+  {
+    "cluster_id": 378,
+    "project_ids": [],
+    "group_ids": [6837427063, 7015717611, 7016003682, 7016549063],
+    "issue_titles": ["AssertionError"],
+    "title": "Slack notification fails on legacy rules missing workflow_id",
+    "description": "Rules created before the workflow-engine-ui feature was enabled lack the required workflow_id field in their action data, causing assertion failures when the organization has the feature flag enabled.",
+    "tags": [
+      "External System",
+      "Configuration",
+      "Slack",
+      "Assertion Error",
+      "Legacy Migration"
+    ],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9716736131615269,
+    "cluster_avg_similarity": 0.9774717458802162
+  },
+  {
+    "cluster_id": 381,
+    "project_ids": [],
+    "group_ids": [6842147424, 6944112625, 7009697487],
+    "issue_titles": ["UnqualifiedQueryError: Not a valid UUID string"],
+    "title": "Invalid UUID format in Snuba query validation",
+    "description": "API queries are passing malformed UUID values to Snuba columns that expect valid UUID format, causing validation failures. The input validation layer accepts invalid UUID strings before they reach Snuba's type checking.",
+    "tags": ["Input Validation", "API", "Database", "Snuba", "UUID Format Error"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9462169946515151,
+    "cluster_avg_similarity": 0.9544577638103431
+  },
+  {
+    "cluster_id": 382,
+    "project_ids": [],
+    "group_ids": [6843137165, 6849449543, 6885478841, 6889167490, 6998468437, 7016295924],
+    "issue_titles": [
+      "OperationalError: server closed the connection unexpectedly",
+      "OperationalError: canceling statement due to user request"
+    ],
+    "title": "PostgreSQL connection failures in multiprocessing workers",
+    "description": "Child processes inherit invalid database connections from parent processes, causing connection failures when the inherited connections are stale or closed on the server side.",
+    "tags": ["Database", "Concurrency", "PostgreSQL", "Connection Reset"],
+    "cluster_size": 6,
+    "cluster_min_similarity": 0.9485936927453092,
+    "cluster_avg_similarity": 0.9635002717336626
+  },
+  {
+    "cluster_id": 385,
+    "project_ids": [],
+    "group_ids": [6844544983, 6852547059, 7015139120],
+    "issue_titles": [
+      "QueryExecutionError: DB::Exception: Element of set in IN, VALUES, or LIMIT, or aggregate function parameter, or a table function argument is not a constant expression (result column not found): tuple(): While processing ((project_id AS _snuba_project_id) IN tuple(4508051820...",
+      "QueryExecutionError: DB::Exception: Function tuple requires at least one argument.: While processing tuple(): While processing ((project_id AS _snuba_project_id) IN tuple(6383588)) AND ((deleted = 0) AND ((timestamp AS _snuba_timestamp) >= toDateTime('2025-11-03T22:03:37', ...",
+      "QueryExecutionError: DB::Exception: Function tuple requires at least one argument.: While processing tuple(): While processing ((project_id AS _snuba_project_id) IN (4507803123449856, 4507859926319104, 4509802447765504, 4507691670044672, 4508755459244033)) AND ((deleted = 0..."
+    ],
+    "title": "ClickHouse tuple() error from empty group_id filter",
+    "description": "When searching by issue.id with non-existent group IDs, the system creates empty group_id IN conditions that translate to tuple() calls in ClickHouse, which requires at least one argument.",
+    "tags": ["Database", "Input Validation", "ClickHouse", "Query Execution Error"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9605875155190485,
+    "cluster_avg_similarity": 0.9635845720485744
+  },
+  {
+    "cluster_id": 388,
+    "project_ids": [],
+    "group_ids": [6849955923, 6999733631],
+    "issue_titles": [
+      "TypeError: '<' not supported between instances of 'TrendBundle' and 'TrendBundle'"
+    ],
+    "title": "TrendBundle comparison error in statistical detector heap",
+    "description": "The statistical detector's heap-based rate limiting fails when multiple TrendBundle instances have identical scores, as TrendBundle doesn't implement comparison operators required by heapq.",
+    "tags": ["Data Integrity", "Serialization", "Heap Operations", "Comparison Error"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9653455881317903,
+    "cluster_avg_similarity": 0.9653455881317903
+  },
+  {
+    "cluster_id": 395,
+    "project_ids": [],
+    "group_ids": [6868855969, 6906573727, 6985440733],
+    "issue_titles": [
+      "ApiForbiddenError: {\"message\":\"403 Forbidden - Your account has been blocked.\"}",
+      "ApiForbiddenError: <html>"
+    ],
+    "title": "GitLab integration account blocked causing API failures",
+    "description": "The GitLab API is returning 403 Forbidden with 'Your account has been blocked' error when trying to fetch repositories. This occurs both in direct API calls and through the integration proxy, indicating the GitLab account associated with the integration credentials is blocked or has been restricted.",
+    "tags": ["External System", "API", "Authorization", "GitLab", "Account Blocked"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9376318953783103,
+    "cluster_avg_similarity": 0.9495862354896739
+  },
+  {
+    "cluster_id": 398,
+    "project_ids": [],
+    "group_ids": [6868949389, 7016793496],
+    "issue_titles": [
+      "ApiForbiddenError: {\"error\":{\"code\":\"ConversationBlockedByUser\",\"message\":\"User blocked the conversation with the bot.\"}}"
+    ],
+    "title": "MS Teams notification failed - user blocked bot",
+    "description": "Microsoft Teams notification delivery failed because the user blocked the conversation with the bot. The system catches this 403 error but doesn't distinguish it from transient failures, potentially causing inaccurate delivery metrics.",
+    "tags": ["External System", "API", "Microsoft Teams", "User Blocked Bot"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9719820653396007,
+    "cluster_avg_similarity": 0.9719820653396007
+  },
+  {
+    "cluster_id": 403,
+    "project_ids": [],
+    "group_ids": [6869438488, 6997235255, 6999665229],
+    "issue_titles": ["ValueError: Sentry app config must contain name and value keys"],
+    "title": "Sentry app config validation rejects list values",
+    "description": "The SentryAppFormConfigDataBlob validation only accepts string/int/null values but legitimate form fields like assignee_ids contain lists, causing workflow engine actions to fail during rule processing.",
+    "tags": [
+      "Input Validation",
+      "Configuration",
+      "Workflow Engine",
+      "Sentry Apps",
+      "Schema Mismatch"
+    ],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9736877539453218,
+    "cluster_avg_similarity": 0.9776543455487038
+  },
+  {
+    "cluster_id": 408,
+    "project_ids": [],
+    "group_ids": [6870676475, 6998613319],
+    "issue_titles": ["ApiForbiddenError: {"],
+    "title": "GitHub API secondary rate limit errors in commit context",
+    "description": "GitHub secondary rate limits are returning 403 Forbidden responses that aren't properly distinguished from permission errors, causing commit context processing tasks to fail without appropriate retry logic.",
+    "tags": ["External System", "API", "Rate Limiting", "GitHub", "Secondary Rate Limit"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9573494505689466,
+    "cluster_avg_similarity": 0.9573494505689466
+  },
+  {
+    "cluster_id": 417,
+    "project_ids": [],
+    "group_ids": [6878754930, 6990914635],
+    "issue_titles": [
+      "IntegrityError: update or delete on table \"workflow_engine_action\" violates foreign key constraint \"workflow_engine_work_action_id_b4d629d5_fk_workflow_\" on table \"workflow_engine_workflowactiongroupstatus\"",
+      "IntegrityError: update or delete on table \"sentry_monitorcheckin\" violates foreign key constraint \"sentry_monitorincide_resolving_checkin_id_9b2daf6a_fk_sentry_mo\" on table \"sentry_monitorincident\""
+    ],
+    "title": "Database foreign key violation in workflow cleanup",
+    "description": "WorkflowActionGroupStatus records still reference Action records during deletion, causing foreign key constraint violations when the cleanup process attempts to delete actions.",
+    "tags": ["Database", "Data Integrity", "Constraint Violation", "Workflow Engine"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9627527534976599,
+    "cluster_avg_similarity": 0.9627527534976599
+  },
+  {
+    "cluster_id": 418,
+    "project_ids": [],
+    "group_ids": [6878894731, 7014853776],
+    "issue_titles": ["Group.DoesNotExist: Group matching query does not exist."],
+    "title": "Group reprocessing task fails on missing destination",
+    "description": "Task workers unable to retrieve Group objects during reprocessing and unmerge operations due to database visibility issues or concurrent deletion between task executions.",
+    "tags": ["Database", "Concurrency", "Task Processing", "Django", "Object Not Found"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9639275757686085,
+    "cluster_avg_similarity": 0.9639275757686085
+  },
+  {
+    "cluster_id": 425,
+    "project_ids": [],
+    "group_ids": [6881702098, 6960468424, 7017436380],
+    "issue_titles": ["ApiError"],
+    "title": "HTTP 520/503 errors not handled in SCM stacktrace link",
+    "description": "Server errors from external SCM APIs (Bitbucket, GitLab) during stacktrace link resolution are not gracefully handled, causing the entire endpoint to fail instead of returning without a link.",
+    "tags": ["External System", "API", "Upstream Unavailable", "Bitbucket", "GitLab"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9450306125365231,
+    "cluster_avg_similarity": 0.9507725459218914
+  },
+  {
+    "cluster_id": 429,
+    "project_ids": [],
+    "group_ids": [6882704723, 6969839844],
+    "issue_titles": [
+      "ProcessingDeadlineExceeded: execution deadline of 30 seconds exceeded by sentry.workflow_engine.tasks.trigger_action",
+      "ApiRateLimitedError: <!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\"><title>Oops - an error has occurred</title><link type='text/css' rel='stylesheet' href='/static-assets/metal-all.css' media='all'><script src..."
+    ],
+    "title": "Jira integration timeout from rate limit during ticket fetch",
+    "description": "After successfully creating a Jira ticket, the immediate fetch of the created issue triggers rate limiting (429 responses), causing retries to exhaust the 30-second task processing deadline.",
+    "tags": ["External System", "Rate Limiting", "Timeout", "Jira", "HTTP 429"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9569783336087322,
+    "cluster_avg_similarity": 0.9569783336087322
+  },
+  {
+    "cluster_id": 431,
+    "project_ids": [],
+    "group_ids": [6883115329, 6884759563, 6886352273],
+    "issue_titles": ["KeyError: <ExternalProviders.MSTEAMS: 120>"],
+    "title": "MSTEAMS notification handler not registered in taskworker",
+    "description": "MS Teams notification handler module is not imported during taskworker initialization, causing KeyError when dispatching notifications to users with MS Teams preferences.",
+    "tags": ["Configuration", "Queueing", "Messaging", "Import Registration"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9423578847381988,
+    "cluster_avg_similarity": 0.9557150247287686
+  },
+  {
+    "cluster_id": 440,
+    "project_ids": [],
+    "group_ids": [6886762810, 6952679837],
+    "issue_titles": ["SnubaRPCError: code: 500"],
+    "title": "Autofix trace fetching fails due to Snuba routing policy",
+    "description": "Autofix tasks fail when fetching trace trees for event analysis because Snuba's routing strategy rejects queries with allocation policy constraints, preventing issue summary generation.",
+    "tags": ["External System", "API", "Snuba", "Routing Policy", "Resource Limits"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9682365660780096,
+    "cluster_avg_similarity": 0.9682365660780096
+  },
+  {
+    "cluster_id": 441,
+    "project_ids": [],
+    "group_ids": [6887443647, 6965339062],
+    "issue_titles": [
+      "IntegrationError: Error Communicating with Azure DevOps (HTTP 404): VS402323: Work item type Microsoft.VSTS.WorkItemTypes.Bug does not exist in project a1b727ac-c1d6-4c10-bbfb-b10fa5d7c6b0 or you do not have permission to access it.",
+      "IntegrationError: Error Communicating with Azure DevOps (HTTP 404): VS800075: The project with id 'vstfs:///Classification/TeamProject/488a4ec0-daef-43f9-afcf-3e9eb0e32e9e' does not exist, or you do not have permission to access it."
+    ],
+    "title": "Azure DevOps project unavailable for work item creation",
+    "description": "Workflow engine action failed to create Azure DevOps work item because the stored project ID no longer exists or integration credentials lack access permissions.",
+    "tags": ["External System", "Configuration", "Azure DevOps", "Not Found"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.962559604533137,
+    "cluster_avg_similarity": 0.962559604533137
+  },
+  {
+    "cluster_id": 446,
+    "project_ids": [],
+    "group_ids": [6895752021, 6944727410],
+    "issue_titles": [
+      "ApiError",
+      "SlackApiError: The request to the Slack API failed. (url: https://www.slack.com/api/chat.unfurl)"
+    ],
+    "title": "Slack/Discord API payload serialization failure",
+    "description": "Integration payloads contain malformed data with Python object strings instead of JSON structures, causing API calls to fail with serialization errors.",
+    "tags": [
+      "External System",
+      "API",
+      "Serialization",
+      "Slack",
+      "Discord",
+      "Payload Malformation"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9581929272221374,
+    "cluster_avg_similarity": 0.9581929272221374
+  },
+  {
+    "cluster_id": 448,
+    "project_ids": [],
+    "group_ids": [6897002430, 6897503671],
+    "issue_titles": [
+      "ApiError: status=400 body={'detail': ErrorDetail(string='Cannot query apdex with a threshold parameter on the metrics dataset', code='parse_error')}",
+      "ApiError: status=400 body={'detail': ErrorDetail(string='\\n\"!has\" filter is not supported in this search.\\n', code='parse_error')}"
+    ],
+    "title": "Metric alert chart generation fails with wrong dataset",
+    "description": "Email notifications for performance metric alerts fail when building charts due to incorrect dataset mapping from PerformanceMetrics to 'metrics', causing valid performance tags to be rejected.",
+    "tags": [
+      "API",
+      "Configuration",
+      "Dataset Mapping",
+      "Metric Alerts",
+      "Email Notifications"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9651913617454941,
+    "cluster_avg_similarity": 0.9651913617454941
+  },
+  {
+    "cluster_id": 451,
+    "project_ids": [],
+    "group_ids": [6900302081, 7016155264],
+    "issue_titles": [
+      "ApiForbiddenError: {\"message\":\"Resource not accessible by integration\",\"documentation_url\":\"https://docs.github.com/rest/checks/runs#create-a-check-run\",\"status\":\"403\"}",
+      "IntegrationConfigurationError: GitHub App lacks permissions to create check runs. Please ensure the app has the required permissions and that the organization has accepted any updated permissions."
+    ],
+    "title": "GitHub App lacks check run permissions",
+    "description": "GitHub API returns 403 'Resource not accessible by integration' when attempting to create preprod status checks, indicating the GitHub App installation lacks the required 'checks' write permission for the repository.",
+    "tags": ["External System", "Authorization", "GitHub", "Permission Denied"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9848601010693177,
+    "cluster_avg_similarity": 0.9848601010693177
+  },
+  {
+    "cluster_id": 455,
+    "project_ids": [],
+    "group_ids": [6901433528, 6950824391, 7015335147],
+    "issue_titles": [
+      "ApiError: status=400 body={'detail': ErrorDetail(string='app_name is not a tag in the metrics dataset', code='parse_error')}",
+      "ApiError: status=400 body={'detail': ErrorDetail(string='Cannot query apdex with a threshold parameter on the metrics dataset', code='parse_error')}"
+    ],
+    "title": "Metric alert chart fails for apdex with threshold",
+    "description": "Chart generation for metric alerts using apdex with threshold parameters fails because the code incorrectly maps generic_metrics dataset to metrics dataset, which doesn't support parameterized apdex queries.",
+    "tags": ["API", "Configuration", "Metric Alert", "Dataset Compatibility", "Apdex"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.963650205780324,
+    "cluster_avg_similarity": 0.9652882373757108
+  },
+  {
+    "cluster_id": 456,
+    "project_ids": [],
+    "group_ids": [6904636886, 7002716279],
+    "issue_titles": ["TypeError: unhashable type: 'list'"],
+    "title": "Alert rule validation fails for failure_count aggregate",
+    "description": "The failure_count() function has a malformed aggregate structure that returns a nested list instead of a column name, causing unhashable type errors during alert rule validation.",
+    "tags": [
+      "API",
+      "Input Validation",
+      "Serialization",
+      "Alert Rules",
+      "Aggregate Functions"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9812592214759694,
+    "cluster_avg_similarity": 0.9812592214759694
+  },
+  {
+    "cluster_id": 460,
+    "project_ids": [],
+    "group_ids": [6906447794, 6906447795],
+    "issue_titles": [
+      "SnubaRPCError: code: 500",
+      "ExportError: Internal error. Please try again."
+    ],
+    "title": "Snuba RPC memory limit errors not handled as recoverable",
+    "description": "Data export tasks fail permanently when ClickHouse memory limits are exceeded via the RPC interface because SnubaRPCError exceptions don't parse error codes to determine recoverability.",
+    "tags": [
+      "External System",
+      "Resource Limits",
+      "Data Integrity",
+      "ClickHouse",
+      "Memory Limit Exceeded",
+      "Non-Recoverable Error"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9706446035282825,
+    "cluster_avg_similarity": 0.9706446035282825
+  },
+  {
+    "cluster_id": 468,
+    "project_ids": [],
+    "group_ids": [6910371222, 6941962034],
+    "issue_titles": [
+      "IntegrationError: Error Communicating with Azure DevOps (HTTP 400): The field 'State' contains the value 'To Do' that is not in the list of supported values",
+      "IntegrationError: Error Communicating with Azure DevOps (HTTP 400): The field 'State' contains the value 'Resolved' that is not in the list of supported values"
+    ],
+    "title": "Azure DevOps status sync fails with invalid state",
+    "description": "Integration attempts to set work item status to a value that is not valid for the specific work item type, causing Azure DevOps API to reject the request with HTTP 400.",
+    "tags": ["External System", "API", "Configuration", "Azure DevOps", "HTTP 400"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9660404309675387,
+    "cluster_avg_similarity": 0.9660404309675387
+  },
+  {
+    "cluster_id": 474,
+    "project_ids": [],
+    "group_ids": [6919087350, 6919934306, 6929156762, 6950833988, 7006684726, 7016370589],
+    "issue_titles": [
+      "IntegrationConfigurationError: {\"errorMessages\":[\"Action 101 is invalid\"],\"errors\":{}}",
+      "IntegrationConfigurationError: {\"errorMessages\":[\"An Assignee is required for all finished work.\"],\"errors\":{}}",
+      "ApiInvalidRequestError: {\"errorMessages\":[],\"errors\":{\"resolution\":\"Resolution is required.\"}}",
+      "IntegrationConfigurationError: {\"errorMessages\":[\"You should define estimation (Story Points).\"],\"errors\":{}}",
+      "IntegrationConfigurationError: {\"errorMessages\":[\"Please update story points (enter 0 if 0)\"],\"errors\":{}}"
+    ],
+    "title": "Jira status sync failing on required transition fields",
+    "description": "The sync_status_outbound task fails when attempting to transition Jira issues because it only sends the transition ID without providing values for required workflow fields like custom fields or validators that Jira has configured on the transition.",
+    "tags": ["External System", "API", "Jira", "Input Validation", "HTTP Error"],
+    "cluster_size": 6,
+    "cluster_min_similarity": 0.9467067159895758,
+    "cluster_avg_similarity": 0.9687448236676226
+  },
+  {
+    "cluster_id": 479,
+    "project_ids": [],
+    "group_ids": [6922543242, 6969839823],
+    "issue_titles": ["RetryError"],
+    "title": "PagerDuty/Jira workflow retrying rate limited requests",
+    "description": "Workflow actions are treating 429 rate limit responses from external APIs as retryable errors, causing tasks to retry immediately instead of backing off as required by rate limiting semantics.",
+    "tags": [
+      "External System",
+      "Queueing",
+      "Rate Limiting",
+      "Retries Exhausted",
+      "PagerDuty",
+      "Jira"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9573518578085564,
+    "cluster_avg_similarity": 0.9573518578085564
+  },
+  {
+    "cluster_id": 481,
+    "project_ids": [],
+    "group_ids": [6927466647, 6942141693],
+    "issue_titles": [
+      "HTTPError: 400 Client Error: Bad Request for url: https://api.codecov.io/sentry/internal/account/link/"
+    ],
+    "title": "Codecov API returning HTTP 400/500 on account linking",
+    "description": "GitHub-Codecov account linking task fails due to invalid request payload sent to Codecov API, with missing required fields like 'sentry_org_id' causing server-side errors.",
+    "tags": ["External System", "API", "Codecov", "HTTP Error", "Input Validation"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9661338499267633,
+    "cluster_avg_similarity": 0.9661338499267633
+  },
+  {
+    "cluster_id": 487,
+    "project_ids": [],
+    "group_ids": [6941958832, 6941958857],
+    "issue_titles": [
+      "SubscriptionError: transaction.duration is invalid for parameter 1 in p95. Its a string type field, but it must be one of these types: {'byte', 'millisecond', 'gibibyte', 'microsecond', 'mebibyte', 'exbibyte', 'currency', 'kilobyte', 'duration', 'number', 'percentage', 'p...",
+      "SubscriptionError: transaction.duration is invalid for parameter 1 in p95. Its a string type field, but it must be one of these types: {'week', 'byte', 'exabyte', 'gigabyte', 'exbibyte', 'duration', 'terabyte', 'hour', 'tebibyte', 'kibibyte', 'nanosecond', 'bit', 'millise..."
+    ],
+    "title": "EAP apdex function missing default duration parameter",
+    "description": "The apdex function in the Events Analytics Platform resolver requires both duration field and threshold arguments, but subscriptions are attempting to use shorthand syntax with only the threshold value, causing InvalidSearchQuery exceptions.",
+    "tags": [
+      "API",
+      "Input Validation",
+      "Configuration",
+      "Schema Migration",
+      "Invalid Arguments"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.976793082317585,
+    "cluster_avg_similarity": 0.976793082317585
+  },
+  {
+    "cluster_id": 504,
+    "project_ids": [],
+    "group_ids": [6952625620, 7017047800],
+    "issue_titles": [
+      "ApiError: status=404 body={'detail': ErrorDetail(string='The requested resource does not exist', code='error')}"
+    ],
+    "title": "Discord alert fails: missing AlertRuleDetector lookup",
+    "description": "Discord metric alert notifications are failing with 404 errors when fetching incident charts because AlertRuleDetector records are missing, causing the system to query with detector IDs instead of alert rule IDs.",
+    "tags": [
+      "Data Integrity",
+      "External System",
+      "Discord",
+      "Missing Record",
+      "Alert Rule Detector"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.97505644706708,
+    "cluster_avg_similarity": 0.97505644706708
+  },
+  {
+    "cluster_id": 521,
+    "project_ids": [],
+    "group_ids": [
+      6963221036, 6963221055, 6963221061, 6963221131, 6963223229, 7003895835, 7004048071
+    ],
+    "issue_titles": [
+      "OperationalError: connection to server at \"127.0.0.1\", port 6432 failed: Connection refused"
+    ],
+    "title": "Django PostgreSQL connection failure from async context",
+    "description": "Synchronous database operations are being attempted from within an async context, violating Django's sync-only requirements and causing connection failures to PostgreSQL on port 6432.",
+    "tags": [
+      "Database",
+      "Concurrency",
+      "Django",
+      "PostgreSQL",
+      "Async Context Violation"
+    ],
+    "cluster_size": 7,
+    "cluster_min_similarity": 0.92367587239804,
+    "cluster_avg_similarity": 0.9538393127475987
+  },
+  {
+    "cluster_id": 522,
+    "project_ids": [],
+    "group_ids": [6963221040, 6968621451],
+    "issue_titles": [
+      "OperationalError: connection to server at \"127.0.0.1\", port 6432 failed: Connection refused"
+    ],
+    "title": "PostgreSQL connection failure in webhook error handling",
+    "description": "Database connection attempts fail during exception capture in GitHub and Jira webhook processing. The error reporting mechanism itself fails when trying to record webhook handling failures, causing a cascading double-fault scenario.",
+    "tags": [
+      "Database",
+      "External System",
+      "PostgreSQL",
+      "Connection Reset",
+      "GitHub",
+      "Jira"
+    ],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9599660133986236,
+    "cluster_avg_similarity": 0.9599660133986236
+  },
+  {
+    "cluster_id": 538,
+    "project_ids": [],
+    "group_ids": [6971140901, 6982043701, 6982043752, 6982043777, 6982043778],
+    "issue_titles": [
+      "TransportError: Failed to retrieve http://metadata.google.internal/computeMetadata/v1/universe/universe_domain from the Google Compute Engine metadata service. Compute Engine Metadata server unavailable"
+    ],
+    "title": "GCS metadata service unavailable during file upload",
+    "description": "Google Cloud Storage client initialization fails when attempting to retrieve universe domain from the metadata service at metadata.google.internal, which is not accessible in the current environment. This affects replay recording and profile data uploads to GCS storage.",
+    "tags": [
+      "External System",
+      "Configuration",
+      "Google Cloud Storage",
+      "Transport Error",
+      "Metadata Service"
+    ],
+    "cluster_size": 5,
+    "cluster_min_similarity": 0.9444795482885083,
+    "cluster_avg_similarity": 0.959530178924213
+  },
+  {
+    "cluster_id": 539,
+    "project_ids": [],
+    "group_ids": [6971854669, 6977115376, 6977273384],
+    "issue_titles": [
+      "SnubaError: After processing, query is 164969 bytes, which is too long for ClickHouse to process. Max size is 131072 bytes.",
+      "SnubaError: After processing, query is 970475 bytes, which is too long for ClickHouse to process. Max size is 131072 bytes.",
+      "SnubaError: After processing, query is 136454 bytes, which is too long for ClickHouse to process. Max size is 131072 bytes."
+    ],
+    "title": "Snuba query exceeds ClickHouse 131KB limit via group merge expansion",
+    "description": "Group serializer queries are expanded through merge redirect preprocessing, causing IN clauses with 50+ group IDs to exceed ClickHouse's query size limit when fetching seen stats.",
+    "tags": ["Database", "External System", "Query Size Limit", "ClickHouse", "Snuba"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9676724623206162,
+    "cluster_avg_similarity": 0.9707425227598151
+  },
+  {
+    "cluster_id": 543,
+    "project_ids": [],
+    "group_ids": [6977926819, 6977946585, 6977955995, 6977974407],
+    "issue_titles": [
+      "ReadTimeoutError: HTTPConnectionPool(host='seer-web-summarization', port=80): Read timed out. (read timeout=15)"
+    ],
+    "title": "Seer spam detection timeout blocking feedback tasks",
+    "description": "Feedback spam detection calls to seer-web-summarization are timing out after 15 seconds, likely due to connection pool exhaustion (maxsize=10) under high concurrency from task workers.",
+    "tags": ["External System", "Networking", "Timeout", "Connection Pool", "Seer"],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9486968940787708,
+    "cluster_avg_similarity": 0.9629776290054096
+  },
+  {
+    "cluster_id": 545,
+    "project_ids": [],
+    "group_ids": [6977949148, 7014407024],
+    "issue_titles": [
+      "ReadTimeoutError: HTTPConnectionPool(host='seer-web-summarization', port=80): Read timed out. (read timeout=15)",
+      "ApiTimeoutError: Timed out attempting to reach host: api.vercel.com"
+    ],
+    "title": "Sequential Vercel API requests timing out during config",
+    "description": "Multiple sequential HTTP requests to Vercel API for environment variable configuration are exceeding the 30-second timeout, with the final request failing due to accumulated latency and potential connection reuse issues.",
+    "tags": ["External System", "API", "Networking", "Timeout", "Vercel"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9593623364086209,
+    "cluster_avg_similarity": 0.9593623364086209
+  },
+  {
+    "cluster_id": 546,
+    "project_ids": [],
+    "group_ids": [6977978467, 6977997432],
+    "issue_titles": [
+      "ReadTimeoutError: HTTPConnectionPool(host='seer-web-summarization', port=80): Read timed out. (read timeout=15)"
+    ],
+    "title": "Seer spam detection timeout during feedback processing",
+    "description": "The Seer spam detection service is failing to respond within the 15-second timeout when processing feedback messages, causing the spam check to fail during event post-processing.",
+    "tags": ["External System", "Networking", "Seer", "Timeout", "Feedback Processing"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9587482229595342,
+    "cluster_avg_similarity": 0.9587482229595342
+  },
+  {
+    "cluster_id": 548,
+    "project_ids": [],
+    "group_ids": [6981975256, 7003895622],
+    "issue_titles": [
+      "OperationalError: canceling statement due to user request",
+      "OperationalError: server closed the connection unexpectedly"
+    ],
+    "title": "PostgreSQL timeout during Sentry cleanup operations",
+    "description": "Long-running group deletion processes with sequential child table deletions are hitting idle-in-transaction timeouts, causing connection closures during bulk cleanup operations.",
+    "tags": ["Database", "Cleanup Operations", "PostgreSQL", "Idle Transaction Timeout"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9574465072495218,
+    "cluster_avg_similarity": 0.9574465072495218
+  },
+  {
+    "cluster_id": 549,
+    "project_ids": [],
+    "group_ids": [6982119219, 6996385989],
+    "issue_titles": ["Project.DoesNotExist: Project matching query does not exist."],
+    "title": "SDK crash detection project not found",
+    "description": "SDK crash monitoring is configured to report crashes to project ID 4505469596663808, but this project doesn't exist in the current Sentry deployment. This causes post-processing failures when SDK crashes are detected.",
+    "tags": ["Configuration", "Database", "SDK Crash Detection", "Project DoesNotExist"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9701672398819584,
+    "cluster_avg_similarity": 0.9701672398819584
+  },
+  {
+    "cluster_id": 552,
+    "project_ids": [],
+    "group_ids": [6983217934, 7011813887, 7014444250],
+    "issue_titles": [
+      "SubscriptionError: ReservedBudgetHistory not updated while recomputing reserved budget spend"
+    ],
+    "title": "Billing reserved budget lock acquisition timeout",
+    "description": "Usage buffer flushing fails when reserved budget lock cannot be acquired within timeout due to concurrent billing operations on the same subscription.",
+    "tags": ["Concurrency", "Queueing", "Lock Timeout", "Billing"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9664054035687533,
+    "cluster_avg_similarity": 0.972937531220231
+  },
+  {
+    "cluster_id": 569,
+    "project_ids": [],
+    "group_ids": [6997376086, 7001416547],
+    "issue_titles": ["RuntimeError: dictionary changed size during iteration"],
+    "title": "Kafka producer metrics race condition in thread pool",
+    "description": "The arroyo ConfluentProducer's metrics dictionary is being modified by delivery callbacks while another thread iterates over it, causing a race condition when processing outcomes from multiple consumer threads.",
+    "tags": ["Messaging", "Concurrency", "Kafka", "Dictionary Iteration"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9758311404181164,
+    "cluster_avg_similarity": 0.9758311404181164
+  },
+  {
+    "cluster_id": 593,
+    "project_ids": [],
+    "group_ids": [7001216615, 7014884435],
+    "issue_titles": [
+      "OperationalError: canceling statement due to user request",
+      "OperationalError: canceling statement due to statement timeout"
+    ],
+    "title": "PostgreSQL migration timeout on constraint changes",
+    "description": "Migration 0095 failed when dropping and recreating foreign key constraints on the workflow_engine_detectorgroup table, exceeding the 10-second statement timeout configured for zero-downtime migrations.",
+    "tags": ["Database", "Schema Migration", "PostgreSQL", "Timeout"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9568956422349393,
+    "cluster_avg_similarity": 0.9568956422349393
+  },
+  {
+    "cluster_id": 598,
+    "project_ids": [],
+    "group_ids": [7001535740, 7006047416, 7006860226, 7015264037],
+    "issue_titles": [
+      "ProcessingDeadlineExceeded: execution deadline of 5 seconds exceeded by sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook"
+    ],
+    "title": "Webhook task timeout during Redis connection init",
+    "description": "The send_resource_change_webhook task times out after successfully sending webhooks due to slow DNS resolution when lazily initializing Redis cluster connections within the 5-second task deadline.",
+    "tags": [
+      "Networking",
+      "Caching",
+      "DNS Resolution Failure",
+      "Redis",
+      "Timeout",
+      "Processing Deadline"
+    ],
+    "cluster_size": 4,
+    "cluster_min_similarity": 0.9701874351460437,
+    "cluster_avg_similarity": 0.9756189682522084
+  },
+  {
+    "cluster_id": 601,
+    "project_ids": [],
+    "group_ids": [7001690063, 7004758065, 7014887243],
+    "issue_titles": [
+      "ProcessingDeadlineExceeded: execution deadline of 60 seconds exceeded by getsentry.tasks.check_completed_spikes",
+      "ProcessingDeadlineExceeded: execution deadline of 5 seconds exceeded by sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
+      "ProcessingDeadlineExceeded: execution deadline of 120 seconds exceeded by getsentry.tasks.vercel_billing.send_vercel_billing_data"
+    ],
+    "title": "Task worker child process timeout accessing Django FK",
+    "description": "Django foreign key lazy-loading triggers database queries during task execution, causing multiprocessing worker child processes to exceed their processing deadlines and fail with KeyErrors when accessing cached relationships.",
+    "tags": ["Database", "Concurrency", "Django", "Timeout", "Multiprocessing"],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9525583563963889,
+    "cluster_avg_similarity": 0.9605950161581419
+  },
+  {
+    "cluster_id": 602,
+    "project_ids": [],
+    "group_ids": [7001742428, 7016470239],
+    "issue_titles": [
+      "DataCondition.MultipleObjectsReturned: get() returned more than one DataCondition -- it returned 2!"
+    ],
+    "title": "Workflow action serializer fails with multiple triggers",
+    "description": "The WorkflowEngineActionSerializer fails when an alert rule action is associated with multiple triggers (warning + critical) because the database query returns multiple detector triggers instead of a unique one.",
+    "tags": ["Serialization", "Database", "Django", "Multiple Objects Returned"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9606508630274281,
+    "cluster_avg_similarity": 0.9606508630274281
+  },
+  {
+    "cluster_id": 614,
+    "project_ids": [],
+    "group_ids": [7003973301, 7003973307, 7003973322],
+    "issue_titles": [
+      "OperationalError: connection to server at \"127.0.0.1\", port 6432 failed: Connection refused"
+    ],
+    "title": "Dashboard migration job failing on replica database connection",
+    "description": "The dashboards transactions rerun migration job is failing to connect to the usage_replica database on port 6432 during feature flag evaluation for organizations. The replica database is unavailable but the job requires subscription data from the cache layer to build feature evaluation context.",
+    "tags": [
+      "Database",
+      "Configuration",
+      "PostgreSQL",
+      "Connection Reset",
+      "Job Processing"
+    ],
+    "cluster_size": 3,
+    "cluster_min_similarity": 0.9634936381354564,
+    "cluster_avg_similarity": 0.9677969178216833
+  },
+  {
+    "cluster_id": 637,
+    "project_ids": [],
+    "group_ids": [7012239361, 7014169330],
+    "issue_titles": [
+      "ApiError: status=400 body={'detail': ErrorDetail(string='Your interval and date range would create too many results. Use a larger interval, or a smaller date range.', code='parse_error')}"
+    ],
+    "title": "Sessions API limit exceeded for crash-free alerts",
+    "description": "The chart generation for crash-free metric alerts uses the alert's fixed time window (60m) as query interval over extended date ranges (59+ days), creating too many data points and exceeding the sessions API's 1,000 point limit.",
+    "tags": ["API", "Rate Limiting", "Metric Alerts", "Sessions", "Chart Generation"],
+    "cluster_size": 2,
+    "cluster_min_similarity": 0.9552787463285972,
+    "cluster_avg_similarity": 0.9552787463285972
+  }
+]
