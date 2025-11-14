@@ -298,7 +298,9 @@ class OffsetPaginator(PaginatorLike):
         if known_hits is not None:
             hits = known_hits
         elif count_hits:
-            hits = self.count_hits(max_hits=MAX_HITS_LIMIT)
+            if max_hits is None:
+                max_hits = MAX_HITS_LIMIT
+            hits = self.count_hits(max_hits)
         else:
             hits = None
 
