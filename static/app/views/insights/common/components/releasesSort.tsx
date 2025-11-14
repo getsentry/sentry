@@ -28,7 +28,8 @@ export function ReleasesSort({environments, sortBy, onChange}: Props) {
       trigger={triggerProps => (
         <Button
           {...triggerProps}
-          size="xs"
+          size="md"
+          style={{paddingLeft: 12}}
           icon={<IconSort />}
           title={t('Sort Releases')}
           aria-label={t('Sort Releases')}
