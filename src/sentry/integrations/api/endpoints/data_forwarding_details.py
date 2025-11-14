@@ -100,13 +100,13 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
 
     def _update_data_forwarder_config(
         self, request: Request, organization: Organization, data_forwarder: DataForwarder
-    ) -> Response:
+    ) -> Response | None:
         """
         Request body: {"is_enabled": true, "enroll_new_projects": true, "provider": "segment", "config": {...}, "project_ids": [1, 2, 3]}
 
         Returns:
-            Response: 200 OK with serialized data forwarder on success,
-                     400 Bad Request with validation errors on failure
+            Response: 200 OK with serialized data forwarder on success
+            None: If validation fails (signals caller to try other operations)
         """
         data: dict[str, Any] = request.data
         data["organization_id"] = organization.id
@@ -120,7 +120,8 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
                 serialize(data_forwarder, request.user),
                 status=status.HTTP_200_OK,
             )
-        return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Validation failed - return None to signal caller ddto try other operations
+        return None
 
     def _validate_enrollment_changes(
         self,
@@ -303,10 +304,6 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         # Determine operation type based on request body
         has_project_ids = "project_ids" in request.data
         has_project_id = "project_id" in request.data
-        has_config_fields = any(
-            key in request.data
-            for key in ["provider", "config", "is_enabled", "enroll_new_projects"]
-        )
 
         if has_project_ids and has_project_id:
             raise serializers.ValidationError(
@@ -314,11 +311,15 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
                 "Use 'project_ids' for bulk enrollment or 'project_id' with 'overrides' for single project update."
             )
 
-        # org:write users can perform all operations, try main config update first
-        if request.access.has_scope("org:write") and has_config_fields:
-            return self._update_data_forwarder_config(request, organization, data_forwarder)
+        # org:write users can perform all operations
+        # Try to update main config first - if serializer is valid, use that
+        # Otherwise fall through to project-specific operations
+        if request.access.has_scope("org:write"):
+            response = self._update_data_forwarder_config(request, organization, data_forwarder)
+            if response is not None:
+                return response
 
-        # Project-specific operations (both org:write and project:write users)
+        # Project-specific operations
         if has_project_ids:
             return self._update_enrollment(request, organization, data_forwarder)
         elif has_project_id:
