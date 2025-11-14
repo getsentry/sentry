@@ -54,7 +54,7 @@ class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
                 .values_list("release_id", flat=True)
             )[:1000]
             commit = ReleaseCommit.objects.filter(
-                organization_id=project.organization_id, release__id__in=release_ids
+                organization_id=project.organization_id, release_id__in=release_ids
             ).exists()
             cache.set(commit_key, commit, 3600 if commit else 60)
 
