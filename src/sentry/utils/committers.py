@@ -13,7 +13,10 @@ from django.db.models import Q
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author, NonMappableUser
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.types import ExternalProviders
 from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
@@ -453,15 +456,6 @@ def get_github_username_for_user(user: Any, organization_id: int) -> str | None:
     Returns:
         GitHub username (without @ prefix) or None if no mapping found
     """
-    import logging
-
-    from sentry.integrations.models.external_actor import ExternalActor
-    from sentry.integrations.types import ExternalProviders
-    from sentry.models.commitauthor import CommitAuthor
-    from sentry.users.services.user.service import user_service
-
-    logger = logging.getLogger(__name__)
-
     # Method 1: Check ExternalActor for direct user→GitHub mapping
     external_actor: ExternalActor | None = (
         ExternalActor.objects.filter(
@@ -478,17 +472,7 @@ def get_github_username_for_user(user: Any, organization_id: int) -> str | None:
 
     if external_actor and external_actor.external_name:
         username = external_actor.external_name
-        username = username[1:] if username.startswith("@") else username
-        logger.info(
-            "github_username_resolved_from_external_actor",
-            extra={
-                "user_id": user.id,
-                "organization_id": organization_id,
-                "username": username,
-                "source": "external_actor",
-            },
-        )
-        return username
+        return username[1:] if username.startswith("@") else username
 
     # Method 2: Check CommitAuthor by email matching (like suspect commits does)
     # Get all verified emails for this user
@@ -524,23 +508,6 @@ def get_github_username_for_user(user: Any, organization_id: int) -> str | None:
         if commit_author:
             commit_username = commit_author.get_username_from_external_id()
             if commit_username:
-                logger.info(
-                    "github_username_resolved_from_commit_author",
-                    extra={
-                        "user_id": user.id,
-                        "organization_id": organization_id,
-                        "username": commit_username,
-                        "source": "commit_author",
-                    },
-                )
                 return commit_username
 
-    logger.info(
-        "github_username_not_found",
-        extra={
-            "user_id": user.id,
-            "organization_id": organization_id,
-            "source": "none",
-        },
-    )
     return None
