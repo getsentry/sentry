@@ -37,7 +37,13 @@ export default function ReplayBadge({replay}: Props) {
   const timestampType = prefs.timestampType;
 
   const [isLive, setIsLive] = useState(
-    Date.now() < getReplayExpiresAtMs(replay.started_at)
+    // We check for getLiveDurationMs to avoid a flicker.
+
+    // There can exist a time where the replay hasn't expired (Date.now() < started_at + 1 hour), in which case the isLive would show True,
+    // but the liveDuration is 0 (Date.now() > finished_at + 5 minutes), so the setTimeout, having a live duration of 0, would immediately
+    // set isLive to false and cause this flicker
+    Date.now() < getReplayExpiresAtMs(replay.started_at) &&
+      getLiveDurationMs(replay.finished_at) > 0
   );
 
   const {start: startTimeout} = useTimeout({
