@@ -659,32 +659,6 @@ def post_process_group(
             tags=metric_tags,
         )
 
-        if not is_reprocessed:
-            received_at = event.data.get("received")
-            saved_at = event.data.get("nodestore_insert")
-            post_processed_at = time()
-
-            if saved_at:
-                metrics.timing(
-                    "events.saved_to_post_processed",
-                    post_processed_at - saved_at,
-                    instance=event.data["platform"],
-                    tags=metric_tags,
-                )
-            else:
-                metrics.incr("events.missing_nodestore_insert", tags=metric_tags)
-
-            if received_at:
-                metrics.timing(
-                    "events.time-to-post-process",
-                    post_processed_at - received_at,
-                    instance=event.data["platform"],
-                    tags=metric_tags,
-                )
-
-            else:
-                metrics.incr("events.missing_received", tags=metric_tags)
-
 
 def run_post_process_job(job: PostProcessJob) -> None:
     group_event = job["event"]
@@ -1628,7 +1602,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
 
-    # Only run on issues with no existing scan
+    # Only run on issues with no existing scan - TODO: Update condition for triage signals V0
     if group.seer_fixability_score is not None:
         return
 
@@ -1660,6 +1634,13 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     ):
         return
 
+    # Check if automation has already been queued or completed for this group
+    # seer_autofix_last_triggered is set when trigger_autofix is successfully started.
+    # Use cache with short TTL to hold lock for a short since it takes a few minutes to set seer_autofix_last_triggeredes
+    cache_key = f"seer_automation_queued:{group.id}"
+    if cache.get(cache_key) or group.seer_autofix_last_triggered is not None:
+        return
+
     # Don't run if there's already a task in progress for this issue
     lock_key, lock_name = get_issue_summary_lock_key(group.id)
     lock = locks.get(lock_key, duration=1, name=lock_name)
@@ -1682,6 +1663,11 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     from sentry.seer.autofix.utils import is_seer_scanner_rate_limited
 
     if is_seer_scanner_rate_limited(project, group.organization):
+        return
+
+    # cache.add uses Redis SETNX which atomically sets the key only if it doesn't exist
+    # Returns False if another process already set the key, ensuring only one process proceeds
+    if not cache.add(cache_key, True, timeout=600):  # 10 minute
         return
 
     start_seer_automation.delay(group.id)

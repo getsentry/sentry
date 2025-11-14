@@ -192,28 +192,6 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         )
         assert event_processing_store.get(cache_key) is None
 
-    @patch("sentry.utils.metrics.timing")
-    @patch("sentry.tasks.post_process.logger")
-    def test_time_to_process_metric(
-        self, logger_mock: MagicMock, metric_timing_mock: MagicMock
-    ) -> None:
-        event = self.create_event(data={}, project_id=self.project.id)
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-        metric_timing_mock.assert_any_call(
-            "events.time-to-post-process",
-            mock.ANY,
-            instance=mock.ANY,
-            tags={"occurrence_type": mock.ANY},
-        )
-        assert "tasks.post_process.old_time_to_post_process" not in [
-            args[0] for args in logger_mock.warning.call_args_list
-        ]
-
 
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     def _create_event(
@@ -3052,6 +3030,137 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
         )
 
         mock_start_seer_automation.assert_not_called()
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    def test_kick_off_seer_automation_skips_when_seer_autofix_last_triggered_set(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        """Test that automation is skipped when group.seer_autofix_last_triggered is already set"""
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Set seer_autofix_last_triggered on the group to simulate autofix already triggered
+        group = event.group
+        group.seer_autofix_last_triggered = timezone.now()
+        group.save()
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_not_called()
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    def test_kick_off_seer_automation_skips_when_cache_key_exists(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        """Test that automation is skipped when cache key indicates it's already queued"""
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Set cache key to simulate automation already queued
+        cache_key = f"seer_automation_queued:{event.group.id}"
+        cache.set(cache_key, True, timeout=600)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_not_called()
+
+        # Cleanup
+        cache.delete(cache_key)
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    def test_kick_off_seer_automation_uses_atomic_cache_add(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        """Test that cache.add atomic operation prevents race conditions"""
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        cache_key = f"seer_automation_queued:{event.group.id}"
+
+        with patch("sentry.tasks.post_process.cache") as mock_cache:
+            # Simulate cache.get returning None (not in cache)
+            # but cache.add returning False (another process set it)
+            mock_cache.get.return_value = None
+            mock_cache.add.return_value = False
+
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+
+            # Should check cache but not call automation due to cache.add returning False
+            mock_cache.get.assert_called()
+            mock_cache.add.assert_called_once_with(cache_key, True, timeout=600)
+            mock_start_seer_automation.assert_not_called()
+
+    @patch(
+        "sentry.seer.seer_setup.get_seer_org_acknowledgement",
+        return_value=True,
+    )
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    def test_kick_off_seer_automation_proceeds_when_cache_add_succeeds(
+        self, mock_start_seer_automation, mock_get_seer_org_acknowledgement
+    ):
+        """Test that automation proceeds when cache.add succeeds (no race condition)"""
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        # Ensure seer_autofix_last_triggered is not set
+        assert event.group.seer_autofix_last_triggered is None
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        # Should successfully queue automation
+        mock_start_seer_automation.assert_called_once_with(event.group.id)
+
+        # Cleanup
+        cache_key = f"seer_automation_queued:{event.group.id}"
+        cache.delete(cache_key)
 
 
 class PostProcessGroupErrorTest(

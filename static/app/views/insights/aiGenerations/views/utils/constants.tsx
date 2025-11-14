@@ -1,4 +1,4 @@
-import {getAIGenerationsFilter} from 'sentry/views/insights/agents/utils/query';
+import {getAIGenerationsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import type {SpanFields} from 'sentry/views/insights/types';
 
 export const GENERATIONS_COUNT_FIELD = 'span.duration';

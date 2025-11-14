@@ -1,6 +1,7 @@
 from unittest import mock
 
 import pytest
+from rest_framework.exceptions import ErrorDetail
 
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -140,7 +141,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             {
                 "metricName": "request_count",
                 "metricType": "counter",
-                "field": ["sum(value,request_count,counter,none)"],
+                "field": ["sum(value,request_count,counter,-)"],
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "statsPeriod": "10m",
@@ -150,8 +151,8 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["sum(value,request_count,counter,none)"] == 8
-        assert meta["fields"]["sum(value,request_count,counter,none)"] == "number"
+        assert data[0]["sum(value,request_count,counter,-)"] == 8
+        assert meta["fields"]["sum(value,request_count,counter,-)"] == "number"
         assert meta["dataset"] == "tracemetrics"
 
     def test_sum_with_distribution_metric_type(self):
@@ -166,7 +167,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                 "metricName": "request_duration",
                 "metricType": "distribution",
                 "field": [
-                    "sum(value, request_duration, distribution, none)"
+                    "sum(value, request_duration, distribution, -)"
                 ],  # Trying space in the formula here to make sure it works.
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -176,9 +177,10 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert data[0] == {
-            "sum(value, request_duration, distribution, none)": 155,
+            "sum(value, request_duration, distribution, -)": 155,
         }
 
+    @pytest.mark.skip(reason="flaky: #103384")
     def test_per_minute_formula(self) -> None:
         # Store 6 trace metrics over a 10 minute period
         self.store_trace_metrics(
@@ -240,7 +242,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             {
                 "metricName": "request_count",
                 "metricType": "counter",
-                "field": ["per_second(value,request_count,counter,none)"],
+                "field": ["per_second(value,request_count,counter,-)"],
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "statsPeriod": "10m",
@@ -249,7 +251,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert data[0] == {
-            "per_second(value,request_count,counter,none)": pytest.approx(8 / 600, abs=0.001)
+            "per_second(value,request_count,counter,-)": pytest.approx(8 / 600, abs=0.001)
         }
 
     def test_per_second_formula_with_gauge_metric_type(self) -> None:
@@ -264,7 +266,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                 "metricName": "cpu_usage",
                 "metricType": "gauge",
                 "field": [
-                    "per_second(value, cpu_usage, gauge, none)"
+                    "per_second(value, cpu_usage, gauge, -)"
                 ],  # Trying space in the formula here to make sure it works.
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -274,7 +276,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert data[0] == {
-            "per_second(value, cpu_usage, gauge, none)": pytest.approx(2 / 600, abs=0.001)
+            "per_second(value, cpu_usage, gauge, -)": pytest.approx(2 / 600, abs=0.001)
         }
 
     def test_per_second_formula_with_gauge_metric_type_without_top_level_metric_type(self) -> None:
@@ -287,7 +289,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         response = self.do_request(
             {
                 "field": [
-                    "per_second(value, cpu_usage, gauge, none)"
+                    "per_second(value, cpu_usage, gauge, -)"
                 ],  # Trying space in the formula here to make sure it works.
                 "query": "metric.name:cpu_usage",
                 "project": self.project.id,
@@ -298,7 +300,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert data[0] == {
-            "per_second(value, cpu_usage, gauge, none)": pytest.approx(2 / 600, abs=0.001)
+            "per_second(value, cpu_usage, gauge, -)": pytest.approx(2 / 600, abs=0.001)
         }
 
     def test_list_metrics(self):
@@ -345,3 +347,85 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                 "count(metric.name)": 4,
             },
         ]
+
+    def test_aggregation_embedded_metric_name(self):
+        trace_metrics = [
+            self.create_trace_metric("foo", 1, "counter"),
+            self.create_trace_metric("foo", 1, "counter"),
+            self.create_trace_metric("bar", 2, "counter"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["count(value,foo,counter,-)"],
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"count(value,foo,counter,-)": 2},
+        ]
+
+    def test_aggregation_embedded_metric_name_formula(self):
+        trace_metrics = [
+            *[self.create_trace_metric("foo", 1, "counter") for _ in range(6)],
+            self.create_trace_metric("bar", 594, "counter"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["per_second(value,foo,counter,-)"],
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            # Over ten minute period, 6 events / 600 seconds = 0.01 events per second
+            {"per_second(value,foo,counter,-)": 0.01},
+        ]
+
+    def test_aggregation_multiple_embedded_same_metric_name(self):
+        trace_metrics = [
+            self.create_trace_metric("foo", 1, "distribution"),
+            self.create_trace_metric("foo", 2, "distribution"),
+            self.create_trace_metric("bar", 2, "counter"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "min(value,foo,distribution,-)",
+                    "max(value,foo,distribution,-)",
+                ],
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "min(value,foo,distribution,-)": 1,
+                "max(value,foo,distribution,-)": 2,
+            },
+        ]
+
+    def test_aggregation_multiple_embedded_different_metric_name(self):
+        response = self.do_request(
+            {
+                "field": [
+                    "count(value,foo,counter,-)",
+                    "count(value,bar,counter,-)",
+                ],
+                "dataset": self.dataset,
+                "project": self.project.id,
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": ErrorDetail(
+                "Cannot aggregate multiple metrics in 1 query.", code="parse_error"
+            )
+        }

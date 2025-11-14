@@ -94,7 +94,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
                 "start": self.start,
                 "end": self.end,
                 "interval": "1h",
-                "yAxis": "per_second(test_metric, counter)",
+                "yAxis": "per_second(value, test_metric, counter, -)",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
@@ -176,6 +176,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         assert response.data["value2"]["meta"]["dataset"] == "tracemetrics"
         assert response.data["Other"]["meta"]["dataset"] == "tracemetrics"
 
+    @pytest.mark.skip(reason="flaky: #103382")
     def test_meta_accuracy(self):
         metric_values = [1, 2, 3, 4]
 

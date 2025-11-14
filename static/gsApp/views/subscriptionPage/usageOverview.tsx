@@ -57,6 +57,7 @@ import {
   getPotentialProductTrial,
   getReservedBudgetCategoryForAddOn,
   MILLISECONDS_IN_HOUR,
+  supportsPayg,
 } from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
@@ -274,18 +275,10 @@ function UsageOverviewTable({subscription, organization, usageData}: UsageOvervi
       column =>
         (subscription.canSelfServe ||
           !column.key.endsWith('Spend') ||
-          ((subscription.onDemandInvoiced || subscription.onDemandInvoicedManual) &&
-            column.key === 'budgetSpend')) &&
+          (supportsPayg(subscription) && column.key === 'budgetSpend')) &&
         (hasAnyPotentialOrActiveProductTrial || column.key !== 'trialInfo')
     );
-  }, [
-    subscription.planDetails,
-    subscription.productTrials,
-    subscription.canSelfServe,
-    subscription.onDemandInvoiced,
-    subscription.onDemandInvoicedManual,
-    isXlScreen,
-  ]);
+  }, [subscription, isXlScreen]);
 
   // TODO(isabella): refactor this to have better types
   const productData: Array<{
