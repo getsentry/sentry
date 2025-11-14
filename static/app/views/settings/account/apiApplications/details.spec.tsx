@@ -25,13 +25,12 @@ describe('ApiApplications', () => {
     });
 
     render(<ApiApplicationDetails />, {
-      router: {
-        params: {
-          appId: 'abcd',
+      initialRouterConfig: {
+        route: '/settings/account/api-applications/:appId/',
+        location: {
+          pathname: '/settings/account/api-applications/abcd/',
         },
       },
-
-      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -81,13 +80,12 @@ describe('ApiApplications', () => {
     });
 
     render(<ApiApplicationDetails />, {
-      router: {
-        params: {
-          appId: 'abcd',
+      initialRouterConfig: {
+        route: '/settings/account/api-applications/:appId/',
+        location: {
+          pathname: '/settings/account/api-applications/abcd/',
         },
       },
-
-      deprecatedRouterMocks: true,
     });
     renderGlobalModal();
 

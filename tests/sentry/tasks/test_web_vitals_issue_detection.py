@@ -658,3 +658,29 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
                 call_args_list[0].kwargs["event_data"]["contexts"]["trace"]["trace_id"]
                 == p75_span["trace_id"]
             )
+
+    @patch("sentry.tasks.web_vitals_issue_detection.detect_web_vitals_issues_for_project.delay")
+    @patch("sentry.tasks.web_vitals_issue_detection.get_merged_settings")
+    def test_run_detection_does_not_run_for_project_when_user_has_disabled(
+        self, mock_get_merged_settings, mock_detect_web_vitals_issues_for_project
+    ):
+        mock_get_merged_settings.return_value = {
+            "web_vitals_detection_enabled": False,
+        }
+        project = self.create_project()
+
+        with (
+            self.mock_seer_ack(),
+            self.mock_code_mapping(),
+            self.options(
+                {
+                    "issue-detection.web-vitals-detection.enabled": True,
+                    "issue-detection.web-vitals-detection.projects-allowlist": [project.id],
+                }
+            ),
+            self.feature("organizations:gen-ai-features"),
+            TaskRunner(),
+        ):
+            run_web_vitals_issue_detection()
+
+            assert not mock_detect_web_vitals_issues_for_project.called

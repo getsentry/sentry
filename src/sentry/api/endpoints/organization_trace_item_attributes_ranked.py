@@ -10,6 +10,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     StatsType,
     TraceItemStatsRequest,
 )
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -51,9 +52,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
         except NoProjects:
             return Response({"rankedAttributes": []})
 
-        aggregate_extrapolation = request.GET.get("aggregateExtrapolation") == "1"
         resolver_config = SearchResolverConfig(
-            disable_aggregate_extrapolation=not aggregate_extrapolation
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE
         )
 
         resolver = SearchResolver(

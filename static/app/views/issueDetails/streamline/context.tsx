@@ -53,6 +53,7 @@ export const enum SectionKey {
 
   BREADCRUMBS = 'breadcrumbs',
   LOGS = 'logs',
+  METRICS = 'metrics',
   SPAN_ATTRIBUTES = 'span-attributes',
   /**
    * Also called images loaded

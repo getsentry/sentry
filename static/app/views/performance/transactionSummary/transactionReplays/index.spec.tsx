@@ -72,7 +72,6 @@ const renderComponent = ({
 
 describe('TransactionReplays', () => {
   let eventsMockApi: jest.Mock<any, any>;
-  let replaysMockApi: jest.Mock<any, any>;
   beforeEach(() => {
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -92,13 +91,6 @@ describe('TransactionReplays', () => {
     });
     eventsMockApi = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-      },
-      statusCode: 200,
-    });
-    replaysMockApi = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/replays/',
       body: {
         data: [],
       },
@@ -140,29 +132,10 @@ describe('TransactionReplays', () => {
     });
   });
 
-  it('should snapshot empty state', async () => {
-    const mockApi = MockApiClient.addMockResponse({
-      url: mockReplaysUrl,
-      body: {
-        data: [],
-      },
-      statusCode: 200,
-    });
-
-    renderComponent();
-
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
-    });
-  });
-
   it('should show empty message when no replays are found', async () => {
     renderComponent();
 
-    await waitFor(() => {
-      expect(replaysMockApi).toHaveBeenCalledTimes(1);
-    });
-    expect(screen.getByText('No replays found')).toBeInTheDocument();
+    await screen.findByText('No replays found');
   });
 
   it('should show loading indicator when loading replays', async () => {
@@ -234,7 +207,7 @@ describe('TransactionReplays', () => {
     expect(screen.getAllByText('testDisplayName')).toHaveLength(2);
 
     const expectedQuery =
-      'project=1&query=test&referrer=replays%2F&statsPeriod=14d&yAxis=count%28%29';
+      'playlistEnd=2022-09-28T23%3A29%3A13&playlistStart=2022-09-14T23%3A29%3A13&project=1&query=test&referrer=replays%2F&yAxis=count%28%29';
     // Expect the first row to have the correct href
     expect(
       screen.getByRole('link', {

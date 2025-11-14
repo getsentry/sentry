@@ -34,6 +34,7 @@ class TreemapResults(BaseModel):
 
 # Keep in sync with https://github.com/getsentry/launchpad/blob/main/src/launchpad/size/models/common.py#L92
 class SizeAnalysisResults(BaseModel):
+    analysis_duration: float
     download_size: int
     install_size: int
     treemap: TreemapResults | None
@@ -73,3 +74,6 @@ class SizeMetricDiffItem(BaseModel):
 class ComparisonResults(BaseModel):
     diff_items: list[DiffItem]
     size_metric_diff_item: SizeMetricDiffItem
+    skipped_diff_item_comparison: bool
+    head_analysis_version: str | None
+    base_analysis_version: str | None

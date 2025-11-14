@@ -1,7 +1,5 @@
 ---
-created: '2025-11-05T23:19:01.562877+00:00'
-creator: sentry
-source: tests/sentry/grouping/test_grouping_info.py
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
 ---
 {
   "grouping_config": "newstyle:2025-11-21",
@@ -308,7 +306,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:internals -group)",
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -339,7 +337,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:internals -group)",
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -370,7 +368,7 @@ source: tests/sentry/grouping/test_grouping_info.py
                   },
                   {
                     "contributes": false,
-                    "hint": "ignored by stack trace rule (category:internals -group)",
+                    "hint": "ignored by built-in stack trace rule (category:internals -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
