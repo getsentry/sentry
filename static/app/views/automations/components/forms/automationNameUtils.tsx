@@ -45,7 +45,7 @@ export function getAutomationName(builderState: AutomationBuilderState): string 
   const allActions = builderState.actionFilters.flatMap(group => group.actions || []);
 
   if (allActions.length === 0) {
-    return 'New Alert';
+    return '';
   }
 
   const count = allActions.length;
@@ -78,7 +78,7 @@ export function getAutomationName(builderState: AutomationBuilderState): string 
   // Fallback if even a single action is too long
   if (actionsToInclude === 0) {
     if (count === 0) {
-      automationName = 'New Alert';
+      automationName = '';
     } else {
       automationName = t('New Alert (%s actions)', count);
     }
